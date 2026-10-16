@@ -1,0 +1,15 @@
+{
+  "audit_commit": "fc796830cf336655bebf63b591fe0fd36cdd4310",
+  "repair_tasks": 12,
+  "acceptance_specifications": 40,
+  "findings": 18,
+  "proposed_rust_tests_not_executed": 10,
+  "weighted_scope_estimate": 49.3,
+  "validation_scope": "package structure, graph, references and arithmetic only",
+  "rust_build_executed": false,
+  "rust_regressions_executed": false,
+  "live_provider_or_mcp_called": false,
+  "remote_repository_modified": false,
+  "proposed_regression_public_api_signatures_checked": true,
+  "extra_graph_check": "Additive schema/DAG checked with previously generated local 31-task kit; actual current worktree must run its check_docs after explicit merge."
+}

@@ -1,0 +1,36 @@
+# T44 — bounded tool-preview consumer slice
+
+## Result
+Generic/MCP default collapse, header-only hover/click, bounded parameters/body
+and second-click collapse; failed detail and denied handling follow pinned owner
+semantics. Structured body excludes only generated model guidance; literal
+markers/legacy data survive. Shell viewing loss is separate from genuine producer/
+capture/abnormal facts. Compact indicator and existing bounded `/cards` typed
+details/page caption are truthful, including interrupted user-anchored turns.
+Receipt: evidence/tui/tool-preview-presentation.md. T44 remains ACTIVE.
+
+## Checks
+Current final4 fmt/strict workspace Clippy, workspace1728/0/11 (46 records), normal
+debug/release/help and actual release startup/discovery PASS. Actual paired pinned
+attempt012 has14 stages per side, both PASS_BEHAVIOR_ONLY, six requests/four effects/
+three real MCP calls unchanged through reopen/restart; native operation/capture
+facts and artifact hashes unchanged, plus exactly one real17-byte Shell effect
+counter line and unchanged bytes/hash. Two native-only explicit resource-detail
+frames include real240-byte paging. All28 full unmasked paired grid/PNG comparisons
+are DIFFERENT, not visual PASS. Raw VT/privacy/approval/caps/replay guards remain.
+
+## Risks
+No full VIS16/VIS17/VIS31/R6/V09/T44 PASS. Final-cursor equality cannot establish
+phantom-caret suppression or preserved blink. Actual history multi-page and
+capture-fault receipts remain separate; current capture does not replace them.
+No RAW/provider rewrite, marker regex stripping, ordinary expansion cold reader,
+new store/framework, grant/cap/timeout/baseline/ignore weakening or paid campaign.
+AUTH06 deferred, original24/24/Go13/24 and `.opencode/` untouched.
+
+## Next
+Commit/push the reviewed qualified slice. Continue at the terminal frame/cursor
+output boundary for frozen phantom-caret plus prompt-blink VIS16/VIS31: actual
+ordering/fragment/error/fallback trace and running OC2/native blink-enabled idle,
+continuous hover/repaint and restored input, at least3 full cycles per state,
+nonblinking/default controls. Then remaining frozen styled/temporal/interaction
+outcomes and final current-source gates; no task finish before full acceptance.

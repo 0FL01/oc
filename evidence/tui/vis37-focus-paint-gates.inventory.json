@@ -1,0 +1,53 @@
+{
+  "archive_sha256": "3ebeff6befd6ac64385590185d025a02f6cfece36c4af773a8512ebc991a2caa",
+  "archive_bytes": 6308,
+  "tar_sha256": "855b4907e5e74f97eba35f7a59b7d1b000ed794a4e9c85bf67150bb59a68da34",
+  "tar_bytes": 71680,
+  "inventory": {
+    "members": 27,
+    "logical_bytes": 50234,
+    "member_inventory_sha256": "48ac2da039470b10912eb5330b1e3ad408d2dcd8420a6c0e77dbd9bf8c8b4ef1",
+    "same_side_png_aliases": 0
+  },
+  "gate_labels": [
+    "cursor-vt-diagnostic",
+    "cursor-focus-guard-red",
+    "cursor-focus-guard-green",
+    "cursor-root-python",
+    "cursor-r5-measure",
+    "cursor-r5-independent-before",
+    "cursor-r5-independent-before-complete",
+    "cursor-r5-pack",
+    "cursor-r5-audit",
+    "cursor-r5-independent-after",
+    "cursor-docs-final",
+    "cursor-progress-final"
+  ],
+  "manual_inverse_xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 6270,
+        "uncompressed_bytes": 71680,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "855b4907e5e74f97eba35f7a59b7d1b000ed794a4e9c85bf67150bb59a68da34"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 6284
+  },
+  "helper_sha256": "f678551e1567433c202fd429455db1f87af13bdb183b71ff081fe7638795528a",
+  "memory": {
+    "VmPeak_bytes": 238080000,
+    "VmSize_bytes": 61108224,
+    "VmHWM_bytes": 64716800,
+    "VmRSS_bytes": 30515200
+  }
+}

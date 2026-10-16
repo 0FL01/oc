@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ full original logs; independent manual inverse",
+  "archive_sha256": "1a044ef28e39050238fc6cdcae6263ee229db76ec3f422844df61ce69f967036",
+  "archive_bytes": 61052,
+  "tar_sha256": "54b2cb59a3d6aee21541a4f8e57216150a7405031b37e1572e2d851cebaa251c",
+  "tar_bytes": 409600,
+  "inventory": {
+    "members": 102,
+    "logical_bytes": 323382,
+    "member_inventory_sha256": "be059d744640d68a6b421b6beb78ad4bd7cf9ee62513bd431d0c4360465d91b0",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "vis36-auto-alias-actual-complete": 0,
+    "vis36-auto-alias-effects": 0,
+    "vis36-auto-alias-green": 0,
+    "vis36-auto-alias-question": 0,
+    "vis36-auto-alias-red": 101,
+    "vis36-auto-audit": 0,
+    "vis36-auto-clippy-final": 0,
+    "vis36-auto-clippy": 0,
+    "vis36-auto-debug-help": 0,
+    "vis36-auto-debug-locked": 0,
+    "vis36-auto-debug-ordinary": 0,
+    "vis36-auto-docs-final": 0,
+    "vis36-auto-fmt": 0,
+    "vis36-auto-independent-after-complete": 0,
+    "vis36-auto-independent-after-qualified": 1,
+    "vis36-auto-independent-after": 1,
+    "vis36-auto-independent-before": 0,
+    "vis36-auto-independent-facts-bound": 0,
+    "vis36-auto-independent-facts-generations": 1,
+    "vis36-auto-independent-facts": 1,
+    "vis36-auto-measure": 0,
+    "vis36-auto-owner-binary": 0,
+    "vis36-auto-owner-core": 0,
+    "vis36-auto-pack": 0,
+    "vis36-auto-progress-final": 0,
+    "vis36-auto-python-qualified": 0,
+    "vis36-auto-python": 0,
+    "vis36-auto-release-aud32": 0,
+    "vis36-auto-release-build": 0,
+    "vis36-auto-release-dcp-archive": 0,
+    "vis36-auto-release-help": 0,
+    "vis36-auto-release-pacing": 0,
+    "vis36-auto-release-panic": 0,
+    "vis36-auto-release-s07": 0,
+    "vis36-auto-release-startup": 0,
+    "vis36-auto-release-term01": 0,
+    "vis36-auto-workspace": 0,
+    "vis36-cli-priority-events": 101,
+    "vis36-cli-priority-green-complete": 101,
+    "vis36-cli-priority-green-qualified": 0,
+    "vis36-cli-priority-green": 101,
+    "vis36-cli-priority-red": 101,
+    "vis36-mode-family-and-prompt-qualified": 0,
+    "vis36-mode-family-and-prompt": 101,
+    "vis36-permission-admitted-catalog-green": 0,
+    "vis36-permission-admitted-catalog-red": 1,
+    "vis36-permission-model-green-qualified": 0,
+    "vis36-permission-model-green": 1,
+    "vis36-permission-model-red": 1
+  },
+  "current_source": {
+    "source_manifest_sha256": "d3d02ec520b6f7f5cf9511244ead95ef15e12e1e1ff1bf46157f8a96011dbefe",
+    "changed_inputs": [
+      "crates/oc-adapters/src/application.rs",
+      "crates/oc-core/src/core_app.rs",
+      "crates/oc/src/approval_tests.rs",
+      "crates/oc/src/cli.rs",
+      "crates/oc/src/cli/tests.rs",
+      "crates/oc/src/tui_cmd.rs",
+      "crates/oc/tests/approval_binary.rs",
+      "crates/oc/tests/pty_t39/question.rs",
+      "scripts/tui_capture/apply_patch_fixture.py",
+      "scripts/tui_capture/check_permission_evidence.mjs",
+      "scripts/tui_capture/permission.mjs",
+      "scripts/tui_capture/permission_fixture.py"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484373016,
+        "sha256": "34e06ce943f45c4c067903b0ddd2469168f1fd245562860666afdc7506aa5a1c",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "b4e07cc7011da8b45904d19cffe417b37942100afa566cfbacf199ab92128101",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 61014,
+        "uncompressed_bytes": 409600,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "54b2cb59a3d6aee21541a4f8e57216150a7405031b37e1572e2d851cebaa251c"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 61028
+  }
+}

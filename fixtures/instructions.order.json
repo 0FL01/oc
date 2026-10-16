@@ -1,0 +1,26 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "anomalyco/opencode",
+    "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+    "paths": [
+      "packages/core/test/instruction-discovery.test.ts"
+    ],
+    "license": "MIT",
+    "upstream_sha256": {
+      "instruction-discovery.test.ts": "3beb37f43df8f1275833ef007387b11c6740536ba99069df4932269c83d27f6f"
+    },
+    "normalization": "Keep ordered concatenation rule and sentinel-once semantics from docs/CONFIG.md; drop Effect test harness. Path corrected to packages/core/test/instruction-discovery.test.ts (top-level test dir, not test/config).",
+    "executable_baseline": "not-executed; documentary recon only"
+  },
+  "description": "Ordered AGENTS.md inputs, canonical-deduplicated with provenance. Not a config override.",
+  "order": [
+    "G/AGENTS.md",
+    "applicable Location AGENTS.md nearest-working-directory-to-root"
+  ],
+  "rules": {
+    "sentinel_once_per_admitted_file": true,
+    "unreadable_gives_diagnostic_no_stale_text": true,
+    "reload_only_between_turns": true
+  }
+}

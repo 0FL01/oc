@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ full original logs; independent manual inverse",
+  "archive_sha256": "d769eb9f9e87909489ee4ebdd7afcd936c204ba06728a7e0fc4ca82df7c957d0",
+  "archive_bytes": 59652,
+  "tar_sha256": "ed39e562fb458c2c9c6503486887fdbd261693fd3a1878f54869542c98ab65b5",
+  "tar_bytes": 532480,
+  "inventory": {
+    "members": 85,
+    "logical_bytes": 460352,
+    "member_inventory_sha256": "df49ed5b00138dd4a037cccb46978c5b8d1a97ee928b3010bd2741ffa2d9ea64",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "vis42-provider-ready-after": 0,
+    "vis42-provider-ready-audit": 0,
+    "vis42-provider-ready-before": 0,
+    "vis42-provider-ready-clippy-final": 0,
+    "vis42-provider-ready-clippy": 0,
+    "vis42-provider-ready-debug-help": 0,
+    "vis42-provider-ready-debug-locked": 0,
+    "vis42-provider-ready-debug-ordinary": 0,
+    "vis42-provider-ready-docs-final": 0,
+    "vis42-provider-ready-fmt": 0,
+    "vis42-provider-ready-green": 0,
+    "vis42-provider-ready-measure": 0,
+    "vis42-provider-ready-model009-after": 0,
+    "vis42-provider-ready-model009-archive": 0,
+    "vis42-provider-ready-model009-before": 0,
+    "vis42-provider-ready-model009-preflight": 0,
+    "vis42-provider-ready-owner-complete": 0,
+    "vis42-provider-ready-owner-qualified": 101,
+    "vis42-provider-ready-owner": 101,
+    "vis42-provider-ready-pack": 0,
+    "vis42-provider-ready-progress-final": 0,
+    "vis42-provider-ready-pty": 0,
+    "vis42-provider-ready-python-final": 0,
+    "vis42-provider-ready-python": 0,
+    "vis42-provider-ready-r8-after": 0,
+    "vis42-provider-ready-r8-audit": 0,
+    "vis42-provider-ready-r8-before": 0,
+    "vis42-provider-ready-r8-measure": 0,
+    "vis42-provider-ready-r8-pack": 0,
+    "vis42-provider-ready-red": 101,
+    "vis42-provider-ready-release-aud32": 0,
+    "vis42-provider-ready-release-build": 0,
+    "vis42-provider-ready-release-dcp-archive": 0,
+    "vis42-provider-ready-release-help": 0,
+    "vis42-provider-ready-release-pacing": 0,
+    "vis42-provider-ready-release-panic": 0,
+    "vis42-provider-ready-release-s07": 0,
+    "vis42-provider-ready-release-startup": 0,
+    "vis42-provider-ready-release-term01": 0,
+    "vis42-provider-ready-workspace-complete": 0,
+    "vis42-provider-ready-workspace": 101
+  },
+  "current_source": {
+    "source_manifest_sha256": "8687688a5ebd2b20868bcf6b0bc5b85de43e4df489650bece9e33670a41178bb",
+    "changed_inputs": [
+      "crates/oc-tui/src/app/input.rs",
+      "crates/oc-tui/src/app/tests/input.rs",
+      "crates/oc/src/approval_tests.rs",
+      "crates/oc/tests/pty_t39/provider_readiness.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484376240,
+        "sha256": "48f538eb92153fc40b9160e11941ebe20f4ef766adf4e74cb265b8e398e1c6b6",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "ee0591b58a8cdabfeb223ee7d07e60ce6925ab5cfc7e81a6b64096612dfd1795",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 59616,
+        "uncompressed_bytes": 532480,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "ed39e562fb458c2c9c6503486887fdbd261693fd3a1878f54869542c98ab65b5"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 59628
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "counts": {
+    "attempted": 11,
+    "blocked": 0,
+    "failed": 0,
+    "passed": 11,
+    "skipped": 0
+  },
+  "harness": "golden_binary",
+  "model": "fixture/golden-model",
+  "steps": [
+    {
+      "detail": "session s-golden-a",
+      "name": "turn1",
+      "status": "passed"
+    },
+    {
+      "detail": "",
+      "name": "independent-cargo-test",
+      "status": "passed"
+    },
+    {
+      "detail": "session s-golden-a",
+      "name": "turn2-mcp",
+      "status": "passed"
+    },
+    {
+      "detail": "session s-golden-a",
+      "name": "turn3-compress",
+      "status": "passed"
+    },
+    {
+      "detail": "session s-golden-b",
+      "name": "turn4-workspace-b",
+      "status": "passed"
+    },
+    {
+      "detail": "error: application: session s-golden-a belongs to location /home/opencode/.cache/opencode-tmp/.tmpfZ5VHM/project-a",
+      "name": "cross-location",
+      "status": "passed"
+    },
+    {
+      "detail": "[Object {\"query\": String(\"rust\"), \"response_length\": String(\"short\")}]",
+      "name": "mcp-call",
+      "status": "passed"
+    },
+    {
+      "detail": "history_a=6 ops=4 blocks=1 history_b=2",
+      "name": "durable-rows",
+      "status": "passed"
+    },
+    {
+      "detail": "requests=1",
+      "name": "workspace-isolation",
+      "status": "passed"
+    },
+    {
+      "detail": "",
+      "name": "strict-peer",
+      "status": "passed"
+    },
+    {
+      "detail": "0 scripted steps never ran",
+      "name": "unexecuted-steps",
+      "status": "passed"
+    }
+  ]
+}

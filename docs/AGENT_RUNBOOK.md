@@ -1,0 +1,63 @@
+# Контракт compatible coding agent
+
+## Старт без повторного опроса
+
+Compatible agent читает `AGENTS.md`, `GOAL.md`, `progress/NOW.md`, сверяет реальный Git HEAD/status/diff и продолжает текущую задачу. Indices и старые leaves открываются только при targeted recovery. Objective из `prompts/AGENT_GOAL.txt` можно передать через native prompt/task/job механизм конкретного runner; repository не требует конкретного slash command, CLI, flags, model или provider.
+
+Модель, provider и credentials compatible agent принадлежат внешнему runner и не являются частью product config. Не извлекать runner auth config в evidence и не переключать authoring-agent на provider тестируемого `oc`. `OC_TEST_MODEL` выбирает только модель live-теста продукта; product env и runner credentials — разные вещи.
+
+Минимальная совместимость: agent умеет читать и изменять assigned worktree любым механизмом, запускать разрешённые shell-команды и тесты, фиксировать exit status/redacted evidence, проверять `git status`/`HEAD`/diff и вести progress checkpoint после interruption/resume. Model-dependent `apply_patch` либо `edit`/`write` — product-tool contract T50 для модели `oc`, не требуемый интерфейс authoring-agent. Agent обязан соблюдать one mutation owner per worktree, OS/filesystem/network/secret/Git permissions и остановиться при неизвестном side effect или concurrent diff.
+
+## Preflight T00
+
+Проверить `id -u` (root запрещён для этого запуска), repo root/текущий branch/HEAD/dirty files, origin canonical owner/name = 0FL01/oc. Не печатать URL с embedded credentials; сравнение нормализовать локально. Существующие изменения не reset/stash без необходимости; включать только свои reviewed files. Рабочая ветка default `master` (решение владельца о переезде 2026-10-16); при конфликте чужого branch использовать отдельную worktree/согласованный новый suffix, recorded once.
+
+В T00 проверить только identity/repository/origin, one mutation owner и ресурсы для ближайшего действия. Rustc/cargo/rustup и linker проверить непосредственно перед T01; pkg-config — только если его потребует выбранная dependency; locale/TERM — перед PTY/TUI; live env names — перед T16/T27. Пользовательская 1.98.1 — toolchain candidate; pin фактический совпавший toolchain, не `stable` moving target. Если не совпадает, фиксировать discrepancy; не менять edition или тайно скачивать nightly. Trunk не нужен CLI/TUI. Системный sqlite3 version не определяет bundled SQLite проекта.
+
+Для полного test gate по умолчанию `CARGO_BUILD_JOBS=3`, `RUST_TEST_THREADS=2` (warm comparison: 2/1 — 408.07s PASS, 3/2 — 283.16s PASS; 4/2 — 281.39s PASS, 4/3 — 262.63s FAIL из-за PTY cursor timeout). Не запускать одновременно несколько Cargo-команд с одним target. `CARGO_TARGET_DIR` не переопределять либо задать абсолютный `<worktree>/target`, чтобы бинарник оставался `target/debug/oc2`. `TMPDIR` направить в заранее созданную owned directory на disk вне worktree, не в `/tmp` tmpfs. Defaults можно снижать при memory pressure, не ослабляя обязательные gates и не меняя deadlines; нельзя повышать performance acceptance threshold для скрытия leak. Capture environment metadata без secret values. При менее 2 GiB MemAvailable или менее 10 GiB свободного worktree disk не запускать тяжёлый build/soak; документировать resource blocker/работать над разрешённой лёгкой задачей. Это operational safety defaults, не гарантии peak memory.
+
+Docker проверять только непосредственно перед первым реальным Docker-вызовом. Тогда разрешён лишь подтверждённый rootless context без privileged, host PID/network и broad host mounts. Если Docker не нужен, T00 фиксирует `NOT_USED`; отсутствие rootless не блокирует Cargo/offline fake tests. Нельзя `docker system prune`, останавливать чужой compose или менять OpenProxy deployment.
+
+Наличие required live env names проверять перед T16/T27, не выводя values. При missing live env выбрать offline задачи; blocker только для live gates. Не искать ключи в чужих HOME/браузерах или state внешнего runner.
+
+## Один рабочий цикл
+
+Если нет active task: `progress.py start Txx` → прочитать task и профильный контракт → failing targeted test → минимальная реализация → targeted checks → только применимые cargo checks → review diff → commit. При продолжении той же task административный checkpoint не нужен. При task completion implementation commit уже существует: добавить evidence report, выполнить `finish`, review и сделать один closeout commit.
+
+Срез — небольшая независимо проверяемая единица: API+test, parser case, adapter roundtrip, UI action. Не «переписал весь provider и DCP». Создавать checkpoint до ожидаемого context exhaustion, перед non-idempotent external operation, при blocker или существенном незакоммиченном handoff. Semantic `Next` не должен быть только «stage/commit/push».
+
+Test failure → установить конкретную причину и выполнить следующий содержательный experiment с учётом результата. Число попыток не является основанием для block: менять гипотезу, уменьшать воспроизведение или прослеживать владельца поведения, не повторяя опровергнутый подход без новых данных. Block допустим только при наблюдаемой необходимой внешней зависимости после проверки разрешённых альтернатив; независимые ready-срезы продолжаются. Не отключать lint/assertion или marked test ради completion.
+
+## Контекст 400k и делегирование
+
+400k включает инструкции, диалог, исходники, tool output, тесты и результаты scouts. Это не требование читать на каждом шаге всё, что помещается. Начальный read-set: актуальные root-инструкции/handoff, раздел активного spec, строка владельца из `CODE_MAP.md`, нужные символы и ближайший test-suite. Целый связный файл на несколько тысяч строк читать нормально, если он нужен задаче; не вводить искусственный лимит в сотни строк. Расширять read-set при неизвестной зависимости/инварианте, а не для полноты обзора.
+
+Сначала `rg --files` в нужном crate, затем поиск символа и конкретный диапазон. Большие diffs/logs/списки тестов сохранять вне prompt и возвращать summary + failures + путь. Не читать рекурсивно весь `evidence/`, fixtures/снапшоты, журналы прошлых задач, donor и capture logs. Байт/строкомер — сигнал размера, не точный tokenizer; размер токенов брать из runner, когда он доступен. Не обещать экономию токенов или качество по одному LOC.
+
+Разведчик получает один вопрос, базовый Git commit, область чтения, нужные ограничения и формат ответа: owner/символы → caller/callee seams → тесты → риски/неизвестное. Обычно хватает краткого ответа порядка 1–2k токенов, это ориентир, не запрет сообщить критическую деталь. Не пересылать его полный transcript/source dump координатору или другому scout. Разведчики read-only; mutating commands, progress, Cargo/capture campaigns и интеграция принадлежат одному coordinator в текущем worktree. Изменившийся HEAD/diff требует проверить актуальность разведки, не применять её вслепую.
+
+После явного разрешения продолжить с T52 сначала сохранить factual scheduling note и перевести активную незавершённую T44 через существующий `progress.py block`, затем `start T52`. `block` здесь обозначает временную приостановку ради архитектурной задачи, не найденную регрессию. Применение plan patch само по себе не resume и не start; нельзя одновременно активировать T44/T52, править старые leaves или поставить done для освобождения слота. Полная процедура — `roadmap/M10.md` и T52/R0.
+
+## Git и delivery
+
+Commit code+tests после проверенного slice. Finish report ссылается на уже существующий implementation commit; generated progress state и report идут одним closeout commit. Не создавать новый checkpoint только для фиксации SHA или результата обычного push: Git tracking divergence уже различает uncommitted, committed и delivered состояния.
+
+Перед push: review staged filenames/diff, убедиться в отсутствии secrets/raw live payloads/target/DB, preserve licenses. По решению владельца от 2026-10-16 разработка и обычный fast-forward push разрешены в verified `origin/master`; для согласованной отдельной рабочей ветки — push только своей ветки. Не force, не менять default branch protection/remote, не публиковать release/tags. Push failure не откатывает локальный код. Все commits сохраняются; статус delivery записать следующим leaf/FINAL без бесконечного «commit о push предыдущего commit».
+
+## Live envelope
+
+Основные тесты offline. Live запуск — выделенный campaign в fixtures, не настоящий пользовательский repo. Допускается до 24 generation HTTP requests всего на campaign (включая retries), максимум 4 коротких MCP search, max output 2048 tokens на smoke и 8192 на coding turn, bounded total fixture input; без массового прогона всех моделей. Большую DCP threshold нагрузку тестировать fake provider; live DCP использовать небольшой fixture и явно сниженные test thresholds. Счётчики сохранять между restart, не обнулять автоматическим новым campaign ID.
+
+Это ограничивает тестируемое приложение, но НЕ фактическую стоимость authoring-agent. Внешний USD/token/time hard cap владельцем не указан и этим пакетом не создаётся. Не утверждать, что бюджет неограничен или что Markdown его enforce-ит. Использовать существующие runner/proxy quotas, без массовых paid benchmarks; при quota/rate-limit сохранить checkpoint, не покупать/сбрасывать лимиты.
+
+## Остановка
+
+Permission boundary violation, root process, чужие изменения в активной работе, непроверенный remote, секрет в staged/логах → остановить затронутое действие и исправить/зафиксировать. Missing live prerequisites → BUILD_READY_LIVE_BLOCKED после offline completion. Unknown tool side effect → проверить реальный workspace/output, не повторять автоматически.
+
+В конце `evidence/FINAL.md`: A01–A13, commit, commands/exits, live model/capabilities (без keys), measured budgets, remaining risks, exact launch command и delivery status. A13 ссылается на authoritative T07/T13/T22/T25 evidence, а не повторяет все suites. Не маркировать `READY` только по успешному doc validator.
+
+## Локальные raw logs
+
+Писать stdout/stderr в отдельные files по task/run, не в checkpoint. Ограничивать каждый сохраняемый raw log 16 MiB и суммарное собственное .local/evidence — 1 GiB; при достижении квоты сохранить короткий sanitized report и остановить дополнительную запись, не удаляя чужие данные. Большие benchmark outputs stream-агрегировать в metrics, а не накапливать целиком. Отмечать truncated и сохранять полезный error excerpt. Это собственные initial safety defaults, не размер продуктовой истории.
+
+Квота сама по себе не доказывает внешний blocker. Перед остановкой проверить уже существующий lossless archival собственных untracked/unstaged FAILED diagnostics через `scripts/archive_failed_capture.py`: одна явно разрешённая кампания, actual `FAILED` в owner checks, все исходные bytes/paths/mode/UID/GID/mtime и видимый FAILED pointer сохраняются. Loose-копии заменяются только после durable encode/full-byte/meta audit; qualified proofs, старые receipts/checkpoints и чужие данные не переписываются. Перед transaction зарезервировать allocation следующего обязательного proof и bounded delivery records, затем проверить actual allocation и независимый inverse. При interruption private quarantine сохраняется; сначала исследовать transaction, не replay-ить её вслепую. Caps, accounting scope, original encoded PNGs и failure statuses не меняются; TMP transaction не является постоянным offload. Этот существующий путь уже применён в `evidence/tui/syntax-qualified.md`.

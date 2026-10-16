@@ -1,0 +1,250 @@
+# T65 — implementation and candidate-gate history
+
+Archived before publication on2026-10-16 to retain the detailed experiments while
+keeping the journal's size-limited [current report](report.md) authoritative.
+The pending-status statements below describe their recorded checkpoints, not
+the current delivery state. No test result or earlier failure has been erased.
+
+## Result
+
+**IN PROGRESS.** R2/R3 compatibility/cache and R4 provider-only deadlines follow
+shared V2 fixtures. Ordered permissions, authority and legacy/error guards are
+qualified below; complete gates and publication remain. T44 is paused with its
+stash intact.
+
+Current configuration reference is **V2 revision
+`b4f19bfe74a972c2919aa4c9d7445fa61f41b226`**. Initial compatibility/cache checks
+used V2.0.30/f16, but R4 source inspection proved that release defaults chunks
+to900000ms. Upstream `d8129ca1e036a967add1e7078679fd9b3697a180` introduced that
+change; its parent b4 retains all required compatibility/cache/provider-only
+features and the owner's exact300000ms defaults. The shared tests were rerun
+against that exact clean checkout; requirements were not relaxed. V2.0.12 and
+stale `v2` branch4617210 lack required fields. Frozen TUI reference is unchanged.
+
+### R1 canonical values and pre-effect legacy boundary / CFG11–13
+
+- Actual pinned schema validates13 shared documents: opaque package JSON,
+  canonical reasoning strings, malformed string/boolean/enum/container values,
+  and valid-but-unsupported compatibility features. Together with the existing
+  shared matrix: TS79 PASS/192 expectations; native config44 PASS.
+- Reproduced native acceptance of `reasoningField:false` as canonical. Canonical
+  reasoningField now requires a string; the separate internal catalog helper
+  is not a migration path for external V1 documents. Known unsupported boolean/
+  enum features validate their values before returning UnsupportedCapability;
+  malformed values return Invalid without including input-value canaries.
+- Actual oc2 positive control accepts `settings.setCacheKey:{vendor:"opaque"}`,
+  starts the explicitly configured local MCP peer and completes a local provider
+  request. Five fresh negative fixtures (provider/permission/npm/options/
+  modalities) refuse with legacy_config before either effect, no canary leak and
+  no Cargo/Node/Bun/npx loader execution. The fixture preserves the complete base
+  provider rather than accidentally replacing it with a partial root object.
+- `config::`44 PASS, the binary control PASS and strict workspace/all-target
+  Clippy PASS. Logs: `.local/evidence/t65-schema-{ts,native,binary-02,clippy}.log`;
+  native red reproduction: `t65-schema-reproduce.log`.
+
+### R2 binding facet / CFG14
+
+- Reproduced native rejection of valid provider compatibility as
+  `Invalid { field: "provider.fixture", reason: "invalid provider shape" }`.
+- Provider compatibility is retained separately while documents merge; wire
+  admission applies provider defaults then explicit model fields. False and
+  absence remain distinct. Base/model/variant bindings and public catalog
+  reconstruction retain the same captured facts on all three native protocols.
+  No variant compatibility or V1 migration was introduced.
+- `tests/fixtures/v2-config-semantics.json` supplies seven ordered-document cases
+  across three canonical packages, including both boolean directions, absence,
+  independent field merging and early-model-false/later-provider-true.
+- `scripts/check_v2_config_semantics.py` stages the exact same JSON into the
+  pinned external checkout and uses its actual ConfigProviderPlugin, Provider
+  and Model services/test layers. It does not implement a second merge oracle.
+  Source files remain unchanged; staged test files are removed afterwards.
+  Bun1.4.2 and locked test dependencies are external-only, installed without
+  lifecycle scripts. The runner uses isolated HOME/XDG and no real credentials.
+
+### R3 cache consumers / CFG15
+
+- Reproduced a real missing Responses body key under a valid V2 config because
+  the obsolete `setCacheKey:false` gate blocked the shared default.
+- Removed the typed JSON switch and all runtime gates. Arbitrary package-specific
+  `settings.setCacheKey`, including an object, remains valid ignored JSON with
+  the existing diagnostic, not `legacy_config` or a second cache control.
+- Effective compatibility preserves absent/false/true: Responses allows a
+  supplied key unless false; Chat requires true. Independent typed AI request
+  `CacheMode::None` omits body keys even through captured model selection.
+  No native `settings.cache` JSON option was invented. This SDK field replacement
+  is included in the authorized coherent version bump before publication.
+- Affinity headers survive disabled body caching. Messages Auto follows the
+  pinned last-tool/first-last-system/one-tail policy, maximum4 boundaries;
+  the ordinary one-system fixture has3, minimal no-key/no-tools/system input1.
+  It is independent of the key capability and session-key availability. Optional
+  fields stay absent rather than being inserted as null.
+- Same JSON adds eight cache cases across three protocols: absence, both boolean
+  states, cache:none, obsolete false/true/object settings, no key/context, and an
+  earlier model false against a later provider true with API-model aliasing.
+  Native checks capture24 real local HTTP requests, exact key/absence, marker
+  counts, omission and affinity. Existing Go checks retain real DB-derived
+  root/child lineage, authenticated headers and changed-input stability.
+- Actual TS services and `ModelResolver`/`compileRequest` run the same documents
+  and expectations. The harness was corrected to observe defined JSON fields,
+  not optional undefined AST properties; no TS production code was changed.
+
+### R4 provider-only settings and deadlines / CFG16
+
+- Reproduced invalid model/variant transport options entering provider admission.
+  Lower overlays now omit exactly timeout/headerTimeout/chunkTimeout/transport
+  before option validation/origin folding; other settings retain precedence.
+- The same three JSON cases across three protocols compare base and variant
+  selections: provider numeric values win; provider false values win; malformed
+  lower copies cannot replace absent provider defaults. Native bindings and the
+  actual TS ModelResolver **service** agree, including its raw WS chunk override.
+  Using only the TS catalog snapshot was an insufficient test harness: that
+  snapshot intentionally omits provider-only fields. No production TS was edited.
+- HTTP header/chunk defaults are each300000ms, independently optional; overall
+  deadline is separate. Optional waits retain cancellation and the absolute total
+  deadline, including while dispatch/headers are pending. Typed header timeout
+  is Request/Deadline; body idle expiry is Read/IdleTimeout with committed deltas.
+  Existing byte/status/endpoint/credential/one-attempt guards remain.
+- WebSocket uses the raw provider chunk override: absent30minutes, false disabled,
+  positive milliseconds as supplied. Actual delayed frames survive deliberately
+  tiny HTTP budgets; numeric frame timeout and disabled-budget cancellation are
+  checked without HTTP replay. Existing bounded native connect guard is unchanged.
+- Preserved the existing low-level SDK's explicit idle override independently of
+  provider-derived HTTP/WS defaults; an actual delayed-frame case checks it.
+- Final review reproduced a real total-budget gap: a250ms dispatch delay let a
+ 400ms overall request last701ms, because the HTTP client's relative timer began
+  at send. Body/error waits now also retain the original absolute deadline. The
+  strengthened test covers delayed dispatch across all three protocols with
+  committed output, typed Read/Deadline, cancellation and one-attempt facts intact.
+- `ResponsesConfig` now exposes independent optional header/chunk millisecond
+  fields; None disables each phase. Constructors and consumers were migrated,
+  with no new canonical JSON switch or transport framework. These SDK changes
+  are included in the authorized version bump, not published prematurely.
+
+### R5 ordinary permissions / CFG17
+
+- Shared actual TS ConfigAgentPlugin/Agent/Permission tests now pass66 cases and179
+  expectations. Twelve permission cases cover raw no-match Ask, pinned agent
+  defaults, document order and the separate agent phase; existing54 provider/cache/
+  settings cases remain unchanged. No V1 migration or TS production clone is used.
+- Reproduced old native Deny for unmatched rules and an empty configured agent.
+  Canonical sources now use one phased configured chain; native/programmatic
+  authorities, Plan/Explore and captured parent ceilings stay separate. Generic
+  strictest/extend/narrow retain intersection semantics.
+- Primary, child/preview, command-parent and MCP lookup consumers distinguish
+  ordinary selection from delegation. A child starts with the same global documents
+  and its own agent, while the complete captured parent policy remains a ceiling.
+  Unselected source/profile constraints do not invent an actor's fallback policy.
+- Native CFG17 tests5 PASS: same shared inputs plus child Ask/Deny/no inherited
+  parent-agent override, independent/native builtin ceilings and an actual saved
+  grant. The latter proves a saved Ask allowance reads the fixture, while a final
+  configured Deny returns exactly `error: denied read`, without the canary, pending
+  approval or file mutation. Builtin refusals keep their existing `failed` state;
+  no production error contract was changed to fit a test assumption.
+- Permissions integration8 and config43 PASS. Two old cross-source/empty-source
+  expectations were changed only as required by the owner's last-match/Ask
+  contract; explicit narrowing, wildcard/path/MCP and native ceiling assertions
+  remain. Broader adapter library801 PASS (one existing opt-in ignored) and child
+  integration41 PASS. The strict binary suite exposed an old implicit read-only
+  fixture: explicit `deny *`, then `allow read`, restores all4 exact wire tests
+  without loosening their assertions; workspace Clippy also passed.
+- Review then reproduced a current-diff boundary bug: an ordinary agent document
+  could hide a simultaneous programmatic scalar agent Deny (actual Allow vs Deny).
+  Scalar agent restrictions are now always retained as independent constraints,
+  alongside configured documents. After the fix: CFG17 guards5, permissions8,
+  child integration41, strict binary Responses4 and workspace all-target Clippy
+  PASS. No failing assertion was removed or relaxed to accept the boundary bug.
+
+### R6/R8 candidate qualification (not yet complete)
+
+- Prepared coherent0.2.0 across four packages/six internal requirements; lockfile
+  changes only those four workspace versions. Inventories30/325/252/85 retain
+  metadata/licenses and exclude private artifacts. Real workspace publication
+  **dry run** built all four extracted packages with staged registry dependencies,
+  not sibling paths. Every upload was explicitly aborted by dry-run mode. No
+  actual publication has occurred.
+- First isolated-environment workspace run: **1987 PASS / 11 FAIL /
+  12 existing opt-in ignored**,46 targets. Six failed binary targets retained old
+  implicit tool restrictions despite the newly required TS agent defaults.
+  Explicit fixture rules now declare their intended no-tool, read-only, Shell-only
+  or media-only actors; no strict request/replay/resource assertion was loosened.
+- Five affected targets now **63 PASS** (application4, durability1, MCP41,
+  memory1, PTY16), including the media operation's original two presentations and
+  one actual MCP call through restart. The third presentation had been a newly
+  permitted scripted readiness glob, not a replay of the media effect.
+- S07's explicit read-only fixture passes unchanged equality and resource bounds:
+  archive0/3000, identical retained24200 bytes/window152 rows, zero child/queue lag.
+  The other failure was an unchanged VIS31 zero-lag assertion (4 lagged events)
+  during overlapping gate/package workloads. A single-test rerun passes both
+  165/250Hz, all1031 events and zero lag, p95 about31.5ms. That is diagnostic
+   evidence, **not** a waiver or substitute for the normal complete run below.
+- Required explicit package gates are now green: `cargo test --locked -p oc-adapters`
+  **1086 PASS / 0 FAIL / 5 existing opt-in ignored**,19 targets; `-p oc2`
+  **333 PASS / 0 FAIL / 7 existing opt-in ignored**,23 targets. Fresh workspace:
+  **1998 PASS / 0 FAIL / 12 unchanged opt-in ignored**,46 targets, with the normal
+  two Rust test threads and no overlapping compiler/package process. All eleven
+  initial failures are closed, including VIS31/S07/VIS38, without changed guards.
+- Logs: `.local/evidence/t65-final-workspace-01.log`,
+  `t65-fixture-regressions-01.log`, `t65-s07-explicit-fixture.log`,
+  `t65-vis31-reproduce-02.log`, `t65-publish-dry-run-01.log`,
+  `t65-final-{adapters,binary}-01.log`, `t65-final-workspace-02.log`. Final strict
+  Clippy/build/CLI and latest-archive verification are now running separately.
+
+## Checks
+
+R5 current-source qualification: TS oracle66 PASS/179 expectations;
+`.local/evidence/t65-cfg17-native-05.log`5 PASS;
+`t65-cfg17-permissions-02.log`8 PASS; `t65-cfg17-subagent-02.log`41 PASS;
+`t65-cfg17-responses-03.log`4 PASS; `t65-cfg17-clippy-02.log` strict workspace
+all-target PASS. Earlier full adapter library801/1existingignored is retained in
+`t65-cfg17-adapter-lib.log`, before the scalar-ceiling correction.
+
+Current R4 slice:
+
+- Shared b4 TS oracle: **54 passed / 0 failed**,167 expectations,
+  `.local/evidence/t65-ts-oracle-cfg16-03.log`.
+- Native `cfg16_`: **4 passed**: shared bindings, independent HTTP phases,
+  cancellation with both disabled, and separate WS frames/cancellation.
+- `provider::`: **82 passed / 1 existing opt-in ignored**, including the strengthened
+  all-protocol total-deadline test with both phase budgets disabled.
+- `config::`: **43 passed**; actual-binary `oc2 --test responses`: **4 passed**.
+- `cargo clippy --locked --workspace --all-targets -- -D warnings`: PASS.
+  A test-only private-helper access was fixed by checking captured raw state at
+  that owner, not by widening production API. No lint/test was suppressed.
+- Final current-code provider/binary/strict gates:
+  `.local/evidence/t65-cfg16-{provider,responses,clippy}-03.log`; reproduced timer
+  gap: `.local/evidence/t65-cfg16-dispatch-reproduce.log`. No test was weakened to
+  accept the extended timer. Complete task/workspace tests remain pending.
+
+Earlier R2/R3 slice:
+
+- Corrected b4 oracle: **45 passed / 0 failed**,95 expectations
+  (`.local/evidence/t65-ts-oracle-cfg15-b4f19b.log`).
+- Current `provider::context::tests`: **3 passed**, including24 shared requests,
+  no-key/minimal omitted fields and the independent existing identity guards.
+- Affected provider tests: **79 passed / 1 existing opt-in ignored**;
+  config tests: **42 passed**; actual-binary `oc2 --test responses`: **4 passed**.
+- Strict adapter/all-target Clippy: PASS, including the final minimal-input fix.
+  No lint, test or comparator was suppressed.
+- Logs: `.local/evidence/t65-cfg15-*`; full task/workspace gates remain pending.
+
+Initial R2 binding receipt (f16, retained rather than rewritten):
+
+- Shared TS oracle: **21 passed / 0 failed**,42 expectations.
+- `cargo test --locked -p oc-adapters --lib cfg14_provider_model_compatibility_uses_shared_v2_documents`:
+  PASS, covering the same21 cases plus captured base/variant bindings.
+- `cargo test --locked -p oc-adapters --lib config::`: **42 passed**.
+- `cargo test --locked -p oc-adapters --lib provider::context::tests`: **2 passed**.
+  These preserve the old consumers; they are not R3's new cache qualification.
+- `cargo clippy --locked -p oc-adapters --all-targets -- -D warnings`: PASS.
+  Full new-source task gates remain pending.
+
+Local synthetic-only logs: `.local/evidence/t65-cfg14-*` and
+`.local/evidence/t65-ts-oracle-cfg14.log`.
+
+## Risks and next
+
+R1–R5 are qualified for the specified subset, not full TS protocol/SDK/built-in
+agent parity. Coherent0.2.0 and extracted-package verification are prepared.
+Next: finish strict/build/CLI and repeated latest-archive verification; adapter,
+binary and serialized workspace gates are green. Publish only after all
+configuration gates pass; then finish T65 and resume the parked T44 work once.

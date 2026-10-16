@@ -1,0 +1,35 @@
+{
+  "source": {
+    "repository": "https://github.com/anomalyco/opencode",
+    "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+    "path": "packages/core/test/patch.test.ts",
+    "license": "MIT",
+    "normalization": "Selected formal patch strings preserved; derive-only cases rendered as the documented grammar. Seed and final byte assertions independently specified for oc's strict, no-fuzzy profile. This is not the whole upstream suite."
+  },
+  "cases": [
+    {
+      "upstream_test": "parses a file move",
+      "patch": "*** Begin Patch\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch",
+      "seed": {"old.txt": "old\n"},
+      "expected": {"old.txt": null, "new.txt": "new\n"}
+    },
+    {
+      "upstream_test": "disambiguates updates with change context",
+      "patch": "*** Begin Patch\n*** Update File: update.txt\n@@ fn b\n-x=10\n+x=11\n*** End Patch",
+      "seed": {"update.txt": "fn a\nx=10\nfn b\nx=10\n"},
+      "expected": {"update.txt": "fn a\nx=10\nfn b\nx=11\n"}
+    },
+    {
+      "upstream_test": "matches EOF-anchored chunks from the end",
+      "patch": "*** Begin Patch\n*** Update File: update.txt\n@@\n-marker\n+marker changed\n end\n*** End of File\n*** End Patch",
+      "seed": {"update.txt": "marker\nmiddle\nmarker\nend\n"},
+      "expected": {"update.txt": "marker\nmiddle\nmarker changed\nend\n"}
+    },
+    {
+      "upstream_test": "parses add, update, and delete hunks (Add subset)",
+      "patch": "*** Begin Patch\n*** Add File: add.txt\n+added\n*** End Patch",
+      "seed": {},
+      "expected": {"add.txt": "added\n"}
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "origin": "example-not-a-capture",
+  "scenario": "format-example-only",
+  "fixture_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "environment_id": "EXAMPLE_NOT_FOR_ACCEPTANCE",
+  "producer_commit": "0000000000000000000000000000000000000000",
+  "columns": 2,
+  "rows": 1,
+  "cursor": {
+    "visible": true,
+    "x": 1,
+    "y": 0,
+    "shape": "block"
+  },
+  "cells": [
+    [
+      {
+        "symbol": "A",
+        "fg": "#eeeeee",
+        "bg": "#0a0a0a",
+        "modifiers": [
+          "bold"
+        ],
+        "width": 1
+      },
+      {
+        "symbol": " ",
+        "fg": "#eeeeee",
+        "bg": "#0a0a0a",
+        "modifiers": [],
+        "width": 1
+      }
+    ]
+  ]
+}

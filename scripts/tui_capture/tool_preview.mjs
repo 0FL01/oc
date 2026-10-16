@@ -1,0 +1,249 @@
+// VIS16/17 real tool cards and read-only owner facts; not a renderer substitute.
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {probeHomeMcp} from './home_mcp.mjs';
+
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,questionProbe,userShellProbe,composerProbe,syntaxProbe,smallProbe,executeProbe,readVt}) {
+  const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
+    'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
+    'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
+    'Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open.'
+  ]:[
+    'Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.',
+    'Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.',
+    'Compact native viewing/capture status has no promised donor pixel equivalent.'
+  ]};
+  const save=()=>fs.writeFileSync(path.join(dir,'tool-preview-checks.json'),JSON.stringify(result,null,2)+'\n');
+  const requests=()=>logs.filter(e=>e.kind==='provider').length;
+  const calls=()=>logs.filter(e=>e.kind==='fixture_tool_call').length;
+  let draftCaret=null;
+  const poll=async(predicate,label)=>{const end=Date.now()+6000;while(Date.now()<end){if(predicate())return;await new Promise(r=>setTimeout(r,25));}throw Error('Timed out '+label);};
+  const snapshot=async stage=>{control({kind:'tool_preview_snapshot',request_id:stage});await poll(()=>logs.some(e=>e.kind==='tool_preview_snapshot'&&e.request_id===stage),stage);return logs.find(e=>e.kind==='tool_preview_snapshot'&&e.request_id===stage);};
+  const shot=async(stage,predicate,checks={})=>{
+    let f=await waitFor(predicate,stage,15000);
+    if(draftCaret)checks={...checks,draft_preserved:f.text.includes('preserved draft'),
+      prompt_caret_preserved:JSON.stringify(f.cursor)===JSON.stringify(draftCaret)};
+    let signature;
+    let status;
+    try {
+      if(composerProbe||syntaxProbe) {
+        control({kind:'pause_scanner',request_id:stage});
+        await poll(()=>logs.some(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage),'owned composer pause');
+        if(!logs.find(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage).paused)throw Error('Composer process did not pause');
+        f=await frame();
+        if(!predicate(f))throw Error('Actual composer phase changed before acknowledged pause');
+        const read=f=>createHash('sha256').update(JSON.stringify(f)).digest('hex');
+        signature={read,expected:read(f)};
+      }
+      status=await capture('tool-preview-'+stage,f,'CAPTURED_TOOL_PREVIEW',signature);
+    } finally {
+      if(composerProbe||syntaxProbe) {
+        control({kind:'resume_scanner',request_id:stage});
+        await poll(()=>logs.some(e=>e.kind==='scanner_resume_ack'&&e.request_id===stage),'owned composer resume');
+      }
+    }
+    result.stages.push({stage,status,cursor:f.cursor,requests:requests(),calls:calls(),checks});save();
+    if(status!=='CAPTURED_TOOL_PREVIEW'||Object.values(checks).some(v=>v===false))throw Error('Bad capture/check '+stage);
+    return f;
+  };
+  const slash=async text=>{send(text,'tool_preview_command');await waitFor(f=>f.text.includes(text),'draft '+text,6000);send('\r','tool_preview_command_enter');};
+   const target=(f,index)=>visibleMatches(f,(smallProbe?'vispreview_output':'vis16_output')+' [index='+index);
+  const click=async index=>{
+    const hits=target(await frame(),index);if(hits.length!==1)throw Error('Generic header not unique '+index);
+    const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_click');
+  };
+  const shellCommandStyle=(f,stage,background)=>{
+    if(f.columns!==120)return;
+    const hits=visibleMatches(f,'$ printf');
+    if(hits.length!==1)throw Error('Actual collapsed Shell command not unique');
+    const {x,y}=hits[0];
+    const first=f.cells[y].slice(x).map(cell=>cell.symbol).join('').trimEnd();
+    const continuation=f.cells[y+1].slice(x,x+9).map(cell=>cell.symbol).join('');
+    if(!first.endsWith(' 30')||continuation!==' 31 32 33')throw Error('Collapsed Shell lost actual character-wrap separator');
+    for(const row of f.cells.slice(y,y+2)) {
+      // Box padding inherits terminal foreground, not the theme's separate
+      // command-text foreground. Check the real gutter and whole inner surface.
+      if(row.slice(x-2,x).some(cell=>cell.fg!=='#ffffff')||
+         row.slice(x-2,f.columns-2).some(cell=>cell.bg!==background))
+        throw Error('Actual Shell command/gutter style differs at '+stage);
+    }
+    result.shell_command_wrap??={columns:f.columns,header:{x,y},continuation_separator:true,style_states:[]};
+    result.shell_command_wrap.style_states.push({stage,header:{x,y},background,gutter_foreground:'#ffffff'});save();
+  };
+  const reopen=async stage=>{
+    await slash('/sessions');
+    const f=await waitFor(f=>f.text.includes('Sessions')&&f.text.includes('VIS16 tool preview fixture'),'saved preview session',6000);
+    const hits=visibleMatches(f,'VIS16 tool preview fixture').filter(p=>p.y>0);if(hits.length!==1)throw Error('Session title not unique');
+    const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_reopen');
+    return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
+  };
+  try {
+    if(executeProbe) {
+      result.differences=['Actual execute operations, nested MCP/fetch, live Code/Output and terminal clipboard; full unmasked comparisons remain independent of behavior qualification.'];
+      result.execute=await executeProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch,resize,slash,control,readVt});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(smallProbe) {
+      result.differences=['Small real producer outputs and a bounded real response wait; no clock/history/paint override. Full frames remain unmasked and behavior alone is not pixel qualification.'];
+      result.small_profile=await smallProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch,resize,slash,reopen,click,target});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(questionProbe) {
+      result.differences=['Question ownership, structured answers, cancellation and durable restart are observed through the real binaries. Native JSON result and donor canonical model content are separately validated; full styled grids/PNGs/cursors remain unmasked, not global parity.'];
+      result.question_forms=await questionProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(syntaxProbe) {
+      result.syntax=await syntaxProbe({origin,dir,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(composerProbe) {
+      result.differences=['Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity.'];
+      result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control,resize});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(userShellProbe) {
+      result.differences=['Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed.'];
+      result.user_shell=await userShellProbe({origin,send,shot,waitFor,frame,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(historyProbe) {
+      result.differences=['Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked.'];
+      result.prompt_history=await historyProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(promptProbe) {
+      result.differences=['Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked.'];
+      result.prompt_caret=await promptProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    if(mcpProbe) {
+      result.mcp_status=await mcpProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
+    await shot('home',f=>f.text.includes('Ask anything')&&f.text.includes('1 MCP /mcps'));
+    if(!cursorProbe)result.home_mcp=await probeHomeMcp({send,shot,waitFor,frame,visibleMatches,resize,logs,control,snapshot});
+    send('\x1b[200~VIS16 preview: execute the supplied MCP and Shell calls exactly once.\x1b[201~','tool_preview_prompt');send('\r','tool_preview_submit');
+     const done=await shot('completed',f=>f.text.includes('VIS16-DONE:')&&(cursorProbe||target(f,1).length===1));
+      shellCommandStyle(done,'completed','#141414');
+    if(requests()!==6||calls()!==4||logs.some(e=>e.kind==='provider'&&!e.valid))throw Error('Unexpected provider/call count or unpaired result');
+     const before=await snapshot('completed');result.before=before;
+     if(before.mcp_calls.length!==3)throw Error('Real MCP did not execute exactly three times');
+     if(before.shell_effect?.lines!==1||before.shell_effect?.bytes!==17)throw Error('Real Shell did not produce exactly one bounded effect');
+     if(origin==='oc') {
+       const all=before.observations.flatMap(o=>o.data.presentation||[]);
+       const intents=all.filter(record=>record.presentation.label_only===true);
+       const data=all.filter(record=>record.presentation.label_only!==true);
+       const mcp=before.observations.flatMap(o=>o.data.tool_operations||[])
+         .filter(operation=>operation.name==='vis16__output');
+       if(mcp.length!==3||intents.length!==3||all.length!==8||mcp.some(operation=> {
+         const started=intents.filter(record=>record.operation===operation.id);
+         const finished=data.filter(record=>record.operation===operation.id);
+         return started.length!==1||finished.length!==1||[started[0],finished[0]].some(record=>
+           record.presentation.mcp_label?.text!=='vis16_output'||record.presentation.mcp_label.limited!==false)||
+           started[0].presentation.body!==''||started[0].presentation.body_bytes!==0||
+           started[0].presentation.generated_guidance!==false||started[0].presentation.capture!=null;
+       }))throw Error('Captured MCP labels did not preserve actual intent/result operations and wire names');
+       // Intent-only names are not body/capture evidence. The same four actual
+       // operations still retain five genuine result/Shell presentation records.
+       const operations=new Map();
+       for(const record of data) {
+         const records=operations.get(record.operation)||[];
+         records.push(record.presentation);operations.set(record.operation,records);
+       }
+       const shell=[...operations.values()].filter(records=>records.length===2);
+       if(data.length!==5||operations.size!==4||shell.length!==1||
+          [...operations.values()].filter(records=>records.length===1).length!==3||
+          data.some(p=>Buffer.byteLength(p.presentation.body)>2048))throw Error('Missing/unbounded structured body or extra operation');
+       if(shell[0].some(p=>p.shell?.process_state!=='completed'||p.shell.background!==false||p.shell.exit!==0)||
+          JSON.stringify(shell[0][0])!==JSON.stringify(shell[0][1]))throw Error('Frozen/logical foreground Shell facts differ');
+       if(data.filter(p=>p.presentation.generated_guidance).length<3||data.some(p=>p.presentation.body.includes('[tool output:')))throw Error('Body/guidance not separated');
+       if(done.text.includes('[tool output:')||done.text.includes('parts omitted from bounded history preview'))throw Error('Generated guidance/notice in dialogue');
+       result.owner_facts={bounded:true,separate_body_guidance:true,presentation_count:data.length,operation_count:operations.size,frozen_foreground_shell:true,artifacts:Object.keys(before.artifacts).length,
+         mcp_labels:{wire_name:'vis16__output',display_name:'vis16_output',intent_records:intents.length,result_records:mcp.length}};
+    }
+    // An expanded first card exceeds the base viewport. Use the same tall
+    // profile on both binaries rather than asserting offscreen text is absent.
+    await resize(80);
+    await waitFor(f=>f.rows===80&&target(f,1).length===1,'tall card view',6000);
+    send('\x1b[200~preserved draft\x1b[201~','tool_preview_draft');
+    const base=await waitFor(f=>f.text.includes('preserved draft'),'draft');
+     if(cursorProbe) {
+       result.cursor_temporal=await cursorProbe();
+       const after=await snapshot('cursor_completed');result.after=after;
+       if(requests()!==6||calls()!==4||JSON.stringify(before.artifacts)!==JSON.stringify(after.artifacts)||JSON.stringify(before.mcp_calls)!==JSON.stringify(after.mcp_calls)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||JSON.stringify(before.shell_effect)!==JSON.stringify(after.shell_effect))throw Error('Cursor interactions changed effects/captures/RAW');
+       result.cursor_temporal.no_tool_replay=true;
+       result.status='DIAGNOSTIC_CURSOR_ONLY';save();return result;
+    }
+    draftCaret=base.cursor;
+    const p=target(base,1)[0];
+    send(`\x1b[<35;${p.x+1};${p.y+1}M`,'tool_preview_hover');
+    await shot('hover',f=>JSON.stringify(f.cells)!==JSON.stringify(base.cells)&&!f.text.includes('output: VIS-MCP-FIRST'));
+    for(const index of [1,2]) {
+      await click(index);
+      const label=index===1?'FIRST':'SECOND';
+      const expanded=await shot('mcp-'+index+'-expanded',f=>f.text.includes('output: VIS-MCP-'+label+'-BEGIN')&&f.text.includes('available parameter')&&f.text.includes('[Part preview truncated]'));
+      if(!['[Part preview truncated]','[output preview truncated; full result retained]','[truncated]'].every(s=>expanded.text.includes(s))||expanded.text.includes('DISTANT-END'))throw Error('Lost literal payload or recovered discarded bytes');
+      if(origin==='oc'&&expanded.text.includes('[tool output:'))throw Error('Generated model guidance displayed as body');
+      await click(index);
+      await shot('mcp-'+index+'-recollapsed',f=>target(f,index).length===1&&!f.text.includes('output: VIS-MCP-'+label));
+    }
+    const errorText=origin==='oc'?'mcp tool reported failure':'VIS-MCP-ERROR';
+    await click(4);
+    await shot('error-expanded',f=>f.text.includes(errorText));
+    await click(4);
+    await shot('error-recollapsed',f=>target(f,4).length===1&&!f.text.includes(errorText));
+    const shellTarget=f=>visibleMatches(f,'$ printf').filter(p=>p.y>0);
+    const shellClick=async()=>{const hits=shellTarget(await frame());if(hits.length!==1)throw Error('Shell header not unique');const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_shell_click');};
+     await shellClick();
+     // The bounded ordered Shell preview retains all eighty short fixture rows;
+     // its command/chrome exceed the earlier eighty-row separate-stream view.
+     // Use the same actual tall viewport on both sides, without hiding overflow.
+     await resize(120);
+     draftCaret={...draftCaret,y:draftCaret.y+40};
+     await shot('shell-expanded',f=>f.rows===120&&f.text.includes('VIS-SHELL-LINE-080')&&!/\(\d+ earlier lines\)/.test(f.text));
+     await shellClick();await resize(40);
+     // The bottom-pinned caret must translate exactly with the actual geometry.
+     draftCaret={...draftCaret,y:draftCaret.y-80};
+     await shot('shell-recollapsed',f=>f.rows===40&&/\(\d+ earlier lines\)/.test(f.text));
+     draftCaret=null;
+    send('\x03','tool_preview_clear_draft');await waitFor(f=>!f.text.includes('preserved draft'),'draft cleared',6000);
+    if(origin==='oc') {
+      await resize(20);await waitFor(f=>f.rows===20,'short resource-details viewport',6000);
+      await slash('/cards');
+      await waitFor(f=>f.text.includes('Tool cards')&&f.text.includes('vis16__output completed'),'native cards list',6000);
+      // Newest is the failure; select the oldest successful MCP operation.
+      send('\x1b[B\x1b[B\x1b[B\r','tool_preview_cards_detail');
+      const detail=await waitFor(f=>f.text.includes('Tool result')&&f.text.includes('Capture Complete:')&&f.text.includes('Body preview:')&&f.text.includes('Available output page (bounded; explicit viewer read):'),'native bounded capture details',6000);
+      if(detail.cursor.visible)throw Error('Read-only detail exposes underlying composer caret');
+      await capture('native-tool-preview-capture-details',detail,'NATIVE_ONLY_RESOURCE_DETAILS');
+      send('\x1b[6~','tool_preview_cards_page_down');
+      await waitFor(f=>f.text.includes('Tool result')&&f.text.includes('enter next page'),'bounded cards next-page availability',6000);
+      send('\r','tool_preview_cards_next_page');
+      const paged=await waitFor(f=>f.text.includes('Tool result')&&f.text.includes('bytes 240–480 of'),'existing explicit bounded owner page',6000);
+      if(paged.cursor.visible)throw Error('Read-only paging exposes underlying composer caret');
+      await capture('native-tool-preview-cards-paged',paged,'NATIVE_ONLY_RESOURCE_DETAILS');
+      send('\x1b','tool_preview_close_card_detail');await waitFor(f=>f.text.includes('Tool cards')&&!f.text.includes('Tool result'),'cards list restored',6000);
+      send('\x1b','tool_preview_close_cards');await waitFor(f=>!f.text.includes('Tool cards')&&!f.text.includes('Tool result'),'cards closed',6000);
+      await resize(40);await waitFor(f=>f.rows===40,'restore paired geometry',6000);
+    }
+    await slash('/new');await shot('switched',f=>f.text.includes('Ask anything'));
+    shellCommandStyle(await reopen('reopened'),'reopened','#1e1e1e');
+    const after=await snapshot('reopened');
+     if(requests()!==6||calls()!==4||JSON.stringify(before.artifacts)!==JSON.stringify(after.artifacts)||JSON.stringify(before.mcp_calls)!==JSON.stringify(after.mcp_calls)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||JSON.stringify(before.shell_effect)!==JSON.stringify(after.shell_effect))throw Error('View interactions changed effects/captures/RAW');
+    send('\x03','tool_preview_exit');await poll(()=>logs.some(e=>e.kind==='exit'&&e.generation===0),'natural exit');
+    await relaunch();await waitFor(f=>f.text.includes('Ask anything')||f.text.includes('VIS16-DONE:'),'restart ready',15000);
+    // Native restores the deck; donor may return Home. Reopen through the actual list on both sides.
+    shellCommandStyle(await reopen('restarted'),'restarted','#1e1e1e');
+    const restarted=await snapshot('restarted');result.after=restarted;
+     if(requests()!==6||calls()!==4||JSON.stringify(before.artifacts)!==JSON.stringify(restarted.artifacts)||JSON.stringify(before.mcp_calls)!==JSON.stringify(restarted.mcp_calls)||JSON.stringify(before.observations)!==JSON.stringify(restarted.observations)||JSON.stringify(before.shell_effect)!==JSON.stringify(restarted.shell_effect))throw Error('Restart replayed effects or changed captures/RAW');
+    result.status='PASS_BEHAVIOR_ONLY';
+  } catch(error) {
+    result.status='FAILED';result.reason=error.message;
+    if(error.wait_failure)result.wait_failure=error.wait_failure;
+    const failed=await frame();result.failure_cursor=failed.cursor;
+    await capture('tool-preview-failure',failed,'FAILED_STATE');
+  }
+  save();return result;
+}

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "2c631f6fd76f05b87715976bc553a93f3e3d714246b7a24755f3624a2af72bbf",
+  "archive_bytes": 3853300,
+  "tar_sha256": "61f383e2d01045af74d8f6c441939752e441cf4c59bf4aa4408d60d45db57e94",
+  "tar_bytes": 95252480,
+  "inventory": {
+    "members": 1442,
+    "logical_bytes": 100220493,
+    "member_inventory_sha256": "80c1b668dbebddf1386ea9eeb24dadf4cef4a66399ac34e3caa379ea83796f53",
+    "same_side_png_aliases": 146
+  },
+  "source_roots": {
+    "inventory": "/home/opencode/.cache/opencode-tmp/opencode/raster-current-001/inventory",
+    "ordinary": "/home/opencode/.cache/opencode-tmp/opencode/raster-regressions-001/ordinary",
+    "temporal": "/home/opencode/.cache/opencode-tmp/opencode/raster-regressions-001/temporal",
+    "matched": "/home/opencode/.cache/opencode-tmp/opencode/raster-regressions-001/matched"
+  },
+  "producer_reports": [
+    {
+      "episode": "inventory",
+      "captures": 14,
+      "comparisons": {
+        "EQUAL": 2,
+        "DIFFERENT": 12
+      }
+    },
+    {
+      "episode": "ordinary",
+      "captures": 56,
+      "comparisons": {
+        "DIFFERENT": 48,
+        "EQUAL": 6,
+        "NATIVE_ONLY_RESOURCE_DETAILS": 4
+      }
+    },
+    {
+      "episode": "temporal",
+      "captures": 160,
+      "comparisons": {
+        "DIFFERENT": 160
+      }
+    }
+  ],
+  "retainer_source_sha256": "fc44e9ea3760cf15f166d3afe986d4e77bbb84395b9d993cb3dbcee64269a3fd"
+}

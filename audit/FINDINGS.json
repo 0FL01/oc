@@ -1,0 +1,252 @@
+{
+  "commit": "fc796830cf336655bebf63b591fe0fd36cdd4310",
+  "workflow_state_owner": "progress/STATE.json after explicit merge; this file is an immutable audit inventory",
+  "severity_definition": {
+    "P0": "blocks use on valuable working trees or the core product path",
+    "P1": "blocks the agreed daily-driver acceptance; not cosmetic"
+  },
+  "findings": [
+    {
+      "id": "F01",
+      "severity": "P0",
+      "repair_task": "T31",
+      "title": "Обычные точки входа всё ещё используют MockProvider",
+      "sources": [
+        "S03",
+        "S04",
+        "S05"
+      ],
+      "observed": "bootstrap передаёт MockProvider::echo() в headless, а run_tui создаёт mock CoreApp. Более полный runtime/adapters не подключён к нормальному пути запуска бинарника.",
+      "required_change": "Настоящие oc run и oc tui должны использовать один application composition root с effective config, Responses, tools, MCP и DCP; mock — только явный тестовый/демо-режим.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F02",
+      "severity": "P0",
+      "repair_task": "T34",
+      "title": "Теряются structured continuation и отдельный call_id",
+      "sources": [
+        "S06",
+        "S07",
+        "S08"
+      ],
+      "observed": "request_body отправляет одну строку с ролью user. Runtime превращает прошлые tool results в обычный текст. ToolCallStarted хранит item_id, но не отдельный call_id; output helper использует item ID. Сохранённые reasoning items не replay-ятся этим путём запроса.",
+      "required_change": "Сохранить typed roles, завершённые provider items, отдельные call_id и function_call_output, необходимые opaque reasoning и images в реальном следующем запросе и после restart.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F03",
+      "severity": "P0",
+      "repair_task": "T34",
+      "title": "EOF и отмена могут интерпретироваться неверно",
+      "sources": [
+        "S07",
+        "S21"
+      ],
+      "observed": "После framing-complete EOF с непустым списком items возвращается Ok без response.completed. response.failed/incomplete игнорируются. Cancellation проверяется до ожидания очередного chunk, а config.chunk_timeout_ms не используется default-путём.",
+      "required_change": "Typed terminal states, отменяемое ожидание headers/body, byte-bounded parser и реальные effective options. Незавершённые calls не исполняются; исчерпание rounds не означает Completed.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F04",
+      "severity": "P0",
+      "repair_task": "T32",
+      "title": "Предсказуемый временный путь patch следует symlink",
+      "sources": [
+        "S09",
+        "S27"
+      ],
+      "observed": "write_atomic использует имя с PID и std::fs::write вместо exclusive no-follow creation. На предсказуемом временном пути уже может существовать symlink.",
+      "required_change": "Безопасное эксклюзивное создание temp file и handle-relative containment. Предсозданный symlink и parent swap не должны менять outside sentinel.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F05",
+      "severity": "P1",
+      "repair_task": "T32",
+      "title": "Grammar/preimages/partial results расходятся с контрактом patch",
+      "sources": [
+        "S09",
+        "S27"
+      ],
+      "observed": "Add File сохраняет ведущий + вместо декодирования addition syntax. Тесты используют additions без +. Hunk preimages проверяются при исполнении отдельных операций, а не при whole-plan preflight; финальной защиты от concurrent edit не видно.",
+      "required_change": "Одна schema patchText, source-derived grammar fixtures, предварительная проверка детерминированных ошибок, защищённые per-file commits и точные partial outcomes, без фиктивной глобальной атомарности.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F06",
+      "severity": "P0",
+      "repair_task": "T33",
+      "title": "Tool intent может записываться после side effect",
+      "sources": [
+        "S06",
+        "S10"
+      ],
+      "observed": "execute_units выполняет builtin batch до того, как record_call записывает intent. Ошибки записи MCP intent игнорируются. Builtins группируются перед MCP и меняют порядок смешанного batch.",
+      "required_change": "Успешный durable intent должен предшествовать dispatch. Сохранить порядок calls, failure/unknown после crash; storage error запрещает новую внешнюю операцию.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F07",
+      "severity": "P1",
+      "repair_task": "T36",
+      "title": "Модель не получает запланированный compress и nudges",
+      "sources": [
+        "S06",
+        "S08",
+        "S19"
+      ],
+      "observed": "В model-facing builtins нет compress, glob и grep. run_compress вручную вызывается тестовым harness. nudge_hint возвращается в report, а не добавляется в request.",
+      "required_change": "Опубликовать разрешённые compress/glob/grep через общий dispatcher. Проверить именно модельный вызов compression и nudge в запросе, а не только host helper.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F08",
+      "severity": "P1",
+      "repair_task": "T35",
+      "title": "Workspace definitions теряют значимое поведение",
+      "sources": [
+        "S11",
+        "S12",
+        "S18"
+      ],
+      "observed": "В AgentDef отсутствуют Markdown body и permissions; loader отбрасывает body. Commands с любым backtick отклоняются. Предполагаемые inline filenames и переданные тестом roots не доказывают production global/local discovery.",
+      "required_change": "Global/local sources должны достигать prompt assembly. Сохранить body и поддержанные ограничения primary agent; Markdown обрабатывать буквально, порядок sources проверить по baseline.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F09",
+      "severity": "P0",
+      "repair_task": "T35",
+      "title": "Legacy permission aliases не участвуют в assembly",
+      "sources": [
+        "S11",
+        "S06"
+      ],
+      "observed": "legacy_key существует, но assemble сохраняет исходные ключи. RuntimePolicy проверяет exact tool names: конфликтующий write/edit deny не сужает явный apply_patch allow.",
+      "required_change": "Нормализовать aliases до policy merge и консервативно разрешить конфликт. Проверять итоговый runtime, не только helper.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F10",
+      "severity": "P1",
+      "repair_task": "T37",
+      "title": "Регистр Authorization ломает MCP config",
+      "sources": [
+        "S11",
+        "S14"
+      ],
+      "observed": "Конфигурация сохраняет исходное написание map key. CodexWebConfig::from_entry ищет только authorization в нижнем регистре. Пользовательский пример содержит Authorization.",
+      "required_change": "Обрабатывать HTTP headers без учёта регистра и проверять конфликты дубликатов. Неизменённый пользовательский пример должен проходить strict fake initialize/list/call.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F11",
+      "severity": "P1",
+      "repair_task": "T37",
+      "title": "MCP ownership привязан к turn, а не generation",
+      "sources": [
+        "S06",
+        "S14",
+        "S15",
+        "S27"
+      ],
+      "observed": "Runtime подключает и закрывает MCP на каждом turn. Stdio path завершает прямой child, не собственную process group. from_entry не сохраняет Location cwd/environment context.",
+      "required_change": "Client принадлежит effective Location/config/auth/cwd generation. Cleanup охватывает собственные descendants, disabled entry не запускается, registry сохраняет dispatch identity.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F12",
+      "severity": "P1",
+      "repair_task": "T38",
+      "title": "UTF-8 HTML вызывает panic; egress guard запаздывает",
+      "sources": [
+        "S17"
+      ],
+      "observed": "html_to_text увеличивает byte offset и на следующем шаге делает str slice. DNS precheck и соединение reqwest независимы; remote_addr проверяется уже после отправки запроса.",
+      "required_change": "Unicode-safe extraction и стандартный URL parser. Разрешённый address должен управлять actual dial; redirects и общий deadline ограничены.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F13",
+      "severity": "P0",
+      "repair_task": "T38",
+      "title": "Shell может зависнуть на stdin или дочерних pipe",
+      "sources": [
+        "S16"
+      ],
+      "observed": "stdin.write_all выполняется до reader threads и запуска timeout clock. После выхода leader join drainers может ждать surviving descendants; TERM grace заканчивается по leader, даже если его дети остались.",
+      "required_change": "Конкурентные stdin/stdout/stderr под общим отменяемым deadline. Отдельный bounded cleanup descendants после leader exit, тесты с outer watchdog.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F14",
+      "severity": "P1",
+      "repair_task": "T39",
+      "title": "TUI components не подключены к terminal loop",
+      "sources": [
+        "S04",
+        "S18"
+      ],
+      "observed": "Бинарник рисует chat/input, но не управляет panel rendering/navigation, model/workspace snapshots и paging. Начальная история читается целиком; lines накапливается.",
+      "required_change": "PTY tests actual binary должны управлять model/variant/session/agent/commands/skills/DCP, cancel/paste/resize через тот же application API, что и headless.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F15",
+      "severity": "P1",
+      "repair_task": "T40",
+      "title": "Маленький outgoing cap не ограничивает чтение истории",
+      "sources": [
+        "S06",
+        "S10",
+        "S22"
+      ],
+      "observed": "Runtime читает всю историю, затем строит projection и сокращает text до 64 KiB. Это не ограничивает промежуточную память и не реализует согласованное поведение 500k-token context. Soak небольшой и преимущественно component-level.",
+      "required_change": "Активная projection по страницам/ссылкам, независимые byte safety limits и token admission, без silent truncation. Long-history измерения actual binary при одинаковом активном контексте.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F16",
+      "severity": "P1",
+      "repair_task": "T33",
+      "title": "Blob recovery может вернуть нечитаемый digest",
+      "sources": [
+        "S10"
+      ],
+      "observed": "write_blob немедленно возвращает digest существующего файла, даже если crash оставил его без blobs row. read_blob требует эту row. Directory fsync и recovery ordering также требуют исправления.",
+      "required_change": "Распознавать и валидировать orphan content; исправлять metadata или явно отказывать. Успешно возвращённый digest читается. Fault injection на file/DB boundaries.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F17",
+      "severity": "P1",
+      "repair_task": "T35",
+      "title": "Крайние случаи config/discovery расходятся с исходным контрактом",
+      "sources": [
+        "S11",
+        "S13"
+      ],
+      "observed": "ProviderOptions не хранит headers; file substitutions идут относительно cwd. Выбор/отключение providers и root fields обработаны неполно. Discovery допускает 2^53 и иначе разбирает display name многоуровневого model ID.",
+      "required_change": "Проверить исходный user config и oracle через executable. Unsupported semantics диагностировать, а не игнорировать. Headers заменять case-insensitively, file references разрешать относительно источника.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    },
+    {
+      "id": "F18",
+      "severity": "P1",
+      "repair_task": "T41",
+      "title": "Зелёная evidence может обходить поставляемый путь",
+      "sources": [
+        "S19",
+        "S20",
+        "S21",
+        "S22",
+        "S23",
+        "S26"
+      ],
+      "observed": "Live harness создаёт Runtime напрямую и возвращается нормально без credentials. DCP вызывается самим harness. Documentation checks проверяют структуру, не реализованную capability.",
+      "required_change": "Обязательный binary-level deterministic E2E и раздельные machine-readable pass/skip/block/fail. Отсутствие env или пропуск обязательного MCP не закрывают live gates.",
+      "verification": "статическая проверка исходников; динамическое воспроизведение должно быть выполнено regression tests"
+    }
+  ]
+}

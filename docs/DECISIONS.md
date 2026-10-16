@@ -1,0 +1,291 @@
+# Решения после Q01–Q07
+
+## Подтверждено владельцем
+
+Q01 закрыт: provider family `@ai-sdk/openai` через собственный OpenProxy, bearer/env config, ludka static и ludka2 dynamic metadata. OAuth и остальные provider implementations не нужны. Точные live endpoint/key не запрашивать в документах: они подключаются в среде.
+
+Q02 закрыт: DCP functional port обязателен, codex_web remote bearer/no OAuth, Chrome stdio integration с default disabled. Пользовательский discovery script — часть required behavior, а не временная справка.
+
+Q03/Q04 закрыты для daily-direct: read/file mutation/webfetch/shell, MCP, compress + reminders, исходный TUI product direction сохраняется. Историческое решение «один built-in apply_patch вместо write/edit для всех моделей» superseded узким owner amendment D22 ниже; остальные ответы не переоткрываются.
+
+Q05 по runner/полномочиям уточнён: authoring-agent не привязан к GPT, модели, provider или CLI. Compatible agent работает в non-root account с dev tools; YOLO-подобные режимы, rootless Docker, git commit/push разрешены только в пределах runbook. Конкретный monetary cap/время watchdog владелец не указал. Не выдавать отсутствие cap за unlimited budget approval или блокировать все offline работы из-за незаполненного старого вопросника.
+
+Q06 закрыт по target: пользовательский report Debian 13.4 x86_64 GNU, 6 vCPU AMD EPYC, около 11.68 GiB RAM, ext4, kernel 6.12.86, active rustc/cargo 1.98.1. Это report владельца; он не доказывает фактическую среду будущего процесса. Проверяется preflight. Наличие root в показанном prompt и rootful overlay не отменяет заявленный будущий non-root/rootless запуск.
+
+Q07 закрыт: fresh start, no migration, no publishing. Требуется запускаемый результат cargo build. Разрешение push исходников не означает разрешение release/service deployment.
+
+Configured workspace добавлен владельцем в первый daily-driver release: global/local config и AGENTS, `.opencode`, skills, primary agents, commands и известные native mappings DCP/OpenProxy. Arbitrary JS/TS/npm plugins явно не требуются и не исполняются.
+
+## Defaults этой редакции, не ответы владельца задним числом
+
+D01: четыре packages и небольшой typed application API; бинарник oc, namespace oc-rs. Local TUI/headless. Local shared service добавлена D25/T61 (pending); general HTTP/remote serve/attach остаются вне scope.
+
+D02: один native Responses adapter, explicit projection/store:false, no previous_response_id в первом scope. Основан на OpenAI package/default family и observed proxy route; exact replay проходит wire spike. Chat Completions не добавлять «на всякий случай».
+
+D03: DCP range core и базовая панель; experimental message mode/custom prompts/subagents вне goal. Required source-derived fixtures обязательны. Automatic strategies не удалять только ради минимального demo.
+
+D04 (superseded D24/T60, 2026-10-13): explicit direct exposure в native profile. Отсутствующий codemode field имеет direct semantics в этом профиле, explicit true отклоняется. Так устраняется прежний blocker на пропущенном ключе в пользовательском MCP config без скрытой подмены true→false.
+
+D05: один data-root owner, SQLite worker, sequential tool execution; no distributed locks/frameworks. История на диске, DCP — projection. D19 supersedes sequential execution only for independent subagent calls/background jobs; serial non-child mutation ordering remains.
+
+D06: AGPL-3.0-or-later-compatible путь для прямого производного DCP-порта. До первого push такого кода получить LICENSE pinned DCP, сохранить notices/атрибуцию и ясно обозначить лицензию соответствующей производной работы. Не переименовывать DCP в MIT. Пакет не делает правового заключения о любых будущих способах сочетания кода; при конфликте лицензий затронутый push блокируется, unrelated local work продолжается. У OpenProxy проверенный GitHub metadata не определяет лицензию; не копировать его реализацию без отдельного основания, достаточно protocol/reference tests.
+
+D07: dev build jobs=2, test threads=2, target/tmp на диске worktree, не /tmp tmpfs. Rootless Docker — optional инструмент, не требование запуска oc. Начальные safety byte caps и bounded live test envelope заданы runbook, не утверждены как пожелание к latency/RAM.
+
+D08 (обновлено решением владельца 2026-10-16): история `agent/oc-rust-port` объединяется с `master` обычным merge с сохранением обеих историй; дальнейшая рабочая ветка — `master`, обычный fast-forward push разрешён только в verified `origin/master` этой repo. Прежний запрет merge в default и выбор `agent/oc-rust-port` superseded этим решением. Без force-push, изменения branch protection/remote и удаления старой ветки в рамках переезда.
+
+D09: нет большого монолитного progress log. Один маленький state, current handoff, indices и immutable factual leaves. No RAG, embeddings, database или новый agent framework для планирования.
+
+D10: baseline — одна immutable config generation на turn; D25/T61 supersedes same-Location config adoption только на fresh request boundary, issued request/full batch immutable (pending). Skills snapshot-ятся bounded при построении generation и раскрывают body только через native tool result; primary agents могут только сужать central policy; commands проходят ровно один durable SubmitInput. Location switch выбирает Location-scoped session, не перепривязывает активную session.
+
+T50/D20 adds a distinct durable same-session move; ordinary Location switch and
+in-flight immutable generation remain as above. Only permanent binding is superseded.
+
+D11: known plugin compatibility — обычный exact enum/match по capability kind, не generic registry. T07 классифицирует и отклоняет unknown до side effects; T14/T19 связывают marker с compiled discovery/DCP. Exact marker не исполняет JS-файл и не меняет authority пользовательского discovery snapshot.
+
+D12: `oc-tui` зависит от read-side `oc-adapters` (models select/admit, config explain/skills, storage paged reads + `tui.*` prefs). DAG сохраняется: `core <- adapters <- tui <- oc`; TUI не порождает network/process, storage writes только pref-ключи, Db handle lifecycle остаётся в binary. Чистый `core`-only TUI не может показать picker/history/workspace без дублирования доменной логики.
+
+D13 (2026-09-22, инструкция владельца о паритете с opencode v2.0.12): MCP attach перестаёт быть фатальным для turn. Enabled-сервер, который не подключился или не отдал каталог, получает per-server деградацию (`mcp <id> <stage>: <code> (retryable=<bool>)`) и не публикует инструменты; turn выполняется дальше, деградация видима (TUI note, headless stderr). Основание: upstream `packages/core/src/mcp/index.ts` ведёт статусы `pending|connected|disabled|failed|needs_auth` и продолжает сессию; прежнее правило «MCP attach failure stays fatal» из spec T43 (C3) отменяется этой записью, старый текст не переписывается. Остаются фатальными: `Cancelled`, ошибки cleanup/`McpShutdown`, `MAX_MCP_SERVERS`, generation-капы каталога; AUD23 reaping ранее подключённых серверов сохраняется. Последствия: тесты `mcp_attach_failure_is_loud`/`aud23_partial_attach_failure_*` и v01-сценарии переписываются под новый контракт (turn завершается + warning виден + нет утечки child), а не удаляются. Отдельно: outbound HTTP-клиенты (MCP remote, provider generation, discovery, webfetch) отправляют `User-Agent: oc/<version>` — JS runtime upstream всегда отправляет UA, `reqwest` по умолчанию нет, из-за чего Cloudflare перед crw endpoint отвечал `403 Error 1010`.
+
+D14 (2026-09-22, backend audit / owner-authorized bug repair): отсутствие положительных model limits не является причиной безусловного отказа turn. DISC05 и owner discovery oracle не меняются: отсутствующие metadata остаются unknown. `provider.<id>.options.nativeFallbackLimits` задаёт local request policy (defaults context=32768, output=4096; context > output+1024); это не заявленная capacity модели и не wire extension. Positive metadata ограничивает request; fallback используется только для неизвестных полей и даёт видимый warning. Output request по умолчанию равен configured output, explicit request clamped к known output либо fallback output; input ceiling = min(positive model.input, effective context-output)-1024. Каждый provider round, child и title проходит admission; title сохраняет запрос 256, но ограничивается тем же selected-model budget. Нет selected variant — нет overlay, explicit enabled variant валидируется. Это исправляет T15 implementation gap относительно `docs/CONTRACTS.md`, не заменяет DISC05. Evidence: `evidence/T47/report.md`.
+
+D15 (2026-09-22): permission resource maps сохраняют порядок правил, last matching rule внутри source, unmatched resource требует approval; отсутствие central action — deny. Независимые central/agent/child constraints пересекаются, не расширяют authority. Native `ask` не исполняет side effect без отсутствующего пока approval channel. MCP successful structured/textual resource output санитизируется до history/provider; arbitrary remote error text остаётся закрытым, structured error codes дают фиксированные безопасные категории. Initialize instructions — bounded permission-filtered provider projection, не immutable history. Media-output, prompts/resource catalog и interactive approval остаются открытыми parity-различиями, не новыми owner waivers. Evidence: `evidence/T43/backend-permissions.md`, `evidence/T46/backend-parity.md`.
+
+D18 (2026-09-23, решение владельца): поддержка OpenCode Zen полностью удалена из продукта. Удалены `zen_catalog.rs`, `zen_chat.rs`, actual-binary suite `zen_free.rs`, вся wiring в config/composition/runtime/application/provider/lib, scope-документ `docs/goals/2026-09-23-zen-free-chat.md`, регистрация T48 и acceptance ZEN01–ZEN03; `GOAL.md`, `docs/TEST_PLAN.md` и planning-реестры возвращены к состоянию до Zen. Основания: free tier провайдера закрыт для любого не-OpenCode клиента (`403 FreeTierError`, подтверждено ограниченными пробами), а единственный известный обход — подмена идентичности — запрещён. Ранее оформленные под этот scope решения (D16/D17) сняты вместе с ним; общий принцип сохраняется: `oc` не мимикрирует под другие клиенты и не обходит access-контроль провайдеров, в том числе через shell или subagent. Реальные live-прогоны остаются на OpenProxy; платный Zen key, OpenCode Go или локальный OpenAI-compatible сервер возможны только как новый отдельно утверждённый scope. История: `evidence/T48/report.md`, `evidence/T48/free-tier-gate.md`, `evidence/T48/removed.md`.
+
+### Owner-approved T44 permission follow-up (2026-09-26)
+
+VIS36 в T44 amendment закрывает открытый interactive approval gap D15 обязательной
+реализацией owner request/reply, typed rejection, project Always, original UI и
+autoaccept/config/Settings/CLI dependencies. Это утверждение плана, не executed PASS.
+Ask user-approvable; effective Deny и structural central/agent/child/trust ceilings
+сохраняются. Saved grants не переписывают restrictive policy. No-channel headless
+ApprovalRequired остаётся; explicit supported --auto требует реального once-consumer.
+Новые policy/UI различия не скрывать под claim identical donor algebra. Не добавлять
+новый task/framework или dependency на completion всего T43/T45.
+
+### D19 — owner-approved prompt/subagent/context/DCP plan (2026-09-27)
+
+[T45 R3/R6–R10](goals/2026-09-21-config-compat-and-subagents.md) supersedes only
+the child-DCP exclusion in D03, sequential execution for independent child calls
+and background jobs in D05 (not non-child tool/mutation ordering), and the
+primary-only/fixed-instruction interpretation of D10. Original decisions/evidence
+remain historical; one data-root owner, immutable generation, skill tool-result
+contract, SQLite durability and authority narrowing are unchanged.
+
+- Foreground is default but independent child calls overlap; explicit background
+  progresses while parent is active. Bounded session-owned jobs/notices and safe
+  restart replace a parent-terminal-only queue. Donor recovery is at-least-once;
+  native unknown side effects never automatically replay.
+- Optional context_message_ids attaches exact parent text/roles as quoted user data,
+  not system authority. Validate branch/revision/cutoff/budgets before admission;
+  immutable durable snapshot, independent stable IDs and effective capability preview
+  distinguish automatic child profile/AGENTS/tools/skill metadata from supplied history.
+- Child DCP defaults true with false/off/manual/Deny gates, narrow Explore compress
+  and session isolation. Protect active task/pack, release on completion and restore
+  for safe recovery; old packs do not become permanent fixed lanes.
+- No lifetime compress-call/block quota; repeated recompression must avoid aging
+  depth/full-archive-load exhaustion while preserving graph/protections/replay and
+  active memory/model/turn guards. No existing cumulative cap was found; historical
+  OC1 failure cause is unverified, not falsely attributed to a removed counter.
+- Shared base/custom system/environment/tool guidance and initial/dynamic AGENTS
+  lifecycle follow pinned OC2 within native trust/tool boundaries. R7 host extension
+  is retained. Explicit excluded donor features are not smuggled into parity.
+
+All are pending implementation; new scenarios have one owner T45. No change to task
+status, historical PASS, A10 baseline thresholds, mandatory workspace/live gates or
+T44 approval authority. Native compaction and DCP are independent context mechanisms.
+
+### D20 — selected native tools and explicit exclusions (2026-09-27)
+
+Owner-approved [T50 R1–R8](goals/2026-09-27-native-tool-parity.md) adds real Linux
+command-shell/background notices, donor search options, question, read directories/
+images, webfetch formats/timeout and direct model/session controls. Keep canonical
+shell plus legacy bash compatibility under one permission/execution owner. Question
+is user input, not approval; --auto never answers it. New controls require real
+target authorization, not model-description authority or silent missing-action allow.
+
+Built-in websearch and its provider integrations are intentionally omitted. Code
+Mode/execute remains excluded, including shims/remote interpreter emulation. Explicit
+MCP search/browser stays opt-in and catalog-derived; no built-in browser or PDF.
+Native opencode_* tools expose existing owners directly, not a Code Mode dependency.
+
+Only permanent session→Location binding is superseded: admitted same-session move
+validates destination and applies on a safe boundary, preserves ID/history and yields
+source execution before fresh destination generation. Ordinary SelectLocationSession
+is unchanged. Immutable in-flight context, original background/child provenance,
+parent-child ceilings, source trust, MCP quarantine/cleanup and unknown-effect safety
+remain; no file snapshots, family migration or second storage/scheduler framework.
+
+T50 owns TOOL12–TOOL19; AUD14's permanent-binding clause is narrowly amended with
+the original audit/evidence retained. Add todo state without changing existing task
+statuses or PASS. T45/T46/T44 remain independently owned, no done-dependency cycle;
+current request/effect/PTY/resource/workspace/live evidence is required before claims.
+
+### D21 — service config/startup/error isolation (owner-approved 2026-09-27)
+
+After RECON the owner approved [T46 R6/R7](goals/2026-09-22-mcp-attach-parity.md),
+[T51 R1–R3](goals/2026-09-27-startup-fault-isolation.md) and T44 VIS19/VIS40/VIS42.
+Optional MCP config/connect/catalog, plugin admission/setup and selected-provider
+discovery/connect readiness cannot kill otherwise admitted TUI/history/model picker.
+Failed services retain typed safe status/diagnostics before first prompt; no raw-error
+or keyword/regex classification. Selected provider/model never silently falls back;
+unavailable request is actionable non-success, headless remains nonzero.
+
+Supersedes only app-wide rejection for an optional failed capability in D11/old
+loader, lazy first-turn MCP attach and T37/MCP04's minimal local-MCP env/cwd policy.
+Legacy/canonical MCP forms normalize per pinned donor field matrix; admitted local
+MCP inherits **product-process** env + configured overlay and resolves relative cwd
+from Location workspace. Command/resource/credential-domain admission is required
+before inheritance; no lower-trust secret capture or external runner-auth extraction.
+Ordinary shell TOOL05/AUD28 stays minimal. Env values/inherited secrets are redacted.
+
+Use existing generation/client/application owners for async MCP startup and bounded
+status/actions; publish tools at safe request boundaries. Invalid recognized entry is
+failed, valid disabled remains zero-spawn; OAuth/CodeMode/unsupported protocol are
+per-server capability errors, not pretend support. Security-critical malformed policy,
+trust/storage/data-root/recovery, cancellation, cleanup/McpShutdown and caps stay
+non-success. Reload preserves the previous healthy complete generation on fatal
+failure; no partial unsafe policy or mixed state. Discovery oracle/budgets/atomic
+catalogs and remote sticky quarantine/no unknown-effect replay stay unchanged.
+
+This is pending plan delivery: MCP09/MCP10 only T46, CFG09/CFG10/UI07 only T51,
+VIS42 only T44 (with startup transitions in existing VIS19/VIS40). No second registry/
+daemon/store/framework, whole-task completion cycle, historical PASS rewrite or new
+OAuth/JS host. Historical T37 env evidence remains factual but does not qualify R6.
+
+### D22 — model-dependent file tools (owner-approved 2026-10-01; pending)
+
+После RECON владелец утвердил подробный план и commit/push:
+[T50/R1/R9](goals/2026-09-27-native-tool-parity.md),
+[ordered slices](../roadmap/M8.md#model-dependent-file-tools--t50r1r9-approved-2026-10-01-pending).
+Нативные `edit`/`write` добавляются с OC2 schemas/файловой семантикой. Точный
+case-sensitive predicate `model.id.includes("gpt-") && !model.id.includes("oss") &&
+!model.id.includes("gpt-4")` выбирает только `apply_patch`; иначе только `edit`/`write`,
+после чего effective policy/capabilities сужают exposure. Имя `apply_patch` сохраняет
+нынешний ordinary function `patchText` contract, не provider-hosted tool.
+
+Обязателен совместимый следующий request при пользовательской смене модели в обе
+стороны: tools/catalog/автоматическая guidance, preflight budgets и fingerprints
+строятся из одного selected view для root/own-model child и follow-ups. История
+calls/results неизменна; no tool translation/reexecution или alien opaque replay.
+Общие legacy permission identity/grants, approval preview/preimage recheck,
+descriptor-safe paths/protections, durable confirmed effects и resource caps остаются.
+
+Superseded только Q03/Q04's single-patch/no-edit-write exclusion, такой же clause
+TOOL03 и запрет model-name **file-tool selector** в действующих T45/T44 contracts.
+Strict apply_patch matching не становится fuzzy; no production model allowlist,
+reasoning-name inference, discovery/protocol/provider routing change или JS host.
+TOOL12/TOOL20 имеют owner T50; PRM01 остаётся T45, VIS35/VIS36 — T44, без новых
+tasks/store/framework/paid campaign или whole-task dependency cycle. Старые audits/
+evidence/PASS и A09 patch flow сохраняются. Plan-only delivery не меняет active T50,
+PAUSED T44 или остальные statuses и не является реализацией/qualification PASS.
+
+### D23 — live model switch at request boundaries (owner-approved 2026-10-01; pending)
+
+Follow-up OC2 RECON distinguishes local picker draft from committed session model.
+The owner requires original busy-time switching and approved detailed plan commit/push.
+Source: pinned U95–U102, [T50/R1/TOOL12](goals/2026-09-27-native-tool-parity.md#live-model-switching--r1tool12-approved-2026-10-01-pending).
+
+- Picker updates local session/agent (pre-session Location/agent) draft. Captured
+  message/command preparation or blank Enter in an existing ordinary composer commits
+  model/variant; matching owner facts reconcile it. Draft is not current execution.
+- Authorized commit is accepted while busy. The next request of the same task reloads
+  selection and coherent budget/tools/guidance/fingerprints/compatible history, without
+  a new prompt. Retry/compaction rebuilds keep existing policies; final answer without
+  continuation plus commit does not create generation.
+- Prepared request/stream/tools/approval remain on captured model/view. A call issued
+  by A is checked against A's request, not newly selected B; normal permissions/preimage
+  still hold. Preserve actual request/assistant attribution and retained ordinary tool
+  pairs/outcomes, strip incompatible opaque state and never replay settled/unknown effects.
+
+This narrowly supersedes model/variant busy refusal, D22's ambiguous whole-turn model
+pin and result-losing model-switch fresh lanes, not immutable config/Location generation,
+child/read-only authority, provider/credential admission, response-close admission,
+finite retry or quarantine. T50 owns TOOL12 and request/selection slices, T45/PRM01
+consumes shared composer/prompt lifecycle, T47/VAR01 retains ordering, T44 retains
+VIS09/VIS29/VIS17/VIS35/VIS36 paired visuals. No new tool/task/ID/store/paid campaign,
+completion cycle, historical PASS rewrite or status change; R8/T55 schedule preserved.
+
+### D24 — Code Mode on a native interpreter (owner-approved 2026-10-13)
+
+`execute` runs a JavaScript subset in an interpreter written in Rust inside
+`oc-adapters/src/codemode` (own lexer/parser, async tree-walking evaluator on a dedicated
+thread, `regress` for RegExp). No embedded JS engine, Node/Bun or plugin host. MCP servers
+default into Code Mode like the donor; `codemode:false` keeps them direct. Nested calls and
+`fetch` are admitted through the ordinary runtime owners (`admit_tool`, MCP lease,
+`webfetch` guards) under the `execute` operation. Resource guards are always on. This
+supersedes D04 only; `opencode_*` stay direct (T50). Contract: T60 spec.
+
+### D25 — local shared service и request-boundary hot reload (approved 2026-10-14; pending)
+
+Owner explicitly includes shared service after RECON and approves the audited minimal
+plan: [T61](goals/2026-10-14-hot-reload-shared-service.md), HOT01–HOT04, one task/five slices.
+One native host/Tokio/Db write/root-lock owner, bounded canonical-Location state, one
+foreground root per Location; no same-Location scheduler. Existing guarded read-only
+catalog SQLite helper stays allowed and does not become a second application owner.
+Unix socket/closed operation DTOs preserve shipped frontend capabilities; no public
+HTTP/SDK/remote parity. Detach, scoped interaction/PTY authority, durable admission
+lookup, explicit resnapshot and joined restart are required before managed defaults.
+
+One atomic source publication plus issued request/full-batch leases replaces idle-only
+same-Location config reload. Root/child fresh preparation adopts validated config,
+selection/history/authority coherently; child immutable launch ceiling and source
+Location persist. Prepared retry and auxiliary summary stay captured; fresh settled
+preparation re-admits. No latest-counter rejection of valid old work or effect replay.
+
+One watcher/manual pipeline and persistent Location MCP supervisor; unchanged auto
+reuse, per-instance lease retirement, shared sticky safety and incarnation fencing.
+Fatal validation/discovery retains complete last-good; optional service isolation and
+fatal caps/cleanup unchanged. Manual all-loaded forced reload reports config publication
+separately from pending connections; typed Reloaded settles affected unresolved waits,
+not whole-turn cancel. Client settings/env/persistence separate from shared services.
+
+Supersedes only D01 daemon exclusion, D10/old lifecycle whole-turn config pinning and
+D23's unchanged-config limitation; session_move, RAW/HOT/provenance, no-JS-host, all
+permission/security/retry/resource guarantees and existing test ownership remain.
+Task todo/implementation NOT_STARTED, gates NOT_RUN; no status/evidence rewrite.
+Shared-service part superseded by D26 (2026-10-15).
+
+### D26 — independent processes, no shared service (owner 2026-10-15)
+
+Owner removes the shared service from scope: every `oc2` process is independent, no
+host on 127.0.0.1, Unix IPC, `oc service`, client attach/detach, durable admission
+tokens or cross-client recovery. Deliberate divergence from OC2's managed local
+service. T61 R3/HOT03 descoped; R1/R2/R4 run per process; D01 daemon exclusion restored.
+Per-process data-root lock (`DataRootBusy`), SQLite safety and OAuth loopback remain.
+
+### D27 — canonical OpenCode 2 config only (owner 2026-10-15)
+
+No OpenCode 1 config compatibility. Only the canonical v2.0.12 schema
+(`packages/schema` config `Info` + cli.json schema) is accepted; anything upstream
+accepts only through `packages/core/src/v1/**` or tui.json/kv.json migration fails
+closed with one complete report of offending keys, sources and canonical replacements.
+Supersedes earlier "pinned OC2 normalizer/migration as oracle" wording for v1 shapes
+(T43/T45 R6/T46 MCP09/T53 GO02 legacy-equivalence). Owner converts their config. T62.
+
+### D28 — OC2 key allowlist, no OpenCode 1 vocabulary (owner 2026-10-16)
+
+Owner: «выкинуть из код базы поддержку легаси пути и оставить только oc2»; chosen
+form «V1-детектор → V2-allowlist». The OpenCode 1 key tables, replacement hints,
+`LegacyConfig`/`ReplaceLegacyConfig`, the specialised startup screen and V1-only
+guards are removed. Admission stays fail-closed through a schema-derived OC2
+allowlist (`config/admission.rs`): any other key refuses startup/reload/`oc2 models`
+with one `unknown_config_key` report (paths only, no values or replacements).
+Declared native extensions: root `dcp`/`animations`/`terminal`, variant `disabled`.
+Stricter than TS (`onExcessProperty: "ignore"`) by design. Supersedes the report
+form of D27 and the T46 omission of unknown MCP metadata. Owner converts
+`~/.config/opencode` himself. T66, CFG18.
+
+### D29 — devtools bar hidden unless enabled (owner 2026-10-16)
+
+Owner resumed T44 and asked to remove the ` Native runtime  ○ UI` row: with
+`oc2-dev` (debug binary) it took a TUI row because the native debug build mapped to
+upstream's `local` channel (`debug.devtools ?? channel == local`). Native now shows
+the devtools bar only for explicit `debug.devtools: true`, in debug and release
+alike; the build-channel concept is removed. Matches packaged TS defaults; a
+deliberate divergence from upstream's local developer channel. T44.
+
+## Остаточные prerequisites, не новые Q
+
+Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "9ed9865e3f99809bbc396ce0c9af7f39ed622d17487f2d4a4125a80370a6caae",
+  "archive_bytes": 1799324,
+  "tar_sha256": "1afacfa41b7d61574a31ef6092898ead95c37af3381e45972e5e1b8ec301b968",
+  "tar_bytes": 36392960,
+  "inventory": {
+    "members": 363,
+    "logical_bytes": 36387917,
+    "member_inventory_sha256": "f52b231355cbca118f277442bba610c2995363b103057741a25ff9975db25787",
+    "same_side_png_aliases": 6
+  },
+  "source_roots": {
+    "failed-001": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-001/cli-wide",
+    "failed-001-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-001",
+    "failed-001-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-capture-r1.py",
+    "failed-002": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-002/cli-wide-r2",
+    "failed-002-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-002",
+    "failed-002-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-capture-r2.py",
+    "current": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-003/cli-wide-r3",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-003",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-capture-r3.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "failed-001",
+      "current_source": false,
+      "captures": 18,
+      "scope": "FAILED_DIAGNOSTIC",
+      "sides": {
+        "oc": {
+          "status": "FAILED",
+          "provider_requests": 2,
+          "provider_completions": 1,
+          "tool_calls": 0,
+          "invalid_requests": 1
+        },
+        "upstream": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 2,
+        "BLOCKED": 32
+      }
+    },
+    {
+      "episode": "failed-002",
+      "current_source": false,
+      "captures": 4,
+      "scope": "FAILED_DIAGNOSTIC",
+      "sides": {
+        "oc": {
+          "status": "FAILED",
+          "provider_requests": 4,
+          "provider_completions": 3,
+          "tool_calls": 1,
+          "invalid_requests": 1
+        },
+        "upstream": {
+          "status": "FAILED",
+          "provider_requests": 0,
+          "provider_completions": 0,
+          "tool_calls": 0,
+          "invalid_requests": 0
+        }
+      },
+      "comparisons": {
+        "FAILED": 1,
+        "BLOCKED": 8
+      }
+    },
+    {
+      "episode": "current",
+      "current_source": true,
+      "captures": 32,
+      "scope": "CLI_AUTO_BEHAVIOR_ONLY",
+      "sides": {
+        "oc": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        },
+        "upstream": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 32
+      }
+    }
+  ],
+  "retainer_source_sha256": "014607b4d7c41dc0a2a168af0e2f4180b5a4f6e09db06164f90a5824d1cb9bc7"
+}

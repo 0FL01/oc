@@ -1,0 +1,1955 @@
+//! Application review, file suggestion and reload regression packs.
+
+use super::*;
+#[path = "accounts_tests.rs"]
+mod accounts_tests;
+#[path = "provider_view_tests.rs"]
+mod provider_view_tests;
+
+#[cfg(test)]
+mod review_tests {
+    use super::*;
+    use oc_core::queries::TerminalCopyMode;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[tokio::test]
+    async fn conversation_shortcuts_follow_admitted_config_location_and_reload() {
+        use oc_core::queries::ConversationShortcuts;
+        let root = tempfile::tempdir().unwrap();
+        let global = root.path().join("global");
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        for path in [&global, &a, &b, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        std::fs::write(
+            global.join("opencode.json"),
+            serde_json::json!({
+                "model": "fixture/m", "providers": {"fixture": {
+                    "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                    "models": {"m": {}}
+                }}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        std::fs::write(
+            global.join("cli.json"),
+            r#"{"keybinds":{"leader":"ctrl+a","session.undo":"<leader>z"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            global.join("cli.jsonc"),
+            r#"{"keybinds":{"leader":"ctrl+g","session.redo":"alt+r"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            b.join("cli.jsonc"),
+            r#"{"keybinds":{"leader":"ctrl+b","session.undo":"<leader>u,alt+z","session.redo":"none"}}"#,
+        ).unwrap();
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        let global_shortcuts = ConversationShortcuts {
+            leader: "ctrl+g".into(),
+            undo: "ctrl+g z".into(),
+            redo: "alt+r".into(),
+        };
+        assert_eq!(initial.chrome.conversation_shortcuts, global_shortcuts);
+        let switched = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            switched.catalog.chrome.conversation_shortcuts,
+            ConversationShortcuts {
+                leader: "ctrl+b".into(),
+                undo: "ctrl+b u,alt+z".into(),
+                redo: String::new(),
+            }
+        );
+        assert_eq!(switched.catalog.model_id, initial.model_id);
+        assert_eq!(switched.catalog.provider, initial.provider);
+        assert_eq!(switched.catalog.variant, initial.variant);
+        assert_eq!(switched.catalog.agent_id, initial.agent_id);
+        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+        // Invalid reload retains the complete previous immutable owner snapshot.
+        std::fs::write(b.join("cli.jsonc"), r#"{"keybinds":{"session.redo":12}}"#).unwrap();
+        assert!(app.reload_location().await.is_err());
+        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+        std::fs::write(
+            b.join("cli.jsonc"),
+            r#"{"keybinds":{"leader":"none","session.redo":"<leader>r,alt+y"}}"#,
+        )
+        .unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > switched.generation);
+        assert_eq!(
+            reloaded.catalog.chrome.conversation_shortcuts,
+            ConversationShortcuts {
+                leader: String::new(),
+                undo: String::new(),
+                redo: "alt+y".into(),
+            }
+        );
+        assert_eq!(reloaded.catalog.model_id, initial.model_id);
+        assert_eq!(reloaded.catalog.variant, initial.variant);
+        assert_eq!(reloaded.catalog.agent_id, initial.agent_id);
+        // Returning to A drops B's overrides; editing B did not mutate its old DTO.
+        let returned = app
+            .switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            returned.catalog.chrome.conversation_shortcuts,
+            global_shortcuts
+        );
+        assert_eq!(
+            switched.catalog.chrome.conversation_shortcuts.leader,
+            "ctrl+b"
+        );
+        std::fs::write(global.join("cli.jsonc"), "{}").unwrap();
+        std::fs::write(global.join("cli.json"), "{}").unwrap();
+        let defaults = app.reload_location().await.unwrap();
+        assert_eq!(
+            defaults.catalog.chrome.conversation_shortcuts,
+            ConversationShortcuts::default()
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn tool21_failed_output_reload_keeps_published_generation_and_safe_diagnostics() {
+        let root = tempfile::tempdir().unwrap();
+        let global = root.path().join("global");
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        for path in [&global, &project, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let model = serde_json::json!({"model":"fixture/m","tool_output":{"max_lines":20,"max_bytes":4096},"providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},"models":{"m":{}}}}});
+        std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+        let original = app.catalog().await.unwrap();
+        std::fs::write(
+            project.join("opencode.jsonc"),
+            r#"{"tool_output":{"max_bytes":"DO_NOT_LEAK"}}"#,
+        )
+        .unwrap();
+        let error = app.reload_location().await.unwrap_err();
+        assert!(!error.to_string().contains("DO_NOT_LEAK"));
+        assert_eq!(app.catalog().await.unwrap(), original);
+        std::fs::write(project.join("opencode.jsonc"), r#"{"tool_output":{}}"#).unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > original.chrome.selection_generation);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn terminal_copy_and_animations_follow_global_location_switch_and_reload() {
+        let root = tempfile::tempdir().unwrap();
+        let global = root.path().join("global");
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        for path in [&global, &a, &b, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let model = serde_json::json!({
+            "model": "fixture/m", "providers": {"fixture": {
+                "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                "models": {"m": {}}
+            }}
+        });
+        std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
+        std::fs::write(
+            global.join("cli.json"),
+            r#"{"keybinds":{"leader":"ctrl+g","command.palette.show":"<leader>p"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            global.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"manual"},"animations":false}"#,
+        )
+        .unwrap();
+        std::fs::write(global.join("cli.jsonc"), r#"{"leader":{"timeout":500}}"#).unwrap();
+        std::fs::write(
+            b.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"select"},"animations":true}"#,
+        )
+        .unwrap();
+        std::fs::write(b.join("cli.jsonc"), r#"{"leader":{"timeout":321}}"#).unwrap();
+        let env = BTreeMap::from([(
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        )]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        assert_eq!(initial.chrome.terminal_copy, Some(TerminalCopyMode::Manual));
+        assert_eq!(initial.chrome.animations, Some(false));
+        assert_eq!(initial.chrome.leader_timeout_ms(), 500);
+        assert_eq!(
+            initial.chrome.command_palette_shortcut.as_deref(),
+            Some("ctrl+g p")
+        );
+
+        std::fs::write(b.join("opencode.jsonc"), r#"{"animations":"invalid"}"#).unwrap();
+        let failure = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            failure,
+            CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                ..
+            }
+        ));
+        assert_eq!(app.catalog().await.unwrap(), initial);
+        std::fs::write(
+            b.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"select"},"animations":true}"#,
+        )
+        .unwrap();
+        let switched = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            switched.catalog.chrome.terminal_copy,
+            Some(TerminalCopyMode::Select)
+        );
+        assert_eq!(
+            app.catalog().await.unwrap().chrome.terminal_copy,
+            switched.catalog.chrome.terminal_copy
+        );
+        assert_eq!(switched.catalog.chrome.animations, Some(true));
+        assert_eq!(switched.catalog.chrome.leader_timeout_ms(), 321);
+        assert_eq!(app.catalog().await.unwrap().chrome.animations, Some(true));
+
+        std::fs::write(b.join("opencode.jsonc"), r#"{"animations":null}"#).unwrap();
+        let failure = app.reload_location().await.unwrap_err();
+        assert!(matches!(
+            failure,
+            CoreError::LocationSwitch {
+                category: LocationSwitchFailure::Configuration,
+                ..
+            }
+        ));
+        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+
+        std::fs::write(
+            b.join("opencode.jsonc"),
+            r#"{"terminal":{"copy":"sensitive-fixture"},"animations":true}"#,
+        )
+        .unwrap();
+        let failure = app.reload_location().await.unwrap_err();
+        assert!(!failure.to_string().contains("sensitive-fixture"));
+        assert_eq!(
+            app.catalog().await.unwrap().chrome.terminal_copy,
+            Some(TerminalCopyMode::Select)
+        );
+        assert_eq!(app.catalog().await.unwrap().chrome.animations, Some(true));
+
+        std::fs::write(b.join("opencode.jsonc"), "{}").unwrap();
+        std::fs::write(b.join("cli.jsonc"), "{}").unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > switched.generation);
+        assert_eq!(
+            reloaded.catalog.chrome.terminal_copy,
+            Some(TerminalCopyMode::Manual)
+        );
+        assert_eq!(reloaded.catalog.chrome.animations, Some(false));
+        assert_eq!(reloaded.catalog.chrome.leader_timeout_ms(), 500);
+        assert_eq!(
+            app.catalog().await.unwrap().chrome.terminal_copy,
+            reloaded.catalog.chrome.terminal_copy
+        );
+        let returned = app
+            .switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            returned.catalog.chrome.terminal_copy,
+            Some(TerminalCopyMode::Manual)
+        );
+        assert_eq!(returned.catalog.chrome.animations, Some(false));
+
+        std::fs::write(global.join("opencode.jsonc"), "{}").unwrap();
+        std::fs::write(global.join("cli.jsonc"), "{}").unwrap();
+        let unconfigured = app.reload_location().await.unwrap();
+        assert_eq!(unconfigured.catalog.chrome.terminal_copy, None);
+        assert_eq!(unconfigured.catalog.chrome.animations, None);
+        assert!(unconfigured.catalog.chrome.animations_enabled());
+        assert_eq!(unconfigured.catalog.chrome.leader_timeout_ms(), 2000);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn catalog_descriptions_track_current_location_and_reload() {
+        let root = tempfile::tempdir().unwrap();
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        for path in [&a, &b, &data] {
+            std::fs::create_dir_all(path).unwrap();
+        }
+        let mut config = serde_json::json!({
+            "model": "fixture/m", "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "dummy"},
+                "models": {"m": {}}
+            }}
+        });
+        std::fs::write(a.join("opencode.json"), config.to_string()).unwrap();
+        config["commands"] = serde_json::json!({"review": {
+            "template": "local review $ARGUMENTS", "description": "from B"
+        }});
+        std::fs::write(b.join("opencode.json"), config.to_string()).unwrap();
+        let env = BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+        app.switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "from B"
+        );
+        config["commands"]["review"]["description"] = "reloaded".into();
+        std::fs::write(b.join("opencode.json"), config.to_string()).unwrap();
+        app.reload_location().await.unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "reloaded"
+        );
+        app.switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        assert_eq!(
+            app.catalog().await.unwrap().command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[test]
+    fn review_replaces_only_source_placeholders_and_enforces_expansion_cap() {
+        let input = "'branch name'  $ARGUMENTS  ${path}  $1";
+        let source = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/upstream/v2/review.txt"
+        ));
+        assert_eq!(
+            crate::runtime::expand_command(source, &[input.into()]).unwrap(),
+            source.replace("$ARGUMENTS", input)
+        );
+        assert!(
+            crate::runtime::expand_command(
+                source,
+                &["x".repeat(crate::runtime::COMMAND_BYTES_CAP)]
+            )
+            .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn workspace_review_override_keeps_positional_expansion() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(
+            project.join("opencode.json"),
+            serde_json::json!({
+                "model": "fixture/m", "providers": {"fixture": {
+                    "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                    "models": {"m": {}}
+                }},
+                "commands": {"review": {"template": "local $1; all: $ARGUMENTS"}}
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let env = BTreeMap::from([(
+            "XDG_CONFIG_HOME".into(),
+            root.path().join("config").to_string_lossy().into_owned(),
+        )]);
+        let composition = composition::load_with_env(&project, env).await.unwrap();
+        assert!(!composition.builtin_review);
+        assert_eq!(
+            resolve_submission(&composition, "/review   one  two ".into()).unwrap(),
+            (
+                "local one; all: one two".into(),
+                Some("/review   one  two ".into())
+            )
+        );
+        assert_eq!(
+            resolve_submission(&composition, "/something else".into()).unwrap(),
+            ("/something else".into(), None)
+        );
+    }
+
+    #[tokio::test]
+    async fn fallback_review_submits_exact_prompt_and_replays_original_invocation() {
+        let root = tempfile::tempdir().expect("fixture");
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).expect("project");
+        std::fs::create_dir_all(&data).expect("data");
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("fake provider");
+        let config = serde_json::json!({
+            "model": "fixture/m", "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()),
+                            "apiKey": "dummy"},
+                "models": {"m": {}}
+            }}
+        });
+        std::fs::write(project.join("opencode.json"), config.to_string()).expect("config");
+        let env = BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&project, &data, env.clone())
+            .await
+            .expect("spawn");
+        assert_eq!(app.catalog().await.expect("catalog").commands, ["review"]);
+        assert_eq!(
+            app.catalog().await.expect("catalog").command_descriptions["review"],
+            "review changes [commit|branch|pr], defaults to uncommitted"
+        );
+        let composed = composition::load_with_env(&project, env.clone())
+            .await
+            .expect("admitted generation");
+        let (default_prompt, default_invocation) =
+            resolve_submission(&composed, "/review".into()).expect("default review");
+        assert_eq!(default_invocation.as_deref(), Some("/review"));
+        assert_eq!(
+            default_prompt,
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/assets/upstream/v2/review.txt"
+            ))
+            .replace("$ARGUMENTS", "")
+        );
+        let session = SessionId("review-fallback".into());
+        app.create_session(session.clone()).await.expect("session");
+        let original = "/review   'branch name'  $ARGUMENTS  ${path}   ";
+        let expected_input = "'branch name'  $ARGUMENTS  ${path}";
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.expect("request");
+            let mut request = Vec::new();
+            let mut chunk = [0; 4096];
+            let (headers_end, content_length) = loop {
+                let n = stream.read(&mut chunk).await.expect("read");
+                assert!(n > 0, "complete request");
+                request.extend_from_slice(&chunk[..n]);
+                if let Some(end) = request.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&request[..end]);
+                    let len = headers
+                        .lines()
+                        .find_map(|line| {
+                            line.to_ascii_lowercase()
+                                .strip_prefix("content-length: ")
+                                .and_then(|n| n.parse::<usize>().ok())
+                        })
+                        .expect("body size");
+                    if request.len() >= end + 4 + len {
+                        break (end, len);
+                    }
+                }
+            };
+            let body: serde_json::Value =
+                serde_json::from_slice(&request[headers_end + 4..headers_end + 4 + content_length])
+                    .expect("Responses JSON");
+            let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"review complete\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+            stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes()).await.expect("reply");
+            body
+        });
+        let mut events = app.subscribe();
+        app.submit(session.clone(), original.into())
+            .await
+            .expect("submit review");
+        loop {
+            match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())
+                .await
+                .expect("turn timeout")
+                .expect("event")
+            {
+                CoreEvent::TurnFinished { session: id, .. } if id == session => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("review failed: {error}"),
+                _ => {}
+            }
+        }
+        let request = server.await.expect("fake response");
+        let expected = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/upstream/v2/review.txt"
+        ))
+        .replace("$ARGUMENTS", expected_input);
+        let actual = request["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["role"] == "user")
+            .filter_map(|item| item["content"].as_array())
+            .flat_map(|parts| parts.iter())
+            .filter_map(|part| part["text"].as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            actual,
+            [expected.as_str()],
+            "provider receives exact expansion"
+        );
+        assert_eq!(
+            app.read_history(session.clone()).await.unwrap()[0].text,
+            original
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+
+        let (reopened, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+        assert_eq!(
+            reopened.read_history(session).await.unwrap()[0].text,
+            original
+        );
+        reopened.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+}
+
+#[cfg(test)]
+mod file_suggestion_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn burst_coalesces_to_one_pending_walk_without_overlapping_active_walk() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::time::{Duration, timeout};
+
+        let queue = Arc::new(Mutex::new(SuggestionQueue::default()));
+        let epoch = Arc::new(AtomicU64::new(1));
+        let active = Arc::new(AtomicUsize::new(0));
+        let entered = Arc::new(AtomicUsize::new(0));
+        let (started, started_rx) = oneshot::channel();
+        let (release, release_rx) = std::sync::mpsc::channel();
+        let (first_ack, first_rx) = oneshot::channel();
+        let first_active = Arc::clone(&active);
+        let first_entered = Arc::clone(&entered);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    assert_eq!(first_active.fetch_add(1, Ordering::SeqCst), 0);
+                    first_entered.fetch_add(1, Ordering::SeqCst);
+                    let _ = started.send(());
+                    release_rx.recv().unwrap();
+                    first_active.fetch_sub(1, Ordering::SeqCst);
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: vec!["first".into()],
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack: first_ack,
+            },
+        );
+        timeout(Duration::from_secs(5), started_rx)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut last_rx = None;
+        for index in 0..100 {
+            let (ack, rx) = oneshot::channel();
+            let next_active = Arc::clone(&active);
+            let next_entered = Arc::clone(&entered);
+            enqueue_file_suggestion(
+                &queue,
+                &epoch,
+                SuggestionRequest {
+                    work: Box::new(move || {
+                        assert_eq!(next_active.fetch_add(1, Ordering::SeqCst), 0);
+                        next_entered.fetch_add(1, Ordering::SeqCst);
+                        next_active.fetch_sub(1, Ordering::SeqCst);
+                        Ok(crate::files::FileSuggestionResult {
+                            paths: vec![index.to_string()],
+                            truncated: false,
+                        })
+                    }),
+                    location: "/a".into(),
+                    generation: 1,
+                    ack,
+                },
+            );
+            if let Some(previous) = last_rx.replace(rx) {
+                assert_eq!(
+                    previous.await.unwrap(),
+                    Err(app_error("file suggestions superseded"))
+                );
+            }
+        }
+        assert_eq!(entered.load(Ordering::SeqCst), 1);
+        assert!(queue.lock().unwrap().pending.is_some());
+        // Cancellation of the latest pending request must also skip the pool.
+        drop(last_rx);
+        let (ack, rx) = oneshot::channel();
+        let last_entered = Arc::clone(&entered);
+        let last_active = Arc::clone(&active);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    assert_eq!(last_active.fetch_add(1, Ordering::SeqCst), 0);
+                    last_entered.fetch_add(1, Ordering::SeqCst);
+                    last_active.fetch_sub(1, Ordering::SeqCst);
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: vec!["latest".into()],
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack,
+            },
+        );
+        release.send(()).unwrap();
+        assert_eq!(
+            timeout(Duration::from_secs(5), first_rx)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap()
+                .paths,
+            ["first"]
+        );
+        assert_eq!(
+            timeout(Duration::from_secs(5), rx)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap()
+                .paths,
+            ["latest"]
+        );
+        assert_eq!(entered.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn canceled_pending_request_never_enters_blocking_pool() {
+        use std::sync::atomic::AtomicUsize;
+        use tokio::time::{Duration, timeout};
+
+        let queue = Arc::new(Mutex::new(SuggestionQueue::default()));
+        let epoch = Arc::new(AtomicU64::new(1));
+        let entered = Arc::new(AtomicUsize::new(0));
+        let (started, started_rx) = oneshot::channel();
+        let (release, release_rx) = std::sync::mpsc::channel();
+        let (ack, rx) = oneshot::channel();
+        let first_entered = Arc::clone(&entered);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    first_entered.fetch_add(1, Ordering::SeqCst);
+                    let _ = started.send(());
+                    release_rx.recv().unwrap();
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: Vec::new(),
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack,
+            },
+        );
+        timeout(Duration::from_secs(5), started_rx)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let (ack, canceled) = oneshot::channel();
+        let pending_entered = Arc::clone(&entered);
+        enqueue_file_suggestion(
+            &queue,
+            &epoch,
+            SuggestionRequest {
+                work: Box::new(move || {
+                    pending_entered.fetch_add(1, Ordering::SeqCst);
+                    Ok(crate::files::FileSuggestionResult {
+                        paths: Vec::new(),
+                        truncated: false,
+                    })
+                }),
+                location: "/a".into(),
+                generation: 1,
+                ack,
+            },
+        );
+        drop(canceled);
+        release.send(()).unwrap();
+        timeout(Duration::from_secs(5), rx)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        timeout(Duration::from_secs(5), async {
+            while queue.lock().unwrap().running {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(entered.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn suggestions_follow_owner_across_home_switch_and_return() {
+        let root = tempfile::tempdir().unwrap();
+        let a = root.path().join("a");
+        let b = root.path().join("b");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::create_dir_all(&b).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let config = r#"{"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}}}"#;
+        for project in [&a, &b] {
+            std::fs::write(project.join("opencode.json"), config).unwrap();
+        }
+        std::fs::write(a.join("only-a.rs"), "a").unwrap();
+        std::fs::write(b.join("only-b.rs"), "b").unwrap();
+        let env = BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&a, &data, env).await.unwrap();
+        let first = app.file_suggestions("only".into(), 20).await.unwrap();
+        assert_eq!(first.location, a.to_string_lossy());
+        assert_eq!(first.paths, ["only-a.rs"]);
+        assert!(!first.truncated);
+
+        let switched = app
+            .switch_location_home(b.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        let second = app.file_suggestions("only".into(), 20).await.unwrap();
+        assert_eq!(second.location, b.to_string_lossy());
+        assert_eq!(second.paths, ["only-b.rs"]);
+        assert!(second.generation > first.generation);
+        assert_eq!(second.generation, switched.generation);
+
+        let returned = app
+            .switch_location_home(a.to_string_lossy().into_owned())
+            .await
+            .unwrap();
+        let third = app.file_suggestions("only".into(), 20).await.unwrap();
+        assert_eq!(third.location, first.location);
+        assert_eq!(third.paths, first.paths);
+        assert!(third.generation > second.generation);
+        assert_eq!(third.generation, returned.generation);
+        let reloaded = app.reload_location().await.unwrap();
+        assert_eq!(reloaded.location, third.location);
+        assert!(reloaded.generation > third.generation);
+        assert_eq!(
+            app.file_suggestions("only".into(), 20)
+                .await
+                .unwrap()
+                .generation,
+            reloaded.generation
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[test]
+    fn stale_walk_is_refused_even_when_location_returns_to_same_path() {
+        let epoch = AtomicU64::new(1);
+        // A detached blocking walk finishes after the owner publishes A→B→A.
+        epoch.fetch_add(2, Ordering::SeqCst);
+        let result = file_suggestion_reply(
+            &epoch,
+            1,
+            "/project/a".into(),
+            Ok(crate::files::FileSuggestionResult {
+                paths: vec!["old.rs".into()],
+                truncated: false,
+            }),
+        );
+        assert_eq!(
+            result,
+            Err(app_error("file suggestions belong to previous Location"))
+        );
+    }
+}
+
+#[cfg(test)]
+mod reload_tests {
+    use super::*;
+    use oc_core::queries::SessionSelectionAction as Action;
+    use std::time::Duration;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    fn config(model: &str, base_url: &str, static_model: bool) -> String {
+        let provider = if static_model { "fixture" } else { "ludka2" };
+        let models = if static_model {
+            serde_json::json!({(model): {}})
+        } else {
+            serde_json::json!({})
+        };
+        serde_json::json!({
+            "model": format!("{provider}/{model}"),
+            "providers": {(provider): {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": base_url, "apiKey": "dummy"},
+                "models": models
+            }}
+        })
+        .to_string()
+    }
+
+    fn env(data: &Path) -> BTreeMap<String, String> {
+        BTreeMap::from([
+            ("HOME".into(), data.to_string_lossy().into_owned()),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ])
+    }
+
+    #[tokio::test]
+    async fn hot02_continuous_source_watch_publishes_recovers_and_ignores_unrelated_writes() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        let path = project.join("opencode.json");
+        let mut source: serde_json::Value =
+            serde_json::from_str(&config("old", "https://example.invalid/v1", true)).unwrap();
+        source["experimental"]["policies"] = serde_json::json!([
+            {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+            {"action":"provider.use","resource":"openai","effect":"deny"}
+        ]);
+        std::fs::write(&path, source.to_string()).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        for label in ["WATCH_GENERATION_TWO", "WATCH_RECOVERED_THREE"] {
+            source["agents"] = serde_json::json!({"build":{"description":label,"system":label}});
+            let temporary = project.join("atomic-input");
+            std::fs::write(&temporary, source.to_string()).unwrap();
+            std::fs::rename(&temporary, &path).unwrap();
+            let snapshot = tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    let snapshot = app.catalog().await.unwrap();
+                    if snapshot
+                        .agents
+                        .iter()
+                        .any(|agent| agent.id == "build" && agent.description == label)
+                    {
+                        break snapshot;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert!(snapshot.chrome.selection_generation > initial.chrome.selection_generation);
+            assert!(app.list_sessions().await.unwrap().is_empty());
+            std::fs::write(&path, "{broken").unwrap();
+            tokio::time::sleep(Duration::from_millis(250)).await;
+            assert_eq!(
+                app.catalog().await.unwrap(),
+                snapshot,
+                "malformed automatic replacement changed last-good"
+            );
+        }
+        std::fs::write(&path, source.to_string()).unwrap();
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        let before = app.catalog().await.unwrap();
+        for n in 0..10 {
+            std::fs::write(project.join("unrelated-output"), n.to_string()).unwrap();
+            let _ = std::fs::read(&path).unwrap();
+        }
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        assert_eq!(app.catalog().await.unwrap(), before);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        assert!(Db::open(&data).unwrap().list_sessions().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn hot02_automatic_noop_and_profile_edit_reuse_discovery_but_force_refreshes() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/literal", listener.local_addr().unwrap());
+        let count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let peer_count = count.clone();
+        let peer = tokio::spawn(async move {
+            for name in ["INITIAL_REMOTE", "FORCED_REMOTE"] {
+                let (mut stream, _) =
+                    tokio::time::timeout(Duration::from_secs(3), listener.accept())
+                        .await
+                        .unwrap()
+                        .unwrap();
+                let mut request = vec![0; 8192];
+                let read = stream.read(&mut request).await.unwrap();
+                assert!(
+                    String::from_utf8_lossy(&request[..read]).starts_with("GET /literal/models ")
+                );
+                peer_count.fetch_add(1, Ordering::SeqCst);
+                let body = serde_json::json!({"object":"list","data":[{"id":"exact","opencode":{"name":name}}]}).to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let mut config: serde_json::Value =
+            serde_json::from_str(&config("exact", &base, false)).unwrap();
+        config["experimental"]["policies"] = serde_json::json!([
+            {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+            {"action":"provider.use","resource":"openai","effect":"deny"}
+        ]);
+        let path = project.join("opencode.jsonc");
+        std::fs::write(&path, config.to_string()).unwrap();
+        let db = Db::open(&data).unwrap();
+        let mut composition = composition::load_local_with_env(&project, env(&data))
+            .await
+            .unwrap();
+        composition.resolve_credentials(&db).await.unwrap();
+        composition.refresh_provider().await.unwrap();
+        let runtime = build_runtime(&db, &composition).unwrap();
+        let mut effective = Effective::from_composition(&composition);
+        publish_workspace(&runtime, &composition, &effective).unwrap();
+        runtime.start_mcp().unwrap();
+        let mut registry = WorkspaceRegistry::bind(
+            runtime.generation_id(),
+            runtime.location(),
+            &composition.generation,
+            workspace_agents(&composition),
+            skill_metas(&composition),
+        );
+        let mut work = provider_catalog::ProviderWork::start(&composition, &db);
+        let (events, _) = broadcast::channel(32);
+        let epoch = AtomicU64::new(1);
+        let sessions = BTreeMap::new();
+        let initial = runtime.generation_id();
+        let mut coordinator = reload::Coordinator::default();
+        coordinator.ensure(&composition).await.unwrap();
+        for phase in 0..3 {
+            if phase == 0 {
+                std::fs::write(
+                    &path,
+                    format!(
+                        "// cosmetic only\n{}",
+                        serde_json::to_string_pretty(&config).unwrap()
+                    ),
+                )
+                .unwrap();
+            } else if phase == 1 {
+                config["agents"] =
+                    serde_json::json!({"build":{"system":"UPDATED_WITHOUT_DISCOVERY"}});
+                std::fs::write(&path, config.to_string()).unwrap();
+            }
+            let (ack, mut received) = oneshot::channel();
+            if phase == 2 {
+                coordinator.request(ack);
+            }
+            let quiet = tokio::time::sleep(Duration::from_millis(250));
+            tokio::pin!(quiet);
+            tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    coordinator.start(&db, &runtime, &composition);
+                    tokio::select! {
+                        ready = coordinator.wait() => {
+                            if let Some(ready) = ready.unwrap() && let Some(receipt) = coordinator.finish(
+                                ready, &db, &runtime, &mut composition, &mut effective,
+                                &mut registry, &sessions, &epoch, &mut work, &events, None,
+                            ).await.unwrap() { receipt.reply(); }
+                        }
+                        () = &mut quiet, if phase == 0 => break,
+                    }
+                    if phase == 1 && composition.agents["build"].body.contains("UPDATED_WITHOUT_DISCOVERY") { break; }
+                    if phase == 2 && let Ok(result) = received.try_recv() { result.unwrap(); break; }
+                }
+            }).await.unwrap();
+            if phase == 0 {
+                assert_eq!(runtime.generation_id(), initial);
+                assert_eq!(epoch.load(Ordering::SeqCst), 1);
+            } else {
+                assert!(runtime.generation_id() > initial);
+                assert!(
+                    composition.agents["build"]
+                        .body
+                        .contains("UPDATED_WITHOUT_DISCOVERY")
+                );
+            }
+            assert_eq!(count.load(Ordering::SeqCst), if phase == 2 { 2 } else { 1 });
+            assert_eq!(
+                composition.catalog.models["exact"]["name"],
+                if phase == 2 {
+                    "FORCED_REMOTE"
+                } else {
+                    "INITIAL_REMOTE"
+                }
+            );
+        }
+        assert_eq!(count.load(Ordering::SeqCst), 2);
+        assert_eq!(composition.catalog.models["exact"]["name"], "FORCED_REMOTE");
+        assert!(db.list_sessions().unwrap().is_empty());
+        coordinator.shutdown().await.unwrap();
+        work.stop().await.unwrap();
+        runtime.shutdown_mcp().await.unwrap();
+        peer.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn hot02_malformed_definition_rejects_the_whole_candidate_before_mcp_effects() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        let agents = project.join(".opencode/agents");
+        let skills = project.join(".opencode/skills");
+        std::fs::create_dir_all(&agents).unwrap();
+        std::fs::create_dir_all(&skills).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        let original = config("old", "https://example.invalid/v1", true);
+        std::fs::write(&path, &original).unwrap();
+        std::fs::write(
+            agents.join("worker.md"),
+            "---\nmode: subagent\n---\nG1 worker",
+        )
+        .unwrap();
+        std::fs::write(
+            skills.join("manual.md"),
+            "---\nname: manual\ndescription: G1 skill metadata\n---\nG1 skill body",
+        )
+        .unwrap();
+        std::fs::write(project.join("AGENTS.md"), "G1 instructions").unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let before = app.catalog().await.unwrap();
+        let before_skills = app.skills().await.unwrap();
+
+        let marker = project.join("rejected-mcp-started");
+        let mut changed: serde_json::Value = serde_json::from_str(&original).unwrap();
+        changed["tool_output"] = serde_json::json!({"max_lines":1});
+        changed["permissions"] =
+            serde_json::json!([{"action":"read","resource":"*","effect":"deny"}]);
+        changed["mcp"] = serde_json::json!({"servers":{"rejected":{
+            "type":"local", "command":["/bin/sh","-c",format!("printf rejected > '{}'", marker.display())]
+        }}});
+        std::fs::write(&path, changed.to_string()).unwrap();
+        std::fs::write(
+            skills.join("manual.md"),
+            "---\nname: manual\ndescription: G2 skill metadata\n---\nG2 skill body",
+        )
+        .unwrap();
+        std::fs::write(project.join("AGENTS.md"), "G2 instructions").unwrap();
+        std::fs::write(
+            agents.join("worker.md"),
+            "---\ndescription: false\n---\nMALFORMED_CANARY",
+        )
+        .unwrap();
+
+        let rejected = app.reload_location().await;
+        let after = app.catalog().await.unwrap();
+        let after_skills = app.skills().await.unwrap();
+        changed.as_object_mut().unwrap().remove("mcp");
+        std::fs::write(
+            agents.join("worker.md"),
+            "---\nmode: subagent\n---\nG2 worker",
+        )
+        .unwrap();
+        let replacement = project.join("replacement.json");
+        std::fs::write(&replacement, changed.to_string()).unwrap();
+        std::fs::rename(replacement, &path).unwrap();
+        let recovered = app.reload_location().await;
+        let recovered_skills = app.skills().await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        assert!(
+            rejected.is_err(),
+            "malformed mandatory definition was published"
+        );
+        assert_eq!(after, before);
+        assert_eq!(after_skills, before_skills);
+        assert!(
+            !marker.exists(),
+            "rejected candidate launched an MCP process"
+        );
+        assert!(
+            !rejected
+                .unwrap_err()
+                .to_string()
+                .contains("MALFORMED_CANARY")
+        );
+        let recovered = recovered.unwrap();
+        assert_eq!(recovered.catalog.model_id, before.model_id);
+        assert!(recovered.generation > before.chrome.selection_generation);
+        assert!(
+            recovered_skills
+                .iter()
+                .any(|skill| skill.id == "manual" && skill.description == "G2 skill metadata")
+        );
+    }
+
+    #[tokio::test]
+    async fn canonical_effort_snapshot_ranks_effective_overrides_after_discovery_and_refresh() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let mut value: serde_json::Value =
+            serde_json::from_str(&config("m", &base, false)).unwrap();
+        value["providers"]["ludka2"]["models"]["m"] = serde_json::json!({"variants":[
+            {"id":"fast","settings":{"reasoningEffort":"low"}},
+            {"id":"low","settings":{"reasoningEffort":"custom-low"}},
+            {"id":"xhigh","disabled":true},
+            {"id":"minimal"},
+            {"id":"default","settings":{"reasoningEffort":"none"}}
+        ]});
+        std::fs::write(project.join("opencode.json"), value.to_string()).unwrap();
+        let server = tokio::spawn(async move {
+            for variants in [
+                serde_json::json!({"max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"},
+                    "zeta":{"reasoningEffort":"deep"}, "fast":{"reasoningEffort":"high"},
+                    "alpha":{"reasoningEffort":"deep"}, "low":{"reasoningEffort":"low"}}),
+                serde_json::json!({"alpha":{"reasoningEffort":"deep"}, "fast":{"reasoningEffort":"max"},
+                    "low":{"reasoningEffort":"low"}, "zeta":{"reasoningEffort":"deep"},
+                    "max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"}}),
+            ] {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                    let mut buf = [0; 1024];
+                    let n = stream.read(&mut buf).await.unwrap();
+                    assert!(n > 0);
+                    request.extend_from_slice(&buf[..n]);
+                }
+                assert!(request.starts_with(b"GET /v1/models HTTP/1.1"));
+                let body = serde_json::json!({"object":"list", "data":[{"id":"m", "opencode":{"variants":variants}}]}).to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let snapshot = app.catalog().await.unwrap();
+        let available = |snapshot: &CatalogSnapshot| {
+            snapshot.models[0]
+                .variants
+                .iter()
+                .filter(|v| !v.disabled && v.name != "default")
+                .map(|v| v.name.clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            available(&snapshot),
+            ["minimal", "fast", "max", "zeta", "alpha", "low"]
+        );
+        assert!(
+            snapshot.models[0]
+                .variants
+                .iter()
+                .any(|v| v.name == "xhigh" && v.disabled)
+        );
+        assert!(
+            snapshot.models[0]
+                .variants
+                .iter()
+                .any(|v| v.name == "default")
+        );
+        assert!(
+            snapshot.models[0]
+                .variants
+                .iter()
+                .find(|v| v.name == "minimal")
+                .unwrap()
+                .reasoning_effort
+                .is_none()
+        );
+        let selected = app
+            .home_selection(Action::Variant(Some("fast".into())))
+            .await
+            .unwrap();
+        assert_eq!(selected.variant.as_deref(), Some("fast"));
+        let refreshed = app.reload_location().await.unwrap();
+        assert_eq!(
+            available(&refreshed.catalog),
+            ["minimal", "fast", "max", "alpha", "low", "zeta"]
+        );
+        let selected = app.home_selection(Action::Current).await.unwrap();
+        assert_eq!(
+            (&*selected.model_id, selected.variant.as_deref()),
+            ("m", Some("fast"))
+        );
+        assert_eq!(
+            selected.models[0]
+                .variants
+                .iter()
+                .find(|v| v.name == "fast")
+                .unwrap()
+                .reasoning_effort
+                .as_deref(),
+            Some("low")
+        );
+        server.await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[test]
+    fn model_switch_projection_uses_only_matching_current_catalog_name() {
+        let raw = r#"{"previous":{"provider":"fixture","id":"old","variant":null},"current":{"provider":"fixture","id":"new","variant":null},"display_name":"Stale"}"#;
+        let notice: ModelSwitchNotice = serde_json::from_str(raw).unwrap();
+        let mut catalog = crate::models::ModelCatalog {
+            provider: "fixture".into(),
+            models: [("new".into(), serde_json::json!({"name": "Public\nName"}))].into(),
+        };
+        let projected = project_model_switch(notice.clone(), &catalog);
+        assert_eq!(projected.display_name.as_deref(), Some("PublicName"));
+        assert!(
+            !serde_json::to_string(&projected)
+                .unwrap()
+                .contains("display_name")
+        );
+        catalog
+            .models
+            .insert("new".into(), serde_json::json!({"name": 17}));
+        assert!(
+            project_model_switch(notice.clone(), &catalog)
+                .display_name
+                .is_none()
+        );
+        catalog.models.remove("new");
+        assert!(
+            project_model_switch(notice.clone(), &catalog)
+                .display_name
+                .is_none()
+        );
+        catalog.provider = "foreign".into();
+        catalog
+            .models
+            .insert("new".into(), serde_json::json!({"name": "Wrong Provider"}));
+        assert!(
+            project_model_switch(notice, &catalog)
+                .display_name
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn accepted_switch_projects_typed_paged_history_after_restart() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let mut config: serde_json::Value =
+            serde_json::from_str(&config("old", &base, true)).unwrap();
+        config["providers"]["fixture"]["models"]["new"] =
+            serde_json::json!({"name": "Readable New"});
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let server = tokio::spawn(async move {
+            // First turn, its real title generation, and the second turn.
+            for _ in 0..3 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                loop {
+                    let mut buf = [0; 4096];
+                    let size = stream.read(&mut buf).await.unwrap();
+                    assert!(size > 0);
+                    request.extend_from_slice(&buf[..size]);
+                    if let Some(end) = request.windows(4).position(|bytes| bytes == b"\r\n\r\n") {
+                        let headers = String::from_utf8_lossy(&request[..end]);
+                        let length = headers
+                            .lines()
+                            .find_map(|line| {
+                                line.to_ascii_lowercase()
+                                    .strip_prefix("content-length: ")
+                                    .and_then(|n| n.parse::<usize>().ok())
+                            })
+                            .unwrap();
+                        if request.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                }
+                let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"reply\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let session = SessionId("switch-replay".into());
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        let mut events = app.subscribe();
+        let mut live_switch = None;
+        for prompt in ["first", "second"] {
+            if prompt == "second" {
+                app.session_selection(session.clone(), false, Action::Model("new".into()))
+                    .await
+                    .unwrap();
+                assert!(
+                    app.history_page(session.clone(), None, None, 10)
+                        .await
+                        .unwrap()
+                        .rows
+                        .iter()
+                        .all(|r| r.model_switch.is_none())
+                );
+            }
+            app.submit(session.clone(), prompt.into()).await.unwrap();
+            loop {
+                match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())
+                    .await
+                    .unwrap()
+                    .unwrap()
+                {
+                    CoreEvent::TurnStarted { model_switch, .. } => {
+                        if prompt == "second" {
+                            live_switch = model_switch;
+                        }
+                    }
+                    CoreEvent::TurnFinished { .. } => break,
+                    CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error}"),
+                    _ => {}
+                }
+            }
+        }
+        server.await.unwrap();
+        let newer = app
+            .history_page(session.clone(), None, None, 1)
+            .await
+            .unwrap();
+        let before = newer.rows[0].seq;
+        let user = app
+            .history_page(session.clone(), Some(before), None, 1)
+            .await
+            .unwrap();
+        let marker = app
+            .history_page(session.clone(), Some(user.rows[0].seq), None, 1)
+            .await
+            .unwrap();
+        let switch = marker.rows[0].model_switch.as_ref().unwrap();
+        assert_eq!(switch.display_name.as_deref(), Some("Readable New"));
+        assert_eq!(live_switch.as_ref(), Some(switch));
+        assert_eq!(
+            (&switch.previous.id, &switch.current.id),
+            (&"old".to_string(), &"new".to_string())
+        );
+        assert_eq!(marker.rows[0].text, "");
+        assert_eq!(app.read_history(session.clone()).await.unwrap().len(), 4);
+        let all = app
+            .history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap();
+        let durable = app.read_history(session.clone()).await.unwrap();
+        assert_eq!(
+            all.rows
+                .iter()
+                .filter(|r| r.model_switch.is_none())
+                .map(|r| &r.id)
+                .collect::<Vec<_>>(),
+            durable.iter().map(|r| &r.id).collect::<Vec<_>>()
+        );
+        let forward = app
+            .history_page(session.clone(), None, Some(marker.rows[0].seq), 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            forward.rows,
+            vec![user.rows[0].clone(), newer.rows[0].clone()]
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        config["providers"]["fixture"]["models"]["new"]["name"] =
+            serde_json::json!("Renamed Later");
+        std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
+        let (reopened, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let replay = reopened
+            .history_page(session, None, None, 10)
+            .await
+            .unwrap();
+        assert_eq!(
+            replay
+                .rows
+                .iter()
+                .map(|r| (&r.id, r.seq))
+                .collect::<Vec<_>>(),
+            all.rows.iter().map(|r| (&r.id, r.seq)).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            replay
+                .rows
+                .iter()
+                .filter(|r| r.model_switch.is_some())
+                .count(),
+            1
+        );
+        assert_eq!(
+            replay.rows.iter().find_map(|r| r.model_switch.as_ref()),
+            Some(&ModelSwitchNotice {
+                display_name: Some("Renamed Later".into()),
+                ..live_switch.unwrap()
+            })
+        );
+        reopened.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn removed_selected_primary_publishes_unavailable_and_requires_explicit_repair() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let config = |include_review: bool| {
+            let mut value: serde_json::Value =
+                serde_json::from_str(&config("old", &base_url, true)).unwrap();
+            value["agents"] = serde_json::json!({
+                "build": {"mode": "primary", "system": "BUILD_PRIMARY"},
+                "review": {"mode": "primary", "system": "REVIEW_PRIMARY"}
+            });
+            value["default_agent"] = "build".into();
+            if !include_review {
+                value["agents"].as_object_mut().unwrap().remove("review");
+            }
+            value.to_string()
+        };
+        let path = project.join("opencode.json");
+        std::fs::write(&path, config(true)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("retained-review".into());
+        let active = SessionId("active-build".into());
+        app.create_session(session.clone()).await.unwrap();
+        app.create_session(active.clone()).await.unwrap();
+        let saved = app
+            .save_tab_deck(oc_core::queries::TabDeckSnapshot {
+                sessions: vec![session.clone(), active.clone()],
+                active: Some(active),
+                ..app.tab_deck().await.unwrap()
+            })
+            .await
+            .unwrap();
+        let chosen = app
+            .session_selection(session.clone(), false, Action::Agent("review".into()))
+            .await
+            .unwrap();
+        assert_eq!(chosen.agent_id.as_deref(), Some("review"));
+        let initial = app.file_suggestions("".into(), 1).await.unwrap();
+        let catalog = app.catalog().await.unwrap();
+
+        std::fs::write(&path, config(false)).unwrap();
+        // T61/R1 supersedes rejecting a valid removal: keep the exact saved
+        // choice unavailable, never retain its old executable profile/fallback.
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > initial.generation);
+        assert!(catalog.agents.iter().any(|agent| agent.id == "review"));
+        assert!(
+            !reloaded
+                .catalog
+                .agents
+                .iter()
+                .any(|agent| agent.id == "review")
+        );
+        assert_eq!(app.tab_deck().await.unwrap(), saved);
+        let unavailable = app
+            .session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap();
+        assert_ne!(unavailable.agent_id.as_deref(), Some("build"));
+        assert_eq!(
+            unavailable
+                .chrome
+                .selection
+                .as_ref()
+                .unwrap()
+                .diagnostic
+                .code,
+            oc_core::queries::ServiceCode::AgentUnavailable
+        );
+        assert!(
+            app.submit(session.clone(), "must not dispatch removed profile".into())
+                .await
+                .is_err()
+        );
+        assert!(app.read_history(session.clone()).await.unwrap().is_empty());
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), listener.accept())
+                .await
+                .is_err()
+        );
+        let repaired = app
+            .session_selection(session.clone(), false, Action::Agent("build".into()))
+            .await
+            .unwrap();
+        assert_eq!(repaired.agent_id.as_deref(), Some("build"));
+        assert!(repaired.chrome.selection.is_none());
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0; 4096];
+            loop {
+                let n = stream.read(&mut chunk).await.unwrap();
+                assert!(n > 0);
+                request.extend_from_slice(&chunk[..n]);
+                if let Some(headers_end) = request.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let headers = String::from_utf8_lossy(&request[..headers_end]);
+                    let content_length = headers
+                        .lines()
+                        .find_map(|line| {
+                            line.to_ascii_lowercase()
+                                .strip_prefix("content-length: ")
+                                .and_then(|n| n.parse::<usize>().ok())
+                        })
+                        .unwrap();
+                    if request.len() >= headers_end + 4 + content_length {
+                        break;
+                    }
+                }
+            }
+            let body = String::from_utf8_lossy(&request);
+            assert!(
+                body.contains("BUILD_PRIMARY"),
+                "explicit repaired agent prompt missing"
+            );
+            assert!(
+                !body.contains("REVIEW_PRIMARY"),
+                "removed executable profile survived reload"
+            );
+            assert!(body.contains("retained turn"), "old session prompt missing");
+            let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"answer\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+            stream
+                .write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes())
+                .await
+                .unwrap();
+        });
+        let mut events = app.subscribe();
+        app.submit(session.clone(), "retained turn".into())
+            .await
+            .unwrap();
+        loop {
+            match tokio::time::timeout(std::time::Duration::from_secs(10), events.recv())
+                .await
+                .unwrap()
+                .unwrap()
+            {
+                CoreEvent::TurnFinished { session: id, .. } if id == session => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("retained turn failed: {error}"),
+                _ => {}
+            }
+        }
+        server.await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn retired_explicit_tab_model_is_not_silently_replaced_by_config_fallback() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        let config = |retired: bool| {
+            let mut value: serde_json::Value =
+                serde_json::from_str(&config("new", "http://127.0.0.1:9/v1", true)).unwrap();
+            if !retired {
+                value["providers"]["fixture"]["models"]["old"] = serde_json::json!({});
+            }
+            value.to_string()
+        };
+        std::fs::write(&path, config(false)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("explicit-old-model".into());
+        app.create_session(session.clone()).await.unwrap();
+        app.save_tab_deck(oc_core::queries::TabDeckSnapshot {
+            sessions: vec![session.clone()],
+            active: Some(session.clone()),
+            ..app.tab_deck().await.unwrap()
+        })
+        .await
+        .unwrap();
+        app.session_selection(session.clone(), false, Action::Model("old".into()))
+            .await
+            .unwrap();
+        let initial = app.file_suggestions("".into(), 1).await.unwrap();
+        std::fs::write(&path, config(true)).unwrap();
+        app.reload_location().await.unwrap();
+        let selected = app
+            .session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap();
+        // T53 keeps the exact retired preference, but exposes an unavailable
+        // presentation instead of the old executable catalog or a substitute.
+        assert_ne!(selected.model_id, "new");
+        assert_eq!(
+            selected.chrome.selection.as_ref().unwrap().diagnostic.code,
+            oc_core::queries::ServiceCode::ModelUnavailable
+        );
+        assert!(app.file_suggestions("".into(), 1).await.unwrap().generation > initial.generation);
+        assert!(
+            app.submit(session.clone(), "must refuse before effects".into())
+                .await
+                .is_err()
+        );
+        assert!(app.read_history(session).await.unwrap().is_empty());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        let sql = rusqlite::Connection::open_with_flags(
+            data.join("oc.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let retained: i64 = sql
+            .query_row(
+                "SELECT count(*) FROM prefs WHERE json_valid(value) \
+             AND json_extract(value,'$.models.build.provider')='fixture' \
+             AND json_extract(value,'$.models.build.id')='old'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(retained, 1);
+        let turns: i64 = sql
+            .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(turns, 0);
+    }
+
+    #[tokio::test]
+    async fn hot02_source_changed_during_discovery_cannot_publish_or_start_rejected_mcp() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        std::fs::write(&path, config("old", "http://127.0.0.1:9/v1", true)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        let initial_generation = app.file_suggestions("".into(), 1).await.unwrap().generation;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/literal", listener.local_addr().unwrap());
+        let (entered, waiting) = tokio::sync::oneshot::channel();
+        let (release, released) = tokio::sync::oneshot::channel();
+        let (retry_entered, retry_waiting) = tokio::sync::oneshot::channel();
+        let (retry_release, retry_released) = tokio::sync::oneshot::channel();
+        let server = tokio::spawn(async move {
+            let mut held = [(entered, released), (retry_entered, retry_released)].into_iter();
+            for _ in 0..3 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0; 1024];
+                while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                    let n = stream.read(&mut chunk).await.unwrap();
+                    assert!(n > 0);
+                    request.extend_from_slice(&chunk[..n]);
+                }
+                assert!(request.starts_with(b"GET /literal/models HTTP/1.1"));
+                if let Some((entered, released)) = held.next() {
+                    entered.send(()).unwrap();
+                    released.await.unwrap();
+                }
+                let body =
+                    serde_json::json!({"object":"list","data":[{"id":"remote"}]}).to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let marker = project.join("rejected-mcp-started");
+        let mut candidate: serde_json::Value =
+            serde_json::from_str(&config("remote", &base, false)).unwrap();
+        candidate["mcp"] = serde_json::json!({"servers":{"rejected":{
+            "type":"local","command":["/bin/sh","-c",format!("printf rejected > '{}'",marker.display())]
+        }}});
+        std::fs::write(&path, candidate.to_string()).unwrap();
+        let request = app.clone();
+        let first = tokio::spawn(async move { request.reload_location().await });
+        tokio::time::timeout(Duration::from_secs(3), waiting)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut latest: serde_json::Value =
+            serde_json::from_str(&config("remote", &base, false)).unwrap();
+        latest["agents"] = serde_json::json!({"build":{"description":"LATEST_ADMITTED_PROFILE","system":"LATEST_ADMITTED_PROFILE"}});
+        std::fs::write(&path, latest.to_string()).unwrap();
+        // The final bytes are restored before the GET completes. A comparison
+        // of only the final admitted value cannot prove this build stayed current.
+        std::fs::write(&path, candidate.to_string()).unwrap();
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        release.send(()).unwrap();
+        tokio::time::timeout(Duration::from_secs(3), retry_waiting)
+            .await
+            .unwrap()
+            .unwrap();
+        // A continuous coordinator retains the explicit waiter while rebuilding
+        // the latest source. Neither superseded build may publish or launch MCP.
+        assert!(!first.is_finished());
+        let retained = app.catalog().await.unwrap();
+        let retained_generation = app.file_suggestions("".into(), 1).await.unwrap().generation;
+        assert!(!marker.exists());
+        std::fs::write(&path, latest.to_string()).unwrap();
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        retry_release.send(()).unwrap();
+        let recovered = tokio::time::timeout(Duration::from_secs(3), first)
+            .await
+            .unwrap()
+            .unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        tokio::time::timeout(Duration::from_secs(3), server)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(retained, initial);
+        assert_eq!(retained_generation, initial_generation);
+        let recovered = recovered.unwrap();
+        assert_eq!(recovered.catalog.model_id, "remote");
+        assert!(
+            recovered
+                .catalog
+                .agents
+                .iter()
+                .any(|agent| agent.id == "build" && agent.description == "LATEST_ADMITTED_PROFILE")
+        );
+        assert!(
+            !marker.exists(),
+            "rejected candidate launched an MCP process"
+        );
+        let db = Db::open(&data).unwrap();
+        assert!(db.list_sessions().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn current_reload_discovers_new_catalog_preserves_deck_and_rolls_back_failures() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        std::fs::write(&path, config("old", "http://127.0.0.1:9/v1", true)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("reload-root".into());
+        app.create_session(session.clone()).await.unwrap();
+        let deck = app.tab_deck().await.unwrap();
+        let saved = app
+            .save_tab_deck(oc_core::queries::TabDeckSnapshot {
+                sessions: vec![session.clone()],
+                active: Some(session.clone()),
+                ..deck
+            })
+            .await
+            .unwrap();
+        let initial = app.file_suggestions("".into(), 1).await.unwrap();
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let empty = Arc::new(AtomicBool::new(false));
+        let peer_empty = empty.clone();
+        let (stop, mut stopped) = tokio::sync::oneshot::channel();
+        let server = tokio::spawn(async move {
+            loop {
+                let (mut stream, _) = tokio::select! {
+                    result = listener.accept() => result.unwrap(),
+                    _ = &mut stopped => break,
+                };
+                let mut request = Vec::new();
+                let mut chunk = [0; 1024];
+                while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                    let n = stream.read(&mut chunk).await.unwrap();
+                    assert!(n > 0);
+                    request.extend_from_slice(&chunk[..n]);
+                }
+                assert!(request.starts_with(b"GET /v1/models HTTP/1.1"));
+                let entries = if !peer_empty.load(Ordering::SeqCst) {
+                    vec![serde_json::json!({"id": "new", "context_length": 1000})]
+                } else {
+                    vec![]
+                };
+                let body = serde_json::json!({"object":"list", "data": entries}).to_string();
+                stream
+                    .write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes())
+                    .await
+                    .unwrap();
+            }
+        });
+        std::fs::write(&path, config("new", &base_url, false)).unwrap();
+        let reloaded = app.reload_location().await.unwrap();
+        assert_eq!(reloaded.location, initial.location);
+        assert!(reloaded.generation > initial.generation);
+        assert_eq!(reloaded.catalog.model_id, "new");
+        assert_eq!(reloaded.catalog.models.len(), 1);
+        assert_eq!(reloaded.catalog.models[0].id, "new");
+        assert_eq!(app.tab_deck().await.unwrap(), saved);
+        assert_eq!(
+            app.session_selection(session.clone(), false, Action::Current)
+                .await
+                .unwrap()
+                .model_id,
+            "new"
+        );
+        assert_eq!(
+            app.probe_session(session.clone()).await.unwrap(),
+            SessionProbe::Root
+        );
+
+        std::fs::write(&path, "{broken").unwrap();
+        assert!(matches!(
+            app.reload_location().await,
+            Err(CoreError::LocationSwitch { .. })
+        ));
+        assert_eq!(app.catalog().await.unwrap(), reloaded.catalog);
+        assert_eq!(
+            app.file_suggestions("".into(), 1).await.unwrap().generation,
+            reloaded.generation
+        );
+
+        std::fs::write(&path, config("new", &base_url, false)).unwrap();
+        empty.store(true, Ordering::SeqCst);
+        let CoreError::ProviderUnavailable(diagnostic) = app.reload_location().await.unwrap_err()
+        else {
+            panic!("failed refresh must have a typed provider cause");
+        };
+        assert_eq!(
+            diagnostic.code,
+            // The peer remains alive for every bounded retry. A complete empty
+            // OpenProxy list is InvalidCatalog, not a later connection refusal.
+            oc_core::queries::ServiceCode::InvalidCatalog
+        );
+        let mut retained = reloaded.catalog.clone();
+        let readiness = retained.chrome.provider.as_mut().unwrap();
+        assert_eq!(readiness.status, oc_core::queries::ProviderStatus::Ready);
+        readiness.catalog_status = oc_core::queries::ProviderStatus::Failed;
+        readiness.diagnostic = Some(diagnostic.clone());
+        retained.chrome.service_diagnostics.push(diagnostic);
+        assert_eq!(app.catalog().await.unwrap(), retained);
+        assert_eq!(app.tab_deck().await.unwrap(), saved);
+        assert_eq!(
+            app.probe_session(session).await.unwrap(),
+            SessionProbe::Root
+        );
+        assert_eq!(
+            app.file_suggestions("".into(), 1).await.unwrap().generation,
+            reloaded.generation
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        stop.send(()).unwrap();
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn cfg13_unknown_key_on_reload_keeps_last_good_and_reports_every_key() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        let canonical = config("old", "https://example.invalid/v1", true);
+        std::fs::write(&path, &canonical).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let before = app.catalog().await.unwrap();
+        let mut unknown: serde_json::Value = serde_json::from_str(&canonical).unwrap();
+        unknown["permission"] = serde_json::json!({"read": "deny"});
+        unknown["providers"]["other"] = serde_json::json!({"npm": "@ai-sdk/openai"});
+        std::fs::write(&path, unknown.to_string()).unwrap();
+        let Err(CoreError::LocationSwitch {
+            diagnostic: Some(diagnostic),
+            ..
+        }) = app.reload_location().await
+        else {
+            panic!("unknown keys must refuse the reload");
+        };
+        assert_eq!(
+            diagnostic.code,
+            oc_core::queries::ServiceCode::UnknownConfigKey
+        );
+        let details = diagnostic.details.as_deref().unwrap();
+        for expected in [
+            "location opencode.json: permission",
+            "location opencode.json: providers.<id>.npm",
+        ] {
+            assert!(details.iter().any(|line| line == expected), "{details:?}");
+        }
+        assert_eq!(app.catalog().await.unwrap(), before, "last-good retained");
+        std::fs::write(&path, &canonical).unwrap();
+        assert!(app.reload_location().await.is_ok());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn explicit_reload_is_published_during_active_turn() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        std::fs::write(
+            project.join("opencode.json"),
+            config("old", &base_url, true),
+        )
+        .unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let session = SessionId("active-reload".into());
+        app.submit_fresh(session.clone(), "hello".into(), None)
+            .await
+            .unwrap();
+        // T61 R2: the coordinator publishes for the next fresh request instead of
+        // refusing while the issued request keeps its captured generation.
+        let before = app.catalog().await.unwrap().chrome.selection_generation;
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > before);
+        app.cancel(session).await.unwrap();
+        // Drop the stalled transport so the cancelled turn can terminate.
+        drop(listener);
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+}
+#[path = "live_switch_tests.rs"]
+mod live_switch_tests;
+
+#[path = "chat_wire_tests.rs"]
+mod chat_wire_tests;
+#[path = "configless_tests.rs"]
+mod configless_tests;
+#[path = "effective_wire_tests.rs"]
+mod effective_wire_tests;
+#[path = "messages_wire_tests.rs"]
+mod messages_wire_tests;

@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ original full logs; independent manual inverse",
+  "archive_sha256": "dfc935240aeae2baaac1522edf51d4b509cee5e2d7773c51a15d3c1aa88fbbd2",
+  "archive_bytes": 54036,
+  "tar_sha256": "311162cd7f5f9d3c62d990803c9e4e303f3fd104268f8fa9a90e7a4ae750f29c",
+  "tar_bytes": 286720,
+  "inventory": {
+    "members": 56,
+    "logical_bytes": 243935,
+    "member_inventory_sha256": "2c9ee80e9f40b6de6f8df8b6fbc0a0bea7046f521823ff2775038c4eb91a0fda",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "question-cursor-color-clippy": 0,
+    "question-cursor-color-debug-help": 0,
+    "question-cursor-color-debug-locked": 0,
+    "question-cursor-color-debug-ordinary": 0,
+    "question-cursor-color-docs-final": 0,
+    "question-cursor-color-fmt": 0,
+    "question-cursor-color-green": 0,
+    "question-cursor-color-progress-final": 0,
+    "question-cursor-color-pty": 0,
+    "question-cursor-color-python": 0,
+    "question-cursor-color-question-python": 0,
+    "question-cursor-color-r12-after": 0,
+    "question-cursor-color-r12-audit": 0,
+    "question-cursor-color-r12-before": 0,
+    "question-cursor-color-r12-measure": 0,
+    "question-cursor-color-r12-pack": 0,
+    "question-cursor-color-red": 101,
+    "question-cursor-color-release-aud32": 0,
+    "question-cursor-color-release-build": 0,
+    "question-cursor-color-release-dcp-archive": 0,
+    "question-cursor-color-release-help": 0,
+    "question-cursor-color-release-pacing": 0,
+    "question-cursor-color-release-panic": 0,
+    "question-cursor-color-release-s07": 0,
+    "question-cursor-color-release-startup": 0,
+    "question-cursor-color-release-term01": 0,
+    "question-cursor-color-workspace": 0
+  },
+  "current_source": {
+    "source_manifest_sha256": "ed309316934f99322de6ec538a22958eb40601f62dd44657fd6492faf743c185",
+    "changed_inputs": [
+      "crates/oc-tui/src/app/tests/input.rs",
+      "crates/oc-tui/src/question_view.rs",
+      "crates/oc-tui/src/views.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484339768,
+        "sha256": "32b90fe9a0474adfe08e60dcf2ce65aaf54c91e461203a451de57b14024349fc",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "b466b9f2d83da338ad9cf18766412c3f68eaf39f0fec1c1a3a936c9d2558fdec",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 53999,
+        "uncompressed_bytes": 286720,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "311162cd7f5f9d3c62d990803c9e4e303f3fd104268f8fa9a90e7a4ae750f29c"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 54012
+  }
+}

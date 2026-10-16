@@ -1,0 +1,41 @@
+[package]
+name = "oc2"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT AND AGPL-3.0-or-later"
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+description = "Native Rust coding agent with a local TUI and headless sessions in one oc2 binary"
+
+[[bin]]
+name = "oc2"
+path = "src/main.rs"
+
+[features]
+auth-fixture = ["oc-adapters/auth-fixture"]
+
+[dependencies]
+oc-core = { path = "../oc-core", version = "0.2.0" }
+oc-adapters = { path = "../oc-adapters", version = "0.2.0" }
+oc-tui = { path = "../oc-tui", version = "0.2.0" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+libc.workspace = true
+ratatui.workspace = true
+# Mio can discard stdin's edge when SIGWINCH is returned from the same poll.
+# Crossterm's level-triggered Unix backend preserves simultaneous resize/input.
+crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
+futures-util.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+rusqlite.workspace = true
+
+[lints]
+workspace = true

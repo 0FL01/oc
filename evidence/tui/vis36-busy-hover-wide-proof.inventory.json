@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "08a58db17b14c3af9b53873726c9f611db14b2e02eb9a53f370fcbbb17f053c1",
+  "archive_bytes": 3619120,
+  "tar_sha256": "63c0532da88169a9edf25f2ae882a12af3f75ace6872ed1c34fdf883d630c84f",
+  "tar_bytes": 80640000,
+  "inventory": {
+    "members": 634,
+    "logical_bytes": 80439931,
+    "member_inventory_sha256": "a9fba93005df380ac66f90cc2f64d47fd510ad5011017cb26160d35499894a0d",
+    "same_side_png_aliases": 7
+  },
+  "source_roots": {
+    "current": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-current-002/prompt-wide-r2",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-current-002",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-capture-r2.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "current-wide",
+      "captures": 102,
+      "current_source": true,
+      "scope": "PROMPT_BEHAVIOR_ONLY_NOT_PIXEL_PASS",
+      "sides": {
+        "oc": {
+          "status": "PASS",
+          "provider_requests": 26,
+          "provider_completions": 26,
+          "main_requests": 24,
+          "title_requests": 2,
+          "tool_calls": 14,
+          "readonly_snapshots": 34,
+          "natural_exits": 2
+        },
+        "upstream": {
+          "status": "PASS",
+          "provider_requests": 26,
+          "provider_completions": 26,
+          "main_requests": 24,
+          "title_requests": 2,
+          "tool_calls": 14,
+          "readonly_snapshots": 34,
+          "natural_exits": 2
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 100,
+        "EQUAL": 2
+      }
+    }
+  ],
+  "retainer_source_sha256": "e13447cad8885d5365e07d1f17bd12eb330128ec8d534323176db6ab4745292a"
+}

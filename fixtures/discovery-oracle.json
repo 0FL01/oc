@@ -1,0 +1,44 @@
+{
+  "_provenance": {
+    "method": "user-supplied",
+    "source_repo": "user-message",
+    "snapshot": "references/openproxy-models.user.mjs",
+    "sha256": "0f98ddad1660a991a400dbeba879df76ba2fc70b8e3fe530032976166939610c",
+    "authority": "user-supplied-script-over-repository-plugin",
+    "repository_plugin_sha256": "28c7c8a60d17caec44c645a586c3568c847a649cb3e33cde4bd4881fd5d00cd7",
+    "repository_plugin_note": "0FL01/openproxy@4ef76dbce2cdbb85206cbe5e59acbad9d96ae387 plugins/openproxy-models.js has DISCOVERY_TIMEOUT_MS=10000; user reference with 15000/30000/retries wins.",
+    "oracle": "scripts/test_discovery_reference.mjs (offline Node, not Rust runtime)"
+  },
+  "provider_id": "ludka2",
+  "timing_ms": {
+    "attempt_timeout": 15000,
+    "total_timeout": 30000,
+    "retry_delays": [250, 750, 1500],
+    "max_attempts": 4
+  },
+  "limits": {
+    "max_context_tokens": 500000,
+    "discovery_body_bytes": 8388608,
+    "discovery_rows": 10000
+  },
+  "standard_reasoning_variants": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+  "oracle_expectations": [
+    "new model ID needs no hardcoded registry; URL/auth and 500k clamp",
+    "local overrides/source suffix; remote variant allowlist suppresses defaults",
+    "successful publication removes local-only models",
+    "whole response atomic when any row invalid",
+    "remote options/headers/npm cannot override configured connection",
+    "401 terminal; configured models retained; sanitized warning",
+    "disabled provider makes no network request",
+    "missing enabled-provider selection makes no request",
+    "duplicates last-wins (Object.fromEntries)",
+    "incomplete limit deleted rather than fabricated"
+  ],
+  "wire": {
+    "method": "GET",
+    "path_suffix": "/models",
+    "accept": "application/json",
+    "redirect": "error",
+    "auth_override": "Authorization: Bearer <apiKey> replaces configured headers"
+  }
+}

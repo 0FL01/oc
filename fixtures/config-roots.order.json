@@ -1,0 +1,34 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "anomalyco/opencode",
+    "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+    "paths": [
+      "packages/core/test/config/config.test.ts",
+      "packages/core/src/config.ts"
+    ],
+    "license": "MIT",
+    "upstream_sha256": {
+      "config.test.ts": "3388c12cafe114faf0f00a7e1f7c530e76c02b51451b8e78705b904718e60c57",
+      "config.ts": "1f93b47731ed177dced40d71aaa3c586a10ddf41ad6714ae2fe165c7f09ba253"
+    },
+    "normalization": "Extract ordered source list from CONFIG.md low->high description and config.test.ts layer construction (Global layer + Location walk); drop Effect/Layer boilerplate, keep order and JSON-before-JSONC rule. See docs/CONFIG.md and docs/SOURCES.md [O2,O9].",
+    "executable_baseline": "not-executed; documentary recon 2026-09-20 only"
+  },
+  "description": "Representative admitted source order low->high. No second global layer; explicit --config is a single optional slot.",
+  "order_low_to_high": [
+    "G/opencode.json",
+    "G/opencode.jsonc",
+    "explicit --config (optional, single)",
+    "Location-root-to-cwd opencode.json",
+    "Location-root-to-cwd opencode.jsonc",
+    "Location-root-to-cwd .opencode/*/opencode.json",
+    "Location-root-to-cwd .opencode/*/opencode.jsonc"
+  ],
+  "rules": {
+    "json_before_jsonc_per_directory": true,
+    "global_env_override_replaces_default": true,
+    "no_parent_home_walk_beyond_trusted_location": true,
+    "note": "Wider upstream walk beyond trusted Location boundary is a documented difference, not a hidden read."
+  }
+}

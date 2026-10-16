@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ original full logs; independent manual inverse",
+  "archive_sha256": "af6cd4a4f3cf753d98c7e98ac4e67915e88854ab20bf6eb7d4ad1eaa68118827",
+  "archive_bytes": 63752,
+  "tar_sha256": "61a06f2fdb86200d79293d971456558c68f8a819fa787293d3ad496014dfa52c",
+  "tar_bytes": 542720,
+  "inventory": {
+    "members": 79,
+    "logical_bytes": 473911,
+    "member_inventory_sha256": "1d58b4d83f85e8511bf97d32919471879db4e3572197cdb70142b3df2534f4e5",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "question-status-burst-isolated": 0,
+    "question-status-clippy": 0,
+    "question-status-debug-help": 0,
+    "question-status-debug-locked": 0,
+    "question-status-debug-ordinary": 0,
+    "question-status-dialog-isolated": 0,
+    "question-status-docs-final": 0,
+    "question-status-fmt": 0,
+    "question-status-green-complete": 0,
+    "question-status-green": 101,
+    "question-status-model005-after": 0,
+    "question-status-model005-archive": 0,
+    "question-status-model005-before": 0,
+    "question-status-model005-preflight": 0,
+    "question-status-progress-final": 0,
+    "question-status-pty": 0,
+    "question-status-python": 0,
+    "question-status-question-python": 0,
+    "question-status-r11-after": 0,
+    "question-status-r11-audit": 0,
+    "question-status-r11-before-complete": 0,
+    "question-status-r11-before": 1,
+    "question-status-r11-measure": 0,
+    "question-status-r11-pack": 0,
+    "question-status-red-complete": 101,
+    "question-status-red": 0,
+    "question-status-release-aud32": 0,
+    "question-status-release-build": 0,
+    "question-status-release-dcp-archive": 0,
+    "question-status-release-help": 0,
+    "question-status-release-pacing": 0,
+    "question-status-release-panic": 0,
+    "question-status-release-s07": 0,
+    "question-status-release-startup": 0,
+    "question-status-release-term01": 0,
+    "question-status-unicode-isolated": 0,
+    "question-status-workspace-complete": 0,
+    "question-status-workspace": 101
+  },
+  "current_source": {
+    "source_manifest_sha256": "c5004540f17136e55e22ef42de7a38c71c835a9622fd5e62b711622058e2b886",
+    "changed_inputs": [
+      "crates/oc-tui/src/shell.rs",
+      "crates/oc-tui/src/shell/tests.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484336384,
+        "sha256": "52cba8d040441bfcc6bebfd9e8d702e1d512aa14d1289c4fc9b08f709340338c",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "e00fb0b104afcfb34345a29cf8551fa1ac144bd5cbbade946463e4544921ac97",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 63715,
+        "uncompressed_bytes": 542720,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "61a06f2fdb86200d79293d971456558c68f8a819fa787293d3ad496014dfa52c"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 63728
+  }
+}

@@ -1,0 +1,324 @@
+# Goal: LLM-provider retry и безопасное продолжение как в OC2
+
+Status: complete (assigned Responses/common-runtime baseline; additive follow-ups pending; GO03/VIS43 separate)
+Source: требование владельца о полном parity provider-error retry (лимиты и 5xx)
+и его TUI-представления; утверждение исправленного после RECON/параллельного аудита
+плана 2026-09-29. Reference: `opencode` v2.0.12,
+`2670273ff17da96f85c5826ced57aa1b368754fa`.
+Last updated: 2026-10-06
+Task: T54; current qualification — evidence/T54/report.md.
+
+## Objective
+
+Для допущенных native LLM-provider вызовов `oc` воспроизводит конечные
+классы ошибок, задержки и continuation retry pinned OC2 без повторения
+подтверждённых или неизвестных эффектов. RET01 квалифицирует backend/Responses;
+T53/GO03 подключает следующие Chat/Messages wires к тому же owner, а T44/VIS43
+после явного resume квалифицирует внешний вид. Пока backend и visual gates не
+пройдены, заявлять полный retry parity нельзя.
+
+## Execution Directive
+
+Complete the frozen Required Outcomes using the listed Change Envelope and Primary
+Evidence. Work on the smallest unresolved outcome. Do not add requirements from
+reviews, tests, tools, speculative risks, or optional source text. Finish when every
+required outcome is resolved and affected constraints remain satisfied.
+
+## Frozen Contract
+
+### Required Outcomes
+
+- R1: один типизированный contract исхода физического LLM-запроса.
+  - Source: pinned `packages/ai/src/provider-error.ts`, `route/executor.ts`,
+    `route/client.ts`, `protocols/open-responses.ts`; A04/PROV06/AUD11/AUD13.
+  - Acceptance: RET01 различает структурированные HTTP/SSE ошибки и
+    transport/read/incomplete-stream, сохраняет только безопасную диагностику;
+    parsing/status/auth/permission/trust/caps никогда не становятся generic
+    неограниченным retry. Adapter исполняет ровно одну физическую попытку.
+  - Primary evidence: fake HTTP/SSE fixtures для 429 throttle и quota, 402,
+    408/409/5xx, 400/401/403/413, ошибок внутри HTTP 200 SSE, EOF после
+    partial output и наблюдаемых retry headers.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; evidence/T54/typed-failures.md and current provider tests.
+
+- R2: конечное ожидание и истинное продолжение одного логического шага.
+  - Source: pinned `packages/core/src/session/runner/{retry,step,llm}.ts`;
+    текущие `docs/CONTRACTS.md` и no unknown-effect replay.
+  - Acceptance: RET01 доказывает первоначальный запрос + до десяти retry,
+    общий allowance прозрачной попытки и continuation, отменяемое ожидание и
+    отсутствие второго HTTP retry-loop. До output сохраняется assistant ID; после
+    output partial span завершается неуспехом, retry публикуется до ожидания,
+    следующий span получает новый ID и историю, а завершённые tools/unknown
+    effects не переисполняются. Попытки не тратят agent-step allowance.
+  - Primary evidence: deterministic clock/RNG fake provider: mixed
+    pre-output/partial failures, exhaustion, terminal auth/quota, retry override,
+    interrupted read после output, cancel during backoff, persisted tool outcomes.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; evidence/T54/runtime-retry.md and owner/native mixed-continuation gates.
+
+- R3: durable assistant-span факт и адресная presentation без второго владельца.
+  - Source: pinned `session/message-updater.ts:213–255,402–409`,
+    `session/projector.ts:298–313`; A02/A07/A08/A10 и T44/VIS43.
+  - Acceptance: `RetryScheduled` сохраняет `{attempt, at, safe error}` на
+    assistant-span в текущем TurnLog/storage/projection. Семантический старт
+    существующего span снимает его retry; при новом ID очищается только
+    последний незавершённый span. Исторический завершённый failed span с retry
+    не становится активным ожиданием, не стирается общим success/cancel и не
+    разрешает HTTP dispatch после crash. Focused/parked views, reopen и
+    headless различают retry от terminal failure; stale events не меняют чужую
+    session/turn. Новые retry diagnostics/UI/SQL-поля не содержат raw failure
+    body, auth headers или credentials; canonical history не переписывается.
+  - Primary evidence: owner journal/query и actual-binary fake-provider
+    headless/PTY: reschedule, due, partial→continue→success→reopen, tab park,
+    restart/cancel и ordering snapshot/events без ложного нового запроса.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; durable journal/query, scoped ordering and native reopen/restart gates.
+
+- R4: сохранить лимиты, другие LLM lanes и существующие gates.
+  - Source: pinned `session/compaction.ts`, `session/title.ts`; GOAL.md
+    A01–A13, PROV07/AUD11/AUD13, T53/GO03, docs/TEST_PLAN.md.
+  - Acceptance: один счётчик фактически выданных физических generation HTTP
+    requests у owning operation охватывает retries, связанные child/compaction
+    и title как accounting, не production stop quota. Owner amendment
+    2026-10-02 отдельно отменяет успешный round/step cap под T45/R6/R9;
+    finite failure allowance сохраняется, тестовый бюджет ≤24 его не подменяет. Сохраняются binding,
+    модель, auth/headers и config generation без fallback; cancel, safe
+    checkpoint, input/output caps, DCP/history и response-close-before-tool
+    admission. Root/child шага используют ту же policy со своим allowance,
+    поддержанные native/generated compaction summary/correction — auxiliary
+    allowance, title — один вызов без main-loop. Новые протоколы T53/GO03
+    потребляют policy, T54 не ожидает завершения всего T53/T44/T51.
+  - Primary evidence: owner regressions + actual rebuilt binary fake
+    Responses/headless/PTY и affected crate/workspace gates по TEST_PLAN;
+    отдельные T53/GO03 и T44/VIS43 evidence без подмены результатов.
+  - Status: verified
+  - Evidence: evidence/T54/report.md; operation dispatch/socket accounting and current workspace gates.
+
+### Source-derived decision table
+
+- Приоритет из pinned classifier: verified event/HTTP status и structured
+  error code/type/message → context overflow только для client-scoped
+  status (нет или 4xx) → 413/payload too large → content policy → quota
+  (402, known insufficient_quota/usage_not_included/billing/Go account-cap
+  codes, 429 с quota evidence) → authentication (401/403) → rate limit
+  (429/known throttle) → provider internal (408/409/5xx) → invalid request
+  (остальные 4xx) → UnknownProvider. Context overflow идёт в существующий
+  compaction path, не generic retry; quota/auth/policy/invalid terminal by
+  default, UnknownProvider retryable только для настоящего provider failure.
+  Local policy/storage/validation errors не маскировать им.
+- `x-should-retry` именно из наблюдаемых HTTP headers: точные строки `true`
+  или `false` переопределяют default typed policy. Post-output incomplete
+  stream/transport read может продолжаться даже при `false`, если это
+  source-approved interrupted-stream case; это не replay исходного запроса.
+  Transport delivery=rejected и accepted non-read по умолчанию terminal;
+  generic `LLMEvent.providerError` — terminal, но Responses `response.failed`
+  и `error` дают typed provider failure. Применять override только к
+  provider-owned observed headers, не к input/config/local trust failure.
+- Для HTTP failure `retry-after-ms` (конечное неотрицательное число)
+  приоритетнее `Retry-After` seconds/HTTP-date. Только RateLimit/
+  ProviderInternal используют provider delay как minimum, clamp ≤15 минут;
+  nominal delays 2/4/8/10s (10s ещё 7 раз) с uniform jitter [0.8,1.2),
+  затем max и ceil milliseconds. `at` записать до cancellable wait;
+  `Retry due` не отправляет запрос сам. Для SSE `response.failed` под HTTP
+  200 учитывать отдельный event status/code; HTTP 200 retry-after не
+  пересчитывать в `retryAfterMs` (source behavior), но observed headers
+  доступны для `x-should-retry`.
+- `response.incomplete` с `max_output_tokens` означает правдивый
+  finish=`length` (не бесконечный retry/полный нескороченный ответ),
+  `content_filter` — failure, неизвестная причина — typed incomplete stream
+  с ограниченным retry. Без настоящего terminal завершения EOF/failure/
+  exhaustion остаются non-success; incomplete tools никогда не dispatch.
+
+### Constraints and non-goals
+
+- A02/A04/A07/A08/A10/A13, PROV06/PROV07/AUD11/AUD13, GO03 и
+  permissions/trust/redaction/effect quarantine сохраняют одного owner.
+  Отдельный T44/VIS43 обязателен для **визуального** заявления, но не
+  done-зависимость всего T44 для backend T54.
+- Production не получает JS plugin retry hook, SDK/HTTP double retry,
+  new protocol/provider, MCP/discovery/startup retries, daemon, global
+  restart auto-resumer или новую платную campaign. T51 readiness refresh
+  не является paid generation retry. Native закрывает полный response
+  до локального tool admission, в отличие от donor overlapping tool fibers.
+
+## Change Envelope и порядок срезов
+
+1. Зафиксировать эту таблицу и адресно supersede старые pre-first-event/
+   per-turn 2-retry и blanket incomplete rules в CONTRACTS/PROV06/AUD11/
+   AUD13/T53 GO03. Исторический PASS не подтверждает новый RET01.
+2. `crates/oc-adapters/src/provider.rs` — bounded typed HTTP/SSE classification,
+   safe diagnostic и один physical attempt; existing runtime turn owner —
+   finite retry/continuation и счётчик dispatch. Добавлять узкий модуль
+   только если его реально разделят primary/child/compaction; без нового crate/
+   trait/общего store. Не re-enter user admission/agent-step при retry.
+3. Через текущий TurnLog/SQLite/core query/event/TUI/headless DTO провести
+   irreducible span/lifecycle факты, сохранив raw history и старые rows.
+   T44 отвечает за final warning geometry/timing; T53/GO03 — за lowering
+   typed failures/headers из новых протоколов.
+4. Ближайший owner fake-clock/RNG/provider test → bounded actual rebuilt
+   binary PTY/headless → affected resource/security gates и workspace quality
+   на code commit. Mocked failures бесплатны; перед разрешённой live
+   квалификацией соблюсти отдельный durable ≤24 physical-request campaign
+   envelope, включая title/compaction/children/retries. Это не runtime cap.
+
+Expected consumers: `runtime/turn.rs`, `runtime_compaction.rs`,
+`application.rs`, `oc-core/src/{core_app.rs,queries.rs}`,
+`oc-tui/src/{app.rs,messages.rs,app/live.rs}`, `oc/src/{headless.rs,tui_cmd.rs}`;
+называть новые файлы по фактическим seams, не по типам. Один mutation owner;
+для новых срезов сверить активную T50 dirty работу и qualified readiness seam,
+не reopening completed T51/T54.
+
+## Long-workflow follow-up — approved 2026-10-02, pending
+
+Read-only RECON/audit confirms the existing typed finite retry owner and successful
+generation reset. Ten tool calls, remaining subscription quota and an `incomplete`
+footer do not establish a missing retry, provider throttle, MCP failure or crash.
+Incident cause remains unresolved until the actual executable/version/protocol and
+available safe turn/span/retry/dispatch facts identify it. Persisted retry facts do
+not retain full headers; do not promise historical recovery or add telemetry by default.
+
+- Extend existing `tests/runtime/turns.rs` and `evidence/T54/native_runtime.py`
+  effect/mixed fixture rather than duplicate policy/exhaustion/quota/auth/cancel
+  matrices. Earlier eligible retry → successful step → long sequential workflow →
+  late HTTP429 → automatic wait/continuation of the **same task** must show the
+  late step starting at attempt **2**, proving allowance reset. Reuse T45's
+  >16-step runtime receipt; count tools, logical steps and physical requests separately.
+- Explicit HTTP200 SSE `response.failed`/RateLimit after partial output is a short
+  extension of the existing partial case (or the same script), not another long
+  campaign. Use absent/true `x-should-retry`; typed rate limit still obeys false.
+  HTTP200 `Retry-After` does not provide a delay minimum. Preserve partial span,
+  new continuation span and the fixture's committed effect without replay; this
+  does not claim general exactly-once external effects.
+- Reuse the existing MCP failed-result→next-model-request case; add only a missing
+  assertion that recognized optional `RATE_LIMITED` remains a paired failed tool
+  result, not generation `retry_scheduled` or automatic tool retry. No free-text
+  error parsing, model quota inference or new global request limiter.
+- Change backend only at a reproduced violation of the provider facts, retry policy
+  or continuation owner. If these narrow regressions pass, no retry runtime edit.
+  T53 consumes the same policy; T44/VIS43 separately qualifies footer/countdown.
+
+Completed T54 baseline/status/report and RET01 ownership stay unchanged; these
+additive regressions are pending/NOT_RUN until scheduled qualification with the
+runtime slice. No new task/gate/store/retry framework or paid failure campaign.
+
+## Restricted provider errors and safe details — approved 2026-10-06, pending
+
+Source: owner cybersecurity-restriction OCR/`Retry Error` report, independent audit
+and explicit approval to amend the work plan and commit/push on 2026-10-06.
+The report supplies display prose, not its actual wire/status/headers/version;
+`attempt 5` does not establish retry eligibility or an obligatory attempt count.
+OC2 remains pinned. Supplemental frozen sources U129–U132 in
+[`SOURCES.json`](../../tui-recovery/SOURCES.json) identify OC1 interaction, OC2 shared
+DialogAlert and OpenAI Codex HTTP/SSE `cyber_policy` parsing; they are not runtime
+qualification. The additional classifier/modal behavior is a **native extension**,
+not exact parity with behavior absent from the pinned OC2 classifier/retry footer.
+
+Owner-reported display text to preserve in a synthetic bounded fixture (not a
+capture proving HTTP400/SSE/WS or observed headers):
+
+> This content was flagged for possible cybersecurity risk. If this seems wrong,
+> try rephrasing your request. If you're doing authorized security work that requires
+> more cyber permissive safeguards, apply for Daybreak access via
+> https://platform.openai.com/settings/organization/status-and-access before retrying.
+
+### Minimal backend contract — RET01 owner, new assertions pending/NOT_RUN
+
+1. **Classification, not a new policy.** Add structured `cyber_policy` to existing
+   ContentPolicy; no new FailureKind/subtype is required. When a gateway omits the
+   code, permit only the known `This content was flagged for possible cybersecurity
+   risk` phrase in one bounded provider error message, with the existing absent/4xx
+   event-status guard and context/payload/policy precedence. Never match across
+   joined fields, serialized body, ordinary user/tool/assistant/refusal text, or
+   generic `restricted`/`security` words. A 5xx carrying only the phrase remains a
+   server failure. A missing/blank explanation retains the safe category, not invented
+   Daybreak prose. HTTP JSON means an error body, not a new successful JSON protocol.
+2. **Eligibility/provenance.** ContentPolicy is terminal by default; preserve the
+   existing exact bounded observed `x-should-retry` override and finite allowance.
+   Partial output alone does not make policy retryable. SSE uses event status/code,
+   not outer HTTP200, while existing observed HTTP headers remain attempt-scoped.
+   T57/AUTH04 normalizes source-approved WS error envelopes, including bare `{error}`,
+   into this owner. Successful connection handshake headers are not per-request
+   overrides for later responses; without source-approved attempt-local evidence
+   keep terminal default. A policy error followed by close stays the provider error,
+   never retryable EOF or permission for same-route HTTP fallback/unknown-effect replay.
+3. **Safe explanation before publication.** Populate existing PhysicalFailure.message
+   from structured HTTP/SSE/admitted-WS error fields using captured request-local
+   redactions **before** public Debug/Display, runtime logs, events or SQL. Retain the
+   current input/output bounds; show truthful clipping/omission within the bounded
+   string, not a promise of raw/full response recovery. Allow the exact provider-supplied
+   `https://platform.openai.com/settings/organization/status-and-access` URI only as
+   a whole safe HTTPS URI: exact host/path, no userinfo/explicit port/query/fragment,
+   extra path, lookalike host or control-normalized escape. It does not disable secret/
+   private-URL checks elsewhere in the message. Other unsafe content may retain the
+   current redacted-message fallback; no general prose sanitizer/URL registry. Do not
+   synthesize guidance, append this link to all policy errors, check organization
+   access, launch a browser or treat provider instructions as local authority.
+4. **Existing durable facts and child delivery.** PhysicalFailure.message → existing
+   AssistantSpan.error / RetryFact.safe_error → current bounded query/events/history.
+   No new diagnostic DTO, DB migration, retry store or event family. Preserve safe
+   terminal diagnostics in the T45 child completion wrapper instead of the generic
+   `child turn failed`; publish/reconcile final recorded span facts through existing
+   TurnPresentation/query. Reuse current child routing/parked views before adding any
+   child projection field. Current operation/turn/span differs from historical retry;
+   legacy/missing ownership stays unknown. Successful semantic-start cleanup need not
+   preserve every overwritten retry; accessible pending/failed facts suffice, without
+   an events/archive reader or historical-header reconstruction.
+
+### Minimal slices, dependencies and evidence
+
+- Classification + request-local safe message: nearest provider owner fixtures,
+  including the quoted message/Daybreak URI on HTTP and SSE, guards/negative cases,
+  blank message, absent/false/true override and redaction/bounds. Existing HTTP/SSE
+  and admitted Chat/Messages lowering share the owner; do not duplicate its matrix.
+- Root/child delivery: extend existing mixed/effect runtime and actual-binary fixture
+  for refusal before the first token and after partial output, terminal versus
+  explicitly eligible continuation, one committed effect, live diagnostic and bounded
+  reopen. T45/SUB01–SUB02 own child lifecycle fixes; RET01 retains policy/detail ownership.
+- WS: T57/AUTH04 consumes this contract after its **minimal qualified transport seam**;
+  short envelope/delivery/override-provenance/close/fallback fixtures, not a second
+  exhaustion/jitter/cancel matrix. HTTP/SSE fixes and root details do not wait for all T57.
+- Recorded-span presentation: reuse `latest_turn_spans/parts` current/latest windows;
+  only expose missing optional PartState owning span and necessary referenced metadata
+  within existing serving budgets. T44/VIS43 independently qualifies footer/dialog,
+  VIS39 the child consumer, per [UI contract](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#restricted-provider-error-details--approved-2026-10-06-pending)
+  and [method](../TEST_PLAN.md#restricted-provider-errors-and-details--approved-2026-10-06-pending).
+
+This additive contract does not reopen all completed R1–R4/T54, change task/gate IDs,
+dependencies, progress or historical evidence. T57 remains active, T44 PAUSED until
+explicit resume; implementation and new RET01/AUTH04/SUB01–SUB02/VIS43/VIS39 assertions
+are pending/NOT_RUN. No paid cyber-refusal campaign, whole-task dependency, policy bypass
+or product/visual PASS follows from plan validation.
+
+## Historical planning checkpoint / state
+
+- 2026-09-29: RECON и независимый аудит completed; docs-only контракт
+  утверждён, implementation RET01/VIS43/GO03 NOT_RUN. T51 active;
+  T44 PAUSED до явного resume; T53 todo; T54 pending без start через
+  `progress.py`. Исторические reports/PASS не менялись.
+- Graph-change rationale: T12 был техническим bounded Responses retry,
+  но не закрывал source-derived quota/continuation/TUI; reopening completed
+  T12, назначение T51 generation owner или смешение backend с PAUSED T44
+  ломали бы ownership. Поэтому одна новая T54/RET01 зарегистрирована
+  `todo`, GO03/T53 и VIS43/T44 сохраняют своих владельцев; существующий
+  active T51 и его checkpoint не переназначены. `progress.py reindex/check`
+  нужен после добавления записи, без заявления о product PASS.
+- Next: после корректного scheduling handoff подтвердить текущие
+  provider/turn owner paths и frozen typed classification table, затем
+  минимальный Responses owner test для quota-versus-throttle.
+- Blocker: нет для планирования; исполнение не начинается этой правкой.
+
+## Evidence / Completion
+
+Assigned R1–R4/RET01 backend verified at implementation commits `a7ddde9f8` and
+`2d0dea21a`: current workspace 1321 passed, 0 failed, 10 unchanged opt-in ignored;
+normal debug/release nine native scenarios per ELF, deterministic owner matrix,
+safe span/recovery/operation accounting and strict quality gates PASS. Full report:
+`evidence/T54/report.md`. No GO03/VIS43 or whole-product completion claim.
+
+RET01 имеет только T54 как owner; подробные cases и команды —
+`planning/acceptance.json`, `docs/TEST_PLAN.md`. Отчёт:
+`evidence/T54/report.md` после исполнения, не от публикации плана.
+**T54 complete** означает validated Responses/common runtime backend;
+**полный parity retry для поставляемых wires и TUI** — RET01 + GO03 при
+допуске Chat/Messages + VIS43. Без фактических тестов и парных кадров
+документация/JSON validator не даёт implementation PASS.

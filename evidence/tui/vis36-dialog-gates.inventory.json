@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ full original logs; independent manual inverse",
+  "archive_sha256": "6059dc3454e8a65a61b90f8f593499dd0d587d00531f943276a71082662df6a6",
+  "archive_bytes": 59232,
+  "tar_sha256": "2e480ca93a71c339c16b05403826eee5c8c76db63e75574d31526fdc1e038ceb",
+  "tar_bytes": 399360,
+  "inventory": {
+    "members": 97,
+    "logical_bytes": 327072,
+    "member_inventory_sha256": "c579038bd0b67c26ecf7a8d7bc2944c8dbd6a28fecda6baa4329e31cda7cb5c2",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "vis36-dialog-after": 0,
+    "vis36-dialog-audit": 0,
+    "vis36-dialog-before-complete": 1,
+    "vis36-dialog-before-qualified": 0,
+    "vis36-dialog-before": 1,
+    "vis36-dialog-center-clippy": 0,
+    "vis36-dialog-center-green": 0,
+    "vis36-dialog-center-owner": 0,
+    "vis36-dialog-center-red-complete": 101,
+    "vis36-dialog-center-red": 101,
+    "vis36-dialog-center-tui": 0,
+    "vis36-dialog-clippy-final": 0,
+    "vis36-dialog-debug-help": 0,
+    "vis36-dialog-debug-locked": 0,
+    "vis36-dialog-debug-ordinary": 0,
+    "vis36-dialog-docs-final": 0,
+    "vis36-dialog-fmt": 0,
+    "vis36-dialog-hint-green": 0,
+    "vis36-dialog-hint-owner": 0,
+    "vis36-dialog-hint-red-complete": 101,
+    "vis36-dialog-hint-red": 101,
+    "vis36-dialog-measure": 0,
+    "vis36-dialog-model008-after": 0,
+    "vis36-dialog-model008-archive": 0,
+    "vis36-dialog-model008-before": 0,
+    "vis36-dialog-model008-preflight": 0,
+    "vis36-dialog-pack": 0,
+    "vis36-dialog-progress-final": 0,
+    "vis36-dialog-python-final": 0,
+    "vis36-dialog-python": 0,
+    "vis36-dialog-r6-after": 0,
+    "vis36-dialog-r6-audit": 0,
+    "vis36-dialog-r6-before": 0,
+    "vis36-dialog-r6-measure": 0,
+    "vis36-dialog-r6-pack": 0,
+    "vis36-dialog-release-aud32": 0,
+    "vis36-dialog-release-build": 0,
+    "vis36-dialog-release-dcp-archive-complete": 0,
+    "vis36-dialog-release-dcp-archive": 0,
+    "vis36-dialog-release-help": 0,
+    "vis36-dialog-release-pacing": 0,
+    "vis36-dialog-release-panic": 0,
+    "vis36-dialog-release-s07-complete": 0,
+    "vis36-dialog-release-s07": 0,
+    "vis36-dialog-release-startup": 0,
+    "vis36-dialog-release-term01": 0,
+    "vis36-dialog-workspace": 0
+  },
+  "current_source": {
+    "source_manifest_sha256": "4a0a41038113d4a346cfd948953b311152131194867b79ce2b8270f67f4b6cf8",
+    "changed_inputs": [
+      "crates/oc-tui/src/app/tests/input.rs",
+      "crates/oc-tui/src/dialog.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484374672,
+        "sha256": "3b40d0b2d715fb104371a7d57ab6c90b351eda52b68b749405ebbda0b90607b2",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "27f43b51931be16c15274695dd7e891d1deb424c279fcdb740e0858526edd675",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 59194,
+        "uncompressed_bytes": 399360,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "2e480ca93a71c339c16b05403826eee5c8c76db63e75574d31526fdc1e038ceb"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 59208
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "donor": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "owners": ["packages/ai/src/protocols/open-responses.ts:146-159,203-206,507-537", "packages/ai/test/provider/openai-responses.test.ts:1618-1705,1768-1816"],
+  "result": {
+    "content": [
+      {"type":"text","text":"media before mcp-media-private-canary","annotations":{"audience":["user"],"priority":0.5},"_meta":{"note":"mcp-media-private-canary"}},
+      {"type":"image","data":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=","mimeType":"image/png","_meta":{"origin":"fixture-image"}},
+      {"type":"audio","data":"UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==","mimeType":"audio/wav"},
+      {"type":"resource","resource":{"uri":"fixture://binary","mimeType":"application/octet-stream","blob":"AAEC/w=="},"_meta":{"origin":"fixture-blob"}},
+      {"type":"resource","resource":{"uri":"file:///not-read-by-native","mimeType":"text/plain","text":"embedded text"}},
+      {"type":"text","text":"media after"}
+    ],
+    "structuredContent":{"answer":42,"note":"mcp-media-private-canary"},
+    "_meta":{"provenance":"fixture-result","token":"mcp-media-private-canary"},
+    "isError":false
+  }
+}

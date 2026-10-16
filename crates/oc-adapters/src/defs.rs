@@ -1,0 +1,2482 @@
+//! Workspace definitions and instructions loading (T25, CFG06/CFG07).
+//!
+//! Disk discovery for admitted `.opencode` roots only: skills
+//! (`{skill,skills}/<id>/SKILL.md` and flat `{skill,skills}/<id>.md`),
+//! agents (`{agent,agents}/**/<id>.md`, compatibility `{mode,modes}/<id>.md`),
+//! commands (`{command,commands}/<id>.md`).
+//! Singular roots load before plural within one source directory; later
+//! sources replace duplicates with shadowing provenance. Authoritative inline
+//! definitions come from top-level config `agent`/`command` domains through
+//! [`merge_config_definitions`], never invented sibling files. Order never
+//! depends on filesystem enumeration (entries are sorted). Invalid entries
+//! produce path/field/reason diagnostics while valid siblings survive; a
+//! skill directory without `SKILL.md` is silently skipped (upstream parity).
+//! Skill bodies stay out of the model projection (served bounded by the
+//! native `skill` tool from the pinned snapshot). Nothing here executes.
+
+use std::collections::BTreeMap;
+use std::fmt::Write as _;
+use std::fs::{File, OpenOptions};
+use std::io::{self, Read as _};
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::OpenOptionsExt as _;
+use std::path::{Path, PathBuf};
+
+use crate::admitted_fs;
+use crate::config::{Permission, parse_skill, split_frontmatter_value};
+use sha2::Digest as _;
+use thiserror::Error;
+
+#[cfg(test)]
+mod builtin_tests;
+#[cfg(test)]
+mod profile_tests;
+
+/// Max admitted definition roots per load.
+pub const MAX_DEF_ROOTS: usize = 8;
+/// Max definition id length.
+pub const MAX_DEF_ID_LEN: usize = 128;
+/// Max total definition bytes per load.
+///
+/// Deliberate deviation from upstream: opencode v2.0.12 imposes no size limit
+/// on agent/command/skill files, bodies, frontmatter or definition counts.
+/// This is the single generous resource bound; per-file, per-body and
+/// frontmatter caps are intentionally absent.
+pub const MAX_TOTAL_BYTES: usize = 4 * 1024 * 1024;
+/// Max definitions per kind per load.
+pub const MAX_DEFS_PER_KIND: usize = 256;
+/// Max single instructions file bytes.
+pub const MAX_INSTRUCTIONS_FILE: usize = 64 * 1024;
+/// Max total instructions bytes.
+pub const MAX_INSTRUCTIONS_TOTAL: usize = 256 * 1024;
+
+/// One admitted `.opencode` source directory in low→high precedence order.
+#[derive(Debug, Clone)]
+pub struct DefRoot {
+    /// Admitted directory (already trust-decided by the caller).
+    pub dir: PathBuf,
+    /// Provenance label (e.g. `G`, `A`).
+    pub origin: String,
+}
+
+/// Path/field/reason diagnostic; never carries file bodies or secrets.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Diagnostic {
+    /// File path.
+    pub path: String,
+    /// Field or rule.
+    pub field: String,
+    /// Human reason.
+    pub reason: String,
+    /// Typed safe projection. Raw parsing context stays inside the definition owner.
+    pub failure: oc_core::queries::ServiceDiagnostic,
+}
+
+impl std::fmt::Debug for Diagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.failure.fmt(f)
+    }
+}
+
+/// Loaded skill (body pinned for the snapshot, never projected).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkillDef {
+    /// Directory id (or flat file stem).
+    pub id: String,
+    /// Name (`id` when frontmatter omits it).
+    pub name: String,
+    /// Description (empty when frontmatter omits it).
+    pub description: String,
+    /// Full `SKILL.md` text for the pinned snapshot.
+    pub body: String,
+    /// Winning source origin.
+    pub origin: String,
+}
+
+/// Selectable primary-agent profile.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgentDef {
+    /// File id.
+    pub id: String,
+    /// Description.
+    pub description: String,
+    /// Optional pinned model id (validated at turn time, not here).
+    pub model: Option<String>,
+    /// Optional pinned variant.
+    pub variant: Option<String>,
+    /// Literal primary-agent prompt/body.
+    pub body: String,
+    /// Agent-specific permission narrowing, normalized to runtime tool names.
+    pub permissions: BTreeMap<String, Permission>,
+    /// Ordered resource-aware narrowing, retained independently of the summary.
+    pub permission_rules: crate::permissions::PermissionRules,
+    /// Omitted from automatic subagent discovery, still explicitly addressable.
+    pub hidden: bool,
+    /// Admitted mode (`primary`) when explicitly configured.
+    pub mode: Option<String>,
+    /// Request headers/body overlay applied to this profile's own generations.
+    pub request: crate::provider::RequestOverlay,
+    /// Explicit `#RRGGBB` presentation color; absent uses the categorical slot.
+    pub color: Option<String>,
+    /// Winning source origin.
+    pub origin: String,
+}
+
+impl AgentDef {
+    /// Whether this profile may be selected as a primary agent.
+    ///
+    /// Registered/configured profiles materialize the pinned primary default.
+    pub fn primary_capable(&self) -> bool {
+        self.mode.as_deref() != Some("subagent")
+    }
+
+    /// Automatic picker/cycle/default eligibility; explicit selection is separate.
+    pub(crate) fn primary_visible(&self) -> bool {
+        self.primary_capable() && !self.hidden
+    }
+
+    /// Whether this profile may be spawned as a subagent.
+    ///
+    /// Only explicitly subagent/all profiles are eligible after registration.
+    pub fn subagent_capable(&self) -> bool {
+        self.mode.as_deref() != Some("primary")
+    }
+}
+
+/// Pinned core/plugin/agent.ts default Build registration. Config transforms
+/// remain authoritative; this profile adds no model or permission override.
+pub(crate) fn builtin_build() -> AgentDef {
+    AgentDef {
+        id: "build".into(),
+        description: "The default agent. Executes tools based on configured permissions.".into(),
+        model: None,
+        variant: None,
+        body: String::new(),
+        permissions: BTreeMap::new(),
+        permission_rules: Default::default(),
+        hidden: false,
+        mode: Some("primary".into()),
+        request: Default::default(),
+        color: None,
+        origin: "builtin".into(),
+    }
+}
+
+/// One registration path; the ordinary supplied-field merge applies afterward.
+pub(crate) fn builtin_agents() -> [AgentDef; 4] {
+    let build = builtin_build();
+    let mut plan = build.clone();
+    plan.id = "plan".into();
+    plan.description =
+        "Read-only agent for exploring and planning; explicitly requested plan files only.".into();
+    plan.permission_rules = crate::permissions::PermissionRules::plan_defaults();
+    let mut general = build.clone();
+    general.id = "general".into();
+    general.mode = Some("subagent".into());
+    general.description = "General-purpose agent for complex tasks and research.".into();
+    let mut explore = general.clone();
+    explore.id = "explore".into();
+    explore.description = "Search specialist for exploring codebases.".into();
+    explore.body = "You are Explore, a search specialist for exploring codebases. Find files, search their contents and explain relevant code. Use the available search/read tools and permitted MCP tools; do not modify files. Adapt to the requested quick, medium, or very thorough level of exploration. Include useful file paths and concise findings.".into();
+    explore.permission_rules = crate::permissions::PermissionRules::explore_defaults();
+    let mut agents = [build, plan, general, explore];
+    for agent in &mut agents {
+        agent.permission_rules.extend(profile_ceiling(&agent.id));
+    }
+    agents
+}
+
+pub(crate) fn register_builtins(defs: &mut LoadedDefs) {
+    for agent in builtin_agents() {
+        defs.order.push(format!("agent.{}@builtin", agent.id));
+        defs.agents.insert(agent.id.clone(), agent);
+    }
+    let id = "customize-opencode";
+    let body = include_str!("../assets/skills/customize-opencode/SKILL.md");
+    let meta = parse_skill(id, body).expect("bundled native configuration skill");
+    defs.order.push(format!("skill.{id}@builtin"));
+    defs.skills.insert(
+        id.into(),
+        SkillDef {
+            id: id.into(),
+            name: meta.name,
+            description: meta.description,
+            body: body.into(),
+            origin: "builtin".into(),
+        },
+    );
+}
+
+fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
+    match id {
+        "general" | "explore" => crate::permissions::PermissionRules::deny_actions(&[
+            "question",
+            "subagent",
+            "opencode_session_rename",
+            "opencode_session_move",
+        ]),
+        _ => Default::default(),
+    }
+}
+
+/// Non-executable command (literal expansion only, via `expand_command`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandDef {
+    /// File id.
+    pub id: String,
+    /// Description.
+    pub description: String,
+    /// Literal body.
+    pub body: String,
+    /// Optional agent this command delegates to (execution is a later slice).
+    pub agent: Option<String>,
+    /// Optional pinned model, string or object (execution is a later slice).
+    pub model: Option<serde_json::Value>,
+    /// Explicit subagent flag.
+    pub subagent: Option<bool>,
+    /// Deprecated `subagent` alias.
+    pub subtask: Option<bool>,
+    /// Winning source origin.
+    pub origin: String,
+}
+
+/// Loaded workspace definitions with pinned order and diagnostics.
+#[derive(Debug, Clone, Default)]
+pub struct LoadedDefs {
+    /// Skills by id.
+    pub skills: BTreeMap<String, SkillDef>,
+    /// Agents by id.
+    pub agents: BTreeMap<String, AgentDef>,
+    /// Commands by id.
+    pub commands: BTreeMap<String, CommandDef>,
+    /// First-seen pinned order (`kind.id@origin`).
+    pub order: Vec<String>,
+    /// Shadowing notes (`kind.id`: old → new origin).
+    pub shadowed: Vec<String>,
+    /// Per-file diagnostics.
+    pub diagnostics: Vec<Diagnostic>,
+    /// Frontmatter keys outside the OC2 allowlist per root origin and kind; such
+    /// files are not loaded and the configuration is refused.
+    pub(crate) unknown_keys: Vec<(String, &'static str, Vec<crate::config::admission::Finding>)>,
+}
+
+/// Primary-agent selection failure.
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum DefError {
+    /// Unknown agent id.
+    #[error("unknown agent {0}")]
+    UnknownAgent(String),
+    /// Selected profile invalid.
+    #[error("invalid agent {id}: {reason}")]
+    InvalidAgent {
+        /// Agent id.
+        id: String,
+        /// Reason.
+        reason: String,
+    },
+}
+
+fn diag(path: &Path, field: &str, reason: &str) -> Diagnostic {
+    diag_code(
+        path,
+        field,
+        reason,
+        oc_core::queries::ServiceCode::InvalidDefinition,
+    )
+}
+
+fn diag_code(
+    path: &Path,
+    field: &str,
+    reason: &str,
+    code: oc_core::queries::ServiceCode,
+) -> Diagnostic {
+    let mut failure = crate::config::diagnostic::failure(
+        &path.to_string_lossy(),
+        &[],
+        if code == oc_core::queries::ServiceCode::TrustRefused {
+            oc_core::queries::ServiceStage::Admission
+        } else {
+            oc_core::queries::ServiceStage::Config
+        },
+        code,
+        if code == oc_core::queries::ServiceCode::CapacityExceeded {
+            oc_core::queries::ServiceAction::ReduceCapacity
+        } else {
+            oc_core::queries::ServiceAction::ReviewConfiguration
+        },
+    );
+    failure.kind = oc_core::queries::ServiceKind::Definition;
+    failure.service = format!(
+        "definition-{:x}",
+        sha2::Sha256::digest(format!("{}\0{field}", path.to_string_lossy()).as_bytes())
+    );
+    failure.field = crate::config::diagnostic::schema_field(field);
+    Diagnostic {
+        path: path.to_string_lossy().to_string(),
+        field: field.to_string(),
+        reason: reason.to_string(),
+        failure,
+    }
+}
+
+fn valid_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= MAX_DEF_ID_LEN
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+fn valid_agent_id(id: &str) -> bool {
+    id.len() <= MAX_DEF_ID_LEN && id.split('/').all(valid_id)
+}
+
+/// Read only an already-opened, admitted regular file. The same 4 MiB total
+/// policy also bounds each transient read, even if the file grows after fstat.
+fn read_plain(mut file: File) -> Result<String, (String, oc_core::queries::ServiceCode)> {
+    use oc_core::queries::ServiceCode;
+    let meta = file
+        .metadata()
+        .map_err(|_| ("unreadable".to_string(), ServiceCode::SourceUnavailable))?;
+    if !meta.is_file() {
+        return Err(("not a file".to_string(), ServiceCode::InvalidDefinition));
+    }
+    if meta.len() > MAX_TOTAL_BYTES as u64 {
+        return Err((
+            "total definitions budget exceeded".to_string(),
+            ServiceCode::CapacityExceeded,
+        ));
+    }
+    let mut bytes = Vec::new();
+    file.by_ref()
+        .take(MAX_TOTAL_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| ("unreadable".to_string(), ServiceCode::SourceUnavailable))?;
+    if bytes.len() > MAX_TOTAL_BYTES {
+        return Err((
+            "total definitions budget exceeded".to_string(),
+            ServiceCode::CapacityExceeded,
+        ));
+    }
+    String::from_utf8(bytes).map_err(|_| ("not UTF-8".to_string(), ServiceCode::InvalidDefinition))
+}
+
+/// Parsed Markdown frontmatter (scalar and nested values).
+#[derive(Default)]
+struct Frontmatter {
+    fields: BTreeMap<String, serde_json::Value>,
+}
+
+/// Split and parse the admitted Markdown YAML subset (comments included).
+fn split_frontmatter(text: &str) -> Result<(Frontmatter, &str), String> {
+    let (value, body) = split_frontmatter_value(text)?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| "unsupported frontmatter structure".to_string())?;
+    let mut parsed = Frontmatter::default();
+    for (key, value) in object {
+        parsed.fields.insert(key.clone(), value.clone());
+    }
+    Ok((parsed, body))
+}
+
+fn field_string(
+    fields: &BTreeMap<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<String>, String> {
+    match fields.get(key) {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::String(value)) => Ok(Some(value.clone())),
+        Some(_) => Err(format!("{key} must be a string")),
+    }
+}
+
+fn field_bool(
+    fields: &BTreeMap<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<bool>, String> {
+    match fields.get(key) {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::Bool(value)) => Ok(Some(*value)),
+        Some(_) => Err(format!("{key} must be a boolean")),
+    }
+}
+
+fn field_model(
+    fields: &BTreeMap<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<serde_json::Value>, String> {
+    match fields.get(key) {
+        None | Some(serde_json::Value::Null) => Ok(None),
+        Some(value) if value.is_string() || value.is_object() => Ok(Some(value.clone())),
+        Some(_) => Err(format!("{key} must be a string or object")),
+    }
+}
+
+/// The loader's actual supported filesystem input shapes. Observation never
+/// authorizes reads and carries no definition body or inferred template paths.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum InputKind {
+    File,
+    AgentTree,
+    MarkdownDirectory,
+    Skills,
+    SkillDirectory,
+}
+
+pub(crate) type InputObserver<'a> = dyn Fn(&Path, &File, InputKind) + 'a;
+
+struct Collector<'a> {
+    defs: LoadedDefs,
+    total_bytes: usize,
+    observe: Option<&'a InputObserver<'a>>,
+}
+
+impl Collector<'_> {
+    fn observed(&self, path: &Path, file: &File, kind: InputKind) {
+        if let Some(observe) = self.observe {
+            observe(path, file, kind);
+        }
+    }
+    fn note_order(&mut self, kind: &str, id: &str, origin: &str) {
+        let prefix = format!("{kind}.{id}@");
+        if !self.defs.order.iter().any(|seen| seen.starts_with(&prefix)) {
+            self.defs.order.push(format!("{prefix}{origin}"));
+        }
+    }
+
+    fn put_skill(&mut self, def: SkillDef, origin: &str) {
+        if let Some(old) = self.defs.skills.get(&def.id)
+            && old.origin != origin
+        {
+            self.defs
+                .shadowed
+                .push(format!("skill.{}: {} -> {origin}", def.id, old.origin));
+        }
+        self.note_order("skill", &def.id, origin);
+        self.defs.skills.insert(def.id.clone(), def);
+    }
+
+    fn put_agent(&mut self, def: AgentDef, origin: &str) {
+        if let Some(old) = self.defs.agents.get(&def.id)
+            && old.origin != origin
+        {
+            self.defs
+                .shadowed
+                .push(format!("agent.{}: {} -> {origin}", def.id, old.origin));
+        }
+        self.note_order("agent", &def.id, origin);
+        self.defs.agents.insert(def.id.clone(), def);
+    }
+
+    fn put_command(&mut self, def: CommandDef, origin: &str) {
+        if let Some(old) = self.defs.commands.get(&def.id)
+            && old.origin != origin
+        {
+            self.defs
+                .shadowed
+                .push(format!("command.{}: {} -> {origin}", def.id, old.origin));
+        }
+        self.note_order("command", &def.id, origin);
+        self.defs.commands.insert(def.id.clone(), def);
+    }
+}
+
+/// Reserved slash-command ids (with or without the leading slash).
+const RESERVED_COMMANDS: &[&str] = &[
+    "quit",
+    "model",
+    "sessions",
+    "skills",
+    "help",
+    "dcp-compress",
+];
+
+/// Load definitions from admitted roots in order.
+///
+/// Later roots replace same-kind/same-id definitions whole; diagnostics
+/// never stop sibling loading.
+pub fn load_definitions(roots: &[DefRoot]) -> LoadedDefs {
+    let mut defs = LoadedDefs::default();
+    for root in roots.iter().take(MAX_DEF_ROOTS) {
+        merge_definition_root(&mut defs, root);
+    }
+    if roots.len() > MAX_DEF_ROOTS {
+        defs.diagnostics.push(diag_code(
+            Path::new("native definitions"),
+            "roots",
+            "too many roots",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
+    }
+    defs
+}
+
+/// Merge one admitted Markdown definition root at this exact precedence point.
+pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
+    let canonical = match root.dir.canonicalize() {
+        Ok(path) => path,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+        Err(_) => {
+            defs.diagnostics.push(diag_code(
+                &root.dir,
+                "definitions",
+                "unreadable root",
+                oc_core::queries::ServiceCode::SourceUnavailable,
+            ));
+            return;
+        }
+    };
+    let dir = match OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_CLOEXEC | libc::O_NOFOLLOW)
+        .open(&canonical)
+    {
+        Ok(dir) => dir,
+        Err(_) => {
+            defs.diagnostics.push(diag_code(
+                &root.dir,
+                "definitions",
+                "unreadable root",
+                oc_core::queries::ServiceCode::SourceUnavailable,
+            ));
+            return;
+        }
+    };
+    if !std::fs::canonicalize(format!("/proc/self/fd/{}", dir.as_raw_fd()))
+        .is_ok_and(|opened| opened == canonical)
+    {
+        defs.diagnostics.push(diag_code(
+            &root.dir,
+            "definitions",
+            "root changed during admission",
+            oc_core::queries::ServiceCode::TrustRefused,
+        ));
+        return;
+    }
+    merge_definition_root_admitted(
+        defs,
+        &DefRoot {
+            dir: canonical,
+            origin: root.origin.clone(),
+        },
+        &dir,
+        None,
+    );
+}
+
+/// Merge a root previously admitted by composition, using its pinned fd.
+pub(crate) fn merge_definition_root_admitted(
+    defs: &mut LoadedDefs,
+    root: &DefRoot,
+    dir: &File,
+    observe: Option<&InputObserver<'_>>,
+) {
+    let total_bytes = existing_definition_bytes(defs);
+    let mut out = Collector {
+        defs: std::mem::take(defs),
+        total_bytes,
+        observe,
+    };
+    load_root(&mut out, root, dir);
+    *defs = out.defs;
+}
+
+fn existing_definition_bytes(defs: &LoadedDefs) -> usize {
+    defs.skills
+        .values()
+        .map(|def| def.body.len())
+        .chain(defs.agents.values().map(|def| def.body.len()))
+        .chain(defs.commands.values().map(|def| def.body.len()))
+        .fold(0usize, usize::saturating_add)
+}
+
+fn optional_string(
+    object: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<String>, String> {
+    object
+        .get(key)
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| "must be a string".to_string())
+        })
+        .transpose()
+}
+
+fn optional_bool(
+    object: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<bool>, String> {
+    object
+        .get(key)
+        .map(|value| {
+            value
+                .as_bool()
+                .ok_or_else(|| format!("{key} must be a boolean"))
+        })
+        .transpose()
+}
+
+fn optional_model(
+    object: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<Option<serde_json::Value>, String> {
+    object
+        .get(key)
+        .map(|value| {
+            if value.is_string() || value.is_object() {
+                Ok(value.clone())
+            } else {
+                Err(format!("{key} must be a string or object"))
+            }
+        })
+        .transpose()
+}
+
+// Commands retain their pre-R6 native modelID/explicit-variant decoding. Their
+// owner strips an embedded modelID suffix when the command supplies a variant.
+pub(crate) fn command_model(
+    value: Option<&serde_json::Value>,
+) -> Result<(Option<String>, Option<String>), String> {
+    let Some(value) = value else {
+        return Ok((None, None));
+    };
+    if let Some(id) = value.as_str() {
+        return Ok((Some(id.into()), None));
+    }
+    let object = value
+        .as_object()
+        .ok_or("model must be a string or object")?;
+    if object
+        .keys()
+        .any(|key| !matches!(key.as_str(), "providerID" | "modelID" | "variant"))
+    {
+        return Err("unsupported model field".into());
+    }
+    let provider = optional_string(object, "providerID")?.ok_or("model.providerID is required")?;
+    let model = optional_string(object, "modelID")?.ok_or("model.modelID is required")?;
+    Ok((
+        Some(format!("{provider}/{model}")),
+        optional_string(object, "variant")?,
+    ))
+}
+
+fn agent_model(
+    value: Option<&serde_json::Value>,
+) -> Result<(Option<String>, Option<String>), String> {
+    let Some(value) = value else {
+        return Ok((None, None));
+    };
+    if let Some(id) = value.as_str() {
+        if id.contains('/') {
+            let (provider, model, variant) = crate::models::parse_reference(id)?;
+            return Ok((
+                Some(format!("{provider}/{model}")),
+                variant.map(str::to_string),
+            ));
+        }
+        // Existing exact bare-ID aliases remain supported by the native catalog.
+        return Ok((Some(id.into()), None));
+    }
+    let object = value
+        .as_object()
+        .ok_or("model must be a string or object")?;
+    if object
+        .keys()
+        .any(|key| !matches!(key.as_str(), "providerID" | "model" | "modelID" | "variant"))
+    {
+        return Err("unsupported model field".into());
+    }
+    let provider = optional_string(object, "providerID")?.ok_or("model.providerID is required")?;
+    if object.contains_key("model") && object.contains_key("modelID") {
+        return Err("model.model and model.modelID are mutually exclusive".into());
+    }
+    let model = optional_string(object, "model")?
+        .or(optional_string(object, "modelID")?)
+        .ok_or("model.model is required")?;
+    let variant = optional_string(object, "variant")?;
+    let reference = format!(
+        "{provider}/{model}{}",
+        variant
+            .as_ref()
+            .map(|v| format!("#{v}"))
+            .unwrap_or_default()
+    );
+    let (parsed_provider, parsed_model, _) = crate::models::parse_reference(&reference)?;
+    if parsed_provider != provider || parsed_model != model {
+        return Err("invalid structured model reference".into());
+    }
+    Ok((Some(format!("{provider}/{model}")), variant))
+}
+
+fn agent_selection(
+    model: Option<&serde_json::Value>,
+    separate: Option<String>,
+) -> Result<(Option<String>, Option<String>), String> {
+    let (id, embedded) = agent_model(model)?;
+    let variant = match model {
+        Some(serde_json::Value::String(raw)) if !raw.contains('#') => separate,
+        Some(_) => embedded,
+        None => separate,
+    };
+    if variant
+        .as_ref()
+        .is_some_and(|value| value.is_empty() || value.contains('#'))
+    {
+        return Err("invalid model variant".into());
+    }
+    Ok((id, variant))
+}
+
+/// Canonical `request` headers/body overlay.
+fn agent_request<'a>(
+    get: impl Fn(&str) -> Option<&'a serde_json::Value>,
+) -> Result<crate::provider::RequestOverlay, String> {
+    let mut overlay = crate::provider::RequestOverlay::default();
+    match get("request") {
+        None | Some(serde_json::Value::Null) => {}
+        Some(serde_json::Value::Object(request)) => {
+            if let Some(field) = request
+                .keys()
+                .find(|key| !matches!(key.as_str(), "headers" | "body"))
+            {
+                return Err(format!("request.{field}: unsupported field"));
+            }
+            match request.get("headers") {
+                None | Some(serde_json::Value::Null) => {}
+                Some(serde_json::Value::Object(headers)) => {
+                    for (name, value) in headers {
+                        let value = value
+                            .as_str()
+                            .ok_or_else(|| format!("request.headers.{name} must be a string"))?;
+                        overlay
+                            .headers
+                            .insert(name.to_ascii_lowercase(), value.to_string());
+                    }
+                }
+                Some(_) => return Err("request.headers must be an object".into()),
+            }
+            match request.get("body") {
+                None | Some(serde_json::Value::Null) => {}
+                Some(serde_json::Value::Object(body)) => overlay.body.extend(body.clone()),
+                Some(_) => return Err("request.body must be an object".into()),
+            }
+        }
+        Some(_) => return Err("request must be an object".into()),
+    }
+    overlay.validate()?;
+    if serde_json::to_vec(&(&overlay.headers, &overlay.body))
+        .map_or(usize::MAX, |bytes| bytes.len())
+        > MAX_REQUEST_OVERLAY_BYTES
+    {
+        return Err("request overlay exceeds 64 KiB".into());
+    }
+    Ok(overlay)
+}
+
+const MAX_REQUEST_OVERLAY_BYTES: usize = 64 * 1024;
+
+/// Donor `Config.Agent.Color` (`#RRGGBB`); theme names are not migrated.
+fn agent_color(value: Option<&serde_json::Value>) -> Result<Option<String>, String> {
+    let Some(value) = value.filter(|value| !value.is_null()) else {
+        return Ok(None);
+    };
+    let color = value.as_str().ok_or("color must be a string")?;
+    let digits = color.strip_prefix('#').unwrap_or_default();
+    if digits.len() != 6 || !digits.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("color must be #RRGGBB".into());
+    }
+    Ok(Some(color.to_string()))
+}
+
+/// Canonical `ConfigAgent.Info` keys (Markdown frontmatter also admits `variant`).
+const CANONICAL_AGENT_KEYS: [&str; 10] = [
+    "model",
+    "request",
+    "system",
+    "description",
+    "mode",
+    "hidden",
+    "color",
+    "steps",
+    "disabled",
+    "permissions",
+];
+
+fn metadata_bool(value: Option<&serde_json::Value>) -> Result<bool, String> {
+    match value {
+        None => Ok(false),
+        Some(value) => value.as_bool().ok_or_else(|| "must be boolean".into()),
+    }
+}
+
+/// Merge authoritative top-level config `agent` and `command` domains.
+///
+/// Call once per parsed config source in the caller's low-to-high precedence
+/// order. Each valid later definition replaces the previous definition whole;
+/// an invalid sibling emits a diagnostic and does not disturb valid siblings.
+pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Value, source: &str) {
+    let source_path = Path::new(source);
+    let Some(config) = config.as_object() else {
+        defs.diagnostics
+            .push(diag(source_path, "config", "must be an object"));
+        return;
+    };
+    let total_bytes = existing_definition_bytes(defs);
+    let mut out = Collector {
+        defs: std::mem::take(defs),
+        total_bytes,
+        observe: None,
+    };
+    let root = DefRoot {
+        dir: PathBuf::new(),
+        origin: source.to_string(),
+    };
+
+    // Canonical `agents` only (T62); `steps` is the explicit Long Horizon divergence.
+    // Diagnostic fields keep the `agent.<id>` definition identity used by consumers.
+    if let Some(agents) = config.get("agents").and_then(serde_json::Value::as_object) {
+        for (id, raw) in agents {
+            if let Some(object) = raw.as_object() {
+                diagnose_step_constraints(&mut out.defs, source_path, "agent", id, object.keys());
+            }
+        }
+    }
+
+    {
+        if let Some(raw_agents) = config.get("agents") {
+            if let Some(agents) = raw_agents.as_object() {
+                for (id, raw) in agents {
+                    if !valid_agent_id(id) {
+                        out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}"),
+                            "invalid id",
+                        ));
+                        continue;
+                    }
+                    let Some(object) = raw.as_object() else {
+                        out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}"),
+                            "must be an object",
+                        ));
+                        continue;
+                    };
+                    if object.contains_key("steps") {
+                        continue;
+                    }
+                    if let Some(field) = object
+                        .keys()
+                        .find(|key| !CANONICAL_AGENT_KEYS.contains(&key.as_str()))
+                    {
+                        out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}.{field}"),
+                            "unsupported field",
+                        ));
+                        continue;
+                    }
+                    let parsed = (|| {
+                        let body = optional_string(object, "system")?.unwrap_or_default();
+                        let description = optional_string(object, "description")?
+                            .or_else(|| {
+                                body.lines()
+                                    .map(str::trim)
+                                    .find(|line| !line.is_empty())
+                                    .map(str::to_string)
+                            })
+                            .unwrap_or_default();
+                        let (model, variant) = agent_selection(object.get("model"), None)?;
+                        let mode = agent_mode(optional_string(object, "mode")?)?;
+                        let permissions = BTreeMap::new();
+                        let permission_rules =
+                            crate::permissions::PermissionRules::from_document(raw)
+                                .map_err(|error| error.to_string())?;
+                        let hidden = metadata_bool(raw.get("hidden"))?;
+                        let disabled = metadata_bool(raw.get("disabled"))?;
+                        let request = agent_request(|key| object.get(key))?;
+                        let color = agent_color(object.get("color"))?;
+                        Ok::<_, String>((
+                            color,
+                            request,
+                            description,
+                            model,
+                            variant,
+                            body,
+                            permissions,
+                            mode,
+                            permission_rules,
+                            hidden,
+                            disabled,
+                        ))
+                    })();
+                    match parsed {
+                        Ok((
+                            color,
+                            request,
+                            description,
+                            model,
+                            variant,
+                            body,
+                            permissions,
+                            mode,
+                            permission_rules,
+                            hidden,
+                            disabled,
+                        )) => insert_agent(
+                            &mut out,
+                            &root,
+                            AgentInput {
+                                id: id.clone(),
+                                description,
+                                model,
+                                variant,
+                                body,
+                                permissions,
+                                mode,
+                                permission_rules,
+                                hidden,
+                                disabled,
+                                request,
+                                color,
+                                supplied: object.keys().cloned().collect(),
+                            },
+                            source_path,
+                        ),
+                        Err(reason) => out.defs.diagnostics.push(diag(
+                            source_path,
+                            &format!("agent.{id}"),
+                            &reason,
+                        )),
+                    }
+                }
+            } else {
+                out.defs
+                    .diagnostics
+                    .push(diag(source_path, "agent", "must be an object"));
+            }
+        }
+    }
+
+    if let Some(raw_commands) = config.get("commands") {
+        if let Some(commands) = raw_commands.as_object() {
+            for (id, raw) in commands {
+                if !valid_id(id) {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("commands.{id}"),
+                        "invalid id",
+                    ));
+                    continue;
+                }
+                let Some(object) = raw.as_object() else {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("commands.{id}"),
+                        "must be an object",
+                    ));
+                    continue;
+                };
+                let allowed = [
+                    "template",
+                    "description",
+                    "agent",
+                    "model",
+                    "subagent",
+                    "subtask",
+                ];
+                if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
+                    out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("commands.{id}.{field}"),
+                        "unsupported field",
+                    ));
+                    continue;
+                }
+                let parsed = (|| {
+                    let body = optional_string(object, "template")?.unwrap_or_default();
+                    let description = optional_string(object, "description")?
+                        .or_else(|| {
+                            body.lines()
+                                .map(str::trim)
+                                .find(|line| !line.is_empty())
+                                .map(str::to_string)
+                        })
+                        .unwrap_or_default();
+                    Ok::<_, String>(CommandInput {
+                        id: id.clone(),
+                        description,
+                        body,
+                        agent: optional_string(object, "agent")?,
+                        model: optional_model(object, "model")?,
+                        subagent: optional_bool(object, "subagent")?,
+                        subtask: optional_bool(object, "subtask")?,
+                    })
+                })();
+                match parsed {
+                    Ok(input) => insert_command(&mut out, &root, input, source_path),
+                    Err(reason) => out.defs.diagnostics.push(diag(
+                        source_path,
+                        &format!("commands.{id}"),
+                        &reason,
+                    )),
+                }
+            }
+        } else {
+            out.defs
+                .diagnostics
+                .push(diag(source_path, "commands", "must be an object"));
+        }
+    }
+    *defs = out.defs;
+}
+
+fn open_admitted(root: &DefRoot, dir: &File, candidate: &Path, flags: i32) -> io::Result<File> {
+    // Canonicalize only to choose an in-root target. Never read or enumerate
+    // it by pathname: the descriptor-relative open is the trust decision.
+    let canonical = candidate.canonicalize()?;
+    let relative = canonical.strip_prefix(&root.dir).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "symlink resolves outside admitted root",
+        )
+    })?;
+    admitted_fs::open_beneath(dir, relative, flags)
+}
+
+fn load_root(out: &mut Collector<'_>, root: &DefRoot, dir: &File) {
+    load_kind(out, root, dir, "skill", &["skill", "skills"]);
+    load_kind(
+        out,
+        root,
+        dir,
+        "agent",
+        &["agent", "agents", "mode", "modes"],
+    );
+    load_kind(out, root, dir, "command", &["command", "commands"]);
+}
+
+fn load_kind(out: &mut Collector<'_>, root: &DefRoot, admitted: &File, kind: &str, subs: &[&str]) {
+    for sub in subs {
+        let dir = root.dir.join(sub);
+        if kind == "agent" {
+            let mut paths = Vec::new();
+            let mut remaining = 4096;
+            collect_agent_paths(
+                out,
+                root,
+                admitted,
+                &dir,
+                Path::new(""),
+                matches!(*sub, "agent" | "agents"),
+                &mut Vec::new(),
+                &mut remaining,
+                &mut paths,
+            );
+            paths.sort();
+            for path in paths {
+                load_entry(out, root, admitted, kind, &dir, &path);
+            }
+            continue;
+        }
+        let pinned = match open_admitted(root, admitted, &dir, libc::O_RDONLY | libc::O_DIRECTORY) {
+            Ok(pinned) => pinned,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                out.defs.diagnostics.push(diag_code(
+                    &dir,
+                    kind,
+                    &error.to_string(),
+                    if error.kind() == io::ErrorKind::PermissionDenied {
+                        oc_core::queries::ServiceCode::TrustRefused
+                    } else {
+                        oc_core::queries::ServiceCode::SourceUnavailable
+                    },
+                ));
+                continue;
+            }
+        };
+        out.observed(
+            &dir,
+            &pinned,
+            if kind == "skill" {
+                InputKind::Skills
+            } else {
+                InputKind::MarkdownDirectory
+            },
+        );
+        // read_dir reopens only this pinned descriptor, never the pathname that
+        // may be concurrently replaced with an external symlink.
+        let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
+            Ok(entries) => entries,
+            Err(_) => {
+                out.defs.diagnostics.push(diag_code(
+                    &dir,
+                    kind,
+                    "unreadable directory",
+                    oc_core::queries::ServiceCode::SourceUnavailable,
+                ));
+                continue;
+            }
+        };
+        // 256 definitions per kind are admitted; bound directory enumeration
+        // as well, before sorting names or opening any definition bodies.
+        let names: Vec<String> = entries
+            .take(4097)
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .collect();
+        if names.len() > 4096 {
+            out.defs.diagnostics.push(diag_code(
+                &dir,
+                kind,
+                "too many directory entries",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
+            continue;
+        }
+        let mut names = names;
+        names.sort();
+        for name in names {
+            if out.total_bytes > MAX_TOTAL_BYTES {
+                out.defs.diagnostics.push(diag_code(
+                    &dir,
+                    kind,
+                    "total definitions budget exceeded",
+                    oc_core::queries::ServiceCode::CapacityExceeded,
+                ));
+                return;
+            }
+            load_entry(out, root, admitted, kind, &dir, &name);
+        }
+    }
+}
+
+// Enumerate only admitted pinned directory descriptors. An ancestry identity
+// check stops in-root symlink cycles without suppressing independent aliases.
+#[allow(clippy::too_many_arguments)]
+fn collect_agent_paths(
+    out: &mut Collector<'_>,
+    root: &DefRoot,
+    admitted: &File,
+    base: &Path,
+    relative: &Path,
+    recursive: bool,
+    ancestry: &mut Vec<(u64, u64)>,
+    remaining: &mut usize,
+    paths: &mut Vec<String>,
+) {
+    use std::os::unix::fs::MetadataExt as _;
+    let path = base.join(relative);
+    let pinned = match open_admitted(root, admitted, &path, libc::O_RDONLY | libc::O_DIRECTORY) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+        Err(error) => {
+            out.defs.diagnostics.push(diag_code(
+                &path,
+                "agent",
+                "directory unavailable or outside admitted root",
+                if error.kind() == io::ErrorKind::PermissionDenied {
+                    oc_core::queries::ServiceCode::TrustRefused
+                } else {
+                    oc_core::queries::ServiceCode::SourceUnavailable
+                },
+            ));
+            return;
+        }
+    };
+    out.observed(
+        &path,
+        &pinned,
+        if recursive {
+            InputKind::AgentTree
+        } else {
+            InputKind::MarkdownDirectory
+        },
+    );
+    let meta = match pinned.metadata() {
+        Ok(meta) => meta,
+        Err(_) => return,
+    };
+    let identity = (meta.dev(), meta.ino());
+    if ancestry.contains(&identity) {
+        out.defs
+            .diagnostics
+            .push(diag(&path, "agent", "directory cycle"));
+        return;
+    }
+    ancestry.push(identity);
+    let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
+        Ok(entries) => entries,
+        Err(_) => {
+            ancestry.pop();
+            out.defs
+                .diagnostics
+                .push(diag(&path, "agent", "unreadable directory"));
+            return;
+        }
+    };
+    let mut names = Vec::new();
+    for entry in entries {
+        if *remaining == 0 {
+            out.defs.diagnostics.push(diag_code(
+                &path,
+                "agent",
+                "too many directory entries",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
+            break;
+        }
+        *remaining -= 1;
+        if let Ok(entry) = entry {
+            names.push(entry.file_name().to_string_lossy().into_owned());
+        }
+    }
+    names.sort();
+    for name in names {
+        let child = relative.join(&name);
+        let candidate = base.join(&child);
+        match open_admitted(
+            root,
+            admitted,
+            &candidate,
+            libc::O_RDONLY | libc::O_NONBLOCK,
+        ) {
+            Ok(file) if file.metadata().is_ok_and(|meta| meta.is_dir()) => {
+                if recursive {
+                    // At zero budget the enumerator stops at its first entry;
+                    // empty directories are complete, nonempty ones are not.
+                    if child.as_os_str().len() <= MAX_DEF_ID_LEN {
+                        collect_agent_paths(
+                            out, root, admitted, base, &child, recursive, ancestry, remaining,
+                            paths,
+                        );
+                    } else {
+                        out.defs
+                            .diagnostics
+                            .push(diag(&candidate, "agent", "invalid id"));
+                    }
+                }
+            }
+            Ok(_) if name.ends_with(".md") => paths.push(child.to_string_lossy().into_owned()),
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+                out.defs.diagnostics.push(diag_code(
+                    &candidate,
+                    "agent",
+                    "outside admitted root",
+                    oc_core::queries::ServiceCode::TrustRefused,
+                ))
+            }
+            _ => {}
+        }
+    }
+    ancestry.pop();
+}
+
+fn insert_skill_text(
+    out: &mut Collector<'_>,
+    root: &DefRoot,
+    id: String,
+    hint: String,
+    text: String,
+    path: &Path,
+) {
+    if out.defs.skills.len() >= MAX_DEFS_PER_KIND && !out.defs.skills.contains_key(&id) {
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "skill",
+            "too many skills",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
+        return;
+    }
+    let previous = out.defs.skills.get(&id).map_or(0, |def| def.body.len());
+    let next_total = out
+        .total_bytes
+        .saturating_sub(previous)
+        .saturating_add(text.len());
+    if next_total > MAX_TOTAL_BYTES {
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "skill",
+            "total definitions budget exceeded",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
+        return;
+    }
+    match parse_skill(&id, &text) {
+        Ok(meta) => {
+            out.total_bytes = next_total;
+            let description = if meta.description.is_empty() {
+                hint
+            } else {
+                meta.description
+            };
+            out.put_skill(
+                SkillDef {
+                    id: id.clone(),
+                    name: meta.name,
+                    description,
+                    body: text,
+                    origin: root.origin.clone(),
+                },
+                &root.origin.clone(),
+            );
+        }
+        Err(e) => out
+            .defs
+            .diagnostics
+            .push(diag(path, "skill", &e.to_string())),
+    }
+}
+
+struct AgentInput {
+    id: String,
+    description: String,
+    model: Option<String>,
+    variant: Option<String>,
+    body: String,
+    permissions: BTreeMap<String, Permission>,
+    permission_rules: crate::permissions::PermissionRules,
+    hidden: bool,
+    disabled: bool,
+    mode: Option<String>,
+    request: crate::provider::RequestOverlay,
+    color: Option<String>,
+    supplied: std::collections::BTreeSet<String>,
+}
+
+fn insert_agent(out: &mut Collector<'_>, root: &DefRoot, mut input: AgentInput, path: &Path) {
+    if input.disabled {
+        if let Some(previous) = out.defs.agents.remove(&input.id) {
+            out.total_bytes = out.total_bytes.saturating_sub(previous.body.len());
+        }
+        let prefix = format!("agent.{}@", input.id);
+        out.defs.order.retain(|entry| !entry.starts_with(&prefix));
+        return;
+    }
+    let previous_profile = out.defs.agents.get(&input.id).cloned().or_else(|| {
+        builtin_agents()
+            .into_iter()
+            .find(|agent| agent.id == input.id)
+    });
+    if let Some(previous) = previous_profile {
+        if !input.supplied.contains("description") {
+            input.description = previous.description.clone();
+        }
+        if !input.supplied.contains("model") {
+            input.model = previous.model.clone();
+        }
+        if !(input.supplied.contains("variant") || input.supplied.contains("model")) {
+            input.variant = previous.variant.clone();
+        }
+        if !["prompt", "body", "system"]
+            .iter()
+            .any(|key| input.supplied.contains(*key))
+        {
+            input.body = previous.body.clone();
+        }
+        if !input.supplied.contains("hidden") {
+            input.hidden = previous.hidden;
+        }
+        if !input.supplied.contains("mode") {
+            input.mode = previous.mode.clone();
+        }
+        if !input.supplied.contains("color") {
+            input.color = previous.color.clone();
+        }
+        let mut permissions = previous.permissions.clone();
+        permissions.extend(input.permissions);
+        input.permissions = permissions;
+        let mut rules = previous.permission_rules.clone();
+        rules.append_configuration(input.permission_rules);
+        input.permission_rules = rules;
+        let mut request = previous.request.clone();
+        request.extend(std::mem::take(&mut input.request));
+        input.request = request;
+    }
+    input.mode.get_or_insert_with(|| "primary".into());
+    if out.defs.agents.len() >= MAX_DEFS_PER_KIND && !out.defs.agents.contains_key(&input.id) {
+        out.defs
+            .diagnostics
+            .push(diag(path, "agent", "too many agents"));
+        return;
+    }
+    let previous = out
+        .defs
+        .agents
+        .get(&input.id)
+        .map_or(0, |def| def.body.len());
+    let next_total = out
+        .total_bytes
+        .saturating_sub(previous)
+        .saturating_add(input.body.len());
+    if next_total > MAX_TOTAL_BYTES {
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "agent",
+            "total definitions budget exceeded",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
+        return;
+    }
+    out.total_bytes = next_total;
+    // Pinned core/plugin/agent.ts: these profiles never ask the user.
+    if matches!(input.id.as_str(), "general" | "explore") {
+        input
+            .permissions
+            .insert("question".into(), crate::config::Permission::Deny);
+    }
+    out.put_agent(
+        AgentDef {
+            id: input.id.clone(),
+            description: input.description,
+            model: input.model.filter(|s| !s.is_empty()),
+            variant: input.variant.filter(|s| !s.is_empty()),
+            body: input.body,
+            permissions: input.permissions,
+            permission_rules: input.permission_rules,
+            hidden: input.hidden,
+            mode: input.mode,
+            request: input.request,
+            color: input.color,
+            origin: root.origin.clone(),
+        },
+        &root.origin.clone(),
+    );
+}
+
+struct CommandInput {
+    id: String,
+    description: String,
+    body: String,
+    agent: Option<String>,
+    model: Option<serde_json::Value>,
+    subagent: Option<bool>,
+    subtask: Option<bool>,
+}
+
+fn insert_command(out: &mut Collector<'_>, root: &DefRoot, input: CommandInput, path: &Path) {
+    if out.defs.commands.len() >= MAX_DEFS_PER_KIND && !out.defs.commands.contains_key(&input.id) {
+        out.defs
+            .diagnostics
+            .push(diag(path, "command", "too many commands"));
+        return;
+    }
+    let bare = input.id.trim_start_matches('/');
+    if RESERVED_COMMANDS.contains(&bare) {
+        out.defs
+            .diagnostics
+            .push(diag(path, "command", "reserved builtin id"));
+        return;
+    }
+    let previous = out
+        .defs
+        .commands
+        .get(&input.id)
+        .map_or(0, |def| def.body.len());
+    let next_total = out
+        .total_bytes
+        .saturating_sub(previous)
+        .saturating_add(input.body.len());
+    if next_total > MAX_TOTAL_BYTES {
+        out.defs.diagnostics.push(diag_code(
+            path,
+            "command",
+            "total definitions budget exceeded",
+            oc_core::queries::ServiceCode::CapacityExceeded,
+        ));
+        return;
+    }
+    out.total_bytes = next_total;
+    out.put_command(
+        CommandDef {
+            id: input.id.clone(),
+            description: input.description,
+            body: input.body,
+            agent: input.agent.filter(|s| !s.is_empty()),
+            model: input.model,
+            subagent: input.subagent,
+            subtask: input.subtask,
+            origin: root.origin.clone(),
+        },
+        &root.origin.clone(),
+    );
+}
+
+fn diagnose_step_constraints<'a>(
+    defs: &mut LoadedDefs,
+    path: &Path,
+    domain: &str,
+    id: &str,
+    fields: impl Iterator<Item = &'a String>,
+) -> bool {
+    let mut unsupported = false;
+    for field in fields.filter(|field| matches!(field.as_str(), "steps" | "maxSteps")) {
+        let mut diagnostic = diag_code(
+            path,
+            &format!("{domain}.{id}.{field}"),
+            "successful-step constraints are unsupported by Long Horizon; remove this field",
+            oc_core::queries::ServiceCode::UnsupportedCapability,
+        );
+        diagnostic.failure.stage = oc_core::queries::ServiceStage::Capability;
+        defs.diagnostics.push(diagnostic);
+        unsupported = true;
+    }
+    unsupported
+}
+
+#[cfg(test)]
+mod step_tests;
+
+fn unsupported_field(
+    fields: &BTreeMap<String, serde_json::Value>,
+    allowed: &[&str],
+) -> Option<String> {
+    fields
+        .keys()
+        .find(|key| !allowed.contains(&key.as_str()))
+        .cloned()
+}
+
+fn agent_mode(mode: Option<String>) -> Result<Option<String>, String> {
+    match mode.as_deref() {
+        None | Some("") => Ok(None),
+        Some("primary" | "subagent" | "all") => Ok(mode),
+        Some(_) => Err("unknown agent mode".to_string()),
+    }
+}
+
+fn load_entry(
+    out: &mut Collector<'_>,
+    root: &DefRoot,
+    admitted: &File,
+    kind: &str,
+    dir: &Path,
+    name: &str,
+) {
+    let path = dir.join(name);
+    match kind {
+        "skill" => {
+            let entry = match open_admitted(root, admitted, &path, libc::O_RDONLY) {
+                Ok(entry) => entry,
+                Err(error) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, kind, &error.to_string()));
+                    return;
+                }
+            };
+            let meta = match entry.metadata() {
+                Ok(meta) => meta,
+                Err(_) => {
+                    out.defs.diagnostics.push(diag(&path, kind, "unreadable"));
+                    return;
+                }
+            };
+            if meta.is_file() {
+                // Flat `skills/<id>.md` is a skill (upstream scans `*.md`).
+                if !name.ends_with(".md") {
+                    return;
+                }
+                out.observed(&path, &entry, InputKind::File);
+                let id = name.trim_end_matches(".md").to_string();
+                if !valid_id(&id) {
+                    out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
+                    return;
+                }
+                let text = match read_plain(entry) {
+                    Ok(text) => text,
+                    Err((reason, code)) => {
+                        out.defs
+                            .diagnostics
+                            .push(diag_code(&path, kind, &reason, code));
+                        return;
+                    }
+                };
+                insert_skill_text(out, root, id, String::new(), text, &path);
+                return;
+            }
+            if !meta.is_dir() {
+                return; // Foreign entry; upstream ignores anything else.
+            }
+            if !valid_id(name) {
+                out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
+                return;
+            }
+            out.observed(&path, &entry, InputKind::SkillDirectory);
+            let file = path.join("SKILL.md");
+            let admitted_file = match open_admitted(root, admitted, &file, libc::O_RDONLY) {
+                // A directory without `SKILL.md` is silently skipped
+                // (upstream scans `**/SKILL.md`, not every file).
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+                Err(error) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&file, kind, &error.to_string()));
+                    return;
+                }
+                Ok(file) => file,
+            };
+            out.observed(&file, &admitted_file, InputKind::File);
+            let text = match read_plain(admitted_file) {
+                Ok(text) => text,
+                Err((reason, code)) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag_code(&file, kind, &reason, code));
+                    return;
+                }
+            };
+            insert_skill_text(out, root, name.to_string(), String::new(), text, &file);
+        }
+        "agent" | "command" => {
+            if !(name.ends_with(".md") && name.len() > 3) {
+                return; // Ignore foreign files; config domains merge explicitly.
+            }
+            let id = if kind == "agent" {
+                name.strip_suffix(".md").expect("Markdown suffix")
+            } else {
+                name.trim_end_matches(".md")
+            }
+            .to_string();
+            if !(if kind == "agent" {
+                valid_agent_id(&id)
+            } else {
+                valid_id(&id)
+            }) {
+                out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
+                return;
+            }
+            let admitted_file = match open_admitted(root, admitted, &path, libc::O_RDONLY) {
+                Ok(file) => file,
+                Err(error) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, kind, &error.to_string()));
+                    return;
+                }
+            };
+            out.observed(&path, &admitted_file, InputKind::File);
+            let text = match read_plain(admitted_file) {
+                Ok(text) => text,
+                Err((reason, code)) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag_code(&path, kind, &reason, code));
+                    return;
+                }
+            };
+            let (frontmatter, body) = match split_frontmatter(&text) {
+                Ok(parsed) => parsed,
+                Err(reason) => {
+                    out.defs
+                        .diagnostics
+                        .push(diag(&path, "frontmatter", &reason));
+                    return;
+                }
+            };
+            // T66: only canonical OpenCode 2 frontmatter keys are admitted.
+            let fields: serde_json::Map<_, _> = frontmatter.fields.clone().into_iter().collect();
+            if kind == "agent" {
+                let findings = crate::config::admission::scan_agent_frontmatter(&fields);
+                if !findings.is_empty() {
+                    out.defs.unknown_keys.push((
+                        root.origin.clone(),
+                        "agent definitions",
+                        findings,
+                    ));
+                    return;
+                }
+            }
+            if kind == "agent" {
+                if diagnose_step_constraints(
+                    &mut out.defs,
+                    &path,
+                    "agent",
+                    &id,
+                    frontmatter.fields.keys(),
+                ) {
+                    return;
+                }
+                if let Some(field) = unsupported_field(
+                    &frontmatter.fields,
+                    &[
+                        "description",
+                        "model",
+                        "variant",
+                        "mode",
+                        "permissions",
+                        "hidden",
+                        "disabled",
+                        "request",
+                        "color",
+                    ],
+                ) {
+                    out.defs.diagnostics.push(diag(
+                        &path,
+                        &format!("agent.{field}"),
+                        "unsupported field",
+                    ));
+                    return;
+                }
+                let parsed = (|| -> Result<AgentInput, String> {
+                    let (model, variant) = agent_selection(
+                        frontmatter.fields.get("model"),
+                        field_string(&frontmatter.fields, "variant")?,
+                    )?;
+                    let compatibility = dir
+                        .file_name()
+                        .is_some_and(|name| name == "mode" || name == "modes");
+                    Ok(AgentInput {
+                        id: id.clone(),
+                        description: field_string(&frontmatter.fields, "description")?
+                            .or_else(|| {
+                                body.lines()
+                                    .map(str::trim)
+                                    .find(|line| !line.is_empty())
+                                    .map(str::to_string)
+                            })
+                            .unwrap_or_default(),
+                        model,
+                        variant,
+                        body: body.trim().to_string(),
+                        permissions: BTreeMap::new(),
+                        permission_rules: crate::permissions::PermissionRules::from_document(
+                            &serde_json::Value::Object(
+                                frontmatter.fields.clone().into_iter().collect(),
+                            ),
+                        )
+                        .map_err(|error| error.to_string())?,
+                        hidden: metadata_bool(frontmatter.fields.get("hidden"))?,
+                        disabled: metadata_bool(frontmatter.fields.get("disabled"))?,
+                        mode: if compatibility {
+                            Some("primary".into())
+                        } else {
+                            agent_mode(field_string(&frontmatter.fields, "mode")?)?
+                        },
+                        request: agent_request(|key| frontmatter.fields.get(key))?,
+                        color: agent_color(frontmatter.fields.get("color"))?,
+                        supplied: frontmatter
+                            .fields
+                            .keys()
+                            .cloned()
+                            .chain(std::iter::once("body".into()))
+                            .chain(compatibility.then(|| "mode".into()))
+                            .collect(),
+                    })
+                })();
+                match parsed {
+                    Ok(input) => insert_agent(out, root, input, &path),
+                    Err(reason) => out.defs.diagnostics.push(diag(&path, "agent", &reason)),
+                }
+            } else {
+                if let Some(field) = unsupported_field(
+                    &frontmatter.fields,
+                    &["description", "agent", "model", "subagent", "subtask"],
+                ) {
+                    out.defs.diagnostics.push(diag(
+                        &path,
+                        &format!("command.{field}"),
+                        "unsupported field",
+                    ));
+                    return;
+                }
+                match frontmatter.fields.get("permission") {
+                    None | Some(serde_json::Value::Null) => {}
+                    Some(serde_json::Value::Object(map)) if map.is_empty() => {}
+                    Some(_) => {
+                        out.defs.diagnostics.push(diag(
+                            &path,
+                            "command.permission",
+                            "unsupported field",
+                        ));
+                        return;
+                    }
+                }
+                let parsed = (|| -> Result<CommandInput, String> {
+                    Ok(CommandInput {
+                        id: id.clone(),
+                        description: field_string(&frontmatter.fields, "description")?
+                            .or_else(|| {
+                                body.lines()
+                                    .map(str::trim)
+                                    .find(|line| !line.is_empty())
+                                    .map(str::to_string)
+                            })
+                            .unwrap_or_default(),
+                        body: body.to_string(),
+                        agent: field_string(&frontmatter.fields, "agent")?,
+                        model: field_model(&frontmatter.fields, "model")?,
+                        subagent: field_bool(&frontmatter.fields, "subagent")?,
+                        subtask: field_bool(&frontmatter.fields, "subtask")?,
+                    })
+                })();
+                match parsed {
+                    Ok(input) => insert_command(out, root, input, &path),
+                    Err(reason) => out.defs.diagnostics.push(diag(&path, "command", &reason)),
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Select the primary agent: exact id, stable digest for the turn.
+///
+/// Disappearance or an empty pinned model fails explicitly (no silent
+/// fallback); model *presence* in the catalog is validated at turn time.
+pub fn select_primary(defs: &LoadedDefs, id: &str) -> Result<String, DefError> {
+    let agent = defs
+        .agents
+        .get(id)
+        .ok_or_else(|| DefError::UnknownAgent(id.to_string()))?;
+    if let Some(model) = &agent.model
+        && model.trim().is_empty()
+    {
+        return Err(DefError::InvalidAgent {
+            id: id.to_string(),
+            reason: "empty model".to_string(),
+        });
+    }
+    Ok(agent_digest(agent))
+}
+
+/// Stable digest binding the selected profile to the turn.
+pub fn agent_digest(agent: &AgentDef) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    let mut hash_bytes = |bytes: &[u8]| {
+        for byte in bytes.iter().copied().chain([0]) {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+    };
+    for field in [
+        agent.id.as_str(),
+        agent.description.as_str(),
+        agent.model.as_deref().unwrap_or(""),
+        agent.variant.as_deref().unwrap_or(""),
+        agent.mode.as_deref().unwrap_or(""),
+        agent.body.as_str(),
+    ] {
+        hash_bytes(field.as_bytes());
+    }
+    for (tool, level) in &agent.permissions {
+        hash_bytes(tool.as_bytes());
+        hash_bytes(match level {
+            Permission::Allow => b"allow",
+            Permission::Ask => b"ask",
+            Permission::Deny => b"deny",
+        });
+    }
+    hash_bytes(
+        &serde_json::to_vec(&agent.permission_rules).expect("serializable permission rules"),
+    );
+    hash_bytes(if agent.hidden { b"hidden" } else { b"visible" });
+    if !agent.request.is_empty() {
+        hash_bytes(
+            &serde_json::to_vec(&(&agent.request.headers, &agent.request.body))
+                .expect("serializable request overlay"),
+        );
+    }
+    let mut out = String::with_capacity(16);
+    let _ = write!(out, "{hash:016x}");
+    out
+}
+
+/// Ordered instructions from admitted `AGENTS.md` files.
+///
+/// `files` arrive in pinned order (global first, then Location
+/// nearest-working-directory-to-root). Each admitted file contributes its
+/// body once under a distinct sentinel; repeats canonical-deduplicate;
+/// unreadable files give a diagnostic and contribute no stale text.
+pub fn load_instructions(files: &[(String, PathBuf)]) -> (String, Vec<Diagnostic>) {
+    let mut seen = std::collections::HashSet::new();
+    let texts: Vec<_> = files
+        .iter()
+        .filter(|(display, _)| seen.insert(display.clone()))
+        .map(|(display, path)| {
+            let text = OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+                .open(path)
+                .map_err(|_| "unreadable".to_string())
+                .and_then(|mut file| {
+                    let meta = file.metadata().map_err(|_| "unreadable".to_string())?;
+                    if !meta.is_file() {
+                        return Err("unreadable".to_string());
+                    }
+                    if meta.len() > MAX_INSTRUCTIONS_FILE as u64 {
+                        return Err("file too large".to_string());
+                    }
+                    let mut bytes = Vec::new();
+                    file.by_ref()
+                        .take(MAX_INSTRUCTIONS_FILE as u64 + 1)
+                        .read_to_end(&mut bytes)
+                        .map_err(|_| "unreadable".to_string())?;
+                    if bytes.len() > MAX_INSTRUCTIONS_FILE {
+                        return Err("file too large".to_string());
+                    }
+                    String::from_utf8(bytes).map_err(|_| "unreadable".to_string())
+                });
+            (display.clone(), text)
+        })
+        .collect();
+    load_instruction_texts(&texts)
+}
+
+/// Assemble already-admitted instruction bytes; no path re-open after trust.
+pub(crate) fn load_instruction_texts(
+    files: &[(String, Result<String, String>)],
+) -> (String, Vec<Diagnostic>) {
+    let mut seen: Vec<String> = Vec::new();
+    let mut parts: Vec<String> = Vec::new();
+    let mut diagnostics = Vec::new();
+    let mut total = 0usize;
+    for (display, result) in files {
+        if seen.contains(display) {
+            continue;
+        }
+        seen.push(display.clone());
+        let text = match result {
+            Ok(text) => text,
+            Err(reason) => {
+                diagnostics.push(diag(Path::new(display), "instructions", reason));
+                continue;
+            }
+        };
+        if total + text.len() > MAX_INSTRUCTIONS_TOTAL {
+            diagnostics.push(diag_code(
+                Path::new(display),
+                "instructions",
+                "instructions budget exceeded",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
+            continue;
+        }
+        total += text.len();
+        parts.push(format!("<!-- oc-instructions: {display} -->\n{text}"));
+    }
+    (parts.join("\n"), diagnostics)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn root(dir: &Path, origin: &str) -> DefRoot {
+        DefRoot {
+            dir: dir.to_path_buf(),
+            origin: origin.to_string(),
+        }
+    }
+
+    fn decide(agent: &AgentDef, action: &str, resource: &str) -> Permission {
+        agent
+            .permission_rules
+            .evaluate(&BTreeMap::new(), action, resource)
+    }
+
+    fn write(path: &Path, text: &str) {
+        fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+        fs::write(path, text).expect("write");
+    }
+
+    #[test]
+    fn skills_singular_before_plural_and_valid_siblings_survive() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &opencode.join("skill/a/SKILL.md"),
+            "---\nname: a\ndescription: from singular\n---\n# a\n",
+        );
+        write(
+            &opencode.join("skills/b/SKILL.md"),
+            "---\nname: b\ndescription: from plural\n---\n# b\n",
+        );
+        // Upstream parity: flat `*.md` is a skill; a directory without
+        // `SKILL.md` is silently skipped; a file without frontmatter loads.
+        write(&opencode.join("skills/flat.md"), "flat skill file\n");
+        write(
+            &opencode.join("skills/no-skill-md/notes.md"),
+            "not a skill\n",
+        );
+        write(&opencode.join("skills/bare/SKILL.md"), "no frontmatter\n");
+        let loaded = load_definitions(&[root(&opencode, "G")]);
+        assert_eq!(loaded.skills.len(), 4);
+        assert_eq!(loaded.skills["a"].description, "from singular");
+        assert_eq!(loaded.skills["b"].origin, "G");
+        assert_eq!(loaded.skills["flat"].name, "flat");
+        assert_eq!(loaded.skills["flat"].description, "");
+        assert_eq!(loaded.skills["bare"].name, "bare");
+        assert!(loaded.order.iter().any(|o| o == "skill.a@G"));
+        assert!(
+            loaded.order.iter().position(|o| o == "skill.a@G")
+                < loaded.order.iter().position(|o| o == "skill.b@G")
+        );
+        assert!(
+            loaded.diagnostics.is_empty(),
+            "owner-parity shapes produce no diagnostics: {:?}",
+            loaded.diagnostics
+        );
+    }
+
+    #[test]
+    fn later_source_replaces_with_shadow_provenance() {
+        let g = tempfile::tempdir().expect("g");
+        let p = tempfile::tempdir().expect("p");
+        write(
+            &g.path().join(".opencode/commands/run.md"),
+            "---\ndescription: global run\n---\necho $1\n",
+        );
+        write(
+            &p.path().join(".opencode/commands/run.md"),
+            "---\ndescription: local run\n---\necho $1 $2\n",
+        );
+        let loaded = load_definitions(&[
+            root(&g.path().join(".opencode"), "G"),
+            root(&p.path().join(".opencode"), "P"),
+        ]);
+        assert_eq!(loaded.commands["run"].description, "local run");
+        assert_eq!(loaded.commands["run"].origin, "P");
+        assert_eq!(loaded.shadowed, vec!["command.run: G -> P"]);
+    }
+
+    #[test]
+    fn agent_modes_and_command_execution_fields_load() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &opencode.join("agents/helper.md"),
+            "---\ndescription: sub helper\nmode: subagent\n---\nhelp\n",
+        );
+        write(
+            &opencode.join("agents/ok.md"),
+            "---\ndescription: ok agent\nmodel: m\nmode: primary\npermissions:\n  - action: edit\n    resource: \"*\"\n    effect: allow\n  - action: edit\n    resource: \"*\"\n    effect: deny\n---\nbody\n",
+        );
+        write(
+            &opencode.join("agents/all.md"),
+            "---\ndescription: all\nmode: all\n---\nbody\n",
+        );
+        write(
+            &opencode.join("agents/broken-mode.md"),
+            "---\ndescription: bad mode\nmode: banana\n---\nbody\n",
+        );
+        write(
+            &opencode.join("agents/danger.md"),
+            "---\ndescription: danger\ntools: true\n---\nbody\n",
+        );
+        write(&opencode.join("commands/quit.md"), "nope\n");
+        write(
+            &opencode.join("commands/deploy.md"),
+            "Explain `cargo test`, $(literal), and the word subagent.\n```sh\ncargo test\n```\n",
+        );
+        write(
+            &opencode.join("commands/delegate.md"),
+            "---\ndescription: no\nsubtask: true\n---\nbody\n",
+        );
+        write(
+            &opencode.join("commands/delegate-agent.md"),
+            "---\ndescription: no\nagent: helper\nmodel: arbuz/main\nsubagent: false\n---\nbody\n",
+        );
+        write(&opencode.join("commands/ship.md"), "cargo test $1\n");
+        let loaded = load_definitions(&[root(&opencode, "P")]);
+        // Upstream accepts `primary|subagent|all`; only unknown modes fail.
+        assert_eq!(loaded.agents.len(), 3);
+        assert_eq!(loaded.agents["helper"].mode.as_deref(), Some("subagent"));
+        assert_eq!(loaded.agents["all"].mode.as_deref(), Some("all"));
+        assert_eq!(loaded.agents["ok"].model.as_deref(), Some("m"));
+        assert_eq!(loaded.agents["ok"].mode.as_deref(), Some("primary"));
+        assert_eq!(loaded.agents["ok"].body, "body"); // donor trims Markdown agent bodies
+        assert_eq!(
+            decide(&loaded.agents["ok"], "apply_patch", "src/x"),
+            Permission::Deny
+        );
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.reason.contains("unknown agent mode"))
+        );
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.reason.contains("reserved"))
+        );
+        // `tools` is outside the OC2 frontmatter allowlist: reported, never loaded.
+        assert!(
+            loaded
+                .unknown_keys
+                .iter()
+                .any(|(_, _, findings)| findings.iter().any(|finding| finding.path == "tools"))
+        );
+        // Execution fields are parsed and stored; the commands stay loadable.
+        assert_eq!(loaded.commands["delegate"].subtask, Some(true));
+        let delegated = &loaded.commands["delegate-agent"];
+        assert_eq!(delegated.agent.as_deref(), Some("helper"));
+        assert_eq!(delegated.model, Some(serde_json::json!("arbuz/main")));
+        assert_eq!(delegated.subagent, Some(false));
+        assert_eq!(delegated.subtask, None);
+        assert!(
+            !loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field.starts_with("command.")),
+            "command execution fields never diagnose: {:?}",
+            loaded.diagnostics
+        );
+        assert!(loaded.commands["deploy"].body.contains("`cargo test`"));
+        assert!(loaded.commands["deploy"].body.contains("subagent"));
+        assert!(loaded.commands.contains_key("ship"));
+        let digest = select_primary(&loaded, "ok").expect("select");
+        assert_eq!(digest, agent_digest(&loaded.agents["ok"]));
+        assert_eq!(
+            select_primary(&loaded, "gone"),
+            Err(DefError::UnknownAgent("gone".to_string()))
+        );
+    }
+
+    #[test]
+    fn commented_frontmatter_and_canonical_permission_rules() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &opencode.join("agents/explore.md"),
+            "---\ndescription: explore\n#model: arbuz/commented\n# model: arbuz/commented\nmodel: arbuz/main\nmode: subagent\n---\nbody\n",
+        );
+        write(
+            &opencode.join("agents/build.md"),
+            concat!(
+                "---\ndescription: build\npermissions:\n",
+                "  - action: external_directory\n    resource: \"*\"\n    effect: ask\n",
+                "  - action: external_directory\n    resource: \"~/.cargo/**\"\n    effect: allow\n",
+                "  - action: edit\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: shell\n    resource: \"*\"\n    effect: ask\n",
+                "  - action: shell\n    resource: git status\n    effect: allow # trailing comment\n",
+                "  - action: webfetch\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: tavily-local_*\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: read\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: read\n    resource: \"~/.ssh/*\"\n    effect: deny\n",
+                "---\nbody\n"
+            ),
+        );
+        write(
+            &opencode.join("agents/bad-permission.md"),
+            "---\ndescription: bad\npermissions:\n  - action: shell\n    resource: \"*\"\n    effect: maybe\n---\nbody\n",
+        );
+        let loaded = load_definitions(&[root(&opencode, "P")]);
+        let explore = &loaded.agents["explore"];
+        assert_eq!(explore.model.as_deref(), Some("arbuz/main"));
+        assert_eq!(explore.mode.as_deref(), Some("subagent"));
+        let build = &loaded.agents["build"];
+        assert_eq!(
+            decide(build, "external_directory", "/tmp/x"),
+            Permission::Ask
+        );
+        assert_eq!(
+            decide(build, "external_directory", "~/.cargo/registry/x"),
+            Permission::Allow
+        );
+        assert_eq!(decide(build, "apply_patch", "src/x"), Permission::Allow);
+        assert_eq!(decide(build, "bash", "ls"), Permission::Ask);
+        assert_eq!(decide(build, "bash", "git status"), Permission::Allow);
+        assert_eq!(decide(build, "webfetch", "https://x"), Permission::Allow);
+        assert_eq!(
+            decide(build, "tavily-local_search", "q"),
+            Permission::Allow,
+            "custom/glob permission actions are accepted like upstream"
+        );
+        assert_eq!(decide(build, "read", "src/x"), Permission::Allow);
+        assert_eq!(decide(build, "read", "~/.ssh/id"), Permission::Deny);
+        assert!(
+            !loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.path.ends_with("explore.md") || d.path.ends_with("build.md")),
+            "owner shapes produce no diagnostics: {:?}",
+            loaded.diagnostics
+        );
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.path.ends_with("bad-permission.md")),
+            "an invalid effect stays a diagnostic"
+        );
+    }
+
+    #[test]
+    fn large_agent_and_command_bodies_load_within_the_global_budget() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &opencode.join("agents/build-work.md"),
+            &format!(
+                "---\ndescription: big agent\n---\n{}\n",
+                "a".repeat(30 * 1024)
+            ),
+        );
+        write(
+            &opencode.join("commands/mge.md"),
+            &format!(
+                "---\ndescription: big command\nagent: build\n---\n{}\n",
+                "c".repeat(41 * 1024)
+            ),
+        );
+        let loaded = load_definitions(&[root(&opencode, "P")]);
+        assert_eq!(loaded.agents["build-work"].body, "a".repeat(30 * 1024));
+        assert_eq!(loaded.commands["mge"].body.len(), 41 * 1024 + 1);
+        assert_eq!(loaded.commands["mge"].agent.as_deref(), Some("build"));
+        assert!(
+            loaded.diagnostics.is_empty(),
+            "no artificial size limits: {:?}",
+            loaded.diagnostics
+        );
+    }
+
+    #[test]
+    fn symlinks_are_refused() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &base.path().join("real.md"),
+            "---\ndescription: x\n---\nbody\n",
+        );
+        fs::create_dir_all(opencode.join("commands")).expect("mkdir");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(
+            base.path().join("real.md"),
+            opencode.join("commands/link.md"),
+        )
+        .expect("symlink");
+        let loaded = load_definitions(&[root(&opencode, "P")]);
+        assert!(loaded.commands.is_empty());
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.reason.contains("symlink"))
+        );
+    }
+
+    #[test]
+    fn v07a_racing_definition_subdirectory_never_reads_outside() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        let base = tempfile::tempdir().expect("fixture");
+        let local = base.path().join("project/.opencode");
+        let inside = local.join("inside-skills");
+        let outside = base.path().join("outside-skills");
+        write(
+            &inside.join("safe.md"),
+            "---\ndescription: safe\n---\nsafe\n",
+        );
+        write(
+            &outside.join("outside.md"),
+            "---\ndescription: forbidden\n---\nforbidden\n",
+        );
+        let link = local.join("skills");
+        std::os::unix::fs::symlink(&inside, &link).expect("initial link");
+        let stop = AtomicBool::new(false);
+        let mut escaped = false;
+        std::thread::scope(|scope| {
+            let worker = scope.spawn(|| {
+                let mut external = true;
+                while !stop.load(Ordering::Relaxed) {
+                    let replacement = local.join("next-skills");
+                    std::os::unix::fs::symlink(
+                        if external { &outside } else { &inside },
+                        &replacement,
+                    )
+                    .expect("replacement");
+                    fs::rename(&replacement, &link).expect("atomic swap");
+                    external = !external;
+                    std::thread::yield_now();
+                }
+            });
+            for _ in 0..80 {
+                let loaded = load_definitions(&[root(&local, "P")]);
+                escaped |= loaded.skills.contains_key("outside");
+                std::thread::yield_now();
+            }
+            stop.store(true, Ordering::Relaxed);
+            worker.join().expect("swapper");
+        });
+        assert!(
+            !escaped,
+            "external definition was loaded during a symlink race"
+        );
+    }
+
+    #[test]
+    fn v07a_definition_fifo_and_oversize_do_not_block_or_exhaust_budget() {
+        let base = tempfile::tempdir().expect("fixture");
+        let dir = base.path().join(".opencode/skills");
+        write(
+            &dir.join("safe.md"),
+            "---\ndescription: safe\n---\nvalid body",
+        );
+        write(&dir.join("huge.md"), &"x".repeat(MAX_TOTAL_BYTES + 1));
+        let fifo = dir.join("pipe.md");
+        let fifo_name = std::ffi::CString::new(fifo.as_os_str().as_encoded_bytes()).expect("path");
+        // SAFETY: NUL-terminated path inside the isolated test directory.
+        assert_eq!(unsafe { libc::mkfifo(fifo_name.as_ptr(), 0o600) }, 0);
+        let loaded = load_definitions(&[root(&base.path().join(".opencode"), "P")]);
+        assert!(loaded.skills.contains_key("safe"));
+        assert!(!loaded.skills.contains_key("huge") && !loaded.skills.contains_key("pipe"));
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.path.ends_with("huge.md") && d.reason.contains("budget"))
+        );
+    }
+
+    #[test]
+    fn config_domains_merge_in_caller_order_without_invented_files() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &opencode.join("commands.json"),
+            r#"{"run": {"description": "inline", "body": "echo inline"}}"#,
+        );
+        let mut loaded = load_definitions(&[root(&opencode, "P")]);
+        assert!(loaded.commands.is_empty());
+
+        merge_config_definitions(
+            &mut loaded,
+            &serde_json::json!({
+                "agents": {
+                    "review": {
+                        "description": "same",
+                        "system": "global prompt",
+                        "model": "old",
+                        "mode": "primary",
+                        "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}]
+                    },
+                    "bad": {"system": "bad", "hooks": {"x": true}}
+                },
+                "commands": {
+                    "run": {"description": "global", "template": "Explain `cargo test` to $1"},
+                    "bad": {"template": "delegate", "hooks": {"x": true}}
+                }
+            }),
+            "G/opencode.json",
+        );
+        merge_config_definitions(
+            &mut loaded,
+            &serde_json::json!({
+                "agents": {
+                    "review": {
+                        "description": "same",
+                        "system": "local prompt",
+                        "permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]
+                    }
+                },
+                "commands": {
+                    "run": {"template": "literal subagent in a code fence:\n```sh\ncargo test\n```"},
+                    "delegate": {
+                        "template": "delegate now",
+                        "agent": "review",
+                        "model": {"providerID": "p", "modelID": "m"},
+                        "subtask": false
+                    },
+                    "ok": {"template": "valid sibling"}
+                }
+            }),
+            "P/opencode.jsonc",
+        );
+        let agent = &loaded.agents["review"];
+        assert_eq!(agent.origin, "P/opencode.jsonc");
+        assert_eq!(agent.body, "local prompt");
+        assert_eq!(
+            agent.model.as_deref(),
+            Some("old"),
+            "omitted supplied fields retain prior values"
+        );
+        assert_eq!(decide(agent, "apply_patch", "src/x"), Permission::Deny);
+        assert_eq!(loaded.commands["run"].origin, "P/opencode.jsonc");
+        assert!(loaded.commands["run"].body.contains("```sh"));
+        assert!(loaded.commands.contains_key("ok"));
+        // Inline execution fields are stored, never rejected.
+        let delegate = &loaded.commands["delegate"];
+        assert_eq!(delegate.agent.as_deref(), Some("review"));
+        assert_eq!(
+            delegate.model,
+            Some(serde_json::json!({"providerID": "p", "modelID": "m"}))
+        );
+        assert_eq!(delegate.subtask, Some(false));
+        assert_eq!(delegate.subagent, None);
+        assert!(!loaded.agents.contains_key("bad"));
+        assert!(!loaded.commands.contains_key("bad"));
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field.ends_with("hooks"))
+        );
+        assert!(
+            !loaded
+                .diagnostics
+                .iter()
+                .any(|d| d.field.contains("delegate")),
+            "execution fields do not diagnose: {:?}",
+            loaded.diagnostics
+        );
+        assert_eq!(
+            loaded.shadowed,
+            vec![
+                "agent.review: G/opencode.json -> P/opencode.jsonc",
+                "command.run: G/opencode.json -> P/opencode.jsonc"
+            ]
+        );
+    }
+
+    #[test]
+    fn agent_digest_covers_body_and_permissions() {
+        let base = tempfile::tempdir().expect("tmp");
+        let opencode = base.path().join(".opencode");
+        write(
+            &opencode.join("agents/review.md"),
+            "---\ndescription: review\npermissions:\n  - action: edit\n    resource: \"*\"\n    effect: deny\n---\npolicy A\n",
+        );
+        let loaded = load_definitions(&[root(&opencode, "P")]);
+        let agent = &loaded.agents["review"];
+        let original = agent_digest(agent);
+        let mut changed_body = agent.clone();
+        changed_body.body = "policy B\n".to_string();
+        assert_ne!(original, agent_digest(&changed_body));
+        let mut changed_permission = agent.clone();
+        changed_permission
+            .permissions
+            .insert("apply_patch".to_string(), Permission::Ask);
+        assert_ne!(original, agent_digest(&changed_permission));
+    }
+
+    #[test]
+    fn instructions_dedup_sentinel_and_diagnose() {
+        let base = tempfile::tempdir().expect("tmp");
+        let g = base.path().join("G-AGENTS.md");
+        let p = base.path().join("P-AGENTS.md");
+        fs::write(&g, "global rules\n").expect("g");
+        fs::write(&p, "local rules\n").expect("p");
+        let missing = base.path().join("gone.md");
+        let (text, diagnostics) = load_instructions(&[
+            ("G/AGENTS.md".to_string(), g),
+            ("P/AGENTS.md".to_string(), p.clone()),
+            ("P/AGENTS.md".to_string(), p),
+            ("X/AGENTS.md".to_string(), missing),
+        ]);
+        assert_eq!(text.matches("oc-instructions: P/AGENTS.md").count(), 1);
+        assert!(text.contains("global rules"));
+        assert!(text.contains("local rules"));
+        assert!(text.find("global rules") < text.find("local rules"));
+        assert!(diagnostics.iter().any(|d| d.reason == "unreadable"));
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "08509f360f7334308939b3dd8a9d65e02c7a2aa3b250397129e5ba9becbe629b",
+  "archive_bytes": 464452,
+  "tar_sha256": "8618285a4a42858071ea9dcf92cc1b56143a27b6f07ecf467446239c2d70865b",
+  "tar_bytes": 14469120,
+  "inventory": {
+    "members": 174,
+    "logical_bytes": 14444558,
+    "member_inventory_sha256": "5ae51f76b4137d8202e2a9fbb4f6217fbb3b08894bddc9a3ea78d4ec4a103331",
+    "same_side_png_aliases": 6
+  },
+  "source_roots": {
+    "current-compact": "/home/opencode/.cache/opencode-tmp/opencode/compact-layout-current-001/compact",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/compact-layout-current-001"
+  },
+  "producer_reports": [
+    {
+      "episode": "current-compact",
+      "captures": 26,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 26
+      }
+    }
+  ],
+  "retainer_source_sha256": "9bca45b99a41e1d255fcbea0e29afae630d65859751b644ba059218595cf4fe6"
+}

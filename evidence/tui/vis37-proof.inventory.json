@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "630c078fcf8952952e23366f22d2b47b3e4aba18e3365cf4198d945f854d3651",
+  "archive_bytes": 2404048,
+  "tar_sha256": "8a10b49fca9cdcb8331c97c2fd243ea33a0214a7d84716c4502b3cfccaabb128",
+  "tar_bytes": 64389120,
+  "inventory": {
+    "members": 829,
+    "logical_bytes": 64853986,
+    "member_inventory_sha256": "d5081f6e9f89299495b7155c0d36ff5631a17e1415ef97bf0934451929d37a2c",
+    "same_side_png_aliases": 31
+  },
+  "source_roots": {
+    "failed-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-current-001/wide",
+    "current-small": "/home/opencode/.cache/opencode-tmp/opencode/vis37-current-002/small",
+    "current-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-current-002/wide",
+    "current-tall": "/home/opencode/.cache/opencode-tmp/opencode/vis37-current-002/tall",
+    "failed-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-current-001",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-current-002",
+    "failed-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-capture.py",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-capture-r2.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "failed-wide",
+      "captures": 25,
+      "current_source": false,
+      "scope": "FAILED_OBSERVER_PROJECTION",
+      "statuses": {
+        "oc": "FAILED",
+        "upstream": "FAILED"
+      },
+      "comparisons": {
+        "DIFFERENT": 20,
+        "BLOCKED": 10
+      }
+    },
+    {
+      "episode": "current-small",
+      "captures": 34,
+      "current_source": true,
+      "scope": "ANSWER_CONSUMER_CARD_GLYPHS_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-wide",
+      "captures": 34,
+      "current_source": true,
+      "scope": "ANSWER_CONSUMER_CARD_GLYPHS_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-tall",
+      "captures": 34,
+      "current_source": true,
+      "scope": "ANSWER_CONSUMER_CARD_GLYPHS_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    }
+  ],
+  "retainer_source_sha256": "48c24b704b8acbdaf84742021b799f896f44a0befe5f7618eac2eac02bce69a7"
+}

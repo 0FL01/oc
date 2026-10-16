@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "ae2e5454ca6d689bed736985caa492f80e91cde8647257b9afed1f61583e8785",
+  "archive_bytes": 1261404,
+  "tar_sha256": "76920076f56c260630a2704c07f62185f14960da4fb7d0e276418346a679b86d",
+  "tar_bytes": 22149120,
+  "inventory": {
+    "members": 212,
+    "logical_bytes": 22071995,
+    "member_inventory_sha256": "873284fb68f4b2c21f9905b84e793eedb5aab23dd28687567b7477fdc24130bd",
+    "same_side_png_aliases": 2
+  },
+  "source_roots": {
+    "current": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-004/cli-wide-r4",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-004",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-capture-r4.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "current",
+      "current_source": true,
+      "captures": 32,
+      "scope": "CLI_AUTO_BEHAVIOR_ONLY",
+      "sides": {
+        "oc": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        },
+        "upstream": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 32
+      }
+    }
+  ],
+  "retainer_source_sha256": "d133d694c0de664b2e3efbdc767a7c16420f05c894bed8ddcf2b9a5424e16e1f"
+}

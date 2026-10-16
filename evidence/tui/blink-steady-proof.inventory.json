@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "b8539d008eae3e0de44b9b5c9ba3f92a1c20d905ec2baaab8cfdcd03136960c0",
+  "archive_bytes": 1685100,
+  "tar_sha256": "79cca6d2197b0910b1305627c42c9182bb3f0711c13dc876cd9af6a625ce8025",
+  "tar_bytes": 95805440,
+  "inventory": {
+    "members": 992,
+    "logical_bytes": 113595928,
+    "member_inventory_sha256": "4d65595cfd5be23634f58861a3e430fd09fcef335bb28fc0adf61195e9794a75",
+    "same_side_png_aliases": 140
+  },
+  "source_roots": {
+    "temporal": "/home/opencode/.cache/opencode-tmp/opencode/blink-controls-001/steady-fallback",
+    "matched": "/home/opencode/.cache/opencode-tmp/opencode/blink-controls-001/steady-fallback-matched"
+  },
+  "producer_reports": [
+    {
+      "episode": "temporal",
+      "captures": 160,
+      "comparisons": {
+        "DIFFERENT": 160
+      },
+      "profile": "blink-steady",
+      "cursor_statuses": {
+        "oc": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+        "upstream": "QUALIFIED_CURSOR_BEHAVIOR_ONLY"
+      }
+    }
+  ],
+  "retainer_source_sha256": "30917470a5170ad234a97e38321602e44e2239fe222c9a010b3a7aebd3e586a8"
+}

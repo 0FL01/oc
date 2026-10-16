@@ -1,0 +1,130 @@
+//! Native CLI surface.
+//!
+//! `run`/`sessions`/`models`/`tui` share native owners.
+//! Bare `oc` on a terminal launches the same local TUI as
+//! `oc tui`; without a terminal it is an actionable usage error.
+
+use std::path::PathBuf;
+
+use clap::{Parser, Subcommand, ValueEnum};
+
+/// Native `oc` command line.
+#[derive(Debug, Parser)]
+#[command(name = "oc2", version, about = "Native oc2 agent runtime")]
+pub struct Args {
+    /// Isolate storage under an explicit data directory.
+    #[arg(long, global = true)]
+    pub data_dir: Option<PathBuf>,
+    /// Automatically answer permission requests once (never saves grants).
+    #[arg(
+        long = "auto",
+        aliases = ["yolo", "dangerously-skip-permissions"],
+        global = true,
+        default_value_t = false
+    )]
+    pub auto: bool,
+    /// Print linked crate versions and exit without side effects.
+    #[arg(long, default_value_t = false)]
+    pub smoke: bool,
+    /// Subcommand; bare `oc` launches the local TUI when stdin/stdout are a
+    /// terminal (otherwise it fails with a headless hint).
+    #[command(subcommand)]
+    pub command: Option<Command>,
+}
+
+/// Native runtime and read-only catalog commands.
+#[derive(Debug, Subcommand)]
+pub enum Command {
+    /// Manage native OpenAI authentication without a model or session.
+    Auth {
+        #[command(subcommand)]
+        action: AuthCommand,
+    },
+    /// List all enabled admitted model references without selecting a model.
+    Models,
+    /// Run one headless prompt through the local runtime.
+    Run {
+        /// User prompt text.
+        prompt: String,
+        /// Session id; a fresh `s-<nanos>` id is minted when absent.
+        #[arg(long)]
+        session: Option<String>,
+        /// Select an admitted primary agent before submitting the prompt.
+        #[arg(long)]
+        agent: Option<String>,
+        /// Emit NDJSON events on stdout (diagnostics stay on stderr).
+        #[arg(long, default_value_t = false)]
+        json: bool,
+        /// Image input is not supported by this text-only application profile.
+        #[arg(long, value_name = "URL")]
+        image: Option<String>,
+    },
+    /// Inspect persisted sessions.
+    Sessions {
+        #[command(subcommand)]
+        action: SessionsAction,
+    },
+    /// Launch the local interactive TUI.
+    Tui {
+        /// Session id; a fresh id is minted when absent.
+        #[arg(long)]
+        session: Option<String>,
+    },
+}
+
+/// Session subcommands.
+#[derive(Debug, Subcommand)]
+pub enum SessionsAction {
+    /// List known session ids.
+    List,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AuthCommand {
+    /// Sign in to built-in OpenAI using browser, device authorization, or a key.
+    Login(AuthLogin),
+    /// List stored OpenAI account metadata; never prints credentials.
+    List {
+        #[arg(long, value_enum, default_value_t = AuthFormat::Default)]
+        format: AuthFormat,
+    },
+    /// Remove a stored OpenAI account after selecting its local ID.
+    Logout {
+        target: Option<String>,
+        credential: Option<String>,
+    },
+    /// Activate a stored OpenAI account by its local ID or unambiguous label.
+    Switch {
+        target: Option<String>,
+        credential: Option<String>,
+    },
+}
+
+#[derive(clap::Args)]
+pub struct AuthLogin {
+    pub target: Option<String>,
+    #[arg(long)]
+    pub method: Option<String>,
+    /// Non-secret form answers (label=value); API keys must use the TTY prompt.
+    #[arg(long = "answer", value_name = "KEY=VALUE")]
+    pub answers: Vec<String>,
+}
+impl std::fmt::Debug for AuthLogin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthLogin")
+            .field("target", &self.target)
+            .field("method", &self.method)
+            .field("answers", &"[REDACTED]")
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
+pub enum AuthFormat {
+    #[default]
+    Default,
+    Json,
+}
+
+#[cfg(test)]
+mod tests;

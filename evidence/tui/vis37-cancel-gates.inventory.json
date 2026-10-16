@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ original full logs; independent manual inverse",
+  "archive_sha256": "8edca9df0a39d46ebb88a9aed76bfa8d5b2a62bc5a819a1712899f3d50148a88",
+  "archive_bytes": 60352,
+  "tar_sha256": "69d428fec5ec37d0904b4d510d7c86f537eb563171d47111a1078ca5423ced4d",
+  "tar_bytes": 552960,
+  "inventory": {
+    "members": 106,
+    "logical_bytes": 466334,
+    "member_inventory_sha256": "851866e8b5c822e174cdc46b032b754b9b23361fc1f50d6d89e2b7682c592f4c",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "question-cancel-actual-pty": 0,
+    "question-cancel-clippy": 101,
+    "question-cancel-debug-help": 0,
+    "question-cancel-debug-locked": 0,
+    "question-cancel-debug-ordinary": 0,
+    "question-cancel-docs-final": 0,
+    "question-cancel-final-clippy": 0,
+    "question-cancel-final-fmt": 0,
+    "question-cancel-final-workspace": 0,
+    "question-cancel-fmt": 0,
+    "question-cancel-layout-gap-green": 0,
+    "question-cancel-layout-gap-pty": 0,
+    "question-cancel-layout-gap-red": 101,
+    "question-cancel-model002-after": 0,
+    "question-cancel-model002-archive": 0,
+    "question-cancel-model002-before": 0,
+    "question-cancel-model002-preflight": 0,
+    "question-cancel-progress-final": 0,
+    "question-cancel-python-final": 0,
+    "question-cancel-python": 0,
+    "question-cancel-qualified-python": 0,
+    "question-cancel-qualified-question-python": 0,
+    "question-cancel-r6-after": 0,
+    "question-cancel-r6-audit": 0,
+    "question-cancel-r6-before": 0,
+    "question-cancel-r6-measure": 0,
+    "question-cancel-r6-pack": 0,
+    "question-cancel-r7-after-complete": 0,
+    "question-cancel-r7-after": 1,
+    "question-cancel-r7-audit": 0,
+    "question-cancel-r7-before": 0,
+    "question-cancel-r7-measure": 0,
+    "question-cancel-r7-pack": 0,
+    "question-cancel-r8-after": 0,
+    "question-cancel-r8-audit": 0,
+    "question-cancel-r8-before": 0,
+    "question-cancel-r8-measure": 0,
+    "question-cancel-r8-pack": 0,
+    "question-cancel-release-aud32": 0,
+    "question-cancel-release-build": 0,
+    "question-cancel-release-help": 0,
+    "question-cancel-release-panic": 0,
+    "question-cancel-release-s07": 0,
+    "question-cancel-release-startup": 0,
+    "question-cancel-release-term01": 0,
+    "question-cancel-release-vis31": 0,
+    "question-cancel-release-vis38": 0,
+    "question-cancel-render-green-complete": 0,
+    "question-cancel-render-green": 101,
+    "question-cancel-render-red": 101,
+    "question-cancel-workspace": 0
+  },
+  "current_source": {
+    "source_manifest_sha256": "dfa9bf029e868459360db3eb2bd513a1501cddd59464125294e6856a5322a0e9",
+    "changed_inputs": [
+      "crates/oc-tui/src/tools.rs",
+      "crates/oc-tui/src/tools/presentation_tests.rs",
+      "crates/oc/tests/pty_t39/question.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484335960,
+        "sha256": "9a190f804546746861286aab6e97a0bfe1e1096716896d4b96b64fbe191e4d9f",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "23e658120d2f60c4e345501f2f622946f2f471963f0db63ab370bc48bd6a7b6a",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 60315,
+        "uncompressed_bytes": 552960,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "69d428fec5ec37d0904b4d510d7c86f537eb563171d47111a1078ca5423ced4d"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 60328
+  }
+}

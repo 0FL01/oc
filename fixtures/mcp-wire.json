@@ -1,0 +1,31 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "0FL01/openproxy",
+    "commit": "4ef76dbce2cdbb85206cbe5e59acbad9d96ae387",
+    "paths": ["src/server/api/codex_web_mcp.rs"],
+    "license": "unknown-no-copy; protocol reference only",
+    "upstream_sha256": {
+      "codex_web_mcp.rs": "6e8fa5438e6aaf5dc1be4d455473813b264dc358a20e062641752f94f51a8e25"
+    },
+    "normalization": "Keep route/method/headers/tool-name from pinned handler constants; drop Axum internals. MCP spec version from https://modelcontextprotocol.io/specification/2025-11-25/basic/transports [W3] and rmcp 3.4.0 ProtocolVersion::V_2025_11_25 (T01 compile smoke).",
+    "executable_baseline": "not-executed; fake-server spike deferred to T20/T21"
+  },
+  "description": "Strict MCP wire minimum for oc adapters.",
+  "protocol_version": "2025-11-25",
+  "remote_codex_web": {
+    "url": "{env:LUDKA2_API_URL}/mcp (exact configured URL, base usually already contains /v1)",
+    "route": "POST /v1/mcp, JSON responses; optional GET 405 is not a POST-path failure",
+    "auth": "bearer, oauth:false, no auto-discovery",
+    "headers": ["MCP-Protocol-Version: 2025-11-25 after initialize"],
+    "tool": "search",
+    "client_timeout_ms": 60000,
+    "server_search_timeout_secs": 15,
+    "server_body_limit_bytes": 65536
+  },
+  "local_stdio": {
+    "example_command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browser-url", "http://127.0.0.1:9222"],
+    "enabled_false_means": "zero process/browser probe, no Node requirement, no install",
+    "stdio": "JSON-RPC on stdout, bounded redacted stderr, process-group lifecycle, minimal child env without provider/MCP credentials"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "status": "INDEPENDENT_RETENTION_UNBLOCKED_FULL_BYTE_EXACT_T44_ACTIVE_NOT_PASS",
+  "before_sha256": "ee61c63a44128d402d06acd9a6a50f4380b2ce9edd010e1e5a9d91c39e9a1dc7",
+  "helper_sha256": "2a2c0d3951f22d7e2208562e407dfc477d6da4bdb8b47bef446065b4505631a2",
+  "diagnostic_inverse": {
+    "files": 58,
+    "directories": 3,
+    "logical_bytes": 5040210,
+    "metadata": "mode/uid/gid/mtime_ns; original paths and all encoded bytes",
+    "manual_pax_header_and_record_reader": true
+  },
+  "diagnostic_archive_sha256": "d464e6a96bf2c5b1a2bcb0e7d91fcf391bd52cb6a83c6960f59f579201bdbe4b",
+  "diagnostic_xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 278574,
+        "uncompressed_bytes": 5150720,
+        "dictionary_bytes": 8388608,
+        "check_sha256": "cec21c4bfba6684deee266883a6daea1b57ee82307e5fe23a1a17581838ac044"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 8388608,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 16,
+    "index_offset": 278588
+  },
+  "current004_inverse": {
+    "members": 665,
+    "logical_bytes": 53495947,
+    "member_inventory_sha256": "1d55e6e80dfc9c5815e7a387b799b7c2f6df1a4d97d3674ae7d0551a4e09fe90",
+    "same_side_png_aliases": 28
+  },
+  "current004_archive_sha256": "6e30ed8195c5898067ce7a31f9b4e35dfd9c2c7656a35da91c69ac610d117ddb",
+  "current004_xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 1913134,
+        "uncompressed_bytes": 53002240,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "4e5332f5d8fb3fda1f21011f757334c1a134dd9fe9c457847d4229a0e429512c"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 16,
+    "index_offset": 1913148
+  },
+  "current_source_and_elf": {
+    "source_manifest_sha256": "540195999c68df1710ced7274273eca77f7c178ebb4cd563500a966a9c1a6928",
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484335256,
+        "sha256": "3c2025c095e3618c4a03112646f8e0a0ac61a7c77372db38480a177af7436271",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "effects": {
+    "small-oc": {
+      "valid_provider_requests": 4,
+      "main_requests": 3,
+      "title_requests": 1,
+      "question_calls": 2,
+      "explicit_user_submissions": 2,
+      "explicit_answer_submissions": 1,
+      "readonly_snapshots": 5
+    },
+    "small-upstream": {
+      "valid_provider_requests": 4,
+      "main_requests": 3,
+      "title_requests": 1,
+      "question_calls": 2,
+      "explicit_user_submissions": 2,
+      "explicit_answer_submissions": 1,
+      "readonly_snapshots": 5
+    },
+    "wide-oc": {
+      "valid_provider_requests": 4,
+      "main_requests": 3,
+      "title_requests": 1,
+      "question_calls": 2,
+      "explicit_user_submissions": 2,
+      "explicit_answer_submissions": 1,
+      "readonly_snapshots": 5
+    },
+    "wide-upstream": {
+      "valid_provider_requests": 4,
+      "main_requests": 3,
+      "title_requests": 1,
+      "question_calls": 2,
+      "explicit_user_submissions": 2,
+      "explicit_answer_submissions": 1,
+      "readonly_snapshots": 5
+    },
+    "tall-oc": {
+      "valid_provider_requests": 4,
+      "main_requests": 3,
+      "title_requests": 1,
+      "question_calls": 2,
+      "explicit_user_submissions": 2,
+      "explicit_answer_submissions": 1,
+      "readonly_snapshots": 5
+    },
+    "tall-upstream": {
+      "valid_provider_requests": 4,
+      "main_requests": 3,
+      "title_requests": 1,
+      "question_calls": 2,
+      "explicit_user_submissions": 2,
+      "explicit_answer_submissions": 1,
+      "readonly_snapshots": 5
+    }
+  },
+  "unchanged_independent_full_frame_totals": {
+    "paired_frames": 51,
+    "whole_pngs": 102,
+    "different_cells": 4444,
+    "different_pixels": 317372,
+    "checked_cells": 244800,
+    "checked_pixels": 33012096,
+    "equal_cursor_pairs": 48,
+    "pending_owner_equal_pairs": 24,
+    "answered_owner_equal_pairs": 3
+  },
+  "prior_proof_count": 63,
+  "memory": {
+    "VmPeak_bytes": 238796800,
+    "VmSize_bytes": 154894336,
+    "VmHWM_bytes": 161677312,
+    "VmRSS_bytes": 106926080
+  },
+  "quota": {
+    "allocated_bytes": 1069719552,
+    "quota_bytes": 1073741824,
+    "headroom_bytes": 4022272,
+    "stat_only_unique_inodes": 11382,
+    "prefixes": [
+      "model-shell",
+      "subagent",
+      "root-",
+      "syntax-",
+      "write-",
+      "wrap-",
+      "hover-",
+      "raster-",
+      "caret-",
+      "blink-",
+      "mcp-label-",
+      "shell-wrap-",
+      "middle-tabs-",
+      "rail-width-",
+      "compact-layout-",
+      "compact-controls-",
+      "vis12-",
+      "vis37-"
+    ],
+    "scope": "Only established evidence/tui prefixes including vis37-; TMP excluded; not a historical byte audit"
+  },
+  "scope": "Every004 byte inverse verified; prior exact full-frame recount preserved, not rerun or promoted. All full comparisons DIFFERENT; DCP tables unread; final generation1 forced. No VIS37/R6/V09/T44 pixel PASS."
+}

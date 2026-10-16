@@ -1,0 +1,1607 @@
+diff --git a/crates/oc-tui/src/app/input.rs b/crates/oc-tui/src/app/input.rs
+index d4aa51387..1a16787b7 100644
+--- a/crates/oc-tui/src/app/input.rs
++++ b/crates/oc-tui/src/app/input.rs
+@@ -254,6 +254,7 @@ impl TuiState {
+             && matches!(
+                 action,
+                 CommandAction::OpenCards
++                    | CommandAction::OpenDcp
+                     | CommandAction::DcpCompress { .. }
+                     | CommandAction::CompactSession
+             )
+@@ -2401,6 +2402,10 @@ impl TuiState {
+                 self.panel = TuiPanel::Help(topic);
+                 outcome.consumed_input = true;
+             }
++            CommandAction::OpenDcp => {
++                self.panel = TuiPanel::Dcp;
++                outcome.consumed_input = true;
++            }
+             CommandAction::DcpCompress { focus } => {
+                 self.panel = TuiPanel::Dcp;
+                 outcome.intent = Some(PanelIntent::Compress { focus });
+diff --git a/crates/oc-tui/src/app/tests/input.rs b/crates/oc-tui/src/app/tests/input.rs
+index 6e8f301be..a7e8ba66e 100644
+--- a/crates/oc-tui/src/app/tests/input.rs
++++ b/crates/oc-tui/src/app/tests/input.rs
+@@ -1100,6 +1100,7 @@ async fn sessionless_home_keeps_bounded_editor_and_refuses_session_actions() {
+     );
+     for action in [
+         crate::commands::CommandAction::OpenCards,
++        crate::commands::CommandAction::OpenDcp,
+         crate::commands::CommandAction::DcpCompress {
+             focus: String::new(),
+         },
+diff --git a/crates/oc-tui/src/commands.rs b/crates/oc-tui/src/commands.rs
+index ce6d85dbd..6b8ab4e88 100644
+--- a/crates/oc-tui/src/commands.rs
++++ b/crates/oc-tui/src/commands.rs
+@@ -50,6 +50,8 @@ pub enum CommandAction {
+     OpenSkills,
+     /// Open the tool-card list.
+     OpenCards,
++    /// Open current committed DCP context/stats without executing compression.
++    OpenDcp,
+     /// Help, optionally for one topic.
+     Help(Option<String>),
+     /// Switch the running application to another Location (project path).
+@@ -316,6 +318,14 @@ pub const REGISTRY: &[CommandSpec] = &[
+             path: String::new(),
+         },
+     },
++    CommandSpec {
++        id: "native.dcp",
++        title: "DCP context",
++        group: "Native",
++        shortcuts: &[],
++        aliases: &["dcp"],
++        action: CommandAction::OpenDcp,
++    },
+     CommandSpec {
+         id: "native.compress",
+         title: "Compress DCP context",
+@@ -485,7 +495,7 @@ mod tests {
+             ["sessions", "settings", "sidebar", "skills"]
+         );
+         assert_eq!(complete("/a"), ["agent", "agents"]);
+-        assert_eq!(complete("/d"), ["dcp-compress"]);
++        assert_eq!(complete("/d"), ["dcp", "dcp-compress"]);
+         for command in super::REGISTRY {
+             for alias in command.aliases {
+                 assert!(complete("/").contains(alias));
+diff --git a/crates/oc-tui/src/messages.rs b/crates/oc-tui/src/messages.rs
+index 380f89e61..bfebfc9ca 100644
+--- a/crates/oc-tui/src/messages.rs
++++ b/crates/oc-tui/src/messages.rs
+@@ -996,31 +996,20 @@ fn visit_row_blocks(
+         )]);
+         if !row.text.is_empty() {
+             let inner = (width as usize).saturating_sub(1 + USER_PADDING).max(1);
+-            source_chunks(&row.text, (inner * 128).min(4096), |chunk, _| {
+-                let mut lines = Vec::new();
+-                let body = Style::default().fg(theme.text()).bg(bg);
+-                for raw in chunk.strip_suffix('\n').unwrap_or(chunk).split('\n') {
+-                    let line = Line::new(vec![Span::styled(safe_text(raw), body)]);
+-                    for wrapped in styled::wrap_line_limited(&line, inner, MAX_MARKDOWN_ROWS) {
+-                        let mut spans = vec![
+-                            Span::styled("┃", border),
+-                            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+-                        ];
+-                        spans.extend(wrapped.spans().iter().cloned());
+-                        lines.push(user_row(&spans, bg, width as usize));
+-                    }
+-                }
+-                emit(lines);
+-            });
+-            if row.text.ends_with('\n') {
+-                emit(vec![user_row(
+-                    &[
++            let body = Style::default().fg(theme.text()).bg(bg);
++            for raw in row.text.split('\n') {
++                let line = Line::new(vec![Span::styled(safe_text(raw), body)]);
++                // Byte chunks reset word wrapping in the middle of a physical
++                // line. Stream complete visual rows instead: identical to U34
++                // and the full wrapper, retaining only one width-bounded row.
++                styled::visit_source_space_line(&line, inner, |wrapped| {
++                    let mut spans = vec![
+                         Span::styled("┃", border),
+                         Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+-                    ],
+-                    bg,
+-                    width as usize,
+-                )]);
++                    ];
++                    spans.extend(wrapped.spans().iter().cloned());
++                    emit(vec![user_row(&spans, bg, width as usize)]);
++                });
+             }
+         }
+         if !row.chips.is_empty() {
+@@ -1216,29 +1205,6 @@ fn visit_assistant_indexed(
+     }
+ }
+ 
+-/// Cut at grapheme boundaries and prefer newlines. No text is discarded; each
+-/// page has at most 128 source lines and a width-dependent byte budget.
+-fn source_chunks(text: &str, max_bytes: usize, mut emit: impl FnMut(&str, usize)) {
+-    let max_bytes = max_bytes.max(1);
+-    let mut start = 0;
+-    let mut lines = 0;
+-    let mut page = 0;
+-    for (offset, glyph) in text.grapheme_indices(true) {
+-        if offset > start && (offset + glyph.len() - start > max_bytes || lines >= 128) {
+-            emit(&text[start..offset], page);
+-            page += 1;
+-            start = offset;
+-            lines = 0;
+-        }
+-        if glyph.ends_with('\n') {
+-            lines += 1;
+-        }
+-    }
+-    if start < text.len() {
+-        emit(&text[start..], page);
+-    }
+-}
+-
+ /// Track only fence boundaries between source pages. pulldown-cmark still
+ /// owns parsing each page; this scan does not tokenize inline Markdown.
+ fn advance_fence(chunk: &str, open: &mut Option<String>, at_line_start: &mut bool) {
+diff --git a/crates/oc-tui/src/messages/tests.rs b/crates/oc-tui/src/messages/tests.rs
+index 07caed3cc..56b49e89d 100644
+--- a/crates/oc-tui/src/messages/tests.rs
++++ b/crates/oc-tui/src/messages/tests.rs
+@@ -2050,6 +2050,39 @@ fn golden_long_lines_wrap_without_loss() {
+     assert_eq!(text, giant);
+ }
+ 
++#[test]
++fn vis38_off_long_user_wrap_keeps_continuity_across_preview_byte_boundaries() {
++    // The off 160x48 actual pair exposed a different last user line after
++    // independent 4096-byte chunks restarted word wrapping. U34 wraps one text.
++    let text = format!(
++        "VIS38 seed C: closed analysis, retain requirement C. {}",
++        "Closed analysis 日本語 résumé 👩‍💻 e\u{301}. ".repeat(300)
++    );
++    let rows = [user(&text, Vec::new())];
++    let theme = Theme::dark();
++    for width in [76, 116, 156] {
++        let full = transcript(&rows, theme, width, width + 4, |_| theme.primary());
++        let cache = RefCell::new(MarkdownCache::default());
++        let (indexed, total) = visible_transcript(
++            &rows,
++            theme,
++            width,
++            width + 4,
++            (10_000, 0, None),
++            |_| theme.primary(),
++            &cache,
++        );
++        assert_eq!(total, full.len() + 1);
++        assert_eq!(
++            indexed,
++            std::iter::once(Line::plain(""))
++                .chain(full)
++                .collect::<Vec<_>>(),
++            "width={width}"
++        );
++    }
++}
++
+ #[test]
+ fn vis38_summary_wrapper_keeps_source_separator_foreground_at_word_wrap() {
+     // Unchanged pinned D05 multi-range payload through original U34 <text>:
+diff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs
+index a46c294ea..0a9416752 100644
+--- a/crates/oc-tui/src/shell.rs
++++ b/crates/oc-tui/src/shell.rs
+@@ -163,10 +163,8 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
+     );
+ }
+ 
+-/// Render one whole frame: root background, tab strip, session area,
+-/// devtools bar, then the toast overlay.
+-pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+-    state.clear_prompt_paint();
++/// Establish the truecolor base canvas before drawing any session contents.
++pub fn render_background(frame: &mut Frame<'_>) {
+     let theme = Theme::dark();
+     let area = frame.area();
+     // Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).
+@@ -180,6 +178,15 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+         ),
+         area,
+     );
++}
++
++/// Render one whole frame: root background, tab strip, session area,
++/// devtools bar, then the toast overlay.
++pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
++    state.clear_prompt_paint();
++    let theme = Theme::dark();
++    let area = frame.area();
++    render_background(frame);
+     let regions = shell_regions(state, area);
+     state.prepare_tabs(area, std::time::Instant::now());
+     if let Some(strip) = tab_strip(state, area) {
+diff --git a/crates/oc-tui/src/styled.rs b/crates/oc-tui/src/styled.rs
+index 2a961b177..fee68ea92 100644
+--- a/crates/oc-tui/src/styled.rs
++++ b/crates/oc-tui/src/styled.rs
+@@ -241,6 +241,11 @@ pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -
+     wrap_line_with_space_mode(line, width, limit, true, false)
+ }
+ 
++/// Stream the same source-space rows without retaining a whole long message.
++pub(crate) fn visit_source_space_line(line: &Line, width: usize, emit: impl FnMut(Line)) {
++    visit_wrapped_line(line, width, usize::MAX, true, false, emit);
++}
++
+ /// Plain permission text uses OpenTUI word boundaries (including hyphens),
+ /// with a grapheme-safe fallback for a resource longer than the available row.
+ pub(crate) fn wrap_permission_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+@@ -259,8 +264,30 @@ fn wrap_line_with_space_mode(
+     preserve_break_space: bool,
+     hyphen_breaks: bool,
+ ) -> Vec<Line> {
++    let mut out = Vec::new();
++    visit_wrapped_line(
++        line,
++        width,
++        limit,
++        preserve_break_space,
++        hyphen_breaks,
++        |row| {
++            out.push(row);
++        },
++    );
++    out
++}
++
++fn visit_wrapped_line(
++    line: &Line,
++    width: usize,
++    limit: usize,
++    preserve_break_space: bool,
++    hyphen_breaks: bool,
++    mut emit: impl FnMut(Line),
++) {
+     let max = width.max(1);
+-    let mut out: Vec<Vec<(String, Style)>> = Vec::new();
++    let mut emitted = 0;
+     let mut current: Vec<(String, Style)> = Vec::new();
+     let mut used = 0usize;
+     // Index just past the last space run in `current`; a wrap can break there.
+@@ -270,7 +297,7 @@ fn wrap_line_with_space_mode(
+     let mut continuation = false;
+     for span in line.spans() {
+         for glyph in span.content().graphemes(true) {
+-            if out.len() >= limit {
++            if emitted >= limit {
+                 break;
+             }
+             let cells = UnicodeWidthStr::width(glyph);
+@@ -308,7 +335,8 @@ fn wrap_line_with_space_mode(
+                                 head.pop();
+                             }
+                         }
+-                        out.push(head);
++                        emit(Line::new(coalesce(head)));
++                        emitted += 1;
+                         current = rest;
+                         used = current
+                             .iter()
+@@ -316,7 +344,8 @@ fn wrap_line_with_space_mode(
+                             .sum();
+                     }
+                     None => {
+-                        out.push(std::mem::take(&mut current));
++                        emit(Line::new(coalesce(std::mem::take(&mut current))));
++                        emitted += 1;
+                         used = 0;
+                     }
+                 }
+@@ -332,12 +361,9 @@ fn wrap_line_with_space_mode(
+             }
+         }
+     }
+-    if out.len() < limit && (!current.is_empty() || out.is_empty()) {
+-        out.push(current);
++    if emitted < limit && (!current.is_empty() || emitted == 0) {
++        emit(Line::new(coalesce(current)));
+     }
+-    out.into_iter()
+-        .map(|cells| Line::new(coalesce(cells)))
+-        .collect()
+ }
+ 
+ /// Wrap every line, preserving the row order.
+diff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs
+index 871e8163e..42334b1ed 100644
+--- a/crates/oc/src/tui_cmd.rs
++++ b/crates/oc/src/tui_cmd.rs
+@@ -33,7 +33,7 @@ use oc_tui::app::{
+ use oc_tui::commands::{CommandAction, dispatch};
+ use oc_tui::dcp_panel::DcpOutcome;
+ use oc_tui::events::{KeyAction, UiEvent, map_event};
+-use oc_tui::shell::{StartupFailure, render_startup_failure};
++use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
+ use oc_tui::terminal::{enter, install_panic_hook};
+ use oc_tui::views::render_frame;
+ 
+@@ -934,6 +934,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) ->
+     // Mio reader with a second stdin readiness poller can lose edge events.
+     let mut input = event::EventStream::new();
+     let mut dirty = true;
++    let mut first_paint = true;
+     let mut paint_at = Instant::now();
+     let mut worker_ready = None;
+     let mut input_pending = std::collections::VecDeque::new();
+@@ -1020,6 +1021,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) ->
+             let draw_start = frame_metrics
+                 .as_ref()
+                 .map(|_| (Instant::now(), monotonic_ns()));
++            if first_paint {
++                // Establish base cells before the first content diff, just as
++                // subsequent frames inherit an already painted root canvas.
++                // Include this one-time paint in the same measured UI wake.
++                terminal
++                    .draw(render_background)
++                    .map_err(|e| format!("draw background: {e}"))?;
++                first_paint = false;
++            }
+             let painted = terminal
+                 .draw(|frame| render_frame(frame, &state))
+                 .map_err(|e| format!("draw: {e}"))?;
+diff --git a/crates/oc/src/tui_cmd/tests/routing.rs b/crates/oc/src/tui_cmd/tests/routing.rs
+index 60545b71a..30cbfb7c7 100644
+--- a/crates/oc/src/tui_cmd/tests/routing.rs
++++ b/crates/oc/src/tui_cmd/tests/routing.rs
+@@ -1,5 +1,74 @@
+ use super::*;
+ 
++#[tokio::test]
++async fn vis38_late_dcp_other_session_child_and_old_turn_never_touch_parent_view_or_query() {
++    use oc_core::dcp_view::{DcpAccounting, DcpRunSnapshot};
++    let (app, mut inbox, _) = CoreApp::channel(8);
++    let parent = SessionId::new("dcp-parent").unwrap();
++    let current = WorkerTurnId("current-generation".into());
++    let mut state = TuiState::new(app.clone(), parent.clone());
++    state.restore_prompt("active parent request".into());
++    state.handle_key(KeyAction::Enter).await;
++    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
++        panic!("parent submission")
++    };
++    ack.send(Ok(current.clone())).unwrap();
++    state.poll_submission();
++    assert_eq!(state.active_turn(), Some(&current));
++    let before = state.transcript_lines(100, 100);
++    let mut deck = LoopState::default();
++    for (owner, turn) in [
++        (SessionId::new("dcp-other").unwrap(), current.clone()),
++        (SessionId::new("dcp-child").unwrap(), current.clone()),
++        (parent.clone(), WorkerTurnId("obsolete-generation".into())),
++    ] {
++        let event = CoreEvent::ToolCallFinished {
++            session: owner.clone(),
++            turn,
++            op: "late-operation".into(),
++            name: "compress".into(),
++            state: "completed".into(),
++            output: "successful-looking untrusted output".into(),
++            output_bytes: 44,
++            output_truncated: false,
++            patch_effects: None,
++            dcp: Some(DcpRunSnapshot {
++                session: owner.0,
++                operation_id: "late-operation".into(),
++                ordinal: 42,
++                topic: "late child must not affect parent".into(),
++                block_ids: vec!["foreign-block".into()],
++                removed: 10000,
++                summary: 42,
++                net_saved: 9958,
++                method: Default::default(),
++                new_messages: 2,
++                new_tools: 1,
++                cumulative: DcpAccounting {
++                    gross_removed: 10000,
++                    compressions: 42,
++                    complete: true,
++                    ..Default::default()
++                },
++                bar: "⣿".repeat(50),
++            }),
++        };
++        tokio::time::timeout(
++            Duration::from_millis(250),
++            handle_worker_event(&app, &mut state, &mut deck, &parent, event),
++        )
++        .await
++        .unwrap()
++        .unwrap();
++        assert_eq!(state.transcript_lines(100, 100), before);
++        assert!(state.note().is_none());
++        assert!(
++            inbox.try_recv().is_err(),
++            "late event must not refresh parent counters or summaries"
++        );
++    }
++}
++
+ #[tokio::test]
+ async fn vis26_key_burst_only_queries_latest_and_route_swap_cancels_old_view() {
+     let (app, mut inbox, _) = CoreApp::channel(8);
+diff --git a/crates/oc/tests/dcp_runtime.rs b/crates/oc/tests/dcp_runtime.rs
+index f0ee098f5..781028836 100644
+--- a/crates/oc/tests/dcp_runtime.rs
++++ b/crates/oc/tests/dcp_runtime.rs
+@@ -734,6 +734,333 @@ fn aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression() {
+     run_crash_atomicity_at_sqlite_sync();
+ }
+ 
++/// VIS38's actual public event/query seam, independent of reference fixtures.
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree() {
++    use oc_core::core_app::CoreEvent;
++    use oc_core::domain::SessionId;
++    use oc_core::queries::ConversationAction;
++    use oc_tui::app::TuiState;
++    use oc_tui::events::KeyAction;
++
++    let fixture = Fixture::new();
++    fixture.write_dcp(true);
++    for (prompt, label) in [("first", "seed-early"), ("second", "seed-tail")] {
++        fixture.seed_turn(
++            SESSION,
++            &format!("{prompt} {}", "raw closed analysis ".repeat(1_000)),
++            "closed answer",
++            label,
++        );
++    }
++    fixture.write_dcp(false);
++    let env = std::collections::BTreeMap::from([
++        ("HOME".into(), fixture.home.to_string_lossy().into_owned()),
++        (
++            "XDG_CONFIG_HOME".into(),
++            fixture.home.join("config").to_string_lossy().into_owned(),
++        ),
++        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
++    ]);
++    let session = SessionId(SESSION.into());
++    let (app, guard, _) =
++        oc_adapters::application::spawn_with_env(&fixture.project, &fixture.data(), env.clone())
++            .await
++            .unwrap();
++    let original = app.read_history(session.clone()).await.unwrap();
++    assert_eq!(original.len(), 4);
++    let mut events = app.subscribe();
++    let mut state = TuiState::new(app.clone(), session.clone());
++    state.apply_catalog(app.catalog().await.unwrap());
++    state.attach_page(
++        &app.history_page(session.clone(), None, None, 32)
++            .await
++            .unwrap(),
++    );
++    state.handle_paste("compress two completed ranges");
++    state.handle_key(KeyAction::Enter).await;
++    let deadline = Instant::now() + TIMEOUT;
++    while state.active_turn().is_none() {
++        state.poll_submission();
++        assert!(Instant::now() < deadline, "public submission acceptance");
++        tokio::time::sleep(POLL).await;
++    }
++    let turn = state.active_turn().unwrap().clone();
++    let (mut socket, before) = accept_application_request(&fixture).await;
++    let summary = "真实🌍 résumé closed requirements. ".repeat(40);
++    respond_tool(
++        &mut socket,
++        "compress",
++        json!({"topic":"public multi-range 中文", "content":[
++            {"startId":original[0].id.0,"endId":original[1].id.0,"summary":summary},
++            {"startId":original[2].id.0,"endId":original[3].id.0,"summary":"Second requirement retained."}
++        ]}),
++        "public-compress",
++    );
++    let (mut socket, after) = accept_application_request(&fixture).await;
++    assert!(input_bytes(&after) < input_bytes(&before));
++    assert!(
++        function_output(&after, "public-compress", "compress")
++            .contains("\"status\":\"compressed\"")
++    );
++    respond_text(&mut socket, "public continuation complete");
++    let mut started = 0;
++    let mut finished = Vec::new();
++    loop {
++        let event = tokio::time::timeout(TIMEOUT, events.recv())
++            .await
++            .unwrap()
++            .unwrap();
++        match event {
++            CoreEvent::ToolCallStarted {
++                session: owner,
++                turn: id,
++                op,
++                name,
++                input,
++                dcp_topic,
++            } => {
++                assert_eq!(
++                    (owner, id.clone(), name.as_str()),
++                    (session.clone(), turn.clone(), "compress")
++                );
++                state.apply_tool_started_with_presentation(&id, &op, &name, &input, dcp_topic);
++                let pending = state
++                    .transcript_lines(100, 100)
++                    .iter()
++                    .map(oc_tui::styled::Line::plain_text)
++                    .collect::<Vec<_>>()
++                    .join("\n");
++                assert!(
++                    pending.contains("Compressing…") && pending.contains("public multi-range 中文")
++                );
++                assert!(!pending.contains("removed"));
++                started += 1;
++            }
++            CoreEvent::ToolCallFinished {
++                session: owner,
++                turn: id,
++                op,
++                name,
++                state: outcome,
++                output,
++                output_bytes,
++                output_truncated,
++                patch_effects,
++                dcp,
++            } => {
++                assert_eq!(
++                    (owner, id.clone(), outcome.as_str()),
++                    (session.clone(), turn.clone(), "completed")
++                );
++                let run = dcp.clone().expect("actual successful public snapshot");
++                assert_eq!(
++                    (
++                        run.ordinal,
++                        run.block_ids.len(),
++                        run.new_messages,
++                        run.new_tools
++                    ),
++                    (1, 2, 4, 0)
++                );
++                let queried = app.tool_ops_page(session.clone(), None, 1).await.unwrap();
++                assert_eq!(queried.rows.len(), 1);
++                assert_eq!(queried.rows[0].dcp, dcp);
++                assert_eq!(queried.rows[0].op, op);
++                state.apply_tool_finished_with_presentation(
++                    &id,
++                    &op,
++                    &name,
++                    &outcome,
++                    &output,
++                    output_bytes,
++                    output_truncated,
++                    patch_effects,
++                    dcp,
++                );
++                assert_eq!(
++                    state
++                        .transcript_rows()
++                        .iter()
++                        .filter(|r| r.tool.as_ref().is_some_and(|c| c.op == op))
++                        .count(),
++                    1
++                );
++                finished.push(run);
++            }
++            CoreEvent::TurnFinished {
++                turn: id,
++                text,
++                duration_ms,
++                ..
++            } if id == turn => {
++                state.apply_finished(&id, &text, duration_ms);
++                break;
++            }
++            CoreEvent::TurnFailed { error, .. } => panic!("actual public compression: {error}"),
++            _ => {}
++        }
++    }
++    assert_eq!((started, finished.len()), (1, 1));
++    let run = finished.pop().unwrap();
++    let raw = app.read_history(session.clone()).await.unwrap();
++    assert_eq!(&raw[..original.len()], original.as_slice());
++    assert_eq!(
++        raw.len(),
++        original.len() + 2,
++        "no synthetic notification messages"
++    );
++    let page = app
++        .history_page(session.clone(), None, None, 32)
++        .await
++        .unwrap();
++    state.refresh_completed_page(&page);
++    state.apply_dcp_snapshot(app.dcp_snapshot(session.clone()).await.unwrap());
++    state.chrome.dcp.show_compression = true;
++    let preview = app
++        .dcp_summary_page(
++            session.clone(),
++            run.operation_id.clone(),
++            0,
++            0,
++            oc_tui::dcp_view::SUMMARY_PAGE_BYTES,
++        )
++        .await
++        .unwrap()
++        .unwrap();
++    assert!(
++        preview.text.len() <= oc_tui::dcp_view::SUMMARY_PAGE_BYTES && preview.next_offset.is_some()
++    );
++    state.apply_dcp_summary(&session, &run.operation_id, preview);
++    let mut collected = String::new();
++    let mut offset = 0;
++    loop {
++        let summary_page = app
++            .dcp_summary_page(session.clone(), run.operation_id.clone(), 0, offset, 511)
++            .await
++            .unwrap()
++            .unwrap();
++        assert!(summary_page.text.len() <= 511 && summary_page.block_id == run.block_ids[0]);
++        collected.push_str(&summary_page.text);
++        match summary_page.next_offset {
++            Some(next) => {
++                assert!(next > offset);
++                offset = next;
++            }
++            None => break,
++        }
++    }
++    assert_eq!(collected, summary);
++    assert!(
++        state
++            .transcript_lines(100, 100)
++            .iter()
++            .any(|r| r.plain_text().contains("summary preview limited"))
++    );
++    app.change_conversation(session.clone(), ConversationAction::Undo)
++        .await
++        .unwrap();
++    assert!(
++        app.tool_ops_page(session.clone(), None, 1)
++            .await
++            .unwrap()
++            .rows
++            .is_empty()
++    );
++    app.change_conversation(session.clone(), ConversationAction::Redo)
++        .await
++        .unwrap();
++    assert_eq!(
++        app.tool_ops_page(session.clone(), None, 1)
++            .await
++            .unwrap()
++            .rows[0]
++            .dcp,
++        Some(run.clone())
++    );
++    let other = SessionId("public-other".into());
++    app.create_session(other.clone()).await.unwrap();
++    state.set_session(other.clone());
++    state.apply_tool_finished_with_presentation(
++        &turn,
++        &run.operation_id,
++        "compress",
++        "completed",
++        "",
++        0,
++        false,
++        None,
++        Some(run.clone()),
++    );
++    assert!(!state.transcript_rows().iter().any(|r| r.tool.is_some()));
++    assert!(
++        app.dcp_snapshot(other.clone())
++            .await
++            .unwrap()
++            .accounting
++            .is_none()
++    );
++    assert!(
++        app.dcp_summary_page(other, run.operation_id.clone(), 0, 0, 512)
++            .await
++            .unwrap()
++            .is_none()
++    );
++    app.shutdown().await.unwrap();
++    guard.join().await.unwrap();
++    drop(state);
++    drop(app);
++    let (reopened, guard, _) =
++        oc_adapters::application::spawn_with_env(&fixture.project, &fixture.data(), env)
++            .await
++            .unwrap();
++    assert_eq!(
++        reopened
++            .tool_ops_page(session.clone(), None, 1)
++            .await
++            .unwrap()
++            .rows[0]
++            .dcp,
++        Some(run.clone())
++    );
++    assert_eq!(reopened.read_history(session.clone()).await.unwrap(), raw);
++    assert_eq!(
++        reopened.dcp_snapshot(session).await.unwrap().accounting,
++        Some(run.cumulative)
++    );
++    assert_eq!(
++        fixture.listener.accept().unwrap_err().kind(),
++        std::io::ErrorKind::WouldBlock,
++        "queries/switch/Undo/Redo/reopen issue no provider call"
++    );
++    reopened.shutdown().await.unwrap();
++    guard.join().await.unwrap();
++    println!(
++        "VIS38 public: started=1 finished=1 ranges=2 ordinal=1 new_messages=4 raw_preserved=true next_request_smaller=true summary_utf8_paged=true replay_requests=0"
++    );
++}
++
++async fn accept_application_request(fixture: &Fixture) -> (TcpStream, Value) {
++    let deadline = Instant::now() + TIMEOUT;
++    loop {
++        match fixture.listener.accept() {
++            Ok((socket, _)) => {
++                if let Some(request) = read_request(socket) {
++                    assert!(!is_title(&request.1), "seeded session already has a title");
++                    return request;
++                }
++            }
++            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
++            Err(error) => panic!("public application peer: {error}"),
++        }
++        assert!(
++            Instant::now() < deadline,
++            "public application provider request"
++        );
++        tokio::time::sleep(POLL).await;
++    }
++}
++
+ #[derive(Clone)]
+ struct RequestedRange {
+     start: String,
+diff --git a/crates/oc/tests/pty_t39.rs b/crates/oc/tests/pty_t39.rs
+index 487a2a426..b5a39a08c 100644
+--- a/crates/oc/tests/pty_t39.rs
++++ b/crates/oc/tests/pty_t39.rs
+@@ -7,6 +7,9 @@
+ //! the opt-in view-metrics probe — never render snapshots alone.
+ 
+ use std::io::{Read, Write};
++#[path = "support/screen.rs"]
++mod tui_screen;
++use tui_screen::render_screen;
+ #[path = "support/terminal.rs"]
+ mod terminal;
+ #[path = "support/title.rs"]
+@@ -39,6 +42,9 @@ const S07_PROMPT: &str = "s07 progressive markdown";
+ const S07_NOTE: &str = "S07_NOTE_READ_CONFIRMED\n";
+ const S07_REASONING: &str = "S07 public reasoning before the read.";
+ const S07_ANSWER: &str = "```rust\nfn s07_probe() {\n    let S07_STREAM_FRAGMENT_42 = 42;\n    let S07_STREAM_DONE_43 = S07_STREAM_FRAGMENT_42 + 1;\n}\n```";
++const VIS38_RESOURCE_FOCUS: &str = "VIS38_RESOURCE";
++const VIS38_RESOURCE_SUMMARY: &str =
++    "VIS38 bounded real summary 中文: preserve the closed requirements. ";
+ const REASONING_CLICK_PROMPT: &str = "pty reasoning header click";
+ const REASONING_CLICK_BODY: &str = "PTY_REASONING_CLICK_BODY_7819";
+ const REASONING_CLICK_ANSWER: &str = "PTY_REASONING_CLICK_FINAL_3826";
+@@ -282,11 +288,11 @@ fn script(body: &serde_json::Value) -> Script {
+             .as_str()
+             .expect("closed anchor id");
+         let arguments = serde_json::json!({
+-            "topic": "t39 span",
++            "topic": if prompt.contains(VIS38_RESOURCE_FOCUS) { "VIS38 resource 中文" } else { "t39 span" },
+             "content": [{
+                 "startId": first,
+                 "endId": last,
+-                "summary": "Compressed early turns into one durable summary."
++                "summary": if prompt.contains(VIS38_RESOURCE_FOCUS) { VIS38_RESOURCE_SUMMARY.repeat(64) } else { "Compressed early turns into one durable summary.".into() }
+             }]
+         })
+         .to_string();
+@@ -858,174 +864,6 @@ impl Drop for PtySession {
+     }
+ }
+ 
+-/// Minimal screen reconstruction from a PTY byte stream: applies cursor
+-/// moves, writes, and clears to a grid. Byte-needle matching is fragile
+-/// against ratatui's cell diff (unchanged cells are skipped on the wire), so
+-/// panel rows are asserted against the true final screen state.
+-struct Screen {
+-    cells: Vec<Vec<char>>,
+-    cursor: (usize, usize),
+-}
+-
+-impl Screen {
+-    fn blank() -> Self {
+-        Self {
+-            cells: Vec::new(),
+-            cursor: (0, 0),
+-        }
+-    }
+-
+-    fn ensure(&mut self, row: usize, col: usize) {
+-        while self.cells.len() <= row {
+-            self.cells.push(Vec::new());
+-        }
+-        if self.cells[row].len() <= col {
+-            self.cells[row].resize(col + 1, ' ');
+-        }
+-    }
+-
+-    fn put(&mut self, row: usize, col: usize, ch: char) {
+-        if row >= 200 || col >= 400 {
+-            return;
+-        }
+-        self.ensure(row, col);
+-        self.cells[row][col] = ch;
+-    }
+-
+-    fn clear_line_from(&mut self, row: usize, col: usize) {
+-        if row < self.cells.len() {
+-            for cell in self.cells[row].iter_mut().skip(col) {
+-                *cell = ' ';
+-            }
+-        }
+-    }
+-
+-    fn rows(&self) -> Vec<String> {
+-        self.cells
+-            .iter()
+-            .map(|row| row.iter().collect::<String>().trim_end().to_string())
+-            .collect()
+-    }
+-}
+-
+-/// Rebuild the final screen grid from raw PTY bytes.
+-fn render_screen(buf: &[u8]) -> Screen {
+-    let text = String::from_utf8_lossy(buf);
+-    let mut screen = Screen::blank();
+-    let (mut row, mut col) = (0usize, 0usize);
+-    let mut saved = (0usize, 0usize);
+-    let bytes = text.as_bytes();
+-    let chars: Vec<(char, usize)> = {
+-        let mut out = Vec::new();
+-        let mut j = 0;
+-        while j < bytes.len() {
+-            let ch = text[j..].chars().next().unwrap_or('\u{FFFD}');
+-            out.push((ch, ch.len_utf8()));
+-            j += ch.len_utf8();
+-        }
+-        out
+-    };
+-    let mut k = 0;
+-    while k < chars.len() {
+-        let (ch, _) = chars[k];
+-        if ch == '\x1b' {
+-            if k + 1 < chars.len() && chars[k + 1].0 == '[' {
+-                let mut p = k + 2;
+-                let mut params = String::new();
+-                while p < chars.len() && !(('@'..='\x7e').contains(&chars[p].0)) {
+-                    params.push(chars[p].0);
+-                    p += 1;
+-                }
+-                if p >= chars.len() {
+-                    break;
+-                }
+-                let final_ = chars[p].0;
+-                p += 1;
+-                let nums: Vec<usize> = params
+-                    .trim_matches(|c| c == '?' || c == ' ')
+-                    .split(';')
+-                    .filter_map(|s| s.parse().ok())
+-                    .collect();
+-                let n = nums.first().copied().unwrap_or(1).max(1);
+-                let m = nums.get(1).copied().unwrap_or(1).max(1);
+-                match final_ {
+-                    'H' | 'f' => {
+-                        row = n.saturating_sub(1);
+-                        col = m.saturating_sub(1);
+-                    }
+-                    'A' => row = row.saturating_sub(n),
+-                    'B' => row += n,
+-                    'C' => col += n,
+-                    'D' => col = col.saturating_sub(n),
+-                    'K' => {
+-                        if params.starts_with('2') {
+-                            if row < screen.cells.len() {
+-                                for cell in screen.cells[row].iter_mut() {
+-                                    *cell = ' ';
+-                                }
+-                            }
+-                        } else if params.starts_with('1') {
+-                            if row < screen.cells.len() {
+-                                let end = col.min(screen.cells[row].len());
+-                                for cell in screen.cells[row].iter_mut().take(end) {
+-                                    *cell = ' ';
+-                                }
+-                            }
+-                        } else {
+-                            screen.clear_line_from(row, col);
+-                        }
+-                    }
+-                    'J' => {
+-                        if params.starts_with('2') {
+-                            screen = Screen::blank();
+-                        } else {
+-                            screen.clear_line_from(row, col);
+-                        }
+-                    }
+-                    's' => saved = (row, col),
+-                    'u' => {
+-                        (row, col) = saved;
+-                    }
+-                    _ => {}
+-                }
+-                k = p;
+-                continue;
+-            }
+-            if k + 1 < chars.len() && chars[k + 1].0 == ']' {
+-                let mut p = k + 2;
+-                while p < chars.len() {
+-                    if chars[p].0 == '\x07' {
+-                        p += 1;
+-                        break;
+-                    }
+-                    if chars[p].0 == '\x1b' && p + 1 < chars.len() && chars[p + 1].0 == '\\' {
+-                        p += 2;
+-                        break;
+-                    }
+-                    p += 1;
+-                }
+-                k = p;
+-                continue;
+-            }
+-            k += 2;
+-            continue;
+-        }
+-        match ch {
+-            '\r' => col = 0,
+-            '\n' => {
+-                row += 1;
+-            }
+-            _ => {
+-                screen.put(row, col, ch);
+-                col += 1;
+-            }
+-        }
+-        k += 1;
+-    }
+-    screen.cursor = (row, col);
+-    screen
+-}
+-
+ /// Wait until the reconstructed screen has a row containing `needle`.
+ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {
+     let start = Instant::now();
+@@ -1736,6 +1574,7 @@ struct ProcSample {
+     hwm_kb: u64,
+     cpu_ticks: u64,
+     children: usize,
++    threads: u64,
+ }
+ 
+ fn s07_proc_sample(pid: u32) -> ProcSample {
+@@ -1777,6 +1616,7 @@ fn s07_proc_sample(pid: u32) -> ProcSample {
+         pss_kb,
+         cpu_ticks,
+         children: children.split_whitespace().count(),
++        threads: kb("Threads:"),
+     }
+ }
+ 
+diff --git a/crates/oc/tests/pty_t39/lifecycle.rs b/crates/oc/tests/pty_t39/lifecycle.rs
+index 5e136962a..75ea859e0 100644
+--- a/crates/oc/tests/pty_t39/lifecycle.rs
++++ b/crates/oc/tests/pty_t39/lifecycle.rs
+@@ -1284,3 +1284,204 @@ fn s07_pty_equal_view_archive_resource_samples() {
+         );
+     }
+ }
++
++/// Same shared process/PTY/view probes with a genuinely committed DCP card and
++/// bounded saved-summary queries. The archive setup and actual manual commit
++/// precede measurement; reopening/display/stats are the measured hot path.
++#[test]
++fn vis38_pty_dcp_equal_active_archive_resource_samples() {
++    let small = measure_vis38_dcp_display(0);
++    let large = measure_vis38_dcp_display(3000);
++    assert_eq!(
++        small.0, large.0,
++        "same active compressed contents/accounting"
++    );
++    assert!(
++        large.1.hwm_kb <= small.1.hwm_kb + 64 * 1024,
++        "shared AUD32 64MiB equal-active peak delta"
++    );
++    assert!(
++        large.1.pss_kb <= small.1.pss_kb + 64 * 1024,
++        "equal-active PSS delta"
++    );
++    assert_eq!(
++        small.1.threads, large.1.threads,
++        "archive does not create OS tasks/threads"
++    );
++}
++
++fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
++    let fixture = Fixture::new();
++    let project = fixture.root.path().join("project");
++    std::fs::write(project.join("dcp.jsonc"), serde_json::json!({
++        "enabled":true,"autoUpdate":false,"pruneNotification":"detailed","pruneNotificationType":"chat",
++        "compress":{"mode":"range","permission":"allow","showCompression":true,"minContextLimit":1000000,"maxContextLimit":1000000},
++        "strategies":{"deduplication":{"enabled":false},"purgeErrors":{"enabled":false}}
++    }).to_string()).unwrap();
++    let config = fixture
++        .root
++        .path()
++        .join("home/config/opencode/opencode.json");
++    let mut settings: serde_json::Value =
++        serde_json::from_slice(&std::fs::read(&config).unwrap()).unwrap();
++    settings["provider"]["fixture"]["models"][MODEL]["limit"]["context"] =
++        serde_json::json!(262144);
++    std::fs::write(config, settings.to_string()).unwrap();
++    let session = "s-vis38-resource";
++    seed_session(&fixture.data_dir(), &project, session, 0);
++    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
++    db.apply_dcp_schema().unwrap();
++    let mut end = None;
++    for i in 0..archive {
++        end = Some(
++            db.append_message(
++                session,
++                if i.is_multiple_of(2) {
++                    "user"
++                } else {
++                    "assistant"
++                },
++                &format!("archive-{i:04} {}", "x".repeat(16 * 1024)),
++            )
++            .unwrap(),
++        );
++        // Real bounded prune commits, not a synthetic mark that bypasses the
++        // owner's active-input cap for this deliberately 48MiB raw archive.
++        if (i + 1) % 64 == 0 {
++            db.save_prune_mark(session, end.as_ref().unwrap()).unwrap();
++        }
++    }
++    if let Some(id) = end {
++        db.save_prune_mark(session, &id).unwrap();
++    }
++    for i in 0..4 {
++        db.append_message(
++            session,
++            if i % 2 == 0 { "user" } else { "assistant" },
++            &format!("active-{i} {}", "closed requirement ".repeat(1000)),
++        )
++        .unwrap();
++    }
++    drop(db);
++    let mut prepare = PtySession::spawn_sized(fixture.clone(), session, None, 120, 40);
++    prepare.wait_visible(READY, DEADLINE);
++    prepare.send(format!("/dcp-compress {VIS38_RESOURCE_FOCUS}\r").as_bytes());
++    fixture.wait_requests(2);
++    wait_screen_row(&prepare, "compressions 1", DEADLINE);
++    prepare.send(b"\x1b");
++    wait_screen_row(&prepare, "answer:compressed", DEADLINE);
++    wait_idle(&prepare);
++    prepare.send(b"\x03");
++    std::thread::sleep(POLL);
++    prepare.send(b"\x03");
++    let (status, _) = prepare.wait_exit(DEADLINE);
++    assert!(status.success() && prepare.restored());
++    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
++    let ops = db.list_tool_ops(session).unwrap();
++    assert_eq!(ops.len(), 1);
++    let run = db
++        .dcp_run(session, &ops[0].op)
++        .unwrap()
++        .expect("actual committed resource operation");
++    // The manual route protects the last legacy anchor as unfinished. Its
++    // actual advertised closed span covers the other three seeded messages.
++    assert_eq!(
++        (run.new_messages, run.block_ids.len(), run.ordinal),
++        (3, 1, 1)
++    );
++    let raw_before = db.read_history_full(session).unwrap();
++    drop(db);
++    let request_count = fixture.requests.lock().unwrap().len();
++    let metrics_path = fixture.root.path().join("vis38-resource-metrics.json");
++    let mut pty = PtySession::spawn_sized(fixture.clone(), session, Some(&metrics_path), 120, 40);
++    wait_screen_row(&pty, "Compression #1", DEADLINE);
++    wait_screen_row(&pty, "summary preview limited", DEADLINE);
++    let pid = pty.child.id();
++    let mut peak = s07_proc_sample(pid);
++    let baseline_cpu = peak.cpu_ticks;
++    let began = Instant::now();
++    let mut sample = |pty: &PtySession| {
++        let now = s07_proc_sample(pty.child.id());
++        peak.rss_kb = peak.rss_kb.max(now.rss_kb);
++        peak.pss_kb = peak.pss_kb.max(now.pss_kb);
++        peak.hwm_kb = peak.hwm_kb.max(now.hwm_kb);
++        peak.children = peak.children.max(now.children);
++        peak.threads = peak.threads.max(now.threads);
++        peak.cpu_ticks = now.cpu_ticks;
++    };
++    pty.send(b"/dcp\r");
++    wait_screen_row(&pty, "compressions 1", DEADLINE);
++    sample(&pty);
++    pty.send(b"\x1b");
++    for (cols, rows) in [(80, 24), (160, 48), (120, 40)] {
++        let offset = pty.snapshot().len();
++        pty.resize(cols, rows);
++        // At 80x24 the long preview pushes its header above the viewport; wait
++        // for the real preview tail, not a header that is honestly offscreen.
++        pty.wait_visible_after(offset, "summary", DEADLINE);
++        wait_screen_row(&pty, "summary preview limited", DEADLINE);
++        sample(&pty);
++    }
++    pty.send(b"\x03");
++    std::thread::sleep(POLL);
++    pty.send(b"\x03");
++    let (status, output) = pty.wait_exit(DEADLINE);
++    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
++    assert!(
++        !Path::new(&format!("/proc/{pid}")).exists(),
++        "measured child and OS tasks reaped"
++    );
++    assert_eq!(peak.children, 0);
++    assert_eq!(
++        fixture.requests.lock().unwrap().len(),
++        request_count,
++        "reopen/summary/stats/resize do not generate"
++    );
++    let metrics: serde_json::Value =
++        serde_json::from_slice(&std::fs::read(metrics_path).unwrap()).unwrap();
++    assert!(metrics["window_rows"].as_u64().unwrap() <= oc_tui::history::WINDOW_ROWS as u64);
++    assert!(
++        metrics["retained_bytes"].as_u64().unwrap()
++            <= (oc_tui::history::WINDOW_BYTES + oc_tui::app::MAX_INPUT_BYTES) as u64
++    );
++    let route_count = metrics["tab_count"].as_u64().unwrap() + 1;
++    assert!(
++        metrics["markdown_cache_retained_bytes_peak"]
++            .as_u64()
++            .unwrap()
++            <= route_count * (512 * 1024 + 2 * 1024 * 1024)
++    );
++    assert_eq!(metrics["worker_event_queue_lagged"].as_u64(), Some(0));
++    assert!(metrics["worker_event_queue_peak"].as_u64().unwrap() <= 256);
++    assert_eq!(metrics["live_text_bytes_current"].as_u64(), Some(0));
++    assert_eq!(metrics["live_part_count_current"].as_u64(), Some(0));
++    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
++    assert_eq!(db.read_history_full(session).unwrap(), raw_before);
++    assert_eq!(
++        db.dcp_run(session, &run.operation_id).unwrap(),
++        Some(run.clone())
++    );
++    println!(
++        "VIS38 S07 DCP archive={archive} archive_source_bytes={} rss_kb={} pss_kb={} hwm_kb={} os_tasks_threads={} children={} cpu_ticks={} elapsed_ms={} retained_bytes={} window_rows={} queue_peak={} queue_lagged={} markdown_cache_peak={} frames={} draw_max_ns={} replay_requests=0 actual_runs=1 summary_page_limit={}",
++        archive * 16 * 1024,
++        peak.rss_kb,
++        peak.pss_kb,
++        peak.hwm_kb,
++        peak.threads,
++        peak.children,
++        peak.cpu_ticks.saturating_sub(baseline_cpu),
++        began.elapsed().as_millis(),
++        metrics["retained_bytes"],
++        metrics["window_rows"],
++        metrics["worker_event_queue_peak"],
++        metrics["worker_event_queue_lagged"],
++        metrics["markdown_cache_retained_bytes_peak"],
++        metrics["frame_count"],
++        metrics["frame_max_ns"],
++        oc_tui::dcp_view::SUMMARY_PAGE_BYTES
++    );
++    (
++        (run.removed, run.summary, run.cumulative.active_summary),
++        peak,
++    )
++}
+diff --git a/crates/oc/tests/recovery_v02.rs b/crates/oc/tests/recovery_v02.rs
+index 858feda72..1ec7388ad 100644
+--- a/crates/oc/tests/recovery_v02.rs
++++ b/crates/oc/tests/recovery_v02.rs
+@@ -1,4 +1,7 @@
+ //! V02: real binary/config/provider followed by a fresh application owner.
++#[path = "support/screen.rs"]
++mod tui_screen;
++
+ use oc_core::{domain::SessionId, queries::TranscriptPart};
+ use std::{
+     collections::BTreeMap,
+@@ -790,7 +793,9 @@ fn binary_tui_restart(
+         if let Ok(n) = master.read(&mut buffer) {
+             bytes.extend_from_slice(&buffer[..n]);
+         }
+-        let text = String::from_utf8_lossy(&bytes);
++        // Diff rendering may address individual cells and skip already painted
++        // spaces. Assert the actual current screen, not raw VT byte adjacency.
++        let text = tui_screen::render_screen(&bytes).rows().join("\n");
+         if !submitted && text.contains(model) {
+             master.write_all(b"Inspect probe.txt\r").unwrap();
+             submitted = true;
+@@ -803,7 +808,7 @@ fn binary_tui_restart(
+             .iter()
+             .all(|s| text.contains(s))
+             && (!compact
+-                || (without_sgr(&text).contains("+ Thought · ")
++                || (text.contains("+ Thought · ")
+                     && ["probe.txt", "replay.txt"].iter().all(|s| text.contains(s))))
+         {
+             ready = true;
+@@ -834,23 +839,3 @@ fn binary_tui_restart(
+         );
+     }
+ }
+-
+-// Only erase color/style changes: cursor moves remain barriers between
+-// independently painted cells, so the reasoning icon and label must still
+-// appear together in the PTY stream.
+-fn without_sgr(text: &str) -> String {
+-    let mut parts = text.split('\x1b');
+-    let mut visible = parts.next().unwrap_or_default().to_string();
+-    for part in parts {
+-        if let Some(csi) = part.strip_prefix('[') {
+-            let after_params = csi.trim_start_matches(|c: char| c.is_ascii_digit() || c == ';');
+-            if let Some(rest) = after_params.strip_prefix('m') {
+-                visible.push_str(rest);
+-                continue;
+-            }
+-        }
+-        visible.push('\x1b');
+-        visible.push_str(part);
+-    }
+-    visible
+-}
+diff --git a/docs/CODE_MAP.md b/docs/CODE_MAP.md
+index c74b12f4b..c479803c8 100644
+--- a/docs/CODE_MAP.md
++++ b/docs/CODE_MAP.md
+@@ -18,7 +18,7 @@
+ | Общие типы, CoreApp API и ports | `crates/oc-core/src/{core_app,application,queries,ports,domain}.rs` | Не превращать этот набор в новую иерархию в T52; core без UI/storage/network зависимости. Читать конкретный DTO/метод, не весь crate. |
+ | Config/composition/provider/tools | соответствующие `crates/oc-adapters/src/{config,composition,defs,discovery,provider,tools,patch,shell,webfetch}.rs` | Нет массового переноса в T52. При новом feature сначала найти существующего владельца; существенные новые tests отдельно по общему правилу. |
+ | Runtime fake-wire integration suite | `crates/oc-adapters/tests/runtime.rs` — общий Fake/Harness/SSE; `tests/runtime/{turns,context,tool_lifecycle}.rs` — только нужная группа сценариев | Один прежний target `runtime`, без новых Cargo targets; `tests/fixtures/approval_lifecycle.rs` подключён единожды из root. `cargo test -p oc-adapters --test runtime --locked`. |
+-| Actual-binary PTY suite T39 | `crates/oc/tests/pty_t39.rs` — общий fixture; `tests/pty_t39/{interaction,lifecycle}.rs`; `tests/support/{terminal,title}.rs` только по зависимости | Один прежний target `pty_t39`; support declarations и shared fixture остаются в root. `cargo test -p oc --test pty_t39 --locked -- --test-threads=1`. |
++| Actual-binary PTY suite T39 | `crates/oc/tests/pty_t39.rs` — общий fixture; `tests/pty_t39/{interaction,lifecycle}.rs`; `tests/support/{terminal,title,screen}.rs` только по зависимости | Один прежний target `pty_t39`; support declarations и shared fixture остаются в root. Bounded text-screen reconstruction из `support/screen.rs` также используется `recovery_v02` для cursor-aware assertions. `cargo test -p oc --test pty_t39 --locked -- --test-threads=1`. |
+ | Capture/oracle/frontend tooling | конкретный script в `scripts/tui_capture/`, указанный активным VIS-контрактом | Это dev tooling, не production TS host. Не читать весь каталог/`capture.mjs` без конкретной задачи; пути source inventory поправить только в живом producer/consumer. |
+ 
+ ## Как обновлять
+diff --git a/scripts/tui_capture/dcp_README.md b/scripts/tui_capture/dcp_README.md
+index 488f51616..14013225b 100644
+--- a/scripts/tui_capture/dcp_README.md
++++ b/scripts/tui_capture/dcp_README.md
+@@ -1,6 +1,6 @@
+ # VIS38 pinned DCP display reference
+ 
+-These opt-in helpers implement amendment lines 493–587, sources D05–D10 and U34.
++These opt-in helpers implement the frozen VIS38 amendment (lines 548–625), sources D05–D10 and U34.
+ They are development/reference tooling; production `oc` has no JS dependency.
+ They leave existing capture modes and historical attempts intact.
+ 
+@@ -117,6 +117,16 @@ options are applied to real reopened TUI for minimal, off, showCompression:false
+ and toast; each has three full-frame captures with no replay. Each attempt is
+ immutable and individually SHA-256 sealed. This is not an injection interface.
+ 
++For source-traced control comparisons, `--comparable-controls` matches the same
++supported theme/cursor/sidebar/TPS/animation settings as `--default-detail-only`
++and selects only the real reopened minimal/off/toast stages. Optional
++`--control-continuations 0..3` first performs that many **actual public owner
++continuations** (within the same 16-request cap), independently checking unchanged
++frozen runs/accounting and append-only history. Each held control references the
++actual latest snapshot. This changes the genuine current history, never a capture
++crop, a transfer normalization, or an imported native fixture. Previous attempts
++and locks stay immutable.
++
+ ## Actual qualified run → original U34 paired reference
+ 
+ The inspected read-only typed API is `CoreHandle::tool_ops_page` →
+diff --git a/scripts/tui_capture/dcp_display_audit.py b/scripts/tui_capture/dcp_display_audit.py
+index e8f3b2fdd..7b500352b 100644
+--- a/scripts/tui_capture/dcp_display_audit.py
++++ b/scripts/tui_capture/dcp_display_audit.py
+@@ -96,14 +96,26 @@ for trace, original in zip(mapping['field_traces'], actual_context, strict=True)
+         assert message['finish'] == 'stop' and result['input'][-1]['status'] == 'completed'
+         idle = mapped_messages['msg_vis38_idle_' + original['id']]
+         assert idle['outcome'] == 'succeeded' and idle['time']['created'] == message['time']['completed']
+-for notification in goldens['notifications']:
+-    if notification['native_context']['typed_snapshot']['ordinal'] > entry['native_context']['typed_snapshot']['ordinal']:
++notifications = list(entry['native_context']['prior_notifications'])
++if not entry['native_context'].get('reference_delivery'):
++    notifications.append({'operation_id': entry['native_context']['operation_id'],
++                          'before_message_id': actual_context[-1]['id'], 'payload': entry['payload']})
++stored_runs = {r['operation_id']: json.loads(r['snapshot']) for r in rows('dcp_run_views')}
++assert len(notifications) == len(stored_runs) == 3
++assert {n['operation_id'] for n in notifications} == set(stored_runs)
++expected_reports = set()
++for notification in notifications:
++    report_id = 'msg_vis38_dcp_' + str(stored_runs[notification['operation_id']]['ordinal'])
++    if notification['payload'] is None:
++        assert report_id not in mapped_messages, 'Off/toast must not import a persistent report'
+         continue
+-    report = mapped_messages['msg_vis38_dcp_' + str(notification['native_context']['typed_snapshot']['ordinal'])]
++    expected_reports.add(report_id)
++    report = mapped_messages[report_id]
+     assert report['text'] == notification['payload']
+-    assert report['metadata']['vis38_native']['operation_id'] == notification['native_context']['operation_id']
++    assert report['metadata']['vis38_native']['operation_id'] == notification['operation_id']
+     report_index = mapping['transfer']['messages'].index(report)
+-    assert mapping['transfer']['messages'][report_index + 1]['id'] == 'msg_vis38_native_' + notification['native_context']['messages'][-1]['id']
++    assert mapping['transfer']['messages'][report_index + 1]['id'] == 'msg_vis38_native_' + notification['before_message_id']
++assert {identity for identity in mapped_messages if identity.startswith('msg_vis38_dcp_')} == expected_reports
+ 
+ capture_evidence = read(native / ('native-capture-' + stage + '.json'))
+ assert capture_evidence['exit_code'] == 0
+diff --git a/scripts/tui_capture/dcp_native_qualify.py b/scripts/tui_capture/dcp_native_qualify.py
+index 8218add3c..ab3c04e8e 100644
+--- a/scripts/tui_capture/dcp_native_qualify.py
++++ b/scripts/tui_capture/dcp_native_qualify.py
+@@ -25,10 +25,19 @@ parser.add_argument('--output', required=True, type=Path)
+ parser.add_argument('--default-detail-only', action='store_true',
+                     help='Match supported display settings; capture only recompression at three sizes, without extra controls; summaries off unless --show-compression')
+ parser.add_argument('--show-compression', action='store_true',
+-                    help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
++                     help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
++parser.add_argument('--comparable-controls', action='store_true',
++                    help='Match supported display settings; capture only real reopened minimal/off/toast controls at three sizes')
++parser.add_argument('--control-continuations', type=int, choices=range(4), default=0,
++                    help='Perform this many additional real reopened continuations before comparable controls; preserve all frozen runs')
+ args = parser.parse_args()
++if args.comparable_controls and args.default_detail_only:
++    parser.error('--comparable-controls and --default-detail-only are mutually exclusive')
++if args.control_continuations and not args.comparable_controls:
++    parser.error('--control-continuations requires --comparable-controls')
+ if args.show_compression and not args.default_detail_only:
+     parser.error('--show-compression requires --default-detail-only')
++comparable_display = args.default_detail_only or args.comparable_controls
+ show_compression = not args.default_detail_only or args.show_compression
+ repo = Path(__file__).resolve().parents[2]
+ output = args.output.resolve()
+@@ -65,7 +74,7 @@ def observe():
+             wanted = ('messages', 'conversation_messages', 'compression_blocks', 'compression_members',
+                       'prune_marks', 'tool_operations', 'dcp_run_views', 'dcp_accounting',
+                       'dcp_coverage', 'dcp_run_identity')
+-            if args.default_detail_only:
++            if comparable_display:
+                 wanted += ('sessions', 'turns', 'turn_acceptances')
+             views = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='view'")}
+             data = {name: [dict(r) for r in connection.execute(f'SELECT * FROM "{name}" LIMIT 101')]
+@@ -202,7 +211,7 @@ config = {'model': 'fixture/vis38-native-model', 'plugin': ['@tarquinen/opencode
+                   'minContextLimit': 1000000, 'maxContextLimit': 1000000},
+     'strategies': {'deduplication': {'enabled': False}, 'purgeErrors': {'enabled': False}}}))
+ cli = {'session': {'sidebar': 'hide', 'tps': False}, 'tabs': {'layout': 'horizontal'}}
+-if args.default_detail_only:
++if comparable_display:
+     display_config = json.loads((project / 'dcp.jsonc').read_text())
+     display_config['compress']['showCompression'] = show_compression
+     (project / 'dcp.jsonc').write_text(json.dumps(display_config))
+@@ -219,7 +228,10 @@ commands, checks = [], []
+ result = {'status': 'IN_PROGRESS', 'qualification': 'Actual native compression/continuation and durable typed snapshot, independent of display reference',
+            'oc_binary_sha256': binary_sha256, 'parent_released_sha256': args.released_sha256,
+            'build_source_association': 'Explicit parent-attested digest; parent retains build/source proof',
+-           'capture_selection': {'recompression_only': args.default_detail_only, 'show_compression': show_compression},
++            'capture_selection': {'recompression_only': args.default_detail_only,
++                                  'comparable_controls_only': args.comparable_controls,
++                                  'control_continuations': args.control_continuations,
++                                  'show_compression': show_compression},
+            'source_HEAD': subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=repo, capture_output=True, text=True, check=True).stdout.strip(),
+             'checks': checks, 'display_cases': [], 'not_qualified': ['failure/cancel/no-gain', 'Undo/Redo routing', 'bounded archive/resources', 'live ToolCallFinished publication / public ToolOpView DTO equality']}
+ 
+@@ -252,6 +264,8 @@ def capture_stage(label, context_file, run_snapshot, display=None):
+     global stage
+     if args.default_detail_only and label != 'recompression':
+         return
++    if args.comparable_controls and label not in ('minimal', 'off', 'toast'):
++        return
+     display = display or {'notification': 'detailed', 'channel': 'chat', 'show_compression': show_compression}
+     observation = observe()
+     canonical = sorted(rows(observation, 'conversation_messages'), key=lambda r: r['seq'])
+@@ -403,6 +417,19 @@ try:
+     assert all(r in rows(restarted, 'messages') for r in rows(committed, 'messages')), 'Restart changed raw history'
+     checks.append({'stage': 'restart', 'requests': 1, 'typed_runs_unchanged': True, 'raw_history_preserved': True})
+     capture_stage('restart', 'restart-snapshot.json', snapshot)
++    control_context = 'restart-snapshot.json'
++    for index in range(args.control_continuations):
++        before_continuation = restarted
++        label = f'control-continuation-{index + 1}'
++        restarted, requests = run(label, f'VIS38 reopened continuation {index + 1}: keep saved requirements and frozen compression reports; do not replay tools.')
++        assert len(requests) == 1
++        assert rows(restarted, 'dcp_run_views') == stable
++        assert rows(restarted, 'dcp_accounting') == rows(before_continuation, 'dcp_accounting')
++        assert all(r in rows(restarted, 'messages') for r in rows(before_continuation, 'messages'))
++        assert len(rows(restarted, 'messages')) == len(rows(before_continuation, 'messages')) + 2
++        checks.append({'stage': label, 'requests': 1, 'typed_runs_unchanged': True,
++                       'accounting_unchanged': True, 'raw_history_preserved': True})
++        control_context = label + '-snapshot.json'
+     dcp_file = project / 'dcp.jsonc'
+     original_config = json.loads(dcp_file.read_text())
+     controls = [] if args.default_detail_only else [('minimal', {'notification': 'minimal', 'channel': 'chat', 'show_compression': True}),
+@@ -416,7 +443,7 @@ try:
+         configured['compress']['showCompression'] = display['show_compression']
+         dcp_file.write_text(json.dumps(configured))
+         save('control-' + label + '-config.json', configured)
+-        capture_stage(label, 'restart-snapshot.json', snapshot, display)
++        capture_stage(label, control_context, snapshot, display)
+     dcp_file.write_text(json.dumps(original_config))
+     save('native-tui-spec.json', {'binary': str(args.oc), 'origin': 'oc', 'session': session, 'isolated_root': str(root),
+                                 'argv': [str(args.oc), 'tui', '--session', session], 'cwd': str(project), 'env': env,
+diff --git a/crates/oc/tests/support/screen.rs b/crates/oc/tests/support/screen.rs
+new file mode 100644
+index 000000000..bc732d7de
+--- /dev/null
++++ b/crates/oc/tests/support/screen.rs
+@@ -0,0 +1,163 @@
++//! Shared bounded text-screen reconstruction for actual native PTY assertions.
++//! Styled-cell/PNG acceptance uses the independent pinned browser frontend.
++
++pub(super) struct Screen {
++    pub(super) cells: Vec<Vec<char>>,
++    pub(super) cursor: (usize, usize),
++}
++
++impl Screen {
++    fn blank() -> Self {
++        Self {
++            cells: Vec::new(),
++            cursor: (0, 0),
++        }
++    }
++
++    fn ensure(&mut self, row: usize, col: usize) {
++        while self.cells.len() <= row {
++            self.cells.push(Vec::new());
++        }
++        if self.cells[row].len() <= col {
++            self.cells[row].resize(col + 1, ' ');
++        }
++    }
++
++    fn put(&mut self, row: usize, col: usize, ch: char) {
++        if row >= 200 || col >= 400 {
++            return;
++        }
++        self.ensure(row, col);
++        self.cells[row][col] = ch;
++    }
++
++    fn clear_line_from(&mut self, row: usize, col: usize) {
++        if row < self.cells.len() {
++            for cell in self.cells[row].iter_mut().skip(col) {
++                *cell = ' ';
++            }
++        }
++    }
++
++    pub(super) fn rows(&self) -> Vec<String> {
++        self.cells
++            .iter()
++            .map(|row| row.iter().collect::<String>().trim_end().to_string())
++            .collect()
++    }
++}
++
++/// Rebuild the final screen grid from raw PTY bytes. Cursor addressing and
++/// retained spaces remain meaningful; raw VT byte adjacency does not.
++pub(super) fn render_screen(buf: &[u8]) -> Screen {
++    let text = String::from_utf8_lossy(buf);
++    let mut screen = Screen::blank();
++    let (mut row, mut col) = (0usize, 0usize);
++    let mut saved = (0usize, 0usize);
++    let bytes = text.as_bytes();
++    let chars: Vec<(char, usize)> = {
++        let mut out = Vec::new();
++        let mut j = 0;
++        while j < bytes.len() {
++            let ch = text[j..].chars().next().unwrap_or('\u{FFFD}');
++            out.push((ch, ch.len_utf8()));
++            j += ch.len_utf8();
++        }
++        out
++    };
++    let mut k = 0;
++    while k < chars.len() {
++        let (ch, _) = chars[k];
++        if ch == '\x1b' {
++            if k + 1 < chars.len() && chars[k + 1].0 == '[' {
++                let mut p = k + 2;
++                let mut params = String::new();
++                while p < chars.len() && !('@'..='\x7e').contains(&chars[p].0) {
++                    params.push(chars[p].0);
++                    p += 1;
++                }
++                if p >= chars.len() {
++                    break;
++                }
++                let final_ = chars[p].0;
++                p += 1;
++                let nums: Vec<usize> = params
++                    .trim_matches(|c| c == '?' || c == ' ')
++                    .split(';')
++                    .filter_map(|s| s.parse().ok())
++                    .collect();
++                let n = nums.first().copied().unwrap_or(1).max(1);
++                let m = nums.get(1).copied().unwrap_or(1).max(1);
++                match final_ {
++                    'H' | 'f' => {
++                        row = n.saturating_sub(1);
++                        col = m.saturating_sub(1);
++                    }
++                    'A' => row = row.saturating_sub(n),
++                    'B' => row += n,
++                    'C' => col += n,
++                    'D' => col = col.saturating_sub(n),
++                    'K' => {
++                        if params.starts_with('2') {
++                            if row < screen.cells.len() {
++                                for cell in screen.cells[row].iter_mut() {
++                                    *cell = ' ';
++                                }
++                            }
++                        } else if params.starts_with('1') {
++                            if row < screen.cells.len() {
++                                let end = col.min(screen.cells[row].len());
++                                for cell in screen.cells[row].iter_mut().take(end) {
++                                    *cell = ' ';
++                                }
++                            }
++                        } else {
++                            screen.clear_line_from(row, col);
++                        }
++                    }
++                    'J' => {
++                        if params.starts_with('2') {
++                            screen = Screen::blank();
++                        } else {
++                            screen.clear_line_from(row, col);
++                        }
++                    }
++                    's' => saved = (row, col),
++                    'u' => (row, col) = saved,
++                    _ => {}
++                }
++                k = p;
++                continue;
++            }
++            if k + 1 < chars.len() && chars[k + 1].0 == ']' {
++                let mut p = k + 2;
++                while p < chars.len() {
++                    if chars[p].0 == '\x07' {
++                        p += 1;
++                        break;
++                    }
++                    if chars[p].0 == '\x1b' && p + 1 < chars.len() && chars[p + 1].0 == '\\' {
++                        p += 2;
++                        break;
++                    }
++                    p += 1;
++                }
++                k = p;
++                continue;
++            }
++            k += 2;
++            continue;
++        }
++        match ch {
++            '\r' => col = 0,
++            '\n' => row += 1,
++            _ => {
++                screen.put(row, col, ch);
++                col += 1;
++            }
++        }
++        k += 1;
++    }
++    screen.cursor = (row, col);
++    screen
++}

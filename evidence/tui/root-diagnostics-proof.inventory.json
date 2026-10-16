@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "335cc6440d3b5793eaaa92b0616cd4ad57675baf9f0e2374bae4b14ed016b0cf",
+  "archive_bytes": 1890280,
+  "tar_sha256": "a86445447cca3b603917eca1e35a387f04768e7fe76de8c7f29973b84fb138d0",
+  "tar_bytes": 56770560,
+  "inventory": {
+    "members": 282,
+    "logical_bytes": 59101191,
+    "member_inventory_sha256": "78b9047cbfafb182abb4b1f470f67f5142921f65c13713f2a006824336c6333d",
+    "same_side_png_aliases": 5
+  },
+  "source_roots": {
+    "diagnostic-before": "/home/opencode/.cache/opencode-tmp/opencode/root-loss-diagnostic-001",
+    "diagnostic-after": "/home/opencode/.cache/opencode-tmp/opencode/root-loss-diagnostic-002",
+    "probe-first": "/home/opencode/.cache/opencode-tmp/opencode/root-current-001/inventory",
+    "probe-second": "/home/opencode/.cache/opencode-tmp/opencode/root-current-002/inventory"
+  },
+  "producer_reports": [
+    {
+      "episode": "diagnostic-before",
+      "captures": 8,
+      "current_source": false,
+      "comparisons": {
+        "DIFFERENT": 8
+      },
+      "native_executable_sha256": "a969d55f21d2af36f533f4cd160d29a5579226ed4dd1332e4371fe970bca1b4e"
+    },
+    {
+      "episode": "diagnostic-after",
+      "captures": 8,
+      "current_source": false,
+      "comparisons": {
+        "EQUAL": 2,
+        "DIFFERENT": 6
+      },
+      "native_executable_sha256": "b5edb03ae109f1ce394ded5d4424192f55828ff3c918693585bb1469c0f611ad"
+    },
+    {
+      "episode": "probe-first",
+      "captures": 6,
+      "current_source": false,
+      "comparisons": {
+        "EQUAL": 2,
+        "DIFFERENT": 4
+      },
+      "native_executable_sha256": "d9a702e1a5f28c61084a5223b35a54fffd577b568bacfed13dea04d736c2174c"
+    },
+    {
+      "episode": "probe-second",
+      "captures": 14,
+      "current_source": false,
+      "comparisons": {
+        "EQUAL": 2,
+        "DIFFERENT": 10,
+        "BLOCKED": 4
+      },
+      "native_executable_sha256": "d9a702e1a5f28c61084a5223b35a54fffd577b568bacfed13dea04d736c2174c"
+    }
+  ],
+  "retainer_source_sha256": "8e921fb85ebb968b99e5b767e6f75bf764be53f3bb9da5a0fb9c83b75ce5c640"
+}

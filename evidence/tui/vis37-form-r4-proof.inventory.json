@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "6e30ed8195c5898067ce7a31f9b4e35dfd9c2c7656a35da91c69ac610d117ddb",
+  "archive_bytes": 1913176,
+  "tar_sha256": "4e5332f5d8fb3fda1f21011f757334c1a134dd9fe9c457847d4229a0e429512c",
+  "tar_bytes": 53002240,
+  "inventory": {
+    "members": 665,
+    "logical_bytes": 53495947,
+    "member_inventory_sha256": "1d55e6e80dfc9c5815e7a387b799b7c2f6df1a4d97d3674ae7d0551a4e09fe90",
+    "same_side_png_aliases": 28
+  },
+  "source_roots": {
+    "current-small": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-004/small",
+    "current-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-004/wide",
+    "current-tall": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-004/tall",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-004",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-capture-r4.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "current-small",
+      "captures": 34,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-wide",
+      "captures": 34,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-tall",
+      "captures": 34,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    }
+  ],
+  "retainer_source_sha256": "d869c2eaaffd9dd99a4428114ae4b67f0f9b6d1c975342bb3bb5d51664db3c7f"
+}

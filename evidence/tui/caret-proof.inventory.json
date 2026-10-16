@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "a5feb469d1411d6a2631b1dcad51aaf79a1396acb52bd59d3e76804a1a842d42",
+  "archive_bytes": 812072,
+  "tar_sha256": "9bf567f521567af740b359b5a3d2acbbefa185479a0bac0f4a824616d6054ee0",
+  "tar_bytes": 36075520,
+  "inventory": {
+    "members": 992,
+    "logical_bytes": 40917078,
+    "member_inventory_sha256": "8196fc4575e439dd4abf733310373648a939b8b2a602d928e9a52ab91396ee08",
+    "same_side_png_aliases": 137
+  },
+  "source_roots": {
+    "temporal": "/home/opencode/.cache/opencode-tmp/opencode/caret-current-001/temporal",
+    "matched": "/home/opencode/.cache/opencode-tmp/opencode/caret-current-001/matched"
+  },
+  "producer_reports": [
+    {
+      "episode": "temporal",
+      "captures": 160,
+      "comparisons": {
+        "DIFFERENT": 160
+      }
+    }
+  ],
+  "retainer_source_sha256": "a9dd5461a79bbcc9f356baf3210747bd69fdb076d64be723e40605156df60034"
+}

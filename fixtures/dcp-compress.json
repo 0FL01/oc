@@ -1,0 +1,47 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "Opencode-DCP/opencode-dynamic-context-pruning",
+    "commit": "11f6517780a502512a3467645074be447cb0369e",
+    "package": "@tarquinen/opencode-dcp@3.1.15",
+    "paths": [
+      "lib/compress/range.ts",
+      "lib/compress/range-utils.ts",
+      "lib/compress/protected-content.ts"
+    ],
+    "license": "AGPL-3.0-or-later",
+    "upstream_sha256": {
+      "range.ts": "043fba72da4262c26c5c360dddbbbf123a8148a892b96c15495286fd04e69c97",
+      "range-utils.ts": "ed6d1158f06ce268328c481ac69d0bdaf5f9017eb7c9012233976072f95dc9ef",
+      "protected-content.ts": "612196d5a4dd897ab054aa2e4e5c379ed0e89e7db5a818bfe0d631127afaae8c"
+    },
+    "normalization": "Behavioral contracts transcribed (exact headings, placeholder forms, validation rules); no implementation copied. See docs/DCP.md [D1].",
+    "executable_baseline": "not-executed; representative contract fixture only"
+  },
+  "description": "Upstream-derived compress contracts for T18 regression tests.",
+  "range_tool_boundaries": {
+    "topic_required_nonempty": true,
+    "content_nonempty_array": true,
+    "entry_ids": ["startId", "endId"],
+    "entry_summary_required": true,
+    "ids_may_reference": ["messages", "compressed blocks (bN)"]
+  },
+  "non_overlapping_batches": {
+    "rule": "overlapping ranges in one batch are rejected with per-entry diagnostics",
+    "overlap_allowed_across_batches": "via block placeholders, validated against required ids"
+  },
+  "block_placeholders": {
+    "forms": ["(bN)", "{block_N}"],
+    "example": "see (b2) and {block_12} done"
+  },
+  "protected_content": {
+    "user_heading": "The following user messages were sent in this conversation verbatim:",
+    "prompt_heading": "The following protected prompt information was included in this conversation verbatim:",
+    "tools_heading": "The following protected tools were used in this conversation as well:",
+    "tag_pattern": "<protect>([\\s\\S]*?)</protect> (case-insensitive)",
+    "tool_hooks": ["isToolNameProtected", "isFilePathProtected", "getFilePathsFromParameters"]
+  },
+  "nested": {
+    "rule": "summaries may link older blocks; expansion is bounded (depth/bytes), cycles are errors, never lossy stubs"
+  }
+}

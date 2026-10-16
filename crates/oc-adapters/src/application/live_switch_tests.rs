@@ -1,0 +1,728 @@
+use super::*;
+use oc_core::queries::SessionSelectionAction as Action;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+#[tokio::test]
+async fn go03_effort_selection_ack_is_atomic_noop_safe_and_not_history_text() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(project.join("opencode.json"),serde_json::json!({
+        "model":"fixture/m","providers":{"fixture":{"settings":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic","reasoningEffort":"high"},"models":{"m":{"variants":[{"id": "low", "settings": {"reasoningEffort": "low"}}]}}}}
+    }).to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(
+        &project,
+        &data,
+        BTreeMap::from([(
+            "HOME".into(),
+            root.path().join("home").to_string_lossy().into_owned(),
+        )]),
+    )
+    .await
+    .unwrap();
+    let session = SessionId::new("effort-choice").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    for variant in [Some("low"), Some("low"), None] {
+        app.session_selection(
+            session.clone(),
+            false,
+            Action::Variant(variant.map(str::to_owned)),
+        )
+        .await
+        .unwrap();
+    }
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    let snapshot: Vec<(String, String)> = conn
+        .prepare("SELECT key,value FROM prefs ORDER BY key")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    conn.execute_batch("CREATE TRIGGER refuse_effort BEFORE INSERT ON events WHEN NEW.kind='session_model_selected' BEGIN SELECT RAISE(ABORT,'synthetic'); END;").unwrap();
+    assert!(
+        app.session_selection(session.clone(), false, Action::Variant(Some("low".into())))
+            .await
+            .is_err()
+    );
+    let after: Vec<(String, String)> = conn
+        .prepare("SELECT key,value FROM prefs ORDER BY key")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(snapshot, after);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let db = Db::open(&data).unwrap();
+    assert!(db.read_history_full("effort-choice").unwrap().is_empty());
+    let facts = db.effort_facts("effort-choice", 0).unwrap();
+    assert_eq!(facts.len(), 2);
+    assert!(
+        matches!(&facts[0].item,crate::provider::InputItem::EffortUpdate { effort:Some(effort),previous:Some(previous),.. } if effort=="low" && previous=="high")
+    );
+    assert!(
+        matches!(&facts[1].item,crate::provider::InputItem::EffortUpdate { effort:Some(effort),previous:Some(previous),.. } if effort=="high" && previous=="low")
+    );
+}
+
+#[tokio::test]
+async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() {
+    for ask in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        std::fs::write(project.join("opencode.json"),serde_json::json!({
+        "model":"fixture/gpt-fixture", "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"dummy"},
+        "models":{"gpt-fixture":{"compatibility":{"supportsEffortUpdates":true},"limit":{"context":100000,"output":10000}},"text-fixture":{"settings":{"reasoningEffort":"low"},"compatibility":{"supportsEffortUpdates":true},"limit":{"context":50000,"output":2000}}}}},
+        "permissions": [{"action": "*", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": if ask {"ask"} else {"allow"}}]
+    }).to_string()).unwrap();
+        let (arrived, arrival) = tokio::sync::oneshot::channel();
+        let (release, gate) = tokio::sync::oneshot::channel();
+        let (second, second_arrival) = tokio::sync::oneshot::channel();
+        let (release_second, second_gate) = tokio::sync::oneshot::channel();
+        let posts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let posted = posts.clone();
+        let server = tokio::spawn(async move {
+            let mut requests = Vec::new();
+            let mut arrived = Some(arrived);
+            let mut gate = Some(gate);
+            let mut second = Some(second);
+            let mut second_gate = Some(second_gate);
+            for step in 0..3 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut bytes = Vec::new();
+                let mut buf = [0; 4096];
+                let boundary = loop {
+                    let n = stream.read(&mut buf).await.unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&buf[..n]);
+                    if let Some(i) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                        break i + 4;
+                    }
+                };
+                let headers = String::from_utf8_lossy(&bytes[..boundary]);
+                let length = headers
+                    .lines()
+                    .find_map(|line| {
+                        line.to_ascii_lowercase()
+                            .strip_prefix("content-length:")
+                            .map(|v| v.trim().parse::<usize>().unwrap())
+                    })
+                    .unwrap();
+                assert!(length <= 1_048_576);
+                while bytes.len() < boundary + length {
+                    let n = stream.read(&mut buf).await.unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&buf[..n]);
+                }
+                requests.push(
+                    serde_json::from_slice::<serde_json::Value>(
+                        &bytes[boundary..boundary + length],
+                    )
+                    .unwrap(),
+                );
+                posted.fetch_add(1, Ordering::SeqCst);
+                if step == 0 {
+                    arrived.take().unwrap().send(()).unwrap();
+                    gate.take().unwrap().await.unwrap();
+                }
+                if step == 1 {
+                    second.take().unwrap().send(()).unwrap();
+                    second_gate.take().unwrap().await.unwrap();
+                }
+                let output = if step == 0 {
+                    serde_json::json!([{"type":"reasoning","id":"a-reasoning","encrypted_content":"A-opaque","summary":[]},{"type":"message","role":"assistant","content":[{"type":"output_text","text":"A prepared"}]},{"type":"function_call","id":"a-item","call_id":"a-call","name":"apply_patch","arguments":serde_json::json!({"patchText":"*** Begin Patch\n*** Add File: file\n+once\n*** End Patch"}).to_string()}])
+                } else if step == 1 {
+                    serde_json::json!([{"type":"reasoning","id":"b-reasoning","encrypted_content":"B-opaque","summary":[]},{"type":"message","role":"assistant","content":[{"type":"output_text","text":"B prepared"}]},{"type":"function_call","id":"b-item","call_id":"b-call","name":"edit","arguments":serde_json::json!({"path":"file","oldString":"once","newString":"twice"}).to_string()},{"type":"function_call","id":"b-job-item","call_id":"b-job","name":"shell","arguments":serde_json::json!({"command":"printf effect > background-provenance","background":true}).to_string()}])
+                } else {
+                    serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}])
+                };
+                let event = serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output}});
+                let body = format!("data: {event}\n\n");
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
+            }
+            requests
+        });
+        let env = BTreeMap::from([
+            (
+                "HOME".into(),
+                root.path().join("home").to_string_lossy().into_owned(),
+            ),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]);
+        let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
+        if ask {
+            app.register_approval_consumer(false).await.unwrap();
+        }
+        let session = SessionId::new("busy-switch").unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        app.rename_session(session.clone(), "fixed".into())
+            .await
+            .unwrap();
+        let mut events = app.subscribe();
+        let _turn = app
+            .submit(session.clone(), "one task".into())
+            .await
+            .unwrap();
+        arrival.await.unwrap();
+        for action in [
+            oc_core::queries::CustomProviderAction::Probe {
+                input: oc_core::queries::CustomProviderInput {
+                    name: "Must not publish during an issued request".into(),
+                    base_url: "http://127.0.0.1:1/never".into(),
+                    auth: oc_core::queries::CustomProviderAuth::Anonymous,
+                },
+                cancel: Arc::new(AtomicBool::new(false)),
+            },
+            oc_core::queries::CustomProviderAction::Save {
+                revision: u64::MAX,
+                protocol: oc_core::queries::NativeProtocol::Chat,
+            },
+            oc_core::queries::CustomProviderAction::Refresh {
+                provider: "custom-unissued".into(),
+            },
+        ] {
+            assert_eq!(
+                app.custom_provider(action).await,
+                Err(oc_core::session::CoreError::TurnBusy)
+            );
+        }
+        assert_eq!(
+            app.provider_accounts(
+                "fixture".into(),
+                Some(oc_core::queries::AccountAction::AddKey {
+                    label: "Must not mutate".into(),
+                    key: oc_core::queries::KeyInput::new("BUSY_ACCOUNT_CANARY".into()),
+                })
+            )
+            .await,
+            Err(oc_core::session::CoreError::TurnBusy),
+        );
+        assert!(
+            app.provider_accounts("fixture".into(), None)
+                .await
+                .unwrap()
+                .accounts
+                .is_empty()
+        );
+        let mut release = Some(release);
+        let approval = if ask {
+            release.take().unwrap().send(()).unwrap();
+            Some(next_approval(&app).await)
+        } else {
+            None
+        };
+        let committed = app
+            .session_selection(session.clone(), false, Action::Model("text-fixture".into()))
+            .await;
+        if let Some(approval) = approval {
+            assert_eq!(posts.load(Ordering::SeqCst), 1);
+            assert!(!project.join("file").exists());
+            assert_eq!(approval.resources, ["file"]);
+            app.reply_approval(oc_core::approval::ApprovalReply {
+                id: approval.id,
+                binding: approval.binding,
+                decision: oc_core::approval::ApprovalDecision::Once,
+            })
+            .await
+            .unwrap();
+        } else {
+            release.take().unwrap().send(()).unwrap();
+        }
+        second_arrival.await.unwrap();
+        let returned = app
+            .session_selection(session.clone(), false, Action::Model("gpt-fixture".into()))
+            .await
+            .unwrap();
+        assert_eq!(returned.model_id, "gpt-fixture");
+        release_second.send(()).unwrap();
+        if ask {
+            let approval = next_approval(&app).await;
+            assert_eq!(posts.load(Ordering::SeqCst), 2);
+            assert_eq!(std::fs::read(project.join("file")).unwrap(), b"once\n");
+            app.reply_approval(oc_core::approval::ApprovalReply {
+                id: approval.id,
+                binding: approval.binding,
+                decision: oc_core::approval::ApprovalDecision::Once,
+            })
+            .await
+            .unwrap();
+        }
+        let requests = server.await.unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            loop {
+                match events.recv().await.unwrap() {
+                    CoreEvent::TurnFinished { .. } => break,
+                    CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                    _ => {}
+                }
+            }
+        })
+        .await
+        .unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            while !project.join("background-provenance").exists() {
+                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        assert_eq!(committed.unwrap().model_id, "text-fixture");
+        assert_eq!(requests[0]["model"], "gpt-fixture");
+        assert_eq!(requests[1]["model"], "text-fixture");
+        assert_eq!(requests[2]["model"], "gpt-fixture");
+        assert!(
+            requests[0]["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|item| item["type"] != "configuration_update")
+        );
+        assert!(requests[1]["reasoning"].get("effort").is_none());
+        let updates = |request: &serde_json::Value| {
+            request["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|item| item["type"] == "configuration_update")
+                .map(|item| item["reasoning"]["effort"].as_str().unwrap().to_owned())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(updates(&requests[1]), ["low"]);
+        assert_eq!(updates(&requests[2]), ["low", "medium"]);
+        assert_eq!(std::fs::read(project.join("file")).unwrap(), b"twice\n");
+        assert!(
+            requests[1]["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|i| i["call_id"] == "a-call" && i["type"] == "function_call_output")
+        );
+        assert!(!requests[1].to_string().contains("A-opaque"));
+        assert!(!requests[2].to_string().contains("B-opaque"));
+        assert!(
+            requests[2]["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|i| i["call_id"] == "b-call" && i["type"] == "function_call_output")
+        );
+        let db = Db::open(&data).unwrap();
+        assert!(db.custom_providers().unwrap().is_empty());
+        let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+        assert_eq!(
+            std::fs::read(project.join("background-provenance")).unwrap(),
+            b"effect"
+        );
+        let provenance: String = conn
+            .query_row(
+                "SELECT provenance ->> '$.model' FROM shell_jobs",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            provenance, "text-fixture",
+            "issued B work remains B after A commits"
+        );
+        let raw: String = conn
+            .query_row(
+                "SELECT result FROM turns WHERE session_id='busy-switch' AND status='completed'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+        assert_eq!(
+            log.input
+                .iter()
+                .filter(|item| matches!(item, crate::provider::InputItem::EffortUpdate { .. }))
+                .count(),
+            2
+        );
+        assert_eq!(
+            log.requests
+                .iter()
+                .map(|r| r.model.id.as_str())
+                .collect::<Vec<_>>(),
+            ["gpt-fixture", "text-fixture", "gpt-fixture"]
+        );
+        assert_eq!(
+            log.requests
+                .iter()
+                .map(|r| r.output_limit)
+                .collect::<Vec<_>>(),
+            [4096, 2000, 4096]
+        );
+        // T45/R10 consumer of the same receipts: model-relative DCP budget and
+        // managed file-tool guidance follow each request's committed model.
+        assert_eq!(
+            log.requests
+                .iter()
+                .map(|r| (r.context_limit, r.dcp_min_context, r.dcp_max_context))
+                .collect::<Vec<_>>(),
+            [
+                (100000, 40000, 55000),
+                (50000, 20000, 27500),
+                (100000, 40000, 55000)
+            ]
+        );
+        let guidance = |request: &serde_json::Value| {
+            let items: Vec<String> = request["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|item| item.to_string())
+                .filter(|text| text.contains("Current request file-mutation tools"))
+                .collect();
+            assert_eq!(items.len(), 1, "{items:?}");
+            items[0].clone()
+        };
+        assert!(guidance(&requests[0]).contains("tools: apply_patch."));
+        assert!(guidance(&requests[1]).contains("tools: write, edit."));
+        assert!(guidance(&requests[2]).contains("tools: apply_patch."));
+        assert_eq!(
+            requests[0]["input"][0], requests[1]["input"][0],
+            "one shared base prompt lane across the model switch"
+        );
+        assert_ne!(
+            log.requests[0].tool_fingerprint,
+            log.requests[1].tool_fingerprint
+        );
+        assert_eq!(
+            log.requests[0].tool_fingerprint,
+            log.requests[2].tool_fingerprint
+        );
+        let view = db
+            .turn_presentation("busy-switch", &log.turn_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(view.parts.len(), 6);
+        assert!(view.part_states.iter().all(|p| p.model_label.is_some()));
+    }
+}
+
+#[tokio::test]
+async fn hot01_automatic_source_keeps_accepted_primary_and_pending_issued_approval() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::write(
+        project.join("note"),
+        "G1_FIRST\nG1_SECOND\nG1_SETTLED_LAST\n",
+    )
+    .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/v1", listener.local_addr().unwrap());
+    let path = project.join("opencode.json");
+    let mut source = serde_json::json!({
+        "model":"fixture/exact", "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"synthetic"},"models":{"exact":{}}}},
+        "agents":{"build":{"system":"DEFAULT_BUILD_MUST_NOT_REPLACE_REVIEW"},"review":{"mode":"primary","description":"REVIEW_G1","system":"REVIEW_G1"}},
+        "permissions":[{"action": "read", "resource": "*", "effect": "ask"}], "tool_output":{"max_lines":10},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
+    });
+    std::fs::write(&path, source.to_string()).unwrap();
+    let (arrived, arrival) = oneshot::channel();
+    let (release, gate) = oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let mut requests = Vec::new();
+        let mut arrived = Some(arrived);
+        let mut gate = Some(gate);
+        for step in 0..2 {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut bytes = Vec::new();
+            let mut buffer = [0; 4096];
+            let boundary = loop {
+                let count = stream.read(&mut buffer).await.unwrap();
+                assert!(count > 0);
+                bytes.extend_from_slice(&buffer[..count]);
+                if let Some(end) = bytes.windows(4).position(|bytes| bytes == b"\r\n\r\n") {
+                    break end + 4;
+                }
+            };
+            let length = String::from_utf8_lossy(&bytes[..boundary])
+                .lines()
+                .find_map(|line| {
+                    line.to_ascii_lowercase()
+                        .strip_prefix("content-length:")
+                        .map(|length| length.trim().parse::<usize>().unwrap())
+                })
+                .unwrap();
+            assert!(length <= 1_048_576);
+            while bytes.len() < boundary + length {
+                let count = stream.read(&mut buffer).await.unwrap();
+                assert!(count > 0);
+                bytes.extend_from_slice(&buffer[..count]);
+            }
+            requests.push(
+                serde_json::from_slice::<serde_json::Value>(&bytes[boundary..boundary + length])
+                    .unwrap(),
+            );
+            if step == 0 {
+                arrived.take().unwrap().send(()).unwrap();
+                gate.take().unwrap().await.unwrap();
+            }
+            let output = if step == 0 {
+                serde_json::json!([
+                    {"type":"function_call","id":"read-item","call_id":"issued-read","name":"read","arguments":"{\"path\":\"note\"}"},
+                    {"type":"function_call","id":"question-item","call_id":"issued-question","name":"question","arguments":"{\"questions\":[{\"question\":\"Retain G1?\",\"header\":\"G1\",\"options\":[]}]}","status":"completed"}
+                ])
+            } else {
+                serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}])
+            };
+            let event = serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output}});
+            let body = format!("data: {event}\n\n");
+            stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
+        }
+        requests
+    });
+    let (app, guard, _) = spawn_with_env(
+        &project,
+        &data,
+        BTreeMap::from([
+            (
+                "HOME".into(),
+                root.path().join("home").to_string_lossy().into_owned(),
+            ),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]),
+    )
+    .await
+    .unwrap();
+    app.register_approval_consumer(false).await.unwrap();
+    app.register_question_consumer().await.unwrap();
+    let session = SessionId::new("auto-review").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    app.rename_session(session.clone(), "fixed".into())
+        .await
+        .unwrap();
+    app.session_selection(session.clone(), false, Action::Agent("review".into()))
+        .await
+        .unwrap();
+    let mut events = app.subscribe();
+    app.submit(session.clone(), "one autonomous task".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(3), arrival)
+        .await
+        .unwrap()
+        .unwrap();
+    let first_generation = app.catalog().await.unwrap().chrome.selection_generation;
+    {
+        let label = "REVIEW_G2";
+        source["agents"]["review"]["system"] = label.into();
+        source["agents"]["review"]["description"] = label.into();
+        source["permissions"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({"action":"read","resource":"*","effect":"deny"}));
+        source["tool_output"]["max_lines"] = 1.into();
+        std::fs::write(&path, source.to_string()).unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            loop {
+                let catalog = app.catalog().await.unwrap();
+                if catalog
+                    .agents
+                    .iter()
+                    .any(|agent| agent.id == "review" && agent.description == label)
+                {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+    }
+    release.send(()).unwrap();
+    let approval = next_approval(&app).await;
+    source["agents"]["review"]["system"] = "REVIEW_G3".into();
+    source["agents"]["review"]["description"] = "REVIEW_G3".into();
+    std::fs::write(&path, source.to_string()).unwrap();
+    app.reload_location().await.unwrap();
+    assert_eq!(
+        app.pending_approvals().await.unwrap(),
+        Vec::<oc_core::approval::ApprovalRequest>::new()
+    );
+    assert_eq!(
+        app.pending_questions().await.unwrap(),
+        Vec::<oc_core::question::QuestionRequest>::new()
+    );
+    let requests = tokio::time::timeout(std::time::Duration::from_secs(5), peer)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut reloaded = false;
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            match events.recv().await.unwrap() {
+                CoreEvent::PermissionResolved { request, decision }
+                    if request == approval
+                        && decision == oc_core::approval::ApprovalDecision::Reloaded =>
+                {
+                    reloaded = true;
+                }
+                CoreEvent::TurnFinished { .. } => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        reloaded,
+        "explicit reload must distinctly settle the issued approval"
+    );
+    let last_generation = app.catalog().await.unwrap().chrome.selection_generation;
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert!(last_generation > first_generation);
+    assert!(requests[0]["input"].to_string().contains("REVIEW_G1"));
+    let followup = requests[1]["input"].to_string();
+    assert!(followup.contains("REVIEW_G3"));
+    assert!(!followup.contains("DEFAULT_BUILD_MUST_NOT_REPLACE_REVIEW"));
+    assert!(followup.contains("reloaded"));
+    assert!(
+        !requests[1]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "read")
+    );
+    let db = Db::open(&data).unwrap();
+    let history = db.read_history_full(&session.0).unwrap();
+    assert_eq!(history.len(), 2); // one accepted user and its assistant result
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    let raw: String = conn
+        .query_row(
+            "SELECT result FROM turns WHERE session_id='auto-review' AND status='completed'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+    assert_eq!(log.requests.len(), 2);
+    assert_ne!(log.requests[0].profile, log.requests[1].profile);
+    let counts: (i64, i64) = conn
+        .query_row(
+            "SELECT count(*),sum(state='completed') FROM tool_operations",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(counts, (2, 0));
+}
+
+async fn next_approval(app: &CoreApp) -> oc_core::approval::ApprovalRequest {
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            if let Some(request) = app.pending_approvals().await.unwrap().into_iter().next() {
+                return request;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap()
+}
+
+#[tokio::test]
+async fn tool12_exact_commit_scope_noop_retired_variant_and_atomic_storage_refusal() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(project.join("opencode.json"),serde_json::json!({"model":"fixture/gpt-fixture","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic"},"models":{"gpt-fixture":{},"text-fixture":{"variants":[{"id": "low", "settings": {"reasoningEffort": "low"}}]}}}}}).to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(
+        &project,
+        &data,
+        BTreeMap::from([
+            (
+                "HOME".into(),
+                root.path().join("home").to_string_lossy().into_owned(),
+            ),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]),
+    )
+    .await
+    .unwrap();
+    let session = SessionId::new("scope").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    let current = app
+        .session_selection(session.clone(), false, Action::Current)
+        .await
+        .unwrap();
+    let mut commit = oc_core::queries::ModelCommit {
+        caller: 0,
+        binding: oc_core::queries::SelectionBinding {
+            location: current.chrome.location,
+            generation: current.chrome.selection_generation,
+            provider: current.provider,
+            agent_id: current.agent_id,
+        },
+        model_id: "text-fixture".into(),
+        variant: None,
+        draft_revision: 1,
+    };
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    app.session_selection(session.clone(), false, Action::Commit(commit.clone()))
+        .await
+        .unwrap();
+    let snapshot: Vec<(String, String, String)> = conn
+        .prepare("SELECT key,value,updated_at FROM prefs ORDER BY key")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    commit.variant = Some("default".into());
+    app.session_selection(session.clone(), false, Action::Commit(commit.clone()))
+        .await
+        .unwrap();
+    for invalid in ["generation", "agent", "location", "variant", "model"] {
+        let mut rejected = commit.clone();
+        match invalid {
+            "generation" => rejected.binding.generation += 1,
+            "agent" => rejected.binding.agent_id = Some("other".into()),
+            "location" => rejected.binding.location = Some("/other".into()),
+            "variant" => rejected.variant = Some("retired".into()),
+            _ => rejected.model_id = "retired".into(),
+        };
+        assert!(
+            app.session_selection(session.clone(), false, Action::Commit(rejected))
+                .await
+                .is_err(),
+            "{invalid}"
+        );
+    }
+    conn.execute_batch("CREATE TRIGGER refuse_model BEFORE INSERT ON events WHEN NEW.kind='session_model_selected' BEGIN SELECT RAISE(ABORT,'fixture'); END").unwrap();
+    commit.model_id = "gpt-fixture".into();
+    commit.variant = None;
+    assert!(
+        app.session_selection(session.clone(), false, Action::Commit(commit))
+            .await
+            .is_err()
+    );
+    let after: Vec<(String, String, String)> = conn
+        .prepare("SELECT key,value,updated_at FROM prefs ORDER BY key")
+        .unwrap()
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    let counts:(i64,i64,i64)=conn.query_row("SELECT (SELECT count(*) FROM events WHERE kind='session_model_selected'),(SELECT count(*) FROM events WHERE kind='generation_dispatched'),(SELECT count(*) FROM messages)",[],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_eq!(snapshot, after);
+    assert_eq!(counts, (1, 0, 0));
+}

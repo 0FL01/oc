@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "UNFILLED_TEMPLATE_NOT_EVIDENCE",
+  "upstream": {
+    "source_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+    "tag": "v2.0.12",
+    "executable_path": null,
+    "executable_sha256": null,
+    "actual_version_output": null
+  },
+  "oc": {
+    "audited_commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+    "tested_commit": null,
+    "tree_or_dirty_diff_sha256": null,
+    "executable_sha256": null
+  },
+  "terminal": {
+    "frontend": null,
+    "version": null,
+    "vt_parser": null,
+    "font_family": null,
+    "font_version": null,
+    "fallback_fonts": null,
+    "font_size": null,
+    "dpi": null,
+    "scale": null,
+    "opacity": null,
+    "padding": null,
+    "ligatures": null,
+    "columns": null,
+    "rows": null,
+    "pixel_width": null,
+    "pixel_height": null,
+    "TERM": null,
+    "COLORTERM": null,
+    "locale": null,
+    "unicode_width_policy": null
+  },
+  "settings": {
+    "theme": "opencode",
+    "mode": "dark",
+    "sidebar": null,
+    "devtools": null,
+    "channel": null,
+    "clock_and_animation_policy": null
+  },
+  "scenario": null,
+  "fixture_sha256": null,
+  "environment_id": null,
+  "raw_key_sequence": null,
+  "stable_state_predicate": null,
+  "capture_runner_version_or_commit": null,
+  "reference_capture_sha256": null,
+  "actual_capture_sha256": null
+}

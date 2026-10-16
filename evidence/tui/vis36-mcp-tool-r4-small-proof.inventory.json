@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "codec": "encoder-only USTAR/single XZ; independent manual inverse of every byte",
+  "archive_sha256": "799873f6d4f6f405a2805fbcde217345d4f1a40295bf930e5eb4025c69b10131",
+  "archive_bytes": 3070280,
+  "tar_sha256": "e61152537aacecc2f85301600b708fd4140ea7b1b6d1bb1616e404f80f196b31",
+  "tar_bytes": 65454080,
+  "inventory": {
+    "members": 634,
+    "logical_bytes": 65494503,
+    "member_inventory_sha256": "e7cd1046e8086fd58a8c90db6d4d1a3b25aaf8f19a54180a18af0751a35814df",
+    "same_side_png_aliases": 13
+  },
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 3070240,
+        "uncompressed_bytes": 65454080,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "e61152537aacecc2f85301600b708fd4140ea7b1b6d1bb1616e404f80f196b31"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 16,
+    "index_offset": 3070252
+  },
+  "source_roots": {
+    "current": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-current-004/prompt-small-r4",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-current-004",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-capture-r4.py"
+  },
+  "source_qualification": "HISTORICAL_TEST_ONLY_CLIPPY_CORRECTION",
+  "original_source_manifest_sha256": "d87402dc1db8cf064016a7e7d46154f807493241cb00cfc534e1c71b47f28644",
+  "before_sha256": "a7f52be62abd7622111bdc298f64c98b669c589dcef2637fb9db0bead6b687ca",
+  "helper_sha256": "fda1f8f6aa99c194f24b9abff16775d1ef8d756cb1d8c739c1854e4cd52c2555"
+}

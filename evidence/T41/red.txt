@@ -1,0 +1,9 @@
+# T41 RED: pre-repair explicit run of the mandatory live harness (HEAD 9e529a5)
+
+$ cargo test -p oc-adapters --test e2e_live -- --ignored --nocapture
+
+running 1 test
+BUILD_READY_LIVE_BLOCKED: set LUDKA2_API_URL, LUDKA2_API_KEY, OC_TEST_MODEL
+test live_workflow_harness ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

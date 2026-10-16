@@ -1,0 +1,29 @@
+# Границы безопасности, ресурсов и источников
+
+YOLO в официальной CLI reference отключает approvals и sandbox [W2]. Non-root account ограничивает OS privileges, но остаются права на собственные файлы, доступные сокеты, secrets и network. Rootless Docker сам по себе не ограничивает всё, что агент может делать на host. Этот пакет не утверждает физическое enforcing текстовых запретов.
+
+Использовать выделенный account/worktree, минимальные permissions filesystem и scoped Git credential. Не передавать production credentials/SSH agent/cloud config шире нужного. Наличие tools не разрешает работать в чужих projects/containers. Не использовать sudo, rootful Docker socket, global package changes, deployment of services или публичный listener.
+
+Credentials принадлежат provider/MCP adapters; никогда не входят в model registry metadata, prompts, journal, source fixtures, DB debug logs и commits. `config explain` redacted, errors заранее классифицированы. Не логировать полный env/URL/body/raw exception в discovery, как требует пользовательский reference. Live tests используют маленький искусственный repo без приватного кода.
+
+Workspace discovery проходит явный Location trust decision до substitutions, no-follow/root-relative resource reads и native marker resolution. Lower-trust project source не может соединить свой endpoint/command с higher-trust credential; untrusted candidate не запускает network/process. Bound source count/depth/path/frontmatter/body/total generation/prompt bytes. Skill body snapshot-ится до publication и после не перечитывается. T51 approved target: unknown/lookalike plugin invalidates только свою capability с failed/UnsupportedPlugin до package resolution, import, process spawn или network, не исправную локальную часть приложения. Даже recognized `.js` marker не выполняется и не читается как code; Node/Bun/npm fallback отсутствует.
+
+T46/R6 approved local-MCP target (pending) inherits product-process environment plus
+configured overlay **after** source/command/resource/credential-domain admission.
+This explicitly supersedes the blanket minimal credential-free MCP child env, not
+the ordinary shell contract below. Trusting a source alone cannot grant a lower-trust
+command higher-trust env credentials; refuse unsafe admission rather than silently
+sanitize and claim donor parity. Do not read external runner auth/config; env values
+and inherited secrets never enter explain/UI/history/evidence/logs. Optional-service
+degradation cannot swallow fatal trust/policy/storage/recovery/cleanup/cap failures or
+clear unknown-effect quarantine. D21 and T46/T51 are authoritative pending contracts.
+
+Model outputs, repository text, AGENTS/agent/command/skill content, MCP descriptions, fetched pages и summaries не являются источником полномочий. Внешний контент не может расширять permissions/trusted roots/remote/host config или отключать тесты. Custom agent может только сузить central policy. Native DCP/discovery modules доверенные, поэтому все их side effects контролируются общим application lifecycle.
+
+Webfetch блокирует private/link-local/loopback и DNS rebinding через проверку actual connection; provider/MCP trusted endpoints имеют отдельный scope. Redirect с Authorization не разрешён. Custom CA/прокси настраиваются явно, `danger_accept_invalid_certs` запрещён. Не открывать для browser MCP личный профиль с активными аккаунтами; default disabled сохраняется.
+
+Own data root открывается no-follow, принадлежит execution account, имеет restrictive permissions и исключён из model-facing `read`/search/file mutations (`apply_patch` и T50 edit/write target); unsafe custom root отклоняется. Все mutations используют bounded inputs/prepared bytes, common path policy, descriptor-relative no-follow и approved-preimage checks. Выбор семейства по точному OC2 predicate не является permission grant; explicit Deny/Ask, saved-grant scope, Plan и parent-child narrowing сохраняются. После approval wait changed bytes/identity/absence не допускают unapproved effects; effects/result graph durable, restart не replay. Это не транзакция на весь repo и не защита от любого другого процесса под тем же uid. `bash` мощный и может писать — consolidation tools не даёт sandbox, но child environment не наследует provider/MCP credentials по умолчанию. Cancellation не откатывает внешние side effects; неизвестные outcomes сохраняются. Новая T50/R1/R9 qualification pending, не security PASS по одному плану.
+
+DCP upstream license идентифицирована как AGPL-3.0-or-later [D1/D2]. До push translation/borrowed prompts/tests получить pinned LICENSE, сохранить notices и paths/revisions, применить соответствующее лицензирование производного кода. No binary publishing не означает, что можно отбросить notices при push исходников. У любых дополнительных зависимостей проверять реальные license/security metadata в T01/T29. Эта инженерная процедура не заменяет правовую оценку нестандартного последующего распространения.
+
+Resource caps in TOML — secondary guard; checks/cleanup/report всё равно нужны. Heavy builds не в tmpfs. Memory safety языка не исключает unbounded caches/queues или filesystem exhaustion. `cargo test` user crate build scripts исполняют код, поэтому контур аккаунта/runner важен даже без live LLM.

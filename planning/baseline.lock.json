@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "locked_at": "2026-09-20",
+  "opencode": {
+    "repo": "anomalyco/opencode",
+    "tag": "v2.0.10",
+    "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+    "verification": "documentary-source-recon-2026-09-20"
+  },
+  "dcp": {
+    "repo": "Tarquinen/opencode-dynamic-context-pruning",
+    "commit": "d637981555a18c3992472268a0657a948925d5fa",
+    "package": "@tarquinen/opencode-dcp",
+    "version": "3.2.0",
+    "license": "AGPL-3.0-or-later",
+    "verification": "source-delta-qualified-2026-10-05 evidence/T45/dcp320.md; previous 3.1.15 11f6517780a502512a3467645074be447cb0369e"
+  },
+  "openproxy": {
+    "repo": "0FL01/openproxy",
+    "commit": "4ef76dbce2cdbb85206cbe5e59acbad9d96ae387",
+    "verification": "documentary-this-turn",
+    "runtime_deployment_version": "verify-at-live-gate"
+  },
+  "discovery": {
+    "authority": "user-supplied-script-over-repository-plugin",
+    "snapshot": "references/openproxy-models.user.mjs",
+    "sha256": "0f98ddad1660a991a400dbeba879df76ba2fc70b8e3fe530032976166939610c"
+  },
+  "executable_baseline_verified": false
+}

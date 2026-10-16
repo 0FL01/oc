@@ -1,0 +1,955 @@
+{
+  "status": "CURRENT_CODE_GATES_PASS_CAPTURE004_RETENTION_BLOCKED_T44_NOT_PASS",
+  "archive_sha256": "4d6e33e9e14cddefbc750a23cbc6b08c679305e36556afb621c4061d4079f800",
+  "archive_bytes": 56120,
+  "tar_sha256": "ccf077f185c2e7f18a514d5bbca877b9ef99d280e420f6482008246933be174b",
+  "tar_bytes": 296960,
+  "files": 52,
+  "logical_bytes": 247896,
+  "gates": [
+    {
+      "label": "final-workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--locked",
+        "--no-fail-fast"
+      ],
+      "started": "2026-10-12T10:26:06.180156+00:00",
+      "elapsed_ns": 862075658319,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-workspace.log",
+      "log_bytes": 177925,
+      "rust_targets": 46,
+      "passed": 1856,
+      "failed": 0,
+      "ignored": 11,
+      "target_results": [
+        [
+          "ok",
+          "113",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "15",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "15",
+          "0",
+          "3",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "41",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "16",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "58",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "35",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "4",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "699",
+          "0",
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "11",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "3",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "0",
+          "0",
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "3",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "27",
+          "0",
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "21",
+          "0",
+          "1",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "10",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "8",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "121",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "3",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "2",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "41",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "14",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "34",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "526",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        [
+          "ok",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "1f94d38986821a0e6ed2a18607ccb30d3e6606a389545b193cff8bb78e00e9aa"
+    },
+    {
+      "label": "final-fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "started": "2026-10-12T10:40:42.862580+00:00",
+      "elapsed_ns": 4041540109,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-fmt.log",
+      "log_bytes": 0,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "final-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started": "2026-10-12T10:40:46.942134+00:00",
+      "elapsed_ns": 12478713253,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-clippy.log",
+      "log_bytes": 193,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "4061440bb9a8b7e75f0af0654b6aed5663f68284a7d171eb777fc925ec38cd1c"
+    },
+    {
+      "label": "final-debug-locked",
+      "command": [
+        "cargo",
+        "build",
+        "--locked"
+      ],
+      "started": "2026-10-12T10:40:59.462404+00:00",
+      "elapsed_ns": 561200625,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-debug-locked.log",
+      "log_bytes": 72,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "ec3275bd7cdb61fe7edc4fadcb9a7a8d1c03aef38d75c8a6d05652c57a1d448e"
+    },
+    {
+      "label": "final-debug-ordinary",
+      "command": [
+        "cargo",
+        "build"
+      ],
+      "started": "2026-10-12T10:41:00.080579+00:00",
+      "elapsed_ns": 389298624,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-debug-ordinary.log",
+      "log_bytes": 72,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "8a2933ae25e59188be988ea6218274cb341f13d8bc4b533f57b12ececd4be8b3"
+    },
+    {
+      "label": "final-debug-help",
+      "command": [
+        "target/debug/oc",
+        "--help"
+      ],
+      "started": "2026-10-12T10:41:00.517158+00:00",
+      "elapsed_ns": 42393801,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-debug-help.log",
+      "log_bytes": 792,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "ce85565bd2711bfb899372617d693db695437c6f8fc28d3dbfabeed8dadee7c1"
+    },
+    {
+      "label": "final-release-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release"
+      ],
+      "started": "2026-10-12T10:41:23.635009+00:00",
+      "elapsed_ns": 346231033026,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-build.log",
+      "log_bytes": 9383,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "07789edfc85a05d426a5a7c1a60b946ce22de9b7e78c73f0bc5c409bdb0dac38"
+    },
+    {
+      "label": "final-release-help",
+      "command": [
+        "target/release/oc",
+        "--help"
+      ],
+      "started": "2026-10-12T10:47:09.910433+00:00",
+      "elapsed_ns": 8470387,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-help.log",
+      "log_bytes": 792,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "ce85565bd2711bfb899372617d693db695437c6f8fc28d3dbfabeed8dadee7c1"
+    },
+    {
+      "label": "final-root-python",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_*.py"
+      ],
+      "started": "2026-10-12T10:41:23.643641+00:00",
+      "elapsed_ns": 14840803726,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-root-python.log",
+      "log_bytes": 163,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "dc230f80d2002ce31f6baccd0ec8a8d81adc3c093e168e7ac496ae4aec58282b"
+    },
+    {
+      "label": "final-nested-question",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tui_capture",
+        "-p",
+        "test_question_*.py"
+      ],
+      "started": "2026-10-12T10:41:38.523789+00:00",
+      "elapsed_ns": 81358045,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-nested-question.log",
+      "log_bytes": 100,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "6f283ee6225d2cef4c0127d95456a6f954c45141c92b97dd89016cb1c630e8f4"
+    },
+    {
+      "label": "final-js",
+      "command": [
+        "node",
+        "--check",
+        "scripts/tui_capture/question_forms.mjs"
+      ],
+      "started": "2026-10-12T10:41:38.648259+00:00",
+      "elapsed_ns": 32699432,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-js.log",
+      "log_bytes": 0,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "final-docs",
+      "command": [
+        "python3",
+        "scripts/check_docs.py"
+      ],
+      "started": "2026-10-12T10:41:38.719874+00:00",
+      "elapsed_ns": 123688262,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-docs.log",
+      "log_bytes": 131,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "e11887f8e40bb21cd78ec87f419d5e54de086e9a414692c75d0afba30702b680"
+    },
+    {
+      "label": "final-progress",
+      "command": [
+        "python3",
+        "scripts/progress.py",
+        "check"
+      ],
+      "started": "2026-10-12T10:41:38.887116+00:00",
+      "elapsed_ns": 89517993,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-progress.log",
+      "log_bytes": 59,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "39f611e671a7840bde3c2505313b68d95a780312eebb5dc7500ad4bd6ee69a72"
+    },
+    {
+      "label": "final-code-size",
+      "command": [
+        "python3",
+        "scripts/code_size.py",
+        "--base",
+        "HEAD",
+        "--changed"
+      ],
+      "started": "2026-10-12T10:54:15.696796+00:00",
+      "elapsed_ns": 2187652926,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-code-size.log",
+      "log_bytes": 1596,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "6591114c13668d327ca0ef75e678241afc2b7aad37f7e084e71a0748060bb528"
+    },
+    {
+      "label": "final-captured-debug",
+      "command": [
+        "cargo",
+        "build",
+        "--locked"
+      ],
+      "started": "2026-10-12T10:54:17.922075+00:00",
+      "elapsed_ns": 541202526,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-captured-debug.log",
+      "log_bytes": 72,
+      "rust_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [],
+      "log_sha256": "4618eeba4e21359898995b7f544b56cd4d474efe9641525e1447388aaa8fabe6"
+    },
+    {
+      "label": "final-release-startup",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "recovery_startup",
+        "isolated_",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:47:29.064296+00:00",
+      "elapsed_ns": 181568273248,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-startup.log",
+      "log_bytes": 2199,
+      "rust_targets": 1,
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "2",
+          "0",
+          "0",
+          "0",
+          "2"
+        ]
+      ],
+      "log_sha256": "13ac3b0e5c23bfca4eec685f9225bf19ecf2f44ae45f3f635299a0e7fe55beb8"
+    },
+    {
+      "label": "final-release-term01",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "terminals",
+        "term01_actual_binary_session_terminals",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:50:30.668736+00:00",
+      "elapsed_ns": 23351045343,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-term01.log",
+      "log_bytes": 753,
+      "rust_targets": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "35601c9fa69af133ab322c9e2dfac2a2a136d15ef96fb9dabe2384ff36105e9b"
+    },
+    {
+      "label": "final-release-panic",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "pty",
+        "pty_panic_restores_terminal",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:50:54.057133+00:00",
+      "elapsed_ns": 18199604455,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-panic.log",
+      "log_bytes": 341,
+      "rust_targets": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "15"
+        ]
+      ],
+      "log_sha256": "2a7ecc18e1d71fe67a683b74f0bee7ad850a17f6822f9499ba9a8281126dffc1"
+    },
+    {
+      "label": "final-release-vis31",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "pty_t39",
+        "vis31_",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:51:12.292543+00:00",
+      "elapsed_ns": 123696791981,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-vis31.log",
+      "log_bytes": 23436,
+      "rust_targets": 1,
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "2",
+          "0",
+          "0",
+          "0",
+          "56"
+        ]
+      ],
+      "log_sha256": "c97c176f0b04d2839beba02247433f80dfc71539ff4d37107a966d105a572e4e"
+    },
+    {
+      "label": "final-release-s07",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "pty_t39",
+        "s07_pty_equal_view_archive_resource_samples",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:53:16.029251+00:00",
+      "elapsed_ns": 6341995690,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-s07.log",
+      "log_bytes": 1358,
+      "rust_targets": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "57"
+        ]
+      ],
+      "log_sha256": "15d1e453cd4d9dff46a722a37e816361caf0a086f4c20c0ff9001a87c63f13db"
+    },
+    {
+      "label": "final-release-vis38",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "pty_t39",
+        "vis38_pty_dcp_equal_active_archive_resource_samples",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:53:22.410453+00:00",
+      "elapsed_ns": 7480504378,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-vis38.log",
+      "log_bytes": 976,
+      "rust_targets": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "57"
+        ]
+      ],
+      "log_sha256": "3e129358bf198c7d798ab3fd398fe42c5142a871444626d1fd3b0918fde48d86"
+    },
+    {
+      "label": "final-release-aud32",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "oc",
+        "--test",
+        "memory_bounds",
+        "aud32_actual_binary_bounds_active_context_with_growing_archive",
+        "--",
+        "--nocapture"
+      ],
+      "started": "2026-10-12T10:53:29.929188+00:00",
+      "elapsed_ns": 10375953965,
+      "exit_code": 0,
+      "log": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-release-aud32.log",
+      "log_bytes": 911,
+      "rust_targets": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "target_results": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "7ea50b6c3cd7efd4211ebd878eed05cd52cc5d728b4bbc488dcb9a1faf44f2cf"
+    }
+  ],
+  "source_manifest_sha256": "540195999c68df1710ced7274273eca77f7c178ebb4cd563500a966a9c1a6928",
+  "captured_elf": {
+    "oc": {
+      "path": "/home/opencode/ai/oc/target/debug/oc",
+      "bytes": 484335256,
+      "sha256": "3c2025c095e3618c4a03112646f8e0a0ac61a7c77372db38480a177af7436271",
+      "elf_type": 3,
+      "machine": 62
+    },
+    "upstream": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "bytes": 200529376,
+      "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+      "elf_type": 2,
+      "machine": 62
+    }
+  },
+  "quota_before": 1072304128,
+  "quota_cap": 1073741824,
+  "scope": "Complete offline gate logs only; no004 images/protocol/source retained by this gate archive."
+}

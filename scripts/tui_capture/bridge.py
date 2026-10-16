@@ -1,0 +1,902 @@
+#!/usr/bin/env python3
+"""Test-only local Responses fixture and env-cleared real PTY bridge (JSONL IPC)."""
+import base64
+import fcntl
+import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
+import os
+from pathlib import Path
+import pty
+import select
+import signal
+import struct
+import subprocess
+import sys
+import termios
+import threading
+import shlex
+import sqlite3
+import time
+import urllib.request
+import compaction_fixture
+import apply_patch_fixture
+import permission_fixture
+import services_fixture
+import tool_preview_fixture
+import syntax_cache
+
+scanner_release = threading.Event()
+wheel_release = threading.Event()
+
+
+def emit(value):
+    if globals().get('spec', {}).get('permission_strace_path'):
+        value['wall_time_ns'] = time.time_ns()
+    with output_lock:
+        print(json.dumps(value, ensure_ascii=False), flush=True)
+
+
+output_lock = threading.Lock()
+spec = json.loads(Path(sys.argv[1]).read_text())
+live = {}
+if spec.get('sessions_interaction'):
+    # Secrets stay inside this bridge; neither config nor launch evidence contains them.
+    for line in (Path(__file__).resolve().parents[2] / '.local/live.env').read_text().splitlines():
+        tokens = shlex.split(line, comments=True)
+        if tokens and '=' in tokens[-1]:
+            key, value = tokens[-1].split('=', 1)
+            live[key] = value
+    if not all(live.get(k) for k in ('LUDKA2_API_URL', 'LUDKA2_API_KEY', 'OC_TEST_MODEL')):
+        raise RuntimeError('Missing bounded live prerequisites')
+live_requests = 0
+prior_live_requests = 0
+if spec.get('sessions_interaction'):
+    for protocol in Path(sys.argv[1]).resolve().parents[2].glob('*/**/protocol.json'):
+        try:
+            prior_spec = json.loads((protocol.parent / 'bridge-spec.json').read_text())
+            if prior_spec.get('sessions_campaign', 'legacy') != spec.get('sessions_campaign', 'legacy'):
+                continue
+            events = json.loads(protocol.read_text())
+            prior_live_requests += sum(e.get('kind') == 'provider' and e.get('valid') is True and
+                                       'live_request_index' in e for e in events)
+        except (OSError, ValueError):
+            pass
+root = Path(spec['isolated_root'])
+fixture = Path(spec['fixture'])
+prompt = (fixture / 'input.txt').read_text().strip()
+second_prompt = ('Second same-session model check?' if spec.get('models_interaction')
+                 else 'Second same-session spacing check?')
+profile_id = 'Reader' if spec.get('agent_profile') else None
+profile_prompt = 'You are the isolated T44 paired reader.' if profile_id else None
+bounded = spec.get('bounded_mode')
+if bounded:
+    profile_id = 'fixture-shell' if bounded == 'shell' else 'fixture-reader'
+    profile_prompt = 'You are the isolated T44 bounded fixture profile.'
+shell_commands = ["printf 'SHELL-SHORT\\n'", "printf 'SHELL-LINE-%02d\\n' " + ' '.join(str(i) for i in range(1, 41))]
+bounded_requests = 0
+answer = (fixture / 'transcript.md').read_text().strip()
+if spec.get('sample') == 'short':
+    answer = 'GEOMETRY-SHORT: one short answer.'
+elif spec.get('sample') == 'reasoning':
+    answer = 'GEOMETRY-SHORT: public reasoning completed.'
+elif spec.get('sample') == 'reasoning-steps':
+    answer = 'GEOMETRY-SHORT: two public reasoning steps completed.'
+elif spec.get('sample') == 'tools':
+    answer = 'GEOMETRY-SHORT: tool read completed.'
+elif spec.get('sample') == 'rows':
+    answer = '```text\n' + '\n'.join(f'ROW-{i:03}' for i in range(90)) + '\n```'
+elif spec.get('sample') == 'rows-reflow':
+    answer = '```text\n' + '\n'.join(
+        f'ROW-{i:03}' + (' ' + 'x' * 90 if i <= 40 else '') for i in range(90)) + '\n```'
+catalog = json.loads((fixture / 'model-catalog.json').read_text())
+if spec.get('wheel_probe'):
+    template = catalog['models'][0]
+    catalog['models'].extend({**template, 'id':f'wheel-list-{n:02}', 'name':f'ZZ Wheel {n:02}'} for n in range(32))
+selected_model = 'fixture-scroll-11' if spec.get('models_interaction') else 'fixture-model-1'
+if spec.get('models_interaction'):
+    # Identical test-only configured catalog on both sides; the normal eight
+    # fixture entries and every other mode retain their original input.
+    template = catalog['models'][0]
+    catalog['models'].extend({**template, 'id': f'fixture-scroll-{i:02}',
+                              'name': f'ZZ Scroll {i:02}'} for i in range(12))
+title = json.loads((fixture / 'scenarios.json').read_text())['base']['title']
+transcript_round = 0
+title_round = 0
+round_lock = threading.Lock()
+
+
+class Provider(BaseHTTPRequestHandler):
+    def log_message(self, *_):
+        pass
+
+    def do_GET(self):
+        if spec.get('execute_preview'):
+            tool_preview_fixture.execute_fixture.fetch(self, emit)
+            return
+        self.send_error(404)
+
+    def do_POST(self):
+        global transcript_round, title_round, bounded_requests, live_requests
+        body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if spec.get('tool_preview'):
+            tool_preview_fixture.respond(self, body, spec, emit)
+            return
+        if spec.get('permission'):
+            permission_fixture.respond(self, body, spec, emit)
+            return
+        if spec.get('apply_patch'):
+            apply_patch_fixture.respond(self, body, spec, emit)
+            return
+        if spec.get('compaction'):
+            compaction_fixture.respond(self, body, spec, emit)
+            return
+        if spec.get('sessions_interaction'):
+            system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')])
+            is_title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
+            with round_lock:
+                live_requests += 1
+                index = live_requests
+            emit({'kind':'provider', 'operation':'title' if is_title else 'transcript',
+                  'model':body.get('model'), 'valid':self.path == '/v1/responses' and index <= 8 and prior_live_requests + index <= 24,
+                  'request_sha256':hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest(),
+                  'live_request_index':index})
+            if index > 8 or prior_live_requests + index > 24 or self.path != '/v1/responses':
+                self.send_error(400, 'bounded live limit'); return
+            body['model'] = live['OC_TEST_MODEL']
+            body['max_output_tokens'] = 2048 if is_title else 1024
+            body['reasoning'] = {'effort':'low'}
+            url = live['LUDKA2_API_URL'].rstrip('/')
+            if not url.endswith('/responses'): url += '/responses'
+            request = urllib.request.Request(url, data=json.dumps(body).encode(), headers={
+                'Authorization':'Bearer ' + live['LUDKA2_API_KEY'], 'Content-Type':'application/json'})
+            try:
+                with urllib.request.urlopen(request, timeout=90) as response:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/event-stream'); self.end_headers()
+                    title_text = ''
+                    completed = False
+                    for line in response:
+                        self.wfile.write(line); self.wfile.flush()
+                        if line.startswith(b'data: '):
+                            try: event = json.loads(line[6:])
+                            except ValueError: continue
+                            if is_title and event.get('type') == 'response.output_text.delta':
+                                title_text += event.get('delta', '')
+                            completed |= event.get('type') == 'response.completed'
+                    emit({'kind':'provider_completed' if completed else 'provider_incomplete',
+                          'operation':'title' if is_title else 'transcript',
+                          'live_request_index':index, **({'generated_title':title_text} if is_title else {})})
+            except Exception as error:
+                # Do not emit URLs, headers, bodies or arbitrary remote exceptions.
+                emit({'kind':'provider_error', 'error_type':type(error).__name__, 'live_request_index':index,
+                      **({'http_status':error.code} if isinstance(error, urllib.error.HTTPError) else {})})
+            return
+        serialized = json.dumps(body, ensure_ascii=False)
+        valid = self.path == '/v1/responses' and body.get('stream') is True
+        # Title requests are real upstream auxiliary operations, not another transcript.
+        system = str(body.get('instructions', '')) + json.dumps([x for x in body.get('input', []) if x.get('role') in ('system', 'developer')], ensure_ascii=False)
+        is_title = ('You are a title generator. You output ONLY a thread title.' in system or
+                     (not body.get('tools') and body.get('max_output_tokens') == 256 and
+                       'title' in system.lower()))
+        valid = valid and body.get('model') == (selected_model if spec.get('models_interaction') and
+                                                second_prompt in serialized and not is_title
+                                                else 'fixture-model-1')
+        with round_lock:
+            tool_results = [x for x in body.get('input', []) if x.get('type') == 'function_call_output']
+            if (spec.get('two_turn') or spec.get('models_interaction')) and second_prompt in serialized and not is_title:
+                turn_number = 1
+                round_number = int(any(x.get('call_id') == 'call_fixture_read_2' for x in tool_results))
+            else:
+                round_number = 1 if tool_results else 0
+                turn_number = transcript_round - 1 if tool_results else transcript_round
+            if is_title:
+                title_round += 1
+                turn_number = title_round - 1
+            elif not tool_results:
+                transcript_round += 1
+        second = (spec.get('tab_restart') or spec.get('two_turn') or spec.get('models_interaction')) and turn_number > 0
+        text = (('Regenerated fixture title' if spec.get('regenerate_title') and title_round == 2 else
+                 'Second fixture session' if second else title) if is_title else
+                  ('GEOMETRY-TURN-TWO: tool read completed.' if (spec.get('two_turn') or spec.get('models_interaction')) and second else
+                  'GEOMETRY-SECOND: tool read completed.' if second else answer))
+        expected_prompt = second_prompt if (spec.get('two_turn') or spec.get('models_interaction')) and second and not is_title else prompt
+        if spec.get('leader_pending'):
+            leader_prompts = ['VIS11 full draft αβ caret-middle preserving every word',
+                              'VIS11 full draft αβ caret-middle preserving every wVIS11 Enter bounded actual requestord']
+            expected_prompt = next((text for text in leader_prompts if text in serialized), leader_prompts[0])
+            if spec.get('prompt_paste_expected'):
+                expected_prompt = spec['prompt_paste_expected']
+                user_text = [part.get('text', '') for message in body.get('input', [])
+                             if message.get('role') == 'user'
+                             for part in message.get('content', []) if part.get('type') == 'input_text']
+                valid = valid and (is_title or user_text == [expected_prompt])
+            # Bound every leader fixture to one main exchange plus one auxiliary title.
+            valid = valid and (title_round <= 1 if is_title else transcript_round <= 1)
+        prompt_present = expected_prompt in serialized
+        if spec.get('leader_pending'):
+            # JSON escapes embedded newlines; validate the original structured
+            # user text rather than searching its serialized representation.
+            prompt_present = expected_prompt in [part.get('text', '')
+                for message in body.get('input', []) if message.get('role') == 'user'
+                for part in message.get('content', []) if part.get('type') == 'input_text']
+        valid = valid and (is_title or prompt_present)
+        profile_prompt_present = profile_prompt is not None and profile_prompt in system
+        if profile_id and not is_title:
+            valid = valid and profile_prompt_present
+        if spec.get('sample') == 'tools' and not is_title:
+            valid = valid and 'read' in [x.get('name') for x in body.get('tools', [])]
+            if round_number:
+                calls = [x for x in tool_results if x.get('call_id') == ('call_fixture_read_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'call_fixture_read')]
+                valid = valid and len(calls) == 1 and 'fixture-content' in str(calls[0].get('output', ''))
+        if spec.get('sample') == 'reasoning-steps' and not is_title:
+            valid = valid and not tool_results and turn_number == 0 and round_number == 0
+        record = {'kind': 'provider', 'path': self.path, 'model': body.get('model'),
+                    'stream': body.get('stream'), 'prompt_present': prompt_present,
+                   'profile_prompt_present': profile_prompt_present,
+                   'operation': 'title' if is_title else 'transcript', 'valid': valid,
+                   'turn_number': turn_number, 'round_number': round_number,
+                  'request_sha256': hashlib.sha256(serialized.encode()).hexdigest(),
+                   'registered_tools': [x.get('name') for x in body.get('tools', [])],
+                   'tool_result_count': len(tool_results),
+                   'fixture_content_returned': any('fixture-content' in str(x.get('output', '')) for x in tool_results),
+                    'request_top_level_keys': sorted(body)}
+        if spec.get('leader_pending'):
+            record['actual_input'] = body.get('input')
+        if bounded:
+            tools = body.get('tools', [])
+            record['tool_schemas'] = {x.get('name'): x.get('parameters') for x in tools}
+            record['reasoning_effort'] = body.get('reasoning', {}).get('effort')
+            if is_title:
+                valid = valid and title_round == 1
+            else:
+                index = bounded_requests
+                bounded_requests += 1
+                if bounded == 'variants':
+                    expected = [None, 'high', 'low', None]
+                    valid = valid and index < 4 and not tool_results and record['reasoning_effort'] == expected[index]
+                    text = f'BOUNDED-VARIANT-{index}: completed.'
+                else:
+                    shell_name = 'bash' if 'bash' in record['registered_tools'] else 'shell'
+                    valid = valid and index < (5 if spec.get('wheel_probe') else 3) and shell_name in record['registered_tools']
+                    schema = record['tool_schemas'].get(shell_name) or {}
+                    valid = valid and ('command' in schema.get('properties', {}) or 'argv' in schema.get('properties', {}))
+                    expected_count = min(index, 2)
+                    valid = valid and len(tool_results) == expected_count
+                    outputs = {x.get('call_id'): str(x.get('output', '')) for x in tool_results}
+                    for i in range(expected_count):
+                        output = outputs.get(f'call_fixture_shell_{i}', '')
+                        required = ['SHELL-SHORT'] if i == 0 else [f'SHELL-LINE-{n:02}' for n in range(1, 41)]
+                        valid = valid and all(line in output for line in required) and 'permission denied' not in output.lower()
+                    record['fixture_outputs_verified'] = valid
+                    record['fixture_outputs'] = outputs
+                    text = 'BOUNDED-SHELL: both real printf tools completed.'
+                    if spec.get('wheel_probe') and index >= 3:
+                        text = '```text\n' + ''.join(f'LIVE-{index}-{n:03}\n' for n in range(120)) + '```'
+                record['bounded_request_index'] = index
+            record['valid'] = valid
+        if spec.get('revert_redo'):
+            expected_prompt = f'VIS33 user turn {turn_number + 1}. No tools.'
+            valid = self.path == '/v1/responses' and body.get('stream') is True and body.get('model') == 'fixture-model-1'
+            valid = valid and not tool_results and (title_round <= 1 if is_title else
+                    0 <= turn_number < 3 and expected_prompt in serialized)
+            text = 'VIS33 saved tail fixture' if is_title else f'VIS33-ANSWER-{turn_number + 1}: completed.'
+            record.update(valid=valid, prompt_present=is_title or expected_prompt in serialized,
+                           fixture_prompt=None if is_title else expected_prompt,
+                           fixture_response=text, request_input=body.get('input'), instructions=body.get('instructions'))
+        if spec.get('tab_middle_close'):
+            names = ['Alpha', 'Beta', 'Gamma', 'Delta'] if spec['middle_case'] == 'clipped' else ['Alpha', 'Beta', 'Gamma']
+            users = [part.get('text', '') for message in body.get('input', [])
+                     if message.get('role') == 'user'
+                     for part in message.get('content', []) if part.get('type') == 'input_text']
+            valid = (self.path == '/v1/responses' and body.get('stream') is True and
+                     body.get('model') == 'fixture-model-1' and not tool_results and
+                     0 <= turn_number < len(names) and title_round <= len(names) and
+                     transcript_round <= len(names))
+            expected = f'VIS44 seed {names[turn_number]}' if valid else None
+            valid = valid and (is_title or users == [expected])
+            text = (f'VIS44 {names[turn_number]} retained middle-close history' if is_title
+                    else f'VIS44-ANSWER-{names[turn_number]}: completed.') if valid else ''
+            record.update(valid=valid, fixture_prompt=expected, fixture_response=text,
+                          request_input=body.get('input'), tool_result_count=len(tool_results))
+        emit(record)
+        if not valid:
+            self.send_error(400, 'fixture contract rejected')
+            return
+        if spec.get('sample') == 'tools' and not is_title and round_number == 0:
+            item = {'id': 'fc_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'fc_fixture',
+                    'type': 'function_call', 'status': 'completed',
+                    'call_id': 'call_fixture_read_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'call_fixture_read', 'name': 'read',
+                    'arguments': json.dumps({'path': 'fixture-note.txt'})}
+            text = ''
+        else:
+            item = {'id': 'msg_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'msg_fixture',
+                    'type': 'message', 'role': 'assistant', 'status': 'completed',
+                   'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
+        if spec.get('tab_middle_close'):
+            item['id'] = f'msg_middle_{record["operation"]}_{turn_number}'
+        if bounded == 'shell' and not is_title and index < 2:
+            arguments = {'command': shell_commands[index], 'description': 'Fixture short output' if index == 0 else 'Fixture long output'}
+            if 'argv' in schema.get('properties', {}):
+                arguments = {'argv': ['printf', 'SHELL-SHORT\\n'] if index == 0 else
+                             ['printf', 'SHELL-LINE-%02d\\n', *[str(i) for i in range(1, 41)]]}
+            record_call = {'kind': 'fixture_tool_call', 'name': shell_name, 'arguments': arguments,
+                           'call_id': f'call_fixture_shell_{index}'}
+            emit(record_call)
+            item = {'id': f'fc_fixture_shell_{index}', 'type': 'function_call', 'status': 'completed',
+                    'call_id': record_call['call_id'], 'name': shell_name, 'arguments': json.dumps(arguments)}
+            text = ''
+        response = {'id': 'resp_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'resp_fixture', 'object': 'response', 'created_at': 1700000000,
+                    'model': body.get('model'), 'status': 'in_progress', 'output': [],
+                    'error': None, 'incomplete_details': None}
+        if spec.get('tab_middle_close'):
+            response['id'] = f'resp_middle_{record["operation"]}_{turn_number}'
+        events = [
+            {'type': 'response.created', 'response': response},
+        ]
+        reasoning_items = []
+        if spec.get('sample') == 'reasoning' and not is_title:
+            public = '**Inspecting**\n\nPublic summary only.'
+            events += [
+                {'type': 'response.output_item.added', 'output_index': 0,
+                 'item': {'type': 'reasoning', 'id': 'rs_fixture', 'status': 'in_progress', 'summary': []}},
+                {'type': 'response.reasoning_summary_part.added', 'item_id': 'rs_fixture',
+                 'output_index': 0, 'summary_index': 0, 'part': {'type': 'summary_text', 'text': ''}},
+                {'type': 'response.reasoning_summary_text.delta', 'item_id': 'rs_fixture',
+                 'output_index': 0, 'summary_index': 0, 'delta': public},
+                {'type': 'response.output_item.done', 'output_index': 0,
+                 'item': {'type': 'reasoning', 'id': 'rs_fixture', 'summary': [{'type': 'summary_text', 'text': public}],
+                          'encrypted_content': 'opaque-fixture-must-not-display'}},
+            ]
+        if spec.get('sample') == 'reasoning-steps' and not is_title:
+            for index, (reasoning_id, public) in enumerate([
+                    ('rs_fixture_step_1', '**Inspecting**\n\nFirst public step marker.'),
+                    ('rs_fixture_step_2', '**Verifying**\n\nSecond public step marker.')]):
+                part = {'type': 'summary_text', 'text': public}
+                reasoning = {'type': 'reasoning', 'id': reasoning_id, 'status': 'completed',
+                             'summary': [part], 'encrypted_content': 'opaque-fixture-must-not-display'}
+                reasoning_items.append(reasoning)
+                events += [
+                    {'type': 'response.output_item.added', 'output_index': index,
+                     'item': {'type': 'reasoning', 'id': reasoning_id, 'status': 'in_progress', 'summary': []}},
+                    {'type': 'response.reasoning_summary_part.added', 'item_id': reasoning_id,
+                     'output_index': index, 'summary_index': 0, 'part': {'type': 'summary_text', 'text': ''}},
+                    {'type': 'response.reasoning_summary_text.delta', 'item_id': reasoning_id,
+                     'output_index': index, 'summary_index': 0, 'delta': public},
+                ]
+                events.append({'type': 'response.reasoning_summary_part.done', 'item_id': reasoning_id,
+                               'output_index': index, 'summary_index': 0, 'part': part})
+                events.append({'type': 'response.output_item.done', 'output_index': index, 'item': reasoning})
+        message_index = len(reasoning_items)
+        if item['type'] == 'function_call':
+            events += [
+                {'type': 'response.output_item.added', 'output_index': 0,
+                 'item': {**item, 'status': 'in_progress', 'arguments': ''}},
+                {'type': 'response.function_call_arguments.delta', 'item_id': item['id'],
+                 'output_index': 0, 'delta': item['arguments']},
+                {'type': 'response.output_item.done', 'output_index': 0, 'item': item},
+                {'type': 'response.completed', 'response': {**response, 'status': 'completed', 'output': [item]}},
+            ]
+        else:
+          events += [
+            {'type': 'response.output_item.added', 'output_index': message_index,
+             'item': {**item, 'status': 'in_progress', 'content': []}},
+            {'type': 'response.content_part.added', 'item_id': item['id'], 'output_index': message_index,
+             'content_index': 0, 'part': {'type': 'output_text', 'text': '', 'annotations': []}},
+            {'type': 'response.output_text.delta', 'item_id': item['id'], 'output_index': message_index,
+             'content_index': 0, 'delta': text},
+            {'type': 'response.output_text.done', 'item_id': item['id'], 'output_index': message_index,
+             'content_index': 0, 'text': text},
+            {'type': 'response.content_part.done', 'item_id': item['id'], 'output_index': message_index,
+             'content_index': 0, 'part': item['content'][0]},
+            {'type': 'response.output_item.done', 'output_index': message_index, 'item': item},
+            {'type': 'response.completed', 'response': {**response, 'status': 'completed', 'output': [*reasoning_items, item],
+             'usage': {'input_tokens': 6000, 'output_tokens': 763, 'total_tokens': 6763,
+                       'input_tokens_details': {'cached_tokens': 0},
+                       'output_tokens_details': {'reasoning_tokens': 0}}}},
+          ]
+        payload = ''.join('event: ' + e['type'] + '\ndata: ' + json.dumps({**e, 'sequence_number': i}, ensure_ascii=False) + '\n\n'
+                           for i, e in enumerate(events)).encode()
+        wheel_stream = spec.get('wheel_probe') and not is_title and index >= 3
+        scanner_hold = spec.get('scanner') and not is_title and round_number == 0 and turn_number == 0
+        prefix = ('event: response.created\ndata: ' + json.dumps({**events[0], 'sequence_number': 0}) + '\n\n').encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream')
+        if not wheel_stream:
+            self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        try:
+            if wheel_stream:
+                wheel_release.clear()
+                sequence = 0
+                def stream_event(event):
+                    nonlocal sequence
+                    self.wfile.write(('event: '+event['type']+'\ndata: '+json.dumps({**event,'sequence_number':sequence})+'\n\n').encode())
+                    self.wfile.flush()
+                    sequence += 1
+                for event in events[:3]:
+                    stream_event(event)
+                # A real Responses event burst followed by a held active stream.
+                # Both applications receive identical text deltas and cadence.
+                pieces = text.splitlines(keepends=True)
+                for n, piece in enumerate(pieces):
+                    stream_event({**events[3], 'delta':piece})
+                    if n == 60:
+                        emit({'kind':'wheel_stream_held','index':index,'at_ns':time.monotonic_ns()})
+                        wheel_release.wait(30)
+                    elif n > 60:
+                        time.sleep(.008)
+                for event in events[4:]:
+                    stream_event(event)
+            elif scanner_hold:
+                self.wfile.write(prefix)
+                self.wfile.flush()
+                emit({'kind': 'scanner_held', 'timeout_seconds': 60})
+                released = scanner_release.wait(60)
+                emit({'kind': 'scanner_resumed', 'released': released})
+                self.wfile.write(payload[len(prefix):])
+            else:
+                self.wfile.write(payload)
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            emit({'kind': 'provider_disconnected', 'operation': record['operation']})
+            return
+        emit({'kind': 'provider_completed', 'operation': record['operation'],
+              'response_text_sha256': hashlib.sha256(text.encode()).hexdigest()})
+
+
+def middle_snapshot():
+    """Bounded read-only observation of this bridge's isolated fixture only."""
+    observations = []
+    for database in (home / 'data').rglob('*'):
+        if database.suffix not in ('.db', '.sqlite', '.sqlite3'):
+            continue
+        with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+            connection.row_factory = sqlite3.Row
+            tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            for table in ('session', 'session_v2', 'sessions', 'session_message', 'message',
+                          'messages', 'turns', 'tool_ops', 'tool_executions', 'tool_operations', 'prefs'):
+                if table not in tables:
+                    continue
+                count = connection.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
+                if count > 100:
+                    raise RuntimeError('Middle fixture exceeds bounded row inventory')
+                rows = [dict(r) for r in connection.execute(f'SELECT * FROM {table} ORDER BY rowid LIMIT 100')]
+                for row in rows:
+                    for key, value in row.items():
+                        if isinstance(value, bytes):
+                            row[key] = {'length': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
+                observations.append({'table': table, 'count': count, 'rows': rows})
+    client = []
+    for file in home.rglob('*'):
+        if file.is_file() and file.suffix == '.json' and ('tui' in str(file) or file.name == 'kv.json'):
+            if file.stat().st_size > 262144:
+                raise RuntimeError('Middle fixture client record exceeds bound')
+            client.append({'path': str(file.relative_to(home)), 'data': json.loads(file.read_text())})
+    snapshot = {'observations': observations, 'client_persistence': client,
+                'project_files': {str(file.relative_to(project)): hashlib.sha256(file.read_bytes()).hexdigest()
+                                  for file in project.rglob('*') if file.is_file()}, 'readonly_sqlite': True}
+    if len(json.dumps(snapshot).encode()) > 262144:
+        raise RuntimeError('Middle fixture snapshot exceeds bound')
+    return snapshot
+
+
+server = ThreadingHTTPServer(('127.0.0.1', spec.get('execute_fixture_port', 0)), Provider)
+threading.Thread(target=server.serve_forever, daemon=True).start()
+home = root / spec['origin'] / 'home'
+project = root / 'project'
+if spec.get('sessions_interaction'):
+    project = root / 'other-project'
+for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'data', 'state')]]:
+    path.mkdir(parents=True, exist_ok=True)
+if spec.get('syntax_cache') and spec['origin'] == 'upstream':
+    emit({'kind': 'frozen_syntax_cache', **syntax_cache.preload(home)})
+if spec.get('sample') == 'tools':
+    (project / 'fixture-note.txt').write_text('fixture-content\n')
+if spec.get('revert_redo'):
+    (project / 'vis33-owner-approved.txt').write_text('VIS33 conversation-only fixture: preserve these bytes.\n')
+if spec.get('compaction'):
+    (project / 'vis34-owner-approved.txt').write_text('VIS34 compaction fixture: preserve these filesystem bytes.\n')
+settings = {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}
+models = {m['id']: {k: v for k, v in m.items() if k not in ('id', 'variants')} for m in catalog['models']}
+if spec.get('sessions_interaction'):
+    models = {'fixture-model-1': {**models['fixture-model-1'], 'name':live['OC_TEST_MODEL'], 'limit':{'context':32000,'output':1024}}}
+if spec.get('variants') or bounded == 'variants':
+    variants = json.loads((fixture / 'variant-dialog.json').read_text())
+    # Equivalent native input shapes; original v2 uses id/settings arrays while
+    # native config retains the documented named object form.
+    models[catalog['models'][0]['id']]['variants'] = (
+        [{'id': name, 'settings': settings} for name, settings in variants.items()]
+        if spec['origin'] == 'upstream' else variants)
+if spec['origin'] == 'upstream':
+    config = {'model': 'fixture/fixture-model-1', 'share': 'disabled', 'update': 'disable',
+              'plugins': ['-opencode.models.dev'],
+              'providers': {'fixture': {'name': catalog['provider']['name'],
+               'package': '@opencode/ai/providers/openai/responses', 'settings': settings, 'models': models}}}
+    if profile_id:
+        # v2.0.12 schema/config.ts and schema/config/agent.ts: actual custom
+        # primary profile, not a painted Build label. The color is the pinned
+        # dark opencode categorical[0] hue.blue.200.
+        config['default_agent'] = 'build' if bounded else profile_id
+        config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt,
+                                          'color': '#5c9cf5'}}
+        if bounded:
+            config['agents'][profile_id]['permissions'] = [
+                {'action': '*', 'resource': '*', 'effect': 'deny'},
+                *[{'action': 'shell', 'resource': command, 'effect': 'allow'} for command in shell_commands]] if bounded == 'shell' else [
+                    {'action': '*', 'resource': '*', 'effect': 'deny'},
+                    {'action': 'read', 'resource': '*', 'effect': 'allow'}]
+    cli_config = {'theme': {'name': 'opencode', 'mode': 'dark'}, 'animations': spec.get('animations', False),
+                   'session': {'sidebar': spec.get('sidebar', 'auto'), 'tps': False},
+                   'tabs': {'layout': spec.get('tabs', 'horizontal')},
+                  'attention': {'notifications': False, 'sound': False},
+                  'cursor': {'style': 'block', 'blinking': False}}
+    argv = [spec['binary'], '--standalone']
+else:
+    config = {'model': 'fixture/fixture-model-1', 'providers': {'fixture': {
+        'name': catalog['provider']['name'], 'package': '@ai-sdk/openai', 'settings': settings, 'models': models}},
+        'permissions': [{'action': 'read', 'resource': '*', 'effect': 'allow'}]}
+    if spec.get('scanner'):
+        config['animations'] = spec['animations']
+    if profile_id:
+        config['default_agent'] = 'build' if bounded else profile_id
+        config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt}}
+        if bounded:
+            config['agents']['build'] = {'mode': 'primary', 'system': 'Initial isolated fixture profile.'}
+        if bounded == 'shell':
+            # Native bash is argv-only. Authorize its exact boundary-preserving
+            # resource strings, not a general shell or printf wildcard.
+            resources = shell_commands
+            config['permissions'] = [{'action': '*', 'resource': '*', 'effect': 'deny'},
+                                     *[{'action': 'shell', 'resource': command, 'effect': 'allow'} for command in resources]]
+    argv = [spec['binary'], 'tui']
+    cli_config = {
+        'session': {'sidebar': spec.get('sidebar', 'auto')},
+        'tabs': {'layout': spec.get('tabs', 'horizontal')}}
+if spec.get('tab_middle_close'):
+    cli_config['tabs']['indicators'] = 'numbers'
+if spec.get('devtools') is not None:
+    cli_config['debug'] = {'devtools': spec['devtools']}
+if spec.get('apply_patch'):
+    apply_patch_fixture.configure(spec, home, project, config, cli_config)
+if spec.get('permission'):
+    permission_fixture.configure(spec, home, project, config, cli_config)
+    if spec.get('permission_mode') == 'auto-cli':
+        argv.append('--auto')
+if spec.get('clean_services'):
+    services_fixture.configure(spec, home, project, config, cli_config)
+if spec.get('tool_preview'):
+    tool_preview_fixture.configure(spec, home, project, config, cli_config)
+if spec.get('compaction'):
+    automatic = spec.get('compaction_trigger','manual') != 'manual'
+    config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
+    if automatic:
+        models['fixture-model-1']['limit'] = {'context':40000,'output':2048}
+    config['snapshots'] = False
+    if spec.get('compaction_tps') is not None:
+        cli_config['session']['tps'] = spec['compaction_tps']
+    if spec['origin'] == 'oc':
+        config['animations'] = spec.get('compaction_animation', False)
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},
+                                 {'action':'shell','resource':'sleep 25','effect':'allow'}]
+    else:
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},{'action':'shell','resource':'sleep 25','effect':'allow'}]
+if spec.get('revert_redo'):
+    config['snapshots'] = False
+    cli_config['keybinds'] = {'session.redo':'<leader>r'}
+    emit({'kind':'revert_redo_fixture_config','snapshots':False,'cli_keybinds':cli_config['keybinds'],
+          'files':['config/opencode/opencode.json','config/opencode/cli.json']})
+if spec.get('leader_pending'):
+    cli_config['session']['tps'] = False
+    mode = spec.get('leader_config', 'default')
+    if mode not in ('default', 'nested'):
+        cli_config['keybinds'] = {'leader':'ctrl+g', 'command.palette.show':'<leader>p'}
+        if mode == 'legacy-v1' and spec['origin'] == 'oc':
+            cli_config['keybinds'] = {'leader':'ctrl+g', 'command_list':'<leader>p'}
+    if mode in ('configured', 'nested'):
+        cli_config['leader'] = {'timeout':1200}
+    if mode in ('legacy', 'legacy-v1'):
+        cli_config['leader_timeout'] = 1400
+    if mode == 'precedence':
+        cli_config['leader'] = {'timeout':1800}
+        cli_config['leader_timeout'] = 600
+    emit({'kind':'leader_fixture_config','mode':mode,'cli_config':cli_config})
+(home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
+if spec.get('leader_pending') and spec.get('leader_config') == 'legacy-v1' and spec['origin'] == 'upstream':
+    (home / 'config/opencode/cli.json').unlink()
+    legacy = {'theme':'opencode','leader_timeout':1400,'keybinds':{'leader':'ctrl+g','command_list':'<leader>p'},
+              'attention':{'notifications':False,'sound':False},'cursor':{'style':'block','blinking':False}}
+    (home / 'config/opencode/tui.json').write_text(json.dumps(legacy))
+    emit({'kind':'leader_legacy_fixture_config','tui_config':legacy})
+(home / 'config/opencode/opencode.json').write_text(json.dumps(config))
+if spec.get('startup_error'):
+    (home / 'config/opencode/opencode.json').write_text('{"model":"DO-NOT-LEAK-KEY", INVALID}')
+if spec.get('seed_root'):
+    if spec['origin'] == 'oc':
+        home = Path(spec['seed_root']) / 'home'
+    project = Path(spec['seed_root']) / 'project'
+    argv += ['--session', spec['session']]
+    (home / 'config/opencode/cli.json').write_text(json.dumps(cli_config))
+env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HOME': str(home / 'cache'),
+       'XDG_DATA_HOME': str(home / 'data'), 'XDG_STATE_HOME': str(home / 'state'),
+       'PATH': '/usr/bin:/bin', 'SHELL': '/bin/sh', 'TERM': 'xterm-256color', 'COLORTERM': 'truecolor',
+       'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'OC_TEST_ALLOW_LOOPBACK': '1',
+       'OPENCODE_TEST_HOME': str(home), 'OPENCODE_DISABLE_AUTOUPDATE': '1',
+       'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
+        'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+if spec.get('execute_preview') and spec['origin'] == 'oc':
+    # Provider endpoint and webfetch admission have distinct test-only guards.
+    env['OC_TEST_WEBFETCH_ALLOW_LOOPBACK'] = '1'
+if spec.get('clean_services'):
+    # The fixture-owned file is the authority, so real /reload can adopt recovery.
+    env.pop('OPENCODE_CONFIG_CONTENT')
+if spec.get('wheel_probe') and spec['origin'] == 'oc':
+    env['OC_TUI_TEST_METRICS'] = spec['metrics_path']
+version = subprocess.run([spec['binary'], '--version'], env=env, cwd=project, capture_output=True, timeout=20)
+if spec.get('seed_root') and spec['origin'] == 'upstream':
+    # Supported import CLI with real parent metadata; no source-rendered frame,
+    # renderer replacement or direct upstream database mutation.
+    for session_id, parent in [('ses_v03_parent', None), ('ses_v03_child', 'ses_v03_parent')]:
+        info = {'id': session_id, 'projectID': 'global', 'cost': 0,
+                'tokens': {'input': 0, 'output': 0, 'reasoning': 0, 'cache': {'read': 0, 'write': 0}},
+                'time': {'created': 1700000000000, 'updated': 1700000000000},
+                'title': 'Geometry child' if parent else 'Geometry parent',
+                'location': {'directory': str(project)}}
+        if parent: info['parentID'] = parent
+        payload = {'info': info, 'messages': []}
+        source = home / (session_id + '.json')
+        source.write_text(json.dumps(payload))
+        imported = subprocess.run([spec['binary'], 'session', 'import', '--standalone', str(source)],
+                                  env=env, cwd=project, capture_output=True, timeout=30)
+        emit({'kind': 'session_import', 'session': session_id, 'payload': payload,
+              'exit_code': imported.returncode, 'stdout': imported.stdout.decode(), 'stderr': imported.stderr.decode()})
+        if imported.returncode: raise RuntimeError('supported session import failed')
+emit({'kind': 'launch', 'argv': argv, 'cwd': str(project), 'env': env,
+       'version': version.stdout.decode().strip(), 'version_exit': version.returncode,
+       **({'sessions_resume':spec.get('sessions_resume',False)} if spec.get('sessions_interaction') else {})})
+master, slave = pty.openpty()
+fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))
+
+
+def session():
+    os.setsid()
+    fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
+
+pending = b''
+generation = 0
+try:
+    while True:
+        if generation:
+            master, slave = pty.openpty()
+            fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', spec['rows'], spec['columns'], 0, 0))
+        launch_argv = argv
+        if spec.get('permission_strace_path'):
+            trace = spec['permission_strace_path'] + f'.generation{generation}'
+            launch_argv = ['/usr/bin/strace', '-f', '-ttt', '-yy', '-s', '512',
+                           '-e', 'trace=%file,%network', '-o', trace, '--', *argv]
+            emit({'kind':'permission_strace_launch', 'argv':launch_argv,
+                  'scope':'Only this isolated local fixture subprocess and descendants; file/network syscalls, no authoring process attach.'})
+        child = subprocess.Popen(launch_argv, stdin=slave, stdout=slave,
+                                 stderr=slave, cwd=project, env=env, preexec_fn=session)
+        os.close(slave)
+        forced = False
+        scanner_paused = False
+        try:
+            while child.poll() is None:
+                ready, _, _ = select.select([master, sys.stdin], [], [], .1)
+                if master in ready:
+                    try:
+                        data = os.read(master, 65536)
+                    except OSError:
+                        break
+                    if data:
+                        emit({'kind': 'output', 'generation': generation, 'at_ns':time.monotonic_ns(), 'data': base64.b64encode(data).decode()})
+                if sys.stdin in ready:
+                    data = os.read(sys.stdin.fileno(), 65536)
+                    if not data:
+                        forced = True
+                        break
+                    pending += data
+                    while b'\n' in pending:
+                        line, pending = pending.split(b'\n', 1)
+                        command = json.loads(line)
+                        if command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
+                            emit({'kind':'tool_preview_snapshot','request_id':command['request_id'], **tool_preview_fixture.snapshot(home, project, spec)})
+                        elif command['kind'] == 'middle_snapshot' and spec.get('tab_middle_close'):
+                            emit({'kind': 'middle_snapshot', 'request_id': command['request_id'], **middle_snapshot()})
+                        elif command['kind'] == 'tool_preview_control' and spec.get('tool_preview'):
+                            emit({'kind':'tool_preview_control_ack','request_id':command['request_id'], **tool_preview_fixture.control(home, command['action'], project, spec)})
+                        elif command['kind'] == 'services_snapshot' and spec.get('clean_services'):
+                            emit({'kind':'services_snapshot','request_id':command['request_id'], 'snapshot':services_fixture.snapshot(home)})
+                        elif command['kind'] == 'services_control' and spec.get('clean_services'):
+                            emit({'kind':'services_control_ack','request_id':command['request_id'], **services_fixture.control(home, config, spec['origin'], command['action'])})
+                        elif command['kind'] == 'permission_snapshot' and spec.get('permission'):
+                            emit({'kind':'permission_snapshot','request_id':command['request_id'], **permission_fixture.snapshot(home, project)})
+                        elif command['kind'] == 'patch_snapshot' and spec.get('apply_patch'):
+                            emit({'kind':'patch_snapshot','request_id':command['request_id'], **apply_patch_fixture.snapshot(home, project)})
+                        elif command['kind'] == 'compaction_snapshot' and spec.get('compaction'):
+                            emit({'kind':'compaction_snapshot','request_id':command['request_id'], **compaction_fixture.snapshot(home, project)})
+                        elif command['kind'] == 'compaction_control' and spec.get('compaction'):
+                            compaction_fixture.behavior = command.get('behavior','complete')
+                            if command.get('release'): compaction_fixture.release.set()
+                            emit({'kind':'compaction_control_ack','request_id':command.get('request_id'),'behavior':compaction_fixture.behavior})
+                        elif command['kind'] == 'revert_snapshot' and spec.get('revert_redo'):
+                            observations = []
+                            for database in (home / 'data').rglob('*'):
+                                if database.suffix not in ('.db', '.sqlite', '.sqlite3'): continue
+                                with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+                                    connection.row_factory = sqlite3.Row
+                                    tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                                    if 'conversation_state' in tables:
+                                        rows = [dict(r) for r in connection.execute("SELECT s.id,s.upper_seq,(SELECT COUNT(*) FROM messages m WHERE m.session_id=s.id AND m.role='user') AS archived_users,(SELECT COUNT(*) FROM conversation_messages m WHERE m.session_id=s.id AND m.role='user') AS visible_users,(SELECT COUNT(*) FROM messages m WHERE m.session_id=s.id AND m.role='user' AND m.seq>s.upper_seq) AS reverted_users,(SELECT tip_seq FROM conversation_redo r WHERE r.session_id=s.id) AS redo_tip FROM (SELECT a.id,b.upper_seq FROM sessions a LEFT JOIN conversation_state b ON b.session_id=a.id) s")]
+                                    else:
+                                        rows = []
+                                        for table in ('session','session_v2'):
+                                            if table not in tables: continue
+                                            columns = {r[1] for r in connection.execute(f'PRAGMA table_info({table})')}
+                                            wanted = [c for c in ('id','title','revert') if c in columns]
+                                            rows += [dict(r) for r in connection.execute(f"SELECT {','.join(wanted)} FROM {table}")]
+                                        message_table = 'session_message' if 'session_message' in tables else 'message' if 'message' in tables else None
+                                        if message_table:
+                                            messages = [dict(r) for r in connection.execute(f'SELECT * FROM {message_table}')]
+                                            for row in rows:
+                                                users = [m for m in messages if m.get('session_id') == row['id'] and (m.get('type') == 'user' or json.loads(m.get('data','{}')).get('role') == 'user')]
+                                                revert = json.loads(row['revert']) if row.get('revert') else None
+                                                boundary = revert.get('messageID') if revert else None
+                                                row.update(archived_users=len(users),reverted_users=sum(m['id'] >= boundary for m in users) if boundary else 0)
+                                                row['visible_users'] = len(users)-row['reverted_users']
+                                    observations.append({'database':str(database),'rows':rows,'tables':sorted(tables)})
+                            fixture_files = {str(p.relative_to(project)):hashlib.sha256(p.read_bytes()).hexdigest()
+                                             for p in project.rglob('*') if p.is_file()}
+                            config_files = {name:hashlib.sha256((home / 'config/opencode' / name).read_bytes()).hexdigest()
+                                            for name in ('cli.json','opencode.json')}
+                            emit({'kind':'revert_snapshot','request_id':command['request_id'],'observations':observations,
+                                  'project_files':fixture_files,'config_files':config_files})
+                        elif command['kind'] == 'sessions_snapshot' and spec.get('sessions_interaction'):
+                            observations = []
+                            for database in (home / 'data').rglob('*'):
+                                if database.suffix not in ('.db', '.sqlite', '.sqlite3'): continue
+                                try:
+                                    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+                                        connection.row_factory = sqlite3.Row
+                                        tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                                        for table in ('session', 'session_v2', 'sessions'):
+                                            if table not in tables: continue
+                                            columns = {r[1] for r in connection.execute(f'PRAGMA table_info({table})')}
+                                            wanted = [c for c in ('id','title','parent_id','created_at','updated_at','time_created','time_updated','directory','location','project_id','subpath') if c in columns]
+                                            rows = [dict(r) for r in connection.execute(f"SELECT {','.join(wanted)} FROM {table} ORDER BY id")]
+                                            if table == 'sessions' and 'prefs' in tables:
+                                                locations = dict(connection.execute("SELECT substr(key,22), value FROM prefs WHERE key LIKE 'tui.session_location.%'"))
+                                                for row in rows: row['directory'] = locations.get(row['id'])
+                                            observations.append({'database':str(database), 'table':table, 'columns':sorted(columns), 'rows':rows})
+                                except sqlite3.Error as error:
+                                    observations.append({'database':str(database),'error_type':type(error).__name__})
+                            emit({'kind':'sessions_snapshot','request_id':command['request_id'],
+                                  'observed_at_ms':int(time.time()*1000), 'observations':observations})
+                        elif command['kind'] in ('wheel_sequence', 'glyph_sequence') and spec.get('wheel_probe'):
+                            def inject(command=command):
+                                start = time.monotonic()
+                                values = command.get('events', list(range(32)))
+                                for i, value in enumerate(values):
+                                    time.sleep(max(0, start+i/command['hz']-time.monotonic()))
+                                    data = (f"\x1b[<{65 if value > 0 else 64};{command['x']};{command['y']}M".encode()
+                                            if command['kind'] == 'wheel_sequence' else chr(0x6000+command['hz']+value).encode())
+                                    at = time.monotonic_ns()
+                                    os.write(master, data)
+                                    emit({'kind':'paced_input','request_id':command['request_id'],'index':i,'at_ns':at,
+                                          'base64':base64.b64encode(data).decode()})
+                                emit({'kind':'paced_input_done','request_id':command['request_id'],'at_ns':time.monotonic_ns()})
+                            threading.Thread(target=inject, daemon=True).start()
+                        elif command['kind'] == 'process_sample' and spec.get('wheel_probe'):
+                            stat = Path(f'/proc/{child.pid}/stat').read_text().rsplit(') ', 1)[1].split()
+                            status = dict(line.split(':', 1) for line in Path(f'/proc/{child.pid}/status').read_text().splitlines() if ':' in line)
+                            emit({'kind':'process_sample', 'request_id':command['request_id'], 'at_ns':time.monotonic_ns(),
+                                  'pid':child.pid, 'cpu_ticks':int(stat[11])+int(stat[12]), 'clock_ticks_per_second':os.sysconf('SC_CLK_TCK'),
+                                  'voluntary_context_switches':int(status['voluntary_ctxt_switches']),
+                                  'involuntary_context_switches':int(status['nonvoluntary_ctxt_switches'])})
+                        elif command['kind'] == 'release_wheel' and spec.get('wheel_probe'):
+                            wheel_release.set()
+                        elif command['kind'] == 'input':
+                            if spec.get('tool_preview_small') and command.get('source') == 'tool_preview_submit':
+                                if base64.b64decode(command['data']) != b'\r':
+                                    raise AssertionError('Small preview submission must be Enter')
+                                tool_preview_fixture.mark_small_submission(time.monotonic_ns())
+                            os.write(master, base64.b64decode(command['data']))
+                            if spec.get('wheel_probe') or spec.get('leader_pending'):
+                                emit({'kind':'input_written','at_ns':time.monotonic_ns(),'base64':command['data']})
+                        elif command['kind'] == 'resize':
+                            fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', command['rows'], command['columns'], 0, 0))
+                            os.killpg(child.pid, signal.SIGWINCH)
+                            emit({'kind': 'resize', 'columns': command['columns'], 'rows': command['rows']})
+                        elif command['kind'] == 'stop':
+                            forced = True
+                        elif command['kind'] == 'release_scanner' and spec.get('scanner'):
+                            scanner_release.set()
+                            emit({'kind': 'scanner_release_requested'})
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch') or spec.get('clean_services') or spec.get('combined_composer') or spec.get('syntax_inventory')):
+                            pause = command['kind'] == 'pause_scanner'
+                            try:
+                                if pause and child.poll() is None and not scanner_paused:
+                                    os.killpg(child.pid, signal.SIGSTOP)
+                                    scanner_paused = True
+                                elif not pause and scanner_paused:
+                                    os.killpg(child.pid, signal.SIGCONT)
+                                    scanner_paused = False
+                                if pause and scanner_paused:
+                                    # Flush all PTY bytes written before SIGSTOP before ACK;
+                                    # the frontend must apply them before its paused resample.
+                                    while select.select([master], [], [], 0)[0]:
+                                        try:
+                                            drained = os.read(master, 65536)
+                                        except OSError:
+                                            break
+                                        if not drained:
+                                            break
+                                        emit({'kind': 'output', 'generation': generation,
+                                              'data': base64.b64encode(drained).decode()})
+                                emit({'kind': 'scanner_pause_ack' if pause else 'scanner_resume_ack',
+                                      'request_id': command['request_id'], 'paused': scanner_paused,
+                                      'generation': generation})
+                            except ProcessLookupError:
+                                scanner_paused = False
+                                emit({'kind': 'scanner_pause_ack' if pause else 'scanner_resume_ack',
+                                      'request_id': command['request_id'], 'paused': False,
+                                      'generation': generation, 'error': 'child exited'})
+                    if forced:
+                        break
+        finally:
+            # SIGSTOP also stops graceful termination; never wait/kill a paused
+            # process group. This runs on stop, stdin EOF, exception and PTY EIO.
+            if scanner_paused:
+                try:
+                    os.killpg(child.pid, signal.SIGCONT)
+                except ProcessLookupError:
+                    pass
+                scanner_paused = False
+                emit({'kind': 'scanner_cleanup_resumed', 'generation': generation})
+            # The PTY master can report EIO just before waitpid observes a
+            # normal app.exit. Give that exit a bounded chance to complete;
+            # otherwise a graceful quit is misclassified as forced teardown.
+            if not forced and child.poll() is None:
+                try:
+                    child.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    pass
+            if child.poll() is None:
+                forced = True
+                os.killpg(child.pid, signal.SIGTERM)
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                forced = True
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait()
+            # Drain the exited PTY before telling the frontend the generation ended.
+            while select.select([master], [], [], 0)[0]:
+                try:
+                    data = os.read(master, 65536)
+                except OSError:
+                    break
+                if not data:
+                    break
+                emit({'kind': 'output', 'generation': generation, 'data': base64.b64encode(data).decode()})
+            os.close(master)
+            emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
+                  'termination': 'forced_stop' if forced else 'natural'})
+        if forced or not (spec.get('tab_middle_close') or spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch') or spec.get('permission') or spec.get('tool_preview')):
+            break
+        # The same bridge/server/config/project and XDG roots survive the first exit.
+        command = json.loads(sys.stdin.readline())
+        if command.get('kind') != 'relaunch' or generation:
+            break
+        generation += 1
+        if spec.get('sessions_interaction'):
+            project = root / 'project'
+            project.mkdir(parents=True, exist_ok=True)
+        emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
+finally:
+    compaction_fixture.release.set()
+    scanner_release.set()
+    server.shutdown()
+    server.server_close()

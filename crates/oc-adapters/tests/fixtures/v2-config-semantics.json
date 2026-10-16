@@ -1,0 +1,289 @@
+{
+  "oracle": {
+    "revision": "parent of the upstream fifteen-minute chunk-default change",
+    "commit": "b4f19bfe74a972c2919aa4c9d7445fa61f41b226"
+  },
+  "base": {
+    "providers": {
+      "fixture": {
+        "settings": {
+          "baseURL": "https://example.com/v1",
+          "apiKey": "synthetic-t65-only"
+        },
+        "headers": {
+          "x-session-affinity": "session-fixture",
+          "x-session-id": "session-fixture"
+        },
+        "models": {
+          "m": {
+            "modelID": "wire-model",
+            "variants": [{ "id": "v" }]
+          }
+        }
+      }
+    }
+  },
+  "protocols": [
+    "@opencode/ai/providers/openai",
+    "@opencode/ai/providers/openai-compatible",
+    "@opencode/ai/providers/anthropic"
+  ],
+  "wire_names": {
+    "@opencode/ai/providers/openai": "responses",
+    "@opencode/ai/providers/openai-compatible": "chat",
+    "@opencode/ai/providers/anthropic": "messages"
+  },
+  "schema_cases": [
+    { "id": "opaque-settings-are-not-legacy", "document": { "providers": { "fixture": { "settings": {
+      "setCacheKey": { "vendor": "opaque" }, "npm": "vendor-option", "options": [],
+      "provider": { "nested": true }, "permission": true, "modalities": ["vendor"]
+    } } } }, "schema_valid": true, "native": "supported" },
+    { "id": "canonical-reasoning-string", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "reasoningField": "vendor_reasoning" } } } } } }, "schema_valid": true, "native": "supported" },
+    { "id": "reasoning-boolean-is-not-string", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "reasoningField": false } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "reasoning-object-is-not-string", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "reasoningField": { "field": "SCHEMA_VALUE_CANARY" } } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "cache-flag-type", "document": { "providers": { "fixture": { "compatibility": { "supportsPromptCacheKey": "SCHEMA_VALUE_CANARY" } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "unsupported-valid-boolean", "document": { "providers": { "fixture": { "compatibility": { "requireFinishReason": true } } } }, "schema_valid": true, "native": "unsupported" },
+    { "id": "unsupported-malformed-boolean", "document": { "providers": { "fixture": { "compatibility": { "requireFinishReason": "SCHEMA_VALUE_CANARY" } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "unsupported-valid-enum", "document": { "providers": { "fixture": { "compatibility": { "cacheFormat": "alibaba" } } } }, "schema_valid": true, "native": "unsupported" },
+    { "id": "unsupported-malformed-enum", "document": { "providers": { "fixture": { "compatibility": { "cacheFormat": "SCHEMA_VALUE_CANARY" } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "unsupported-valid-model-flag", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "supportsThinkingBlockBinding": true } } } } } }, "schema_valid": true, "native": "unsupported" },
+    { "id": "unsupported-malformed-model-flag", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "supportsThinkingBlockBinding": "SCHEMA_VALUE_CANARY" } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "max-token-enum-type", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "maxTokensField": "SCHEMA_VALUE_CANARY" } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "compatibility-container-type", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": [] } } } } }, "schema_valid": false, "native": "invalid" }
+  ],
+  "permission_base": { "agents": { "fixture": {} } },
+  "permission_evaluator_cases": [
+    { "id": "no-match", "rules": [], "action": "shell", "resource": "echo fixture", "expected": "ask" },
+    { "id": "unmatched-action", "rules": [{ "action": "read", "resource": "*", "effect": "allow" }], "action": "shell", "resource": "echo fixture", "expected": "ask" },
+    { "id": "unmatched-resource", "rules": [{ "action": "shell", "resource": "git *", "effect": "allow" }], "action": "shell", "resource": "echo fixture", "expected": "ask" }
+  ],
+  "permission_cases": [
+    { "id": "agent-default", "documents": [], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "agent-default-env", "documents": [], "action": "read", "resource": ".env.local", "expected": "ask" },
+    { "id": "agent-default-example", "documents": [], "action": "read", "resource": ".env.example", "expected": "allow" },
+    { "id": "late-document-allow", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] },
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] }
+    ], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "late-document-deny", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] },
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] }
+    ], "action": "shell", "resource": "echo fixture", "expected": "deny" },
+    { "id": "agent-over-top-level", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }],
+        "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] } } }
+    ], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "early-agent-over-late-top-level", "documents": [
+      { "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] } } },
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] }
+    ], "action": "shell", "resource": "echo fixture", "expected": "deny" },
+    { "id": "late-agent-allow", "documents": [
+      { "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] } } },
+      { "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] } } }
+    ], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "resource-rule-over-default", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "git *", "effect": "deny" }] }
+    ], "action": "shell", "resource": "git", "expected": "deny" }
+  ],
+  "settings_cases": [
+    {
+      "id": "provider-numeric-wins",
+      "provider": { "timeout": 1234, "headerTimeout": 2345, "chunkTimeout": 3456, "transport": "http", "reasoningEffort": "low" },
+      "model": { "timeout": 1, "headerTimeout": 2, "chunkTimeout": 3, "transport": "websocket", "reasoningEffort": "medium" },
+      "variant": { "timeout": false, "headerTimeout": false, "chunkTimeout": false, "transport": "websocket", "reasoningEffort": "high" },
+      "expected_http": { "timeout": 1234, "headerTimeout": 2345, "chunkTimeout": 3456 },
+      "expected_transport": "http"
+    },
+    {
+      "id": "provider-disabled-wins",
+      "provider": { "timeout": false, "headerTimeout": false, "chunkTimeout": false, "transport": "http" },
+      "model": { "timeout": 1, "headerTimeout": 2, "chunkTimeout": 3, "transport": "websocket", "reasoningEffort": "medium" },
+      "variant": { "timeout": 4, "headerTimeout": 5, "chunkTimeout": 6, "transport": "websocket", "reasoningEffort": "high" },
+      "expected_http": { "timeout": false, "headerTimeout": false, "chunkTimeout": false },
+      "expected_transport": "http"
+    },
+    {
+      "id": "provider-absent-lower-invalid-ignored",
+      "provider": {},
+      "model": { "timeout": "ignored", "headerTimeout": {}, "chunkTimeout": true, "transport": "invalid", "reasoningEffort": "medium" },
+      "variant": { "timeout": {}, "headerTimeout": "ignored", "chunkTimeout": [], "transport": false, "reasoningEffort": "high" },
+      "expected_http": { "timeout": null, "headerTimeout": 300000, "chunkTimeout": 300000 },
+      "expected_transport": null
+    }
+  ],
+  "prompt_cache_key": "cache-fixture",
+  "cache_requests": [
+    {
+      "id": "absent-auto",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": { "settings": { "setCacheKey": false } } } }],
+      "expected_key": { "responses": true, "chat": false, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "true-with-obsolete-false",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true },
+        "settings": { "setCacheKey": false }
+      } } }],
+      "expected_key": { "responses": true, "chat": true, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "false-with-obsolete-true",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": false },
+        "settings": { "setCacheKey": true }
+      } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "absent-cache-none",
+      "cache": "none",
+      "documents": [{ "providers": { "fixture": { "settings": { "setCacheKey": true } } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 0
+    },
+    {
+      "id": "true-cache-none",
+      "cache": "none",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true },
+        "settings": { "setCacheKey": true }
+      } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 0
+    },
+    {
+      "id": "package-json-not-a-switch",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true },
+        "settings": { "setCacheKey": { "vendor": "opaque" } }
+      } } }],
+      "expected_key": { "responses": true, "chat": true, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "key-absent-keeps-message-policy",
+      "cache": "auto",
+      "provide_key": false,
+      "minimal_input": true,
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true }
+      } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 1
+    },
+    {
+      "id": "earlier-model-false-beats-later-provider-true-on-wire",
+      "cache": "auto",
+      "documents": [
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": false }
+        } } } } },
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": true },
+          "settings": { "setCacheKey": true }
+        } } }
+      ],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 3
+    }
+  ],
+  "compatibility": [
+    {
+      "id": "absent",
+      "documents": [],
+      "expected": {}
+    },
+    {
+      "id": "provider-defaults",
+      "documents": [
+        { "providers": { "fixture": { "compatibility": {
+          "supportsPromptCacheKey": true,
+          "reasoningField": "reasoning_content",
+          "maxTokensField": "max_completion_tokens"
+        } } } }
+      ],
+      "expected": {
+        "supportsPromptCacheKey": true,
+        "reasoningField": "reasoning_content",
+        "maxTokensField": "max_completion_tokens"
+      }
+    },
+    {
+      "id": "provider-false-model-true",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": false, "reasoningField": "reasoning_text" },
+          "models": { "m": { "compatibility": { "supportsPromptCacheKey": true } } }
+        } } }
+      ],
+      "expected": { "supportsPromptCacheKey": true, "reasoningField": "reasoning_text" }
+    },
+    {
+      "id": "provider-true-model-false",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": true },
+          "models": { "m": { "compatibility": { "supportsPromptCacheKey": false } } }
+        } } }
+      ],
+      "expected": { "supportsPromptCacheKey": false }
+    },
+    {
+      "id": "earlier-model-false-later-provider-true",
+      "documents": [
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": false }
+        } } } } },
+        { "providers": { "fixture": { "compatibility": { "supportsPromptCacheKey": true } } } }
+      ],
+      "expected": { "supportsPromptCacheKey": false }
+    },
+    {
+      "id": "levels-fold-independently-by-field",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": false, "maxTokensField": "max_completion_tokens" },
+          "models": { "m": { "compatibility": { "reasoningField": "reasoning_text", "maxTokensField": "max_tokens" } } }
+        } } },
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": true, "reasoningField": "reasoning_content" },
+          "models": { "m": { "compatibility": { "supportsPromptCacheKey": false } } }
+        } } }
+      ],
+      "expected": {
+        "supportsPromptCacheKey": false,
+        "reasoningField": "reasoning_text",
+        "maxTokensField": "max_tokens"
+      }
+    },
+    {
+      "id": "model-override-equal-to-native-default",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "maxTokensField": "max_completion_tokens" },
+          "models": { "m": { "compatibility": { "maxTokensField": "max_tokens" } } }
+        } } }
+      ],
+      "expected": { "maxTokensField": "max_tokens" }
+    },
+    {
+      "id": "later-model-override",
+      "documents": [
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": false }
+        } } } } },
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": true }
+        } } } } }
+      ],
+      "expected": { "supportsPromptCacheKey": true }
+    }
+  ]
+}

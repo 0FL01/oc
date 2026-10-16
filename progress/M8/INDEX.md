@@ -1,0 +1,26 @@
+# M8 — task index
+
+Plan: ../../roadmap/M8.md
+
+- [T43](T43/INDEX.md) [done] — Config compatibility и foreground subagent prerequisites; latest: 0004.md.
+- [T45](T45/INDEX.md) [blocked] — Остаток subagent system (T43 slices 5-8), DCP 3.2.0 donor qualification и defaults/controls (DCP12); latest: 0027.md.
+- [T46](T46/INDEX.md) [done] — MCP config/startup parity: per-server degradation, cwd/environment, async lifecycle + User-Agent; latest: 0007.md.
+- [T47](T47/INDEX.md) [done] — Model admission: unknown limits, explicit variants и canonical effort ordering; latest: 0001.md.
+- [T49](T49/INDEX.md) [done] — Turn model identity and ancillary request attribution; latest: 0008.md.
+- [T50](T50/INDEX.md) [done] — Selected native tool parity: live model/file tools/shell/search/question/read/fetch/session controls; latest: 0017.md.
+- [T51](T51/INDEX.md) [done] — Startup fault isolation: plugins/provider readiness и typed actionable diagnostics; latest: 0005.md.
+- [T53](T53/INDEX.md) [done] — OpenCode Go: единые credentials, native wires и connect/model TUI; latest: 0002.md.
+- [T54](T54/INDEX.md) [done] — Provider-error retry and safe continuation parity (OC2 v2.0.12); latest: 0003.md.
+- [T55](T55/INDEX.md) [done] — Responses completed-output compatibility and current real tool E2E; latest: 0003.md.
+- [T56](T56/INDEX.md) [done] — Native session-local interactive PTYs для Terminals; latest: 0001.md.
+- [T57](T57/INDEX.md) [blocked] — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers; latest: 0001.md.
+- [T58](T58/INDEX.md) [done] — Встроенный customize-opencode: конфигурационный ранбук native oc; latest: 0001.md.
+- [T59](T59/INDEX.md) [done] — Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery; latest: 0003.md.
+- [T60](T60/INDEX.md) [done] — Code Mode execute на нативном Rust-интерпретаторе; latest: 0001.md.
+- [T61](T61/INDEX.md) [blocked] — Hot reload (per-process); shared service descoped; latest: 0017.md.
+- [T62](T62/INDEX.md) [done] — Canonical OpenCode 2 config only (no OpenCode 1 compatibility); latest: 0001.md.
+- [T63](T63/INDEX.md) [done] — MIT для собственного кода проекта; latest: 0001.md.
+- [T64](T64/INDEX.md) [done] — Publish native oc2 on crates.io; latest: 0002.md.
+- [T65](T65/INDEX.md) [done] — Native V2 provider/cache/transport and ordered permission semantics; latest: 0003.md.
+- [T66](T66/INDEX.md) [done] — Strict OpenCode 2 key allowlist replaces the OpenCode 1 detector; latest: 0001.md.
+- [T67](T67/INDEX.md) [done] — Owner live dev launcher oc2-dev; latest: 0001.md.

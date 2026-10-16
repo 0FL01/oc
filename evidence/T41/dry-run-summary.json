@@ -1,0 +1,104 @@
+[dry-run]
+{
+  "budget": {
+    "call_timeout_seconds": 300,
+    "campaign_timeout_seconds": 900,
+    "step_budget": 5
+  },
+  "counts": {
+    "attempted": 5,
+    "blocked": 0,
+    "failed": 0,
+    "passed": 5,
+    "skipped": 0,
+    "unexecuted": 0
+  },
+  "harness": "live_bounded",
+  "mode": "dry-run",
+  "model": "fixture/dry-run-model",
+  "steps": [
+    {
+      "detail": "run_ok=true tests_ok=true stdout=dry-run fix complete stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "coding-fix",
+      "status": "passed"
+    },
+    {
+      "detail": "run_ok=true mcp_calls=true stdout=dry-run search complete stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "mcp",
+      "status": "passed"
+    },
+    {
+      "detail": "run_ok=true blocks=1 ops=apply_patch=completed,bash=completed,dry_run_mcp__search=completed,compress=completed stdout=dry-run compression complete stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "compress",
+      "status": "passed"
+    },
+    {
+      "detail": "run_ok=true rows=8 stdout=dry-run acknowledged stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "restart",
+      "status": "passed"
+    },
+    {
+      "detail": "run_ok=true stdout=dry-run acknowledged stderr=session s-live-3380468-b",
+      "kind": "model",
+      "name": "workspace-switch",
+      "status": "passed"
+    }
+  ],
+  "variant": null
+}
+[dry-run-no-mcp]
+{
+  "budget": {
+    "call_timeout_seconds": 300,
+    "campaign_timeout_seconds": 900,
+    "step_budget": 5
+  },
+  "counts": {
+    "attempted": 5,
+    "blocked": 1,
+    "failed": 0,
+    "passed": 4,
+    "skipped": 0,
+    "unexecuted": 0
+  },
+  "harness": "live_bounded",
+  "mode": "dry-run-no-mcp",
+  "model": "fixture/dry-run-model",
+  "steps": [
+    {
+      "detail": "run_ok=true tests_ok=true stdout=dry-run fix complete stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "coding-fix",
+      "status": "passed"
+    },
+    {
+      "detail": "no MCP server is declared in the configuration: blocked, never silently skipped",
+      "kind": "blocked",
+      "name": "mcp",
+      "status": "blocked"
+    },
+    {
+      "detail": "run_ok=true blocks=1 ops=apply_patch=completed,bash=completed,compress=completed stdout=dry-run compression complete stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "compress",
+      "status": "passed"
+    },
+    {
+      "detail": "run_ok=true rows=6 stdout=dry-run acknowledged stderr=session s-live-3380468",
+      "kind": "model",
+      "name": "restart",
+      "status": "passed"
+    },
+    {
+      "detail": "run_ok=true stdout=dry-run acknowledged stderr=session s-live-3380468-b",
+      "kind": "model",
+      "name": "workspace-switch",
+      "status": "passed"
+    }
+  ],
+  "variant": null
+}

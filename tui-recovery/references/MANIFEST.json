@@ -1,0 +1,253 @@
+{
+  "note": "Original supplied PNG bytes. Not paired golden captures: dimensions, app state and likely terminal profile differ. Color counts are measurements, not proven theme errors. No fonts are redistributed.",
+  "images": [
+    {
+      "file": "references/upstream-session.png",
+      "sha256": "53613d9e5665b97dc12e934e3d373092b23efa8ec20a763a48d6317e4fc81561",
+      "pixels": [
+        1919,
+        1011
+      ],
+      "meaning": "User-designated original: populated session",
+      "actual_program_commit": null,
+      "terminal_columns_rows": null,
+      "font": null,
+      "most_common_rgb": [
+        {
+          "rgb": [
+            10,
+            10,
+            10
+          ],
+          "pixels": 1214280
+        },
+        {
+          "rgb": [
+            20,
+            20,
+            20
+          ],
+          "pixels": 452517
+        },
+        {
+          "rgb": [
+            30,
+            30,
+            30
+          ],
+          "pixels": 133288
+        },
+        {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "pixels": 40974
+        },
+        {
+          "rgb": [
+            136,
+            136,
+            136
+          ],
+          "pixels": 20133
+        },
+        {
+          "rgb": [
+            64,
+            64,
+            64
+          ],
+          "pixels": 5994
+        }
+      ]
+    },
+    {
+      "file": "references/upstream-commands.png",
+      "sha256": "fdcde70bdb97ebd7071786751f71e4a19263439edd6253a8d4034b4518baafab",
+      "pixels": [
+        1919,
+        1012
+      ],
+      "meaning": "User-designated original: command palette",
+      "actual_program_commit": null,
+      "terminal_columns_rows": null,
+      "font": null,
+      "most_common_rgb": [
+        {
+          "rgb": [
+            4,
+            4,
+            4
+          ],
+          "pixels": 953805
+        },
+        {
+          "rgb": [
+            8,
+            8,
+            8
+          ],
+          "pixels": 452640
+        },
+        {
+          "rgb": [
+            20,
+            20,
+            20
+          ],
+          "pixels": 249607
+        },
+        {
+          "rgb": [
+            12,
+            12,
+            12
+          ],
+          "pixels": 133551
+        },
+        {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "pixels": 40974
+        },
+        {
+          "rgb": [
+            56,
+            56,
+            56
+          ],
+          "pixels": 13656
+        }
+      ]
+    },
+    {
+      "file": "references/upstream-models.png",
+      "sha256": "8f981f53fd1976dee5d74419712003cf661837ceaf74b4875a3af6e18eba2143",
+      "pixels": [
+        1919,
+        1012
+      ],
+      "meaning": "User-designated original: model picker",
+      "actual_program_commit": null,
+      "terminal_columns_rows": null,
+      "font": null,
+      "most_common_rgb": [
+        {
+          "rgb": [
+            4,
+            4,
+            4
+          ],
+          "pixels": 1053503
+        },
+        {
+          "rgb": [
+            8,
+            8,
+            8
+          ],
+          "pixels": 452640
+        },
+        {
+          "rgb": [
+            20,
+            20,
+            20
+          ],
+          "pixels": 149466
+        },
+        {
+          "rgb": [
+            12,
+            12,
+            12
+          ],
+          "pixels": 133551
+        },
+        {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "pixels": 40974
+        },
+        {
+          "rgb": [
+            56,
+            56,
+            56
+          ],
+          "pixels": 15815
+        }
+      ]
+    },
+    {
+      "file": "references/port-mcp-failure.png",
+      "sha256": "0bed62f976e61788a5480e697847c7b4bc5df2e9b1d332025714ef3826dddcaf",
+      "pixels": [
+        1918,
+        981
+      ],
+      "meaning": "User-designated Rust port: MCP attach failure, unsent draft",
+      "actual_program_commit": null,
+      "terminal_columns_rows": null,
+      "font": null,
+      "most_common_rgb": [
+        {
+          "rgb": [
+            8,
+            8,
+            8
+          ],
+          "pixels": 1608861
+        },
+        {
+          "rgb": [
+            28,
+            28,
+            28
+          ],
+          "pixels": 194862
+        },
+        {
+          "rgb": [
+            18,
+            18,
+            18
+          ],
+          "pixels": 35789
+        },
+        {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "pixels": 20555
+        },
+        {
+          "rgb": [
+            64,
+            64,
+            64
+          ],
+          "pixels": 5856
+        },
+        {
+          "rgb": [
+            77,
+            77,
+            77
+          ],
+          "pixels": 1946
+        }
+      ]
+    }
+  ]
+}

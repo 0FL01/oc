@@ -1,0 +1,4 @@
+# Captured terminal grids deliberately retain every blank cell and final row.
+attempt-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+# Raw terminal streams are byte evidence, not source text.
+*.vt binary

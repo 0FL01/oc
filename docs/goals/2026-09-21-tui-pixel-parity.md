@@ -1,0 +1,580 @@
+# Goal: TUI pixel parity with opencode v2.0.12
+
+Status: blocked
+Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
+Additional source: owner-approved canonical effort ordering after RECON, 2026-09-27.
+Additional source: owner-reported missing Middle Click tab close and explicit request to add the detailed work plan, 2026-09-30.
+Additional source: owner-reported Shift+Tab opens the agent picker instead of cycling, Tab/OC1 binding investigation and approval of the detailed T44/T45 fix plan, 2026-09-30.
+Additional source: owner request for full child-TUI/Subagents/Shell/Terminals parity, explicit Terminals inclusion and detailed plan commit/push approval, 2026-10-01.
+Additional source: owner-approved OC2 model-dependent edit/write/apply_patch RECON plan and mandatory user-switch compatibility, detailed plan commit/push, 2026-10-01; T50 owns behavior, VIS35/VIS36 presentation remains T44 and PAUSED.
+Additional source: follow-up owner requires original OC2 model-switch parity while an agent works and approves detailed plan commit/push, 2026-10-01; local picker draft/captured commit/blank Enter and request-boundary adoption within the same task supersede whole-turn model pin/busy refusal only. T50 TOOL12/T45 PRM01 backend receipts precede T44 VIS09/VIS29/VIS17/VIS35/VIS36 paired qualification; T44 remains PAUSED.
+Additional source: owner-reported phantom caret over large highlighted tool output, explicit preservation of normal prompt caret blink under continuous repaint, and approval of plan commit/push, 2026-10-01. Existing VIS16/VIS31 own the temporal qualification; T44 remains PAUSED.
+Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
+Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
+Additional source: owner-reported repeated Part/output preview markers in MCP/Shell cards, pinned OC2 TS RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS16/VIS17 own synthetic-marker suppression and Generic/MCP collapse/expand parity; T50/R10 supplies minimal structured presentation facts. T44 remains PAUSED.
+Last updated: 2026-10-16
+
+## Current execution checkpoint — 2026-10-16
+
+**OWNER SCHEDULING PAUSE after the verified usage-timing correction.**
+The latest instruction is “доделывай, коммит и пуш, далее пауза”. The current
+correction is qualified for commit/push; do not start another slice after delivery.
+This is not an external technical blocker, full T44 completion or an acceptance waiver.
+
+Earlier execution resumed after T65 implementation, push and verified registry delivery.
+[V2 configuration semantics](2026-10-15-v2-config-semantics.md) is complete;
+all four0.2.0 crates are published and the installed native binary passes actual
+isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succeeds.
+The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
+conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
+
+Owner instruction: finish the current backend/live-projection usage timing
+correction, commit and push it, then pause. Do not start another TUI slice after
+delivery. The final full-workspace gate passes2012 tests with zero failures; this owner
+scheduling pause does not waive or complete any frozen T44 requirement.
+[Current usage receipt](../../evidence/T44/usage-settlement-20261016.md) records
+the reproduced publication/read paths. Final-source Execute attempt10 removes all16
+busy-footer cell differences: running/copied-Code PNGs match completely, and
+copied-Code also matches the full grid/cursor. Both binaries pass20 functional
+stages; all40 complete comparisons remain7 PASS/33 DIFFERENT, not whole parity.
+Accounting/checkpoints remain unchanged. Runtime130/TUI549 and strict workspace
+Clippy pass; the final isolated workspace gate passes2012/0 with12 unchanged opt-in
+ignored cases across46 targets. The typed Execute UI is
+pushed in `462543894`.
+[Current question receipt](../../evidence/T44/question-resume-20261016.md): both
+binaries pass18 stages at all three geometries, with12 natural/code0 process exits
+and54 equal cursor pairs. Full comparisons remain50 PASS/58 DIFFERENT; all eight
+first-form states match completely. Only the fixture's final-exit proof changed;
+no question production code, actor policy or comparison criterion changed.
+[Current UI receipt](../../evidence/T44/execute-ui-20261016.md): attempt07 passes20
+actual interaction stages on both binaries, including real clipboard transport,
+three geometries and natural restart without replay;4/40 complete comparisons
+match and36 differ. Error interactions expose completed-metadata-error versus
+failed-parent states, explicitly not equivalent or an approved exception. Native
+error policy remains frozen. A reproduced resize-scroll resurrection is fixed
+and actual paired discrepancy falls947→2 elapsed-label cells (hidden pen positions
+still differ). The latest5 Execute/548 TUI tests and strict workspace Clippy pass;
+the unchanged real-PTY regression target passes60 cases. This is not a full VIS46 PASS. The
+[producer facet](../../evidence/T44/execute-producer-20261016.md) supplies bounded
+redacted ordered facts and coalesced same-operation progress; its actual MCP,
+fetch, cancellation/single-effect and reopen proofs remain qualified.
+[Current temporal receipt](../../evidence/T44/cursor-resume-20261016.md):
+nine profiles retain zero phantom states; native blink cadence and steady/default
+controls qualify after isolating one artificial per-chunk acquisition delay.
+The unchanged default/nonblink fallback control passes with available PTY bytes
+queued naturally; no native cursor or criterion change was needed. Original
+narrow-hover blink starvation remains explicit failed reference evidence, not a
+behavior to imitate or a full pixel PASS. Independent artifact audit qualifies
+the five both-qualified profiles:720 full PNGs,348 matched phase pairs;776 full
+comparisons DIFFERENT/48 unmatched, never full parity. Generic sticky-follow was
+delivered in `ca37eca0a`.
+Current0.2.0 paired proof passes13 stages per side, real5.5s footer buckets and
+no replay. Expanded MCP differences fall from1710/1700 to34 Shell-region cells;
+all26 full comparisons still differ honestly under the native Shell policy.
+The fix preserves detached/older-page and Explored-group anchors; all542 TUI
+tests, five nearest expansion regressions and strict affected-crate Clippy pass.
+The restored proposal
+to synthesize a Shell zero-exit notice was rejected after the existing tests and
+explicit `fee0123a0`/VIS16 contract contradicted it; that experiment and its new
+test are removed, existing omission assertions remain unchanged. Preserve actual
+output and abnormal outcomes; do not force equality by adding forbidden status.
+See [current experiment receipt](../../evidence/T44/tool-preview-return-20261016.md).
+Neither the baseline nor earlier profiles are whole-slice pixel PASS. Continue
+the ordered slices below after qualification.
+All R1–R6/VIS01–VIS46 and the full visual/interaction finish line are unchanged.
+
+### Earlier activation and verified slices
+
+Source: owner explicitly requests recording this as the active goal, completing
+full visual parity, fixing demonstrated backend blockers before returning to TUI,
+and committing/pushing each major verified slice. This supersedes historical
+PAUSED scheduling statements below, not their frozen requirements or evidence.
+T44 is resumed; progress.py remains the sole task-state owner.
+
+- Finish line: every existing R1–R6 / mandatory VIS01–VIS46 and supplement resolved
+  with current actual-binary effects, full paired styled-cell/PNG/cursor captures,
+  temporal/resource/safety and final current-source gates. No partial-slice finish.
+- Next: build a small-output direct MCP/Shell comparable-state profile without
+  preceding service failures. If needed, align displayed elapsed buckets with a
+  bounded real fixture-response wait from PTY submission, never a production
+  clock/history/paint override. Keep full comparisons and actual no-replay proof.
+  Existing bounded body/guidance/capture facts and collapse/expand behavior are
+  implemented, not a new backend to rewrite. Preserve genuine payload and RAW.
+- Ordered continuation: tool cards/clean dialogue (VIS16/17/42); prompt/caret/blink/
+  scroll (VIS12/16/31/32); pending question/forms and tabs (VIS37/41/44); new execute
+  progress/nested-call rows/dialog (VIS46); remaining child/Subagents/Shell/Terminals,
+  approval/file cards, MCP/auth/retry, Home/Markdown/Thinking/selectors/sessions/
+  Message Actions/conversation-only Revert/compaction; full acceptance closure.
+  This is navigation, not reduced acceptance or a claim that every listed behavior
+  is absent. Preserve qualified historical DCP/picker slices and recheck affected
+  invariants; investigate the known VIS38 PTY/resource failure rather than waive it.
+- Backend detour: only a demonstrated blocker to the current required UI outcome;
+  record the smallest affected seam and existing owner, checkpoint/block T44,
+  start/reopen that owner as allowed by the task graph, qualify the fix, then resume
+  T44. Do not wait for whole T61 or create a second store/framework/task engine.
+- Delivery: each major verified slice gets a reviewed commit and ordinary push to
+  the verified own branch. A delivery failure is reported separately and does not
+  erase independent in-scope engineering actions. No unknown-effect replay.
+- Constraints: four native Rust crates, immutable RAW/bounded HOT, captured request
+  and effect owners, permissions/redaction/resource limits and disclosed native
+  differences remain. No user-config edits, paid campaign reset/new allowance,
+  shared service, OC1 compatibility, masks or relaxed comparator/baselines.
+- Current evidence: [resume receipt](../../evidence/tui/resume-20261015.md).
+  Activation `6bf56b82a` pushed; capture prerequisites restored. Reproduced VIS38
+  teardown race is fixed with success/restoration/resource assertions intact;
+  all60 PTY tests pass. Current full paired tool probe passes27 behavioral stages
+  per side, no replay effects;54 grid/PNG comparisons give6 equal/48 different,
+  not whole-slice pixel PASS. The [continuation-style facet](../../evidence/tui/generic-continuation-20261015.md)
+  is fixed and passes541 TUI tests plus fresh paired capture (same6/48 full-frame
+  result; the affected indentation is exact). Strict affected-crate Clippy and
+  the post-cleanup targeted regression pass. T44 remains active; no READY claim
+  or external blocker.
+
+## Objective
+
+The `oc` TUI renders the upstream opencode v2.0.12 interface: same layout regions, same theme colors, same component inventory (message stream, tool cards, dialogs, command palette, session list, status/footer), same keybindings and visible strings, verified against the running pinned original using identical fixtures, state and terminal profile. Rust's own goldens are regression tests, not proof of external pixel parity.
+
+## Execution Directive
+
+Complete the frozen Required Outcomes using the listed Change Envelope and Primary Evidence. Work on the smallest unresolved outcome. Do not add requirements from reviews, tests, tools, speculative risks, or optional source text. Finish when every required outcome is resolved and affected constraints remain satisfied.
+
+The owner's reviewed [T44 amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md)
+supersedes the weaker self-authored interpretation below. Execute V00–V09 from
+[IMPLEMENTATION_GUIDE](../../tui-recovery/IMPLEMENTATION_GUIDE.md), all mandatory
+cases in the current [ACCEPTANCE.json](../../tui-recovery/ACCEPTANCE.json), and
+[SAFETY_REGRESSIONS](../../tui-recovery/SAFETY_REGRESSIONS.md). These are specifications,
+not executed results or a second task engine. `progress.py` remains the task-state owner.
+
+Owner-approved exception (2026-09-26): Undo/Redo/Revert are **conversation/context-only**,
+never filesystem rollback; snapshots are off by default and no file-checkpoint engine
+is required. Owner-approved parity correction: `/redo`, marker click and the Redo shortcut clear the entire staged boundary and restore the saved tail, superseding the earlier one-turn Redo rule. See the
+conversation-only section of the amendment for the exact contract and work plan.
+This documents approval, not implementation or permission to resume parked code.
+
+Owner-approved DCP presentation extension (2026-09-27, VIS38): use the pinned DCP
+notification formatter with the real OC2 transcript renderer as the display reference,
+not OC2 native `/compact`. Native token labels add `M` and rounded-unit promotion to
+the donor's `K` formatter. This narrowly declared numeric-format difference is recorded
+in full-frame comparisons; it does not waive unrelated symbols/styles/geometry diffs.
+
+Owner-approved service-error extension (2026-09-27):
+[VIS19/VIS40/VIS42](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#service-configstartup-error-parity--vis19vis40vis42)
+consumes T46 config/async initial MCP status and T51 plugin/provider/readiness/safe
+diagnostic facts before first prompt. Failed optional service must not prevent usable
+TUI/history/model picker. /plugins and service details show real failures/recovery with
+safe provenance/cause, no fake connected/active/sign-in labels. Selected-model fallback
+is not adopted. Truly fatal native startup frame has concrete safe cause/action and
+functional qualification, not invented donor pixel parity. VIS42 mandatory NOT_RUN;
+backend slice/effects precede paired presentation, no all-T46/T51 done-dependency.
+
+Owner-approved clean-dialogue extension (2026-10-02):
+[VIS42/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#clean-dialogue-and-service-diagnostics)
+is the first user-facing UI slice after explicit T44 resume. Background config/plugin/
+provider/MCP diagnostics stay out of conversation rows: compact status/counts, brief
+change-sensitive notification and existing safe details/copy/investigate routes instead.
+Identical refresh/reload/parked-tab updates do not repeat notifications; pending is a
+status and recovery clears stale readiness feedback. Preserve genuine request/tool/
+generation errors, VIS43 retry, fatal boundaries, explicit selection and redaction.
+VIS17 replaces the long live-preview message with an unobtrusive viewing-status
+indicator outside answer text, only when actually truncated; existing bounds and
+access to saved parts remain. Actual-binary dialogue-region/notification assertions
+precede existing paired qualification; no new task/gate or historical PASS rewrite.
+Plan pending/NOT_RUN, active T50/dirty work and PAUSED T44 unchanged.
+
+Owner-approved tool-preview parity extension (2026-10-02):
+[VIS16/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-preview-markers-and-genericmcp-parity--vis16vis17)
+joins the clean-dialogue slice after explicit resume. Hide generated
+`[Part preview truncated]` and `[output preview truncated; full result retained]`
+in dialogue and collapsed/expanded cards; replace duplicate rows with compact truthful
+status/details. Generic/MCP starts collapsed and toggles parameters/available bounded
+output as pinned OC2. Shell projection loss alone does not synthesize `[truncated]`;
+retain donor `(N earlier line[s])`, real payload/producer notices/errors and honest
+incomplete-capture facts. T50/R10 exposes body/ref/capture/projection provenance through
+existing DTO/query/event owners, not text stripping or a new store/schema. Preserve
+raw/provider text, caps/redaction/access/no-replay; expansion does not imply full-file
+recovery. Nearest regressions and one bounded fake-provider actual-binary MCP/Shell
+PTY precede running-original/native full-frame qualification. No new gate/task,
+runtime PASS or change to active T50, PAUSED T44, T55 priority or historical evidence.
+
+Owner-approved canonical effort ordering (2026-09-27):
+[VIS09/VIS29](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#canonical-effort-ordering--vis09vis29)
+uses T47 R6/VAR01's shared effective variants view. Known supported effort ranks are
+none/minimal/low/medium/high/xhigh/max before stable custom entries, Default separate;
+explicit known effort outranks name, absent effort may use standard name, explicitly
+unknown effort remains custom. Missing/disabled levels are skipped; no synthesized
+capability/wire value. This is an intentional native difference from donor declared
+order, superseding only the earlier variant-order criterion, not geometry/colors/
+keymap/identity/default/stale/persistence requirements. Canonical supplied fixtures
+still require paired full-frame parity; unsorted supplied fixtures retain explicitly
+labelled differences without masking or universal pixel PASS. Plan pending/NOT_RUN.
+
+Owner-approved Middle Click fix (2026-09-30):
+[T44/R5/VIS44](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#middle-click-tab-close--vis44)
+adds whole-tab middle-button mouse-down closure through the existing native owner,
+with actual-binary and paired original/native qualification. Closing is not session
+deletion. Existing busy/permission/Location/lifecycle guards remain; donor busy-close
+behavior is an explicit unresolved parity difference, not an implied authorization
+to weaken them. Plan only: VIS44 NOT_RUN, T44 PAUSED until explicit resume.
+
+Owner-approved tool-output cursor correction (2026-10-01):
+[T44/R4–R5/VIS16/VIS31](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-output-phantom-caret-and-prompt-blink--vis16vis31-2026-10-01)
+requires both no transient phantom caret in hovered/repainted tool rows and normal
+prompt caret blink at a fixed editor position during continuous hover redraw, idle
+and restoration. Preserve input owner/draft/shape/color/nonblinking/default settings,
+hover/expand/scroll and read-only overlay cursor exclusion. Qualify actual frame/output
+ordering (including Ratatui Show-before-MoveTo), non-synchronized fallback and real
+frontend visibility/timing over at least three full blink cycles per input state,
+plus full paired pinned-original/native styled-cell/PNG/cursor sequences. Neither
+final-only cursor position nor hide/draw/show that repeatedly resets blink is PASS.
+Reuse existing restoration/injection/resource gates; no new VIS/task/framework/timer
+or whole-T50 dependency. This fixes the reported interaction, not a new fullscreen
+viewer or recovery of tool-truncated output. Implementation/qualification pending;
+existing execution statuses, historical evidence and PAUSED T44 stay unchanged.
+
+## Frozen Contract
+
+### Required Outcomes
+
+Owner-approved compaction configuration/runtime parity (2026-09-27) is mandatory
+under T44/VIS34. Follow the [compaction configuration amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#compaction-configurationruntime-parity--дополнение-к-vis34):
+reproduce pinned OC2 TS normalization, diagnostics, auto/manual semantics and
+automatic trigger behavior. The shared config
+`{"compaction":{"auto":true,"prune":true}}` must load without requiring user edits.
+OC2 omits legacy `prune` with an unsupported diagnostic; it does not enable a
+separate pruning algorithm. Approval records the contract, not implemented parity
+or qualification; VIS34 remains open until its backend and paired UI gates pass.
+
+- R1: Reconnaissance artifacts exist and are authoritative.
+  - Source: user instruction (recon by part of @general).
+  - Acceptance: `evidence/tui/upstream-inventory.md` documents the upstream v2.0.12 TUI: file/component inventory (`packages/tui/src/**`, `packages/theme/src/tui/**`), exact theme colors, layout regions, keymap, and visible strings, each with source path + quoted snippet; `evidence/tui/current-gaps.md` maps our `crates/oc-tui` against it with concrete gaps.
+  - Primary evidence: the two files + a reviewer can trace every claim to an upstream path.
+  - Status: source inventory verified; executable capture lock pending
+  - Evidence: `evidence/tui/upstream-inventory.md` (147 lines, `path:line`-cited: default theme `opencode` dark, 74 token slots + hue scales, ~45 components, layout regions, keymap source, visible strings) and `evidence/tui/current-gaps.md` (171 lines, gap table + test-infrastructure analysis).
+
+- R2: Theme parity — the palette (colors, backgrounds, borders, syntax accents) matches upstream v2.0.12 values, including per-element roles (text, muted, primary, error/warning/success, panel, border, diff add/remove, user/assistant roles).
+  - Acceptance: a test asserts our resolved palette equals the upstream values extracted in R1; TUI renders with those colors under a truecolor terminal.
+  - Primary evidence: unit test over the palette + PTY snapshot showing colored regions.
+  - Status: palette unit tests verified; final rendered colors unverified pending paired frames
+  - Evidence: iteration 1 commit `b75e063`; `crates/oc-tui/assets/upstream/v2/opencode.json` (byte-faithful, SHA-256 recorded in `PROVENANCE.md`), `theme.rs::palette_matches_vendored_asset` walks the merged JSON generically (74 slots / 99 hue slots / 173 palette entries per mode), `rendered_frame_carries_theme_styles` asserts colors on a TestBackend frame.
+
+- R3: Layout parity — screen regions (header/logo area, message stream, input editor, status/footer bar, side panels/dialogs) occupy the same positions and respond to resize like upstream.
+  - Session-tab title parity (owner-approved 2026-09-27, VIS41): follow [Session tab spinner and hover-marquee parity — VIS39/VIS41](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#session-tab-spinner-and-hover-marquee-parity--vis39vis41). Actual title and stable session identity come from the existing bounded tab projection. Hover overflow uses the source title width/close reservation, Unicode display cells, trailing/leading fade and generated ` · ` separator. Wait 600 ms, advance at 80 ms for one cycle, return to offset zero and stop; repeated motion inside the same tab does not restart it. Leaving resets it. Match horizontal/vertical geometry and the compact-rail no-marquee branch. `animations:false` does not disable stepwise marquee; it changes the fade tween. Require full paired temporal styled-cell/PNG/cursor evidence, not the existing static title-fade/close-mark test. VIS41 mandatory NOT_RUN/evidence empty; U56–U59 supplement U47/U49.
+  - Prompt agent-label recon: pinned `opencode/packages/tui/src/component/prompt/index.tsx:1541` applies `Locale.titlecase(agent.id)` defined in `util/locale.ts:3–5`; native `crates/oc-tui/src/shell.rs::metadata_line` renders raw `active_agent()`, although `messages::Locale::titlecase` already formats assistant/subagent labels. Reuse that helper only for the prompt display label: `build` → `Build`, `build-yolo` → `Build-Yolo`, preserving separators and the existing casing of other letters.
+  - Prompt label acceptance (VIS06): width fitting/truncation uses the same formatted label that is painted; original agent ID, selection and color lookup remain unchanged, as do model/provider/variant labels. Extend the nearest prompt-metadata regression test and compare paired original/native full styled-cell/PNG frames for a simple and a hyphenated profile name, retaining established resize behavior.
+  - Acceptance: paired styled-cell and PNG captures at 80x24, 120x40, 160x48 and established screenshot grid, plus edge widths 43/44/119/120/121; full-height viewport, sidebar, conditional devtools and real dialogs match the executable reference.
+  - Primary evidence: identical-profile original/Rust PTY captures, comparator reports, independent review and resize behavior tests.
+  - Status: implemented-partial/unverified
+  - Evidence: iteration 2; `crates/oc-tui/src/layout.rs` (upstream geometry constants with source citations) + `shell.rs` golden frames at 80x24 and 120x40, breakpoint resize test, sticky-bottom test; workspace 381 passed / 0 failed / 4 ignored.
+
+- R4: Message rendering parity — user/assistant messages, markdown (headings, lists, code blocks, inline code), reasoning/thinking blocks, tool call cards (command, patch/diff, search, read), errors, and pending/running/completed states match upstream presentation and visible strings.
+  - Shell success recon: native `tools.rs::shell_block` emits `Command exited with code 0` for a successful tool call, and the existing `golden_shell_card_running_and_completed` preserves this divergence. Pinned upstream `ShellDisplay` (`index.tsx:2995–3034`) separates command and non-empty output with `gap={1}`, without a synthesized success-status row. `ShellMessage:2254–2269` is a separate presentation path and reports only non-zero exit codes.
+  - Shell success acceptance (VIS16): a completed successful tool card shows the command, one bordered blank row, then non-empty output; neither `Command exited with code 0` nor the internal `exit 0` envelope appears as a UI status. Empty output does not introduce a phantom command/output separator. Preserve actual stdout/stderr and recorded outcome metadata; do not remove text merely because process output matches a status phrase. Compare paired upstream/native full styled-cell/PNG frames at identical widths for one-line, multiline and empty output, including durable replay/reopen. Update the existing golden rather than adding a duplicate success test. Check non-zero exit, timeout, cancellation and unknown outcomes remain visible; do not indiscriminately suppress all status/error rows.
+   - User-stripe recon: `crates/oc-tui/src/app/live.rs::reconcile_submission` stores the accepted profile/color on the live user echo; `oc/src/tui_cmd.rs:1882–1888` replaces it with a durable page after completion. `oc-adapters/src/storage.rs::history_turn` matches `COALESCE(assistant_message, user_message)`, so a completed assistant message hides the user association; `history.rs::row_from_page` loses its agent/color and `app.rs::agent_color` falls back to the first palette color. Fix the durable association for both actual message IDs, preserving bounded queries and legacy behavior, not by painting missing metadata with the current profile.
+  - User-stripe acceptance (VIS17): with a non-default profile in a fresh session and no explicit profile switch, compare upstream/native full styled-cell/PNG frames during streaming, after completion/page attach and after reopen. Exercise a real completed turn and durable history projection in the nearest regression test, not only synthetic rows. Do not hard-code the profile name or purple/blue, or introduce an immutable per-message color contract across explicit profile changes: pinned upstream `routes/session/index.tsx:2288` uses the session agent's color.
+   - Live model-selection acceptance (VIS09/VIS29/VIS17/VIS35/VIS36; clarification 2026-10-01): follow the dedicated amendment. Picker changes composer draft while busy; captured send/command or blank Enter commits model/variant. Old prepared A stream/tools/approval retain actual A identity, next LLM request of the same task uses B without new prompt and receives compatible definitions/guidance/outcomes. Footer/replay uses actual per-request metadata, not current composer selection or a fictional single model for the turn. Verify draft-only, commit order/errors, old/new cards/approval and true A/B attribution using TOOL12/PRM01 receipts plus full paired styled-cell/PNG/cursor frames. Preserve generation/authority/policy/preimage/retry/no replay, no forced composer under active forms or unsupported child control; U95–U102, qualification pending and T44 PAUSED.
+   - Selection/prompt invariant: losing a row's display metadata is not itself a runtime agent switch. `app/transcript.rs::attach_page` does not write active selection; `application_selection.rs::for_turn` resolves the durable session choice, and `application.rs::publish_workspace` supplies that profile's instructions to `runtime/turn.rs::lane_fixed_input` as Developer input. Verify two sequential requests with distinct non-default profile instructions and no intervening profile/config change: stored agent ID/digest and the profile-instruction input remain that profile, not default Build. Use captured outgoing requests plus owner selection/log evidence; rendered color alone cannot prove this invariant or provider KV-cache reuse. Keep credentials and raw live responses out of evidence.
+   - Tool interaction recon: pinned `opencode/packages/tui/src/routes/session/index.tsx:1865–1929` highlights and toggles an `Explored` group of read/search calls; `:2784–2810,2980–2995` highlights an expandable Shell block and toggles its collapsed/recorded output on mouse-up. Ordinary `Read` (`:3093–3125`) has no full-file expansion. Native `crates/oc-tui/src/app/input.rs::handle_mouse` toggles exploration groups but `crates/oc-tui/src/tools.rs::shell_block` shows a bounded tail without a matching hover/collapse toggle. Preserve the original distinctions and never present tool-truncated output as recoverable by expanding the UI.
+  - Spacing recon (2026-09-25): upstream `opencode/packages/tui/src/routes/session/index.tsx:1433–1435` gives each transcript row, including `assistant-footer` and the next user message, `marginTop={1}`; the footer has no extra margin on normal completion (`:1963`), while the user block has its own top/bottom padding (`:2339–2342`). Native `crates/oc-tui/src/messages.rs:801–812,1840–1851` already inserts one blank row before the footer; `user_block` (`:1681–1729`) and its indexed path (`:590–646`) have internal padding but no per-message leading spacer, a candidate for the footer → next-user gap. Existing one-turn paired `evidence/tui/recovery-v08-read-group-click-03/{upstream,oc}/session-wide-completed.txt:9–11` has one blank row above the footer on both sides; the reported roughly threefold difference is not yet measured in an equivalent two-turn capture.
+   - Frame pacing and scroll recon (2026-09-26): native `oc/src/tui_cmd.rs::drive_ui` draws unconditionally before waiting for input for up to 40/50 ms, then drains input (up to 256 events) and worker events; the timeout is not a hard FPS cap because ready input wakes it. Upstream `packages/tui/src/app.tsx` configures `targetFps: 60`, while scanner/spinner intervals are separate animation cadence. Native transcript wheel input moves one row/event (`oc-tui/src/app/transcript.rs::scroll_transcript`); Crossterm supplies directional wheel events, not pixel deltas. Pinned scroll defaults to three units/tick with optional `MacOSScrollAccel` (`packages/tui/src/util/scroll.ts`), and the session route preserves a message anchor while away from bottom (`routes/session/index.tsx`). These are configured/source-level observations, not measured FPS, physical terminal refresh, scroll acceleration curve, or CPU usage.
+  - Frame-pacing acceptance (VIS31): wait for input, worker changes and actual active animation deadlines rather than continuously polling/drawing. Draw only dirty visible state; coalesce event bursts while bounding work so input, workers and paints make progress. In stable idle, after pending UI deadlines expire, there are no periodic redraws or wakeups. Preserve the upstream scanner cadence independently from paint scheduling. On actual binary/PTY runs, report measurement window, render attempts, changed frames/terminal writes, event-to-paint latency distribution, draw/write duration, queue behavior, wakeups and process CPU time. Exercise active updates at a 6.06 ms (165 Hz) and faster requested frame budget where measured rendering/terminal costs permit; this is a scheduler capability/attempt measurement, not a claim that a terminal physically displayed that FPS. Establish numerical latency/CPU thresholds from an explicit baseline; do not infer FPS from target cadence or draw duration alone.
+  - Wheel-scroll acceptance (VIS32): in the existing cell-based terminal interface, preserve the full wheel displacement and upstream default speed semantics where the terminal event protocol permits; investigate the pinned `MacOSScrollAccel` implementation before claiming acceleration parity. Bound input work and coalesce compatible bursts without dropping displacement, reversing boundary semantics, starving paints/workers or replaying a stale queue as a long catch-up. While the target offset is unsettled, animate toward it with active frame deadlines only; rebase promptly on reversed input and stop scheduling when settled. Keep motion row-quantized: Crossterm's directional wheel path cannot promise pixel scrolling. Away from the bottom, keep the visible message anchor stable while streaming or paging history; at bottom, preserve sticky follow. Verify wheel routing in transcript, Shell output and list dialogs without moving editor focus; paired captures cover single ticks, fast/reversed bursts, both history edges and a live stream. Measure event-to-paint latency and settled time at 165 Hz and faster budgets, and confirm no periodic work remains at rest.
+  - Acceptance: paired captures for scripted transcripts including Markdown tables and two consecutive turns at identical width/state/profile; compare the styled-cell/PNG rows for final assistant text → attribution and attribution → next user's block/text, including wrapped text and replay. Fix only the boundary shown to differ, preserving the upstream one-row row margin and user-block padding without a blanket spacing multiplier; live and durable replay restore the same semantic parts/cards/metadata. For eligible `Explored` and long-output Shell rows, compare normal → hover → expanded → recollapsed full frames and actual visible output; hover alone does not expand, and expanding does not invent truncated data. VIS31 qualifies demand-driven high-refresh scheduling and idle cost; VIS32 qualifies wheel displacement, motion, and live viewport anchoring. No raw escape noise; content wraps correctly.
+  - File-mutation parity (VIS35; amended 2026-10-01): T50/R1/R9 supplies exact OC2 model-dependent apply_patch(patchText) OR edit/write, obligatory compatible next-request catalog/guidance and real shared mutation effects. Supersede only the old universal-patch/no-edit-write/model-name-selector ban. Visual references are distinct OC2 ApplyPatch, Write (# Wrote, input content with numbered syntax) and Edit (← Edit, result-derived PatchDiff, Preparing edit fallback), not renamed generic/patch cards. Keep patch create/empty/update/full replacement/delete/move/multi-file; add real write create/overwrite/empty/parents and edit unique/all/replacement-count/CRLF/BOM. Require full paired styled-cell/PNG parity for applicable operation states, per-file blocks/paths/spacing/theme/syntax/line numbers/unified-split-auto/wrap; a same-session model switch shows actual selected-family calls, not fixture labels alone. Reuse TOOL12/TOOL20 behavioral evidence and VIS36 previews, not full cross-product or whole-task dependency. Execute real tools and independently verify filesystem effects before accepting captures. Persist result-derived metadata for live/replay/reopen/restart without reading present-day files or reexecuting tools; preview is not success, partial/unknown/permission/DCP invariants remain. Existing A09 model-authored patch coding E2E stays mandatory and separate from scripted parity. New qualification pending/NOT_RUN; T44 stays PAUSED until explicit resume. Sources U18–U20/U86–U87 plus appended U90–U94.
+  - Question cards (VIS37): render actual pending `Asking questions…` and result-derived `# Questions` with ordered question/answer pairs, matching pinned U33. Unanswered/cancelled/error outcomes remain truthful; replay/reopen/restart use persisted metadata without reasking or reexecuting the tool. A generic tool row or static fixture card does not qualify.
+  - DCP cards (VIS38): real compression operations render in the conversation stream between agent steps, with the cumulative `▣ DCP | … removed, … summary` header, 50-cell message-position map, per-run `▣ Compression #N …`, Topic and unique message/tool Items. Use committed session-scoped accounting and historical snapshots, shared number/K/M formatting, native pending/no-gain/error/cancel states and replay/reopen/restart without duplicate cards or tool execution. Follow the dedicated amendment; a generic compress row, saved-token toast or `/dcp` panel alone does not qualify.
+  - Subagent transcript parity (VIS39): follow the dedicated amendment for real Delegating/running/foreground/background/continuation rows, source icon/label/model/badge logic, permission/denial/error/cancel/unknown, semantic colors and selection-safe hover/click/error detail. Render durable child completion notices in parent history and actual parent response footers, not extra result blocks/toasts or OCR literals. Child-row live running and persistent Background launch metadata are distinct; Thought steps are reasoning parts, not children. Require animation-on sequences plus source-specific animation-off fallbacks and replay/restart without duplicate delivery or view-triggered reexecution of committed work.
+  - Primary evidence: original/Rust paired styled cells and PNG plus real protocol/operation/restart assertions.
+  - Status: implemented-partial/unverified
+  - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
+
+- R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, MCP servers, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), mouse text selection/copy, running-agent indicator in the lower-left prompt footer, and status hints match upstream.
+  - Code Mode `execute` parity (owner-approved 2026-10-14, VIS46): follow
+    [dedicated amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#code-mode-execute-parity--vis46-2026-10-14).
+    Runtime-recorded nested calls arrive as bounded producer facts with live progress.
+    Inline: parent `execute` and child `› tool [k=v, …]` rows. Mouse-up opens the
+    execute dialog: status/duration, TS Code, JSON/text Output with Warnings/Logs,
+    scroll/pan, `c`/`o` copy, `esc back`. Live = replay; full paired qualification.
+    Supersedes only the T60 generic-card difference. VIS46 NOT_RUN; T44 PAUSED.
+  - OpenAI/Codex auth parity (owner-requested 2026-10-06, VIS45): follow
+    [dedicated amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#codex-openai-auth-parity--vis45-2026-10-06).
+    T57 owns real browser/device/key authorization, refresh and native auth consumers;
+    T44 owns full /connect provider/method/accounts, URL/code/wait/open/copy/error/
+    cancel/expiry, key form and acknowledged provider-filtered picker presentation.
+    Minimal qualified backend slices → actual-binary interactions/effects → running
+    pinned-original/native full styled-cell/PNG/cursor temporal pairs. Preserve masked
+    secret glyphs and owned-listener-only cancel as disclosed narrow security differences;
+    do not omit screens or infer visual PASS from storage/backend/goldens. Mandatory
+    NOT_RUN/evidence empty; T44 PAUSED until explicit resume, no whole-T57 done cycle.
+  - Middle Click tab close (owner-approved 2026-09-30, VIS44): follow the dedicated amendment. An ordinary middle-button mouse-down anywhere inside the visible eligible tab closes that tab, including inactive tabs, without activating it first or requiring the hover cross. Horizontal/vertical/compact geometry uses the painted tab hit test, not close-glyph visibility. Reuse native CloseTab persistence, replacement-view and failure behavior; preserve sessions/raw history, surviving drafts and existing action guards. Verify one closure per down/up gesture, last-tab Home, saved deck on restart and real history reopen using the existing tab tests and actual-binary PTY, then matched full original/native styled-cell/PNG/cursor frames. Record donor busy-close versus native refusal separately; no second tab owner or all-T45/T50 dependency. VIS44 mandatory NOT_RUN/evidence empty; this plan does not resume T44.
+  - Session-tab animation slice (VIS39/VIS41): the busy tab has a real 80-ms dots spinner in status mode, attention `!`/`?` supersedes running, numbers mode retains the ordinal and animations-off retains the first frame. This is not VIS28's lower prompt scanner or automatic-rename shimmer. Own-session spinner and hover-marquee work are independent of T45 completion; truthful family busy/attention/unread still uses its existing SUB01/SUB02 prerequisite. Decouple visual hover from close eligibility without changing action guards. Reuse `next_ui_deadline`/`tick_ui` and VIS31: no permanent polling/new animation framework, no remaining periodic work once motion and other deadlines settle. Approval is not implementation/qualification PASS.
+  - MCP modal parity (owner-approved 2026-09-27, VIS40): follow [MCP modal parity — VIS40](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#mcp-modal-parity--vis40). T46/R5/MCP08 supplies the minimal typed Location/generation-scoped status and real async connect/disconnect/retry slice, not all-T46 completion. Then T44 qualifies `/mcps`/palette/autocomplete, medium overlay geometry/backdrop, Search/empty/no-match, sorted real names/statuses, selection-preserving updates, keyboard/mouse/footer focus, details and draft restoration. Match v2 dialog semantic colors, bold/blank backgrounds/cursor and focused-status override; `Connecting …` has no component spinner/shimmer. OAuth remains an explicit unsupported capability, not a fake working sign-in. Full running-original/native styled-cell/PNG/cursor plus independently checked client/catalog/cleanup effects are required; native goldens, generic modal/MCP-warning evidence and OCR Enabled columns do not qualify. Reuse VIS10/11/19/21/22/23/31/MCP07/AUD23 with current D13 degradation, caps, quarantine and disabled zero-spawn intact. VIS40 mandatory NOT_RUN; plan approval does not change task/evidence status.
+  - Question UI parity (owner-approved 2026-09-27, VIS37): follow the question section below and in the T44 amendment. First deliver the real T50/R4/TOOL15 backend/answer consumer slice; then qualify the original FormPrompt placement, single/multiple/free-form and multi-question review/navigation, focus/draft lifecycle and result cards with paired full styled-cell/PNG evidence. VIS36 permission approval is distinct. Depend on this backend slice, not completion of all T50; independent T44 work remains ready.
+  - DCP display controls (VIS38): preserve `pruneNotification` off/minimal/detailed, chat/toast and `compress.showCompression` independently. Default detailed/chat with summary body hidden produces the approved compact transcript block; the existing native status-notice mapping for toast remains explicit. Metadata-backed replay, current `/dcp` statistics and late-event routing use the appropriate session/branch, not process-global counters or the current screen.
+  - Subagent controls (VIS39): real lower Subagents composer, active/inactive/focused/current/running/empty states, keymap/mouse/navigation/interrupt and Ctrl+B owner-backed foreground-to-background conversion. Preserve parent draft/focus and VIS36/37 priority. Family footer counts/tab attention/unread and their colors/animations follow actual owner state, separate from parent own-running scanner. T45 R3/SUB01/SUB02 provides the minimal lifecycle/projection prerequisite, not all-T45 completion; independent T44 slices remain ready.
+  - Primary-profile parity (owner-approved 2026-09-27; agent-cycle clarification 2026-09-30): follow the primary profile section and [detailed keybinding slice](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#agent-cycle-keybindings--уточнение-2026-09-30) in the T44 amendment and T45 R6. Build/Plan/custom profiles use real owner-backed definitions/selection. Default Shift+Tab selects the next eligible profile directly, not the picker; reverse is unbound, /agents and `<leader>a` open the picker. Admit canonical/legacy list/forward/reverse overrides through existing config/Location generation and selection owners; explicit Tab-forward/Shift+Tab-reverse restores OC1-style navigation only outside active forms/dialogs/autocomplete. Match ordered wraparound, preserve draft/cursor/focus, guards and unavailable-choice diagnostics; footer/palette show effective bindings. VIS06/VIS10/VIS17 qualify eligibility, profile color, actual instructions/model/permissions, Plan enter/leave reminders and replay/reopen with pinned U25–U30/U76/U77. Verify configured Tab capture against the running OC2; a deliberate native override difference is disclosed, not universal keymap parity. Backend and UI evidence are separate; approval does not resume T44 or mark either implemented/verified.
+  - Prompt history parity (owner-approved 2026-10-03, VIS12): follow [Prompt input history parity](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#prompt-input-history-parity--vis12-2026-10-03). Home/session share one durable newest-50 consecutive-dedup input history through the existing owner; boundary-first multiline routing with autocomplete/modal/form priority; configurable `prompt.history.previous/next` (defaults Up/Down); text restore with existing mention/chip behavior under A13; Down past newest restores pre-browse draft as a disclosed donor difference; Mini ring out of scope. Nearest unit/input, rebuilt-binary PTY and paired original/native frames; VIS12 mandatory NOT_RUN, T44 PAUSED. This extends R5, not a new task/gate.
+  - Compaction parity (VIS34): `/compact` and palette trigger real session compaction, distinct from DCP compression. Match queued/running/completed/failed/cancelled states, safe-boundary delivery and pending-compaction coalescing. Render the divider rules, streaming Markdown summary and completed usage from the compaction request; running uses the pinned Braille spinner at 80 ms, or `⋯` with animations disabled (not a text shimmer). Preserve checkpoint and next provider context through reopen without rewriting raw history or replaying tools. Cover manual command, automatic context-threshold trigger and overflow recovery. For supported provider-native compaction, use `Provider compaction` without inventing a summary body. Verify paired styled-cell/PNG states and running frames; `Instructions updated` remains a separate instruction event. Preserve DCP and conversation-only Revert invariants.
+  - Agent-switch feedback recon: pinned `opencode/packages/tui/src/component/dialog-agent.tsx:25–27` selects the agent and clears the dialog; `context/local.tsx:97–112` emits no success toast, only a warning for an unknown agent. Native `crates/oc/src/tui_cmd.rs::apply_intent(SelectAgent)` calls `push_note` with `agent: …`; `oc-tui/src/app.rs::push_note_variant` clears expiry, so this extra toast persists. The transient timer already exists; do not replace this divergence with an arbitrary timeout.
+   - Agent-switch acceptance (VIS10): successful selection updates actual application selection and prompt metadata, closes Select agent and restores draft/focus without an agent-selection success toast. Remove the extra feedback at SelectAgent, preserving error feedback, unrelated existing warnings and the global lifetime semantics of `push_note`. Add the nearest regression test beside `selecting_model_updates_metadata_without_selection_toast` in `tui_cmd/tests/routing.rs` and verify paired original/native before/after full frames and the selected agent, not just toast disappearance.
+   - Sessions recon: native `crates/oc-tui/src/commands.rs:183–187` declares the extra built-in `/session` alias; pinned `opencode/packages/tui/src/app.tsx:715–721` declares `/sessions` with `/resume` and `/continue`. Native `app/live.rs::apply_sessions` receives IDs only, `app/input.rs::modal_options` uses them as visible titles, and `dialog.rs::render` labels the window `Switch session`. Upstream `component/dialog-session-list.tsx:142–208` uses real titles with timestamped fallback, root sessions, `Today`/date groups based on `time.updated`, and conditional project context; `:246–290` supplies real delete/rename/scope actions.
+  - Sessions acceptance (VIS25/VIS30): remove `/session` from the built-in registry, dispatch and autocomplete, retaining canonical `/sessions`, upstream aliases and the internal `session.list` identifier. Use a bounded application-owned metadata projection for the window while preserving the ID-only `list_sessions` contract and its headless/other consumers; IDs remain selection keys, never substitutes for known titles. Match upstream title fallback, update-time grouping/order, search/current marker and conditional `Sessions for <project>` context. Verify paired full styled-cell/PNG frames with named root sessions spanning multiple days, search, Enter, Esc and reopen, plus actual selected-session rename, confirmed delete and current-directory/all-projects effects; do not advertise inert shortcuts or weaken Location/busy safeguards. Persist truthful update-time metadata at its owner when needed; legacy last-update times may be unavailable, requiring an evidenced migration/fallback decision before parity closure, not dates parsed from IDs or creation time relabeled as update time.
+  - User message recon: pinned `opencode/packages/tui/src/routes/session/index.tsx:2307–2345` changes the hovered user's block background and opens `Message Actions` on mouse-up unless text is selected; `dialog-message.tsx:23–88` defines Jump to (dismisses the dialog for the already visible message), Revert (stage undo, refill the prompt), Copy (actual clipboard text) and Fork (new session before the selected user message; `dialog-fork.tsx:21–53`). Native `crates/oc-tui/src/app.rs` has no user-message hit target or Message Actions panel. Revert/Fork need real application-owned operations and post-action verification; missing capabilities cannot be faked by a visual-only menu (C5).
+  - Revert/Redo reference correction (VIS33): use the pinned [user-message click](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2307-L2342), [Message Actions / Revert](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/dialog-message.tsx#L23-L49), [Undo/Redo commands](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L898-L945), [clickable reverted block](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2172-L2250), [shortcut definitions](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L189-L190) and [owner stage/clear](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/revert.ts#L23-L75). Revert stages before the selected user message, restores its prompt and dismisses Message Actions. Undo uses the last preceding nonempty-text user message; preserve interrupt/wait before changing an executing conversation. All Redo entry points clear the whole staged boundary, not one saved turn. This supersedes the earlier stepwise-Redo exception, not the prohibition on workspace/Git changes.
+  - Reverted-block acceptance (VIS33): after committed Revert/Undo, show the upstream-shaped `N message(s) reverted` block, hover and keymap-derived `<redo shortcut> or /redo to restore` hint (default `ctrl+x r`). Count restorable user messages from owner state, not assistant/tool rows or the loaded page. With at least three completed user turns, revert before an earlier message and verify multiple hidden user messages; separately exercise block click, shortcut, `/redo` and palette Redo, each restoring the entire saved tail and removing the block without generation/tool replay. Selected text prevents block-click restore. Failure preserves the committed boundary/block and reports an error. Verify count/boundary after session switch/reopen, and that new accepted input invalidates normal redo of the old tail. Pair full styled-cell/PNG frames with pinned OC2 under snapshots disabled; retain truthful conversation-only menu wording rather than promising file restoration.
+  - Variant-cycle recon (historical pre-Ctrl+T observation): pinned OC2 binds Ctrl+T to `variant.cycle` (`opencode/packages/tui/src/config/keybind.ts:172`); `app.tsx:900–905` invokes the active model's cycle, `context/local.tsx:472–498` gets its declared variants and persists the choice, and `model-preference.ts:67–75` cycles from default through named variants back to default. Variants are provider/model supplied (often reasoning-effort levels), not a hard-coded global allowlist. The earlier native missing-mapping finding is historical: Ctrl+T/`CycleVariant` now exists in `oc/src/tui_cmd.rs`. RECON 2026-09-27 found owner snapshots/picker preserve effective declaration order while a separate picker helper sorts names lexically; neither guarantees known xhigh before max. serde_json preserve_order is already enabled, not the defect. The approved shared-rank amendment below replaces only ordering, without claiming VIS29 qualified.
+   - Ctrl+C recon (2026-09-25): pinned `opencode/packages/tui/src/config/keybind.ts:48,202`, `component/prompt/index.tsx:944–949` and `app.tsx:1233–1240` bind prompt clear while the focused prompt is nonempty and app exit when empty; `ui/dialog.tsx:134–153` owns modal Ctrl+C. The historical native citation `app.rs:3585–3588` instead quits unconditionally; the current code route is `crates/oc-tui/src/app/input.rs::handle_key`, and the same `pty_t39` target case is now in `crates/oc/tests/pty_t39/interaction.rs::v07_raw_modifiers_release_and_modal_interrupt_keep_exact_draft`. T52 changes source paths only, not this recon's acceptance/status.
+  - Acceptance: Ctrl+T uses the active model's shared T47/VAR01 available order: Default → none → minimal → low → medium → high → xhigh → max → custom → Default, skipping absent/disabled/reserved default. Exact effort/name ranking, stable aliases/custom order and native donor-order difference follow the approved amendment, not a global capability allowlist. Picker and cycle agree; update the preference by exact ID without changing model/draft or submitting. Next accepted request receives exact declared selected effort; Default adds no variant overlay, named none is distinct and rank alone cannot synthesize wire effort. Preserve stale-cycle → Default, empty/all-disabled no-op, busy/read-only guards, identity through reorder/refresh/reopen/restart and actionable retirement without silent fallback. Keymap table tests mirror upstream defaults + PTY tests exercise each dialog; replace the contrary PTY assertion: Ctrl+C clears a nonempty focused prompt without exiting or submitting, and Ctrl+C on the empty root prompt exits; modal Ctrl+C retains modal focus semantics. In an existing multi-message session, paired normal/hover/dialog frames and real effects verify user-message click vs text selection, Esc/focus, Jump to, conversation/context-only Revert and /undo with whole-tail /redo under VIS33 and unchanged workspace/Git state (owner amendment 2026-09-26), Copy and Fork including session/reopen state; unresolved application-owned actions leave this criterion open rather than appearing to work. Paired original/native frames for VIS25/VIS26 trigger, filtered query and after-Tab states; VIS27 verifies upstream mouse selection/copy modes and clipboard feedback; VIS28 verifies the running indicator's animation and state transitions.
+  - Leader pending parity (VIS11): default Ctrl+X and configured leader activate the pinned OC2 muted composer presentation. Prompt text and model use text.muted; prompt/agent highlight uses border.base; provider/variant retain their original roles. Do not invent whole-transcript dimming or a fade animation. Restore presentation when the actual sequence resolves, cancels or expires, including idle expiry without another input event. Match configured timeout precedence and focused key handling; verify uncertain following-key behavior against the pinned original. Require paired full styled-cell/PNG normal/pending/restored frames plus real PTY lifecycle evidence.
+  - Mouse caret placement (owner-approved 2026-10-03, VIS12): follow [Mouse caret placement in prompt](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#mouse-caret-placement-in-prompt--vis12-2026-10-03). An ordinary single Left click in the accessible Home/session prompt moves the insertion caret to the clicked legal grapheme boundary, including mid-word; subsequent typing/paste/delete acts there. Reuse the actual painted text rect/wrap/visible-row/raw-offset map and existing Editor, preserve chip expansion/mentions/selection, overlay priority, stale-map invalidation, busy/read-only guards and effective cursor blink. Hover alone does not move the caret; navigation causes no submission/model commit/provider/tool effect. Require the RECON click + X scenario, Unicode/wrapped/scrolled/blank/end targets, nearest regressions, rebuilt-binary real SGR mouse PTY and full paired running-original/native styled-cell/PNG/cursor frames with independent edited-text assertions. U115/P23–P25; VIS12 mandatory NOT_RUN, T44 PAUSED, active T45 unchanged. This supplements prompt history, not VIS16/VIS31 blink qualification or a new task/gate/editor framework.
+  - Primary evidence: keymap test + dialog snapshots + paired running-indicator frame sequence (VIS28) + leader pending/restored full frames (VIS11) + actual-mouse editor/PTY and paired click/edit/cursor frames (VIS12).
+  - Status: pending
+  - Evidence:
+
+- R6: Every slice is committed and pushed; workspace gates stay green (fmt/clippy/tests/build).
+  - Source: repo AGENTS.md + user instruction "коммиты пуши делай".
+  - Acceptance: `git status` clean, each slice committed and pushed; `cargo test --locked --workspace --no-fail-fast` 0 failures.
+  - Primary evidence: git log/status + gate output.
+  - Status: pending
+  - Evidence:
+
+### Permission parity — VIS36 (R5)
+
+Full supported-action Approve parity is mandatory: real request/reply lifecycle,
+Once/Always/Reject and feedback, project-persisted grants, original lower prompt,
+fullscreen/focus/previews, root/child routing, tool/tab attention, Settings/palette,
+config/CLI controls and autoaccept. Follow the audited amendment sequence; verify
+actual effects and full paired styled-cell/PNG frames, not inert UI or Unsupported
+waivers. Effective Deny and structural trust boundaries remain authoritative;
+disclose policy differences without claiming identical donor policy algebra.
+VIS36 supplies VIS35's approval prerequisite, not a completion dependency on
+VIS35 or all of T43/T45. Existing independent compaction/card work is not blocked.
+
+Owner-approved [autoaccept mode completion](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#autoaccept-mode-completion--vis36-2026-10-01)
+(2026-10-01) refines this existing slice, not a fresh `--auto` port. Automatic Once
+answers eligible Ask only, never effective Deny, Always grants or `question` answers;
+Plan/parent-child/trust/preimage/no replay stay authoritative. CLI `--auto` and hidden
+donor aliases `--yolo`/`--dangerously-skip-permissions` use one process-only bool;
+CLI priority survives Settings Prompt/reload, without overwriting saved preference.
+Headless requires explicit CLI consumer; `session.permissions=autoaccept` alone
+does not enable it. Same-run owned root/foreground/background child coverage is a
+declared native headless extension over donor exact-session filtering, not widening
+child policy or answering another session's request.
+
+After explicit resume, follow six ordered slices: contract/baseline → CLI aliases →
+barrier-controlled pending/new Prompt↔auto and persistence/error/reload/restart →
+owned child routing → real Settings/palette/auto marker/draft/focus and paired full
+styled-cell/PNG/cursor transitions → targeted/integration/rebuilt-binary closure.
+Duplicate pending-drain sites and two-step CLI mode application are hypotheses to
+test, not proven bugs requiring a speculative refactor. Reuse approval/TOOL15/child
+evidence, no new task/gate/policy engine/paid campaign or all-task dependency.
+
+Current behavioral baseline: `0a86cf67c`, `progress/M9/T44/0066.md`,
+`evidence/tui/recovery-v00/permission-report20260927-01.md:138–145` and
+`evidence/T50/foreground-shell.md:111–118,127–145` document native Once/effects/
+zero-grants behavior on earlier code. These are not current-HEAD results or full
+VIS36 PASS. The historical Unsupported paragraph below remains historical; no
+report/baseline rewrite. New qualification pending/NOT_RUN, statuses unchanged.
+
+### Question UI parity — VIS37 (R4/R5)
+
+Mandatory owner-approved scope: first T50/R4 delivers typed question admission,
+application-owned pending/wait/answer/cancel and a real TUI answer consumer, with
+TOOL15 evidence that the ordered answers reach the next provider request. Then
+T44/VIS37 matches the pinned original's lower FormPrompt, geometry/theme/strings,
+single/multiple selection, automatic custom answer, multi-question tabs or narrow
+progress fallback, review/Submit when applicable, keyboard/mouse/focus and draft
+restoration. Pending, answer editing, submitting/reply error, completion and
+dismissal are real owner states; completed question cards survive reopen/restart.
+
+Follow [Question UI parity — VIS37](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#question-ui-parity--vis37)
+and pinned U31–U33. TOOL15 behavior and VIS37 full styled-cell/PNG comparison have
+separate results and may share the same fixture/runtime evidence. No inert widget,
+permission-form substitution, autoaccept-generated answer or historical PASS waiver.
+This is a slice ordering, not T44 depends_on all T50 (or the reverse); keep one
+active journal task and existing ownership. Approval does not verify implementation;
+VIS37 starts NOT_RUN with no evidence.
+
+### DCP compression display — VIS38 (R4/R5)
+
+Mandatory owner-approved scope: deliver actual model/manual compression accounting
+and durable presentation metadata first, then the transcript block, controls and
+paired full styled-cell/PNG qualification. Sources D05–D10 and U34 distinguish DCP
+3.1.15 notification/accounting from the OC2 transcript wrapper; VIS34 `/compact`
+remains independent. The native K/M extension has at most one decimal, trims `.0`
+and promotes a rounded `1000K` to `1M`; original numeric values stay unrounded.
+
+Follow [DCP compression display — VIS38](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#dcp-compression-display--vis38).
+Per-run removed/summary and cumulative gross removed/active-summary metrics have
+different meanings; token estimates disclose their method, not billed usage.
+Repeated compression does not count previously covered messages/tools twice.
+Card data and the categorical bar are frozen at commit and paged from existing
+operation/history projections, without extra model-visible user messages or
+full-archive hot-path loads. UI04's no-duplicate-history invariant is preserved.
+
+T44 owns this backend-to-UI display slice and A07/A08/A10 qualification; T45 retains
+child-DCP/long-horizon algorithms. Reuse their scoped data/resource evidence when
+available, without an all-T45 completion dependency or a new task/store/framework.
+Plan approval is not implementation evidence; VIS38 starts NOT_RUN/evidence empty.
+
+### Subagent delegation parity — VIS39 (R4/R5)
+
+Mandatory owner-approved scope: [Subagent delegation parity — VIS39](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#subagent-delegation-parity--vis39),
+pinned U35–U49 + U02. First T45/R3 lifecycle and typed projections with SUB01/SUB02
+behavioral evidence, then T44 transcript/controls/colors/animations qualification.
+Three barrier-controlled children, parent answer while running, one completion then
+two before follow-up prove the illustrated flow without executing OCR sleep300.
+Foreground overlap, continuation/model, Ctrl+B, permission/error/restart paths reuse
+existing gates. Full styled-cell/PNG/cursor comparison at existing profiles includes
+animation-on phase/state sequences and off fallbacks; native goldens are insufficient.
+
+Preserve native closed-response-before-tool-admission as a declared timing difference,
+no partial-JSON execution or free-text status inference. Historical subagent rows
+consume current child status, unlike frozen VIS38 DCP metrics. Runtime/UI ownership
+stays T45/T44 for child lifecycle/presentation, no completion cycle/duplicate owner/
+store/framework or policy widening. The 2026-10-01 PTY exception is T56, not another
+subagent or VIS owner.
+Approval is not PASS; VIS39 starts NOT_RUN/evidence empty, previous evidence intact.
+
+Owner-approved [2026-10-01 full segment clarification](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#child-tui-shellterminals--уточнение-vis39-2026-10-01)
+requires actual linked child live history/events and parent return, the complete lower
+Subagents/Shell/Terminals composer, bounded live Shell output/kill/same-process Ctrl+B
+and real interactive Terminals right pane/create/select/input/resize/focus/cursor.
+T50/R2/TOOL13 and new [T56/TERM01](2026-10-01-native-session-terminals.md) supply
+their minimal behavioral slices; T44 owns full paired qualification, not just inline
+cards or own-tab/VIS41 frames. U78–U89 supplement U35–U49/U02. Child turn/profile/
+model/Undo guards stay; only blanket navigation/control refusal is superseded.
+
+VIS14/VIS35 additionally qualify one shared parent/child grammar renderer against all
+donor configured languages/aliases/queries and semantic token fg/bg/attributes,
+Markdown styles and result-derived diff. Freeze reference grammar/query assets,
+pin vetted native grammars; heuristic keyword coloring or a plain fallback for a
+required missing grammar cannot claim parity. Ordinary shell text and terminal VT
+palette remain separate. Shared renderer/cache serves streaming/replay/reopen/resize/
+theme without reparsing the full completed transcript; use existing VIS31/32 bounds.
+
+### Constraints
+
+- C1: Rust 2024, modular monolith, `oc-core` independent of UI, KISS/YAGNI; no Node/Bun/JS host in production; ratatui-based rendering.
+- C2: No hardcoded screenshot text/model labels/Free/Context in production; chrome comes from real DTOs, with honest unknown metadata. No secrets in logs/snapshots.
+- C3: Do not weaken existing audited contracts (PTY/terminal restore, DCP panel, permissions, session persistence, accessibility of terminal state).
+- C4: `scripts/progress.py` remains the only status source; one active task.
+- C5: Application owns acceptance/history/permissions/durability. No capture-only substitution of tool/runtime outcomes or hidden required MCP failures. Missing backend actions require explicit capability mapping/owner scope decision, or a blocked full-parity gate; unavailable actions must not appear working.
+- C6: Preserve four crates and current T43/T45 subagent scope. T44 verification does not imply product READY; mandatory live gates, FINAL and fresh security/resource qualification remain required.
+
+### Non-goals
+
+- Web/desktop UI, plugin SDK, sound/clipboard OS integration beyond what upstream TUI visibly shows, animations requiring non-terminal capabilities, upstream Go/Bun production runtime. Original Bun/Node/build dependencies are permitted in an isolated reference/test environment.
+
+## Change Envelope
+
+- Target: `crates/oc-tui/src/**`, `crates/oc/src/{tui_cmd.rs,bootstrap.rs}`, theme/config plumbing in `crates/oc-adapters/src/{config.rs,composition.rs}` if needed, `docs/*`, `evidence/tui/*`, tests under `crates/oc/tests/**` and `crates/oc-tui/src/**`.
+- Reviewed extension: minimal existing application DTO/runtime/storage projections in `oc-core`/`oc-adapters`, async submission and safe MCP diagnostics, and test-only reference capture tooling. No second transcript, event bus, plugin host or progress engine.
+- Expected paths, symbols, and direct consumers: `views.rs`, `app.rs`, `picker.rs`, `history.rs`, `dcp_panel.rs`, `events.rs`, `commands.rs`, `terminal.rs`; new modules for theme, components, snapshots.
+- Allowed and forbidden artifacts: source/tests/docs/evidence. Forbidden: editing GOAL.md gates, deleting tests, adding JS runtime, committing secrets.
+- User or harness budget: commits+pushes per slice; iterative rounds; no attempt limit.
+
+Evidence-retention continuation (owner instruction 2026-10-12): remove the reported
+storage blocker using the existing lossless FAILED-diagnostic archival path, not a
+cap increase, accounting rescope, proof deletion or permanent offload. Extend only
+the explicit campaign selection/reservation checks and their tests; measure before
+replacing owned untracked loose copies, preserve every original byte/path/metadata
+and failure status, and independently inverse-audit the durable result. Retain the
+already-acquired current004 proof without episode replay, then continue every frozen
+R1–R6/VIS01–VIS45 outcome and supplement with commit/push after each major checked
+slice. Historical blocked receipts remain factual history; `progress.py` records the
+new current state only after verification. No pixel/R6/V09 gate is waived or closed
+by archival or by code-only test results.
+
+## Current handoff and historical startup checkpoint
+
+Owner explicitly resumed T44 on 2026-10-07 and requests its full frozen completion,
+realtime todos and commit/push after each major checked slice. The prior PAUSED
+scheduling condition is satisfied; historical approval/pause notes below are not
+a new permission boundary. T52 and the minimal T45/T46/T47/T50/T51/T53/T56/T57
+offline prerequisite slices have landed. This does not waive any visual gate or
+resume owner-deferred AUTH06/exhausted live campaigns.
+
+First clean-dialogue owner slice is functionally qualified: current typed service
+status/change-sensitive feedback, safe read-only details, parked/reload routing,
+completion-warning provenance and compact actual live-preview indication.
+Current locked workspace1720/0/11, strict Clippy, debug/release builds and actual
+mixed-service PTY/release-startup checks pass. Pinned actual-executable attempt005
+observes eleven stages per side with 22 stable full styled/PNG/cursor captures;
+all22 strict comparisons remain DIFFERENT, not whole VIS42/V09/T44 PASS. Failed
+attempts001–004 remain. See [slice receipt](../../evidence/tui/vis42-clean-dialogue.md).
+Concise typed submitted-refusal is now functionally qualified on the next slice:
+current workspace1721/0/11, strict Clippy/debug-release/release-startup gates, exact
+captured read-only details and preserved pre-effect draft/admission. See
+[refusal receipt](../../evidence/tui/vis42-request-refusal.md). Remaining VIS42
+styled/detail integration is open; continue structured tool-preview and Generic/MCP
+VIS16/VIS17 in the established order. Bases e0509c4cd/e2120e418; actual paired
+source/fixture associations remain in their capture locks, not inferred as new PASS.
+R1-R6, ACCEPTANCE and SAFETY remain the unchanged finish line; no new task, store,
+framework, hidden text filter or waiver of the remaining full-frame/temporal gates.
+
+Current task execution is authoritative in [progress/NOW.md](../../progress/NOW.md)
+and Git, not the old startup notes below. Owner-approved 2026-09-27 MCP environment
+failure is a different reproduced loader defect, assigned to T46/T51; the resolved
+stale-key incident does not prove today's startup/config parity or close VIS42.
+The following checkpoint/state records the earlier 2026-09-23 incident only; it is
+retained as history, not a current pause instruction or unresolved credential blocker.
+
+- Closes: no visual gate yet.
+- Smallest next action: **owner startup failure root cause is proven by the startup trace and the fix is applied** — the failing zsh exported a stale `LUDKA2_API_KEY` (fingerprint `1101b285`) while the working identity (`54f454fc`) is available from the same `secrets.env` the `oc` alias loads; config resolution, provider and discovery URL matched exactly and the server answered 401 for the stale credential. The owner-approved `with-oc2-secrets` wrapper + `alias oc2` in `~/.zshrc` now load that file before `exec`ing the native binary (backup `~/.zshrc.bak-oc2`; `zsh -n` and a stale-key PTY run both pass with `status=200`/Home). Owner activates it with `source ~/.zshrc` or a new terminal. T44 remains paused; on resumption continue S05/S06/S08, S07 resources and V08–V09 for all mandatory cases in current ACCEPTANCE.json. See `evidence/tui/recovery-startup/{owner-catalog-recon,trace-report,resolved-checkpoint}.md`.
+- Expected evidence: capture lock, independent original frames, commands/exit codes and raw input/application effects; exact checkpoint after each slice.
+- Stop or replan if: reference/profile unavailable → BLOCKED_REFERENCE, never closest-rendering parity. Independent fixes remain executable.
+
+## Historical startup state (2026-09-23)
+
+- Resolved: source/theme/component groundwork landed through `d232baa`; historical reports remain unchanged.
+- Last relevant evidence: V00 real diagnostic paired captures in `evidence/tui/recovery-v00` (all comparisons unequal); V01 raw PTY stalled MCP prompt and manual compression cancellation/retry plus safe diagnostics in `evidence/tui/recovery-v01/report.md`. These do not qualify VIS01–VIS26.
+- Blocker: the owner's exact 401-versus-403 catalog result and upstream policy cannot be determined from this process's product environment; independent T44 work remains executable. Exact capture freeze and missing genuine backend capabilities are open. V07b quarantines uncertain in-flight MCP calls only during the owning process; remote side effects across restart still require reconciliation.
+- Next: V06a Markdown and V06b public reasoning/tool/patch/replay verified locally with actual application effects and paired original/native captures; all whole-frame comparisons still DIFFERENT. See `evidence/tui/recovery-v06{a,b}/checkpoint.md`; VIS13–VIS17/R4 remain unverified. V07a–c source/MCP negative checks and V07e one raw-PTY terminal-control path have factual checkpoints; remaining V07 safety/resources, V08–V09 and missing backend/service actions remain open. Owner-reported exported credentials refute the prior missing-export root-cause claim. Their newer 401/403 catalog screen and the current process's separate 200 catalog smoke (report/checkpoint under `evidence/tui/recovery-startup/catalog-smoke-*`) distinguish Responses use from catalog authorization, not the owner's remote policy. Positive live visual inspection is not a waiver; native autoaccept remains Unsupported (`evidence/tui/recovery-v02/auto-capability.md`).
+
+## Material Decisions
+
+- 2026-10-14: owner approved, after OCR of OC2 inline nested-call rows and the execute window plus read-only RECON, plan commit/push of mandatory T44/VIS46 Code Mode execute parity with live progress like the donor (U133–U137). Producer facts/progress precede the TUI rows/dialog and paired qualification. Only the T60 generic-card declared difference is superseded; T60 DONE, active T59, PAUSED T44 and historical statuses are unchanged.
+- 2026-10-01: owner approves expanded child-TUI/Subagents/Shell/Terminals plan including native interactive PTY, not a decorative terminal tab. T45 supplies live child lifecycle/events, T50 owns shell inventory/live output/conversion and T56 owns PTY behavior/functional consumer; T44 VIS39 owns the entire paired segment and VIS14/VIS35 complete shared grammar/style rendering. Only child navigation/control refusal and the T56 terminal-manager exclusion are superseded; child authority, native no-daemon/no-credential-inheritance/unknown-effect safety remain. Existing statuses/historical evidence and PAUSED T44 are unchanged.
+
+- 2026-09-30: owner approved a detailed plan and commit/push for Shift+Tab agent-cycle and Tab binding findings. Extend existing T44/VIS06/VIS10/VIS17 and T45/R6, not a new task/gate. Preserve OC2 defaults; support explicit OC1-style overrides with focused-input priority, owner-backed selection and minimum catalog eligibility correction. U76/U77 distinguish binding declarations from actual editor capture; native override and paired reference results remain separate. Active T50, PAUSED T44 and historical execution/evidence statuses are unchanged.
+- 2026-09-30: owner requested a detailed plan and commit/push for the reported missing Middle Click tab closure. Added mandatory T44/R5/VIS44 with pinned U74/U75, the existing CloseTab runtime path, targeted regression and actual-binary/paired qualification. The approved narrow slice preserves native busy guards and discloses the donor difference; broader busy-close lifecycle semantics need separate approval. T44 remains PAUSED, T50 active, historical evidence and existing execution statuses unchanged.
+- 2026-09-22 resume: incorporate other-agent D13–D15/backend delivery per owner instruction. D13 visible per-server MCP degradation supersedes the earlier fatal attach rule (not cancellation/cleanup/caps). D14 absent variant means no overlay and unknown limits remain metadata-unknown with bounded native request policy. Resource-aware permissions only narrow. Keep historical V01/V04 reports as executed; current tests follow the newer contract. T44 is still the sole active journal task; other task scope is not marked done by integration.
+- 2026-09-22 (supersedes the 2026-09-21 source-derived-golden interpretation): pixel-perfect requires the running pinned upstream and Rust under identical fixture/state/profile, exact symbols/styles/colors/cursor/geometry and interaction, paired PNG and styled-cell dumps, comparator and independent review. Own TestBackend expected values cannot establish external parity. Bun/Node are allowed only for the isolated reference. Missing runnable reference/profile means BLOCKED_REFERENCE, not verified R3/R4/R5. Preserve failed/ignored/blocked attempts and rerun full qualification on the final code SHA. TUI_IMPLEMENTED_UNVERIFIED and TUI_PARITY_VERIFIED are reporting labels, not runtime enums; neither overrides product READY gates.
+- 2026-09-27: owner approved VIS38 DCP transcript/accounting/replay and the number/K/M display extension (`4218.8K` → `4.2M`). DCP formatter + running OC2 renderer supply the display reference; source-derived display fixtures do not prove plugin/OC2 runtime compatibility or native compression effects. Only declared M/rounded-unit promotion and the existing native toast mapping are allowed as named unmasked differences in paired comparisons; unrelated symbols/styles/geometry still require exact qualification. Existing execution statuses and historical evidence remain unchanged.
+- 2026-09-27: owner approved full subagent visual/interactive parity including colors/animations after pinned TS/TSX RECON (OCR is not an oracle). VIS39 consumes T45/R3/SUB01/SUB02 actual lifecycle/projections; slice prerequisite, no all-task dependency. Preserve native response-close-before-admission, typed outcomes, current child status versus launch badge and distinct parent/family indicators. Runtime and paired temporal/full-frame evidence remain pending; existing statuses/baseline/reports unchanged.
+
+## Checkpoint History
+
+- 2026-09-21: contract frozen; recon delegated.
+- 2026-09-21: R1 verified (both recon artifacts); iteration 1 (theme foundation) committed `b75e063`; iteration 2 (layout shell + goldens) committed next.
+- 2026-09-22: owner-reviewed recovery amendment accepted; R2 rendered colors and R3/R4 reopened as unverified, historical reports not rewritten.
+- 2026-09-22: V00 committed/pushed `679e683`; V01 reproduced both submit/compress freezes, added shared nonblocking receipts and owned MCP attach cleanup. Independent parent PTY verification: 5 passed, fmt/diff checks exit 0. See V01 report and checkpoint; no visual gate closed.
+- 2026-09-22: V01 delivered `4c1a0bc`; V02 safe durable projections/title/model/usage and live/replay parts implemented. Parent actual binary recovery test passed twice including final agent-switch correction; full implementation workspace 436 passed/4 existing live ignores. Exact limitations/attempts in V02 report, no parity claim.
+- 2026-09-22: V02 delivered `a4bb361`; V03 actual measured viewport, sidebar, dynamic prompt and conditional devtools implemented. Review fixed safe startup/query routes, clamped Down scrolling and channel defaults. Parent binary PTY test/fmt/diff exit 0; implementation workspace 443 passed/4 existing live ignores. Paired attempts 16–20 retain actual scroll/cursor/child/vertical evidence; all whole-frame parity remains open.
+- 2026-09-22: resumed at `15719e9` (V04 committed during pause). Preserved backend T47/T43/T46/T27 work; reproduced and corrected three explicit-variant fixture expectations, strengthened raw PTY default-versus-named-none wire/durability check. Fresh workspace 488 passed/0 failed/5 existing ignores, fmt/clippy/build/docs/journal/Python gates passed. Independent V04 review recorded further in-scope dialog gaps; no VIS closure.
+- 2026-09-22: V04 follow-up atop `931792e`: real separate variant/dialog registry/new session, app-owned scoped selection and headless precedence, retired choice refusal/recovery, pinned fuzzy oracle/cache and truecolor modal blank correction. Parent fresh workspace 498 passed/0 failed/5 existing ignores; PTY 8 passed; paired original/Rust Session/Commands/Models/Variants at 160x48, 80x24, 121x41 retained with comparator exit1 DIFFERENT. Full V04/backend actions and VIS still open; `evidence/tui/recovery-v04/followup-checkpoint.md`.
+- 2026-09-22: V04 modal mouse capture/restore, focus ownership and scroll/hover/select routed through real PTY. Review fixed informational-row compression and cross-dialog press/release. Full serial workspace green (5 existing ignores); no new paired parity qualification. See `evidence/tui/recovery-v04/modal-focus-checkpoint.md`; V05 next.
+- 2026-09-22: V05 grapheme editor, focus/keymap and actual compact paste-chip with underlying real prompt, pending revision preservation. Independent review fixed five editor and three chip/ownership defects; parent final serial workspace/clippy/build/fmt/docs/Python exit 0. Actual pinned-original/Rust chip frames match visible chip/cursor, whole-frame comparator grid/png FAIL; see `evidence/tui/recovery-v05/checkpoint.md`. Release startup user report is new next action, no private config read.
+- 2026-09-22: user-reported release-startup generic screen diagnosed using isolated actual `target/release/oc`, not their profile. Typed allowlisted startup and Location-switch diagnostics replace raw/indistinguishable errors; independent review's leak and saved-selection category findings fixed. Parent targeted tests and release PTY, full serial workspace (five existing ignores), clippy/fmt/docs/journal/diff all exit 0. Real-profile cause unknown; no visual gate closed. See `evidence/tui/recovery-startup/checkpoint.md` and append-only report.
+- 2026-09-22: V06a pinned native Markdown parser, exact captured 11-row table regions, bounded indexed viewport for completed/streaming parts. Independent reviews reproduced/corrected footer truncation, wide glyph/control, page continuity/cache churn, nonprogress on huge grapheme, quoted table/long-cell and escaped-pipe continuation. Parent final targeted29 tests, serial workspace/clippy/fmt/build/docs/journal/diff exit 0; actual paired 80/120 whole-frame comparator exits 1 DIFFERENT. No VIS or R4 parity claim; see `evidence/tui/recovery-v06a/checkpoint.md`.
+- 2026-09-23: V06b owner result navigation, reasoning expansion, conservative partial-patch cards and real-provider binary restart. Independent review fixed stale cross-session card previews, clipped result rows, indistinguishable controls and invalid UTF-8/overflow offsets. Parent targeted, serial workspace, fmt/clippy/build/docs/Python/journal/diff exit 0 (five existing ignores). Actual pinned 120x40 reasoning/read pairs remain DIFFERENT; VIS15–VIS17 and R4 still open. `evidence/tui/recovery-v06b/checkpoint.md`.
+- 2026-09-23: V07a S02 discovered-source admission before reads; external nested definitions and symlink-swap reproduced then fixed via pinned-root opens, with actual binary fake-provider and bare PTY tests. Independent final review 7 adapter + 6 binary + 1 PTY passed; parent final serialized workspace/fmt/clippy/build/docs/journal/diff exit 0 (five existing ignores). Scope and pre-fix failed attempts in `evidence/tui/recovery-v07a/{report,checkpoint}.md`. V07b/c and visual qualification remain open.
+- 2026-09-23: V07b in-flight MCP request-ID cancel and owned teardown; unverified outcomes durable `unknown`, local reap, remote retry quarantine across reload/shutdown/Location. Independent reviews identified three bypass classes; fake effects and PTY reproduced them, then targeted tests and parent full serial workspace/fmt/clippy/build/docs/journal/diff passed (five existing ignores). External server effect/process restart unresolved honestly; see `evidence/tui/recovery-v07b/{report,checkpoint}.md`. V07c and visual qualification remain open.
+- 2026-09-23: V07c `{file:}` ancestor-swap exposed an outside fixture value to provider config before repair; pinned-root substitutions and strict independent public source opens now refuse it. Actual binary/PTY fake-provider and independent review passed, parent full serial workspace/fmt/clippy/build/docs/journal/diff exit 0 (five existing ignores). Remaining S03–S08 and visual qualification remain open; `evidence/tui/recovery-v07c/{report,checkpoint}.md`.
+- 2026-09-23: V07e S04 actual raw PTY model/reasoning/stdio tool sentinel and replay test passed with existing production rendering; parent focused run and implementing agent full workspace/fmt/clippy/build/docs/diff exit 0 (five existing ignores). Qualification limited to exercised surfaces, not VIS or real-profile startup. Owner requested pause and then commit; next priority real release failure, not more synthetic startup claims. `evidence/tui/recovery-v07e/{report,checkpoint}.md`.
+- 2026-09-23: Actual owner-profile RECON and release PTY differentiated inherited/nonexistent selected `LUDKA2_API_KEY`: Home/exit 0 with nonempty inherited key on default or isolated data, old Configuration failure/exit 1 if variable removed, before discovery. Added typed missing-credential TUI screen without raw config/secret; new release negative screen/exit 1 and positive Home/exit 0, termios restored. Parent targeted/release/full serial workspace/fmt/clippy/build/docs/journal/diff exit 0 (five existing ignores). Whether the owner's external zsh exports that variable remains outside this process, and `secrets.env` was not read. See `evidence/tui/recovery-startup/{credential-report,credential-checkpoint}.md`.
+- 2026-09-23: Owner's exported key/URL disproved the previous missing-export diagnosis for their case; do not reassert it. Selected model has no static entry: a catalog rejection/failure or a successful list lacking that ID previously collapsed into generic Configuration load failed. DiscoveryOutcome now retains typed safe failure; TUI differentiates authorization, other HTTP, network, invalid/empty catalog and selected-ID absence, with status checked before error body. Test-first fake HTTP/PTy, parent 3 startup+19 discovery tests, release build, full workspace/fmt/clippy/build/docs/journal/diff exit 0 (five existing ignores). Real-profile startup with the agent's distinct credential reaches Home, but the owner's catalog outcome remains unknown and no pasted credential was used. `evidence/tui/recovery-startup/{discovery-report,discovery-checkpoint}.md`.
+- 2026-09-23: Owner reports catalog 401/403 under their zsh while original OpenCode 1 uses Responses. Two read-only `/v1/models` GETs using only this process's inherited product credential returned 200/selected ID present with both native and JS-style User-Agent; fresh release real-product-profile Home/exit 0 (no prompt). Test-first split 401 from 403 through safe application/TUI codes; eight release PTY fixtures, 19 discovery tests and fresh full serialized workspace/fmt/clippy/build/docs/journal/diff all exit 0, five existing ignores. This does not establish the owner's exact status or authorizing key; see `evidence/tui/recovery-startup/catalog-smoke-{report,checkpoint}.md`.
+- 2026-09-23: V07 S03 current-HEAD actual binary raw PTY test passed Ctrl/Alt/Shift+Enter/release, modal Esc/Ctrl+C, exact provider request and durable prompt. Existing production key routing needed no change; agent workspace passed with five existing ignores, parent targeted/fmt/diff exited 0. Owner explicitly paused T44 to prioritize their startup RECON and requested checkpoint/commit. `evidence/tui/recovery-v07-s03/{report,checkpoint}.md` and `evidence/tui/recovery-startup/owner-catalog-recon.md` preserve facts and the discriminating plan; no VIS gate or owner-specific root cause claimed.
+- 2026-09-23: Owner requested file-based startup diagnostics. Added `oc_adapters::trace`: bounded 256 KiB, 0600, per-launch-truncated trace with 512-char single-line messages, no new dependencies, silent no-op on failure; call sites cover bootstrap/TUI/headless, application spawn, config selectors/roots/sources/selected model/provider/credential source/env refs/DCP/definitions, discovery attempts/status/class, storage and typed categories. Parent review reduced the headless stage to `detail_len` so a quoting serde error cannot reach a second surface. Trace unit tests 6, startup integration 3, serial workspace 0 (five existing ignores), clippy/fmt/diff 0; release rebuilt; real-profile smoke Home/exit 0 with credential absent from the trace and working fingerprint `54f454fc`. See `evidence/tui/recovery-startup/trace-{report,checkpoint}.md`; owner-specific cause still unproven.
+- 2026-09-23: Owner's traced run resolved the startup cause: the failing shell exported a stale `LUDKA2_API_KEY` (`fingerprint=1101b285`), while `~/.config/opencode/secrets.env` — the file the `oc` alias loads — holds the working identity (`54f454fc`); config root/sources/model/provider/URL matched the working smoke and the catalog answered 401 for the stale key. Fix is credential sourcing, not a binary defect; durable `oc2` wrapper proposed. Recorded in `evidence/tui/recovery-startup/owner-catalog-recon.md`; T44 remains paused with S05/S06/S08, S07 and VIS01–VIS24 open.
+
+- 2026-09-24: Owner amendment adds mandatory inline `/` autocomplete (VIS25) and `@` file mention (VIS26) to R5; implementation slices, deferred skills/non-primary agent sections (T45) and supported differences are recorded in `tui-recovery/T44_CONTRACT_AMENDMENT.md`; ACCEPTANCE.json extended to VIS01–VIS26.
+- 2026-10-16: owner resumed T44 (D29): the devtools bar is hidden unless `debug.devtools: true` in debug and release builds; the native build-channel default is removed.
+
+## Completion
+
+- Resolved outcomes:
+- Commands and artifacts:
+- Constraint and diff-scope check:
+- Final status:

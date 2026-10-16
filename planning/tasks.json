@@ -1,0 +1,1023 @@
+{
+  "schema_version": 2,
+  "policy": "one-active-task; task-done-is-not-goal-ready",
+  "tasks": [
+    {
+      "id": "T00",
+      "phase": "M0",
+      "title": "Preflight и продолжимый журнал",
+      "depends_on": [],
+      "tests": [
+        "ENV01",
+        "ENV02",
+        "OPS05"
+      ],
+      "work": "Проверить host/uid/origin и runner-neutral execution contract, сохранить исходный diff и source lock; проверить journal utility, выделить own worktree paths. Не запускать paid requests.",
+      "evidence": "evidence/T00/report.md",
+      "spec": "roadmap/M0.md"
+    },
+    {
+      "id": "T01",
+      "phase": "M0",
+      "title": "Workspace и зависимости",
+      "depends_on": [
+        "T00"
+      ],
+      "tests": [
+        "BUILD01"
+      ],
+      "work": "Создать четыре packages, pin actual toolchain, lockfile, minimal Tokio/Ratatui/rusqlite/reqwest/rmcp compile smoke. Не добавлять ORM/DI/HTTP daemon.",
+      "evidence": "evidence/T01/report.md",
+      "spec": "roadmap/M0.md"
+    },
+    {
+      "id": "T02",
+      "phase": "M0",
+      "title": "Минимальный source contract",
+      "depends_on": [
+        "T01"
+      ],
+      "tests": [],
+      "work": "Проверить pinned sources/licenses; зафиксировать Responses wire, MCP strict version, DCP range schema, user discovery oracle и configured-workspace source paths/tests. Получить representative source-derived fixtures для root/instruction/definition order, frontmatter и exact plugin identities с provenance; executable baseline failures фиксировать, не выдавать fixtures за executed parity.",
+      "evidence": "evidence/T02/report.md",
+      "spec": "roadmap/M0.md"
+    },
+    {
+      "id": "T03",
+      "phase": "M1",
+      "title": "Core и MockProvider",
+      "depends_on": [
+        "T01"
+      ],
+      "tests": [],
+      "work": "Typed commands/queries, session worker, scripted provider, cancellation path и bounded channels. Вертикальный input→response без real network.",
+      "evidence": "evidence/T03/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T04",
+      "phase": "M1",
+      "title": "SQLite и outputs",
+      "depends_on": [
+        "T03"
+      ],
+      "tests": [
+        "STORE02",
+        "STORE03",
+        "STORE04"
+      ],
+      "work": "DB worker, own data-root lock, durable input/turn/tools/events, bounded blobs и crash cases. Никакой upstream DB migration.",
+      "evidence": "evidence/T04/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T05",
+      "phase": "M1",
+      "title": "Headless CLI",
+      "depends_on": [
+        "T04"
+      ],
+      "tests": [
+        "STORE01",
+        "UI05"
+      ],
+      "work": "run/sessions/--help, NDJSON, exit codes и полный input→mock stream→persist→resume через тот же application runtime; diagnostics stderr. Не блокировать Cancel на долгом stream.",
+      "evidence": "evidence/T05/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T06",
+      "phase": "M1",
+      "title": "Минимальный Rust TUI",
+      "depends_on": [
+        "T05"
+      ],
+      "tests": [],
+      "work": "Prompt/stream/history/cancel/exit в Ratatui, limited viewport, PTY test; тот же application handle.",
+      "evidence": "evidence/T06/report.md",
+      "spec": "roadmap/M1.md"
+    },
+    {
+      "id": "T07",
+      "phase": "M2",
+      "title": "User config и permissions",
+      "depends_on": [
+        "T02",
+        "T05"
+      ],
+      "tests": [
+        "CFG01",
+        "CFG02",
+        "CFG03",
+        "CFG04",
+        "CFG05",
+        "CFG06",
+        "CFG07",
+        "CFG08"
+      ],
+      "work": "Parser/provenance/native profile, explicit Location trust до substitutions/resource reads/side effects, selected-only credentials и central permission policy; global/Location roots, ordered AGENTS, bounded immutable skill/primary-agent/command catalogs, domain merge и exact native-plugin classification. Unknown/unsupported отклонять до side effects; не исполнять commands/plugins и не активировать будущие modules в этом task.",
+      "evidence": "evidence/T07/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T08",
+      "phase": "M2",
+      "title": "Read и search",
+      "depends_on": [
+        "T07"
+      ],
+      "tests": [
+        "TOOL01"
+      ],
+      "work": "read/glob/grep, stable sorting/pagination, bounded bytes, safe location resolution и полный отказ model-facing file tools от own data root; source fixtures.",
+      "evidence": "evidence/T08/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T09",
+      "phase": "M2",
+      "title": "Единый apply_patch",
+      "depends_on": [
+        "T08"
+      ],
+      "tests": [
+        "TOOL02",
+        "TOOL03",
+        "TOOL04"
+      ],
+      "work": "Parser Add/Update/Delete/Move включая empty files, preflight/permissions/preimages, per-file commits/partial outcome. Historical no-write/edit registry exclusion is superseded only by owner-approved T50/R1/R9/TOOL12/TOOL20 (2026-10-01); T09 patch semantics/ownership/evidence remain unchanged.",
+      "evidence": "evidence/T09/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T10",
+      "phase": "M2",
+      "title": "Shell supervisor",
+      "depends_on": [
+        "T07",
+        "T04"
+      ],
+      "tests": [
+        "TOOL05",
+        "TOOL06"
+      ],
+      "work": "Process group/cwd/minimal child env без provider/MCP credentials, concurrent drains, bounded retained output, deadline/cancel/kill/reap. Не persistent shell manager и не sandbox claim.",
+      "evidence": "evidence/T10/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T11",
+      "phase": "M2",
+      "title": "Webfetch",
+      "depends_on": [
+        "T07"
+      ],
+      "tests": [
+        "TOOL07",
+        "TOOL08"
+      ],
+      "work": "GET/text extraction, SSRF actual-dial/redirect guards, timeout/size limits, metadata sources и explicit test loopback exception.",
+      "evidence": "evidence/T11/report.md",
+      "spec": "roadmap/M2.md"
+    },
+    {
+      "id": "T12",
+      "phase": "M3",
+      "title": "Native Responses stream",
+      "depends_on": [
+        "T02",
+        "T07"
+      ],
+      "tests": [
+        "PROV01",
+        "PROV02",
+        "PROV06",
+        "PROV07"
+      ],
+      "work": "OpenProxy transport и bounded incremental SSE; exact options/base URL; ошибки/EOF/retries/cancel без OAuth/fallback.",
+      "evidence": "evidence/T12/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T13",
+      "phase": "M3",
+      "title": "Tools, reasoning и images",
+      "depends_on": [
+        "T12",
+        "T09",
+        "T10"
+      ],
+      "tests": [
+        "PROV03",
+        "PROV04",
+        "PROV05",
+        "TOOL10",
+        "TOOL11"
+      ],
+      "work": "Complete tool batch and IDs, native tool execution включая skill из pinned generation snapshot, continuation items, usage/image encoding, generation-bound projection и offline-tested live wire harness.",
+      "evidence": "evidence/T13/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T14",
+      "phase": "M3",
+      "title": "Native discovery user plugin",
+      "depends_on": [
+        "T12"
+      ],
+      "tests": [
+        "DISC01",
+        "DISC02",
+        "DISC03",
+        "DISC04",
+        "DISC05",
+        "DISC06",
+        "DISC07",
+        "DISC08",
+        "DISC09",
+        "DISC10"
+      ],
+      "work": "Перенести user reference semantics; fake-clock retries и all-or-nothing publication; local snapshot/variants/clamp/source/retired IDs. Связать exact admitted openproxy-models.js marker с compiled discovery без исполнения JS. No model hardcode.",
+      "evidence": "evidence/T14/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T15",
+      "phase": "M3",
+      "title": "Models, variants и admission",
+      "depends_on": [
+        "T13",
+        "T14"
+      ],
+      "tests": [],
+      "work": "Effective model selection/variant validation, unknown metadata diagnostics, context+output admission and explain; no production automatic model fallback.",
+      "evidence": "evidence/T15/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T16",
+      "phase": "M3",
+      "title": "Первый live OpenProxy gate",
+      "depends_on": [
+        "T15"
+      ],
+      "tests": [
+        "PROV08"
+      ],
+      "work": "Явно opt-in выполнить уже offline-tested live harness; проверить credentials presence без logging, durable counters/watchdog и bounded text+tool loop, записать exact deployment/model/variant. Missing env → block только этот task; product/harness code здесь не добавлять.",
+      "evidence": "evidence/T16/report.md",
+      "spec": "roadmap/M3.md"
+    },
+    {
+      "id": "T17",
+      "phase": "M4",
+      "title": "DCP projection и storage",
+      "depends_on": [
+        "T02",
+        "T04",
+        "T13"
+      ],
+      "tests": [
+        "DCP01"
+      ],
+      "work": "Core context plan и durable compression generation, DCP policy module, bounded history references; immutable raw transcript.",
+      "evidence": "evidence/T17/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T18",
+      "phase": "M4",
+      "title": "Compress range и protections",
+      "depends_on": [
+        "T17",
+        "T09"
+      ],
+      "tests": [
+        "DCP02",
+        "DCP03",
+        "DCP04",
+        "DCP09"
+      ],
+      "work": "Actual range schema, nested block preservation, anchors/protected paths/tools/users, no-gain guard; upstream-derived regression fixtures.",
+      "evidence": "evidence/T18/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T19",
+      "phase": "M4",
+      "title": "Nudges и auto-pruning",
+      "depends_on": [
+        "T18",
+        "T07"
+      ],
+      "tests": [
+        "DCP05",
+        "DCP06",
+        "DCP07"
+      ],
+      "work": "DCP config/nudge timing/counters/manual mode; dedup и purge error inputs at compress; exact bare/pinned DCP aliases связывают один compiled module. No generic summarizer or JS hooks.",
+      "evidence": "evidence/T19/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T20",
+      "phase": "M4",
+      "title": "Remote MCP codex_web",
+      "depends_on": [
+        "T02",
+        "T07",
+        "T13"
+      ],
+      "tests": [
+        "MCP01",
+        "MCP02",
+        "MCP03"
+      ],
+      "work": "rmcp remote client, exact configured URL и 2025-11-25 POST/JSON path/no-session mode, registry mapping/errors/cancel; fake server и reusable live search harness mandatory before live.",
+      "evidence": "evidence/T20/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T21",
+      "phase": "M4",
+      "title": "Local MCP stdio",
+      "depends_on": [
+        "T20",
+        "T10"
+      ],
+      "tests": [
+        "MCP04",
+        "MCP05"
+      ],
+      "work": "Child lifecycle/stdout/stderr и minimal child env без provider/MCP credentials, enabled:false no spawn, argv retained; pinned fake server. Не включать browser/Node автоматически.",
+      "evidence": "evidence/T21/report.md",
+      "spec": "roadmap/M4.md"
+    },
+    {
+      "id": "T22",
+      "phase": "M5",
+      "title": "Ежедневный TUI",
+      "depends_on": [
+        "T06",
+        "T15"
+      ],
+      "tests": [
+        "UI02",
+        "UI03",
+        "UI06"
+      ],
+      "work": "Dynamic models/variants, paged sessions/resume, prompt UX, tool cards/diff and bounded view state; redacted workspace catalogs, primary-agent selection, command dispatch, skill card и Location/session switch action без второго registry.",
+      "evidence": "evidence/T22/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T23",
+      "phase": "M5",
+      "title": "DCP TUI и команды",
+      "depends_on": [
+        "T22",
+        "T19"
+      ],
+      "tests": [
+        "UI04"
+      ],
+      "work": "Context/stats/manual controls и /dcp-compress [focus], outcome notification, counters from runtime, not duplicate state.",
+      "evidence": "evidence/T23/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T24",
+      "phase": "M5",
+      "title": "Интеграция lifecycle",
+      "depends_on": [
+        "T19",
+        "T20",
+        "T21",
+        "T22"
+      ],
+      "tests": [
+        "STORE05",
+        "TOOL09",
+        "DCP08"
+      ],
+      "work": "Full runtime turn loop и authoritative STORE05/TOOL09/DCP08 integration; один prompt assembler; command expansion через durable SubmitInput; atomic immutable config-generation publication; Location-scoped sessions; MCP/DCP/reasoning cleanup и reload только между turns. Не парсить definitions и не владеть configured-workspace E2E.",
+      "evidence": "evidence/T24/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T25",
+      "phase": "M5",
+      "title": "Offline coding/compaction E2E",
+      "depends_on": [
+        "T24",
+        "T11"
+      ],
+      "tests": [
+        "E2E01",
+        "E2E03",
+        "E2E05"
+      ],
+      "work": "Один ordered configured-workspace A→B, seeded Rust coding и compression/restart offline E2E; подготовить reusable live workflow harness. Scripted provider, no network/JS runtime/external payment.",
+      "evidence": "evidence/T25/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T26",
+      "phase": "M5",
+      "title": "PTY и UX qualification",
+      "depends_on": [
+        "T23",
+        "T25"
+      ],
+      "tests": [
+        "UI01"
+      ],
+      "work": "PTY paste/resize/Unicode/cancel/panic restoration, slow consumer и long-history paging; inspect actual behavior not only render snapshot.",
+      "evidence": "evidence/T26/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T27",
+      "phase": "M5",
+      "title": "Live пользовательский workflow",
+      "depends_on": [
+        "T16",
+        "T25",
+        "T26",
+        "T42",
+        "T55"
+      ],
+      "tests": [
+        "E2E02",
+        "E2E04",
+        "MCP06"
+      ],
+      "work": "Явно opt-in выполнить bounded live campaign: coding без edits вне fixture, reopen/next command, compress/resume, webfetch и codex_web search с counters/watchdog; optional browser smoke only explicit opt-in. Разрешены минимальные offline-tested исправления harness для actual product config/catalog, exact model/variant, durable MCP evidence и non-success при blocked/unexecuted. Не выдумывать model limits и не расширять live budget; report remaining models unqualified. Актуальный backend checkpoint: evidence/T27/backend-harness.md; старый attach blocker опровергнут T46/D13.",
+      "evidence": "evidence/T27/report.md",
+      "spec": "roadmap/M5.md"
+    },
+    {
+      "id": "T28",
+      "phase": "M6",
+      "title": "Soak и ресурсы",
+      "depends_on": [
+        "T25",
+        "T26"
+      ],
+      "tests": [
+        "LOAD01",
+        "LOAD02",
+        "LOAD03",
+        "LOAD04"
+      ],
+      "work": "Сначала измерить короткий host baseline, затем зафиксировать достаточно длинный synthetic workload до qualification; outputs/history/scroll/queue/caches/MCP lifecycle, crash injection и no-linear-growth bounds.",
+      "evidence": "evidence/T28/report.md",
+      "spec": "roadmap/M6.md"
+    },
+    {
+      "id": "T29",
+      "phase": "M6",
+      "title": "Clean build и audit",
+      "depends_on": [
+        "T28",
+        "T02"
+      ],
+      "tests": [
+        "BUILD02",
+        "BUILD03",
+        "OPS01",
+        "OPS04"
+      ],
+      "work": "Clean new HOME/XDG/no Node/Bun runtime test включая configured workspace, fmt/clippy/tests/build и dependency/source/license/compat audit. Проверить source tree на secrets; final staged report/delivery scan остаётся T30. No importer/release.",
+      "evidence": "evidence/T29/report.md",
+      "spec": "roadmap/M6.md"
+    },
+    {
+      "id": "T30",
+      "phase": "M6",
+      "title": "Final handoff и delivery",
+      "depends_on": [
+        "T29",
+        "T42",
+        "T27",
+        "T43",
+        "T45",
+        "T46",
+        "T47",
+        "T52",
+        "T53",
+        "T54",
+        "T56",
+        "T57",
+        "T58",
+        "T59",
+        "T61",
+        "T62"
+      ],
+      "tests": [
+        "OPS02",
+        "OPS03"
+      ],
+      "work": "Заполнить FINAL по A01–A13 и связать authoritative executable evidence. RET01/T54 и VIS43/T44 обязательны для заявленного provider-retry parity; GO03/T53 — для допуска новых Chat/Messages wires, без зависимости T54 от завершения T44/T53. Owner-approved 2026-10-01 child-TUI/Subagents/Shell/Terminals scope requires SUB01/SUB02, extended TOOL13, TERM01/T56 and paired VIS14/VIS35/VIS39; initial-background or own-tab PASS is insufficient. Model-dependent file-tools amendment requires extended TOOL12 + TOOL20/T50, selected-family PRM01/T45 and separate Write/Edit/ApplyPatch VIS35/VIS36/T44; historical single-patch PASS or schemas alone is insufficient, A09/live flow retained. Owner-approved tool-output amendment requires TOOL21/T50 config -> bounded provider preview -> registered filesystem artifact -> authorized model read/grep distant fact -> continuation with current fault/resource receipts; old T40/UI2048/SQLite continuation PASS is insufficient. TOOL13/TOOL16/AUD34/LOAD02/STORE04 retain owners/regressions, no READY with R10 pending. T57 AUTH01–AUTH06 and independent paired T44/VIS45 are mandatory for the approved full Codex/OpenAI auth segment; backend-only T57 done is insufficient, no whole-T44 dependency or duplicate auth gate ownership. После backend-изменений повторить AUD38/AUD39 qualification на итоговом code commit (ownership остаётся T42); старый PASS не заменяет проверки нового кода. При missing mandatory live evidence записать BUILD_READY_LIVE_BLOCKED и block T30. Выполнить final staged secret review, reviewed own-branch push и отдельный delivery status; не объявлять READY при открытом обязательном scope.",
+      "evidence": "evidence/T30/report.md",
+      "spec": "roadmap/M6.md"
+    },
+    {
+      "id": "T31",
+      "phase": "M7",
+      "title": "Подключить реальный application path",
+      "depends_on": [
+        "T00"
+      ],
+      "tests": [
+        "AUD01",
+        "AUD02"
+      ],
+      "work": "Закрыть F01 по audit/repairs/T31.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T31/report.md",
+      "spec": "audit/repairs/T31.md"
+    },
+    {
+      "id": "T32",
+      "phase": "M7",
+      "title": "Исправить apply_patch до дальнейших мутаций",
+      "depends_on": [
+        "T31"
+      ],
+      "tests": [
+        "AUD03",
+        "AUD04",
+        "AUD05"
+      ],
+      "work": "Закрыть F04, F05 по audit/repairs/T32.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T32/report.md",
+      "spec": "audit/repairs/T32.md"
+    },
+    {
+      "id": "T33",
+      "phase": "M7",
+      "title": "Durable tool execution и recovery",
+      "depends_on": [
+        "T32"
+      ],
+      "tests": [
+        "AUD06",
+        "AUD07",
+        "AUD08"
+      ],
+      "work": "Закрыть F06, F16 по audit/repairs/T33.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T33/report.md",
+      "spec": "audit/repairs/T33.md"
+    },
+    {
+      "id": "T34",
+      "phase": "M7",
+      "title": "Настоящий Responses protocol и streaming",
+      "depends_on": [
+        "T33"
+      ],
+      "tests": [
+        "AUD09",
+        "AUD10",
+        "AUD11",
+        "AUD12",
+        "AUD13"
+      ],
+      "work": "Закрыть F02, F03 по audit/repairs/T34.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T34/report.md",
+      "spec": "audit/repairs/T34.md"
+    },
+    {
+      "id": "T35",
+      "phase": "M7",
+      "title": "Configured workspace и точный discovery",
+      "depends_on": [
+        "T34"
+      ],
+      "tests": [
+        "AUD14",
+        "AUD15",
+        "AUD16",
+        "AUD17",
+        "AUD18"
+      ],
+      "work": "Закрыть F08, F09, F17 по audit/repairs/T35.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T35/report.md",
+      "spec": "audit/repairs/T35.md"
+    },
+    {
+      "id": "T36",
+      "phase": "M7",
+      "title": "Подключить DCP к реальному tool loop",
+      "depends_on": [
+        "T35"
+      ],
+      "tests": [
+        "AUD19",
+        "AUD20",
+        "AUD21"
+      ],
+      "work": "Закрыть F07 по audit/repairs/T36.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T36/report.md",
+      "spec": "audit/repairs/T36.md"
+    },
+    {
+      "id": "T37",
+      "phase": "M7",
+      "title": "MCP config, registry и владение ресурсами",
+      "depends_on": [
+        "T36"
+      ],
+      "tests": [
+        "AUD22",
+        "AUD23",
+        "AUD24"
+      ],
+      "work": "Закрыть F10, F11 по audit/repairs/T37.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T37/report.md",
+      "spec": "audit/repairs/T37.md"
+    },
+    {
+      "id": "T38",
+      "phase": "M7",
+      "title": "Shell и webfetch без hangs/Unicode panic",
+      "depends_on": [
+        "T37"
+      ],
+      "tests": [
+        "AUD25",
+        "AUD26",
+        "AUD27",
+        "AUD28"
+      ],
+      "work": "Закрыть F12, F13 по audit/repairs/T38.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T38/report.md",
+      "spec": "audit/repairs/T38.md"
+    },
+    {
+      "id": "T39",
+      "phase": "M7",
+      "title": "Довести TUI до подключённого daily workflow",
+      "depends_on": [
+        "T38"
+      ],
+      "tests": [
+        "AUD29",
+        "AUD30",
+        "AUD31"
+      ],
+      "work": "Закрыть F14 по audit/repairs/T39.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T39/report.md",
+      "spec": "audit/repairs/T39.md"
+    },
+    {
+      "id": "T40",
+      "phase": "M7",
+      "title": "Ограничить активный контекст, а не подменять его обрезкой",
+      "depends_on": [
+        "T39"
+      ],
+      "tests": [
+        "AUD32",
+        "AUD33",
+        "AUD34"
+      ],
+      "work": "Закрыть F15 по audit/repairs/T40.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T40/report.md",
+      "spec": "audit/repairs/T40.md"
+    },
+    {
+      "id": "T41",
+      "phase": "M7",
+      "title": "Пересобрать доказательства вокруг бинарника",
+      "depends_on": [
+        "T40"
+      ],
+      "tests": [
+        "AUD35",
+        "AUD36",
+        "AUD37"
+      ],
+      "work": "Закрыть F18 по audit/repairs/T41.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T41/report.md",
+      "spec": "audit/repairs/T41.md"
+    },
+    {
+      "id": "T42",
+      "phase": "M7",
+      "title": "Повторная qualification и честный handoff",
+      "depends_on": [
+        "T41"
+      ],
+      "tests": [
+        "AUD38",
+        "AUD39",
+        "AUD40"
+      ],
+      "work": "Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.",
+      "evidence": "evidence/T42/report.md",
+      "spec": "audit/repairs/T42.md"
+    },
+    {
+      "id": "T43",
+      "phase": "M8",
+      "title": "Config compatibility и foreground subagent prerequisites",
+      "depends_on": [],
+      "tests": [
+        "A02",
+        "A03",
+        "A05",
+        "AUD42"
+      ],
+      "work": "Independent T43-owned R1/R2 config compatibility + foreground slices1–4 (7895f43), ordered resource/selected-primary/child authority and hidden/denied catalog prerequisites verified. Current evidence/T43/report.md preserves direct historical owner start and current named fixture/actual-effect regressions; workspace1713/0/11, permissions8/0/0, strict Clippy/fmt/normal debug-release/help PASS. Approved 2026-09-22 split assigns remaining R3/background/commands/DCP to T45 without a whole-task done dependency; this finishes only the prerequisite, no full R3/live/visual/READY waiver. A02/A03/A05/AUD42/security/resource guards unchanged.",
+      "evidence": "evidence/T43/report.md",
+      "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
+    },
+    {
+      "id": "T44",
+      "phase": "M9",
+      "title": "TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors и чистый диалог без diagnostic spam (VIS42), компактный live-preview indicator (VIS17), скрытые synthetic tool-preview markers и Generic/MCP expand (VIS16/VIS17), provider retry (VIS43), Middle Click tab close (VIS44), tool-output phantom caret / prompt blink (VIS16/VIS31), историю промптов Up/Down и установку каретки мышью (VIS12), Codex/OpenAI connect/accounts/browser/device/key auth (VIS45), Code Mode execute inline calls/detail dialog (VIS46)",
+      "depends_on": [],
+      "tests": [
+        "A02",
+        "A03",
+        "A07",
+        "A08",
+        "A10"
+      ],
+      "work": "Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMENDMENT.md, ACCEPTANCE.json and SAFETY_REGRESSIONS.md; navigation is not reduced acceptance. Owner explicitly resumed2026-10-07: full closure, realtime todos, checked commit/push per major slice. First clean-dialogue e2120e418 qualified1720/0/11; pinned attempt005 eleven stages per side/22 stable frames, ALL22 strict comparisons DIFFERENT. Next concise typed submitted-refusal facet qualified current1721/0/11 plus strict Clippy/debug-release/release-startup; safe captured detail and pre-effect draft preserved. Receipts evidence/tui/vis42-clean-dialogue.md and vis42-request-refusal.md. Whole VIS42/V09/T44 is not PASS. Continue ordered structured tool-body/guidance/ref/capture and Generic-MCP VIS16/VIS17, remaining VIS42 styled/detail integration and every approved prompt/caret/blink/pacing/scroll/profile/model/live-selection/tabs/session/Revert/compaction/file/approval/question/DCP/child/Shell/Terminals/retry/MCP/auth slice. Consume landed backend owners without whole-task done cycles. Actual effects plus running OC2/native full styled-cell/PNG/cursor proof, not own goldens/historical PASS; disclose native differences. Four crates/one owner/immutable RAW/permissions/redaction/caps/no unknown replay; no new registry/store/poll/paid campaign/user config edits. AUTH06 deferred; original24/24 and Go13/24 unchanged. Owner-approved 2026-10-14 VIS46: Code Mode execute producer facts/live ToolCallProgress, inline nested-call rows and execute detail dialog (Code/Output/c/o/esc) with paired qualification after T59 finish; supersedes only T60 generic-card difference, NOT_RUN. Finish only after all mandatory T44 outcomes and final current-source R6/V09 gates.",
+      "evidence": "evidence/T44/report.md",
+      "spec": "docs/goals/2026-09-21-tui-pixel-parity.md"
+    },
+    {
+      "id": "T45",
+      "phase": "M8",
+      "title": "Остаток subagent system (T43 slices 5-8), DCP 3.2.0 donor qualification и defaults/controls (DCP12)",
+      "depends_on": [],
+      "tests": [
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A07",
+        "A10",
+        "A13",
+        "SUB01",
+        "SUB02",
+        "CTX01",
+        "CTX02",
+        "PRM01",
+        "DCP10",
+        "DCP11",
+        "DCP12"
+      ],
+      "work": "Frozen R3/R6–R10/all supplements and IDs remain in spec/M8. Current checked/pushed3e9325d1b/25df7dc6e close chronological effort loss and safe child terminal event/history/reopen; workspace1713/0/11, strict Clippy/fmt/normal debug-release and actual controls/recovery/chronology PASS. Primary outcome matrix: evidence/T45/report.md. R6–R10 and independent offline R3 backend qualified, but original configured-OpenProxy live subagent facet NOT_RUN: read-only existing guarded campaign generation24/24, unknown17 remains spent, no reset/refund/new authorization. T45 BUILD_READY_LIVE_BLOCKED, no finish; continue independent T43 config/foreground prerequisites. T44 visuals separately PAUSED; AUTH06 explicitly deferred, not waived/PASS. No new parser/store/DTO/retry framework, credential search, user config edit or paid campaign. This navigation summary changes no frozen requirement or historical evidence.",
+      "evidence": "evidence/T45/report.md",
+      "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
+    },
+    {
+      "id": "T46",
+      "phase": "M8",
+      "title": "MCP config/startup parity: per-server degradation, cwd/environment, async lifecycle + User-Agent",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A06", "A08", "A10", "A13", "MCP07", "MCP08", "MCP09", "MCP10"],
+      "work": "Completed assigned T46 backend R1–R7 and structured/resource/guidance/media/prompts follow-up are documented in evidence/T46/report.md, config-admission.md and lifecycle.md; historical freezes are source context, not current open remainder or whole-product/T44 READY. Existing D13 degradation/UA, exact codex_web negotiation, local env/cwd/deadlines, async lifecycle/status/control, redaction/caps/cleanup/quarantine/no unknown-effect replay remain. Owner-approved 2026-10-02 R6/MCP09 clarification adds pending host-shaped legacy/canonical equivalence qualification: codex_web/crw exact URLs/headers/oauth:false, disabled chrome argv/environment/zero-spawn, enabled inversion, numeric timeout catalog/execution only with default startup30000, global supplied leaves/per-server overlays/later whole-entry replacement/canonical-wins safe conflicts/typed reserved server names. Declare native omitted direct exact-URL versus donor CodeMode query/initialize fallback, no-OAuth omission and unsupported modern protocol; no new tool-effect retry. Reuse actual fake-client launch/reload/restart counters, no new paid/browser campaign. T45 CTX02 owns policy identity/default/filtering, T50 TOOL14/TOOL16 external read/search, T51 shared safe diagnostics and T44 separate VIS19/VIS40. Completed baseline/status/evidence unchanged; additive MCP09 assertions pending/NOT_RUN until qualified at a scheduled safe handoff, no new task/gate/framework or approval PASS. Audited 2026-10-02 R5/MCP08 configured-label follow-up in the spec is also pending/NOT_RUN: existing name displays safe effective config key, opaque id/binding and diagnostics unchanged; initial/activation protection including refusal uses transient values and existing masked row, not a historical secret cache. Nearest safety and existing fake-binary label/action assertions precede separate VIS40 paired qualification; basic T44 styling is independent. Use scheduled T46 reopen after active T50 safe handoff, not approval-triggered execution; PAUSED T44 and clean-dialogue/tool-preview-first intact.",
+      "evidence": "evidence/T46/report.md",
+      "spec": "docs/goals/2026-09-22-mcp-attach-parity.md"
+    },
+    {
+      "id": "T47",
+      "phase": "M8",
+      "title": "Model admission: unknown limits, explicit variants и canonical effort ordering",
+      "depends_on": [],
+      "tests": ["A03", "A04", "A08", "A13", "AUD41", "VAR01"],
+      "work": "Не отклонять model без limit/context до turn. Native configurable fallback caps + warning без изменения discovery metadata/DISC05; request-local output/input admission, включая child/title requests; отсутствие selected variant означает отсутствие overlay. Контракт D14 и docs/CONTRACTS.md; общий backend checkpoint docs/goals/2026-09-22-backend-blockers.md. Owner-approved 2026-09-27 R6/VAR01: единый stable effort rank после effective merge для catalog snapshots/picker/Ctrl+T/diagnostics, доступные none/minimal/low/medium/high/xhigh/max затем custom, Default отдельно. Явный известный effort > имя, absent effort допускает standard-name rank, unknown explicit effort custom; stable aliases/ties/source order и exact IDs/wire без dedup/fabricated capabilities. Проверить permutations/subsets/disabled/default-vs-none/unknown/overrides, actual binary PTY cycle и fake Responses exact effort/no-overlay, selection по ID при refresh/reopen/restart и actionable retirement без silent fallback. T44 VIS09/VIS29 visual и T50 TOOL18 catalog используют этот минимальный slice, не all-T47 done-dependency; DISC06/T14 и UI02/T39 owners не менять, T45 profile/child selection сохраняется. Пока T44 active, delivery фиксируется additive evidence без подмены task status; план pending, исторический AUD41 PASS не закрывает VAR01.",
+      "evidence": "evidence/T47/report.md",
+      "spec": "docs/goals/2026-09-22-backend-blockers.md"
+    },
+    {
+      "id": "T49",
+      "phase": "M8",
+      "title": "Turn model identity and ancillary request attribution",
+      "depends_on": [],
+      "tests": [],
+      "work": "Reproduce selected model versus main Responses wire and turn footer in existing PTY/fake-server tests; fix demonstrated identity/lifecycle defects without changing provider routing or retry limits. Attribute title/cancel requests offline. Run a scoped real-API smoke only with the runbook's verified durable envelope; do not bypass the blocked T27 harness or expose secrets.",
+      "evidence": "evidence/T49/report.md",
+      "spec": "docs/TEST_PLAN.md"
+    },
+    {
+      "id": "T50",
+      "phase": "M8",
+      "title": "Selected native tool parity: live model/file tools/shell/search/question/read/fetch/session controls",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A04", "A05", "A06", "A07", "A08", "A10", "A13", "TOOL12", "TOOL13", "TOOL14", "TOOL15", "TOOL16", "TOOL17", "TOOL18", "TOOL19", "TOOL20", "TOOL21"],
+      "work": "Owner-approved selected R1–R10; detailed contract/slices in spec/M8. Shell command/background/notices + legacy bash, grep/glob, real question, read text/directories/images (no PDF), webfetch and direct model/authorized rename/safe-boundary same-ID move remain. Built-in websearch/CodeMode/execute/browser excluded; explicit MCP supported. 2026-10-01 R1/R9: exact OC2 case-sensitive model.id contains gpt- and neither oss nor gpt-4 -> apply_patch only, otherwise edit/write; policy narrows. Live-switch clarification: picker is local draft; captured send/command or blank Enter commits model/variant while busy. Next request of the SAME TASK reloads coherent budget/tools/managed guidance/fingerprints/compatible history, including admitted retry/compact rebuilds; no next-user-turn substitute. Prepared stream/tools/approval retain actual model/view and issuing-request allowset, normal policy/preimage checks; retained call/results/outcomes and per-request attribution survive, no alien opaque/replay/archive resurrection. TOOL12 actual-binary GPT->non-GPT->GPT barriers/draft/commit/order/restart; TOOL20 real write/edit bytes/matching/CRLF/BOM/shared Ask/grants/path/protection/durability. T45 PRM01 consumes draft/prompt/Plan/own-model-child views, T47 VAR01 retains ordering; T44 VIS09/VIS29/VIS17/VIS35/VIS36 separately qualifies composer/actual footers/cards/approval. TOOL12–TOOL21 only T50; generations/child authority/finite retries/A09/live gates unchanged. R2/TOOL13 live shell inventory/output/selected kill/same-process Ctrl+B remains pending; T56 owns PTYs. Preserve dirty R8/session_move/CODE_MAP, one active task/PAUSED T44 and T55 safe-handoff priority. Plan-only validation is not runtime PASS. Owner-approved 2026-10-01 R7/TOOL18 extension: oc models without list/refresh, complete exact enabled provider/model ID lines in deterministic lexical order, catalog-only admission before default selection, same static/OpenProxy discovery source and future T53 view, stdout IDs/stderr diagnostics/healthy empty 0/incomplete dynamic or fatal nonzero. No family/20-row truncation, paid generation/title/tool/MCP/browser, session/recovery/prefs/config effects or unselected credential scan. Rebuilt debug/release offline CLI receipts/effect counters qualify listing; T45/R6 consumes listed references for real JSON/Markdown profile request/reopen. Existing direct lookup/rename stays delivered separately, new CLI/profile qualification pending; CLI adds no new task/gate/store/server or status change. Owner-approved 2026-10-01 R10/TOOL21: root tool_output positive max_lines/max_bytes defaults2000/51200, latest section wholesale/defaults/provenance/atomic captured generation; common general-head/shell-tail limiter before provider/new outcome/TurnLog, no metadata bypass, typed controls/media preserved. One registered normalized/redacted filesystem capture + hot preview/ref, streaming shell drains before discard, artifact16 MiB/shared quota2 GiB/completed TTL7 days, honest incomplete/quota/IO/expiry and no replay/inline fallback. Exact-artifact model read/grep beyond ordinary1 MiB under session/authorized lineage/Deny/no-follow/page-scan caps, no wider data-root or AGENTS access; restart/model-switch/compact never auto-rehydrate. TOOL21 rebuilt debug/release large output -> preview/path -> real read/grep distant sentinel -> continuation; reuse TOOL13/16/AUD34/LOAD02/STORE04/A10 owners/receipts. Ordered shared config/result/capture -> shell/read -> qualification after current dirty slice/T55 safe handoff; no new task/store/paid campaign, T44 resume or historical PASS/status change. 2026-10-02 R3/R5/TOOL14/TOOL16 pending external cache slice: explicit normalized external_directory + actual read/glob/grep policy outside Location, effective Allow executes without Ask/approval event/manual pre-opening even first time and after restart. Real synthetic Cargo/Python/UV/Go text/list/search and next-request results, zero approval/saved-grant counters; genuine Ask/Deny/source-profile-parent/read ceilings/no-follow/data-root/cancel/page-scan-output-model bounds remain. No external mutations or automatic HOME/AGENTS/config discovery, new task/framework/status/PASS; T45 CTX02 consumes effective facts and T46 MCP09 retains normalization/client ownership.",
+      "evidence": "evidence/T50/report.md",
+      "spec": "docs/goals/2026-09-27-native-tool-parity.md"
+    },
+    {
+      "id": "T51",
+      "phase": "M8",
+      "title": "Startup fault isolation: plugins/provider readiness и typed actionable diagnostics",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A08", "A10", "A13", "CFG09", "CFG10", "UI07", "E2E06"],
+      "work": "Owner-approved 2026-09-27 after OC2 RECON: R1/CFG09 isolates unsupported/failed native plugin admission to a bounded visible failed capability before resolution/import/process/network; healthy compiled aliases survive without JS host. R2/UI07 keeps local TUI/history/model picker usable during selected-provider/discovery/credential failure; explicit selection remains, unavailable request fails before effects, admitted retry/refresh or user selection restores readiness. No silent provider/model fallback, altered discovery oracle/budgets or automatic paid retry layer. R3/CFG10 shares safe structured source/field/service/stage/code/retryability/action diagnostics in loader/application/TUI/headless; fatal trust/policy/storage/recovery/cleanup/caps retain non-success and last healthy atomic generation. Optional malformed document can be dropped only if mandatory effective policy is still completely admitted, never wider defaults. T46 owns all MCP config/env/async startup/clients; T51 consumes/shared minimal diagnostics, no done-cycle/second registry/store/framework. T44 owns VIS42 and MCP startup transitions in VIS19/VIS40 after respective backend slices. Owner-approved 2026-09-29 R4/E2E06 adds inherited TS-config and saved missing/invalid agent/model/variant availability, including restored/parked tabs; explicit unavailable identity, manual repair, strict pre-effect turn/headless refusal and no silent fallback/reset/pref rewrite. Require source-derived fake-service regression/recovery plus rebuilt retained release binary in bounded real-user PTY/strace with real HOME/XDG/PATH/Location and untouched configs, both bare existing default native store and fresh --data-dir. No paid user-workspace generation, config edits or TS DB import. Fixtures/temp HOME/--help/NOT_RUN cannot replace real-user proof or close T51/A13. Actual binary evidence and existing gates precede claims; plan amendment pending, previous statuses/evidence/PASS unchanged; T44 PAUSED until explicit resume.",
+      "evidence": "evidence/T51/report.md",
+      "spec": "docs/goals/2026-09-27-startup-fault-isolation.md"
+    },
+    {
+      "id": "T52",
+      "phase": "M10",
+      "title": "Укрупнённые code slices и отдельные тесты для agent-only разработки",
+      "depends_on": [],
+      "tests": [
+        "ARCH01",
+        "ARCH02",
+        "ARCH03",
+        "ARCH04",
+        "ARCH05"
+      ],
+      "work": "Структурный проход без изменения поведения: baseline/test inventory; отдельно крупные unit suites; coarse slices TuiState и Runtime; части integration targets runtime/pty_t39; актуальные owner/test maps и warning-only ориентир 5000 физических строк. Не создавать сотни микрофайлов, новые crates/traits или SHA256-манифесты. Сохранить ownership, публичные пути, test discovery и existing parity/resource gates. Окно 400k использовать выборочно, scouts read-only, один mutation owner. R0–R7 в spec. План не снимает PAUSED T44; старт только после явного resume и корректного scheduling handoff.",
+      "evidence": "evidence/T52/report.md",
+      "spec": "docs/goals/2026-09-28-code-slices.md"
+    },
+    {
+      "id": "T53",
+      "phase": "M8",
+      "title": "OpenCode Go: единые credentials, native wires и connect/model TUI",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A04", "A07", "A08", "A10", "A13", "GO01", "GO02", "GO03", "GO04", "GO05", "GO06"],
+      "work": "Completed T53 frozen R1-R6/GO01-GO06: report and component receipts qualify native Responses/Chat/Messages, one scoped SQLite Key/OAuth/None auth owner, canonical immutable provider/model/variant bindings, public source-qualified cache/shared consumers, all-lane identity/cache/chronology/typed retries, durable SQL/DCP/native-checkpoint/fork/reopen authority and configless masked accounts/provider-qualified Home/session/child/fork TUI. Reviewed implementation bee775508 fixes native Go Messages x-api-key from source/live authority; custom apiKey/authToken semantics retained. Current workspace 1651 passed/0 failed/11 ignored and strict final gates green; explicit Go opt-in separately PASS on all three protocol read/function-result/final representatives plus qwen3.8-max/qwen3.7-plus dated probes. Authorized OC_API_KEY mapped only inside test process, no material logs/Git/args. Same t53-go-20261006 durable pre-DNS campaign consumed 13/24 physical calls including diagnostics, smoke <=2048, zero unknown effects/no reset or paid fallback. T53 done, no remaining blocker; not overall READY, T44 PAUSED and T57/other task ownership/statuses unchanged.",
+      "evidence": "evidence/T53/report.md",
+      "spec": "docs/goals/2026-09-29-opencode-go-and-provider-auth.md"
+    },
+    {
+      "id": "T54",
+      "phase": "M8",
+      "title": "Provider-error retry and safe continuation parity (OC2 v2.0.12)",
+      "depends_on": ["T12"],
+      "tests": ["A02", "A04", "A07", "A08", "A10", "A13", "RET01"],
+      "work": "Completed provider-error retry baseline is documented in evidence/T54/report.md: typed HTTP/Responses SSE errors, quota versus transient throttle, one cancellable finite per-logical-step policy and one physical attempt per adapter call; truthful pre-output retry versus post-output durable continuation, no tool/effect replay or failed-attempt success. Main/child/compaction auxiliary lanes, pinned bindings, physical dispatch accounting and actual-binary headless/PTY qualification in spec. T53/GO03 reuses the policy on future Chat/Messages wires; T44/VIS43 owns paired retry visuals after explicit resume. Consume minimal qualified T51 seam, no whole-task T51/T53/T44 dependency, daemon, JS hooks or new retry framework. Owner-approved 2026-10-02 pending additive follow-up reuses mixed/effect fixtures alongside T45 runtime slices: early retry -> success -> long sequential work -> late429 starting attempt2; short partial HTTP200 SSE RateLimit with truthful span/effect preservation, existing MCP failed-result boundary. Fix retry backend only on reproduced RED; OCR incident cause unresolved, no historical-header recovery promise/new global limiter/duplicate matrix. Successful-step quotas are superseded under T45/R6/R9, finite failure allowance retained. Completed T54 status/RET01 ownership/baseline/evidence unchanged; new qualification pending/NOT_RUN, not a new task or reopening. Approved 2026-10-06 restricted-error/safe-details amendment in spec adds cyber_policy to ContentPolicy and bounded provider explanation with narrow Daybreak URI exception. Existing message/span fields and latest windows suffice; T45 preserves child terminal diagnostic, AUTH04 consumes WS facts, VIS43/VIS39 add an explicit passive OC2-surface dialog with supplemental OC1 interaction. New assertions pending/NOT_RUN; no subtype/DTO/schema/new task or automatic T54 reopen/T44 resume, active T57 retained.",
+      "evidence": "evidence/T54/report.md",
+      "spec": "docs/goals/2026-09-29-provider-retry-parity.md"
+    },
+    {
+      "id": "T55",
+      "phase": "M8",
+      "title": "Responses completed-output compatibility and current real tool E2E",
+      "depends_on": ["T12", "T13", "T54"],
+      "tests": ["A04", "A07", "A08", "A09", "A10", "A13", "PROV09", "PROV10"],
+      "work": "Owner-requested 2026-09-30 diagnostic follow-up: real cx/gpt-6-luna/high output_item.done completed function call followed by response.completed/output:[] is rejected by current native adapter before tool admission. Reconcile genuinely completed streamed items with sparse terminal output without weakening terminal/argument/identity/effect validation; distinguish local reconciliation failures from actual truncated streams. Frozen R1-R4, synthetic RED/GREEN differential and bounded live receipts in spec/evidence. Rebuilt debug/release headless/PTY then actual real-API apply_patch->read->function_call_output->final/reopen qualification, continuing the existing durable <=24-request campaign (4 consumed at diagnosis). No model hardcoding/fallback, retry framework, partial tool execution or unknown-effect replay. Priority: next safe T50 scheduling handoff before T53/T45 and T27; do not interrupt dirty T50 or resume PAUSED T44. PROV09/PROV10 only T55; PROV03/PROV08/RET01/E2E02 keep existing owners. Planning registered todo; implementation/live native E2E NOT_RUN.",
+      "evidence": "evidence/T55/report.md",
+      "spec": "docs/goals/2026-09-30-responses-tool-compatibility.md"
+    },
+    {
+      "id": "T56",
+      "phase": "M8",
+      "title": "Native session-local interactive PTYs для Terminals",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A08", "A10", "A13", "TERM01"],
+      "work": "Completed frozen T56 R1-R4/TERM01 through reviewed/pushed be5ec25fb: one bounded application-owned native Linux PTY/VT owner with acknowledged source session/Location/generation commands, sanitized shell/cwd/env, retained-child source, actual lower Terminals composer/right pane, raw controls/configured leader/focus/draft, native semantic theme cells/atomic replay/gap/resize and minimal shared SQLite identity/selection. Current rebuilt debug/release full actual-binary fixture passes, including deliberately ignored/masked parent signal policy, two-PTY hide/last/remount, real native child-close-before-captured-target, host escape/flood bounds, exit/remove/shutdown, verified two-orphan crash/no replay/stale PID and FD/thread/RSS/idle facts. Final locked workspace 1665 passed/0 failed/11 unchanged ignored, 43 result records; strict all-target Clippy/fmt/locked builds/both help green. Checked cleanup failures stay non-success/retain unproved identity; required migration12 exact legacy/reopen assertions preserved. No model terminal tool, daemon/store/framework/JS host, real credential read or paid campaign. Primary evidence evidence/T56/report.md; T56 done, no known blocker. Not overall READY or T44/VIS39 paired visual PASS; T44 PAUSED and T45/T50/T57/other task ownership/statuses unchanged.",
+      "evidence": "evidence/T56/report.md",
+      "spec": "docs/goals/2026-10-01-native-session-terminals.md"
+    },
+    {
+      "id": "T57",
+      "phase": "M8",
+      "title": "Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers",
+      "depends_on": [],
+      "tests": ["A02", "A03", "A04", "A07", "A08", "A10", "A13", "AUTH01", "AUTH02", "AUTH03", "AUTH04", "AUTH05", "AUTH06"],
+      "work": "T57 BUILD_READY_LIVE_BLOCKED, not DONE; frozen R1-R6/AUTH01-AUTH06/restricted-error amendment unchanged. Thirteen implementation/test slices pushed through d43d084fa. R1-R5 verified offline: shared SQLite metadata/refresh/CAS/attempt/Core, captured account-model-actor/public catalog/native WS-HTTP/runtime effects and functional shared CLI/TUI. Current normal debug/release controls, workspace1711/0/11 across46 results, default/feature strict Clippy/fmt/build/help green; fixture release fake approval/native requests/own-env-config13WS/6HTTP explicitly not live. No independent local blocker remains. R6 required real browser AND device operator confirmation plus explicitly permitted ordinary OpenAI test input/key were not supplied; real login/request/reopen NOT_RUN. Same t57-openai-20261006 durable zero NOT_STARTED preflight is not a qualified guard; on authorized resume establish <=24 all-lane physical counting/<=2048 before first dial, token-control separate/10min attempt, never reset unknown effects. No credential search/import, Go/OpenProxy substitute or paid fallback. T44/VIS45 PAUSED, T53/T56/other history ownership unchanged; no finish, full visual parity or overall READY.",
+      "evidence": "evidence/T57/report.md",
+      "spec": "docs/goals/2026-10-06-codex-oauth-and-openai-key.md"
+    },
+    {
+      "id": "T58",
+      "phase": "M8",
+      "title": "Встроенный customize-opencode: конфигурационный ранбук native oc",
+      "depends_on": ["T13"],
+      "tests": ["A03", "A05", "A08", "A13", "SKILL01"],
+      "work": "Owner-approved 2026-10-08 additive delivery: one bundled offline native config manual, narrow metadata and ordinary skill registration/snapshot/permissions/user overrides. Existing defs registration and configured_workspace fake-provider binary fixture suffice; only adjacent production fix is replacement-safe skill count guard without raising caps. Preserve malformed-override diagnostics/last valid winner, autoinvoke filtering, Deny and headless Ask refusal. Native recommendations follow working consumers, not upstream schema or Proposed examples; concise AGENTS link and touched CONFIG corrections, no generic docs audit. Frozen R1-R3 and method in spec/TEST_PLAN, SKILL01 only T58; TOOL11/CFG07/UI06/E2E05/AUD17 owners unchanged. Plan-only registration todo/implementation NOT_STARTED; active T44 and historical states/leaves intact, no new loader/registry/schema/JS host/paid campaign or runtime PASS.",
+      "evidence": "evidence/T58/report.md",
+      "spec": "docs/goals/2026-10-08-customize-opencode-skill.md"
+    },
+    {
+      "id": "T59",
+      "phase": "M8",
+      "title": "Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery",
+      "depends_on": ["T53"],
+      "tests": ["A02", "A03", "A04", "A07", "A08", "A10", "A13", "CONN01", "CONN02", "CONN03", "CONN04", "CONN05"],
+      "work": "Owner-approved 2026-10-12 additive R1-R5: familiar OC2 provider/search/accounts/method/masked-key/ACK/filtered-picker flow, default account label without mandatory label prompt; Custom provider entry asks name/literal API base URL and Key or explicit anonymous. One typed table in existing SQLite with atomic initial credential, custom tagged endpoint auth scope, raw-config collision precedence and provider filters. Bounded GET models discovery uses existing secured transport for OpenAI-compatible/opencode and paginated Anthropic catalogs; ambiguous API requires confirmation, never generation POST/name heuristics/hidden fallback. ID-only models remain visible, supplied modalities/partial capabilities/exact supported efforts and unknown/false/empty survive core/TUI projection; existing three native wires and legacy OpenProxy oracle unchanged. Captured provider/binding revisions, abort/join/stale guards and narrow immutable provider publication preserve selection/prepared requests/generation/Location/MCP ownership. Read-only oc models consumes sanitized saved snapshots without custom network/credential/second-Db effects. CONN01-CONN05 owner/binary/restart/zero-model/effect/metadata checks and final gates in spec/TEST_PLAN; T44 VIS45 owns shared auth visuals, T57 OAuth scope/live blockers unchanged. Plan registration todo/implementation NOT_STARTED, active T44 and dirty source/scripts/evidence preserved; no paid campaign, config writer, JS host or arbitrary OAuth. T30 requires T59; no T53 reopening or historical PASS rewrite.",
+      "evidence": "evidence/T59/report.md",
+      "spec": "docs/goals/2026-10-12-custom-provider-connect-and-discovery.md"
+    },
+    {
+      "id": "T60",
+      "phase": "M8",
+      "title": "Code Mode execute на нативном Rust-интерпретаторе",
+      "depends_on": ["T46", "T50"],
+      "tests": ["A01", "A05", "A06", "CM01", "CM02", "CM03", "CM04", "CM05", "CM06", "CM07", "CM08"],
+      "work": "Owner amendment 2026-10-13: model-facing execute({code}) runs a JavaScript subset in a confined interpreter written in Rust (own lexer/parser, async evaluator, donor-shaped stdlib, regress RegExp), no JS engine/Node/Bun/host. MCP defaults into Code Mode as in donor v2.0.12; codemode:false keeps a server direct. Nested tools.* calls and fetch go through admit_tool/approval/MCP lease and the webfetch guard under the execute op. Resource guards always on. Declared differences in spec; live OpenProxy check NOT_RUN until executed.",
+      "evidence": "evidence/T60/report.md",
+      "spec": "docs/goals/2026-10-13-code-mode.md"
+    },
+    {
+      "id": "T61",
+      "phase": "M8",
+      "title": "Hot reload (per-process); shared service descoped",
+      "depends_on": [
+        "T24",
+        "T46",
+        "T51"
+      ],
+      "tests": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A10",
+        "A13",
+        "HOT01",
+        "HOT02",
+        "HOT04"
+      ],
+      "work": "Owner amendment 2026-10-15: shared native service, local IPC, `oc service`, client attach/detach, durable admission tokens and cross-client recovery (R3/HOT03) are DESCOPED; every oc2 process is independent. Remaining R1/R2/R4/R5 with HOT01/HOT02/HOT04 run inside one process: coherent source publication and issued request/full-batch leases; fresh same-task root/child preparation, captured retry/summary boundaries and latest-HOT provenance; one in-process admitted watcher/manual pipeline, whole last-good, persistent per-Location MCP supervisor with unchanged reuse/per-instance retirement/shared quarantine; client settings precedence/env overlay/theme/bindings with no cosmetic runtime rebuild; composed debug/release qualification of independent instances. Per-process data-root lock/DataRootBusy, SQLite safety and OAuth loopback stay. Preserve guarded readonly models/no-spawn helpers. No HTTP/SDK parity, shared host, scheduler/store/framework/plugin host or paid campaign. Qualified seams, not whole T44/T45/T57 dependencies; T30 requires T61. Historical evidence unchanged.",
+      "evidence": "evidence/T61/report.md",
+      "spec": "docs/goals/2026-10-14-hot-reload-shared-service.md"
+    },
+    {
+      "id": "T62",
+      "phase": "M8",
+      "title": "Canonical OpenCode 2 config only (no OpenCode 1 compatibility)",
+      "depends_on": [
+        "T43",
+        "T51",
+        "T58"
+      ],
+      "tests": [
+        "A03",
+        "A13",
+        "CFG11",
+        "CFG12",
+        "CFG13"
+      ],
+      "work": "Owner decision 2026-10-15: accept only the canonical OpenCode 2 v2.0.12 config schema (packages/schema config Info + cli.json schema). Everything upstream accepts only through packages/core/src/v1/** (ConfigNormalize/ConfigMigrateV1, including markdown agent frontmatter migrated by migrateAgent) and tui.json/kv.json migration is removed. Any v1 key fails closed with one typed diagnostic listing every offending key, its source and canonical replacement, without values, on startup, catalog-only `oc2 models` and hot reload (last-good kept). One detector in config/legacy.rs; delete v1 branches in providers/permissions/agents/MCP/compaction/keybinds; add missing canonical commands/plugins/experimental.policies. Convert test fixtures, harness scripts, examples and docs to canonical v2; historical evidence unchanged. Owner converts their own config.",
+      "evidence": "evidence/T62/report.md",
+      "spec": "docs/goals/2026-10-15-canonical-v2-config.md"
+    },
+    {
+      "id": "T63",
+      "phase": "M8",
+      "title": "MIT для собственного кода проекта",
+      "depends_on": [],
+      "tests": [],
+      "work": "Owner request 2026-10-15: set the workspace default license for original project code to MIT, add the MIT license text and document its scope in README. Preserve existing third-party and source-derived licenses, notices and provenance. Verify Cargo metadata and documentation structure, commit and push the current branch. No runtime changes, crates.io publication, release or tag.",
+      "evidence": "evidence/T63/report.md",
+      "spec": "README.md"
+    },
+    {
+      "id": "T64",
+      "phase": "M8",
+      "title": "Publish native oc2 on crates.io",
+      "depends_on": ["T63"],
+      "tests": [],
+      "work": "Owner-authorized 2026-10-15 publication: replace the oc2 bootstrap with native 0.1.0, preserve modular library boundaries and all embedded assets, publish versioned registry dependencies, verify archive builds and an isolated cargo install from crates.io. Original source MIT; retain and ship third-party/source-derived licenses and provenance with truthful package metadata. No runtime scope expansion, auto-update, full-product READY or user-config conversion. Subsequent corrections use new versions.",
+      "evidence": "evidence/T64/report.md",
+      "spec": "docs/goals/2026-10-15-crates-io.md"
+    },
+    {
+      "id": "T65",
+      "phase": "M8",
+      "title": "Native V2 provider/cache/transport and ordered permission semantics",
+      "depends_on": ["T62"],
+      "tests": ["A01", "A03", "A04", "A05", "A06", "A13", "CFG14", "CFG15", "CFG16", "CFG17"],
+      "work": "Owner plan 2026-10-15 pauses T44 until this configuration slice is implemented, verified and normally committed/pushed; subsequent explicit authorization also requires a coherent version bump, crates.io publication using existing Cargo credentials without printing them, and isolated registry install verification before returning to full TUI parity. Configuration oracle: TS V2 at b4f19bfe74a972c2919aa4c9d7445fa61f41b226 (before the upstream fifteen-minute chunk default), separate from frozen TUI2670273. Separately merge provider/model documents then effective compatibility provider defaults→model overrides preserving explicit false across protocols; remove settings.setCacheKey runtime gate, preserve tri-state/protocol cache-key/cache:none/header-affinity/Anthropic policies; keep timeout/headerTimeout/chunkTimeout/transport provider-only and separate HTTP300000ms header/chunk, false-disabled and optional total deadlines, with WS-specific behavior and cancellation. Ordinary permissions use TS ordered overrides (agent defaults→top-level docs→agent-specific docs→session handling), while saved allow cannot bypass final configured deny and authority/sandbox/delegation ceilings remain non-widenable. V1 remains legacy_config before effects; valid unsupported V2 capability and malformed V2 value diagnostics stay distinct, arbitrary package settings are not legacy by name. Shared synthetic V2 fixtures/expected results for covered TS/Rust subset; existing redaction, admission, cancellation, MCP/package/Markdown/authority regressions and affected/full Cargo gates. No real credentials in fixtures/user config/secrets.env changes, V1 migration, plugin host, shared service or full application/built-in-agent parity. Preserve T44 stash1087067b3025322885c6a964579d80cea4931b06 for the explicit return after delivery.",
+      "evidence": "evidence/T65/report.md",
+      "spec": "docs/goals/2026-10-15-v2-config-semantics.md"
+    },
+    {
+      "id": "T66",
+      "phase": "M8",
+      "title": "Strict OpenCode 2 key allowlist replaces the OpenCode 1 detector",
+      "depends_on": ["T62", "T65"],
+      "tests": ["CFG18"],
+      "work": "Owner decision 2026-10-16 (D28): remove the OpenCode 1 vocabulary/detector (config/legacy.rs, LegacyConfig/ReplaceLegacyConfig, replacement table, V1-specific guards) and keep only canonical OC2. Fail closed through a schema-derived allowlist of OC2 v2.0.12 keys (plus T65-oracle provider compatibility and declared native extensions dcp/animations/terminal) at root, experimental, compaction, providers/models/variants, mcp/servers/oauth, agents/commands (JSON and Markdown), cli.json sections and donor keybind names; open records (settings/body/headers/env/environment/options) stay open. One unknown_config_key report with every path and source, no values or replacements, before provider/MCP effects on startup, reload (last-good) and oc2 models. Also fix lost model compatibility overrides equal to the Rust default (provider maxTokensField default vs model override). Repo opencode.json converted to OC2; the owner converts ~/.config/opencode himself. No V1 migration, warn-and-ignore mode or user-config edits.",
+      "evidence": "evidence/T66/report.md",
+      "spec": "docs/goals/2026-10-16-v2-allowlist.md"
+    },
+    {
+      "id": "T67",
+      "phase": "M8",
+      "title": "Owner live dev launcher oc2-dev",
+      "depends_on": ["T66"],
+      "tests": [],
+      "work": "Owner request 2026-10-16: add an oc2-dev alias to the owner's ~/.zshrc that loads secrets.env like oc2 and execs ~/ai/oc/target/debug/oc2 from the current directory, sharing ~/.config/opencode and the ~/.local/share/oc store with release oc2 (DataRootBusy when both run). oc2-dev never builds; AGENTS.md records the soft rule that agents build the debug binary (cargo build -p oc2 --bin oc2 --locked) when a change is worth a live owner check, keep target/debug and the default target dir, never launch oc2-dev themselves and flag storage schema changes. No secrets read or printed, no runtime code changes.",
+      "evidence": "evidence/T67/report.md",
+      "spec": "AGENTS.md"
+    }
+  ]
+}

@@ -1,0 +1,1552 @@
+{
+  "port_commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+  "ui_reference_tag": "v2.0.12",
+  "ui_reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "note": "The value formerly described as a tree SHA is a commit SHA according to the tag ref. User screenshot version/terminal metadata are not supplied.",
+  "sources": [
+    {
+      "id": "P01",
+      "repository": "0FL01/oc",
+      "path": "docs/goals/2026-09-21-tui-pixel-parity.md",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "R1–R6; Material Decisions",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/docs/goals/2026-09-21-tui-pixel-parity.md",
+      "purpose": "Current T44 acceptance; self-generated goldens; verified R3/R4 and residuals"
+    },
+    {
+      "id": "P02",
+      "repository": "0FL01/oc",
+      "path": "progress/NOW.md",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "T44 checkpoint",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/progress/NOW.md",
+      "purpose": "Self-reported progress and flaky tests; not independently executed"
+    },
+    {
+      "id": "P03",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/views.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "render_test; panel_lines",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/views.rs",
+      "purpose": "Symbol-only test extraction; inline textual panels"
+    },
+    {
+      "id": "P04",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/layout.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "shell_regions; session_regions; sidebar_auto",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/layout.rs",
+      "purpose": "No sidebar allocation; unconditional devtools; fixed prompt"
+    },
+    {
+      "id": "P05",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/shell.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "render; render_tabs; render_transcript; golden_screen_80x24/120x40",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/shell.rs",
+      "purpose": "Always dark; hardcoded untitled tab; 20-line clipping; self-authored expected arrays"
+    },
+    {
+      "id": "P06",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/messages.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "markdown; AssistantMeta; assistant_block",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/messages.rs",
+      "purpose": "Tables fallback to text; limited markdown; historical metadata absent"
+    },
+    {
+      "id": "P07",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/events.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "map_key; map_event",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/events.rs",
+      "purpose": "Control/Alt contains semantics; no palette action; Enter ignores modifiers"
+    },
+    {
+      "id": "P08",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/app.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "handle_key; handle_enter; transcript_rows; retained_bytes",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-tui/src/app.rs",
+      "purpose": "Submit awaited on UI path; history replay; cumulative rendering allocations"
+    },
+    {
+      "id": "P09",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/src/tui_cmd.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "drive_ui; handle_event; interactive_ready",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc/src/tui_cmd.rs",
+      "purpose": "Actual terminal loop waits on event handler; bare startup"
+    },
+    {
+      "id": "P10",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-core/src/queries.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "HistoryMessage; ModelEntry; AgentEntry; CatalogSnapshot",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-core/src/queries.rs",
+      "purpose": "Missing durable presentation metadata and model display names"
+    },
+    {
+      "id": "P11",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-adapters/src/runtime.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "RuntimeError; run_turn_with_tool_events; attach_mcp",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-adapters/src/runtime.rs",
+      "purpose": "MCP attach before input acceptance; error kind loss"
+    },
+    {
+      "id": "P12",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-adapters/src/mcp_remote.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "CodexWebConfig::validate/from_entry; CodexWebClient::connect",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-adapters/src/mcp_remote.rs",
+      "purpose": "Mandatory bearer and exact protocol in shared remote path"
+    },
+    {
+      "id": "P13",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-adapters/src/composition.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "load_with_env, lines 87–135",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc-adapters/src/composition.rs",
+      "purpose": "Canonical source check but local root itself may resolve outside project; reads before checking"
+    },
+    {
+      "id": "P14",
+      "repository": "0FL01/oc",
+      "path": "GOAL.md",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "A08; owner scope amendment",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/GOAL.md",
+      "purpose": "Earlier pixel parity exemption; now mandatory subagents via amendment"
+    },
+    {
+      "id": "P15",
+      "repository": "0FL01/oc",
+      "path": "progress/STATE.json",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "T42–T45",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/progress/STATE.json",
+      "purpose": "T42 done; T43 blocked; T44 active; T45 todo"
+    },
+    {
+      "id": "P16",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/src/bootstrap.rs",
+      "commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+      "locator": "run",
+      "url": "https://github.com/0FL01/oc/blob/d232baa481ed6e4fc844359855d5f419f88b8a8e/crates/oc/src/bootstrap.rs",
+      "purpose": "Bare oc now launches TUI if both streams are TTY"
+    },
+    {
+      "id": "P17",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/src/tui_cmd.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "61–94 TerminalOutput direct Stdout writes/flush; 980–1018 terminal owner; 1101–1122 first background, cursor color and unguarded draw",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc/src/tui_cmd.rs#L1101-L1122",
+      "purpose": "VIS16/VIS31 static phantom-caret candidate at actual frame output boundary, not a reproduced runtime flicker or completed fix"
+    },
+    {
+      "id": "P18",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/app/transcript.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "367–432 painted pointer/overlay guards and hover tool range; 440–465 hover changes styled rows without assigning an editor caret",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/app/transcript.rs#L405-L465",
+      "purpose": "VIS16 preserve actual hover/selection ownership; distinguish style repaint from cursor/focus mutation"
+    },
+    {
+      "id": "P19",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/shell.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "217–246 composer before overlays/dialog; 1584–1598 prompt layout; 1667–1671 Frame cursor position from editor caret",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/shell.rs#L1667-L1671",
+      "purpose": "VIS16 correct input-owner position/shape/color/blink and unchanged prompt draft under tool hover"
+    },
+    {
+      "id": "P20",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/terminal.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "26–48 raw/alternate/mouse enter and restore; 50–62 independent cursor-color OSC; 69–77 panic restoration",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/terminal.rs#L26-L77",
+      "purpose": "VIS16/VIS31 existing terminal lifecycle owner, no frame-output protection here; preserve normal/error/panic cleanup"
+    },
+    {
+      "id": "P21",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/dialog.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "643–646 Search cursor; 650–657 read-only card early return; 801–844 render_card_detail sets no replacement cursor after underlying composer",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc-tui/src/dialog.rs#L801-L844",
+      "purpose": "VIS16 read-only overlay excludes underlying caret and close restores input ownership; source risk, not executed qualification"
+    },
+    {
+      "id": "P22",
+      "repository": "0FL01/oc",
+      "path": "crates/oc/tests/support/screen.rs",
+      "commit": "71fcd0f06bf618f06d4b5972fb312123f24378d2",
+      "locator": "4–7 cells/final position only; 52–163 parser omits cursor visibility/shape/blink; tests/pty_t39.rs:1543–1567 final/settled cursor assertions",
+      "url": "https://github.com/0FL01/oc/blob/71fcd0f06bf618f06d4b5972fb312123f24378d2/crates/oc/tests/support/screen.rs#L52-L163",
+      "purpose": "VIS16/VIS31 coverage gap: final position cannot prove no transient caret or correct actual frontend blink"
+    },
+    {
+      "id": "U01",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "dialogWidth; Dialog",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog.tsx",
+      "purpose": "Widths 60/88/116; top H/4 by default; black overlay alpha 150/255"
+    },
+    {
+      "id": "U02",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/keybind.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "Definitions; LeaderDefault",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts",
+      "purpose": "Canonical command IDs and key chords"
+    },
+    {
+      "id": "U03",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-frame.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "wide; sidebarVisible; rightPane",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-frame.tsx",
+      "purpose": "Sidebar auto threshold >120 minus vertical tabs; child-session exception"
+    },
+    {
+      "id": "U04",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "lines 1240–1425; SessionRowView",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+      "purpose": "Transcript scrollbox; prompt/footer placement; sticky scrolling"
+    },
+    {
+      "id": "U05",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-model.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "options; title; onSelect",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-model.tsx",
+      "purpose": "Display names, current selection, favorites/recents, real metadata"
+    },
+    {
+      "id": "U06",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "App, line 472",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx",
+      "purpose": "Devtools conditional on config or local channel, not unconditional"
+    },
+    {
+      "id": "U07",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/autocomplete.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "modes command/reference/directory; trigger wiring; list; Tab/Return selection",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/autocomplete.tsx",
+      "purpose": "Inline autocomplete overlay: / commands (keymap+server), @ files/skills/agents; Up/Down/Tab/Return/Esc semantics; limit 20"
+    },
+    {
+      "id": "U08",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/prompt/display.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "mentionTriggerIndex; slashTriggerIndex",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/display.ts",
+      "purpose": "Trigger rules for @ (start/after space, no spaces in query) and /"
+    },
+    {
+      "id": "U09",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "renderer targetFps configuration",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx",
+      "purpose": "Pinned TUI target frame rate; configured cadence, not measured output FPS"
+    },
+    {
+      "id": "U10",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/scroll.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "getScrollAcceleration; CustomSpeedScroll",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/scroll.ts",
+      "purpose": "Pinned scroll speed default and optional acceleration selection"
+    },
+    {
+      "id": "U11",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/dialog-message.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "lines 23–49; Message Actions Revert",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/dialog-message.tsx#L23-L49",
+      "purpose": "Selected-message stage, prompt restoration and modal dismissal"
+    },
+    {
+      "id": "U12",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "163–174 boundary partitions; 898–945 Undo/Redo; 1320–1325 user-message count; 2172–2250 reverted block; 2307–2342 user click",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2172-L2250",
+      "purpose": "Whole-tail Redo from command or clickable marker, selection guard, hover and count/hint"
+    },
+    {
+      "id": "U13",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/keybind.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "41 default leader ctrl+x; 189–190 Undo/Redo bindings",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L189-L190",
+      "purpose": "Default leader-u/leader-r entry points and keymap-derived restore hint"
+    },
+    {
+      "id": "U14",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/revert.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "23–59 stage; 61–75 clear",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/revert.ts#L23-L75",
+      "purpose": "Single staged boundary cleared in full; filesystem restore is excluded by the native snapshots-disabled contract"
+    },
+    {
+      "id": "U15",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "866–889 compact command; 2084–2149 CompactionMessage; 2152–2164 CompactionQueued",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2084-L2164",
+      "purpose": "Compact command and queued/running/completed/failed/cancelled presentation, spinner, divider rules, usage and summary"
+    },
+    {
+      "id": "U16",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/compaction.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "279–328 tail; 364–390 summary prompt; 469–574 request/native path; 595–794 summary execution and manual/automatic strategy",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/compaction.ts#L595-L794",
+      "purpose": "Compaction request, streamed summary, usage, checkpoint and native/summary strategy"
+    },
+    {
+      "id": "U17",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/runner/llm.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "79–143 compaction delivery/execution; 216–270 automatic trigger and overflow recovery; admission in session.ts:240–258 and inbox.ts:204–226",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/llm.ts#L79-L143",
+      "purpose": "Safe-boundary manual admission/execution, automatic trigger and overflow recovery"
+    },
+    {
+      "id": "U18",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2784–2865 BlockTool; 3044–3078 Write; 3324–3503 Edit/ApplyPatch; component/patch-diff.tsx:19–81 PatchDiff",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3324-L3503",
+      "purpose": "Original file-mutation presentation, layout, labels, lifecycle and diff settings"
+    },
+    {
+      "id": "U19",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/patch.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "19–45 schema/output; 85–290 execution/metadata; 296–310 tool selection; 321–362 result diff; file-diff.ts:4–23 before/after diff",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/patch.ts#L19-L45",
+      "purpose": "Real patch execution, result-derived file diffs and fixture admission through the original hook"
+    },
+    {
+      "id": "U20",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/permission.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "22–110 EditBody; PermissionPrompt",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/permission.tsx#L22-L110",
+      "purpose": "File-mutation permission preview and diff presentation"
+    },
+    {
+      "id": "U21",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/permission.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "103–335 pending/assert/reply/cleanup; permission/saved.ts:63–81 SQLite grants; project.ts:244–249,329–360 project identity",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/permission.ts#L103-L335",
+      "purpose": "Real approval lifecycle, decline/feedback, configured denial, project Always and pending reevaluation"
+    },
+    {
+      "id": "U22",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/permission.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "113–622 PermissionPrompt/RejectPrompt/SessionQuestion; util/permission.ts:23–167 presentation; routes/session/index.tsx:185–219,1351–1418 family/placement",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/permission.tsx#L113-L622",
+      "purpose": "Lower prompt/fullscreen, options, focused input, child feedback, previews and request routing"
+    },
+    {
+      "id": "U23",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/permission.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–15 mode; routes/session/index.tsx:185–195 family queue,243–259 once autoaccept; component/dialog-config.tsx:114–122 Settings; config/keybind.ts:275 fullscreen; cli/src/commands/commands.ts:26–36 flags; cli/src/commands/handlers/default.ts:82–87,handlers/run.ts:14–28 hidden aliases; cli/src/run/noninteractive.ts:135–154 once/reject,180–183 exact-session filter",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/permission.tsx#L5-L15",
+      "purpose": "Real prompt/autoaccept controls, process-only CLI priority and hidden aliases; nonpersistent Once distinct from Always, TUI family scope versus headless exact-session filter"
+    },
+    {
+      "id": "U24",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "192–193 leader-muted; 1556–1560 highlight; 1736–1742 text; 1827–1832 metadata; component/prompt/metadata.tsx:42–79 roles; context/keymap.tsx:137–145 timeout,312–315 pending source",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L192-L193",
+      "purpose": "Leader pending composer/metadata muting and configured timed-leader registration; following-key lifecycle requires pinned original verification"
+    },
+    {
+      "id": "U25",
+      "repository": "anomalyco/opencode",
+      "path": "packages/schema/src/agent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "38–53 default primary/permissions; core/src/plugin/agent.ts:86–92 Build registration",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/agent.ts#L38-L53",
+      "purpose": "Built-in Build and new-profile defaults; actual policy rather than display-only profile names"
+    },
+    {
+      "id": "U26",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin/plan.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–25 enter/leave reminders; 27–53 Plan policy/directory; 56–120 context reconciliation and switch events",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/plan.ts#L14-L120",
+      "purpose": "Real Plan mode, explicit-request plan files, edit exception and lifecycle through compaction/Revert"
+    },
+    {
+      "id": "U27",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/config/plugin/agent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "88–124 field merge/default/disable; 164–211 recursive Markdown/native-legacy import; config/discovery.ts:23–83 source roots/order; v1/config/migrate.ts:141–163 compatibility field mapping",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/config/plugin/agent.ts#L88-L211",
+      "purpose": "Custom Markdown profiles, nested IDs, frontmatter, typed fields and supplied-field merging"
+    },
+    {
+      "id": "U28",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/agent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "92–133 selectable default/fallback, explicit addressing and list order",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/agent.ts#L92-L133",
+      "purpose": "Configured default versus Build/fallback, eligibility and explicit profile selection"
+    },
+    {
+      "id": "U29",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/local.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "56–123 picker eligibility/set/cycle; component/dialog-agent.tsx:6–29 picker; config/keybind.ts:169–171 agent bindings; app.tsx:873–898,925–931 picker and cycle dispatch",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/local.tsx#L56-L123",
+      "purpose": "Real profile picker versus Shift+Tab cycle, visibility, order, wrapping and selection feedback"
+    },
+    {
+      "id": "U30",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/session-target.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "42–85 new/existing session agent selection; commands/commands.ts:354–381 run --agent; run/noninteractive.ts:644–648 switch before prompt",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/session-target.ts#L42-L85",
+      "purpose": "Headless run --agent and preservation of existing session selection when omitted"
+    },
+    {
+      "id": "U31",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/question.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "12–29 description/input/output; 62–107 permission/form/cancel/answers; 115–127 question-to-form mapping; schema/src/question.ts:6–22 prompt/answer schema",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/question.ts#L12-L127",
+      "purpose": "Real question tool, automatic custom answer, ordered result metadata and typed dismissal, distinct from permission approval"
+    },
+    {
+      "id": "U32",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/form.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "44–87 within-process drafts; 111–140 single/tabs/tab-fit/review; 536–765 effective keymap; 767–1187 FormPrompt rendering; util/form.ts answer helpers",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/form.tsx#L767-L1187",
+      "purpose": "Actual question form geometry/theme, selection/custom answer, tabs/review/footer, mouse/focus and state-specific keyboard behavior"
+    },
+    {
+      "id": "U33",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "185–219 family/form queue; 1351–1418 composer priority/placement; 3508–3541 Question; 3662–3682 question/answer parsing",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3508-L3541",
+      "purpose": "Real lower FormPrompt placement and pending/completed question cards from actual questions and answers metadata"
+    },
+    {
+      "id": "D05",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/ui/notification.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "getCompressionLabel/formatCompressionMetrics; 166–316 sendCompressNotification; sendIgnoredMessage",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/ui/notification.ts#L166-L316",
+      "purpose": "Pinned DCP detailed/minimal/off chat/toast reports, cumulative versus run metrics, Topic/unique Items and optional summary; AGPL-3.0-or-later"
+    },
+    {
+      "id": "D06",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/ui/utils.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "formatTokenCount; 157–198 formatProgressBar; categorical message-position mapping/empty fallback",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/ui/utils.ts#L140-L198",
+      "purpose": "Donor K formatting and 50-cell █/░/⣿ bar, not token ratios or execution progress; native M/promotion is an approved extension"
+    },
+    {
+      "id": "D07",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/compress/state.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "allocateRunId versus allocateBlockId; applyCompressionState direct/effective IDs, consumed blocks, compressedTokens and stats",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/compress/state.ts",
+      "purpose": "Stable run/block distinction and newly-covered accounting across summary consumption/recompression; no inherited-ID double count"
+    },
+    {
+      "id": "D08",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/config.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "PluginConfig/validateConfigTypes; defaultConfig pruneNotification detailed, type chat, compress.showCompression false",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/config.ts",
+      "purpose": "Independent notification enums/summary visibility and display defaults, not native boolean collapse or permission changes"
+    },
+    {
+      "id": "D09",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/token-utils.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "countTokens/estimateTokensBatch/countToolTokens/countAllMessageTokens versus getCurrentTokenUsage",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/token-utils.ts",
+      "purpose": "Content token estimates and their fallback are distinct from reported provider usage; declare native estimator without production JS dependencies"
+    },
+    {
+      "id": "D10",
+      "repository": "Opencode-DCP/opencode-dynamic-context-pruning",
+      "path": "lib/state/utils.ts",
+      "commit": "11f6517780a502512a3467645074be447cb0369e",
+      "locator": "serialize/loadPruneMessagesState; getActiveSummaryTokenUsage; resetOnCompaction; lib/compress/range.ts allocate one run per batch",
+      "url": "https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/lib/state/utils.ts",
+      "purpose": "Active-summary total, persisted run/block metadata and compaction distinction; old inactive summary totals are not current overhead"
+    },
+    {
+      "id": "U34",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2273–2345 UserMessage transcript text wrapper, raised background/split border/padding; D05 generates display text",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2273-L2345",
+      "purpose": "Real OC2 renderer geometry/theme for the DCP display-reference payload, not proof that the legacy plugin runtime works with OC2"
+    },
+    {
+      "id": "U35",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1158–1200 child/background commands; 1351–1371 composer; 1742–1853 Thought; 1934–1983 footer; 2016–2072 notices; 2461–2483 input; 2677–2769 InlineTool/StatusBadge; 3173–3226 Subagent/model/background",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3173-L3226",
+      "purpose": "VIS39 actual labels/icons/live-child versus launch metadata, color/selection/error/navigation, reasoning/footer and durable notice rows; OCR is not the oracle"
+    },
+    {
+      "id": "U36",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/message-parts.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "176–269 InlineToolRow/InlineToolLabel; spinner fallback, padding, denied attributes, error detail and badge wrapping",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/message-parts.tsx#L176-L269",
+      "purpose": "Real inline delegation geometry and partial-input fallback, not extra native result/session-ID cards"
+    },
+    {
+      "id": "U37",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/spinner.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–51 Spinner 80 ms/animations-off/color/optional shimmer; component/spinner-frames.ts:1 exact Braille frames; Subagent passes no shimmer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/spinner.tsx#L14-L51",
+      "purpose": "Delegating/running spinner phases and static ⋯ fallback, distinct from continuation and tab fallbacks"
+    },
+    {
+      "id": "U38",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/message-updater.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "301–337 tool input.started/input.ended/tool.called streaming versus structured running input",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/message-updater.ts#L301-L337",
+      "purpose": "Partial-call display reference; native closed-response/schema validation before tool admission remains an explicit timing difference"
+    },
+    {
+      "id": "U39",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/subagent.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "29–62 schema/modes; 194–265 progress, immediate background, foreground join/cancel/background conversion and result sessionID/status",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/subagent.ts#L194-L265",
+      "purpose": "T45 lifecycle facts before T44 paint, with actual child identity and launch-result/current-state distinction"
+    },
+    {
+      "id": "U40",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/subagent-job.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "20–57 fork/wait/SubagentJob.notify dedup keyed by childSessionID and startedAt",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/subagent-job.ts#L20-L57",
+      "purpose": "Automatic generation-keyed terminal observer, not UI polling or duplicate child execution"
+    },
+    {
+      "id": "U41",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/subagent-completion.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "8–45 output fallback/envelope and synthetic parent admission with notificationID/source/childID/agent/state/description",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/subagent-completion.ts#L8-L45",
+      "purpose": "Durable completion context/notice and parent continuation; child prose does not classify runtime outcome"
+    },
+    {
+      "id": "U42",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "425–440 background owned session jobs and admit actual user-requested-background control context",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session.ts#L425-L440",
+      "purpose": "Real Ctrl+B action, not a presentation-only background badge switch"
+    },
+    {
+      "id": "U43",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/feature-plugins/prompt/footer.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "20–85 active descendant counts/shell split/hover/keymap/click; component/prompt/index.tsx:1884–1900 separate own-session scanner",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/feature-plugins/prompt/footer.tsx#L20-L85",
+      "purpose": "Actual family activity footer versus parent-own running scanner, reusing VIS28"
+    },
+    {
+      "id": "U44",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/subagents-tab.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "36–60 family/title/state; 113–190 effective keymap/filter/interrupt/select; 192–250 scrollbox/current/focus/running/empty/mouse",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/subagents-tab.tsx#L113-L250",
+      "purpose": "Real Subagents active/inactive picker, controls and semantic action styles"
+    },
+    {
+      "id": "U45",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "44–180 lower composer focus/close/tab keymap, raised geometry/border/title/footer; U35 child-route auto-open/parent return",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/index.tsx#L44-L180",
+      "purpose": "Subagent composer is not fullscreen modal; preserve ordinary prompt drafts and permission/question priority"
+    },
+    {
+      "id": "U46",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "114–173 child-to-root tabs, family busy/permission-before-question attention and root unread",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L114-L173",
+      "purpose": "Family status and actual parent continuation/idle signal, not one unread flag per child completion"
+    },
+    {
+      "id": "U47",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "58–63 frames/cadence; 124–226 attention/indicator/fallback/fade/ignition; 746–811 glow/tints; config/index.tsx:174–189 exposed tabs options",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L124-L226",
+      "purpose": "Status/numbers indicators, distinct animation-off fallbacks and source state/color transitions; no invented spinner settings"
+    },
+    {
+      "id": "U48",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/tab-pulse.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "32–124 running/completion/edgeflash/glow timing, easing and blending; 243–417 branch/state/deadline lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/tab-pulse.tsx#L32-L124",
+      "purpose": "Actual temporal/color tab parity with animations on/off; static glow without permanent idle wakeups (VIS31)"
+    },
+    {
+      "id": "U49",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/theme/assets/v2/opencode.json",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "base semantic text/background/action/feedback roles and dark/light overrides/hue scales; not legacy theme asset",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/theme/assets/v2/opencode.json",
+      "purpose": "Resolved palette, warning override versus tab accent, profile/action colors and representative custom/light qualification"
+    },
+    {
+      "id": "U50",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-mcp.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "16–175 Status/DialogMcp: Location/name sorting, loading/status colors, actual toggle labels/connect/disconnect, Enter details/integration branch",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-mcp.tsx#L16-L175",
+      "purpose": "Canonical MCP servers strings/icons/status and real row/footer actions, not OCR Enabled columns; native OAuth capability boundary remains explicit"
+    },
+    {
+      "id": "U51",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog-select.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "185–205 fuzzy filter; 241–354 height/selection preservation; 389–532 modal actions; 566–900 footer/empty/row/focus rendering; ui/select-controller.ts:1–12 wrap/clamp",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog-select.tsx#L639-L900",
+      "purpose": "Search/empty/no-match, source padding/scroll/truncation, status focus-color override and actual keyboard/mouse/footer selection"
+    },
+    {
+      "id": "U52",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–73 width/backdrop/placement/surface; 96–112 focus restoration; 115–207 Esc/Ctrl+C/stack/medium reset",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog.tsx#L14-L73",
+      "purpose": "Actual overlay alpha/geometry and state-specific selection/search-close behavior without editor key leaks or transcript reflow"
+    },
+    {
+      "id": "U53",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "882–888 mcp.list/MCP servers/Agent/slash mcps; config/keybind.ts:167 default none,255–261 dialog navigation,277 Space toggle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx#L882-L888",
+      "purpose": "Shared command/slash/palette entry and effective keymap hints; no invented default MCP hotkey"
+    },
+    {
+      "id": "U54",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/mcp/index.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "380–447 start/pending/catalog/status and stop cleanup; 487–528 asynchronous initial/reload reconciliation; 583–609 servers/connect/disconnect",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/mcp/index.ts#L380-L447",
+      "purpose": "Existing Location-owned actual connection state, events, catalog and runtime-only controls; T46/MCP08 native safety/immutable-generation boundaries retained"
+    },
+    {
+      "id": "U55",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-error-details.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "17–132 details geometry/scroll/copy/investigate/back; util/error-details.ts:1–21 copied text and explicit investigation draft",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-error-details.tsx#L17-L132",
+      "purpose": "Real MCP error-details interaction and safe draft/clipboard consumer; native diagnostics remain sanitized rather than raw donor exceptions"
+    },
+    {
+      "id": "U56",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "75–79 fade/delay/cadence; 229–235 fadeTitleColor; 276–367 createMarquee/createTabMarquee one-cycle/deferred-leave/off-mode; 549–554,594–595 vertical reset; 725–750,840–868 vertical widths/fades/compact Infinity; 1343–1346,1564–1605,1628–1657 horizontal width/title/hover reconciliation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L276-L367",
+      "purpose": "VIS41 real hover overflow, delay600/steps80/one-cycle and styled geometry; animations:false only changes fade tween, not title stepping; distinct from rename shimmer and VIS39 spinner"
+    },
+    {
+      "id": "U57",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/marquee.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "4–50 GAP, marqueeCycleWidth/Overflows/TextParts: cell-width cursor, grapheme-safe clipping and generated separator identity",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/marquee.ts#L4-L50",
+      "purpose": "Exact-fit versus overflow, one spaced-dot cycle and Unicode slicing without splitting a wide glyph or dimming a dot already in the title"
+    },
+    {
+      "id": "U58",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/component/session-tabs-marquee.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "7–67 controller fake-clock scenarios: hovered width, delay600, one-cycle active identity retained, short-next/leave/rail-reset; animations callback false",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/component/session-tabs-marquee.test.ts#L7-L67",
+      "purpose": "Source behavioral oracle for timer/reset/off-mode interpretation, not executed native or paired-render qualification"
+    },
+    {
+      "id": "U59",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/util/marquee.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–44 short/exact-fit, offsets/spaced-dot loop, generated-dot versus title-dot and wide-grapheme examples",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/util/marquee.test.ts#L5-L44",
+      "purpose": "Reuse pinned text fixtures for the nearest Rust regression, not a second implementation or screenshot-derived expected"
+    },
+    {
+      "id": "U60",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin/supervisor.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "58–110 failed load inventory, retained healthy activation and duplicate-ID isolation before registry activation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/supervisor.ts#L58-L110",
+      "purpose": "T51/CFG09 actual failed requested/current plugin state for VIS42; native compiled-only mappings never resolve/execute arbitrary JS"
+    },
+    {
+      "id": "U61",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "47–121 per-generation load/setup failures; 127–175 retained activation prefix; 182–235 transform failure state/report/refresh",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin.ts#L47-L121",
+      "purpose": "Healthy siblings and real plugin failure projections; not evidence that fatal trust/storage/cleanup can be swallowed"
+    },
+    {
+      "id": "U62",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/feature-plugins/system/plugins.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "45–139 actual inventory/visibility/search/failed gutter/footer/colors/actions; 327–349 error/ref and /plugins/palette command",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/feature-plugins/system/plugins.tsx#L45-L139",
+      "purpose": "VIS42 PluginsDialog safe failure details/real list; rejected native marker represented failed, never hidden as unsupported; install/update/hot-load not admitted"
+    },
+    {
+      "id": "U63",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-status.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "7–58 MCP inventory/empty, semantic status colors and real failed/disabled/auth detail text",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-status.tsx#L7-L58",
+      "purpose": "VIS19/VIS40/VIS42 visible service failure before turn; native safe codes replace raw donor error strings without fake status"
+    },
+    {
+      "id": "U64",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/feature-plugins/sidebar/mcp.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "5–79 Location/session inventory, actual connected/error counts, row semantic colors/status labels and click-to-details",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/feature-plugins/sidebar/mcp.tsx#L5-L79",
+      "purpose": "Startup/connection-close/error/recovery visibility outside the MCP modal, not configured-enabled-as-connected"
+    },
+    {
+      "id": "U65",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-integration.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "327–358 failed connect toast/dismiss; 382–411 failed/auth-expired command; 995–1028 successful invalidation/sync/model selection",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-integration.tsx#L327-L411",
+      "purpose": "VIS42 service connection error/recovery feedback reference; native provider selection remains explicit, no OAuth/sign-in implementation or universal recoverability claim"
+    },
+    {
+      "id": "U66",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-variant.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "10–30 Default and declared named variants, excluding exact default",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-variant.tsx#L10-L30",
+      "purpose": "VIS09/VIS29 picker presentation reference; known-effort canonical native order is an approved difference"
+    },
+    {
+      "id": "U67",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/local.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "472–498 active-model declared variants, cycle and persisted preference",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/local.tsx#L472-L498",
+      "purpose": "VIS29 dynamic variant identity/order source; no donor canonical effort sorting claim"
+    },
+    {
+      "id": "U68",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/model-preference.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "67–75 Default/named round trip, reserved default, stale choice and empty list",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/model-preference.ts#L67-L75",
+      "purpose": "VIS29 preserved cycle edge cases independent of approved native known-effort rank"
+    },
+    {
+      "id": "U69",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1934–1982 AssistantFooter error suppression/spacing/muted agent; 2432–2456 AssistantRetry warning/countdown/due",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L1934-L1982",
+      "purpose": "VIS43 exact provider-error retry footer and assistant metadata; not the unrelated RetryProvider tool-label fade"
+    },
+    {
+      "id": "U70",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/rows.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "257–272 session.retry.scheduled appends footer; semantic session.step.started removes owning footer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/rows.ts#L257-L272",
+      "purpose": "VIS43 footer identity/lifecycle, not physical POST or startup/MCP retry"
+    },
+    {
+      "id": "U71",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/message-updater.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "213–255 step.started clears matching or current unfinished assistant; 272–285 failed settlement; 402–409 retry projection",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/message-updater.ts#L213-L255",
+      "purpose": "VIS43 durable failed assistant retry descriptor and non-blanket clearing through continuation"
+    },
+    {
+      "id": "U72",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/app-lifecycle.test.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1604–1694 44/100 columns countdown 3/2/1/due, reschedule, step-start clearing, interrupted lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/app-lifecycle.test.tsx#L1604-L1694",
+      "purpose": "VIS43 source-derived temporal fixtures; rendered frames are not independent paired capture"
+    },
+    {
+      "id": "U73",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/projector.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "298–313 getCurrentAssistant returns only most recent unfinished assistant",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/projector.ts#L298-L313",
+      "purpose": "VIS43 preserve completed partial-failure assistant retry history while next span succeeds"
+    },
+    {
+      "id": "U74",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "81–83 middle button=1; 869–877 vertical/compact whole-tab onMouseDown; 1630–1639 horizontal close/drag reset/hold release and New session",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-tabs.tsx#L1630-L1639",
+      "purpose": "VIS44 Middle Down closes targeted tab without hover-cross or activation; does not wait for Up and consumes propagation"
+    },
+    {
+      "id": "U75",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-tabs.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "315–344 deletion event separate from remove/active-route replacement; 398–423 close/reopen and Home fallback",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-tabs.tsx#L398-L423",
+      "purpose": "VIS44 closes persisted tab view, not durable session; inactive route preserved, actual reopen, no donor busy guard (native difference disclosed)"
+    },
+    {
+      "id": "U76",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/keybind.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "169–171 list/forward/reverse defaults; config/v1/keybind.ts:141–143,345–347 legacy aliases/new defaults; test/keybind.test.ts:4–6",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/keybind.ts#L169-L171",
+      "purpose": "VIS06/VIS10 separate agent picker from Shift+Tab forward cycle; reverse unbound and legacy alias mapping, not OC1 default or runtime dispatch proof"
+    },
+    {
+      "id": "U77",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/prompt/traits.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "16–24 prompt Tab capture; app.tsx:1207–1214 action/binding layers; component/prompt/autocomplete.tsx:96–100,667–735 mode/layer; test/prompt/traits.test.ts:5–10",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/traits.ts#L16-L24",
+      "purpose": "VIS06/VIS10 focused prompt/autocomplete ownership; configured Tab dispatch needs actual pinned-reference qualification, not an assumed global fallthrough"
+    },
+    {
+      "id": "U78",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/shell-tab.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "20–32 running-only source-session inventory/output; 49–145 hints, keys, hover/mouse-up and maxHeight5",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/shell-tab.tsx#L20-L145",
+      "purpose": "VIS39 Shell is a real job list/output/kill surface, not terminal PTYs or immutable launch-result liveness; TOOL13 behavioral owner"
+    },
+    {
+      "id": "U79",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-shell-output.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "13–144 status/height, original shell Location/id, bounded recent cursor reads/live final flush, ANSI/CR normalization and scrolling",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-shell-output.tsx#L13-L144",
+      "purpose": "VIS39 full Shell output dialog; viewer survives running-list removal and shows plain text, not grammar-highlighted Bash"
+    },
+    {
+      "id": "U80",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/composer/terminals-tab.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "9–114 Terminals registration, existing PTYs/+ New terminal, up/k/down/j wrap, Enter/mouse-up and selected/focused styles",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/composer/terminals-tab.tsx#L9-L114",
+      "purpose": "VIS39 operational Terminals tab/list; TERM01 real interactive PTY prerequisite, distinct from Shell first-Up-close/kill hints"
+    },
+    {
+      "id": "U81",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/context/session-terminals.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–99 per-session list/create/source cwd, persisted selected terminal, refresh/select and removed-selection cleanup",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/context/session-terminals.tsx#L14-L99",
+      "purpose": "T56/TERM01 session terminal ownership/UI consumer; hiding/remounting is not killing or recreating a PTY"
+    },
+    {
+      "id": "U82",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/session-frame.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "29–407 right-pane layout/focus/drag resize; 199–242 hide clears selection/show chooses last inventory; 221–254 lower Terminals picker/slash; config/keybind.ts:96–100; test/session-wheel-focus.test.tsx",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/session-frame.tsx#L29-L407",
+      "purpose": "VIS39 terminal pane/picker, /terminal/toggle/select/hide, child sidebar suppression, first-click release guard and non-focus-stealing wheel"
+    },
+    {
+      "id": "U83",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/terminal-pane.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "24–383 EmbeddedTerminalRenderable, snapshot/output-cursor attach/ready/input/resize/focus; 338–364 terminalPalette",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/terminal-pane.tsx#L24-L383",
+      "purpose": "Native VT cells/cursor and semantic ANSI16/default fg/bg, not host raw-escape forwarding or Markdown syntax; real Ctrl+C/D PTY input"
+    },
+    {
+      "id": "U84",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/persistent-pty/index.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "56–110 service list/get/create/write/resize/control/input/snapshot/read/remove/shutdown/handoff/attach; makeDaemonTransport implementation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/persistent-pty/index.ts#L56-L110",
+      "purpose": "T56 behavior source; donor daemon/handoff and inherited process env are explicitly not native architecture/credential permissions"
+    },
+    {
+      "id": "U85",
+      "repository": "anomalyco/opencode",
+      "path": "packages/schema/src/persistent-pty.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "9–15 sessionID/foregroundProcess/size/output offsets; 42–47 snapshot/checkpoint/cursor; 68–69 added/removed events",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/schema/src/persistent-pty.ts#L9-L69",
+      "purpose": "Typed local native projections may differ from donor HTTP/WebSocket API; preserve observable PTY identity/screen/replay semantics"
+    },
+    {
+      "id": "U86",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/parsers-config.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1–386 OpenTUI Markdown/JavaScript/TypeScript built-ins and complete configured grammar/filetype/alias/highlight/locals-query inventory",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/parsers-config.ts#L1-L386",
+      "purpose": "VIS14/VIS35 shared parent/child grammar parity; pin actual referenced grammar/query assets, not just potentially floating URLs or four language heuristics"
+    },
+    {
+      "id": "U87",
+      "repository": "anomalyco/opencode",
+      "path": "packages/theme/src/tui/syntax.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "4–85 generateSyntax semantic token scopes/fg/bg/italic/bold/underline, Markdown/diff/feedback; context/theme.tsx syntax lifecycle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/theme/src/tui/syntax.ts#L4-L85",
+      "purpose": "Exact syntax style contract and invalidation; palette equality alone is not tokenization/style parity"
+    },
+    {
+      "id": "U88",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "257–262 resolved session.terminal type; 303–309 platform-derived enablement, not a user-config flag; keybind.ts:96–100,251–253",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/index.tsx#L303-L309",
+      "purpose": "Linux resolved terminal capability is enabled independently of PTY presence; no invented compatibility setting or automatic spawn"
+    },
+    {
+      "id": "U89",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/thinking-syntax.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "3–6 override registered syntax foreground with muted text while preserving source attributes; message-parts.tsx:20–89 reasoning code",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/thinking-syntax.ts#L3-L6",
+      "purpose": "VIS14/VIS15 shared parent/child reasoning syntax is muted, not ordinary fenced-code foreground or free-form keyword matching"
+    },
+    {
+      "id": "U90",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/patch.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "296–309 case-sensitive model.id gpt-/oss/gpt-4 predicate; deletes current edit/write or patch on context, compaction and generate",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/patch.ts#L296-L309",
+      "purpose": "T50/R1/TOOL12 exact selected file-tool view and mandatory next-request user-model-switch compatibility; narrow exception, not provider/reasoning routing or raw-history cleanup"
+    },
+    {
+      "id": "U91",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/edit.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "24–40 path/oldString/newString/replaceAll and files/replacements; 49–101 matching; 119–213 permission, validation, CRLF/BOM, preview and write",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/edit.ts#L24-L213",
+      "purpose": "T50/R9/TOOL20 donor edit semantics and common mutation authority; VIS35/VIS36 distinct Edit effects/preview, not fuzzy patch matching"
+    },
+    {
+      "id": "U92",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool/plugin/write.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "23–35 path/content and operation/target/resource/existed; 55–91 edit permission, preimage preview, create/overwrite and BOM-preserving write",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/write.ts#L23-L91",
+      "purpose": "T50/R9/TOOL20 write empty/create/overwrite/parents and truthful results; VIS35/VIS36 Write/approval consumers; not synthetic Add File"
+    },
+    {
+      "id": "U93",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/system-prompt.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "9–27 write/edit instructions conditioned on actual tool availability, create/replace versus targeted edits",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/system-prompt.ts#L9-L27",
+      "purpose": "T50 selected view consumed by T45/PRM01 root/own-model-child base/custom guidance/previews; remove stale managed catalog text, not literal user/profile/history records"
+    },
+    {
+      "id": "U94",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "3044–3078 Write # Wrote numbered syntax input content/pending; 3324–3386 Edit first files metadata/← Edit/PatchDiff/unified-split-auto/wrap/pending",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L3044-L3078",
+      "purpose": "VIS35 distinct real Write/Edit presentation beside ApplyPatch; persisted result-derived effects and source input for live/history/reopen, full paired frames after T50 backend slice"
+    },
+    {
+      "id": "U95",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-model.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "126–139 onSelect uses local.model.set/recent and variant dialog, no session.switchModel or busy cancellation; local.tsx 263–381 owns scoped draft/captured-commit reconciliation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-model.tsx#L126-L139",
+      "purpose": "T50/R1/TOOL12 and T45/PRM01 picker draft is distinct from committed runtime model; VIS09/VIS29 busy picker/composer semantics"
+    },
+    {
+      "id": "U96",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1274–1293 commitModel/commitSelection and blank Enter in an existing composer; 1301–1318 commands; 1343–1360 captured prompt prepare after earlier admission",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1274-L1360",
+      "purpose": "Real draft-to-commit/empty Enter and captured submission ordering, not immediate picker mutation or deferred-until-idle switching"
+    },
+    {
+      "id": "U97",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/session.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "90–102 Session.switchModel has same-choice no-op and publishes ModelSelected without busy refusal, interrupt or wake; server handlers/session.ts 246–253 forwards the API",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/session.ts#L90-L102",
+      "purpose": "Authorized committed model change while work is active, separate selection event versus actual prepared request identity; TOOL12 and visual consumers"
+    },
+    {
+      "id": "U98",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/context.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "121–157 select reloads session/agent/permissions/tools/instructions; 160–175 load resolves model and compatible history from that snapshot",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/context.ts#L121-L175",
+      "purpose": "One coherent request-preparation model/tool/context view, not one model pinned for an entire autonomous task; TOOL12/PRM01"
+    },
+    {
+      "id": "U99",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/runner/llm.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "187–202 next-step boundary/prepareContext; 204–247 retries refresh selection and build captured primary request; 248–270 attempt identity and overflow rebuild",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/llm.ts#L187-L270",
+      "purpose": "Next LLM step/attempt of the same run adopts committed choice without new prompt; prepared stream/tools stay captured, finite retry policy unchanged"
+    },
+    {
+      "id": "U100",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/test/session-runner.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "3386–3407 reloads a model switch before a tool-driven continuation step with blocked tool and original/replacement requests; 3022–3076 overflow-recovery switch during compaction",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/session-runner.test.ts#L3386-L3407",
+      "purpose": "Source regression for mandatory same-task busy model switch and rebuilt-request selection; source inspection is not executed native PASS"
+    },
+    {
+      "id": "U101",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/test/compact-admission.test.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "193–226 selectModel while first prompt admission is unresolved, no immediate mutations, then model:first/compact:first/model:second/prompt:second ordering",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/test/compact-admission.test.tsx#L193-L226",
+      "purpose": "TUI draft versus captured commit/admission ordering under delayed API/SSE; not proof that a picker alone switches active runtime"
+    },
+    {
+      "id": "U102",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/runner/to-llm-message.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "153–205 ordinary assistant tool-call/result groups and model/provider compatibility for opaque metadata; 239–256 model-switched projection and same-model effort updates",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/runner/to-llm-message.ts#L153-L256",
+      "purpose": "Compatible outcomes/call-result causality survives switching without tool renaming/deletion/reexecution or alien opaque replay; TOOL12 and VIS17/VIS35"
+    },
+    {
+      "id": "U103",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2784–2810 BlockTool hover background and selection-safe mouse-up; 2984–3041 ShellDisplay collapsed/expanded output toggle",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2784-L2810",
+      "purpose": "VIS16 hover styles/click expansion do not relocate caret into tool rows; renderer hardware cursor behavior still requires executable capture"
+    },
+    {
+      "id": "U104",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/config/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "57–64 cursor shape/blinking, default preserves terminal setting; 296–302 mouse separate from resolved optional cursor style/blinking",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/config/index.tsx#L57-L64",
+      "purpose": "VIS16 effective blinking/nonblinking/default semantics, not authorization for a new cursor-config implementation task"
+    },
+    {
+      "id": "U105",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1736–1753 textarea gets cursorStyle=config.cursor and content/cursor changes separately",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1736-L1753",
+      "purpose": "VIS16 real prompt cursor owner; source inspection does not qualify blink timing under continuous repaint"
+    },
+    {
+      "id": "U106",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/plugin/context.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "459–487 newly failing plugin-state comparison and brief toast with /plugins detail action; 539–562 equivalent server-plugin update feedback",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/plugin/context.tsx#L459-L487",
+      "purpose": "VIS42 change-sensitive plugin feedback outside dialogue; safe native summaries retain inventory/details, not donor raw targets or executed parity claim"
+    },
+    {
+      "id": "U107",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/app.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "531–559 MCP failed/needs_auth alerts once per state, resets after recovery and routes details/action to /mcps; no failure alert for pending",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/app.tsx#L531-L559",
+      "purpose": "VIS42/VIS19/VIS40 brief state-transition feedback instead of repeated transcript diagnostics; no native OAuth execution or visual PASS from source alone"
+    },
+    {
+      "id": "U108",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "2461–2483 ToolPart display text; 2620–2669 GenericTool collapsed default and click input/output toggle without metadata.truncated display; 2870–3041 Shell metadata.shellID, bounded background pages and available-output expansion",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx#L2620-L2669",
+      "purpose": "VIS16/VIS17 generic/MCP summary and available-output parity; no extra native preview-warning rows or full-output recovery claim; source RECON, not visual PASS"
+    },
+    {
+      "id": "U109",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/collapse-tool-output.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "26–48 shared Shell command/output budget; 51–80 grapheme/cell command collapse; 83–95 retained tail and (N earlier line[s]) label; nearest test packages/tui/test/cli/tui/collapse-tool-output.test.ts:4–14",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/collapse-tool-output.ts#L26-L95",
+      "purpose": "VIS16 retains donor collapse label and actual retained producer text; helper/test source does not justify blanket truncation-string stripping or executed parity"
+    },
+    {
+      "id": "U110",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/tool-output.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "65–74 donor metadata.truncated bypass; 91–120 full-file write and producer text notice plus outputPath metadata",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool-output.ts#L65-L120",
+      "purpose": "VIS16/VIS17 distinguish genuine producer content from native generated UI notices; T50/R10 keeps non-bypass/resource/access safety, not donor unconditional full-capture assumptions"
+    },
+    {
+      "id": "U111",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/shell.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "226–245 captured Shell tail uses configured limits and appends [output truncated; full output saved to: …] in producer result text",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/shell.ts#L226-L245",
+      "purpose": "VIS16 does not synthesize [truncated] for UI projection-only loss or erase actual Shell payload; truthful native incomplete capture remains separate from exit/status"
+    },
+    {
+      "id": "U112",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/prompt/history.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "19–31 PromptInfo text/files/agents/skills/pasted/mode; 31 MAX 50; 33–46 parse newest-50; 48–50 consecutive JSON dedup; 60–114 shared provider, 63–71 JSONL path/self-heal, 77–87 move with emptyPrompt past newest, 88–111 append",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/prompt/history.tsx",
+      "purpose": "VIS12 shared session/home input-history owner, bound, dedup and draft-exit semantics; file path is implementation detail, behavior is the contract"
+    },
+    {
+      "id": "U113",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1010–1083 history previous/next layers with boundary-first cursor and autocomplete disable; 1033–1040,1072–1079 text/parts/mode restore; 1286–1300 submit append incl shell; 1504–1517 clearPrompt retention append",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1010-L1083",
+      "purpose": "VIS12 Up/Down routing, focus priority, restore and recording paths; source-only oracle, not executed native parity"
+    },
+    {
+      "id": "U114",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/mini/prompt.shared.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "14–27,60–159 separate 200-entry ring with draft save/restore; mini/footer.prompt.tsx:928–975,1235–1257,1420–1440; mini/runtime.ts:475–488 resumed-history seed",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/mini/prompt.shared.ts",
+      "purpose": "VIS12 Mini footer is a distinct surface with its own ring; explicitly out of scope for the native session/home composer slice"
+    },
+    {
+      "id": "U115",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/prompt/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "1736–1753 TextareaRenderable content/cursor wiring; 1806–1822 disabled mouse prevention, Left Down focus, current-offset pasted extmark expansion and cursor style",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/prompt/index.tsx#L1736-L1822",
+      "purpose": "VIS12 mouse caret placement uses textarea/default mouse handling, not only custom chip expansion; exact event phase/wide/wrap/blank/selection semantics still require pinned OpenTUI and running-original qualification, not source-only PASS"
+    },
+    {
+      "id": "P23",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/app/input.rs",
+      "commit": "464a6c38ebd870d7fafb88e3dc722e7157ec3f40",
+      "locator": "731–783 observe_prompt_paint stores chip-only targets; 1190–1227 Left Down resolves pasted chip expansion without ordinary-text cursor positioning; app/tests/input.rs:1324–1471 existing painted-chip/resize/stale/modal/toast regression",
+      "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/app/input.rs#L731-L783",
+      "purpose": "VIS12 current native mouse gap and existing paint identity/layer safeguards; extend this owner rather than introducing a parallel editor or replacing chip tests"
+    },
+    {
+      "id": "P24",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/editor.rs",
+      "commit": "464a6c38ebd870d7fafb88e3dc722e7157ec3f40",
+      "locator": "401–410 move_to cursor/anchor; 488–505 vertical_wrapped consumes raw insertion stops; 523–565 layout maps chip projection to raw offsets; 789–810 PromptRow positions/offset_at",
+      "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/editor.rs#L488-L565",
+      "purpose": "VIS12 reuse existing grapheme/cell/wrap/chip projection and one Editor cursor owner for ordinary mouse hit positioning"
+    },
+    {
+      "id": "P25",
+      "repository": "0FL01/oc",
+      "path": "crates/oc-tui/src/shell.rs",
+      "commit": "464a6c38ebd870d7fafb88e3dc722e7157ec3f40",
+      "locator": "1583–1607 inner text padding/width and first visible wrapped row passed to observe_prompt_paint; 1647–1680 same viewport paints input and hardware caret",
+      "url": "https://github.com/0FL01/oc/blob/464a6c38ebd870d7fafb88e3dc722e7157ec3f40/crates/oc-tui/src/shell.rs#L1583-L1680",
+      "purpose": "VIS12 painted text geometry/scroll and caret must agree; hardware MoveTo alone is not proof of the real insertion offset"
+    },
+    {
+      "id": "U116",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/plugin/provider/openai.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "13–228 browser PKCE/loopback/device methods; 230–317 subscription catalog/route/headers; 319–417 token exchange/refresh/account claims",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/provider/openai.ts",
+      "purpose": "T57 AUTH01–AUTH04 exact donor auth oracle; public protocol constants are not credentials"
+    },
+    {
+      "id": "U117",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/integration.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "230–252 attempt lifetime/status; 347–370 labels/connection precedence; 393–593 settlement/expiry/auto callback; 681–775 refresh/status/cancel",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/integration.ts",
+      "purpose": "AUTH02/AUTH03 one attempt/credential lifecycle; five-minute refresh and safe late settlement before VIS45 consumer"
+    },
+    {
+      "id": "U118",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/credential.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "78–306 list/create/activate/update/remove, transaction/order and credential events",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/credential.ts",
+      "purpose": "AUTH03/05 account acknowledgements and restart semantics, reuse native SQLite not donor import"
+    },
+    {
+      "id": "U119",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/component/dialog-integration.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "47–277 provider/method/accounts; 459–493 key; 516–763 OAuth starting/wait/open/copy/close; 995–1029 refresh/onConnected",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/component/dialog-integration.tsx",
+      "purpose": "VIS45 full TUI auth and account screens; do not substitute web-app connect dialog"
+    },
+    {
+      "id": "U120",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog-prompt.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "98–143 title/esc, textarea, error and submit footer",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog-prompt.tsx",
+      "purpose": "VIS45 key/rename geometry and explicit native masked-secret difference from donor unmasked textarea"
+    },
+    {
+      "id": "U121",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/commands/commands.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "144–199 auth list/login/logout/switch specs, target/method/answer/format/credential arguments",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/commands.ts",
+      "purpose": "AUTH02/05 finite native CLI surface without donor daemon/server flags or arbitrary auth command execution"
+    },
+    {
+      "id": "U122",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/commands/handlers/auth/login.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "43–60 target; 102–205 method/key/OAuth/no-TTY/open/cancel; 241–269 status polling",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/auth/login.ts",
+      "purpose": "AUTH02 no-TTY device flow is human-authorized; callback cancel and successful owner ack"
+    },
+    {
+      "id": "U123",
+      "repository": "anomalyco/opencode",
+      "path": "packages/cli/src/commands/handlers/auth/form.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "63–79 interactive secret password prompt and form-answer requirements",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/cli/src/commands/handlers/auth/form.ts",
+      "purpose": "AUTH05 password input; no invented plaintext key argv/noninteractive key login"
+    },
+    {
+      "id": "U124",
+      "repository": "anomalyco/opencode",
+      "path": "packages/ai/src/providers/openai.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "13–25 routes; 60–97 Bearer/OPENAI_API_KEY settings; 120–158 organization/project and Responses/Chat",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/ai/src/providers/openai.ts",
+      "purpose": "AUTH04/05 ordinary OpenAI key route remains separate from subscription-only auth transform"
+    },
+    {
+      "id": "U125",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/session/model-transport.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "session channel owner/affinity/rotation; 292–500 WS execute/send delivery/terminal/checkpoint and HTTP fallback",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/model-transport.ts",
+      "purpose": "AUTH04 native default WS parity requires real delivery/cleanup/checkpoint semantics, not HTTP smoke alone"
+    },
+    {
+      "id": "U126",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/oauth/page.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "OauthCallbackPage.success/error and HTML escaping",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/oauth/page.ts",
+      "purpose": "AUTH01 browser callback page and safe token-free status, no web/desktop application expansion"
+    },
+    {
+      "id": "U127",
+      "repository": "anomalyco/opencode",
+      "path": "packages/ai/src/protocols/open-responses-channel.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "Responses channel connect/message/checkpoint driver and HTTP fallback framing",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/ai/src/protocols/open-responses-channel.ts",
+      "purpose": "AUTH04 shared Responses route/WS wire; no second protocol/retry framework"
+    },
+    {
+      "id": "U128",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/test/plugin/provider-openai.test.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "63–79 methods; 83–179 OAuth catalog/headers; 181–217 ordinary key separation",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/plugin/provider-openai.test.ts",
+      "purpose": "AUTH source-derived exact subscription filter/limits/costs and normal API-key regression oracle"
+    },
+    {
+      "id": "U129",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "4473fc3c9055046183990a965d68df3db7ea6f62",
+      "locator": "OC1 v1.17.20: enterChild 425–432; Task retry 2239–2321; InlineTool click 2298–2304; formatSubagentRetry 2319–2321",
+      "url": "https://github.com/anomalyco/opencode/blob/4473fc3c9055046183990a965d68df3db7ea6f62/packages/tui/src/routes/session/index.tsx",
+      "purpose": "VIS43 native explicit Retry Error activation and VIS39 current-child consumer supplemental interaction source; not global OC2 repin, user's version, retry eligibility or full OC1 frame parity"
+    },
+    {
+      "id": "U130",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog-alert.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "DialogAlert 12–58: modal return/clear, title/esc, muted message, action-semantic right-aligned ok and padding",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog-alert.tsx",
+      "purpose": "VIS43 shared OC2 alert surface with U52 Dialog geometry and U49 semantic palette; added request/retry trigger remains native extension, not an existing OC2 AssistantRetry modal"
+    },
+    {
+      "id": "U131",
+      "repository": "openai/codex",
+      "path": "codex-rs/codex-api/src/api_bridge.rs",
+      "commit": "dab2cd60568dedac5b226e9fafdf1523474d5cb8",
+      "locator": "map_api_error_details HTTP BAD_REQUEST cyber_policy; CYBER_POLICY_ERROR_CODE/FALLBACK_MESSAGE",
+      "url": "https://github.com/openai/codex/blob/dab2cd60568dedac5b226e9fafdf1523474d5cb8/codex-rs/codex-api/src/api_bridge.rs",
+      "purpose": "Supplemental structured cyber-policy code/message evidence for RET01 native ContentPolicy extension; not importing Codex retry policy, raw body handling or proving the OCR wire/status"
+    },
+    {
+      "id": "U132",
+      "repository": "openai/codex",
+      "path": "codex-rs/codex-api/src/sse/responses_error.rs",
+      "commit": "dab2cd60568dedac5b226e9fafdf1523474d5cb8",
+      "locator": "parse_failed_response cyber_policy branch; cyber_policy_message/fallback; responses_error_parser_tests.rs test module",
+      "url": "https://github.com/openai/codex/blob/dab2cd60568dedac5b226e9fafdf1523474d5cb8/codex-rs/codex-api/src/sse/responses_error.rs",
+      "purpose": "Supplemental structured Responses failed-event cyber_policy evidence only; RET01 keeps its own bounded observed-header authority, no new JSON-header retry inference or unrelated policy-code expansion"
+    },
+    {
+      "id": "U133",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/codemode/tool.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "ExecuteCall/ExecuteOutput 23–36; calls Ref + context.progress({toolCalls}) 79–137; progressHooks running→completed|error 141–174",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/codemode/tool.ts",
+      "purpose": "VIS46 producer shape: runtime-recorded nested toolCalls {tool,status,input?} including fetch, live progress and final metadata with error:true; not a separate durable tool op"
+    },
+    {
+      "id": "U134",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "execute dispatch 2461–2529; ExecuteCallView 3230–3281; Execute 3283–3318 (spinner/✓/✗ parent, › child rows, error collapse toggle, mouse-up DialogExecute)",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+      "purpose": "VIS46 inline execute parent/child rows, colors, click routing and dialog opening"
+    },
+    {
+      "id": "U135",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/tool-display.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "primitiveInputSummary, executeCalls, executeCallSummary 12–37",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/tool-display.ts",
+      "purpose": "VIS46 child summary `tool [k=v, …]`: primitive-only inputs, whitespace collapse, malformed metadata filtered"
+    },
+    {
+      "id": "U136",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/dialog-execute.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "DialogExecute 19–178 (70% scroll height, status/duration header, Code TS syntax, Output JSON line numbers/Warnings/Logs split, keys ↑/↓/PgUp/PgDn/←/→/c/o, footer hints); output helpers 181–253",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/dialog-execute.tsx",
+      "purpose": "VIS46 execute-specific detail dialog geometry, sections, live follow and copy/scroll interactions"
+    },
+    {
+      "id": "U137",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/locale.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "duration 27–47; with packages/tui/src/util/collapse-tool-output.ts 3–23 error collapse",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/locale.ts",
+      "purpose": "VIS46 `Completed · 499ms` duration format and ≤4-line width-budget parent error collapse"
+    }
+  ],
+  "external_primary_sources": [
+    {
+      "id": "D01",
+      "url": "https://ratatui.rs/recipes/testing/snapshots/",
+      "purpose": "TestBackend vs actual-binary PTY; string snapshots do not assert colors"
+    },
+    {
+      "id": "D02",
+      "url": "https://docs.rs/ratatui/latest/ratatui/backend/struct.TestBackend.html",
+      "purpose": "Buffer/style/cursor testing"
+    },
+    {
+      "id": "D03",
+      "url": "https://docs.rs/crossterm/latest/crossterm/event/struct.KeyModifiers.html",
+      "purpose": "contains vs intersects"
+    },
+    {
+      "id": "D04",
+      "url": "https://docs.rs/pulldown-cmark/latest/pulldown_cmark/struct.Options.html",
+      "purpose": "Markdown parser with tables; version must be pinned in compile spike"
+    },
+    {
+      "id": "D11",
+      "url": "https://docs.rs/crate/ratatui-core/0.1.2/source/src/terminal/render.rs",
+      "purpose": "Cargo.lock-pinned core 0.1.2, render.rs:288–308 apply_buffer_with_cursor flushes cell diff then show_cursor before set_cursor_position. Local cached source inspected; VIS16/VIS31 outer hide alone is not safe presentation or blink proof"
+    },
+    {
+      "id": "D12",
+      "url": "https://docs.rs/crate/ratatui-crossterm/0.1.2/source/src/lib.rs",
+      "purpose": "Cargo.lock-pinned backend 0.1.2, lib.rs:232–310 draw queues MoveTo/Print, hide/show/final MoveTo execute and flush individually. Local cached source inspected; actual frontend temporal capture remains required"
+    }
+  ]
+}

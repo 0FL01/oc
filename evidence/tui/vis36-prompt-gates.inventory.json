@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "archive_sha256": "1e4ca746edcbf8eac3c79f0ab901ead1f85df8cf8e9e338cc3e2cdfb6fb481d6",
+  "archive_bytes": 9588,
+  "tar_sha256": "61109719cae56ee1a3164d4cb04259e1a74d1be5220e81c185932bced4743bce",
+  "tar_bytes": 174080,
+  "inventory": {
+    "members": 39,
+    "logical_bytes": 143581,
+    "member_inventory_sha256": "97ff4ce1ea92bc4e31d75fe57594eb69a80170f395ac07767fe4065333a6be75",
+    "same_side_png_aliases": 0
+  },
+  "command_labels": [
+    "after",
+    "before",
+    "before-bounded",
+    "before-profile-scope",
+    "before-qualified",
+    "before-verified",
+    "docs-final",
+    "facts",
+    "facts-qualified",
+    "facts-readable",
+    "progress-final",
+    "python",
+    "small-audit",
+    "small-measure",
+    "small-pack",
+    "wide-audit",
+    "wide-measure",
+    "wide-pack"
+  ],
+  "helper_sha256": "3326d55cec97a975f5a8735dcdeb8d6510071af5ade0e2f36d0c91a9d929105a"
+}

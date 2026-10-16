@@ -1,0 +1,47 @@
+{
+  "_provenance": {
+    "method": "source-derived",
+    "source_repo": "anomalyco/opencode",
+    "commit": "b8cedc1a7a5e2916bbb65dc1d4b620729c261638",
+    "paths": [
+      "packages/core/test/config/skill.test.ts",
+      "packages/core/test/config/agent.test.ts",
+      "packages/core/test/config/command.test.ts",
+      "packages/core/test/config/command-subagent.test.ts"
+    ],
+    "license": "MIT",
+    "upstream_sha256": {
+      "skill.test.ts": "02f912ab226c22956cfb636a8d40c729cf55d3dda80b0ef7a4729c170ca5539e",
+      "agent.test.ts": "8b6894662b674d3bd4c4054bea616b8cac62289b61ac9b59b8025572181559b2",
+      "command.test.ts": "f6262271fb6419a2603ccc5a7e8f82db3b89eaf7727789ac32f10c9553133af7",
+      "command-subagent.test.ts": "f97e5838b10bda2d2d9e27ab952ffc727ba1611595d17679e563e57ec4b2f1f3"
+    },
+    "normalization": "Keep root/order/collision/frontmatter rules from docs/CONFIG.md; drop Effect harness and skill body bytes. Frontmatter is bounded name/description only.",
+    "executable_baseline": "not-executed; representative order fixture only"
+  },
+  "description": "Automatic definitions are read only from G and admitted .opencode roots.",
+  "roots_order_per_source_directory": [
+    "{skill,skills}/<id>/SKILL.md singular-before-plural",
+    "{agent,agents}/<id>.md singular-before-plural",
+    "{command,commands}/<id>.md singular-before-plural"
+  ],
+  "rules": {
+    "inline_json_declaration_before_markdown_in_same_root": true,
+    "later_source_replaces_duplicate_id_with_shadowing_provenance": true,
+    "skill_frontmatter": ["name", "description"],
+    "skill_body_snapshot_bounded_at_generation": true,
+    "model_catalog_has_id_name_description_only": true,
+    "unsupported": [
+      "flat skill files",
+      ".claude/.agents",
+      "legacy modes",
+      "URL/remote/package skills",
+      "symlink escape"
+    ]
+  },
+  "agent_command_notes": {
+    "agent_restrictions_narrow_only": true,
+    "command_expansion_single_bounded_SubmitInput": true,
+    "subagent_mode_unsupported": true
+  }
+}

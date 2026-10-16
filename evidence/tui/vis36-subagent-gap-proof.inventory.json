@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "c8affb4ddb10a89c6f769024a2af7ebb39ebc70503936f4f83be57ba2d287b3d",
+  "archive_bytes": 2211652,
+  "tar_sha256": "43d2fd7daea24593e73f79b28ab9551d3dc6ddd787e3069c1f63c16714edd218",
+  "tar_bytes": 39751680,
+  "inventory": {
+    "members": 422,
+    "logical_bytes": 39600707,
+    "member_inventory_sha256": "0fddd17d6e4bb29270dcc832b51ec2be1bf8a1c45d59ce64c7daaa1e1af10678",
+    "same_side_png_aliases": 4
+  },
+  "source_roots": {
+    "current-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-010/cli-wide-r10",
+    "current-small": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-010/cli-small-r10",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-current-010",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis36-mode-capture-r10.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "current-wide",
+      "current_source": true,
+      "captures": 32,
+      "scope": "CLI_AUTO_BEHAVIOR_ONLY",
+      "sides": {
+        "oc": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        },
+        "upstream": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 32
+      }
+    },
+    {
+      "episode": "current-small",
+      "current_source": true,
+      "captures": 32,
+      "scope": "CLI_AUTO_BEHAVIOR_ONLY",
+      "sides": {
+        "oc": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        },
+        "upstream": {
+          "status": "PASS",
+          "provider_requests": 18,
+          "provider_completions": 18,
+          "main_requests": 16,
+          "title_requests": 2,
+          "tool_calls": 8,
+          "readonly_snapshots": 11,
+          "natural_exits": 2
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 32
+      }
+    }
+  ],
+  "retainer_source_sha256": "853a76f6910ae6dce5ad52e4931ffd094f6095b72e9dbacfa5e2ef61d79238e0"
+}

@@ -1,17 +1,55 @@
-# OpenCode Rust
+# OpenCode Rust — рабочая карта
 
-Этот репозиторий — независимый форк OpenCode с полной реализацией приложения на Rust. Цель — заменить production-runtime OpenCode нативными Rust CLI, TUI, agent runtime, adapters и перенесёнными расширениями, а не сделать обёртку над исходным проектом.
+Нативный Rust-бинарник `oc`, не launcher. Текущий scope и обязательная приёмка — `GOAL.md`; старые планы и архивы их не расширяют.
 
-## Repository identity
+## Старт и навигация
 
-- Поведение и рабочий процесс OpenCode — целевой совместимый контракт; исходная реализация служит эталоном поведения, но не runtime-зависимостью и не шаблоном для механического перевода.
-- Код приложения не должен требовать Bun, Node или JS/TS extension host в production. Внешние shell, git, MCP-серверы, provider endpoints и инструменты проекта остаются явными интеграциями, а не скрытой частью Rust runtime.
-- «Полностью на Rust» относится к приложению и его runtime: не нужно искусственно заменять транзитивные библиотеки или внешние процессы, если они не являются частью самого OpenCode.
-- Сохраняй пользовательские контракты OpenCode — конфигурацию, данные, CLI/TUI workflow, tools/providers и протоколы — насколько они заявлены поддержанными; отличия должны быть намеренными и видимыми.
-- Не добавляй JS compatibility layer, launcher исходного OpenCode или фиктивные реализации ради видимости parity.
+- На старте и после compaction: `GOAL.md`, `progress/NOW.md`, затем `git status`/HEAD/diff. Git определяет фактическое состояние; handoff — подсказка, не замена проверки.
+- Работай над одним task из `planning/tasks.json`. Если active task нет, перед изменениями запусти `python3 scripts/progress.py start Txx`. Читай только его spec и нужные контракты.
+- `crates/oc-core` — runtime и порты без UI; `crates/oc-adapters` — provider, storage и tools; `crates/oc-tui` — интерфейс; `crates/oc` — бинарник и сборка приложения.
+- Workflow и разрешения: `docs/AGENT_RUNBOOK.md`; критерии проверки: `docs/TEST_PLAN.md`. Старые journal leaves, архивы и upstream открывай только по конкретному вопросу.
+- `customize-opencode` — встроенный [ранбук native-конфигурации](crates/oc-adapters/assets/skills/customize-opencode/SKILL.md); загружать через `skill`, обновлять вместе с описанными config consumers.
 
-## Scope
+## Границы продукта
 
-- Текущий план проекта определяет меняющиеся цели, порядок работ и технические решения. Не дублируй его версии, списки, этапы и инвентарь в `AGENTS.md`.
-- В этом файле закреплены только долговечные границы репозитория и его идентичность; capability, baseline и детали дизайна фиксируй в соответствующих проектных документах.
-- При конфликте между устаревшим текстом этого файла и актуальным планом сначала уточни границу задачи и обнови источник решения, а не наращивай здесь исключения.
+- Rust 2024, небольшой workspace, KISS/YAGNI. Ядро не зависит от UI; в production нет Node/Bun/JS-host. Внешний MCP через npx — только явная пользовательская зависимость.
+- [Long Horizon](docs/LONG_HORIZON.md) — явная дивергенция форка: без искусственных round/step stops; finite failure retries и resource/security guards сохраняются. DCP Compress встроен, отключаем через config; решение не означает implementation PASS.
+- OpenProxy подключается нативным Responses adapter. `providers.<id>.package: "@ai-sdk/openai"` — alias конфигурации, не npm dependency. Не зашивать model IDs, reasoning allowlists по именам и vendor-specific маршруты; discovery сверять с владельческим кодом в `references/`.
+- Бинарник `oc2`; каждый процесс независим — без shared service/IPC/`oc service` (D26). Config — только канонический schema OpenCode 2; ключи вне OC2 allowlist отказывают fail-closed (D27/T62, D28/T66).
+- Файловые tools выбираются по OC2 predicate: `apply_patch` либо `edit`/`write`; T50/R1/R9 в `GOAL.md` требует live switch перед следующим request той же задачи, не только новым user turn. Prepared request и его tools сохраняют captured model/view; picker draft отличается от committed selection. Это узкое model-name exception, не provider/reasoning routing. Shell не sandbox; raw history неизменна, DCP меняет provider projection.
+
+## Файлы, слайсы и контекст
+
+- Код поддерживают LLM-агенты с общим окном 400k; это потолок всей задачи, не бюджет чтения исходников. Начинай с владельца поведения и ближайших тестов; расширяй read-set по конкретной зависимости. Маршруты: `docs/CODE_MAP.md`; правила модулей: раздел «Файлы и тесты» в `docs/ARCHITECTURE.md`.
+- 5 000 физических строк — мягкий верхний ориентир для рукописного code/test-файла, не CI-запрет и не цель заполнения. Обычно достаточно укрупнённых модулей порядка 1–4k строк. Превышение требует краткого объяснения и следующего естественного шва; пересматривай его при существенном росте. Не уменьшай счётчик минификацией, `include!` или переносом всего монолита в соседний файл.
+- Делить по ответственности и совместным изменениям, не по числу функций. Не создавать файл на тип/метод/тест, универсальные `utils`/`helpers`/`manager` и новые crates/traits ради раскладки. Небольшие фасады и самостоятельные узкие модули допустимы; нижнего лимита строк нет.
+- Новые существенные unit-сценарии держать отдельно от production: `src/<owner>/tests.rs`, при росте — несколько тематических test-модулей. Существующие маленькие inline-тесты не переносить массово. Integration tests сохраняют свои Cargo targets; fixtures не становятся отдельными targets. Не расширять production API только ради тестов.
+- Состояние/ресурсы сохраняют одного владельца; дочерние файлы могут содержать `impl` существующего типа. Сохранять внешние пути через узкие re-exports; private по умолчанию, `pub(super)` только для реального шва, без массового `pub(crate)`.
+- Разведку делегировать read-only: конкретный вопрос/пути/HEAD → символы, зависимости, риски, ближайшие тесты. Возвращать краткое резюме, не исходники/логи целиком. Один mutation owner в worktree; root инструкции, большие планы, весь `evidence/` и чужие scout-транскрипты не размножать в контексте.
+- При перемещении обновлять текущую карту, живые fixture/source paths и test filters; старые evidence/checkpoint leaves не переписывать. Доказательства: Git base/commits, reviewed diff и проверки; новых SHA256-манифестов для рефакторинга не создавать.
+- Первый проход этой раскладки — T52. Применение плана не снимает PAUSED у T44; порядок переключения после явного resume — `roadmap/M10.md`.
+
+## Быстрый цикл без лишних тестов
+
+- Выбери один наблюдаемый контракт или риск → минимальная правка → ближайший targeted test → review diff. Добавляй тест на новое поведение или самостоятельный риск, а не по тесту на каждую ветку/строку и не дублируй тот же сценарий на всех слоях.
+- Запускай проверки затронутого crate; workspace fmt/clippy/tests/build — когда этого требует task, интеграционная граница или финальная приёмка. Обязательные IDs/gates из `GOAL.md`, task и `docs/TEST_PLAN.md` остаются обязательными. Не отключай failing tests, не меняй baseline или GOAL ради зелёного статуса.
+- Если для разработки нужен реальный API-вызов, владелец разрешил брать тестовые `LUDKA2_API_URL`, `LUDKA2_API_KEY` и `OC_TEST_MODEL` из gitignored `.local/live.env`: там уже реальные значения. Используй их только для конкретного bounded live-теста по `docs/AGENT_RUNBOOK.md`, не для настройки authoring-agent; значения не печатай и не добавляй в Git.
+- `checkpoint` — перед interruption/неизвестным внешним эффектом, при blocker или существенном незакоммиченном handoff, не на каждый commit. Для завершённого task — factual report и `python3 scripts/progress.py finish ...`; utility проверяет структуру, не истинность PASS.
+
+## Live dev-сборка владельца (`oc2-dev`)
+
+- `oc2-dev` — alias в `~/.zshrc` владельца (T67): грузит `secrets.env` как `oc2` и запускает `~/ai/oc/target/debug/oc2` из текущего каталога, ничего не собирая. Config (`~/.config/opencode`) и хранилище (`~/.local/share/oc`) общие с release `oc2`, поэтому одновременно они не работают (`DataRootBusy`).
+- Мягкое правило: если изменение стоит посмотреть вживую, в конце задачи собери `cargo build -p oc2 --bin oc2 --locked` (debug, `<worktree>/target`) и сообщи, что `oc2-dev` готов; подходит и бинарник, уже собранный тестами. Это не gate и не замена обязательных проверок. Новая сборка подхватывается при следующем запуске `oc2-dev`.
+- Не делай `cargo clean`, не удаляй `target/debug` и не переопределяй `CARGO_TARGET_DIR`: на этот путь опирается `oc2-dev`.
+- Сам `oc2-dev` не запускай: это интерактивный запуск владельца с его секретами. Live-проверки агента — только по `docs/AGENT_RUNBOOK.md`.
+- Хранилище общее с рабочим `oc2`: изменения схемы или миграций storage сразу затрагивают живые данные владельца. Явно отмечай такие изменения в отчёте.
+
+## Безопасность и остановка
+
+- Только выделенный non-root account и текущий worktree. Commits и обычный push своей ветки в проверенный `origin` разрешены; без force-push, чужих веток/credentials, sudo, host-admin действий, release/tag, rootful Docker и общего prune/compose down.
+- Не публикуй env целиком, ключи, auth headers, raw live responses и конфигурацию authoring-agent с секретами. Перед push производного DCP-кода сохраняй AGPL provenance и уведомления.
+- Внешний blocker фиксируй с фактическим результатом и следующим инженерным шагом; продолжай независимую ready-задачу. Не повторяй неизвестный внешний side effect после crash и не запрашивай повторно Q01–Q07.
+
+# Donor:
+
+`./opencode` — upstream `https://github.com/anomalyco/opencode/tree/v2.0.12`, pinned at `2670273ff17da96f85c5826ced57aa1b368754fa`.

@@ -1,0 +1,796 @@
+{
+  "original_members": {
+    "gates/vis37-form-gate-vis36-wrap-clippy.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-clippy.json",
+      "bytes": 474,
+      "sha256": "2887c75a02872a4f89854c6172b6eb47875100e12e19d5f1c534b67b0edc1683",
+      "original_metadata": [
+        474,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652135,
+        1791917687275555026
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-clippy.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-clippy.log",
+      "bytes": 193,
+      "sha256": "335890da73c54b8ad1d3deddbb8d05e9c127feeef47868b40addcc93f6bccbf6",
+      "original_metadata": [
+        193,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652134,
+        1791917687199554457
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-crate.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-crate.json",
+      "bytes": 619,
+      "sha256": "9e4467b8a5beea10350c726b92c5a320a5bb06ff773eca1c574a83fdafb57390",
+      "original_metadata": [
+        619,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652143,
+        1791918376761040536
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-crate.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-crate.log",
+      "bytes": 49092,
+      "sha256": "5793cd4bc972b793aea4f9526de94892ae7388b492f1338b41cb29adcca5fa38",
+      "original_metadata": [
+        49092,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652142,
+        1791918376733040300
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-debug-help.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-debug-help.json",
+      "bytes": 397,
+      "sha256": "9500a3aeb0024d38b9b4d76d6375057e3f21b14249f9d32bbaab307785e76b55",
+      "original_metadata": [
+        397,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606967,
+        1791921134806651038
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-debug-help.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-debug-help.log",
+      "bytes": 792,
+      "sha256": "ce85565bd2711bfb899372617d693db695437c6f8fc28d3dbfabeed8dadee7c1",
+      "original_metadata": [
+        792,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606966,
+        1791921134802651008
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-debug-locked.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-debug-locked.json",
+      "bytes": 409,
+      "sha256": "93dfea955abe299dec2fb3b5d3ce37b24f0eb48f7f985de9a9d2d9859ebdf45b",
+      "original_metadata": [
+        409,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606962,
+        1791921133578641570
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-debug-locked.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-debug-locked.log",
+      "bytes": 296,
+      "sha256": "94b87549d3cc0c2f77c9699d4c8727790164e501232a4d923518145af1bb1d1d",
+      "original_metadata": [
+        296,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606961,
+        1791921133530641200
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-debug-ordinary.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-debug-ordinary.json",
+      "bytes": 395,
+      "sha256": "d41286d41ef8ee2da5f86098844ea537f1304f3027e19bdac710b1a3d96801cf",
+      "original_metadata": [
+        395,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606964,
+        1791921134754650638
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-debug-ordinary.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-debug-ordinary.log",
+      "bytes": 72,
+      "sha256": "5a98124ec862935b7871f29f50e2f8500bb7f484065a46c249739acf8120ba21",
+      "original_metadata": [
+        72,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606963,
+        1791921134714650329
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-fmt.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-fmt.json",
+      "bytes": 408,
+      "sha256": "5d8abe52669d8894194b80105596b40194f001c68287ba7911edd75a5cd37f00",
+      "original_metadata": [
+        408,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652137,
+        1791917692255592303
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-fmt.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652136,
+        1791917687343555535
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-green-r1.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-green-r1.json",
+      "bytes": 577,
+      "sha256": "76ca693e5b20a95dadf1cca67bbf38fd74ffb2f27c86610455a8112a57727c26",
+      "original_metadata": [
+        577,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652133,
+        1791917675371465925
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-green-r1.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-green-r1.log",
+      "bytes": 1668,
+      "sha256": "4e52511c982f1a3203f85a3b9351a9192fb247e5a8eb554dd042c5136662a8c6",
+      "original_metadata": [
+        1668,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652132,
+        1791917675351465776
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-green.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-green.json",
+      "bytes": 578,
+      "sha256": "606d830eeee1b7ae174df5939b584b71176b734e8e2f3c678d87bb9932109589",
+      "original_metadata": [
+        578,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652131,
+        1791917577814736008
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-green.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-green.log",
+      "bytes": 18360,
+      "sha256": "b5eadb4e458a47488598a41a9eeafeba2b3672db43442ebe63827b23d9c3d7bb",
+      "original_metadata": [
+        18360,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652128,
+        1791917577794735858
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-python.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-python.json",
+      "bytes": 474,
+      "sha256": "f936ac55747d450fe69aecff7e52016906fcaabf62a49d83ee0a995a558eb5fe",
+      "original_metadata": [
+        474,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607043,
+        1791921776347600199
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-python.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-python.log",
+      "bytes": 171,
+      "sha256": "956dc581430c86fe1fe5863897174f58d76f388cd029192aff8267a34f950cdd",
+      "original_metadata": [
+        171,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607042,
+        1791921776319599983
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-red.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-red.json",
+      "bytes": 574,
+      "sha256": "dda62c9657db1dabd44ba4e869fe53e868b0edf1c771231f994c7051b8e0cbbe",
+      "original_metadata": [
+        574,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652126,
+        1791917498826145436
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-red.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-red.log",
+      "bytes": 24393,
+      "sha256": "98242824d608dbb361ad9da700f10214d4cadb6756e840448f3f39154da99971",
+      "original_metadata": [
+        24393,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652125,
+        1791917498802145257
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-aud32.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-aud32.json",
+      "bytes": 677,
+      "sha256": "870d3d1dc9f9faa45977ba4c06bdb7f45ea7e83bdad77937e6fda2fae5430156",
+      "original_metadata": [
+        677,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607038,
+        1791921761719487310
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-aud32.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-aud32.log",
+      "bytes": 912,
+      "sha256": "d824d13722207e69309a260d9c0ebd9b4e6ccdb1f41f1448df125e99a4b817f5",
+      "original_metadata": [
+        912,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607035,
+        1791921761703487187
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-build.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-build.json",
+      "bytes": 429,
+      "sha256": "29b7de9d55a820b62ff485cf10a58ba29860550c558b929af2c14f3a026f0064",
+      "original_metadata": [
+        429,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606971,
+        1791921365080426950
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-build.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-build.log",
+      "bytes": 286,
+      "sha256": "a83d5ccbbe8ba9969496acb4994212141de46109ab14376506be571647036a87",
+      "original_metadata": [
+        286,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606968,
+        1791921365032426580
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-help.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-help.json",
+      "bytes": 402,
+      "sha256": "ed16441db2d66248224f6dbe2e442f7ac62d945010af7c1bef180d76d4735dec",
+      "original_metadata": [
+        402,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606973,
+        1791921365132427351
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-help.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-help.log",
+      "bytes": 792,
+      "sha256": "ce85565bd2711bfb899372617d693db695437c6f8fc28d3dbfabeed8dadee7c1",
+      "original_metadata": [
+        792,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606972,
+        1791921365128427320
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-panic.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-panic.json",
+      "bytes": 633,
+      "sha256": "e09813d35dcb1c704e09c36b8c5fdbd5db279c6fd06af25814ddf6d5989d263c",
+      "original_metadata": [
+        633,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606979,
+        1791921603546266733
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-panic.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-panic.log",
+      "bytes": 341,
+      "sha256": "fc9526d65fa537d85d5da90baa53da3cd7a441cb14c53cb9e52385f41978f49d",
+      "original_metadata": [
+        341,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606978,
+        1791921603522266548
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-s07.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-s07.json",
+      "bytes": 634,
+      "sha256": "2d6886677896ca312eb679cc4dd00438bc5352e98f1be952e50f816a00435fbb",
+      "original_metadata": [
+        634,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606983,
+        1791921742215336794
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-s07.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-s07.log",
+      "bytes": 1358,
+      "sha256": "0ee8225d30f772677b27c51517e3d183b49fed82b744dfd8e3817f2a13a9c900",
+      "original_metadata": [
+        1358,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606982,
+        1791921742203336701
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-startup.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-startup.json",
+      "bytes": 618,
+      "sha256": "2f9e9555bf2e260566e2b13574b6e74e8968ce837eaaf7ecb875710ebcc319a1",
+      "original_metadata": [
+        618,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606975,
+        1791921560085931393
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-startup.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-startup.log",
+      "bytes": 1985,
+      "sha256": "485790c7729ee722f0a42214a82753a866e1f365a04f6839fc269fd58b1b2c02",
+      "original_metadata": [
+        1985,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606974,
+        1791921560069931269
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-term01.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-term01.json",
+      "bytes": 651,
+      "sha256": "8b6d92899051f804d1260dbaec6c78c147f0d89ac555c98e9225b4a940817e83",
+      "original_metadata": [
+        651,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606977,
+        1791921584562120249
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-term01.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-term01.log",
+      "bytes": 753,
+      "sha256": "bde751057168332da0eaaa84fa8823d79895f7f9b69be26f310bbfa97ff2b15f",
+      "original_metadata": [
+        753,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606976,
+        1791921584550120156
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-vis31.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-vis31.json",
+      "bytes": 604,
+      "sha256": "e27de8f41556c52a90100f122ce0cccdb37870f48dd8bc8ac776acc1adb1cdbd",
+      "original_metadata": [
+        604,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606981,
+        1791921733475269346
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-vis31.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-vis31.log",
+      "bytes": 23777,
+      "sha256": "58bc4c20235d35e9b05f3832bef2eedd7497e5fb344f6952b4a2876f375de5ff",
+      "original_metadata": [
+        23777,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606980,
+        1791921733463269254
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-vis38.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-vis38.json",
+      "bytes": 645,
+      "sha256": "35bf19833ad9b0282d4c7cb9fe0d2bc8002aeb71be01a02f19d35b5945c82e40",
+      "original_metadata": [
+        645,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607034,
+        1791921750143397976
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-release-vis38.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-release-vis38.log",
+      "bytes": 976,
+      "sha256": "e9e02a69415af9131d03235282efe4f2f99c8530a50e82870a346a6eb07881c9",
+      "original_metadata": [
+        976,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607008,
+        1791921750131397883
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-workspace-r1.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-workspace-r1.json",
+      "bytes": 4150,
+      "sha256": "916cbe08245aaebe5181884b20870dd751ee69c7cf320010a3c5e35f96cb93f7",
+      "original_metadata": [
+        4150,
+        33204,
+        1003,
+        1003,
+        65027,
+        2606960,
+        1791921059758072452
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-workspace-r1.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-workspace-r1.log",
+      "bytes": 179522,
+      "sha256": "76588b63a0e8236be6450678edf414847ab62cb0f351a42b1cbaca6ca2b4a9c1",
+      "original_metadata": [
+        179522,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652149,
+        1791921059734072267
+      ]
+    },
+    "gates/vis37-form-gate-vis36-wrap-workspace.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-vis36-wrap-workspace.log",
+      "bytes": 111452,
+      "sha256": "4a37e56bfb017899233fc851a8e81aab15f4df69abf34698f109bde26b1171cf",
+      "original_metadata": [
+        111452,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652144,
+        1791919408621313554
+      ]
+    },
+    "gates/vis36-wrap-run-final-gates.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-run-final-gates.py",
+      "bytes": 865,
+      "sha256": "ae8fd0046ce552506908c0e2b24b367c5e33658186c67e58f93c5056f63f7fda",
+      "original_metadata": [
+        865,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652148,
+        1791919459021707373
+      ]
+    },
+    "gates/vis36-wrap-run-gates.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-run-gates.py",
+      "bytes": 941,
+      "sha256": "cf6503f323dacedb9db003924b06d32bebcb12bfd0127ddc893e01720e6d106a",
+      "original_metadata": [
+        941,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652140,
+        1791918204111568127
+      ]
+    },
+    "gates/vis36-wrap-acquisition-failed-r1.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-acquisition-failed-r1.json",
+      "bytes": 609,
+      "sha256": "1eabc28675ff856b4308429d53c3e3a56332245987e3812a7dd6a76cf6e69e54",
+      "original_metadata": [
+        609,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652139,
+        1791918204111568127
+      ]
+    },
+    "gates/vis36-wrap-acquisition.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-acquisition.json",
+      "bytes": 752822,
+      "sha256": "576ce6331b342499f14fff6f4af3248fe70dc8dfc03c1f6715e1059ae3a7c1e6",
+      "original_metadata": [
+        752822,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652141,
+        1791918228083775465
+      ]
+    },
+    "gates/vis36-wrap-before.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-before.json",
+      "bytes": 7851134,
+      "sha256": "c3d2558cdb5624789e6833d7124c88e0ab652643bf51682a082cd61726d4c554",
+      "original_metadata": [
+        7851134,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652124,
+        1791917387129311091
+      ]
+    },
+    "gates/vis36-wrap-frame-observer-failed-r1.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-frame-observer-failed-r1.json",
+      "bytes": 853,
+      "sha256": "d30eb681bd61482bd7950d96407035888fcf54f96a749489eb0c9a701fee8085",
+      "original_metadata": [
+        853,
+        33204,
+        1003,
+        1003,
+        65027,
+        2607045,
+        1791921941916878007
+      ]
+    },
+    "gates/vis36-wrap-workspace-interrupted.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-wrap-workspace-interrupted.json",
+      "bytes": 873,
+      "sha256": "55c20bced20f37a9faf6bb35e54522f18a191c4c647ba98d25cddde06e2d8136",
+      "original_metadata": [
+        873,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652147,
+        1791919459017707341
+      ]
+    },
+    "gates/vis36-prompt-capture-r8.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis36-prompt-capture-r8.py",
+      "bytes": 764,
+      "sha256": "2b048ab5732155303b707fccd192e0feee082c0f8dd2f4bbceffd590323117cb",
+      "original_metadata": [
+        764,
+        33204,
+        1003,
+        1003,
+        65027,
+        2652127,
+        1791917523226327823
+      ]
+    },
+    "gates/vis37-form-gate-20261012.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-20261012.py",
+      "bytes": 1852,
+      "sha256": "165bc071f924f19485ecddb57317fe55de06eea7d8a2f99d8d7c644a1fb204b4",
+      "original_metadata": [
+        1852,
+        33204,
+        1003,
+        1003,
+        65027,
+        2608960,
+        1791797224130069548
+      ]
+    },
+    "programs/vis36-wrap-check.py": {
+      "path": "/home/opencode/ai/oc/evidence/tui/vis36-wrap-check.py",
+      "bytes": 11461,
+      "sha256": "24c9e677be8debf14a51394bbfc6d6f38c50b02bf50836511e5f2156167b63a8",
+      "original_metadata": [
+        11461,
+        33204,
+        1003,
+        1003,
+        65027,
+        4214169,
+        1791919459009707278
+      ]
+    },
+    "programs/vis36-wrap-handoff-check.py": {
+      "path": "/home/opencode/ai/oc/evidence/tui/vis36-wrap-handoff-check.py",
+      "bytes": 5452,
+      "sha256": "ee3449fd15d3b06750d751c2aa15c9ca54b85b693589bb11fe35189da0a22347",
+      "original_metadata": [
+        5452,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212636,
+        1791921941908877946
+      ]
+    },
+    "programs/vis36-wrap-retain.py": {
+      "path": "/home/opencode/ai/oc/evidence/tui/vis36-wrap-retain.py",
+      "bytes": 1946,
+      "sha256": "0d426151aff6961335a0edc68b8dca14ac35b90be5e8d5805064a25e7cad6cf7",
+      "original_metadata": [
+        1946,
+        33204,
+        1003,
+        1003,
+        65027,
+        4214170,
+        1791918204115568161
+      ]
+    }
+  },
+  "original_directories": {},
+  "source_roots": {
+    "gates": "/home/opencode/.cache/opencode-tmp/opencode",
+    "programs": "/home/opencode/ai/oc/evidence/tui"
+  },
+  "version": 1,
+  "codec": "encoder-only single SHA256-XZ/canonical USTAR; independent manual inverse",
+  "archive_sha256": "fdb089c3ebf6e2033590c55c752dfbd80212f19460cc16051ce23f3eff485d8a",
+  "archive_bytes": 900092,
+  "tar_sha256": "273ab507a6fa95c635a6203b01a8b6ebd34f9776f88d9fbb91969c239adda623",
+  "tar_bytes": 9103360,
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 900052,
+        "uncompressed_bytes": 9103360,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "273ab507a6fa95c635a6203b01a8b6ebd34f9776f88d9fbb91969c239adda623"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 16,
+    "index_offset": 900064
+  },
+  "inventory": {
+    "members": 53,
+    "logical_bytes": 9061111,
+    "member_inventory_sha256": "02f2a758f37726b724f0612635da16cc457323475c37f514d9c71580bb285962",
+    "same_side_png_aliases": 0
+  },
+  "helper_sha256": "0d426151aff6961335a0edc68b8dca14ac35b90be5e8d5805064a25e7cad6cf7",
+  "command": [
+    "python3",
+    "-B",
+    "/home/opencode/ai/oc/evidence/tui/vis36-wrap-retain.py",
+    "gates"
+  ],
+  "memory": {
+    "VmPeak_bytes": 253505536,
+    "VmSize_bytes": 98287616,
+    "VmHWM_bytes": 159739904,
+    "VmRSS_bytes": 71467008
+  }
+}

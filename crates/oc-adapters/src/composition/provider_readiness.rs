@@ -1,0 +1,534 @@
+//! One admitted provider's transient catalog/request facts, never a client registry.
+use super::*;
+use oc_core::queries::{ProviderReadiness, ProviderStatus};
+use sha2::{Digest, Sha256};
+
+pub(super) async fn capture_binding(
+    request: &mut provider::ResponsesConfig,
+    id: &str,
+    db: &crate::storage::Db,
+    env: &BTreeMap<String, String>,
+    source: &str,
+    fields: &[&str],
+    stage: ServiceStage,
+) -> Result<(), LoadFailure> {
+    resolve_binding_inner(request, id, db, env, (source, fields, stage), false).await
+}
+
+async fn resolve_binding_inner(
+    request: &mut provider::ResponsesConfig,
+    id: &str,
+    db: &crate::storage::Db,
+    env: &BTreeMap<String, String>,
+    origin: (&str, &[&str], ServiceStage),
+    refresh: bool,
+) -> Result<(), LoadFailure> {
+    let (source, fields, stage) = origin;
+    if request.base_url.is_empty() {
+        request.wire.unsupported = true;
+        return Ok(());
+    }
+    request.restore_auth_input();
+    let authority_fields = fields
+        .iter()
+        .copied()
+        .take(fields.len().saturating_sub(1))
+        .chain(std::iter::once("baseURL"))
+        .collect::<Vec<_>>();
+    let scope = crate::auth::AuthScope::for_binding(
+        id,
+        &request.base_url,
+        request.wire.custom_scope.as_ref(),
+    )
+    .map_err(|_| invalid(source, &authority_fields))?;
+    let competing = request.headers.keys().any(|name| {
+        name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+    });
+    let environment = || {
+        env.get(if scope.is_openai() {
+            "OPENAI_API_KEY"
+        } else {
+            "OPENCODE_API_KEY"
+        })
+        .cloned()
+    };
+    let resolved = if refresh {
+        scope
+            .resolve_request(
+                db,
+                request.wire.auth_policy,
+                Some(&request.api_key),
+                competing,
+                environment,
+            )
+            .await
+    } else {
+        scope.resolve(
+            db,
+            request.wire.auth_policy,
+            Some(&request.api_key),
+            competing,
+            environment,
+        )
+    };
+    resolved
+        .map_err(|error| {
+            failure(
+                source,
+                fields,
+                stage,
+                if matches!(error, crate::auth::AuthError::Storage(_)) {
+                    ServiceCode::StorageUnavailable
+                } else {
+                    ServiceCode::InvalidConfig
+                },
+            )
+        })?
+        .apply_to(request);
+    Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProviderState {
+    service: String,
+    source: String,
+    credential: bool,
+    unsupported_oauth: bool,
+    unsupported_wire: bool,
+    pub(crate) catalog_status: ProviderStatus,
+    diagnostic: Option<ServiceDiagnostic>,
+    /// Auth rejection observed for the current admitted binding, not a new candidate key.
+    auth_failure: Option<ServiceDiagnostic>,
+}
+
+impl ProviderState {
+    pub(super) fn public_pending(&mut self) {
+        self.catalog_status = ProviderStatus::Pending;
+        self.diagnostic = None;
+        self.auth_failure = None;
+    }
+
+    pub(super) fn finish_public(&mut self, outcome: &discovery::DiscoveryOutcome) {
+        self.finish(outcome);
+        // A credential-free public source's HTTP status is never an auth fact
+        // about the separately captured paid provider connection.
+        self.auth_failure = None;
+        if outcome.failure.is_some() {
+            self.catalog_status = ProviderStatus::Failed;
+        }
+    }
+
+    pub(crate) fn set_unsupported(&mut self) {
+        self.credential = false;
+        self.unsupported_wire = true;
+    }
+    pub(crate) fn new(provider: &str, source: &str, credential: bool, dynamic: bool) -> Self {
+        let mut state = Self {
+            service: format!("provider-{:x}", Sha256::digest(provider.as_bytes())),
+            source: config::mcp::safe_source_id(source),
+            credential,
+            unsupported_oauth: false,
+            unsupported_wire: false,
+            catalog_status: if dynamic && credential {
+                ProviderStatus::Pending
+            } else {
+                ProviderStatus::Ready
+            },
+            diagnostic: None,
+            auth_failure: None,
+        };
+        if !credential {
+            state.catalog_status = ProviderStatus::Unavailable;
+            state.diagnostic = Some(state.diagnostic(
+                "apiKey",
+                ServiceStage::Config,
+                ServiceCode::MissingCredential,
+                ServiceAction::ReviewConfiguration,
+            ));
+        }
+        state
+    }
+
+    pub(crate) fn with_auth_policy(mut self, policy: crate::auth::AuthPolicy) -> Self {
+        self.unsupported_oauth = policy == crate::auth::AuthPolicy::OAuth;
+        self
+    }
+
+    pub(crate) fn set_auth(&mut self, ready: bool, policy: crate::auth::AuthPolicy) {
+        self.credential = ready;
+        self.unsupported_oauth = policy == crate::auth::AuthPolicy::OAuth;
+        if self.catalog_status == ProviderStatus::Unavailable
+            && self
+                .diagnostic
+                .as_ref()
+                .is_some_and(|d| d.code == ServiceCode::MissingCredential)
+        {
+            self.catalog_status = ProviderStatus::Ready;
+            self.diagnostic = None;
+        }
+    }
+
+    fn diagnostic(
+        &self,
+        field: &str,
+        stage: ServiceStage,
+        code: ServiceCode,
+        action: ServiceAction,
+    ) -> ServiceDiagnostic {
+        ServiceDiagnostic {
+            kind: ServiceKind::Provider,
+            service: self.service.clone(),
+            source: self.source.clone(),
+            field: if field == "models" {
+                vec!["provider".into(), self.service.clone(), "models".into()]
+            } else {
+                vec![
+                    "provider".into(),
+                    self.service.clone(),
+                    "options".into(),
+                    field.into(),
+                ]
+            },
+            stage,
+            code,
+            action,
+            details: None,
+        }
+    }
+
+    pub(crate) fn finish(&mut self, outcome: &discovery::DiscoveryOutcome) {
+        use discovery::DiscoveryFailure as Failure;
+        self.catalog_status = if outcome.replaced {
+            ProviderStatus::Ready
+        } else {
+            ProviderStatus::Failed
+        };
+        self.diagnostic = outcome.failure.map(|failure| {
+            let (code, action) = match failure {
+                Failure::Unauthorized => (
+                    ServiceCode::Unauthorized,
+                    ServiceAction::ReviewConfiguration,
+                ),
+                Failure::Forbidden => (ServiceCode::Forbidden, ServiceAction::ReviewConfiguration),
+                Failure::Http => (ServiceCode::HttpFailure, ServiceAction::RefreshCatalog),
+                Failure::Network => (ServiceCode::ConnectionFailed, ServiceAction::RefreshCatalog),
+                Failure::InvalidResponse | Failure::EmptyResponse => {
+                    (ServiceCode::InvalidCatalog, ServiceAction::RefreshCatalog)
+                }
+                Failure::InvalidConfig => (
+                    ServiceCode::InvalidConfig,
+                    ServiceAction::ReviewConfiguration,
+                ),
+                Failure::Cancelled => (ServiceCode::Cancelled, ServiceAction::WaitForProvider),
+            };
+            self.diagnostic("models", ServiceStage::ModelCatalog, code, action)
+        });
+        if outcome.replaced {
+            self.auth_failure = None;
+        } else if matches!(
+            outcome.failure,
+            Some(Failure::Unauthorized | Failure::Forbidden)
+        ) {
+            self.auth_failure = self.diagnostic.clone();
+        }
+    }
+
+    pub(crate) fn for_model(&self, model: &str, present: bool) -> ProviderReadiness {
+        let status = if !self.credential {
+            ProviderStatus::Unavailable
+        } else if self.auth_failure.is_some() {
+            ProviderStatus::Failed
+        } else if self.catalog_status == ProviderStatus::Pending {
+            // The first native attempt also supplies auth facts. A configured
+            // row cannot race it and accept a request before a cold 401/403.
+            ProviderStatus::Pending
+        } else if present {
+            ProviderStatus::Ready
+        } else {
+            match self.catalog_status {
+                ProviderStatus::Pending => ProviderStatus::Pending,
+                ProviderStatus::Failed => ProviderStatus::Failed,
+                _ => ProviderStatus::Unavailable,
+            }
+        };
+        let diagnostic = if !self.credential {
+            Some(self.diagnostic(
+                if self.unsupported_wire {
+                    "package"
+                } else if self.unsupported_oauth {
+                    "authPolicy"
+                } else {
+                    "apiKey"
+                },
+                ServiceStage::Config,
+                if self.unsupported_oauth || self.unsupported_wire {
+                    ServiceCode::UnsupportedCapability
+                } else {
+                    ServiceCode::MissingCredential
+                },
+                ServiceAction::ReviewConfiguration,
+            ))
+        } else if self.auth_failure.is_some() {
+            self.auth_failure.clone()
+        } else if self.diagnostic.is_some() {
+            self.diagnostic.clone()
+        } else if status == ProviderStatus::Pending {
+            Some(self.diagnostic(
+                "models",
+                ServiceStage::ModelCatalog,
+                ServiceCode::ProviderPending,
+                ServiceAction::WaitForProvider,
+            ))
+        } else if !present {
+            Some(self.diagnostic(
+                "models",
+                ServiceStage::Admission,
+                ServiceCode::ModelUnavailable,
+                ServiceAction::SelectModel,
+            ))
+        } else {
+            None
+        };
+        ProviderReadiness {
+            service: self.service.clone(),
+            model: format!("model-{:x}", Sha256::digest(model.as_bytes())),
+            status,
+            catalog_status: self.catalog_status,
+            diagnostic,
+        }
+    }
+
+    pub(crate) fn retain_failed_attempt(&mut self, attempted: &Self, same_binding: bool) {
+        self.catalog_status = attempted.catalog_status;
+        self.diagnostic = attempted.diagnostic.clone();
+        if same_binding && attempted.auth_failure.is_some() {
+            self.auth_failure = attempted.auth_failure.clone();
+        }
+    }
+
+    pub(crate) fn admit(&self, model: &str, present: bool) -> Result<(), ServiceDiagnostic> {
+        let readiness = self.for_model(model, present);
+        if readiness.status == ProviderStatus::Ready {
+            Ok(())
+        } else {
+            Err(readiness
+                .diagnostic
+                .expect("unavailable provider has a safe cause"))
+        }
+    }
+}
+
+impl Composition {
+    pub(crate) fn selected_provider_readiness(
+        &self,
+        model: &str,
+        variant: Option<&str>,
+    ) -> ProviderReadiness {
+        let provider = self.provider.for_selection(model, variant);
+        let mut state = self.provider_state.clone();
+        state.set_auth(provider.auth_ready(), provider.wire.auth_policy);
+        if provider.wire.unsupported {
+            state.set_unsupported();
+        }
+        state.for_model(model, self.catalog.models.contains_key(model))
+    }
+    /// Resolve once per admitted generation, before any discovery or runtime publication.
+    /// Prepared requests retain this immutable binding across later account mutations.
+    pub(crate) async fn resolve_credentials(
+        &mut self,
+        db: &crate::storage::Db,
+    ) -> Result<(), LoadFailure> {
+        self.resolve_current_credentials(db, true).await
+    }
+
+    async fn resolve_current_credentials(
+        &mut self,
+        db: &crate::storage::Db,
+        refresh: bool,
+    ) -> Result<(), LoadFailure> {
+        self.resolve_provider_views(db).await?;
+        let id = &self.catalog.provider;
+        let source = self
+            .generation
+            .provenance
+            .get(&format!("provider.{id}"))
+            .map(String::as_str)
+            .unwrap_or("native config");
+        // Each template still contains configured inputs, not the already-resolved
+        // parent key. An endpoint-changing model must never inherit parent auth.
+        for request in self.provider.wire.requests.values_mut() {
+            resolve_binding_inner(
+                request,
+                id,
+                db,
+                &self.parent_env,
+                (
+                    source,
+                    &["provider", "models", "settings", "authPolicy"],
+                    ServiceStage::Config,
+                ),
+                refresh,
+            )
+            .await?;
+        }
+        if let Some(entry) = self.generation.providers.get_mut(id) {
+            // Redaction-only captured values; MCP credential inheritance does not
+            // inspect this map, and public config Debug never renders its contents.
+            entry.options.request_bindings = self.provider.wire.requests.clone();
+        }
+        if self.provider.base_url.is_empty() {
+            // Model overrides were resolved independently above. With no base
+            // connection, local views remain usable but the base cannot send.
+            return Ok(());
+        }
+        resolve_binding_inner(
+            &mut self.provider,
+            id,
+            db,
+            &self.parent_env,
+            (
+                source,
+                &["provider", "options", "authPolicy"],
+                ServiceStage::Config,
+            ),
+            refresh,
+        )
+        .await?;
+        if let Some(entry) = self.generation.providers.get_mut(id) {
+            entry.options.redaction_material = std::iter::once(self.provider.api_key.clone())
+                .filter(|value| !value.is_empty())
+                .collect();
+        }
+        if self.provider.wire.custom_scope.is_some() {
+            self.provider_state
+                .set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
+        } else {
+            self.provider_state = ProviderState::new(
+                id,
+                source,
+                self.provider.auth_ready(),
+                id == discovery::PROVIDER_ID,
+            )
+            .with_auth_policy(self.provider.wire.auth_policy);
+        }
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
+        Ok(())
+    }
+
+    pub(crate) async fn refresh_credentials(
+        &mut self,
+        db: &crate::storage::Db,
+    ) -> Result<(), LoadFailure> {
+        let mut state = self.provider_state.clone();
+        self.resolve_credentials(db).await?;
+        state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
+        self.provider_state = state;
+        self.attach_public_catalog(db).await;
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
+        Ok(())
+    }
+
+    /// Login already persisted/acknowledged its tokens. Account browsing projects
+    /// current metadata without refreshing an unrelated selected account or dialing.
+    pub(crate) async fn refresh_credential_preview(
+        &mut self,
+        db: &crate::storage::Db,
+    ) -> Result<(), LoadFailure> {
+        let mut state = self.provider_state.clone();
+        self.resolve_current_credentials(db, false).await?;
+        state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
+        self.provider_state = state;
+        self.attach_public_catalog(db).await;
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
+        Ok(())
+    }
+
+    /// Only the original bounded discovery loop performs retries/negotiation.
+    pub(crate) async fn refresh_provider(&mut self) -> Result<(), LoadFailure> {
+        if self.go_catalog.is_some() {
+            return Ok(());
+        }
+        if self.provider_state.catalog_status != ProviderStatus::Pending {
+            return Ok(());
+        }
+        let outcome =
+            Self::discover_provider(self.provider.clone(), self.catalog.models.clone()).await?;
+        self.accept_provider_catalog(outcome);
+        Ok(())
+    }
+
+    pub(crate) async fn discover_provider(
+        provider: provider::ResponsesConfig,
+        models: BTreeMap<String, serde_json::Value>,
+    ) -> Result<discovery::DiscoveryOutcome, LoadFailure> {
+        let client = match discovery::ReqwestDiscoveryClient::captured(&provider) {
+            Ok(client) => client,
+            Err(error) => {
+                return Ok(discovery::DiscoveryOutcome {
+                    models,
+                    warnings: Vec::new(),
+                    attempts: 0,
+                    replaced: false,
+                    failure: Some(discovery::DiscoveryFailure::from(&error)),
+                });
+            }
+        };
+        Ok(discovery::refresh_provider(&client, &provider, &models, &AtomicBool::new(false)).await)
+    }
+
+    /// Discovery result for an admitted but unselected provider view. The
+    /// selected composition, its readiness and any prepared request are untouched.
+    pub(crate) fn accept_view_catalog(
+        &mut self,
+        id: &str,
+        outcome: discovery::DiscoveryOutcome,
+    ) -> bool {
+        if id == self.catalog.provider {
+            return false;
+        }
+        let Some(view) = self.provider_views.get_mut(id) else {
+            return false;
+        };
+        let before = (view.state.catalog_status, view.catalog.models.clone());
+        view.state.finish(&outcome);
+        view.catalog.models = outcome.models;
+        self.generation.warnings.extend(outcome.warnings);
+        before != (view.state.catalog_status, view.catalog.models.clone())
+    }
+
+    pub(crate) fn accept_provider_catalog(&mut self, outcome: discovery::DiscoveryOutcome) {
+        if outcome.replaced {
+            trace::log(
+                "discovery.ok",
+                &format!(
+                    "models={} selected_present={}",
+                    outcome.models.len(),
+                    outcome.models.contains_key(&self.model_id)
+                ),
+            );
+        } else if let Some(failure) = outcome.failure {
+            trace::log("discovery.fail", &format!("class={failure:?}"));
+        }
+        if self.public_provider(&self.catalog.provider) {
+            self.provider_state.finish_public(&outcome);
+        } else {
+            self.provider_state.finish(&outcome);
+        }
+        self.catalog.models = outcome.models;
+        if self.catalog.provider == crate::models_dev::OPENAI {
+            super::openai_catalog::transform(
+                &mut self.catalog.models,
+                self.provider.subscription(),
+            );
+        }
+        if self.public_provider(&self.catalog.provider) {
+            self.capture_public_bindings();
+        }
+        self.generation.warnings.extend(outcome.warnings);
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
+    }
+}

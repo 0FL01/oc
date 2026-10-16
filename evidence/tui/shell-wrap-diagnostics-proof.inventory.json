@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "b0c357f1fb06b848a2ef1654a012530d4b52a5c8817248eeb7bc6978e711cfea",
+  "archive_bytes": 1728580,
+  "tar_sha256": "296482565c407ff4e8026e522983b2fec2a587454b9cb670952850538e48cb96",
+  "tar_bytes": 35266560,
+  "inventory": {
+    "members": 308,
+    "logical_bytes": 35237833,
+    "member_inventory_sha256": "132db8f98bf9dfbd3611e8679f3221a96ae95178d7a635e50596463a6cde7f67",
+    "same_side_png_aliases": 6
+  },
+  "source_roots": {
+    "inventory": "/home/opencode/.cache/opencode-tmp/opencode/shell-wrap-current-002/inventory",
+    "ordinary": "/home/opencode/.cache/opencode-tmp/opencode/shell-wrap-regressions-002/ordinary"
+  },
+  "producer_reports": [
+    {
+      "episode": "inventory",
+      "captures": 14,
+      "current_source": false,
+      "comparisons": {
+        "EQUAL": 10,
+        "DIFFERENT": 4
+      },
+      "native_executable_sha256": "b96f4c8dd4609178c99fedd24a9e555fe5db17ba74af8e3a861101e58832c839"
+    },
+    {
+      "episode": "ordinary",
+      "captures": 32,
+      "current_source": false,
+      "comparisons": {
+        "DIFFERENT": 26,
+        "EQUAL": 6
+      },
+      "native_executable_sha256": "b96f4c8dd4609178c99fedd24a9e555fe5db17ba74af8e3a861101e58832c839"
+    }
+  ],
+  "retainer_source_sha256": "c4b18eef44975e51ff6ef42ba96ff8293a3dfc98bb909b44bb68ff6c4ec1449e"
+}

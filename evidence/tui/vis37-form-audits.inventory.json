@@ -1,0 +1,111 @@
+{
+  "status": "AUDIT_RECORDS_RETAINED_ONLY_CURRENT004_CAPTURE_RETENTION_BLOCKED_T44_NOT_PASS",
+  "archive_bytes": 210056,
+  "archive_sha256": "5cd9ffb786d7523ff3bcdb61b8918b95296b9728023962f03d9b1b2d12239018",
+  "tar_bytes": 1966080,
+  "tar_sha256": "b370c274974012eb120a64bb8bc617cf4014a578b5347ab8d5de7d69941365f0",
+  "inventory": {
+    "members": 19,
+    "logical_bytes": 1950256,
+    "member_inventory_sha256": "0b9fafafcbe9967ec787b19c7a997bf113d9d80465d176d169b79ec11838c7da",
+    "same_side_png_aliases": 0
+  },
+  "original_audit_files": {
+    "audit/form-before.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-independent-20261012-sole-verifier/before.json",
+      "bytes": 819787,
+      "sha256": "b2e8a014f5ba24ae11c1b82e5b97b71207ee0f6260dd3b2a95ffd43158b4fa95"
+    },
+    "audit/form-after.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-independent-20261012-sole-verifier/after.json",
+      "bytes": 595915,
+      "sha256": "e4e74c3c1542279903cfc296d79ab35eaf1883c498eaa359ca2846669ca0abcd"
+    },
+    "audit/form-verifier.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-independent-20261012-sole-verifier/verifier.py",
+      "bytes": 15630,
+      "sha256": "71678794a49b72f842aa858945b57834f61f36931b5196edc2e2bc59e709214a"
+    },
+    "audit/owner-refinement.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-independent-20261012-sole-verifier/owner_refinement.py",
+      "bytes": 2575,
+      "sha256": "b35df7957415aa97f13daab5336475faba450d66201ff5cba1ab391f4834a2d5"
+    },
+    "audit/prior-inverse.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-independent-20261012-sole-verifier/inverse_verifier.py",
+      "bytes": 59895,
+      "sha256": "28e94d3c2d9fdc28c7054919ad57263a3fd2e177a8aff01a88b3584aa9dcad1a"
+    },
+    "audit/prior-verifier.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-independent-20261012-sole-verifier/verifier.py",
+      "bytes": 53986,
+      "sha256": "052acc768f2952b8c3521bcd621e13277680913a5c4379813663a588682e06f7"
+    },
+    "audit/vis37-form-r4-independent.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-r4-independent.py",
+      "bytes": 5631,
+      "sha256": "de7799c4200012dcdc59d9e216c31632c788f5ab37c8c688a83d24e958e280e6"
+    },
+    "audit/vis37-form-r4-independent.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-r4-independent.json",
+      "bytes": 379631,
+      "sha256": "bcf3aa2519c252cf01ae07d108662eb955e99ed73961fddaa18889e0259b8e30"
+    },
+    "audit/vis37-form-capture-r4.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-capture-r4.py",
+      "bytes": 2325,
+      "sha256": "4e5093fdf9e6ae4bbe319c997579d1c014c3f29a8b38a51f8605c0913424213f"
+    },
+    "audit/vis37-form-r4-codec-diagnostic.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-r4-codec-diagnostic.py",
+      "bytes": 873,
+      "sha256": "fce347d1868f3389861658b8068f4f5d519d0637b4e31bad0db0460742b1e014"
+    },
+    "audit/vis37-form-delivery-inverse-20261012.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-delivery-inverse-20261012.py",
+      "bytes": 4064,
+      "sha256": "c5dac391a065553d649c5e7e05ef26e567fd237e79584d880d7b2a14a721a50b"
+    },
+    "audit/vis37-form-delivery-inverse-20261012.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-delivery-inverse-20261012.json",
+      "bytes": 1880,
+      "sha256": "af39af6f42831bc893572adf15a27cbafe02929e431253c15f1003432b38b936"
+    },
+    "audit/vis37-form-retain-audits-20261012.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-retain-audits-20261012.py",
+      "bytes": 4043,
+      "sha256": "1ab31cc8e8f220c41afa73d17086928184230a184eb411aebeaef3c93a472e74"
+    },
+    "audit/vis37-form-gate-r4-independent-recount.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-r4-independent-recount.log",
+      "bytes": 1864,
+      "sha256": "cec0b4464d5693df5a788076ee680b7b9340ed9a93a5e2e05ac4761b2fd46e1a"
+    },
+    "audit/vis37-form-gate-r4-independent-recount.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-r4-independent-recount.json",
+      "bytes": 460,
+      "sha256": "ed299c10a111314aef4f964a1de87d731b5c96865bf412cafa734dc9ef6550bf"
+    },
+    "audit/vis37-form-gate-final-independent-delivery.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-independent-delivery.log",
+      "bytes": 357,
+      "sha256": "deb359c0a5449759e6fb9b96e6992ee49ee480353b399af2e66e13eec7f6b2ae"
+    },
+    "audit/vis37-form-gate-final-independent-delivery.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-independent-delivery.json",
+      "bytes": 478,
+      "sha256": "4cbe9fb50524cbb81d50cd1a811c18f392408a147b9420ac1ca9a1f7480c8bb1"
+    },
+    "audit/vis37-form-gate-final-retain-gates.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-retain-gates.log",
+      "bytes": 404,
+      "sha256": "ae9edff3ba3c447f60b57a3fa2456b9c922cb90afc265cd8167915c4a7b4c2ed"
+    },
+    "audit/vis37-form-gate-final-retain-gates.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-gate-final-retain-gates.json",
+      "bytes": 458,
+      "sha256": "de92875806a7f4a8b4a9cf9e63fd4007926b1051becb7937c2de2abde69821e2"
+    }
+  },
+  "scope": "Audit reports and programs only, including current004 recount and historical003 inverse; no004 captured images/styled cells/VT/protocol retained here."
+}

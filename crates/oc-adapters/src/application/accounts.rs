@@ -1,0 +1,218 @@
+//! Safe account projection/mutation through the existing SQLite and request owners.
+use super::*;
+use oc_core::queries::{
+    AccountAction, AccountAuthSource, AccountKind, ProviderAccount, ProviderAccounts,
+};
+
+pub(super) fn scope(c: &Composition, provider: &str) -> Result<crate::auth::AuthScope, CoreError> {
+    let base = if provider == crate::models_dev::PROVIDER && c.generation.public_go_enabled {
+        crate::auth::GO_BASE_URL
+    } else if provider == "openai" && !c.generation.providers.contains_key(provider) {
+        // Well-known auth requires no model/configuration. Custom endpoint
+        // entries below still retain their separate admitted namespace.
+        crate::auth::OPENAI_BASE_URL
+    } else {
+        let entry = c
+            .provider_views
+            .get(provider)
+            .map(|view| &view.entry)
+            .or_else(|| c.generation.providers.get(provider))
+            .ok_or_else(|| CoreError::Application("provider connection unavailable".into()))?;
+        crate::endpoint::EndpointBinding::admit(
+            &entry.options.base_url,
+            entry.options.endpoint_trusted,
+            entry.options.endpoint_source.as_deref().unwrap_or_default(),
+        )
+        .map_err(|_| CoreError::Application("provider connection unavailable".into()))?;
+        &entry.options.base_url
+    };
+    crate::auth::AuthScope::for_binding(
+        provider,
+        base,
+        c.provider_for(provider)
+            .and_then(|p| p.wire.custom_scope.as_ref()),
+    )
+    .map_err(|_| CoreError::Application("provider connection unavailable".into()))
+}
+
+pub(super) fn connections(
+    db: &Db,
+    c: &Composition,
+) -> Result<Vec<oc_core::queries::ProviderConnection>, CoreError> {
+    let mut ids = c.provider_views.keys().cloned().collect::<Vec<_>>();
+    ids.push(c.catalog.provider.clone());
+    ids.sort();
+    ids.dedup();
+    // Go remains first without inventing an executable model or admitting an
+    // unknown/disabled connection. All other identities have deterministic order.
+    ids.sort_by_key(|id| id != crate::models_dev::PROVIDER);
+    ids.into_iter()
+        .filter(|id| scope(c, id).is_ok())
+        .map(|provider| {
+            let name = c
+                .provider_views
+                .get(&provider)
+                .map(|v| &v.entry)
+                .or_else(|| c.generation.providers.get(&provider))
+                .and_then(|e| e.name.as_deref())
+                .unwrap_or(&provider)
+                .to_owned();
+            let accounts = read(db, c, provider.clone())?;
+            let mut summary: Vec<String> =
+                accounts.accounts.iter().map(|a| a.label.clone()).collect();
+            if accounts.effective == AccountAuthSource::Environment {
+                summary.push(if provider == "openai" {
+                    "$OPENAI_API_KEY".into()
+                } else {
+                    "$OPENCODE_API_KEY".into()
+                });
+            }
+            Ok(oc_core::queries::ProviderConnection {
+                provider,
+                name,
+                source: accounts.effective,
+                summary,
+            })
+        })
+        .collect()
+}
+
+pub(super) async fn apply(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    c: &mut Composition,
+    provider: String,
+    action: Option<AccountAction>,
+) -> Result<ProviderAccounts, CoreError> {
+    let scope = scope(c, &provider)?;
+    if let Some(action) = action {
+        // Account management never mutates an already prepared request or active child.
+        if runtime.turn_active() {
+            return Err(CoreError::TurnBusy);
+        }
+        let result = match action {
+            AccountAction::AddKey { label, key } => db
+                .add_credential(
+                    scope.namespace(),
+                    &label,
+                    crate::storage::CredentialMaterial::Key {
+                        key: key.into_secret(),
+                    },
+                )
+                .map(|_| ()),
+            AccountAction::Activate { id } => db.activate_credential(scope.namespace(), &id),
+            AccountAction::Rename { id, label } => {
+                db.rename_credential(scope.namespace(), &id, &label)
+            }
+            AccountAction::Remove {
+                id,
+                confirmed: true,
+            } => db.remove_credential(scope.namespace(), &id),
+            AccountAction::Remove {
+                confirmed: false, ..
+            } => {
+                return Err(CoreError::Application(
+                    "account removal requires confirmation".into(),
+                ));
+            }
+        };
+        result.map_err(|error| query_storage_error(db, error))?;
+        c.attach_custom_connections(db)
+            .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
+        c.refresh_credentials(db)
+            .await
+            .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
+        // Redaction follows every newly captured scoped key, including an
+        // unselected connection that a subsequent child/request may use.
+        runtime
+            .publish_provider_credentials(&c.generation)
+            .map_err(runtime_error)?;
+        runtime
+            .publish_provider_state(
+                c.provider_state.clone(),
+                c.request_provider(&c.catalog.provider),
+            )
+            .map_err(runtime_error)?;
+    } else if provider == "openai" {
+        c.refresh_credential_preview(db)
+            .await
+            .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
+        runtime
+            .publish_provider_credentials(&c.generation)
+            .map_err(runtime_error)?;
+        runtime
+            .publish_provider_state(
+                c.provider_state.clone(),
+                c.request_provider(&c.catalog.provider),
+            )
+            .map_err(runtime_error)?;
+    }
+    read(db, c, provider)
+}
+
+pub(super) fn read(
+    db: &Db,
+    c: &Composition,
+    provider: String,
+) -> Result<ProviderAccounts, CoreError> {
+    let scope = scope(c, &provider)?;
+    let options = c
+        .provider_views
+        .get(&provider)
+        .map(|view| &view.entry.options)
+        .or_else(|| c.generation.providers.get(&provider).map(|e| &e.options));
+    let resolved = scope
+        .resolve(
+            db,
+            options.map(|o| o.auth_policy).unwrap_or_default(),
+            options.map(|o| o.api_key.as_str()),
+            options.is_some_and(|o| {
+                o.headers.keys().any(|n| {
+                    n.eq_ignore_ascii_case("authorization") || n.eq_ignore_ascii_case("x-api-key")
+                })
+            }),
+            || {
+                c.parent_env
+                    .get(if scope.is_openai() {
+                        "OPENAI_API_KEY"
+                    } else {
+                        "OPENCODE_API_KEY"
+                    })
+                    .cloned()
+            },
+        )
+        .map_err(|_| CoreError::Application("account resolution unavailable".into()))?;
+    let effective = match resolved.source {
+        crate::auth::AuthSource::Stored | crate::auth::AuthSource::StoredOAuth => {
+            AccountAuthSource::Stored
+        }
+        crate::auth::AuthSource::GoEnvironment | crate::auth::AuthSource::OpenAiEnvironment => {
+            AccountAuthSource::Environment
+        }
+        crate::auth::AuthSource::Configured => AccountAuthSource::Configured,
+        crate::auth::AuthSource::Anonymous => AccountAuthSource::Anonymous,
+        crate::auth::AuthSource::UnsupportedOAuth => AccountAuthSource::UnsupportedOAuth,
+        crate::auth::AuthSource::Missing => AccountAuthSource::Missing,
+    };
+    Ok(ProviderAccounts {
+        name: super::model_picker::provider_name(c, &provider),
+        provider,
+        effective,
+        accounts: db
+            .credential_accounts(scope.namespace())
+            .map_err(|error| query_storage_error(db, error))?
+            .into_iter()
+            .map(|a| ProviderAccount {
+                id: a.id,
+                label: a.label,
+                kind: match a.kind {
+                    crate::storage::CredentialKind::Key => AccountKind::Key,
+                    crate::storage::CredentialKind::OAuth => AccountKind::OAuth,
+                },
+                method_id: a.method_id,
+                active: a.active,
+                created_at: a.created_at,
+            })
+            .collect(),
+    })
+}

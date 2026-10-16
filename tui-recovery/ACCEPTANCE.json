@@ -1,0 +1,756 @@
+{
+  "schema_version": 1,
+  "purpose": "specifications, not executed product results",
+  "snapshot": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
+  "tracking": "T44 via existing progress.py; not a second engine",
+  "cases": [
+    {
+      "id": "VIS01",
+      "step": "V00",
+      "title": "Independent original capture",
+      "expected": "Reference binary/version/hash and terminal profile resolved; independent upstream frames captured. No own-renderer expected substituted for original.",
+      "sources": [
+        "P01",
+        "U01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS02",
+      "step": "V00",
+      "title": "Equivalent state and provenance",
+      "expected": "Paired scenario/fixture/profile hashes match. Different state or dimensions are INVALID, not PASS; supplied images used only as visual targets.",
+      "sources": [
+        "P01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS03",
+      "step": "V03",
+      "title": "Bare oc and route states",
+      "expected": "Actual bare oc opens TUI in TTY; non-TTY explicit error. Home/empty/populated/error states follow captured reference without mock fallback.",
+      "sources": [
+        "P16",
+        "U04"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS04",
+      "step": "V03",
+      "title": "Wide layout and sidebar",
+      "expected": "Original and oc paired wide frame has sidebar/title/context/location with correct geometry at >120 when enabled; no fixed 20-row viewport.",
+      "sources": [
+        "P04",
+        "P05",
+        "U03"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS05",
+      "step": "V03",
+      "title": "Resize and viewport",
+      "expected": "80x24,120x40,160x48 and widths43/44/119/120/121; >35-row transcript uses visible height, shrink/grow preserves cursor/scroll/draft.",
+      "sources": [
+        "P04",
+        "P05",
+        "U03",
+        "U04"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS06",
+      "step": "V02",
+      "title": "Data-driven chrome",
+      "expected": "Session title, model/provider display names, agent color, usage and known/unknown pricing come from actual DTOs, not renderer constants. Prompt metadata uses pinned Locale.titlecase for the active agent display label: build → Build, build-yolo → Build-Yolo, preserving separators and existing casing elsewhere. Preserve the original agent ID, selection and color; model/provider/variant labels remain unchanged. Width fitting/truncation uses the painted label. Extend the existing prompt-metadata regression test and verify paired original/native full styled-cell/PNG frames for simple and hyphenated profile names. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: Build/Plan/custom metadata and admitted profile color come from T45 R6 owner-backed definitions; verify actual selection/model/variant, not only display labels. Pinned U25/U27/U28/U29 are authoritative; backend and paired UI qualification remain separate. Follow the 2026-09-30 Agent-cycle keybindings clarification: default Shift+Tab cycles directly without a modal, picker remains on /agents and <leader>a, and footer/palette show effective canonical/legacy list/forward/reverse overrides. Explicit Tab-forward/Shift+Tab-reverse preserves focused completion/forms/dialogs, ordered eligible wraparound, draft/cursor/focus, guards and unavailable-choice diagnostics through the existing SelectAgent owner. Qualify actual binary effects and configured Tab capture against pinned OC2 separately from declared defaults; disclose deliberate native override differences. Reuse VIS10/VIS17 and T45 R6; approval is not runtime PASS.",
+      "sources": [
+        "P05",
+        "P10",
+        "U05",
+        "U25",
+        "U27",
+        "U28",
+        "U29",
+        "U76",
+        "U77"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS07",
+      "step": "V03",
+      "title": "Conditional devtools",
+      "expected": "Normal/reference production profile has matching debug bar visibility; hidden bar reserves no row; shown actions correspond to real capabilities.",
+      "sources": [
+        "P04",
+        "P05",
+        "U06"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS08",
+      "step": "V04",
+      "title": "Command palette actual hotkey",
+      "expected": "Raw Ctrl+P opens overlay Commands with focused Search, categories, right shortcuts and no transcript reflow. Selected action really executes.",
+      "sources": [
+        "P03",
+        "P07",
+        "U01",
+        "U02"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS09",
+      "step": "V04",
+      "title": "Model dialog search and selection",
+      "expected": "Select model uses display metadata, current-dot vs focus, scrolling beyond8 rows and exact model/variant identity. Follow Live model-selection parity clarification 2026-10-01 in T44_CONTRACT_AMENDMENT.md: picker is usable while authorized root work is busy and changes session/agent-local composer draft, not the active request or committed model. Captured send/command or blank Enter in an existing ordinary composer commits through the owner while busy; matching ack/events reconcile, error/stale echo cannot falsely confirm or erase a newer draft. Old prepared request/tools retain actual A; next natural request of the same task uses B without new user text, while draft-only/final-answer commit causes no generation/cancel/effect. Preserve text/chips/cursor/modal restoration and child/read-only/permission-form authority. Variant picker consumes shared T47/VAR01 canonical effort order: Default separate, supported enabled names only, stable aliases/custom order/exact ID, no independent lexical sort. Full paired styled-cell/PNG/cursor frames cover busy draft/commit/next-step geometry/colors/focus with identical canonical supplied order; separately label approved native differences on unsorted fixtures, no masking/universal pixel PASS. Reuse TOOL12/PRM01 actual effects/order and VAR01 wire/refresh/reopen evidence, VIS29 variant cycle and VIS17 request attribution; no whole-task dependency or duplicated backend matrix. T44 PAUSED, new qualification NOT_RUN.",
+      "sources": [
+        "P03",
+        "P10",
+        "U05",
+        "U66",
+        "U95",
+        "U96",
+        "U97",
+        "U98",
+        "U99",
+        "U100",
+        "U101"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS10",
+      "step": "V04",
+      "title": "Modal focus and backdrop",
+      "expected": "Cell styles reflect correct backdrop/surface, dimensions60/88/116 constrained by width; Esc restores draft/focus and does not quit app. Successful agent selection closes Select agent, restores prompt draft/focus and updates actual selection/metadata without an agent-selection success toast, matching pinned upstream; verify paired before/after full frames and the selected agent while preserving error feedback and unrelated existing warnings. In an existing multi-message session, hovering the user message changes only its block as upstream; mouse-up without selected text opens the matching Message Actions dialog, text selection does not. Jump to dismisses for the already visible message. Owner amendment 2026-09-26: Revert moves the active conversation/LLM-context boundary before the selected user message and refills the prompt, never restoring files; /undo targets the last preceding nonempty-text user message, and all Redo entry points clear the entire staged boundary and restore the saved tail without provider calls or tool reexecution, matching original clear-all behavior per VIS33 and superseding the earlier one-turn Redo exception. Raw history is retained, DCP summaries/pruning obey the restored context version, restart retains the boundary, and a new accepted prompt after undo invalidates normal redo of the old tail. Workspace content/modes and user Git index/HEAD remain unchanged; snapshots default off, snapshot:false and snapshots:false are accepted, true reports unsupported. Copy requests a clipboard write with the exact message text (verify the destination separately where supported, per VIS27), Fork creates a real session before that user message with the prompt restored. Paired normal/hover/dialog styled-cell and PNG frames against original with snapshots disabled plus post-action session/context, unchanged-workspace and clipboard evidence are required. Missing owner actions cannot be represented by inert menu entries. Owner-approved 2026-09-27 primary-profile contract in T44_CONTRACT_AMENDMENT.md: Shift+Tab cycles eligible profiles with donor order/wraparound instead of opening the picker; /agents/palette open the picker. Exclude hidden/disabled/subagent-only profiles from automatic surfaces. Qualify Build → Plan → custom → Build with actual owner selection, instructions/model/permissions and Plan enter/leave context, preserving draft/focus. Use T45 R6 and pinned U25–U29; no display-only parity or circular completion dependency.",
+      "sources": [
+        "P05",
+        "P07",
+        "U01",
+        "U25",
+        "U26",
+        "U27",
+        "U28",
+        "U29",
+        "U76",
+        "U77"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS11",
+      "step": "V05",
+      "title": "Keyboard modifiers, events and leader pending presentation",
+      "expected": "Ctrl/Alt do not leak printable chars; Press/Repeat/Release rules tested, leader shortcuts correct per focus, no duplicate submission. In a real PTY, Ctrl+C clears a nonempty focused prompt without exiting or sending a provider request; Ctrl+C on an empty root prompt exits; in a modal it clears the focused search or dismisses the modal without exiting. Real leader input must reproduce pinned OC2 composer/metadata muted presentation and normal restoration on sequence resolution/cancellation/idle expiry without another key. Verify default/configured leader and timeout precedence (leader.timeout, legacy leader_timeout, default 2000 ms), focused routing and successful/invalid/repeated-key/Escape/Backspace behavior against the original oracle. Pending alone preserves the complete draft and sends no provider request; a matched chord performs only its command. Compare full paired styled-cell/PNG normal/pending/restored frames: prompt text/model muted, prompt/agent highlight border.base, provider/variant original roles. Do not invent whole-transcript dimming, fade animation, crop/mask qualification or constant polling; text-only grids and native-only goldens do not prove color parity.",
+      "sources": [
+        "P07",
+        "U02",
+        "U24"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS12",
+      "step": "V05",
+      "title": "Multiline Unicode editor with shared prompt history and mouse caret placement",
+      "expected": "Raw newline/cursor/history/paste/edit sequence preserves graphemes, drafts, selection and single durable Enter acceptance. Follow T44 amendment Prompt input history parity — VIS12 (2026-10-03) and pinned U112/U113 with U02 history defaults: Home/session share one durable ordered input history (newest 50, consecutive-duplicate suppression, invalid/legacy drop) through the existing application/storage owner, without a new store/framework; session transcript window stays separate. Nonblank accepted prompts record before dispatch including shell/slash commands, blank Enter does not; clear-path follows donor retention without an invented threshold. Multiline Up/Down moves within draft first, then to raw edge, then history; autocomplete/modal/approval/question/mention own keys first. Recall restores text with existing file-chip/mention behavior under A13 text-mention limits, runs zero generation/tools, stays undoable, blocks older browsing after a recalled edit, and Down past newest restores the pre-browse draft as a disclosed native difference from donor emptyPrompt. Mini 200-ring (U114) is out of scope. Require nearest unit/input regressions, one bounded rebuilt-binary fake-provider PTY across session/Home/restart with Unicode/mention and autocomplete negative, then paired running-original/native full styled-cell/PNG/cursor at established profiles with labeled native differences; no crop/mask/native-golden PASS or paid campaign. Follow Mouse caret placement in prompt amendment (2026-10-03), U115/P23–P25: ordinary single Left click in the accessible Home/session prompt sets the real Editor insertion position at the clicked legal grapheme boundary, including mid-word; subsequent Char/paste/Backspace/Delete acts there. Exact phase/wide/wrap/blank/end/selection semantics require pinned textarea and running-original qualification. Use current painted inner text geometry/padding/wrap/visible-row/raw-offset projection, preserving chip expansion/mentions/selection, stale/resize invalidation, layer/focus/read-only/busy guards and effective blink. Hover/Right/Middle are not Left navigation; click causes no text mutation, submission/history recall/model commit/provider/tool effects. Require rendered RECON -> click between C/O -> type X -> RECXON, wrapped/scrolled Unicode/blank/end/resize/overlay/chip-neighbor regressions, rebuilt-binary real SGR Left Down/Up PTY and paired full before/click/after-edit styled-cell/PNG/cursor with independent edited/submitted-text assertions. Hardware-only/keyboard-substitute/source-only PASS is insufficient; no new task/editor/store/selection-port/paid campaign, VIS16/VIS31 blink remains separate. Missing runnable reference is BLOCKED_REFERENCE.",
+      "sources": [
+        "P07",
+        "P08",
+        "U02",
+        "U112",
+        "U113",
+        "U114",
+        "U115",
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS13",
+      "step": "V06",
+      "title": "Markdown table fidelity",
+      "expected": "2-column11-row Russian tool table rendered with reference borders/wrap/styles; escaped pipes, wide glyphs and long cells covered.",
+      "sources": [
+        "P06",
+        "U04"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS14",
+      "step": "V06",
+      "title": "Markdown streaming and code",
+      "expected": "Fences/headings/lists/inline spans match reference including incomplete stream; completed blocks not globally reparsed every frame. Follow the 2026-10-01 VIS39 child-TUI clarification: one shared parent/child/live/replay native grammar renderer covers all donor configured languages/filetypes/aliases/highlight queries and exact semantic token boundaries/fg/bg/italic/bold/underline/inline-code background, including muted reasoning styles. Freeze actual reference grammar/query assets and pin vetted native grammars, no JS/WASM plugin host or runtime download. Unknown-language fallback is not a waiver for missing required grammars; four heuristics/palette equality/native goldens cannot qualify. Preserve Unicode/wrap/streaming/theme/width invalidation and VIS31/32 bounds; plain Shell/tool labels and PTY ANSI palette remain distinct.",
+      "sources": [
+        "P06",
+        "U86",
+        "U87",
+        "U89"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS15",
+      "step": "V06",
+      "title": "Reasoning and footer truth",
+      "expected": "Collapsed/running/complete/error reasoning and known duration/usage visible; opaque encrypted continuation absent from UI/logs. In a paired two-turn transcript, final assistant text, agent/model attribution, and the next user's message have the same blank/styled row positions as pinned upstream, including wrapped text and replay; the entire frame remains subject to pixel-parity comparison, not a cropped-region PASS.",
+      "sources": [
+        "P06",
+        "P10",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS16",
+      "step": "V06",
+      "title": "Tool cards, partial patch and phantom-caret-free hover with preserved prompt blink",
+      "expected": "Live real operation events create correctly ordered cards/hunks/error/unknown/truncation. Incomplete/partial patch is never displayed as full success. Eligible Explored groups and long-output Shell blocks match upstream normal/hover/click-expanded/second-click-recollapsed full styled-cell and PNG frames, including scroll and actual recorded output after reopen; hover only highlights. Ordinary Read does not falsely offer full-file expansion and an upstream/tool-truncated result is not presented as recoverable data. Successful completed Shell tool cards omit synthesized exit-zero status and match upstream's one-row bordered command/output gap when output is non-empty, without a phantom separator for empty output. Verify one-line/multiline/empty output in paired full frames and replay/reopen; retain actual process output, recorded exit/output metadata and visible abnormal outcomes. Update the existing divergent Shell golden. Follow the 2026-10-01 Tool-output phantom caret and prompt blink amendment: no visible caret on tool/repaint rows during entry, fast mouse-move/leave/re-entry, expand/recollapse, recorded-output viewer scroll/resize/close. Preserve hover/click/selection and draft/chips/editor caret/focus. Input ownership excludes underlying composer caret in read-only overlays and restores it on close. Preserve effective shape/color/blinking/nonblinking/terminal-default behavior. With a fixed editor caret, actual frontend sequences must show at least three full normal blink cycles in idle, continuous hover repaint and restored composer, without reset-induced steady-on/steady-off or irregular flicker. Actual-binary bounded fake-provider PTY and complete-command cursor trace verify frame ordering, including Show-after-final-placement in the unsynchronized fallback; raw bytes/final-position assertions do not prove blink timing. Running pinned-original/native full styled-cell/PNG/cursor temporal captures and matched blink phases are mandatory; neither final-only/native golden nor hide/draw/show that suppresses blink qualifies. Follow owner-approved 2026-10-02 Tool-preview markers and Generic/MCP parity: no generated [Part preview truncated] or [output preview truncated; full result retained] dialogue/card-body rows in collapsed or expanded views. Generic/MCP starts collapsed and click toggles parameters/available bounded output, second click recollapses; preserve hover/selection/scroll/caret. Shell UI projection loss alone does not synthesize [truncated]; keep donor (N earlier line[s]), actual marker-like payload/producer notices/errors and honest incomplete-capture status/details. Minimal T50/R10 structured body/guidance/ref/capture/projection facts, not text stripping, a new store/schema, raw/provider rewrite or full-output recovery promise. One bounded fake-provider/MCP rebuilt-binary PTY with consecutive large MCP results and long Shell output proves collapse/expand/recollapse and invariants before paired running-original/native full frames; reuse TOOL21/TOOL13 resource receipts. Reuse VIS31 scheduling/idle and existing normal/error/panic restoration; no new VIS/task/framework/permanent repaint timer or paid calls. Qualification remains NOT_RUN until all required tool-card, phantom-removal and preserved-prompt-blink assertions pass; T44 remains PAUSED until explicit resume.",
+      "sources": [
+        "P08",
+        "P10",
+        "P11",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "U103",
+        "U104",
+        "U105",
+        "U108",
+        "U109",
+        "U110",
+        "U111",
+        "D11",
+        "D12"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS17",
+      "step": "V06",
+      "title": "Durable replay parity",
+      "expected": "Same session parts/cards/metadata render equivalently after page reload, session switch and process restart, with one durable owner. For a fresh session with a non-default profile and no explicit profile switch, the first user stripe matches pinned upstream during streaming, after completion/durable page replacement and after reopen. Both actual user and assistant message IDs retain correct turn association and agent/color metadata; verify real completed turn/history, not synthetic rows or renderer fallback. Paired full styled-cell/PNG frames and two sequential provider requests show unchanged selected agent ID/digest and profile instructions, no default-Build substitution under unchanged profile/config. No hard-coded profile/color or immutable historical-color rule across explicit profile switches; color/stable instructions do not prove provider KV cache, no credentials/raw live responses. Keep 2026-09-27 T44 primary-profile selection/instructions/model/variant and Plan reconciliation after compaction/Revert; reuse T45 R6 run --agent/omission and U26/U28/U30 receipts. The 2026-09-30 direct cycle uses the same owner, preserves draft/focus/restart and sends no generation/tool effects itself; a subsequent request gets selected profile instructions/model/variant, unavailable choices stay explicit. Follow 2026-10-01 Live model-selection parity: actual A/B/A request/assistant attribution in one task survives live/page/reopen/restart; current composer draft or committed B must not relabel A's already prepared stream/tools/approval or overwrite all steps with one turn model. Preserve old actual tool names/results and bounded compatible causal history without replay/current-file rereads. Reuse TOOL12/PRM01 barriers/order/backend receipts; T44 separately captures full paired old/new footer/card/replay frames, not another backend matrix. Follow owner-approved 2026-10-02 Clean dialogue and service diagnostics amendment: replace the long synthetic Live preview truncated line with one compact truthful viewing-status indicator outside answer text only for actual truncation, with working saved-history/cards access. No indicator on an untruncated short answer, persistent assistant warning, higher live/history/model caps, recovery promise for producer-discarded bytes, raw-history deletion or tool replay. Extend existing eviction and short-answer fixtures, actual binary/reopen and established full-frame qualification; predeclare compact native indication as a display difference, not invented donor parity. The 2026-10-02 Tool-preview markers and Generic/MCP parity extension also forbids generated [Part preview truncated] and [output preview truncated; full result retained] rows across live completion/page replacement, history paging, reopen/restart/resize, collapsed or expanded. Reuse VIS16's bounded fake-provider/MCP/Shell PTY, structured R10 provenance and paired full-frame fixtures; preserve actual literal payload/errors, available saved output and truthful capture loss, raw/provider results/artifacts and resource/access/no-replay bounds. No new persistent expansion state, guessed legacy marker stripping, eager cold-file restoration or producer rerun. Historical evidence/statuses unchanged, new qualification NOT_RUN and T44 PAUSED.",
+      "sources": [
+        "P01",
+        "P06",
+        "P10",
+        "U26",
+        "U28",
+        "U30",
+        "U29",
+        "U97",
+        "U99",
+        "U102",
+        "U108",
+        "U109",
+        "U110",
+        "U111"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS18",
+      "step": "V01",
+      "title": "Pending submit responsiveness",
+      "expected": "Stalled MCP initialize before accepted; actual PTY resize/cancel works within recorded bound, draft retained, no duplicate turn or orphan.",
+      "sources": [
+        "P08",
+        "P09",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS19",
+      "step": "V01",
+      "title": "MCP failure diagnostics",
+      "expected": "crw or faithful sanitized fixture exposes server+stage+safe cause; required failure not hidden; disabled zero spawn; exact auth/protocol per actual server. D13/MCP07: per-server attach failure visible while turn continues, initial failed tools absent; fatal cancellation/cleanup/caps remain non-success. Approved Service config/startup error parity amendment extends this to failed config and independent initial healthy/slow/failed connections before first prompt, usable TUI/history/status and real close/retry/recovery, disabled chrome with environment/timeout zero-spawn. T46 MCP09/MCP10/MCP08 behavior precedes paired presentation; safe owner facts, no stale catalog/secret/unknown-effect replay. Historical pre-D13 refusal evidence is not current acceptance or a visual waiver.",
+      "sources": [
+        "P11",
+        "P12",
+        "U54",
+        "U63",
+        "U64"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS20",
+      "step": "V07",
+      "title": "Source boundary",
+      "expected": "Discovered local .opencode symlink cannot admit external config; no outside content read/network before admission; explicit global root positive case.",
+      "sources": [
+        "P13"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS21",
+      "step": "V07",
+      "title": "Control-sequence and secret safety",
+      "expected": "CSI/OSC/BEL and secrets in fake outputs do not become terminal actions or leak into reports; Unicode/text remain usable.",
+      "sources": [
+        "P06",
+        "P08",
+        "P09"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS22",
+      "step": "V07",
+      "title": "Session and child integrity",
+      "expected": "Late events routed by request/turn/session/generation, permissions remain narrowed, subagent state genuine; Location switch does not import stale local state.",
+      "sources": [
+        "P08",
+        "P10",
+        "P11",
+        "P14"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS23",
+      "step": "V07",
+      "title": "Resource qualification after TUI change",
+      "expected": "Equal active context with growing archive measured on final real binary; styles/markdown caches/liveparts/queues bounded, not hidden by20 rows.",
+      "sources": [
+        "P04",
+        "P05",
+        "P08",
+        "P11"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS24",
+      "step": "V09",
+      "title": "Paired visual and final behavioral qualification",
+      "expected": "Session/Commands/Models paired cells+PNG exact under lock, all preceding cases accounted, fresh fmt/clippy/tests/build/PTY/golden and failed attempts retained; no premature READY.",
+      "sources": [
+        "P01",
+        "P02",
+        "P14",
+        "P15"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS25",
+      "step": "V05",
+      "title": "Slash autocomplete overlay",
+      "expected": "Typing / in the prompt opens an inline filtered list of built-in and current-generation workspace commands in both session and Home; Up/Ctrl+P and Down/Ctrl+N move the selection; Tab completes; Enter executes an argument-free built-in or inserts '/alias ' for an argument-taking/workspace command; Esc closes the list without discarding the draft; a space between trigger and cursor hides the list and an empty filter shows the no-match state. Paired original/native styled-cell/PNG frames for trigger, filtered query and after Tab. The canonical built-in session-list command is /sessions, with upstream aliases /resume and /continue; /session is absent from both built-in dispatch and autocomplete, not merely hidden in the renderer. Internal session.list remains unchanged.",
+      "sources": [
+        "U07",
+        "U08"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS26",
+      "step": "V05",
+      "title": "@ file mention overlay",
+      "expected": "Typing @ at line start or after a space with no spaces in the query opens a location-relative file list bounded to the admitted current-Location root (sorted, no absolute paths, no symlink/data-root escape); selection inserts a relative @path mention and submit reaches a real durable turn. Paired original/native styled-cell/PNG frames for trigger, filtered query and after Tab; skills/non-primary agent sections are deferred (T45) supported differences, not passed.",
+      "sources": [
+        "U07",
+        "U08"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS27",
+      "step": "V05",
+      "title": "Mouse selection and upstream clipboard feedback",
+      "expected": "Under the same terminal profile, original and native select mode: a mouse-up marked isDragging copies nonempty selected text, including word/line selection by repeated clicks without pointer movement; empty or ordinary non-drag release does not copy. Manual mode: right-button mouse-down copies an existing nonempty selection. Copy retains the highlight. A successful clipboard write shows the info toast 'Copied to clipboard'; failure does not show a success toast. Verify event/selection behavior and paired toast frames in PTY; separately verify the clipboard destination where supported. A toast frame alone does not prove that an external system clipboard received the text.",
+      "sources": [
+        "P01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS28",
+      "step": "V05",
+      "title": "Running agent indicator in lower-left prompt footer",
+      "expected": "In a real running session the lower-left footer, below agent/model metadata and before 'esc interrupt', shows the pinned eight-cell agent-colored blocks/trail scanner. With animations enabled, paired original/native temporal captures show forward motion, end hold, reverse motion and start hold at the nominal 40 ms frame cadence; compare matched phases, not unrelated wall-clock frames. With animations disabled both show '[⋯]' beside the interrupt hint. On completion or interruption the running indicator disappears. Metadata labels remain data-driven; a static spinner or an animation-off-only capture cannot pass this case.",
+      "sources": [
+        "P01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS29",
+      "step": "V05",
+      "title": "Ctrl+T cycles selected model variants",
+      "expected": "Owner-approved 2026-09-27 Canonical effort ordering in T44_CONTRACT_AMENDMENT.md supersedes only pinned declared order. Real PTY Ctrl+T/variant picker share selected-model T47/VAR01 order Default -> none -> minimal -> low -> medium -> high -> xhigh -> max -> custom -> Default, absent/disabled/reserved default skipped, no fabricated levels. Exact known explicit reasoningEffort ranks before name; absent effort may use standard-name rank, unknown explicit effort stays custom. Preserve case/whitespace/unknown IDs, distinct aliases/stable ties/custom source order, no lexical sort/dedup. Preserve model-ID/text draft, read-only/authority, explicit stale-cycle -> Default and empty/all-disabled no-op. Follow 2026-10-01 Live model-selection clarification: busy alone does not refuse local variant draft; captured send/command or blank Enter commits, next prepared request of the same task uses exact committed variant while old requests/tools retain actual variant. Shortcut/draft alone creates no request, commit after final answer does not generate work. Committed exact-ID selection survives reorder/refresh/reopen/restart; retired/disabled choice stays actionable without fallback. Fake Responses uses exact declared effort, no rank/name synthesis; Default has no overlay and differs from named none. Full paired original/native styled-cell/PNG/cursor frames cover canonical order and busy draft/commit geometry/colors/focus; identical unsorted fixtures disclose approved native ordering difference, no masking/universal pixel PASS. Reuse VAR01 ordering/wire/durability and TOOL12/PRM01 switching receipts, no whole-task dependency/duplicate owner. Qualification NOT_RUN, T44 PAUSED.",
+      "sources": [
+        "U02",
+        "U05",
+        "U66",
+        "U67",
+        "U68",
+        "U95",
+        "U96",
+        "U97",
+        "U99"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS30",
+      "step": "V04",
+      "title": "Sessions metadata and actions parity",
+      "expected": "The Sessions dialog uses real stored root-session titles with upstream fallback instead of router IDs, groups/orders by truthful update time with Today/date labels, and matches conditional project context, search and current marker. Paired full styled-cell/PNG frames cover named sessions on multiple days, search, selection, Esc and reopen. Confirm real selected-session rename, double-confirmed delete and current-directory/all-projects behavior with durable results, preserving Location and busy safeguards; no inert footer shortcuts. Use bounded application-owned metadata without changing ID-only list_sessions consumers. Missing legacy last-update data requires an evidenced migration/fallback decision before parity closure; never infer dates from IDs or label creation time as update time.",
+      "sources": [
+        "P07",
+        "P10",
+        "U01"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS31",
+      "step": "V06",
+      "title": "Demand-driven high-refresh rendering and idle efficiency",
+      "expected": "On the actual binary through PTY, wait for input, worker updates and real active-animation deadlines; do not unconditionally poll or draw. Paint only dirty visible state, coalescing bursts while bounding work so input, worker events and paints progress. After the view and pending deadlines settle, a stable idle interval has no periodic redraws or wakeups; the upstream scanner cadence remains independent of render pacing. Record measurement window, render attempts, changed frames/terminal writes, event-to-paint latency distribution, draw/write durations, queue behavior, wakeups and process CPU time. Exercise active changes with requested 6.06 ms (165 Hz) and faster frame budgets where measured render and terminal costs permit. A configured/requested cadence is not measured FPS or proof of physical terminal refresh. Set numeric latency/CPU thresholds from a recorded baseline; do not infer FPS from draw duration or configuration alone. Reuse the VIS16 phantom-caret/prompt-blink scenario for cursor-safe frame lifecycle: first background/resize/clear and fragmented diff output cannot expose transient cursor positions, final input-owner placement precedes visible presentation, and repeated repaint cannot suppress/reset normal prompt blink. Validate synchronized support and a correct non-support fallback; one outer hide before the pinned backend's Show-before-MoveTo is not sufficient. Keep bounded event progress/latency and zero periodic product redraw at settled idle; host blink must not introduce a permanent TUI repaint timer. VIS16 actual frontend temporal blink evidence remains mandatory and distinct from raw PTY ordering/final frames; no duplicated tool matrix or new gate.",
+      "sources": [
+        "P08",
+        "P09",
+        "U09",
+        "P17",
+        "P20",
+        "P22",
+        "D11",
+        "D12"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS32",
+      "step": "V06",
+      "title": "Responsive wheel scrolling and live viewport anchoring",
+      "expected": "In the cell-based Crossterm path, preserve wheel displacement and pinned upstream default speed semantics where the protocol permits; inspect the pinned MacOSScrollAccel implementation before claiming its acceleration parity. Bound input work and coalesce compatible wheel bursts without losing displacement, changing direction/boundary semantics, starving paints/workers or replaying stale input as a long catch-up. While the target offset is unsettled, animate toward it using active frame deadlines only, promptly rebase on reversed input and stop scheduling when settled. Motion remains row-quantized; directional wheel events do not provide pixel scroll deltas. While scrolled away from bottom, keep the visible message anchor stable during streaming and history paging; at bottom preserve sticky follow. In PTY verify transcript/Shell/list-dialog routing without editor-focus changes, single and fast/reversed ticks, both history edges, and a live stream; measure event-to-paint latency and settle time at 165 Hz and faster requested budgets. No periodic work remains after scrolling settles.",
+      "sources": [
+        "P08",
+        "P09",
+        "U04",
+        "U10"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS33",
+      "step": "V04",
+      "title": "Message Revert and original-compatible clickable Redo marker",
+      "expected": "In a real session with at least three completed user turns, click an earlier delivered user message without selected text and activate Revert in Message Actions. Verify modal dismissal, restored prompt and committed conversation/context boundary hiding multiple user messages, with no workspace/Git changes. Show the upstream-shaped N message(s) reverted block with truthful restorable-user-message count from the durable owner, hover and a keymap-derived restore hint (default ctrl+x r or /redo to restore). In separate action runs, marker click, configured shortcut, /redo and palette Redo must each clear the entire staged boundary, restore the whole saved tail and remove the marker, not restore only one turn. Selected text prevents marker-click restoration; owner failure preserves the boundary/block and reports an error. Verify durable count/boundary after session switch/reopen and invalidation of normal old-tail redo after a new accepted prompt. Restore saved messages/tool pairs/context without provider calls or tool reexecution. Compare full styled-cell/PNG frames with pinned OC2 under snapshots disabled; preserve truthful conversation-only menu wording, never promise file restoration. Pinned source URLs/locators are in U11-U14 and the T44 spec/amendment; older stepwise-Redo reports do not qualify this corrected contract.",
+      "sources": [
+        "P08",
+        "P09",
+        "U11",
+        "U12",
+        "U13",
+        "U14"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS34",
+      "step": "V06",
+      "title": "Session compaction command, lifecycle and animated transcript parity",
+      "expected": "Exercise /compact and palette against real owner operations, distinct from DCP compression. Verify pending compaction coalescing and safe-boundary delivery while preserving pending input. Compare queued, running, completed, failed and cancelled transcript states with pinned OC2: horizontal rules on both sides, spacing/theme roles, streaming Markdown summary, Braille spinner at 80 ms and animations-disabled ellipsis. Completed usage is actual compaction-request usage: input plus cache read/write, output plus reasoning, using compatible number formatting, never resulting context size. Verify checkpoint and next provider context, raw-history preservation, valid tool pairs and replay after reopen without tool reexecution. Cover automatic context-threshold compaction and overflow recovery with deterministic runtime evidence. Preserve DCP and conversation-only Revert invariants. Supported provider-native completion is Provider compaction without invented summary body. Instructions updated remains a separate instruction event. Require paired full styled-cell/PNG states and a running frame sequence; a static frame or working /dcp-compress does not qualify. No compaction animation deadlines remain after terminal state. Follow T44_CONTRACT_AMENDMENT.md section Compaction configuration/runtime parity — дополнение к VIS34 (owner-approved 2026-09-27): shared auto=true/prune=true config loads in real TUI/headless entry points; legacy prune is omitted with a nonfatal unsupported diagnostic, not an added pruning algorithm. Match TS per-leaf normalization, aliases/conflict diagnostics and layered defaults; compare normalized configuration and ordered safe diagnostics with pinned TS fixtures. Verify auto=false disables threshold and overflow recovery but preserves manual compaction; match TS usage-based estimates, threshold boundaries and checkpoint guards through restart. Rebuild and verify target/release/oc. Backend and existing paired UI gates are both mandatory.",
+      "sources": [
+        "U15",
+        "U16",
+        "U17"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS35",
+      "step": "V06",
+      "title": "Selected Write/Edit/ApplyPatch effects, model switches and full OC2 visual parity",
+      "expected": "Follow File-mutation parity and Live model-selection clarification 2026-10-01 in T44_CONTRACT_AMENDMENT.md. T50/R1/R9 supplies exact case-sensitive OC2 model.id contains gpt- and neither oss nor gpt-4 -> apply_patch only, otherwise edit/write only, then policy narrows. Mandatory GPT->non-GPT->GPT inside one working task: local picker draft differs from busy commit, next request replaces tools/managed guidance without new user prompt, old prepared stream/tools/approval keep actual model/view and issuing-request allowset. A's issued patch is not invalid solely because B/edit-write is selected; compatible retained outcomes/history survive without alien opaque replay. Raw historical tool names/results stay actual. Reuse TOOL12/TOOL20 protocol/bytes/admission and VIS09/VIS29/VIS17 attribution receipts, no whole-T50/T45 dependency or duplicate matrix. Exercise real OC2 patch/native apply_patch create/empty/update/full replacement/delete/move/multi-file, plus write create/overwrite/empty/parents and edit unique/all/count/CRLF/BOM. Independently verify bytes/modes/schemas/matched results/durable confirmed changes. Distinct Write # Wrote path/numbered syntax original-input content/Preparing write fallback, Edit ← Edit path/first-file result PatchDiff/Preparing edit fallback and existing ApplyPatch Created/Patched/Deleted/Patching/Patch failed per-file states match pinned originals, not generic/fake patch cards. Full paired styled-cell/PNG/cursor frames cover geometry/spacing/theme fg-bg-attributes/shared grammar syntax/gutters/old-new numbers/unified-split-auto at 120/121/wrap and observable pending/running/completed/error/permission accept-reject. Truthful partial/cancelled/unknown and preview-versus-confirmed distinction remain. Durable input/results/effects replay without current-file rereads/reexecution; old cards retain actual names after switch. Shared VIS36 previews/policy/DCP/boundedness and native ordinary patchText schema remain, no other model/reasoning/vendor routing. Retain A09 model-authored patch coding/reopen/expected-path flow; scripted calls do not prove proficiency. Native goldens/historical single-patch PASS/cropped mocks do not qualify. New qualification pending/NOT_RUN; T44 PAUSED until explicit resume.",
+      "sources": [
+        "U18",
+        "U19",
+        "U20",
+        "U86",
+        "U87",
+        "U90",
+        "U91",
+        "U92",
+        "U93",
+        "U94",
+        "U95",
+        "U96",
+        "U97",
+        "U98",
+        "U99",
+        "U100",
+        "U102"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS36",
+      "step": "V05",
+      "title": "Full supported-action Approve permission lifecycle and OC2 UI parity",
+      "expected": "Implement real application-owned pending query/events/replies and cancellable pre-effect waiting, scoped to operation/session/pinned generation. Leaf-prepared requests carry actual resources, explicit save patterns and previews; invocation-local Once covers rechecks without widening authority. Effective Deny and structural ceilings cannot be bypassed. Typed plain Reject interrupts execution and rejects remaining same-session pending requests; child feedback follows corrected continuation. Waiting is not started/unknown effect; cancel/shutdown/drop/stale replies/restart never authorize replay. Always commits deduplicated donor-project-identity grants before acknowledgement, survives restart, isolates unrelated projects and reevaluates eligible pending requests; Once/autoaccept write no grants. Reproduce original lower prompt/fullscreen geometry/theme, root/descendant routing, request-keyed reset, supported previews including edit diff metadata precedence/word wrap, conditional Always/pattern explanation, mouse/keyboard/effective shortcuts/app.exit/Esc, child feedback, complete draft restoration, reply errors, tool warning/denied and tab attention. Implement Settings/palette/config/CLI prompt-autoaccept controls and explicit once-consumers, including supported headless auto; no-channel headless fails. Qualify actual effects with owner integration and paired full styled-cell/PNG evidence, covering persistence/project identity, denial, lifecycle, mode precedence and 79/80,120/121 boundaries. Share patch accept/reject evidence with VIS35 without circular completion dependency or duplicated tool/viewport/state cross-product; no new framework/dashboard or Unsupported waiver. Behavior and visual results remain separate; existing native policy differences are disclosed, not relaxed or claimed identical. Approved 2026-10-01 T50 edit/write uses shared canonical mutation permission/grants and real parsed path, before/after preview and approved identity/bytes/absence recheck after wait; selection/tool-name switch cannot bypass Deny/Plan/child/data-root/protected paths or grant scope. Write overwrite/empty/new and edit unique/all display truthful pre-effect diffs, not completed effects. Follow Live model-selection clarification: an authorized busy commit does not cancel/relabel/rebind the waiting A call/resources/preview/approval to B or check its allowset against B's new catalog. Original request model/view and normal policy/preimage remain; respect form focus, no forced hidden-composer Enter. Next request may adopt B after settlement, old approval/card identity survives replay. Reuse TOOL12 barriers and TOOL20 race/path/durability receipts plus VIS35 visuals, not duplicate matrices; statuses/evidence unchanged, new qualification NOT_RUN and T44 PAUSED. Follow approved 2026-10-01 Autoaccept mode completion in T44 amendment, not a fresh backend port: hidden --yolo/--dangerously-skip-permissions use Args.auto in bare TUI/tui/run; process-only CLI priority over saved session.permissions survives Settings Prompt/reload, restart without flag uses saved preference. Barrier-test already-pending/new Prompt-to-auto Once, auto-to-Prompt manual wait, save/reply error/cancel/stale and owned root/foreground/background child routing; observed duplicate-drain/two-step-mode risk is not a proven bug. Independently verify Ask effects/zero auto grants, Deny zero effects/grants (whole-run nonzero not mandatory), unconsumed headless Ask actionable nonzero even config autoaccept, no auto-generated question answers, no effect/pending replay. Native headless child coverage is a declared extension over donor exact-session filter, preserving own child policy/profile and foreign isolation. Real Settings/palette/filtered entry/effective marker, draft/chips/cursor/focus/tool/tab attention and full paired styled-cell/PNG/cursor transitions are mandatory. Previous Once evidence is historical, not current-HEAD/full parity PASS; no new task/gate/policy engine/paid campaign or historical rewrite.",
+      "sources": [
+        "U20",
+        "U21",
+        "U22",
+        "U23",
+        "U91",
+        "U92",
+        "U97",
+        "U99"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS37",
+      "step": "V05",
+      "title": "Question FormPrompt interactions, transcript and full OC2 visual parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section Question UI parity — VIS37. First deliver the T50/R4/TOOL15 backend/real answer-consumer slice: actual model question call, application-owned pending/wait, typed PTY answer/cancel, durable outcome and ordered answers in the next provider request. This is a slice prerequisite, not completion of all T50 or a reverse task dependency; independent T44 work remains ready. Then reproduce pinned OC2 lower FormPrompt placement, geometry/theme/strings, question/option descriptions, ordinals/hover/focus/selected markers, single/multiple and automatic custom-answer editing, multi-question tabs or narrow progress fallback, applicable review/Submit and footer hints. Match effective keyboard/mouse/text-selection routing, state-specific Esc/Ctrl+C, request-keyed reset, composer priority, within-process form drafts across tab remount and ordinary composer draft/chips/cursor/focus restoration. Submitting/reply error/dismissal use real owner state; never invent answers, autoanswer with --auto, or confuse permission approval with question. Match pending Asking questions…/Asked n question(s) and result-derived # Questions with ordered actual metadata.answers; replay/reopen/restart without reasking or reexecuting tools, truthful cancelled/error states. Require running pinned-original/native full paired styled-cell/PNG and cursor evidence under identical fixtures/profile/state, representative existing 80x24/120x40/160x48 and tab-fit/long-text cases, plus independently checked actual answer/result and next request. Reuse TOOL15 backend evidence without duplicating its negative matrix or every type/viewport/state combination. Behavior and visual results stay separate; native-only goldens, static widgets, crops/masks and historical PASS do not qualify. Preserve effective Deny, General/Explore restrictions, bounded pending/replies, immutable history and stale/foreign reply protections. No arbitrary Form/OAuth/external-URL framework or new tracker.",
+      "sources": [
+        "U31",
+        "U32",
+        "U33"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS38",
+      "step": "V06",
+      "title": "DCP transcript reports, truthful durable accounting and compact K/M display",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section DCP compression display — VIS38. First deliver actual model/manual compression accounting and typed durable operation/history projections: one stable session-scoped run/card for a successful multi-range call, genuine topic/block provenance, unique newly-covered message/tool occurrences, separate cumulative gross removed/active-summary and per-run removed/summary estimates with disclosed method. No repeated counting of inherited covered IDs, process-global counters, fabricated legacy metadata, net byte-saving relabeled as gross or billed-usage claims; pure summary recompression can have zero newly-covered Items while still reducing projection. Only successful atomic commits publish success metrics. Default detailed/chat renders between agent steps: raised OC2 transcript block with split left border, cumulative DCP header, blank row, 50-cell categorical message-position map (ordinary █, previously active-compressed ░, recent ⣿), Compression #N metrics, Topic and Items, donor zero/multi-range formatting. Running DCP/Compressing… uses actual owner state and existing animation policy; no-gain/denied/error/cancel/unknown remain truthful. Preserve off/minimal/detailed independently from chat/toast and showCompression; default hides summary body, true adds the real bounded/paged stored summary. Share integer/K/M token formatting across header/run/panel/notifications: base 1000, at most one decimal, half-up, trim .0, rounded 1000K promotes to 1M, 4218800 becomes 4.2M; preserve unrounded counters. Frozen historical header/bar/metrics survive session switch/reopen/restart; current panel follows current committed branch/revision, Undo/Redo hides/restores cards/versions without provider/tool replay or abandoned-tail totals. No additional model-visible user messages, duplicate reports or full-archive presentation loads; late/child events cannot corrupt another session. Require independently checked reduced next provider request, immutable history/graph and accounting, then running original pinned DCP formatter payload rendered in actual OC2 versus native full styled-cell/PNG/cursor captures at established profiles and representative long text. Source-derived display comparison is distinct from native runtime evidence and does not establish legacy plugin/OC2 compatibility. Missing executable reference remains BLOCKED_REFERENCE. Declare only owner-approved M/rounded-unit promotion and existing native toast mapping as named unmasked display differences, not arbitrary crop/mask/golden waivers. Reuse A07/A08/A10, VIS21/22/23/33 and applicable T45 evidence without duplicate negative/viewport matrices; equal active context over growing archives must keep loaded presentation state bounded. T44 owns the display slice, T45 retains DCP10/DCP11 algorithms, no whole-T45 completion dependency/new task/store/framework. VIS34 native /compact and historical UI04/T39 panel/status-notice evidence do not qualify VIS38. Preserve DCP provenance/license/notices and existing safety invariants.",
+      "sources": [
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "U34"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS39",
+      "step": "V06",
+      "title": "Full child TUI, Subagents/Shell/Terminals controls, syntax, colors and temporal parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section Subagent delegation parity — VIS39. T45/R3/SUB01/SUB02 first supply actual concurrent foreground/immediate background, typed durable child/operation/launch/current-state/result/delivery projections and Ctrl+B conversion; T44 owns presentation qualification, no whole-T45 completion dependency/new task/store/framework. Preserve native closed-response/schema-validation-before-tool-admission: no partial-JSON execution or free-text child/status inference. Match three argument-stream Delegating… rows, populated agent/description and explicit model/variant, continuation, actual live running versus terminal tool, persistent Background launch badge, source icon/spinner/InlineToolRow fallback/wrapping/padding, semantic fg/bg/attributes, denial/error/permission/cancel/unknown and selection-safe hover/click/error expansion. No extra bordered result/session-ID block. Actual Thought parts/duration and parent response footer, not child-count steps or OCR constants. Durable source=subagent notices have actual child/agent/state/description/result and delivery identity, finished/failed/cancelled heading/icon/color, muted width-truncated suffix and child navigation, not toast/generic Notice/fake footer. Barrier-controlled three-child fixture proves parent answer while children run, first completion/continuation then two notices before follow-up; ordinary child refusal prose is completed, not runtime failure. Match real lower Subagents composer active/inactive/current/focused/running/empty/scroll, actual keymap/mouse/interrupt/parent navigation, Ctrl+B owner-backed backgrounding and draft/focus/permission-question priority. Family footer counts/root-tab busy/attention/unread differ from parent own-running scanner. Require 80-ms Braille/no text shimmer and source continuation/fallback branches, tab pulse/tint/glow/easing/state transitions and source-specific animation-off behavior; reuse VIS28/VIS31, no global phase synchronization or permanent idle polling. Full running pinned-original/native styled-cell/PNG/cursor comparison at 80x24/120x40/160x48 with representative Unicode/long labels includes animation-on temporal sequences AND off fallback, normal/hover/selection/error-detail/composer effects. Native goldens/static frames/off-only/crops/masks/tolerance cannot qualify; missing executable reference remains BLOCKED_REFERENCE. Reuse SUB01/SUB02 and VIS15/17/21/22/23/28/31/33/36/37/A02/A08/A10 evidence without duplicate negative/theme/viewport matrices. Replay/reopen/restart uses persisted notices/metadata and current child status without duplicate delivery/provider/tool replay or unknown-effect retry; bounded family/history queries/caches/queues, immutable history, conversation-only Undo/Redo, permissions/parent-child narrowing/cleanup remain. No sleep300/new paid campaign, Explore policy widening or excluded native tools. Preserve pinned provenance/licenses and prior failed/blocked evidence; plan approval is not PASS. Approved 2026-10-06 pending restricted-error child consumer follows the VIS43 common details contract: current authoritative retry preview and normal linked retry-row child-to-details activation, existing failed-row inline toggle before navigation retained. Capture exact safe owning fact after route reconciliation; historical/legacy linkage never implies active retry. Shared dialog/input/form-preemption evidence reused; U129 supplemental OC1 interaction is a native extension, U130 OC2 alert surface, not global repin/full OC1 frame parity.",
+      "sources": [
+        "U02",
+        "U35",
+        "U36",
+        "U37",
+        "U38",
+        "U39",
+        "U40",
+        "U41",
+        "U42",
+        "U43",
+        "U44",
+        "U45",
+        "U46",
+        "U47",
+        "U48",
+        "U49",
+        "U78",
+        "U79",
+        "U80",
+        "U81",
+        "U82",
+        "U83",
+        "U84",
+        "U85",
+        "U86",
+        "U87",
+        "U88",
+        "U89",
+        "U129",
+        "U130"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS40",
+      "step": "V04",
+      "title": "MCP servers modal, truthful controls and full styled parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section MCP modal parity — VIS40. T46/R5/MCP08 first delivers bounded typed current-Location/config-generation status snapshots/events and actual async connect/disconnect/retry with genuine initialize/catalog/cleanup effects; no whole-T46 completion dependency/new task/store/framework. Then /mcps, autocomplete and palette MCP servers open the medium overlay without transcript reflow. Match pinned Dialog/DialogSelect geometry/backdrop/v2 dialog surface, Search/fuzzy filter, No items available versus No results found, name-sorted real servers, truncation/scroll/resize, selection-preserving status refresh and cursor. Right statuses are Connecting …, bold Connected ✓, Failed !, Sign in required → and Disabled ○, not OCR Enabled columns/checkboxes; disabled server remains a selectable connect target. Actual focused status determines connect/disconnect/retry/sign-in hint with effective Space binding, empty/no-match action disabled, pending/loading suppresses duplicates. Match normal/focused/footer-focused/disabled semantic fg/bg/bold/blank-cell backgrounds/alpha; selected status follows shared Select focus override, not permanently green/red. Real keyboard/remap/mouse/footer navigation, Space action versus Enter details/no-op, safe MCP server error details/back/copy/investigate and common Esc/Ctrl+C/search/selection/draft/chips/cursor/focus behavior. Investigate prepares a safe draft without auto-submit; details never publish raw errors/URLs/headers/env. No component spinner/shimmer/fade: compare owner-driven pending/success/failure/retry/disconnect transitions, animations on/off surrounding UI/cursor as relevant, no idle polling. Configured-enabled is not connected; runtime toggles do not silently persist config or replay operations on reopen/restart. Preserve immutable in-flight requests/safe catalog boundaries, stale Location/generation routing, D13 visible per-server degradation, fatal cancel/cleanup/caps, permission/authority/redaction/negotiation and sticky unknown-effect quarantine. Disabled browser zero automatic spawn/probe; explicit connect fixture uses fake stdio. OAuth/integration sign-in stays an honest predeclared unsupported capability, not a working flow/full behavioral parity. Require rebuilt actual-binary fake HTTP/stdio/catalog/process effects then running pinned-original/native full styled-cell/PNG/cursor at80x24/120x40/160x48, representative Unicode/long-name/scroll/search/details/focus/action cases, no OCR/native-only golden/crop/mask/tolerance waiver. Missing executable reference BLOCKED_REFERENCE. Reuse VIS10/11/19/21/22/23/31/MCP07/MCP05/AUD23 and applicable A02/A06/A08/A10 evidence, not a duplicate negative/theme/viewport matrix or new paid/browser campaign. Backend/visual and T46 R4 live qualification remain separate, prior statuses/evidence/baseline preserved. Owner-approved 2026-10-02 audited slices: safe effective configured keys (chrome-devtools/codex_web/crw are fixture examples, not production constants) drive name/search/sort/detail title rather than ordinary-name hashes or handshake serverInfo.name; opaque id/binding still drives selection/actions and MCP08 owns initial/activation label protection. Basic typed status/pending_action footer tone/bold correction is independent of label work and footer-action focus debt, preserves unrelated Select defaults and exact source icons/labels. Unselected Connected is success/green and bold, Failed error/red; focused foreground overrides the color but not intrinsic Connected bold, other status footers do not become bold. Any loading action including disconnect displays Connecting …; unsupported OAuth cannot fabricate needs_auth. Extend nearest style regression and existing binary/paired label/action scenario, no new matrix. Full VIS40 still requires all existing footer-focus/interactions and paired captures; clean-dialogue/tool-preview-first after explicit T44 resume and active T50 safe handoff remain. New assertions pending/NOT_RUN, no approval PASS or status/evidence change.",
+      "sources": [
+        "U02",
+        "U49",
+        "U50",
+        "U51",
+        "U52",
+        "U53",
+        "U54",
+        "U55",
+        "U63",
+        "U64"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS41",
+      "step": "V03",
+      "title": "Session tab hover-marquee and full temporal styled parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md section Session tab spinner and hover-marquee parity — VIS39/VIS41. T44 owns this independent title slice; the working-tab spinner remains VIS39, no new backend task or all-T45 dependency. Use current real title/stable session identity from the existing bounded projection and actual pointer/painted geometry; visual hover is independent of close/switch eligibility without weakening action guards. Overflow is measured at source hovered title width, including ordinal/close reservation; short/exact-hover-fit titles stay stationary. Match horizontal/vertical geometry and compact vertical rail no-marquee. Wait 600 ms, set offset1, step one display cell every80 ms through title plus generated spaced-dot separator, complete exactly one cycle, return offset0 and stop; repeated motion/status/redraw within the same unchanged hovered tab does not restart it. Match source enter/deferred-leave/reset/disposal and title/layout/hidden-tab reconciliation. Grapheme/display-width slicing never splits wide glyphs; leading/trailing four-grapheme fades use actual fg/bg and the source250-ms opacity tween, generated separator dot tint0.55, not dots within the title. Preserve selected/inactive/hovered attributes and blank backgrounds. Animations:false still runs stepwise marquee; only leading fade tween jumps, unlike the static first-frame tab spinner. Do not substitute rename shimmer, VIS28 prompt scanner, an infinite ticker or static title fade. Extend nearest clock/state/render tests, then actual rebuilt binary/fake-provider PTY hover→delay→motion→settled/leave with a motionless pointer and no extra input/submission/tool effects, plus shared VIS39 running→terminal evidence. Require running pinned-original/native full paired temporal styled-cell/PNG/cursor sequences at existing profiles with matched phases, on/off and representative short/long/exact-hover-fit/Unicode titles, active/inactive/busy hover, close routing and resize. Reuse VIS05/06/11/21/22/23/28/31 and applicable family/attention evidence; family truth still requires SUB01/SUB02, not a fake busy flag. No permanent polling/widget timer/new clock framework, archived-session growth or duplicated backend/theme×width×state matrix/paid campaign. After the one cycle/finite fades and other visible deadlines settle, no periodic idle wakeup/redraw remains. Static/native-only/off-only goldens, crops/masks/tolerances or baseline rewrites do not qualify; missing reference is BLOCKED_REFERENCE. Preserve provenance/failed attempts and prior task statuses/evidence. Own-tab/VIS41 results do not close full VIS39.",
+      "sources": [
+        "U47",
+        "U49",
+        "U56",
+        "U57",
+        "U58",
+        "U59"
+      ],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS42",
+      "step": "V04",
+      "title": "Failed plugins and service readiness: safe diagnostics and usable application",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Service config/startup error parity — VIS19/VIS40/VIS42 and owner-approved 2026-10-02 Clean dialogue and service diagnostics. First user-facing slice after explicit T44 resume: zero nonfatal background config/plugin/provider/MCP warning rows in dialogue before answers or between turns, including matching completion warnings. Compact real status/counts and safe Settings, /plugins and /mcps details remain visible; brief actionable notifications only for new/changed failure or failure after recovery. Identical snapshots/refresh/unchanged reload/parked-tab updates do not re-alert, pending is status rather than failure, recovery clears only owned stale feedback and stale generations cannot alter another Location/view. Full opaque hashes/provenance/code/retryability belong in details, not dialogue/technical toasts; no raw config identity substitution or warning-text classification. Actual-binary reconstructed dialogue-region and independently counted notification assertions include reopen/restart/resize; safe technical details may remain in detail screens/PTY logs. T51 CFG09/CFG10/UI07 and T46 MCP09/MCP10/MCP08 first prove actual backend state/effects, no whole-task completion dependency. /plugins/palette list real bounded compiled-native admission/activation, failed/UnsupportedPlugin inventory and safe details; healthy aliases survive, rejected revision not active/hidden, no JS/resolver/install/hot-load controls. Match pinned list/search/footer/gutter/error/focus/theme/geometry and shared dialog routing. Service/status/sidebar/integration feedback follows owner facts: provider/discovery/credential failure leaves TUI/history/model picker usable, explicit model remains, unavailable prompt gives one actionable error before effects, admitted recovery/user selection drives next request. Show typed safe source/field/service/stage/code/action in details/copy/investigate without raw env/URL/header/secret/ANSI or text classification/auto-submit. Preserve genuine request/tool/generation errors, VIS43 retry and nonfatal operation feedback, drafts/chips/cursor/focus, Location/session routing, reload/reopen/restart and bounded idle behavior. Fatal native startup frame remains non-success with concrete safe cause/action and functional terminal/exit checks, not invented donor pixel parity; headless stderr/nonzero/NDJSON unchanged. Require actual running-original/native paired full styled-cell/PNG/cursor production-component fixtures at existing profiles and representative long Unicode list/details/error/recovery, plus independent effects. Predeclare sanitized/native-only/unsupported capability differences, no fake actions/hidden rows/crops/masks/native-golden PASS. Reuse VIS19/VIS40/10/11/20/21/22/23/31 and backend negative evidence; no duplicate matrix/framework/paid/browser/npm campaign, historical PASS rewrite or quarantine reset/unknown-effect replay.",
+      "sources": ["U02", "U49", "U51", "U52", "U54", "U55", "U60", "U61", "U62", "U63", "U64", "U65", "U106", "U107"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS43",
+      "step": "V06",
+      "title": "Provider-error retry assistant footer, countdown and explicit safe details",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Provider-error retry footer — VIS43. T54/RET01 supplies genuine finite provider-retry/continuation lifecycle and safe span-bound durable facts first; T53/GO03 and T57/AUTH04 consume its policy, no whole-task dependency. Pinned AssistantFooter/AssistantRetry renders indented 3-cell warning-semantic '⚠ Retrying in Ns · attempt N · <safe error>' using max(0,ceil((at-now)/1000)), updates on the source 1s cadence and shows '⚠ Retry due' at zero, never 'in 0s'; ordinary wrapping, one blank row before agent/model footer, Error: suppressed while retry exists, muted agent only when span has error, no retry-specific spinner/footer truncation/automatically opened modal. Retry may remain on completed failed historical assistant after partial continuation and later success; clear a current open assistant on semantic step.started/terminal as source dictates, not blanket-clear at HTTP POST or success. Retained tab/park/reopen, session/step routing, busy/cancel/draft/cursor and stale snapshot reconciliation use existing owners; static historical retry never starts work or marks a session busy, and due stops periodic UI work. Source-derived deterministic timer/render and actual rebuilt binary fake-provider PTY/headless effect/status tests precede running pinned original/native paired full styled-cell/PNG/cursor temporal frames for countdown→due→attempt/reschedule, quota terminal, cancel, exhaustion, partial→new span→success/reopen and representative long Unicode error at donor 44/100 widths plus relevant existing 80x24/120x40/160x48 profiles. Reuse existing VIS31/normal footer checks; no cartesian profile/theme/state matrix, native-golden proof, mask, altered historical PASS, new UI retry framework or paid-failure campaign. 2026-10-02 pending seam: expose recorded display_parts.span as optional owning span in existing bounded PartState query/event, preserve original sequence under omissions, legacy unknown explicit; no ordinal/input-index/model/error-string inference or new persistence/schema/event family. Audited 2026-10-06: latest_turn_spans/parts already serve bounded latest192/240 windows; reuse them and supply necessary referenced span metadata/current active facts within existing budgets, no new archive reader. Nearest partial-continuation unfinished-reasoning/new-span fixture qualifies producer ownership before footer routing; historical completed retry is display only, never busy/cancel/dispatch authority. Existing scoped live/park/reopen/stale checks and the same mandatory paired full frames qualify, not T54 completed baseline or removal of round stops; statuses/evidence remain unchanged. Approved 2026-10-06 Restricted provider-error details native extension supersedes only no-detail-modal: explicit mouse/keyboard/footer/error/palette access to one shared OC2 DialogAlert (U49/U52/U130), supplemental OC1 Task activation U129, safe bounded explanation/truthful clipping/scrolling. Active Retry Error versus terminal/historical request detail; captured session/turn/span payload immutable until dismiss. Esc/Enter/ok dismiss once without dispatch/cancel/restart/deadline reset/ReturnParent or composer/form/PTY input replay; drag/selection/paste/resize/pointer guards preserve draft/caret/scroll/parent/PTY. Existing forms retain priority: no open over active visible permission/question, newly reconciled scoped form closes only details and takes focus, no deferred queue/automatic reopen. VIS39 keeps failed-row inline toggle and consumes current child retry facts; T45 supplies actual safe terminal diagnostic/final projection. Barrier-controlled binary proof distinguishes no UI-caused effects from independent scheduled retry. Full OC2/native footer/shared-alert captures plus supplemental OC1 interaction proof declare native trigger/terminal/overflow/form-preemption differences, not hybrid whole-OC1 parity/global repin. New assertions pending/NOT_RUN, explicit T44 resume required; no subtype/DTO/store/new matrix or paid cyber-refusal campaign.",
+      "sources": ["U49", "U52", "U69", "U70", "U71", "U72", "U73", "U129", "U130"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS44",
+      "step": "V04",
+      "title": "Middle Click closes the targeted session tab without deleting history",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Middle Click tab close — VIS44. Ordinary unmodified Middle Down anywhere in a visible eligible tab emits its CloseTab without prior activation, pointer move or hover-cross hit; horizontal/vertical/compact painted geometry, inactive/active/last-tab and existing synthetic Home semantics apply. Middle Up/Drag emits no second action; do not create the Left-cross close hold or leak a stale left release. Reuse native CloseTab checked deck persistence, replacement view and failure behavior. Inactive close retains current draft/focus/scroll; last real tab goes Home without quitting. Session/raw history/DCP retained, actual history reopen available and restart keeps committed closed deck. Preserve busy/permission/Location/read-only/lifecycle guards: donor busy-close versus native refusal is explicitly disclosed, not full parity or permission to weaken safety. Extend nearest tab-input regression for the reported failure and reuse existing geometry/guard/left-cross/keyboard/palette/save-failure tests. Rebuilt actual-binary bounded PTY sends real SGR Middle Down/Up and proves correct target, one closure, survivors, Home, restart/reopen and zero generation/tool effects; then running pinned-original/native full matched idle before/hover/after styled-cell/PNG/cursor captures at representative existing profiles/layouts independently confirm identity/effects. No Cartesian matrix, crop/mask, native-only golden parity, new owner/store/API/framework or paid calls. Only T44 owns VIS44; independent of whole T45/T50, distinct from VIS39/VIS41. Plan pending, T44 PAUSED until explicit resume, historical evidence/statuses unchanged.",
+      "sources": ["U74", "U75"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS45",
+      "step": "V04",
+      "title": "Codex/OpenAI browser device API-key connect and account parity",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Codex OpenAI auth parity — VIS45 (2026-10-06). T57 AUTH01–AUTH05 minimal working owner/consumer slices precede visual work, no whole-task cycle. Full /connect provider/search/category/checkmark, OAuth-first/Key-last method list, existing/Add accounts/active marker/activate/Rename/two-trigger destructive delete and last-account disconnect; browser/device start/URL/code/wait/open/copy/success/failure/expired/cancel and key form/error/ack then provider-filtered models. Actual owner effects, pending versus saved versus server-auth truth, cancelled attempt cleanup, modal focus/draft restoration and explicit selection retained. Match shared dialog geometry/backdrop/padding/gutter/theme/attributes/keys/cursor/wrapping/resize and temporal waiting phases using rebuilt binary PTY plus running pinned-original/native full paired styled-cell/PNG/cursor frames with safe fake issuer/provider/synthetic inputs at representative narrow/wide existing profiles. Native API-key masking versus donor plaintext glyphs and no unrelated listener /cancel are disclosed security differences, not broad comparison masks or permission to omit functional/visual screens. No native-only golden/source screenshot/storage-only/backend PASS as visual proof; full auth-segment parity requires AUTH01–AUTH06 plus VIS45. No live secrets/codes/tokens in conversation/general diagnostics/capture artifacts. T44 PAUSED until explicit resume, active T53/historical VIS01–VIS44 statuses/pins untouched, new mandatory case pending/NOT_RUN.",
+      "sources": ["U02", "U49", "U116", "U117", "U118", "U119", "U120", "U121", "U122", "U123", "U124", "U125", "U126", "U127", "U128"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "VIS46",
+      "step": "V06",
+      "title": "Code Mode execute inline nested calls and execute detail dialog",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Code Mode execute parity — VIS46 (2026-10-14). Additive bounded redacted Presentation.execute facts (ordered runtime nested calls tool/fetch, running/completed/error, primitive-summarizable input, calls_limited, error, elapsed_ms) plus disposable coalesced ToolCallProgress snapshots under the one execute op; final facts in ToolCallFinished and durable row so live equals replay/reopen/restart without re-execution. Legacy rows keep the Generic card. Inline parent spinner/check/red cross + execute, child rows › or red cross + `tool [k=v, …]` primitive-only collapsed truncated, child click toggles key/value view, failed parent collapsed ≤4-line error toggle; non-error parent mouse-up without selection opens execute dialog: header status Receiving code…/Running/Failed/Completed · duration and esc, TypeScript Code, Output JSON line-numbered syntax or wrapped text with Warnings/Logs split, ≤70% height scroll/PgUp/PgDn/horizontal pan, c copy code/o copy output with clickable hints, esc back, follows live progress. Nested admission/approval/MCP/webfetch guards (CM07/CM08) unchanged; denied nested calls visible as error rows. Owner tests, rebuilt debug/release PTY fake provider/MCP, then running pinned-original/native full paired styled-cell/PNG/cursor frames at representative profiles. Declared differences: runtime run-time duration, no donor files attachments. No native-only golden/OCR parity. T44 PAUSED until explicit resume, T60 DONE and historical VIS01–VIS45 statuses untouched, new mandatory case pending/NOT_RUN.",
+      "sources": ["U02", "U49", "U52", "U133", "U134", "U135", "U136", "U137"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
+    }
+  ]
+}

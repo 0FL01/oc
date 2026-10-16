@@ -1,0 +1,2006 @@
+//! Shared native modal surface and searchable, scrolling selection list.
+//! Geometry/spacing follows pinned upstream ui/dialog{,-select}.tsx.
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
+
+use oc_core::queries::{McpServerSnapshot, McpStatus};
+use ratatui::{
+    Frame,
+    layout::Rect,
+    style::{Color, Modifier, Style},
+    widgets::{Block, Clear, Paragraph},
+};
+
+use crate::{
+    app::{TuiPanel, TuiState},
+    theme::Theme,
+};
+
+#[derive(Clone, Copy, Debug)]
+pub enum DialogSize {
+    Medium,
+    Large,
+    Xlarge,
+}
+
+pub struct DialogFrame;
+// OpenTUI writes a truecolor white foreground for the overlay canvas. ANSI
+// Color::White resolves to #eeeeec in the shared xterm profile, not #ffffff.
+const CANVAS_FOREGROUND: Color = Color::Rgb(255, 255, 255);
+impl DialogFrame {
+    pub fn rect(area: Rect, size: DialogSize, height: u16) -> Rect {
+        let wanted = match size {
+            DialogSize::Medium => 60,
+            DialogSize::Large => 88,
+            DialogSize::Xlarge => 116,
+        };
+        let width = wanted.min(area.width.saturating_sub(2));
+        let top = area.y + area.height / 4;
+        Rect::new(
+            // The pinned centered flex box rounds a half-cell origin rightward.
+            area.x + (area.width - width).div_ceil(2),
+            top,
+            width,
+            height.min(area.bottom() - top),
+        )
+    }
+
+    pub(crate) fn paint(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
+        // The pinned OpenTUI overlay paints untinted blank glyphs with its white
+        // canvas foreground (#fff), not the xterm frontend's default #eee.
+        // Visible glyphs retain dimmed RGB and attributes (paired V04 cells).
+        for cell in &mut frame.buffer_mut().content {
+            if cell.symbol() == " " {
+                cell.fg = CANVAS_FOREGROUND;
+                cell.modifier = Modifier::empty();
+            } else {
+                cell.fg = backdrop(cell.fg, theme.text());
+            }
+            cell.bg = backdrop(cell.bg, theme.background());
+        }
+        frame.render_widget(Clear, area);
+        frame.render_widget(
+            Block::default().style(
+                Style::default()
+                    .fg(CANVAS_FOREGROUND)
+                    .bg(slot(theme, "background.base")),
+            ),
+            area,
+        );
+    }
+}
+
+pub fn backdrop(color: Color, fallback: Color) -> Color {
+    let Color::Rgb(r, g, b) = (if color == Color::Reset {
+        fallback
+    } else {
+        color
+    }) else {
+        return color;
+    };
+    let dim = |v: u8| ((u16::from(v) * 105 + 127) / 255) as u8;
+    Color::Rgb(dim(r), dim(g), dim(b))
+}
+
+fn slot(theme: &Theme, path: &str) -> Color {
+    theme
+        .color(&format!("@dialog.{path}"))
+        .or_else(|| theme.color(path))
+        .unwrap_or(theme.text())
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SelectOption {
+    pub value: String,
+    pub title: String,
+    /// Inline muted text after the title (pinned DialogSelect `description`).
+    pub description: String,
+    /// Pinned DialogIntegration success gutter `✓` (replaces the `●` column).
+    pub check: bool,
+    pub category: String,
+    pub footer: String,
+    pub current: bool,
+    pub running: bool,
+    pub destructive: bool,
+}
+
+/// Pinned DialogIntegration title; its list keeps categories while searching.
+pub(crate) const INTEGRATIONS_TITLE: &str = "Connect an integration";
+
+/// Owner-supplied footer actions below a select list.
+#[derive(Clone, Copy)]
+pub(crate) enum FooterActions<'a> {
+    None,
+    Mcp(&'a [McpServerSnapshot], &'a SelectAction),
+    /// Pinned DialogSelect action row: title plus muted effective binding.
+    Actions(&'a [(&'static str, String)]),
+}
+
+#[derive(Default)]
+pub struct SelectList {
+    pub query: String,
+    pub cursor: usize,
+    offset: Cell<usize>,
+    follow_cursor: Cell<bool>,
+    center_cursor: Cell<bool>,
+    footer_rows: Cell<u16>,
+    action_focused: bool,
+    session_categories: Cell<bool>,
+    cache: RefCell<Option<FilterCache>>,
+}
+
+/// Hit regions are computed from the same row map and rectangle as painting.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DialogHit {
+    Backdrop,
+    Surface,
+    Search,
+    Close,
+    Option(usize),
+    List,
+    FooterAction,
+}
+
+/// One existing Select footer action, projected by its current owner.
+pub(crate) struct SelectAction {
+    pub title: &'static str,
+    pub shortcut: String,
+    pub enabled: bool,
+    pub hint: Option<&'static str>,
+}
+
+impl SelectAction {
+    fn rows(&self, width: u16) -> u16 {
+        u16::from(self.hint.is_some() || !self.shortcut.is_empty())
+            + u16::from(width < 60 && self.hint.is_some() && !self.shortcut.is_empty())
+    }
+}
+
+struct Geometry {
+    rect: Rect,
+    list_y: u16,
+    list_height: usize,
+    rows: Vec<Option<usize>>,
+    offset: usize,
+}
+
+struct FilterCache {
+    source: Rc<Vec<SelectOption>>,
+    prepared: Vec<Vec<crate::fuzzy::Target>>,
+    query: String,
+    panel: TuiPanel,
+    result: Rc<Vec<SelectOption>>,
+}
+
+impl SelectList {
+    pub fn reset(&mut self) {
+        *self = Self::default();
+        self.follow_cursor.set(true);
+    }
+    pub fn filter_for(
+        &self,
+        options: Rc<Vec<SelectOption>>,
+        panel: &TuiPanel,
+    ) -> Rc<Vec<SelectOption>> {
+        if *panel == TuiPanel::Sessions {
+            // The application searches the archive before its bounded LIMIT,
+            // preserving update-time order rather than fuzzy relevance.
+            return options;
+        }
+        if self.query.is_empty() {
+            return options;
+        }
+        let model = *panel == TuiPanel::Model;
+        let commands = *panel == TuiPanel::Commands;
+        let query = if model {
+            self.query.trim().to_string()
+        } else {
+            self.query.to_lowercase()
+        };
+        if model && query.is_empty() {
+            return options;
+        }
+        let mut slot = self.cache.borrow_mut();
+        // Exactly one catalog and one query result, replaced on invalidation.
+        // Model options are snapshot-owned Rc: repeated frames cost O(1).
+        let changed = slot.as_ref().is_none_or(|c| {
+            c.panel != *panel || (!Rc::ptr_eq(&c.source, &options) && *c.source != *options)
+        });
+        if changed {
+            let prepared = options
+                .iter()
+                .map(|o| {
+                    let keys = [
+                        &*o.title,
+                        &*o.category,
+                        if commands { &*o.value } else { "" },
+                    ];
+                    keys[..if model { 2 } else { 3 }]
+                        .iter()
+                        .map(|s| {
+                            if model {
+                                crate::fuzzy::Target::membership(s)
+                            } else {
+                                crate::fuzzy::Target::new(s)
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            *slot = Some(FilterCache {
+                source: options,
+                prepared,
+                query: String::new(),
+                panel: panel.clone(),
+                result: Rc::default(),
+            });
+        }
+        let cache = slot.as_mut().expect("initialized");
+        if cache.query == query {
+            return cache.result.clone();
+        }
+        let compiled = crate::fuzzy::Query::new(&query);
+        let scores: Vec<_> = cache
+            .prepared
+            .iter()
+            .enumerate()
+            .filter_map(|(i, keys)| {
+                (if model {
+                    compiled.matches(keys).then_some(1.0)
+                } else {
+                    compiled.score(keys, true)
+                })
+                .filter(|score| !commands || *score >= 0.7)
+                .map(|score| (i, score))
+            })
+            .collect();
+        let order = if model {
+            // DialogModel applies its metadata sort *after* fuzzy membership.
+            // Keep the already metadata-sorted catalog order, not fuzzy relevance.
+            scores.into_iter().map(|(i, _)| i).collect()
+        } else {
+            crate::fuzzy::rank(scores.into_iter())
+        };
+        cache.result = Rc::new(order.into_iter().map(|i| cache.source[i].clone()).collect());
+        cache.query = query;
+        cache.result.clone()
+    }
+    pub fn move_by(&mut self, delta: isize, count: usize) {
+        self.action_focused = false;
+        let next = self.cursor as isize + delta;
+        self.cursor = if count == 0 {
+            0
+        } else if next < 0 {
+            count - 1
+        } else if next >= count as isize {
+            0
+        } else {
+            next as usize
+        };
+    }
+    pub fn changed_query(&mut self) {
+        self.action_focused = false;
+        self.cursor = 0;
+        self.offset.set(0);
+        self.follow_cursor.set(true);
+        self.center_cursor.set(false);
+    }
+
+    pub fn follow_selection(&self) {
+        self.follow_cursor.set(true);
+        self.center_cursor.set(true);
+    }
+
+    pub(crate) fn action_focused(&self) -> bool {
+        self.action_focused
+    }
+
+    pub(crate) fn clear_action_focus(&mut self) {
+        self.action_focused = false;
+    }
+
+    pub(crate) fn cycle_action(&mut self, enabled: bool) {
+        // A single available action cycles row → action → row in either direction.
+        self.action_focused = enabled && !self.action_focused;
+    }
+
+    fn geometry(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+        footer_rows: u16,
+    ) -> Geometry {
+        let mut rows = Vec::new();
+        let mut category = "";
+        for (i, option) in options.iter().enumerate() {
+            if (self.query.is_empty() || self.session_categories.get())
+                && option.category != category
+            {
+                if !rows.is_empty() {
+                    rows.push(None); // separator
+                }
+                rows.push(None); // category heading
+                category = &option.category;
+            }
+            rows.push(Some(i));
+        }
+        let list_height = rows
+            .len()
+            .max(1)
+            .min((area.height / 2).saturating_sub(6).max(1) as usize);
+        let rect = DialogFrame::rect(area, size, list_height as u16 + 7 + footer_rows);
+        Geometry {
+            rect,
+            list_y: rect.y.saturating_add(5),
+            list_height: list_height
+                .min(
+                    rect.height
+                        .saturating_sub(7 + footer_rows.saturating_sub(1))
+                        as usize,
+                )
+                .max(1),
+            offset: self
+                .offset
+                .get()
+                .min(rows.len().saturating_sub(list_height)),
+            rows,
+        }
+    }
+
+    /// Scroll the option viewport independently of selection, as OpenTUI's scrollbox does.
+    pub fn scroll_rows(
+        &self,
+        delta: isize,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+    ) {
+        let geo = self.geometry(area, size, options, self.footer_rows.get());
+        let max = geo.rows.len().saturating_sub(geo.list_height);
+        self.offset
+            .set(geo.offset.saturating_add_signed(delta).min(max));
+        self.follow_cursor.set(false);
+        self.center_cursor.set(false);
+    }
+
+    pub fn hit(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+        x: u16,
+        y: u16,
+    ) -> DialogHit {
+        let geo = self.geometry(area, size, options, self.footer_rows.get());
+        let rect = geo.rect;
+        if !rect.contains((x, y).into()) {
+            return DialogHit::Backdrop;
+        }
+        if rect.width < 12 || rect.height < 5 {
+            return DialogHit::Surface;
+        }
+        if y == rect.y + 1 && x >= rect.right() - 7 && x < rect.right() - 4 {
+            return DialogHit::Close;
+        }
+        if y == rect.y + 3 && x >= rect.x + 4 && x < rect.right() - 4 {
+            return DialogHit::Search;
+        }
+        if y >= geo.list_y
+            && (y - geo.list_y) < geo.list_height as u16
+            && x > rect.x
+            && x < rect.right() - 1
+        {
+            return geo
+                .rows
+                .get(geo.offset + (y - geo.list_y) as usize)
+                .and_then(|row| *row)
+                .map_or(DialogHit::List, DialogHit::Option);
+        }
+        DialogHit::Surface
+    }
+
+    pub(crate) fn footer_action_rect(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+        action: &SelectAction,
+    ) -> Rect {
+        self.footer_rows.set(action.rows(area.width));
+        let geo = self.geometry(area, size, options, action.rows(area.width));
+        let hint_width = action
+            .hint
+            .map_or(0, |hint| ratatui::text::Line::raw(hint).width() as u16);
+        let stacked = area.width < 60 && action.hint.is_some();
+        let x = geo.rect.x
+            + 4
+            + if stacked || action.hint.is_none() {
+                0
+            } else {
+                hint_width + 2
+            };
+        let y = geo.rect.y + 6 + geo.list_height as u16 + u16::from(stacked);
+        if action.shortcut.is_empty() || y >= geo.rect.bottom() {
+            return Rect::default();
+        }
+        Rect::new(
+            x,
+            y,
+            ratatui::text::Line::raw(format!("{} {}", action.title, action.shortcut))
+                .width()
+                .min(geo.rect.right().saturating_sub(2 + x) as usize) as u16,
+            1,
+        )
+    }
+
+    fn render(
+        &self,
+        frame: &mut Frame<'_>,
+        title: &str,
+        size: DialogSize,
+        options: &[SelectOption],
+        footer: Option<&str>,
+        actions: FooterActions<'_>,
+    ) {
+        let (mcps, action, model_actions) = match actions {
+            FooterActions::None => (None, None, &[][..]),
+            FooterActions::Mcp(servers, action) => (Some(servers), Some(action), &[][..]),
+            FooterActions::Actions(actions) => (None, None, actions),
+        };
+        let theme = Theme::dark();
+        // Pinned DialogSelect footer: a row below 60 columns becomes a column.
+        let stacked_actions = frame.area().width < 60;
+        let footer_rows = if !model_actions.is_empty() {
+            let status = footer.map_or(0, |text| text.lines().count().min(8) as u16);
+            status
+                + if stacked_actions {
+                    model_actions.len() as u16
+                } else {
+                    1
+                }
+        } else {
+            action.map_or_else(
+                || footer.map_or(0, |text| text.lines().count().min(u16::MAX as usize) as u16),
+                |a| a.rows(frame.area().width),
+            )
+        };
+        self.footer_rows.set(footer_rows);
+        let action_focused = self.action_focused && action.is_some_and(|a| a.enabled);
+        let sessions = title == "Sessions" || title.starts_with("Sessions for ");
+        // Settings and the integration list are not `flat` DialogSelects.
+        self.session_categories
+            .set(sessions || title == "Settings" || title == INTEGRATIONS_TITLE);
+        // Sessions and Settings retain their actual category headings while filtering.
+        let flat = !self.session_categories.get() && !self.query.is_empty();
+        let mut rows: Vec<(Option<usize>, String)> = Vec::new();
+        let mut category = "";
+        for (i, option) in options.iter().enumerate() {
+            if !flat && option.category != category {
+                if !rows.is_empty() {
+                    rows.push((None, String::new()));
+                }
+                rows.push((None, option.category.clone()));
+                category = &option.category;
+            }
+            rows.push((Some(i), String::new()));
+        }
+        let mut geo = self.geometry(frame.area(), size, options, footer_rows);
+        if self.follow_cursor.get()
+            && let Some(row) = geo.rows.iter().position(|item| *item == Some(self.cursor))
+        {
+            if self.center_cursor.replace(false) {
+                // Keyboard moveTo(..., true) targets the middle of the OpenTUI
+                // scrollbox, then clamps to its last possible first row.
+                geo.offset = row
+                    .saturating_sub(geo.list_height / 2)
+                    .min(geo.rows.len().saturating_sub(geo.list_height));
+            } else if row < geo.offset {
+                geo.offset = row;
+            } else if row >= geo.offset + geo.list_height {
+                geo.offset = row + 1 - geo.list_height;
+            }
+        }
+        let area = geo.rect;
+        DialogFrame::paint(frame, area, theme);
+        if area.width < 12 || area.height < 5 {
+            return;
+        }
+        let text = slot(theme, "text.base");
+        let muted = slot(theme, "text.muted");
+        let line = |frame: &mut Frame<'_>, x, y, width, text: &str, style| {
+            if y < area.bottom() {
+                frame.render_widget(
+                    Paragraph::new(ratatui::text::Line::styled(
+                        text.chars().filter(|c| !c.is_control()).collect::<String>(),
+                        style,
+                    )),
+                    Rect::new(x, y, width, 1),
+                );
+            }
+        };
+        line(
+            frame,
+            area.x + 4,
+            area.y + 1,
+            area.width - 11,
+            if sessions { "Sessions" } else { title },
+            Style::default().fg(text).add_modifier(Modifier::BOLD),
+        );
+        if sessions && let Some(context) = title.strip_prefix("Sessions") {
+            line(
+                frame,
+                area.x + 12,
+                area.y + 1,
+                area.width.saturating_sub(19),
+                context,
+                Style::default().fg(muted),
+            );
+        }
+        line(
+            frame,
+            area.right() - 7,
+            area.y + 1,
+            3,
+            "esc",
+            Style::default().fg(muted),
+        );
+        line(
+            frame,
+            area.x + 4,
+            area.y + 3,
+            area.width - 8,
+            if self.query.is_empty() {
+                "Search"
+            } else {
+                &self.query
+            },
+            Style::default()
+                .fg(if self.query.is_empty() {
+                    muted
+                } else {
+                    slot(theme, "text.formfield.$focused")
+                })
+                .bg(slot(theme, "background.base")),
+        );
+        let height = geo.list_height;
+        let offset = geo.offset;
+        self.offset.set(offset);
+        if rows.is_empty() {
+            line(
+                frame,
+                area.x + 4,
+                area.y + 5,
+                area.width - 8,
+                if self.query.is_empty() {
+                    if sessions {
+                        "No sessions available"
+                    } else {
+                        "No items available"
+                    }
+                } else if sessions {
+                    "No sessions found"
+                } else {
+                    "No results found"
+                },
+                Style::default().fg(muted),
+            );
+        }
+        for (row, (index, header)) in rows.iter().skip(offset).take(height).enumerate() {
+            let y = area.y + 5 + row as u16;
+            let Some(index) = index else {
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    area.width - 8,
+                    header,
+                    Style::default()
+                        .fg(theme.hue("accent", 200).unwrap_or(text))
+                        .add_modifier(Modifier::BOLD),
+                );
+                continue;
+            };
+            let option = &options[*index];
+            let active = *index == self.cursor;
+            let fg = if option.destructive {
+                slot(theme, "text.action.destructive.base")
+            } else if active && action_focused {
+                muted
+            } else if active {
+                slot(theme, "text.action.primary.$focused")
+            } else if option.current {
+                slot(theme, "text.formfield.$selected")
+            } else {
+                text
+            };
+            let style = if option.destructive {
+                Style::default()
+                    .fg(fg)
+                    .bg(slot(theme, "background.action.destructive.base"))
+            } else if active && action_focused {
+                Style::default()
+                    .fg(fg)
+                    .bg(slot(theme, "background.raised.high"))
+            } else if active {
+                Style::default()
+                    .fg(fg)
+                    .bg(slot(theme, "background.action.primary.$focused"))
+            } else {
+                Style::default().fg(fg)
+            };
+            frame.render_widget(
+                Block::default().style(
+                    Style::default()
+                        .fg(CANVAS_FOREGROUND)
+                        .bg(style.bg.unwrap_or(slot(theme, "background.base"))),
+                ),
+                Rect::new(area.x + 1, y, area.width - 2, 1),
+            );
+            if option.check {
+                line(
+                    frame,
+                    area.x + 2,
+                    y,
+                    1,
+                    "✓",
+                    style.fg(slot(theme, "text.feedback.success.base")),
+                );
+            } else if option.running {
+                line(frame, area.x + 2, y, 1, crate::tools::SPINNER, style);
+            } else if option.current {
+                line(frame, area.x + 2, y, 1, "●", style);
+            }
+            if title == "Message Actions" {
+                // Donor descriptions follow the title inline; these are not
+                // right-aligned shortcut/footer labels.
+                let title_width = ratatui::text::Line::raw(option.title.as_str()).width() as u16;
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    area.width - 8,
+                    &option.title,
+                    if active {
+                        style.add_modifier(Modifier::BOLD)
+                    } else {
+                        style
+                    },
+                );
+                line(
+                    frame,
+                    area.x + 4 + title_width,
+                    y,
+                    area.width.saturating_sub(8 + title_width),
+                    &format!(" {}", option.footer),
+                    if active {
+                        style.add_modifier(Modifier::BOLD)
+                    } else {
+                        style.fg(muted)
+                    },
+                );
+                continue;
+            }
+            let right =
+                if (sessions || !model_actions.is_empty()) && flat && !option.category.is_empty() {
+                    option.category.clone()
+                } else if flat && !option.category.is_empty() {
+                    format!(
+                        "{}{}{}",
+                        option.category,
+                        if option.footer.is_empty() { "" } else { " · " },
+                        option.footer
+                    )
+                } else {
+                    option.footer.clone()
+                };
+            let right_width = ratatui::text::Line::raw(right.as_str())
+                .width()
+                .min(if sessions {
+                    area.width.saturating_sub(8) as usize
+                } else {
+                    ((area.width - 12) / 2) as usize
+                }) as u16;
+            let title = if sessions && option.title.chars().count() > 61 {
+                format!("{}…", option.title.chars().take(60).collect::<String>())
+            } else {
+                option.title.clone()
+            };
+            let title_style = if active && !action_focused {
+                style.add_modifier(Modifier::BOLD)
+            } else {
+                style
+            };
+            let title_room = area.width.saturating_sub(9 + right_width);
+            line(frame, area.x + 4, y, title_room, &title, title_style);
+            if !option.description.is_empty() {
+                // Same text run as the title: bold/active colour when focused.
+                let used =
+                    (ratatui::text::Line::raw(title.as_str()).width() as u16).min(title_room);
+                line(
+                    frame,
+                    area.x + 4 + used,
+                    y,
+                    title_room - used,
+                    &format!(" {}", option.description),
+                    if active && !action_focused {
+                        title_style
+                    } else {
+                        style.fg(muted)
+                    },
+                );
+            }
+            // Status comes from the current typed inventory, never label text.
+            // The selected foreground override and intrinsic bold are separate.
+            let mut footer_style = if active { style } else { style.fg(muted) };
+            if let Some(server) =
+                mcps.and_then(|servers| servers.iter().find(|server| server.id == option.value))
+            {
+                let pending =
+                    server.pending_action.is_some() || server.status == McpStatus::Pending;
+                if !active || action_focused {
+                    footer_style = footer_style.fg(slot(
+                        theme,
+                        if pending || active && action_focused {
+                            "text.muted"
+                        } else {
+                            match server.status {
+                                McpStatus::Connected => "text.feedback.success.base",
+                                McpStatus::Failed => "text.feedback.error.base",
+                                McpStatus::NeedsAuth => "text.feedback.warning.base",
+                                McpStatus::Pending | McpStatus::Disabled => "text.muted",
+                            }
+                        },
+                    ));
+                }
+                if !pending && server.status == McpStatus::Connected {
+                    footer_style = footer_style.add_modifier(Modifier::BOLD);
+                }
+            }
+            line(
+                frame,
+                area.right() - 4 - right_width,
+                y,
+                right_width,
+                &right,
+                footer_style,
+            );
+        }
+        if let Some(action) = action {
+            let y = area.y + 6 + height as u16;
+            if let Some(hint) = action.hint {
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    area.width.saturating_sub(8),
+                    hint,
+                    Style::default().fg(muted),
+                );
+            }
+            let rect = self.footer_action_rect(frame.area(), size, options, action);
+            let base = if !action.enabled {
+                Style::default().fg(slot(theme, "text.action.primary.$disabled"))
+            } else if action_focused {
+                Style::default()
+                    .fg(slot(theme, "text.action.primary.$focused"))
+                    .bg(slot(theme, "background.action.primary.$focused"))
+            } else {
+                Style::default().fg(text)
+            };
+            if rect.width > 0 {
+                frame.render_widget(Block::default().style(base), rect);
+                let title_width = ratatui::text::Line::raw(action.title).width() as u16;
+                line(
+                    frame,
+                    rect.x,
+                    rect.y,
+                    rect.width.min(title_width),
+                    action.title,
+                    if action_focused {
+                        base.add_modifier(Modifier::BOLD)
+                    } else {
+                        base
+                    },
+                );
+                line(
+                    frame,
+                    rect.x + title_width,
+                    rect.y,
+                    rect.width.saturating_sub(title_width),
+                    &format!(" {}", action.shortcut),
+                    if action.enabled && !action_focused {
+                        base.fg(muted)
+                    } else {
+                        base
+                    },
+                );
+            }
+        } else if !model_actions.is_empty() {
+            let (mut x, mut y) = (area.x + 4, area.y + 6 + height as u16);
+            for status in footer.iter().flat_map(|text| text.lines()).take(8) {
+                line(
+                    frame,
+                    x,
+                    y,
+                    area.width.saturating_sub(8),
+                    status,
+                    Style::default().fg(muted),
+                );
+                y += 1;
+            }
+            for (title, key) in model_actions {
+                let room = area.right().saturating_sub(2).saturating_sub(x);
+                let title_width = (ratatui::text::Line::raw(*title).width() as u16).min(room);
+                let key = format!(" {key}");
+                let key_width = ratatui::text::Line::raw(key.as_str()).width() as u16;
+                line(frame, x, y, title_width, title, Style::default().fg(text));
+                line(
+                    frame,
+                    x + title_width,
+                    y,
+                    key_width.min(room - title_width),
+                    &key,
+                    Style::default().fg(muted),
+                );
+                if stacked_actions {
+                    y += 1;
+                } else {
+                    x = x.saturating_add(title_width + key_width + 2);
+                }
+            }
+        } else if let Some(footer) = footer {
+            if sessions {
+                let y = area.y + 6 + height as u16;
+                let label_style = Style::default().fg(text);
+                line(frame, area.x + 4, y, 6, "delete", label_style);
+                line(
+                    frame,
+                    area.x + 11,
+                    y,
+                    6,
+                    "ctrl+d",
+                    Style::default().fg(muted),
+                );
+                line(frame, area.x + 19, y, 6, "rename", label_style);
+                line(
+                    frame,
+                    area.x + 26,
+                    y,
+                    6,
+                    "ctrl+r",
+                    Style::default().fg(muted),
+                );
+                let width = ratatui::text::Line::raw(footer).width() as u16;
+                let x = area.right().saturating_sub(2 + width).max(area.x + 4);
+                let label = footer.strip_suffix(" ctrl+a").unwrap_or(footer);
+                line(frame, x, y, width, label, label_style);
+                line(
+                    frame,
+                    x + width.saturating_sub(6),
+                    y,
+                    6,
+                    "ctrl+a",
+                    Style::default().fg(muted),
+                );
+            } else if title == "Settings" {
+                // DialogConfig supplies a semantic FooterHint: the shortcut
+                // title is bold/base, its layout separator is unbolded/base,
+                // and the description remains muted.
+                let y = area.y + 6 + height as u16;
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    3,
+                    "←/→",
+                    Style::default().fg(text).add_modifier(Modifier::BOLD),
+                );
+                line(frame, area.x + 7, y, 1, " ", Style::default().fg(text));
+                line(
+                    frame,
+                    area.x + 8,
+                    y,
+                    area.width.saturating_sub(12),
+                    "change",
+                    Style::default().fg(muted),
+                );
+            } else {
+                for (index, text) in footer.lines().enumerate() {
+                    line(
+                        frame,
+                        area.x + 4,
+                        area.y + 6 + height as u16 + index as u16,
+                        area.width - 8,
+                        text,
+                        Style::default().fg(muted),
+                    );
+                }
+            }
+        }
+        let cursor = ratatui::text::Line::raw(self.query.as_str())
+            .width()
+            .min(area.width.saturating_sub(9) as usize) as u16;
+        frame.set_cursor_position((area.x + 4 + cursor, area.y + 3));
+    }
+}
+
+pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    if state.panel() == &TuiPanel::Execute {
+        crate::execute_view::render(frame, state);
+        return;
+    }
+    if state.panel() == &TuiPanel::Accounts {
+        render_accounts(frame, state);
+        return;
+    }
+    if state.panel() == &TuiPanel::Rename {
+        render_rename(frame, state);
+        return;
+    }
+    if state.panel() == &TuiPanel::Cards && state.card_output.is_some() {
+        render_card_detail(frame, state);
+        return;
+    }
+    if state.panel() == &TuiPanel::Mcps && state.mcp_detail_server().is_some() {
+        render_mcp_detail(frame, state);
+        return;
+    }
+    let title = match state.panel() {
+        TuiPanel::None => return,
+        TuiPanel::Commands => "Commands",
+        TuiPanel::Settings => "Settings",
+        TuiPanel::MessageActions { .. } => "Message Actions",
+        TuiPanel::Model => "Select model",
+        TuiPanel::Variant => "Select variant",
+        TuiPanel::Agents => "Select agent",
+        TuiPanel::Sessions => "Sessions",
+        TuiPanel::Rename | TuiPanel::Accounts | TuiPanel::Execute => unreachable!("rendered above"),
+        TuiPanel::Skills => "Skills",
+        TuiPanel::Mcps => "MCP servers",
+        TuiPanel::Cards => "Tool cards",
+        TuiPanel::Help(_) => "Help",
+        TuiPanel::Dcp => "DCP context",
+    };
+    let size = size_for(state.panel());
+    let sessions_title = state.sessions_title();
+    let title = if state.panel() == &TuiPanel::Sessions {
+        &sessions_title
+    } else {
+        title
+    };
+    let title = if state.panel() == &TuiPanel::Model {
+        state.model_dialog_title()
+    } else {
+        title
+    };
+    let action = (state.panel() == &TuiPanel::Mcps).then(|| state.mcp_footer_action());
+    let model_actions = if state.panel() == &TuiPanel::Model {
+        state.model_dialog_actions()
+    } else {
+        Vec::new()
+    };
+    let model_status = (state.panel() == &TuiPanel::Model)
+        .then(|| state.model_dialog_status().join("\n"))
+        .filter(|status| !status.is_empty());
+    state.select.render(
+        frame,
+        title,
+        size,
+        &state.modal_options(),
+        if model_status.is_some() {
+            model_status.as_deref()
+        } else if state.panel() == &TuiPanel::Mcps {
+            Some(state.mcp_footer())
+        } else if state.panel() == &TuiPanel::Settings {
+            Some("←/→ change")
+        } else {
+            (state.panel() == &TuiPanel::Sessions).then_some(if state.sessions_all_projects() {
+                "current directory ctrl+a"
+            } else {
+                "all projects ctrl+a"
+            })
+        },
+        match &action {
+            Some(action) => {
+                FooterActions::Mcp(state.mcp_list_servers().unwrap_or_default(), action)
+            }
+            None if !model_actions.is_empty() => FooterActions::Actions(&model_actions),
+            None => FooterActions::None,
+        },
+    );
+}
+
+/// The pinned DialogPrompt uses a medium 60-cell surface and a focused,
+/// single-line textarea with wrapMode=none.
+pub(crate) fn rename_geometry(area: Rect) -> Rect {
+    prompt_geometry(area, 0, false)
+}
+
+/// Pinned DialogPrompt: title row, optional description elements (each
+/// followed by a gap), the one-line field, optional busy row and footer.
+pub(crate) fn prompt_geometry(area: Rect, description: usize, busy: bool) -> Rect {
+    let rows = 7 + 2 * description.min(8) as u16 + if busy { 2 } else { 0 };
+    DialogFrame::rect(area, DialogSize::Medium, rows)
+}
+
+/// One DialogPrompt frame. `value` is already display text (secrets masked);
+/// `cursor` is its byte offset.
+pub(crate) struct Prompt<'a> {
+    pub title: &'a str,
+    pub description: &'a [(String, bool)],
+    pub value: &'a str,
+    pub cursor: usize,
+    pub placeholder: &'a str,
+    pub busy: bool,
+}
+
+fn render_rename(frame: &mut Frame<'_>, state: &TuiState) {
+    let value = state.rename_title().unwrap_or("");
+    render_prompt(
+        frame,
+        &Prompt {
+            title: "Rename session",
+            description: &[],
+            value,
+            cursor: state.rename_cursor(),
+            placeholder: "Session title",
+            busy: false,
+        },
+    );
+}
+
+pub(crate) fn render_prompt(frame: &mut Frame<'_>, prompt: &Prompt<'_>) {
+    use unicode_segmentation::UnicodeSegmentation;
+    use unicode_width::UnicodeWidthStr;
+
+    let theme = Theme::dark();
+    let rect = prompt_geometry(frame.area(), prompt.description.len(), prompt.busy);
+    DialogFrame::paint(frame, rect, theme);
+    if rect.width < 12 || rect.height < 6 {
+        return;
+    }
+    let text = slot(theme, "text.base");
+    let muted = slot(theme, "text.muted");
+    let inner = Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1);
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
+            prompt.title,
+            Style::default().fg(text).add_modifier(Modifier::BOLD),
+        ))),
+        inner,
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
+            "esc",
+            Style::default().fg(muted),
+        ))),
+        Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
+    );
+    let width = rect.width.saturating_sub(4) as usize;
+    let mut y = rect.y + 3;
+    for (line, error) in prompt.description.iter().take(8) {
+        frame.render_widget(
+            Paragraph::new(ratatui::text::Line::styled(
+                line.chars().filter(|c| !c.is_control()).collect::<String>(),
+                Style::default().fg(if *error {
+                    slot(theme, "text.feedback.error.base")
+                } else {
+                    muted
+                }),
+            )),
+            Rect::new(rect.x + 2, y, width as u16, 1),
+        );
+        y += 2;
+    }
+    let input = prompt.value;
+    let cursor = prompt.cursor.min(input.len());
+    // Clip by whole graphemes; the caret follows the end of a horizontally
+    // scrolled one-line field instead of wrapping into the next modal row.
+    let before = UnicodeWidthStr::width(&input[..cursor]);
+    let start_cells = before.saturating_sub(width.saturating_sub(1));
+    let mut cells = 0;
+    let mut visible = String::new();
+    let mut shown = 0;
+    for grapheme in input.graphemes(true) {
+        let size = UnicodeWidthStr::width(grapheme);
+        if cells + size > start_cells && shown + size <= width {
+            visible.push_str(grapheme);
+            shown += size;
+        }
+        cells += size;
+        if shown + size > width && cells > before {
+            break;
+        }
+    }
+    let field = Rect::new(rect.x + 2, y, width as u16, 1);
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
+            if input.is_empty() {
+                prompt.placeholder
+            } else {
+                &visible
+            },
+            Style::default().fg(if input.is_empty() {
+                muted
+            } else if prompt.busy {
+                slot(theme, "text.formfield.disabled")
+            } else {
+                slot(theme, "text.formfield.base")
+            }),
+        ))),
+        field,
+    );
+    y += 2;
+    if prompt.busy {
+        frame.render_widget(
+            Paragraph::new(ratatui::text::Line::styled(
+                format!("{} Working…", crate::tools::SPINNER),
+                Style::default().fg(muted),
+            )),
+            Rect::new(rect.x + 2, y, width as u16, 1),
+        );
+        y += 2;
+    }
+    frame.render_widget(
+        Paragraph::new(if prompt.busy {
+            ratatui::text::Line::styled("processing…", Style::default().fg(muted))
+        } else {
+            ratatui::text::Line::from(vec![
+                ratatui::text::Span::styled("enter ", Style::default().fg(text)),
+                ratatui::text::Span::styled("submit", Style::default().fg(muted)),
+            ])
+        }),
+        Rect::new(rect.x + 2, y, width as u16, 1),
+    );
+    if !prompt.busy {
+        frame.set_cursor_position((
+            field.x
+                + before
+                    .saturating_sub(start_cells)
+                    .min(width.saturating_sub(1)) as u16,
+            field.y,
+        ));
+    }
+}
+
+/// Pinned OAuthView / CommandView: title, wrapped link and instructions,
+/// a muted status message and optional `o open` / `c copy` hints.
+pub(crate) struct Notice<'a> {
+    pub title: &'a str,
+    pub link: Option<&'a str>,
+    pub instructions: Option<&'a str>,
+    pub message: &'a str,
+    pub open_copy: bool,
+}
+
+fn wrap_cells(text: &str, width: usize) -> Vec<String> {
+    use unicode_width::UnicodeWidthChar;
+    let mut lines = Vec::new();
+    for paragraph in text.lines() {
+        let mut line = String::new();
+        let mut cells = 0;
+        for word in paragraph.split_inclusive(' ') {
+            let size: usize = word.chars().map(|c| c.width().unwrap_or(0)).sum();
+            if cells + size > width && !line.is_empty() {
+                lines.push(std::mem::take(&mut line).trim_end().to_owned());
+                cells = 0;
+            }
+            for c in word.chars() {
+                let size = c.width().unwrap_or(0);
+                if cells + size > width {
+                    lines.push(std::mem::take(&mut line));
+                    cells = 0;
+                }
+                line.push(c);
+                cells += size;
+            }
+        }
+        lines.push(line.trim_end().to_owned());
+    }
+    lines.truncate(12);
+    lines
+}
+
+pub(crate) fn notice_geometry(area: Rect, notice: &Notice<'_>) -> (Rect, Vec<String>, Vec<String>) {
+    let width = (DialogFrame::rect(area, DialogSize::Medium, 7).width as usize)
+        .saturating_sub(4)
+        .max(1);
+    let link = notice
+        .link
+        .map(|l| wrap_cells(l, width))
+        .unwrap_or_default();
+    let instructions = notice
+        .link
+        .and(notice.instructions)
+        .map(|i| wrap_cells(i, width))
+        .unwrap_or_default();
+    let mut rows = 1 + 2 + 1; // title, gaps, message
+    if !link.is_empty() {
+        rows += link.len()
+            + 1
+            + if instructions.is_empty() {
+                0
+            } else {
+                instructions.len() + 1
+            };
+    }
+    // The hint row exists even when empty, so its gap remains (OpenTUI gap).
+    rows += 1 + usize::from(notice.open_copy) + 1;
+    let rect = DialogFrame::rect(area, DialogSize::Medium, rows.min(u16::MAX as usize) as u16);
+    (rect, link, instructions)
+}
+
+pub(crate) fn render_notice(frame: &mut Frame<'_>, notice: &Notice<'_>) {
+    let theme = Theme::dark();
+    let (rect, link, instructions) = notice_geometry(frame.area(), notice);
+    DialogFrame::paint(frame, rect, theme);
+    if rect.width < 12 || rect.height < 5 {
+        return;
+    }
+    let text = slot(theme, "text.base");
+    let muted = slot(theme, "text.muted");
+    let width = rect.width.saturating_sub(4);
+    let line = |frame: &mut Frame<'_>, y: u16, content: ratatui::text::Line<'_>| {
+        if y < rect.bottom() {
+            frame.render_widget(Paragraph::new(content), Rect::new(rect.x + 2, y, width, 1));
+        }
+    };
+    line(
+        frame,
+        rect.y + 1,
+        ratatui::text::Line::styled(
+            notice.title.to_owned(),
+            Style::default().fg(text).add_modifier(Modifier::BOLD),
+        ),
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::styled(
+            "esc",
+            Style::default().fg(muted),
+        )),
+        Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
+    );
+    let mut y = rect.y + 3;
+    if !link.is_empty() {
+        for part in &link {
+            line(
+                frame,
+                y,
+                ratatui::text::Line::styled(
+                    part.clone(),
+                    Style::default()
+                        .fg(slot(theme, "markdown.link"))
+                        .add_modifier(Modifier::UNDERLINED),
+                ),
+            );
+            y += 1;
+        }
+        y += 1;
+        if !instructions.is_empty() {
+            for part in &instructions {
+                line(
+                    frame,
+                    y,
+                    ratatui::text::Line::styled(part.clone(), Style::default().fg(muted)),
+                );
+                y += 1;
+            }
+            y += 1;
+        }
+    }
+    line(
+        frame,
+        y,
+        ratatui::text::Line::styled(notice.message.to_owned(), Style::default().fg(muted)),
+    );
+    if notice.open_copy {
+        line(
+            frame,
+            y + 2,
+            ratatui::text::Line::from(vec![
+                ratatui::text::Span::styled("o ", Style::default().fg(text)),
+                ratatui::text::Span::styled("open", Style::default().fg(muted)),
+                ratatui::text::Span::raw("  "),
+                ratatui::text::Span::styled("c ", Style::default().fg(text)),
+                ratatui::text::Span::styled("copy", Style::default().fg(muted)),
+            ]),
+        );
+    }
+}
+
+fn render_accounts(frame: &mut Frame<'_>, state: &TuiState) {
+    match state.account_surface() {
+        crate::app::AccountSurface::List {
+            title,
+            status,
+            actions,
+        } => state.select.render(
+            frame,
+            &title,
+            DialogSize::Medium,
+            &state.modal_options(),
+            (!status.is_empty()).then(|| status.join("\n")).as_deref(),
+            if actions.is_empty() {
+                FooterActions::None
+            } else {
+                FooterActions::Actions(&actions)
+            },
+        ),
+        crate::app::AccountSurface::Prompt {
+            title,
+            description,
+            value,
+            placeholder,
+            busy,
+        } => render_prompt(
+            frame,
+            &Prompt {
+                title: &title,
+                description: &description,
+                cursor: value.len(),
+                value: &value,
+                placeholder,
+                busy,
+            },
+        ),
+        crate::app::AccountSurface::Notice {
+            title,
+            link,
+            instructions,
+            message,
+            open_copy,
+        } => render_notice(
+            frame,
+            &Notice {
+                title: &title,
+                link: link.as_deref(),
+                instructions: instructions.as_deref(),
+                message: &message,
+                open_copy,
+            },
+        ),
+    }
+}
+
+/// The detail viewport has a fixed header and footer and no searchable list.
+/// Use the same geometry for wrapping, keyboard navigation and painting.
+pub(crate) fn card_geometry(area: Rect) -> (Rect, usize, usize) {
+    let rect = DialogFrame::rect(area, DialogSize::Xlarge, (area.height / 2).max(8));
+    if rect.width < 12 || rect.height < 7 {
+        return (rect, 0, 0);
+    }
+    (
+        rect,
+        rect.width.saturating_sub(8) as usize,
+        rect.height.saturating_sub(5) as usize,
+    )
+}
+
+fn render_card_detail(frame: &mut Frame<'_>, state: &TuiState) {
+    let (rect, width, height) = card_geometry(frame.area());
+    DialogFrame::paint(frame, rect, Theme::dark());
+    if width == 0 || height == 0 {
+        return;
+    }
+    let theme = Theme::dark();
+    let text = slot(theme, "text.base");
+    let muted = slot(theme, "text.muted");
+    let lines = crate::views::panel_lines(state);
+    let line = |frame: &mut Frame<'_>, y: u16, content: &str, style: Style| {
+        frame.render_widget(
+            Paragraph::new(ratatui::text::Line::styled(content.to_string(), style)),
+            Rect::new(rect.x + 4, y, width as u16, 1),
+        );
+    };
+    line(
+        frame,
+        rect.y + 1,
+        "Tool result",
+        Style::default().fg(text).add_modifier(Modifier::BOLD),
+    );
+    for (index, content) in lines.iter().enumerate() {
+        let y = if index == 0 {
+            rect.y + 2
+        } else if index == lines.len() - 1 {
+            rect.bottom() - 2
+        } else {
+            rect.y + 2 + index as u16
+        };
+        line(
+            frame,
+            y,
+            content,
+            Style::default().fg(if index == 0 || index == lines.len() - 1 {
+                muted
+            } else {
+                text
+            }),
+        );
+    }
+    let (start, visible, count) = crate::views::card_window(state);
+    state.card_rows_painted(start, (start + visible).min(count));
+}
+
+pub(crate) struct McpDetailLayout {
+    pub rect: Rect,
+    pub body: Rect,
+    pub back: Rect,
+    pub investigate: Rect,
+    pub copy: Rect,
+    pub scroll_hint: Rect,
+    pub count: usize,
+    rows: Vec<crate::styled::Line>,
+}
+
+/// One row map owns read-only painting, scroll limits and action hits. It never
+/// delegates to SelectList, so the originating filter/selection remains intact.
+pub(crate) fn mcp_detail_layout(state: &TuiState, area: Rect) -> McpDetailLayout {
+    let base = DialogFrame::rect(area, DialogSize::Medium, 0);
+    let width = base.width.saturating_sub(4) as usize;
+    let rows = state
+        .mcp_detail_server()
+        .and_then(|server| server.diagnostic.as_ref())
+        .map(|diagnostic| {
+            diagnostic
+                .to_string()
+                .split('\n')
+                .flat_map(|line| {
+                    let inert = line.chars().filter(|c| !c.is_control()).collect::<String>();
+                    crate::styled::wrap_line(&crate::styled::Line::plain(inert), width)
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut action_row = 0_u16;
+    let mut x = 0_u16;
+    let mut actions = [Rect::default(); 3];
+    for (index, wanted) in [13_u16, if state.mcp_detail_copied() { 8 } else { 14 }, 10]
+        .into_iter()
+        .enumerate()
+    {
+        let wanted = wanted.min(width as u16);
+        if x > 0 && x + wanted > width as u16 {
+            action_row += 1;
+            x = 0;
+        }
+        actions[index] = Rect::new(base.x + 2 + x, action_row, wanted, u16::from(width > 0));
+        x += wanted + 3;
+    }
+    let available = area.bottom().saturating_sub(base.y);
+    let height = rows
+        .len()
+        .min(20)
+        .min(available.saturating_sub(6 + action_row) as usize) as u16;
+    let rect = DialogFrame::rect(area, DialogSize::Medium, height + 6 + action_row);
+    let body = Rect::new(
+        rect.x + 2,
+        (rect.y + 3).min(rect.bottom()),
+        width as u16,
+        height.min(rect.height.saturating_sub(3)),
+    );
+    let footer_y = body.bottom() + 1;
+    for action in &mut actions {
+        action.y = (footer_y + action.y).min(rect.bottom());
+        action.height = action.height.min(rect.bottom().saturating_sub(action.y));
+    }
+    McpDetailLayout {
+        rect,
+        body,
+        back: Rect::new(
+            rect.right().saturating_sub(5),
+            (rect.y + 1).min(rect.bottom()),
+            3.min(rect.width),
+            u16::from(rect.height > 1),
+        ),
+        investigate: actions[0],
+        copy: actions[1],
+        scroll_hint: actions[2],
+        count: rows.len(),
+        rows,
+    }
+}
+
+fn render_mcp_detail(frame: &mut Frame<'_>, state: &TuiState) {
+    let Some(server) = state.mcp_detail_server() else {
+        return;
+    };
+    let layout = mcp_detail_layout(state, frame.area());
+    let theme = Theme::dark();
+    DialogFrame::paint(frame, layout.rect, theme);
+    if layout.rect.width < 8 || layout.rect.height < 3 {
+        return;
+    }
+    let text = Style::default().fg(slot(theme, "text.base"));
+    let muted = Style::default().fg(slot(theme, "text.muted"));
+    frame.render_widget(
+        Paragraph::new(format!("MCP server: {}", server.name))
+            .style(text.add_modifier(Modifier::BOLD)),
+        Rect::new(
+            layout.rect.x + 2,
+            layout.rect.y + 1,
+            layout.rect.width.saturating_sub(9),
+            1,
+        ),
+    );
+    frame.render_widget(Paragraph::new("esc").style(muted), layout.back);
+    let start = state
+        .mcp_detail_scroll()
+        .min(layout.count.saturating_sub(layout.body.height as usize));
+    let rows = layout
+        .rows
+        .into_iter()
+        .skip(start)
+        .take(layout.body.height as usize)
+        .map(|row| row.into_ratatui())
+        .collect::<Vec<_>>();
+    frame.render_widget(Paragraph::new(rows).style(text), layout.body);
+    let span = |value: &str, style| ratatui::text::Span::styled(value.to_string(), style);
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(vec![
+            span("i", text.add_modifier(Modifier::BOLD)),
+            span(" investigate", muted),
+        ])),
+        layout.investigate,
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(if state.mcp_detail_copied() {
+            vec![span(
+                "✓ copied",
+                Style::default()
+                    .fg(slot(theme, "text.feedback.success.base"))
+                    .add_modifier(Modifier::BOLD),
+            )]
+        } else {
+            vec![
+                span("c", text.add_modifier(Modifier::BOLD)),
+                span(" copy details", muted),
+            ]
+        })),
+        layout.copy,
+    );
+    frame.render_widget(
+        Paragraph::new("↑/↓ scroll").style(muted),
+        layout.scroll_hint,
+    );
+}
+
+pub fn size_for(panel: &TuiPanel) -> DialogSize {
+    match panel {
+        TuiPanel::Cards => DialogSize::Xlarge,
+        TuiPanel::Sessions | TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
+        _ => DialogSize::Medium,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn sessions_large_width_preserves_filtered_date_group_and_title_limit() {
+        use ratatui::{Terminal, backend::TestBackend};
+        assert!(matches!(size_for(&TuiPanel::Sessions), DialogSize::Large));
+        let list = SelectList {
+            query: "query".into(),
+            ..SelectList::default()
+        };
+        let options = vec![SelectOption {
+            description: String::new(),
+            check: false,
+            value: "root".into(),
+            title: "x".repeat(70),
+            category: "Tue Nov 14 2023".into(),
+            footer: "worktree".into(),
+            current: false,
+            running: false,
+            destructive: false,
+        }];
+        for width in [36, 120] {
+            let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
+            terminal
+                .draw(|frame| {
+                    list.render(
+                        frame,
+                        "Sessions",
+                        DialogSize::Large,
+                        &options,
+                        None,
+                        FooterActions::None,
+                    )
+                })
+                .unwrap();
+            let buffer = terminal.backend().buffer();
+            let rows: Vec<String> = (0..40)
+                .map(|y| {
+                    (0..width)
+                        .map(|x| buffer[(x, y)].symbol())
+                        .collect::<String>()
+                })
+                .collect();
+            assert!(
+                rows.iter().any(|row| row.contains("Tue Nov 14 2023")),
+                "footer cannot be constrained to half the viewport"
+            );
+            assert!(
+                rows.iter().any(|row| row.contains("worktree")),
+                "Sessions preserves groups and worktree footer while searching"
+            );
+            if width == 120 {
+                assert!(
+                    rows.iter()
+                        .any(|row| row.contains(&format!("{}…", "x".repeat(60))))
+                );
+            }
+        }
+    }
+    #[test]
+    fn sessions_delete_confirmation_has_contrast_and_plain_footer_labels() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let list = SelectList::default();
+        let options = vec![SelectOption {
+            description: String::new(),
+            check: false,
+            value: "root".into(),
+            title: "Press ctrl+d again to confirm".into(),
+            category: "Today".into(),
+            footer: "fixture".into(),
+            current: false,
+            running: false,
+            destructive: true,
+        }];
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal
+            .draw(|frame| {
+                list.render(
+                    frame,
+                    "Sessions",
+                    DialogSize::Large,
+                    &options,
+                    Some("all projects ctrl+a"),
+                    FooterActions::None,
+                )
+            })
+            .unwrap();
+        let geometry = list.geometry(Rect::new(0, 0, 120, 40), DialogSize::Large, &options, 1);
+        let row = geometry
+            .rows
+            .iter()
+            .position(|item| *item == Some(0))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let cell = &buffer[(geometry.rect.x + 4, geometry.list_y + row as u16)];
+        assert_eq!(cell.symbol(), "P");
+        assert_eq!(cell.fg, slot(Theme::dark(), "text.action.destructive.base"));
+        assert_eq!(
+            cell.bg,
+            slot(Theme::dark(), "background.action.destructive.base")
+        );
+        assert_ne!(cell.fg, cell.bg);
+        let footer = &buffer[(
+            geometry.rect.x + 4,
+            geometry.rect.y + 6 + geometry.list_height as u16,
+        )];
+        assert_eq!(footer.symbol(), "d");
+        assert!(!footer.modifier.contains(Modifier::BOLD));
+    }
+
+    #[tokio::test]
+    async fn rename_medium_dialog_clips_wide_graphemes_on_one_focused_row() {
+        use crate::events::KeyAction;
+        use oc_core::{core_app::CoreApp, domain::SessionId};
+        use ratatui::{
+            Terminal,
+            backend::{Backend, TestBackend},
+        };
+
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId::new("rename-render").unwrap());
+        state.session_title = Some("🙂".repeat(60));
+        state.handle_key(KeyAction::Rename).await;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let rect = rename_geometry(Rect::new(0, 0, 120, 40));
+        assert_eq!(rect.width, 60);
+        let buffer = terminal.backend().buffer();
+        let field: String = (rect.x + 2..rect.right() - 2)
+            .map(|x| buffer[(x, rect.y + 3)].symbol().to_string())
+            .collect();
+        assert_eq!(buffer[(rect.x + 2, rect.y + 1)].symbol(), "R");
+        assert_eq!(buffer[(rect.right() - 5, rect.y + 1)].symbol(), "e");
+        assert_eq!(
+            buffer[(rect.x + 2, rect.y + 3)].fg,
+            slot(Theme::dark(), "text.formfield.base")
+        );
+        assert_eq!(buffer[(rect.x + 2, rect.y + 5)].symbol(), "e");
+        let assert_style = |x, y, fg, bg, bold| {
+            let cell = &buffer[(x, y)];
+            assert_eq!(cell.fg, fg, "foreground at ({x},{y})");
+            assert_eq!(cell.bg, bg, "background at ({x},{y})");
+            assert_eq!(
+                cell.modifier.contains(Modifier::BOLD),
+                bold,
+                "bold at ({x},{y})"
+            );
+        };
+        let surface = Color::Rgb(20, 20, 20);
+        assert_style(46, 11, Color::Rgb(255, 255, 255), surface, false);
+        assert_style(85, 11, Theme::dark().text_muted(), surface, false);
+        assert_style(32, 15, Theme::dark().text(), surface, false);
+        assert_style(39, 15, Theme::dark().text_muted(), surface, false);
+        assert_style(44, 15, Color::Rgb(255, 255, 255), surface, false);
+        assert_style(
+            30,
+            17,
+            Color::Rgb(255, 255, 255),
+            Color::Rgb(4, 4, 4),
+            false,
+        );
+        assert!(
+            field.contains("🙂"),
+            "visible Unicode title is horizontally scrolled"
+        );
+        assert!(!field.contains('�'));
+        assert_eq!(
+            buffer[(rect.x + 4, rect.y + 4)].symbol(),
+            " ",
+            "no wrapped second line"
+        );
+        assert_eq!(
+            terminal.backend_mut().get_cursor_position().unwrap().y,
+            rect.y + 3
+        );
+        assert_eq!(state.rename_cursor(), state.rename_title().unwrap().len());
+        state.handle_paste("\n");
+        assert_eq!(
+            state
+                .rename_title()
+                .unwrap()
+                .chars()
+                .filter(|c| *c == '\n')
+                .count(),
+            0
+        );
+        assert_eq!(
+            state.handle_panel_key(KeyAction::Enter).intent,
+            Some(crate::app::PanelIntent::RenameSession {
+                title: "🙂".repeat(60),
+            })
+        );
+    }
+    #[tokio::test]
+    async fn rename_focused_text_and_only_actual_text_are_colored() {
+        use crate::events::KeyAction;
+        use oc_core::{core_app::CoreApp, domain::SessionId};
+        use ratatui::{Terminal, backend::TestBackend};
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId::new("rename-style").unwrap());
+        state.session_title = Some("Какие инструменты доступны ассистенту".into());
+        state.handle_key(KeyAction::Rename).await;
+        let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(32, 13)].fg, Theme::dark().text());
+        assert_eq!(buffer[(69, 13)].fg, Color::Rgb(255, 255, 255));
+    }
+    #[test]
+    fn v04_full_catalog_cpu_and_bounded_cache() {
+        use std::time::{Duration, Instant};
+        let cold_limit = if cfg!(debug_assertions) {
+            Duration::from_secs(2)
+        } else {
+            Duration::from_millis(500)
+        };
+        let options = Rc::new(
+            (0..10_000)
+                .map(|i| SelectOption {
+                    description: String::new(),
+                    check: false,
+                    running: false,
+                    destructive: false,
+                    value: format!("model-{i:05}"),
+                    title: format!("{} abcdefghijklmnopqrstuvwxyz {i:05}", "a".repeat(790)),
+                    category: String::new(),
+                    footer: String::new(),
+                    current: false,
+                })
+                .collect::<Vec<_>>(),
+        );
+        assert!(options.iter().map(|o| o.title.len()).sum::<usize>() <= 8 * 1024 * 1024);
+        let mut list = SelectList::default();
+        let queries = [
+            "a".repeat(512),
+            format!("{}z", "a".repeat(511)),
+            "not_present_Ω".repeat(30),
+            (0..128)
+                .map(|i| {
+                    format!(
+                        "a{}{}",
+                        (b'a' + (i / 26) as u8) as char,
+                        (b'a' + (i % 26) as u8) as char
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+        ];
+        for (i, query) in queries.into_iter().enumerate() {
+            list.query = query;
+            let start = Instant::now();
+            let result = list.filter_for(options.clone(), &TuiPanel::Model);
+            let cold = start.elapsed();
+            if i < 2 {
+                assert_eq!(result.len(), 10_000, "no admissible model dropped");
+            }
+            let warm = Instant::now();
+            for _ in 0..100 {
+                assert!(Rc::ptr_eq(
+                    &result,
+                    &list.filter_for(options.clone(), &TuiPanel::Model)
+                ));
+            }
+            let warm = warm.elapsed();
+            eprintln!(
+                "V04 catalog=10000 text_bytes={} query_bytes={} cold={cold:?} cached100={warm:?}",
+                options.iter().map(|o| o.title.len()).sum::<usize>(),
+                list.query.len()
+            );
+            assert!(cold < cold_limit, "cold matching latency {cold:?}");
+            assert!(
+                warm < Duration::from_millis(50),
+                "unchanged frames recomputed matching"
+            );
+        }
+        assert_eq!(list.cache.borrow().as_ref().unwrap().prepared.len(), 10_000);
+        // Every distinct query word matches: exercise the non-short-circuit
+        // multiword path, plus Latin decomposition and non-Latin UTF-16 targets.
+        for body in [
+            "abcdefghijklmnopqrstuvwxyz".repeat(31),
+            format!(
+                "{}{}",
+                "á".repeat(270),
+                "abcdefghijklmnopqrstuvwxyz".repeat(10)
+            ),
+            format!(
+                "{}{}",
+                "Ω".repeat(270),
+                "abcdefghijklmnopqrstuvwxyz".repeat(10)
+            ),
+        ] {
+            let options = Rc::new(
+                (0..10_000)
+                    .map(|i| SelectOption {
+                        description: String::new(),
+                        check: false,
+                        running: false,
+                        destructive: false,
+                        value: i.to_string(),
+                        title: format!("{body}{i:05}"),
+                        category: String::new(),
+                        footer: String::new(),
+                        current: false,
+                    })
+                    .collect::<Vec<_>>(),
+            );
+            let start = Instant::now();
+            let result = list.filter_for(options.clone(), &TuiPanel::Model);
+            let elapsed = start.elapsed();
+            assert_eq!(result.len(), 10_000);
+            eprintln!(
+                "V04 all-words-match text_bytes={} cold={elapsed:?}",
+                options.iter().map(|o| o.title.len()).sum::<usize>()
+            );
+            assert!(elapsed < cold_limit, "cold matching latency {elapsed:?}");
+        }
+        list.reset();
+        assert!(list.cache.borrow().is_none());
+    }
+    #[test]
+    fn captured_backdrop_blanks_and_modal_padding_keep_default_foreground() {
+        use ratatui::{Terminal, backend::TestBackend, text::Line};
+        let mut terminal = Terminal::new(TestBackend::new(160, 48)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(
+                    Paragraph::new(Line::styled(
+                        "A B",
+                        Style::default()
+                            .fg(Color::Rgb(238, 238, 238))
+                            .add_modifier(Modifier::BOLD),
+                    )),
+                    Rect::new(0, 0, 3, 1),
+                );
+                SelectList::default().render(
+                    frame,
+                    "Select variant",
+                    DialogSize::Medium,
+                    &[SelectOption {
+                        description: String::new(),
+                        check: false,
+                        running: false,
+                        destructive: false,
+                        value: String::new(),
+                        title: "Default".into(),
+                        category: String::new(),
+                        footer: "Connected ✓".into(),
+                        current: true,
+                    }],
+                    None,
+                    FooterActions::None,
+                );
+            })
+            .unwrap();
+        let b = terminal.backend().buffer();
+        assert_eq!(b[(0, 0)].fg, Color::Rgb(98, 98, 98));
+        assert_eq!(b[(0, 0)].modifier, Modifier::BOLD);
+        for (x, y) in [(1, 0), (100, 1), (50, 12), (108, 13), (90, 17)] {
+            assert_eq!(b[(x, y)].symbol(), " ");
+            assert_eq!(
+                b[(x, y)].fg,
+                CANVAS_FOREGROUND,
+                "blank foreground at {x},{y}"
+            );
+            assert_eq!(
+                b[(x, y)].modifier,
+                Modifier::empty(),
+                "blank style at {x},{y}"
+            );
+        }
+        // A space that is part of newly drawn modal text keeps its text styling.
+        assert_eq!(b[(60, 13)].fg, Theme::dark().text());
+        assert_eq!(b[(60, 13)].modifier, Modifier::BOLD);
+        // Matching prose in an unrelated footer is not typed MCP status.
+        for x in 95..106 {
+            assert_eq!(
+                b[(x, 17)].fg,
+                slot(Theme::dark(), "text.action.primary.$focused")
+            );
+            assert!(!b[(x, 17)].modifier.contains(Modifier::BOLD));
+        }
+    }
+
+    #[test]
+    fn modal_surface_erases_underlay_symbols() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        let rect = DialogFrame::rect(Rect::new(0, 0, 80, 24), DialogSize::Medium, 10);
+        terminal
+            .draw(|frame| {
+                let rows = vec!["X".repeat(80); 24].join("\n");
+                frame.render_widget(Paragraph::new(rows), frame.area());
+                DialogFrame::paint(frame, rect, Theme::dark());
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(0, 0)].symbol(), "X");
+        for y in rect.y..rect.bottom() {
+            for x in rect.x..rect.right() {
+                assert_eq!(
+                    buffer[(x, y)].symbol(),
+                    " ",
+                    "underlay glyph leaked through modal at {x},{y}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn constrained_sizes_and_rgb_alpha() {
+        for (size, width) in [
+            (DialogSize::Medium, 60),
+            (DialogSize::Large, 88),
+            (DialogSize::Xlarge, 116),
+        ] {
+            assert_eq!(
+                DialogFrame::rect(Rect::new(0, 0, 160, 48), size, 20),
+                Rect::new((160 - width) / 2, 12, width, 20)
+            );
+            let r = DialogFrame::rect(Rect::new(0, 0, 43, 24), size, 40);
+            assert_eq!(r, Rect::new(1, 6, 41, 18));
+        }
+        assert_eq!(
+            backdrop(Color::Rgb(255, 128, 10), Color::Black),
+            Color::Rgb(105, 53, 4)
+        );
+    }
+}
