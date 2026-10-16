@@ -2845,8 +2845,35 @@ async fn apply_owned_intent(
             };
             state.apply_card_output(op, offset, page);
         }
-        PanelIntent::SelectModel { id } => {
+        PanelIntent::SelectModel { id, recent } => {
             state.draft_model(&id)?;
+            // Pinned `model.set(..., { recent: true })` ignores storage failures.
+            if let Some(model) = recent
+                && let Ok(preference) = app
+                    .model_preference(Some(oc_core::queries::ModelPreferenceAction::Recent(model)))
+                    .await
+            {
+                state.apply_model_preference(preference);
+            }
+        }
+        PanelIntent::LoadModelDirectory => {
+            if !state.catalog_loaded() {
+                let snapshot = selection(app, state, SelectionAction::Current).await?;
+                state.apply_catalog(snapshot);
+            }
+            let catalogs = app.model_catalogs().await.map_err(|e| e.to_string())?;
+            let preference = app.model_preference(None).await.unwrap_or_default();
+            state.apply_model_directory(catalogs, preference);
+        }
+        PanelIntent::FavoriteModel { model, enabled } => {
+            let preference = app
+                .model_preference(Some(oc_core::queries::ModelPreferenceAction::Favorite {
+                    model,
+                    enabled,
+                }))
+                .await
+                .map_err(|e| e.to_string())?;
+            state.apply_model_preference(preference);
         }
         PanelIntent::ChooseModel { variant, .. } => {
             state.draft_variant(variant.as_deref())?;

@@ -465,6 +465,8 @@ impl ConversationKeybinds {
             ("dialog.select.end", &mut self.dialog.end),
             ("dialog.select.submit", &mut self.dialog.submit),
             ("dialog.mcp.toggle", &mut self.dialog.mcp_toggle),
+            ("model.dialog.provider", &mut self.dialog.model_provider),
+            ("model.dialog.favorite", &mut self.dialog.model_favorite),
         ] {
             if let Some(value) = bindings.get(name) {
                 *target = value
@@ -577,6 +579,8 @@ impl ConversationKeybinds {
             end: resolve(&self.dialog.end),
             submit: resolve(&self.dialog.submit),
             mcp_toggle: resolve(&self.dialog.mcp_toggle),
+            model_provider: resolve(&self.dialog.model_provider),
+            model_favorite: resolve(&self.dialog.model_favorite),
         }
     }
     pub(crate) fn prompt_history_shortcuts(&self) -> oc_core::queries::PromptHistoryShortcuts {
@@ -2354,7 +2358,8 @@ mod tests {
                 "leader": "ctrl+a", "session.undo": "<leader>z,alt+u",
                 "session.redo": "<leader>y,none", "command.palette.show": "<leader>p",
                 "dialog.select.next": "ctrl+j", "dialog.select.submit": "f3",
-                "dialog.mcp.toggle": "<leader>t,f2",
+                "dialog.mcp.toggle": "<leader>t,f2", "model.dialog.provider": "<leader>i",
+                "model.dialog.favorite": false,
                 "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j",
                 "session.child.first": "<leader>s,f2",
                 "session.background": "<leader>b,f5",
@@ -2387,6 +2392,14 @@ mod tests {
         assert_eq!(dialogs.next, "ctrl+j");
         assert_eq!(dialogs.submit, "f3");
         assert_eq!(dialogs.mcp_toggle, "ctrl+b t,ctrl+g t,f2");
+        assert_eq!(dialogs.model_provider, "ctrl+b i,ctrl+g i");
+        assert_eq!(dialogs.model_favorite, "");
+        assert_eq!(
+            super::ConversationKeybinds::default()
+                .dialog_shortcuts()
+                .model_favorite,
+            "ctrl+f"
+        );
         assert_eq!(dialogs.home, "home");
         let history = bindings.prompt_history_shortcuts();
         assert_eq!(history.previous, "ctrl+b h,ctrl+g h,f4");

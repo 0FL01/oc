@@ -72,11 +72,13 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     paste(&mut pty, KEY);
     wait_screen_row(&pty, "••••", DEADLINE);
     pty.send(b"\r");
-    wait_screen_row(&pty, "Select model", DEADLINE);
+    // Pinned DialogModel providerID: the scoped title is the provider name.
+    wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
+    wait_screen_row(&pty, "OpenCode Go", DEADLINE);
     wait_screen_row(&pty, "GO05 cached choice", DEADLINE);
     // Dismiss without selecting: an account ACK must not select a model.
     pty.send(b"\x1b");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"/accounts\r");
     wait_screen_row(&pty, "default [active]", DEADLINE);
     wait_screen_row(&pty, "Effective auth: Stored", DEADLINE);
@@ -145,12 +147,12 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     pty.send(b"\r");
-    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
     wait_screen_row(&pty, "GO05 independent Go choice", DEADLINE);
     let screen = render_screen(&pty.output.lock().unwrap()).rows().join("\n");
     assert!(!screen.contains("T39 model") && !screen.contains("T39 alt"));
     pty.send(b"\x1b");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"/accounts\r");
     wait_screen_row(&pty, "Provider: fixture", DEADLINE);
     // The connect ACK changed only Go credentials, not the current connection/model.
@@ -166,7 +168,7 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     pty.send(b"\r");
     wait_screen_row(&pty, "GO05 independent Go choice", DEADLINE);
     pty.send(b"\r");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     // Picker choice is a draft. Blank Enter is the existing explicit commit.
     pty.send(b"\r");
     pty.send(b"/accounts\r");
@@ -237,7 +239,7 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     pty.send(b"\r");
     wait_screen_row(&pty, "GO05 offline Go selection", DEADLINE);
     pty.send(b"\r");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"\r");
     pty.send(b"/accounts\r");
     wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
@@ -290,10 +292,10 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     pty.send(b"\r");
-    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
     wait_screen_row(&pty, "T39 model", DEADLINE);
     pty.send(b"\r");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"\r"); // Explicit commit, not an account ACK side effect.
     submit(&mut pty, "GO05 connected completion");
     wait_screen_row(&pty, "echo: GO05 connected completion", DEADLINE);

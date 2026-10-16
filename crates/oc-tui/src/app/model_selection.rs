@@ -1,7 +1,7 @@
 //! Composer drafts and bounded owner receipts. This state never dispatches a
 //! generation or infers a committed choice from a menu/stream/footer.
 use super::*;
-use oc_core::queries::{ModelCommit, ModelRef, SelectionBinding};
+use oc_core::queries::{ModelCommit, ModelPreferenceModel, ModelRef, SelectionBinding};
 use std::collections::{BTreeMap, VecDeque};
 
 #[cfg(test)]
@@ -95,33 +95,199 @@ impl TuiState {
             })
     }
 
-    pub(crate) fn model_picker_details(&self) -> Vec<String> {
-        let mut lines = self
-            .picker
-            .as_ref()
-            .and_then(|picker| picker.cursor_id().map(|id| picker.model_details(&id)))
-            .unwrap_or_default();
-        if self.custom_picker_binding().is_some() {
-            if let Some(readiness) = &self.model_selection.picker_readiness {
-                let status = if readiness.catalog_status == oc_core::queries::ProviderStatus::Ready
-                    && self
-                        .picker
-                        .as_ref()
-                        .is_none_or(|picker| picker.options().is_empty())
-                {
-                    "empty"
-                } else {
-                    readiness.catalog_status.as_str()
-                };
-                lines.push(format!("Catalog: {status}"));
-                if let Some(diagnostic) = &readiness.diagnostic {
-                    lines.push(format!("Catalog/request: {:?}", diagnostic.code));
-                }
-            }
-            lines.push("← Retry GET · → Accounts / change key".into());
+    /// The all-provider list is shown unless a connection opened a scoped view.
+    pub(crate) fn model_directory_active(&self) -> Option<&crate::picker::ModelDirectory> {
+        self.model_scope
+            .is_none()
+            .then_some(self.model_directory.as_ref())
+            .flatten()
+    }
+
+    /// Pinned DialogModel title: the provider name when scoped.
+    pub(crate) fn model_dialog_title(&self) -> &str {
+        self.model_scope.as_deref().unwrap_or("Select model")
+    }
+
+    /// Pinned `useConnected`; a scoped view follows a successful connection.
+    pub(crate) fn model_dialog_connected(&self) -> bool {
+        self.model_scope.is_some()
+            || self
+                .model_directory
+                .as_ref()
+                .is_some_and(|directory| directory.connected())
+    }
+
+    /// The `●` row: the model this composer's picker currently resolves.
+    pub(crate) fn dialog_current_model(&self) -> Option<ModelPreferenceModel> {
+        let picker = self.picker.as_ref()?;
+        Some(ModelPreferenceModel {
+            provider: picker.provider().to_owned(),
+            model: picker.selection()?.id.clone(),
+        })
+    }
+
+    /// Native CONN04 difference: a just-saved custom connection's scoped view
+    /// keeps its catalog status and retry/accounts actions. No model metadata.
+    pub(crate) fn model_dialog_status(&self) -> Vec<String> {
+        let mut lines = Vec::new();
+        if self.model_scope.is_none() || self.custom_picker_binding().is_none() {
+            return lines;
         }
+        if let Some(readiness) = &self.model_selection.picker_readiness {
+            let status = if readiness.catalog_status == oc_core::queries::ProviderStatus::Ready
+                && self
+                    .picker
+                    .as_ref()
+                    .is_none_or(|picker| picker.options().is_empty())
+            {
+                "empty"
+            } else {
+                readiness.catalog_status.as_str()
+            };
+            lines.push(format!("Catalog: {status}"));
+            if let Some(diagnostic) = &readiness.diagnostic {
+                lines.push(format!("Catalog/request: {:?}", diagnostic.code));
+            }
+        }
+        lines.push("← Retry GET · → Accounts / change key".into());
         lines
     }
+
+    /// Footer actions with their effective first binding; unbound ones hide.
+    pub(crate) fn model_dialog_actions(&self) -> Vec<(&'static str, String)> {
+        let keys = &self.chrome.dialog_shortcuts;
+        let label = |binding: &str| {
+            binding
+                .split(',')
+                .find(|key| !key.is_empty() && *key != "none")
+                .map(str::to_owned)
+        };
+        let connected = self.model_dialog_connected();
+        [
+            (
+                if connected {
+                    "Connect an integration"
+                } else {
+                    "View all integrations"
+                },
+                label(&keys.model_provider),
+            ),
+            (
+                "Favorite",
+                label(&keys.model_favorite).filter(|_| connected),
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(title, key)| Some((title, key?)))
+        .collect()
+    }
+
+    fn focused_dialog_model(&self) -> Option<ModelPreferenceModel> {
+        let options = self.modal_options();
+        let value = &options.get(self.select.cursor)?.value;
+        crate::picker::ModelDirectory::decode(value).or_else(|| {
+            Some(ModelPreferenceModel {
+                provider: self.picker.as_ref()?.provider().to_owned(),
+                model: value.clone(),
+            })
+        })
+    }
+
+    /// Ctrl+A (`model.dialog.provider`) replaces the dialog with the integration list.
+    pub(super) fn model_dialog_provider(&mut self) -> KeyOutcome {
+        self.open_accounts(true)
+    }
+
+    /// Ctrl+F (`model.dialog.favorite`), hidden while nothing is connected.
+    pub(super) fn model_dialog_favorite(&mut self) -> KeyOutcome {
+        let Some(model) = self
+            .model_dialog_connected()
+            .then(|| self.focused_dialog_model())
+            .flatten()
+        else {
+            return KeyOutcome::default();
+        };
+        let enabled = !self
+            .model_directory
+            .as_ref()
+            .is_some_and(|directory| directory.is_favorite(&model));
+        KeyOutcome {
+            intent: Some(PanelIntent::FavoriteModel { model, enabled }),
+            ..Default::default()
+        }
+    }
+
+    /// Enter on an all-provider row. Another provider's row first binds that
+    /// provider's browse view, then follows the existing exact-id draft path.
+    pub(super) fn model_directory_enter(&mut self) -> KeyOutcome {
+        let mut outcome = KeyOutcome::default();
+        let Some(model) = self.focused_dialog_model() else {
+            outcome.note = Some("no model selected".to_string());
+            return outcome;
+        };
+        if self
+            .picker
+            .as_ref()
+            .is_none_or(|picker| picker.provider() != model.provider)
+        {
+            let Some(snapshot) = self
+                .model_directory
+                .as_ref()
+                .and_then(|directory| directory.snapshot(&model.provider))
+                .cloned()
+            else {
+                outcome.note = Some("provider model view unavailable".to_string());
+                return outcome;
+            };
+            self.apply_picker_catalog(snapshot);
+        }
+        outcome.intent = Some(PanelIntent::SelectModel {
+            id: model.model.clone(),
+            recent: Some(model),
+        });
+        outcome
+    }
+
+    /// A composer catalog snapshot has been applied at least once.
+    pub fn catalog_loaded(&self) -> bool {
+        self.catalog_loaded
+    }
+
+    /// Owner answer for Ctrl+X M; stale Location/generation views are dropped.
+    pub fn apply_model_directory(
+        &mut self,
+        catalogs: oc_core::queries::ModelCatalogs,
+        preference: oc_core::queries::ModelPreference,
+    ) {
+        if catalogs.catalogs.first().is_some_and(|snapshot| {
+            snapshot.chrome.location != self.chrome.location
+                || snapshot.chrome.selection_generation != self.chrome.selection_generation
+        }) {
+            return;
+        }
+        self.model_directory = Some(crate::picker::ModelDirectory::new(catalogs, preference));
+        if self.panel == TuiPanel::Model {
+            self.sync_modal_cursor();
+        }
+    }
+
+    /// Favorite/recent ACK; DialogSelect keeps the focused index (clamped).
+    pub fn apply_model_preference(&mut self, preference: oc_core::queries::ModelPreference) {
+        if let Some(directory) = &mut self.model_directory {
+            directory.set_preference(preference);
+        }
+        if self.panel == TuiPanel::Model {
+            self.sync_modal_cursor();
+        }
+    }
+
+    /// Connection flows open the provider-scoped dialog (no sections/extras).
+    pub(super) fn open_scoped_model_dialog(&mut self, provider_name: String) {
+        self.panel = TuiPanel::Model;
+        self.model_scope = Some(provider_name);
+        self.select.reset();
+    }
+
     /// A new same-Location composer may remember an actually committed choice;
     /// another session's uncommitted picker draft never crosses this boundary.
     pub fn inherit_committed_model_choice(&mut self, old: &Self) {

@@ -1331,6 +1331,9 @@ fn saved_selection_record(
         .map(|record| serde_json::from_str(&record).unwrap())
 }
 
+/// Footer row of the connected model dialog; its scoped title is a provider name.
+const SCOPED_MODEL_DIALOG: &str = "Connect an integration ctrl+a";
+
 fn dismissed(pty: &PtySession, title: &str) {
     let start = Instant::now();
     while render_screen(&pty.snapshot())

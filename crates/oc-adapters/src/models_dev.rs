@@ -119,6 +119,9 @@ struct SourceModel {
     cost: Option<Cost>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     status: Option<Status>,
+    /// Model dialog newest-first ordering only; never a capability.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    release_date: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     interleaved: Option<Interleaved>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -311,6 +314,9 @@ impl ProviderRecord {
             }
             if let Some(status) = &model.status {
                 metadata["status"] = json!(status);
+            }
+            if let Some(date) = model.release_date.as_deref().filter(|d| d.len() <= 32) {
+                metadata["release_date"] = json!(date);
             }
             if let Some(options) = &model.reasoning_options {
                 metadata["reasoning_options"] = json!(options);

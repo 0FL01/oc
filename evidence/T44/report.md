@@ -1744,3 +1744,65 @@ panic1, VIS31 2, S07 1, VIS38 1, AUD32 1, TERM01 1). No test count/cap/deadline 
 raised. Actual Git HEAD remains51aa7a6be; reviewed runtime/source diff unchanged.
 This closes current offline/rebuilt-binary regression checks for this slice, not
 whole-frame T44 qualification or overall GOAL delivery.
+
+## Model dialog (Ctrl+X M) — owner request 2026-10-16
+
+Base `306487c69`. Owner report: the native "Select model" dialog printed model
+metadata/debug lines (In/Out, Reasoning/Tools, Effort, Limits, Attachment,
+Client media) and had no Favorites/Recent. Reference: pinned
+`packages/tui/src/component/dialog-model.tsx`, `ui/dialog-select.tsx`,
+`model-preference.ts` (checked at `6f655dcba` "sync release versions for
+v2.0.12"; the pinned tag commit is not in the local donor clone).
+
+Owner decisions: the unfiltered dialog lists every admitted provider (connected
+state), favorites/recents live in the existing native prefs DB.
+
+Implemented:
+
+- Removed `ModelPicker::model_details` / `TuiState::model_picker_details` and the
+  model footer wiring; capabilities remain owner data only.
+- `CoreApp::model_catalogs()` — selected provider snapshot first, then every
+  admitted view whose credential source is Stored/Environment/Configured/
+  Anonymous, from already-loaded catalogs only (no discovery/network/selection).
+  `connected` mirrors pinned `useConnected`.
+- `CoreApp::model_preference(action)` — owner read-modify-write of
+  `tui.model_preference` (`{"recent":[{providerID,modelID}],"favorite":[…]}`):
+  recent dedup/newest-first/cap 10, favorite prepend/remove, unknown keys kept,
+  invalid entries skipped. **Storage disclosure:** one new prefs key in the live
+  shared `~/.local/share/oc` DB; no schema change or migration.
+- `ModelEntry.{released,deprecated,input_free}`; models.dev `release_date` is
+  retained in metadata. `Free` follows pinned input-only tariff rule.
+- `ModelDirectory`: Favorites → Recent (minus favorites) → provider sections
+  (`opencode-go`, `opencode`, then name), Free → release desc → title; inline
+  muted provider description; catalog favorites `(Favorite)` in search; search
+  is flat with provider as right footer and favorites first; disconnected has
+  no sections/extras. `●` = picker's resolved provider/model; focus starts at
+  row 0 (`focusCurrent=false`), favorite toggles keep the index.
+- Footer `Connect an integration ctrl+a  Favorite ctrl+f` (`View all
+  integrations` when disconnected; stacked below 60 columns) with configurable
+  `model.dialog.provider` / `model.dialog.favorite` (`false`/`none` hides).
+  Ctrl+A opens the existing integration list; Enter on another provider binds
+  that provider view through the existing `apply_picker_catalog` and drafts via
+  `draft_model`, then records Recent (errors ignored like upstream).
+- Connection flows open the scoped dialog titled with the provider name.
+
+Checks (this slice): `oc-core` 43/43, `oc-tui` 553/553, `oc-adapters --lib`
+806/0/1, `pty_t39` 60/60 (three full runs; one earlier run had a single
+`conn04_zero_*` failure under concurrent workspace load that did not reproduce
+in 6 targeted + 3 full reruns), `pty_t42` 35/35, workspace fmt and strict
+Clippy clean, `cargo build -p oc2 --bin oc2 --locked` (debug). Isolated
+workspace run here (user `stfu`): `auth_cli`, `auth_tui`, `recovery_startup`,
+`terminals` fail on the hard-coded `/home/opencode/.cache/opencode-tmp` path;
+`live_bounded::envelope::*` (6) and `mcp_application::aud24_*` fail identically
+on a clean `306487c69` worktree; `subagent::cancel_mid_child_stream_*` flakes
+only under load. Updated tests: PTY scoped waits use the dialog footer and the
+provider title; the wheel test row now lands on `mouse-11` because the
+connected list starts with its `fixture` heading.
+
+Native differences (not waived): scoped custom-connection dialogs keep the
+CONN04 `Catalog: …` / `← Retry GET · → Accounts` lines; Tab focus and mouse
+clicks on the footer actions are not implemented; name ordering approximates
+ICU `localeCompare`; providers whose catalogs have not been loaded yet (e.g. an
+unselected custom connection before its first GET) are absent until loaded.
+No paired OC2/native styled-cell/PNG capture was run for this slice — visual
+qualification remains NOT_RUN; T44 stays ACTIVE.

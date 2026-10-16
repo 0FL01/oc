@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T09:49:53+00:00
+State updated: 2026-10-16T12:30:40+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,60 +12,42 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Context usage — settled-step publication boundary
+# Model dialog (Ctrl+X M) parity slice
 
 ## Result
 
-The reproduced Execute busy-footer difference has two publication paths: the
-runtime event preceded local tool settlement, and an in-flight presentation
-checkpoint independently supplied the same accounting measurement to the TUI.
-Both are corrected without changing accounting, usage anchors, durable pre-effect
-checkpoints, RAW history or execution permissions. The retained-history fallback
-also has a reproduced regression and a narrow status-aware correction.
-
-Detailed evidence: [usage-settlement-20261016.md](usage-settlement-20261016.md).
-This is a bounded footer/timing correction, not whole VIS46 or T44 visual PASS.
+Owner-requested slice of T44: the native "Select model" dialog no longer prints
+model metadata/debug lines and now follows pinned DialogModel: all admitted
+providers in connected state, Favorites → Recent → provider sections, search
+flattening, inline provider description, `Free`, `●` current, footer
+`Connect an integration ctrl+a  Favorite ctrl+f`, scoped provider title after a
+connection. Favorites/recents persist through `CoreApp::model_preference` in the
+existing prefs DB key `tui.model_preference` (new key in the live shared store,
+no schema change/migration). Details: evidence/T44/report.md, section
+"Model dialog (Ctrl+X M) — owner request 2026-10-16".
 
 ## Checks
 
-- Real Code Mode event-order RED, actual projection RED and retained-page RED
-  precede their fixes. The existing owner test also preserves the preceding
-  settled measurement and terminal recovery.
-- Runtime integration130 tests, preceding549-TUI suite and strict workspace
-  Clippy pass. The first isolated workspace gate passes2012 tests, zero failures,
-  with12 unchanged opt-in ignored cases across46 targets.
-- Actual paired Execute attempt09: both binaries pass20 interaction stages,
-  five provider requests, two Execute operations, three MCP calls and one GET;
-  real Code/Output clipboard transport, immutable RAW/final facts, no replay and
-  natural code0 exits for both generations.
-- Both running-dialog and copied-Code complete4800-cell styled grids now have
-  zero different cells; both complete647040-pixel PNGs are identical. Copied-Code
-  also passes the complete cursor-inclusive grid comparator. All40 comparisons
-  remain recorded:7 PASS/33 DIFFERENT, with no masking or normalization.
-- The retained-page correction exposed a stale `started` status on finished
-  metadata in the existing captured-limit test. Its assertion remains unchanged;
-  only terminal projections now set the terminal-status owner. Both old/new
-  regressions, all549 TUI tests and strict workspace Clippy now pass. Final-source
-  paired capture10 repeats both20-stage behavior witnesses and7 PASS/33 DIFFERENT
-   complete comparisons, including the corrected footer. The final isolated
-   workspace gate passes2012 tests, zero failures and12 unchanged opt-in ignored
-   cases across46 targets (`t44-usage-settlement-workspace-02.log`).
-   The stopped TUI02 pipeline did not run its Clippy
-  or workspace commands.
+oc-core 43/43, oc-tui 553/553, oc-adapters --lib 806/0/1, pty_t39 60/60
+(three full runs), pty_t42 35/35, workspace fmt and strict Clippy clean, debug
+`cargo build -p oc2 --bin oc2 --locked`. Environment-only failures in the
+isolated workspace run (hard-coded /home/opencode tmp path; live_bounded
+envelope and mcp aud24 identical on a clean base worktree) are recorded in the
+report.
 
 ## Risks
 
-Actual elapsed labels, hidden read-only pen positions and the explicitly
-incomparable metadata-error/failed-parent interaction remain open full-parity
-observations. No new exception or waiver is declared. Published0.2.0 and the
-completed configuration task are unchanged.
+No paired OC2/native styled-cell/PNG qualification for this slice (NOT_RUN).
+Retained native differences: CONN04 custom-connection scoped status lines,
+no Tab/mouse focus of footer actions, ICU localeCompare approximation,
+not-yet-loaded provider catalogs absent. One unreproduced conn04 PTY failure
+under concurrent workspace load.
 
 ## Next
 
-All final gates pass. Commit/push this reviewed slice, then PAUSE as explicitly
-requested by the owner: “доделывай, коммит и пуш, далее пауза”. Do not begin the
-next TUI slice. Keep all R1–R6/VIS01–VIS46 requirements unresolved where not yet
-qualified; the pause is scheduling, not full T44 completion or an external blocker.
+Owner live look via oc2-dev; then paired capture of connected browse/search/
+scoped/favorite/variant states and the remaining ordered T44 slices. T44 stays
+active, not finished.
 
 
 Ready (до 5): нет

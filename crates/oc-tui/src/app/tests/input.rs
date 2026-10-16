@@ -2479,7 +2479,7 @@ async fn vis27_owner_catalog_mode_and_absence_replace_prior_selection() {
 async fn slash_overlay_commands_consume_alias_but_compress_keeps_input() {
     let mut state = fresh_state("s-slash").await;
     for (command, intent) in [
-        ("/model", PanelIntent::LoadCatalog),
+        ("/model", PanelIntent::LoadModelDirectory),
         ("/agents", PanelIntent::LoadCatalog),
         ("/sessions", PanelIntent::LoadSessions),
         ("/skills", PanelIntent::LoadSkills),
@@ -2526,6 +2526,8 @@ async fn slash_overlay_commands_consume_alias_but_compress_keeps_input() {
             outcome.intent,
             if command == "/sessions" {
                 Some(PanelIntent::LoadSessions)
+            } else if command == "/model" {
+                Some(PanelIntent::LoadModelDirectory)
             } else {
                 None
             },
@@ -2582,12 +2584,17 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
         assert!(outcome.note.unwrap().contains("turn active"));
         assert_eq!(state.panel(), &TuiPanel::None);
     }
-    for (action, panel) in [
-        (CommandAction::OpenModelPicker, TuiPanel::Model),
-        (CommandAction::OpenVariants, TuiPanel::Variant),
+    for (action, panel, intent) in [
+        // DialogModel re-reads provider views/preferences on every open (read-only).
+        (
+            CommandAction::OpenModelPicker,
+            TuiPanel::Model,
+            Some(PanelIntent::LoadModelDirectory),
+        ),
+        (CommandAction::OpenVariants, TuiPanel::Variant, None),
     ] {
         let outcome = state.run_command(action);
-        assert_eq!(outcome.intent, None);
+        assert_eq!(outcome.intent, intent);
         assert_eq!(outcome.note, None);
         assert_eq!(state.panel(), &panel);
         assert_eq!(state.input(), "pending prompt");
@@ -2948,7 +2955,10 @@ async fn v04_mouse_scroll_hover_and_drag_release_keep_modal_owner() {
     pointer(&mut state, MouseEventKind::Down(MouseButton::Left), 20, 12);
     assert_eq!(
         pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 20, 12).intent,
-        Some(PanelIntent::SelectModel { id: "m04".into() })
+        Some(PanelIntent::SelectModel {
+            id: "m04".into(),
+            recent: None
+        })
     );
     assert_eq!(
         pointer(&mut state, MouseEventKind::Up(MouseButton::Left), 20, 12).intent,
@@ -3149,6 +3159,7 @@ async fn panel_enter_returns_selection_intents() {
         outcome.intent,
         Some(PanelIntent::SelectModel {
             id: "b".to_string(),
+            recent: None,
         })
     );
     assert_eq!(state.picker_selection(), Some(("b".to_string(), None)));

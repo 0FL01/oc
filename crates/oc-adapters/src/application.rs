@@ -51,6 +51,7 @@ mod fork_tests;
 #[path = "application/inherited_tests.rs"]
 mod inherited_tests;
 mod mcp_lookup;
+mod model_picker;
 #[cfg(test)]
 #[path = "application/plugin_tests.rs"]
 mod plugin_tests;
@@ -1124,12 +1125,7 @@ impl Effective {
                     .and_then(|v| v.as_str())
                     .unwrap_or(id)
                     .to_string(),
-                provider_name: composition
-                    .generation
-                    .providers
-                    .get(&catalog.provider)
-                    .and_then(|p| p.name.clone())
-                    .unwrap_or_else(|| catalog.provider.clone()),
+                provider_name: model_picker::provider_name(composition, &catalog.provider),
                 price: (|| {
                     let input = spec.pointer("/cost/input")?;
                     let output = spec.pointer("/cost/output")?;
@@ -1179,6 +1175,12 @@ impl Effective {
                     .and_then(serde_json::Value::as_u64)
                     .filter(|value| *value > 0)
                     .is_some(),
+                released: model_picker::released(spec),
+                deprecated: spec.get("status").and_then(|v| v.as_str()) == Some("deprecated"),
+                input_free: spec
+                    .pointer("/cost/input")
+                    .and_then(serde_json::Value::as_f64)
+                    == Some(0.0),
             })
             .collect();
         models.sort_by(|a, b| a.id.cmp(&b.id));
@@ -3536,6 +3538,17 @@ async fn query(
         }
         InboxMsg::ProviderConnections { ack } => {
             let _ = ack.send(accounts::connections(db, composition));
+        }
+        InboxMsg::ModelCatalogs { ack } => {
+            let _ = ack.send(model_picker::catalogs(
+                db,
+                composition,
+                effective,
+                location_epoch.load(Ordering::SeqCst),
+            ));
+        }
+        InboxMsg::ModelPreference { action, ack } => {
+            let _ = ack.send(model_picker::preference(db, action));
         }
         InboxMsg::CustomProvider { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));

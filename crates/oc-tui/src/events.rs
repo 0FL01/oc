@@ -70,6 +70,9 @@ pub enum KeyAction {
     DialogActionPrevious,
     /// The effective MCP toggle binding, not printable search input.
     McpToggle,
+    /// Effective `model.dialog.provider` / `model.dialog.favorite` bindings.
+    ModelProvider,
+    ModelFavorite,
     /// Effective history binding, distinct from physical default arrow fallback.
     PromptHistoryPrevious,
     PromptHistoryNext,

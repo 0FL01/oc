@@ -153,6 +153,15 @@ impl TuiState {
         }
     }
 
+    /// Display name of the provider this account surface just connected.
+    fn connected_provider_name(&self) -> String {
+        self.accounts
+            .connections
+            .iter()
+            .find(|c| c.provider == self.accounts.provider)
+            .map_or_else(|| self.accounts.provider.clone(), |c| c.name.clone())
+    }
+
     pub(super) fn clear_accounts(&mut self) {
         *self.accounts = AccountsView::default();
     }
@@ -229,9 +238,9 @@ impl TuiState {
                 self.accounts.snapshot = Some(snapshot);
                 self.accounts.failed = false;
                 if adding || anonymous {
+                    let name = self.connected_provider_name();
                     self.clear_accounts();
-                    self.panel = TuiPanel::Model;
-                    self.select.reset();
+                    self.open_scoped_model_dialog(name);
                     return true;
                 }
             }
@@ -333,8 +342,7 @@ impl TuiState {
             }
             Ok(CustomProviderReply::Saved(connection)) if saving => {
                 self.clear_accounts();
-                self.panel = TuiPanel::Model;
-                self.select.reset();
+                self.open_scoped_model_dialog(connection.name.clone());
                 return Some(connection.provider);
             }
             _ if saving => {
@@ -522,9 +530,9 @@ impl TuiState {
             self.auth_failure(request, "Authorization acknowledgement unavailable");
             return false;
         }
+        let name = self.connected_provider_name();
         self.clear_accounts();
-        self.panel = TuiPanel::Model;
-        self.select.reset();
+        self.open_scoped_model_dialog(name);
         true
     }
 

@@ -17,6 +17,8 @@ mod auth;
 pub use auth::*;
 mod terminals;
 pub use terminals::*;
+mod model_preference;
+pub use model_preference::*;
 
 /// Bounded root-session picker projection; IDs remain routing keys.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -535,6 +537,13 @@ pub struct ModelEntry {
     pub output: u64,
     /// Distinguishes an explicit output value from the legacy zero fallback.
     pub output_known: bool,
+    /// Declared release time (Unix ms) for the dialog's newest-first order.
+    pub released: Option<u64>,
+    /// Declared `deprecated` status; the model dialog hides such rows.
+    pub deprecated: bool,
+    /// Pinned DialogModel `Free`: a declared input tariff of exactly zero.
+    /// Distinct from [`ModelPrice::is_free`], which also requires output.
+    pub input_free: bool,
 }
 
 /// Full modality axes stay separate from partial server capability flags.
@@ -647,6 +656,17 @@ pub struct CatalogSnapshot {
     pub commands: Vec<String>,
     /// Descriptions for the admitted commands in this generation; no templates.
     pub command_descriptions: BTreeMap<String, String>,
+}
+
+/// Every admitted, already-loaded provider view for the model dialog. Each
+/// snapshot keeps its own single-provider identity and selection stamp.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ModelCatalogs {
+    /// Pinned `useConnected`: some admitted integration has a usable credential
+    /// source (stored, environment, configured or explicit anonymous).
+    pub connected: bool,
+    /// Selected provider first, then admitted views with a usable source.
+    pub catalogs: Vec<CatalogSnapshot>,
 }
 
 impl CatalogSnapshot {
@@ -1337,6 +1357,10 @@ pub struct DialogShortcuts {
     pub end: String,
     pub submit: String,
     pub mcp_toggle: String,
+    /// Model dialog `model.dialog.provider` (Connect an integration).
+    pub model_provider: String,
+    /// Model dialog `model.dialog.favorite`.
+    pub model_favorite: String,
 }
 
 /// The pinned composer's existing row commands. Empty bindings disable a row
@@ -1383,6 +1407,8 @@ impl Default for DialogShortcuts {
             end: "end".into(),
             submit: "return".into(),
             mcp_toggle: "space".into(),
+            model_provider: "ctrl+a".into(),
+            model_favorite: "ctrl+f".into(),
         }
     }
 }

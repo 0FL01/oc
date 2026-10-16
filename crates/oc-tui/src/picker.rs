@@ -10,6 +10,7 @@
 //! falls back to another model.
 
 use oc_adapters::models::{self, ModelCatalog, Selection};
+use oc_core::queries::{ModelPreference, ModelPreferenceModel};
 use std::{cell::OnceCell, rc::Rc};
 
 /// Prefs key holding the persisted selection JSON.
@@ -94,6 +95,7 @@ impl ModelPicker {
                     number(&p["input"]) == Some(0.0) && number(&p["output"]) == Some(0.0)
                 });
                 crate::dialog::SelectOption {
+                    description: String::new(),
                     running: false,
                     destructive: false,
                     value: id.clone(),
@@ -140,6 +142,7 @@ impl ModelPicker {
         names
             .into_iter()
             .map(|name| crate::dialog::SelectOption {
+                description: String::new(),
                 running: false,
                 destructive: false,
                 title: if name == "default" {
@@ -252,82 +255,6 @@ impl ModelPicker {
     /// Human metadata for a browsed id; selection continues to use the exact id.
     pub(crate) fn model_name(&self, id: &str) -> Option<&str> {
         self.catalog.models.get(id)?.get("name")?.as_str()
-    }
-
-    /// Read-only details for the focused row; metadata is not a client feature grant.
-    pub(crate) fn model_details(&self, id: &str) -> Vec<String> {
-        let Some(spec) = self.catalog.models.get(id) else {
-            return Vec::new();
-        };
-        let caps = models::capabilities(spec);
-        let axis = |values: Option<&Vec<String>>| match values {
-            None => "unknown".into(),
-            Some(values) if values.is_empty() => "[]".into(),
-            Some(values) => values.join("/"),
-        };
-        let flag = |value| match value {
-            Some(true) => "supported",
-            Some(false) => "unsupported",
-            None => "unknown",
-        };
-        let variants = models::available_variants(spec)
-            .map(|(name, value)| {
-                let effort = value
-                    .get("settings")
-                    .unwrap_or(value)
-                    .get("reasoningEffort")
-                    .and_then(serde_json::Value::as_str);
-                effort
-                    .filter(|effort| *effort != name)
-                    .map_or_else(|| name.to_owned(), |effort| format!("{name}={effort}"))
-            })
-            .collect::<Vec<_>>();
-        let effort = if !spec
-            .get("variants")
-            .is_some_and(|v| v.is_object() || v.is_array())
-        {
-            "unknown".into()
-        } else if variants.is_empty() {
-            "none declared".into()
-        } else {
-            variants.join(", ")
-        };
-        let limit = |key| {
-            spec.pointer(key)
-                .and_then(serde_json::Value::as_u64)
-                .filter(|n| *n > 0)
-                .map_or_else(|| "unknown".into(), |n| n.to_string())
-        };
-        let mut lines = vec![
-            format!(
-                "In: {} · Out: {}",
-                axis(caps.input.as_ref()),
-                axis(caps.output.as_ref())
-            ),
-            format!(
-                "Reasoning: {} · Tools: {}",
-                flag(caps.reasoning),
-                flag(caps.tools)
-            ),
-            format!("Effort: {effort}"),
-            format!(
-                "Limits: ctx {} · output {}",
-                limit("/limit/context"),
-                limit("/limit/output")
-            ),
-        ];
-        for (label, value) in [
-            ("Attachment", caps.attachment),
-            ("Partial image input", caps.partial.image_input),
-            ("Partial PDF input", caps.partial.pdf_input),
-            ("Partial reasoning", caps.partial.reasoning),
-        ] {
-            if value.is_some() {
-                lines.push(format!("{label}: {}", flag(value)));
-            }
-        }
-        lines.push("Client media: image input only".into());
-        lines
     }
 
     /// Human metadata for a browsed id; selection continues to use the exact id.
@@ -520,6 +447,259 @@ impl ModelPicker {
         ids
     }
 }
+
+/// Pinned DialogModel option source over every admitted provider view.
+/// Pure projection: favorites/recents are owner data, rows are presentation.
+pub struct ModelDirectory {
+    connected: bool,
+    catalogs: Vec<oc_core::queries::CatalogSnapshot>,
+    preference: ModelPreference,
+    cache: std::cell::RefCell<Option<DirectoryCache>>,
+}
+
+struct DirectoryCache {
+    current: Option<ModelPreferenceModel>,
+    searching: bool,
+    options: Rc<Vec<crate::dialog::SelectOption>>,
+}
+
+struct Row<'a> {
+    provider: &'a str,
+    entry: &'a oc_core::queries::ModelEntry,
+}
+
+impl Row<'_> {
+    fn identity(&self) -> ModelPreferenceModel {
+        ModelPreferenceModel {
+            provider: self.provider.to_owned(),
+            model: self.entry.id.clone(),
+        }
+    }
+    fn title(&self) -> &str {
+        if self.entry.display_name.is_empty() {
+            &self.entry.id
+        } else {
+            &self.entry.display_name
+        }
+    }
+    fn provider_name(&self) -> &str {
+        if self.entry.provider_name.is_empty() {
+            self.provider
+        } else {
+            &self.entry.provider_name
+        }
+    }
+}
+
+impl ModelDirectory {
+    pub fn new(catalogs: oc_core::queries::ModelCatalogs, preference: ModelPreference) -> Self {
+        Self {
+            connected: catalogs.connected,
+            catalogs: catalogs.catalogs,
+            preference,
+            cache: Default::default(),
+        }
+    }
+
+    pub fn connected(&self) -> bool {
+        self.connected
+    }
+
+    pub fn set_preference(&mut self, preference: ModelPreference) {
+        self.preference = preference;
+        self.cache.take();
+    }
+
+    pub fn is_favorite(&self, model: &ModelPreferenceModel) -> bool {
+        self.preference.favorite.contains(model)
+    }
+
+    /// The provider-scoped snapshot used to draft a row of that provider.
+    pub fn snapshot(&self, provider: &str) -> Option<&oc_core::queries::CatalogSnapshot> {
+        self.catalogs.iter().find(|c| c.provider == provider)
+    }
+
+    /// Unambiguous option value: provider and model IDs may contain `/`.
+    pub fn value(model: &ModelPreferenceModel) -> String {
+        serde_json::json!([model.provider, model.model]).to_string()
+    }
+
+    pub fn decode(value: &str) -> Option<ModelPreferenceModel> {
+        let [provider, model]: [String; 2] = serde_json::from_str(value).ok()?;
+        Some(ModelPreferenceModel { provider, model })
+    }
+
+    /// Browse rows (Favorites, Recent, provider sections) or the complete
+    /// metadata-sorted search source for the shared fuzzy membership filter.
+    pub fn options(
+        &self,
+        searching: bool,
+        current: Option<ModelPreferenceModel>,
+    ) -> Rc<Vec<crate::dialog::SelectOption>> {
+        if let Some(cache) = self.cache.borrow().as_ref()
+            && cache.searching == searching
+            && cache.current == current
+        {
+            return cache.options.clone();
+        }
+        let options = Rc::new(self.build(searching, current.as_ref()));
+        *self.cache.borrow_mut() = Some(DirectoryCache {
+            current,
+            searching,
+            options: options.clone(),
+        });
+        options
+    }
+
+    fn rows(&self) -> Vec<Row<'_>> {
+        let mut seen = std::collections::BTreeSet::new();
+        self.catalogs
+            .iter()
+            .filter(|catalog| seen.insert(catalog.provider.as_str()))
+            .flat_map(|catalog| {
+                catalog
+                    .models
+                    .iter()
+                    .filter(|entry| !entry.deprecated)
+                    .map(|entry| Row {
+                        provider: &catalog.provider,
+                        entry,
+                    })
+            })
+            .collect()
+    }
+
+    fn build(
+        &self,
+        searching: bool,
+        current: Option<&ModelPreferenceModel>,
+    ) -> Vec<crate::dialog::SelectOption> {
+        let rows = self.rows();
+        let sections = self.connected && !searching;
+        let favorites: &[ModelPreferenceModel] = if self.connected {
+            &self.preference.favorite
+        } else {
+            &[]
+        };
+        let option = |row: &Row<'_>, category: &str, description: String| {
+            let identity = row.identity();
+            crate::dialog::SelectOption {
+                running: false,
+                destructive: false,
+                current: current == Some(&identity),
+                value: Self::value(&identity),
+                title: row.title().to_owned(),
+                category: category.to_owned(),
+                description,
+                footer: if row.entry.input_free {
+                    "Free".into()
+                } else {
+                    String::new()
+                },
+            }
+        };
+        let mut options = Vec::new();
+        let mut listed = Vec::new();
+        if sections {
+            let recents = self
+                .preference
+                .recent
+                .iter()
+                .filter(|item| !favorites.contains(item));
+            for (items, category) in [
+                (favorites.iter().collect::<Vec<_>>(), "Favorites"),
+                (recents.collect(), "Recent"),
+            ] {
+                for item in items {
+                    if let Some(row) = rows.iter().find(|row| row.identity() == *item) {
+                        options.push(option(row, category, row.provider_name().to_owned()));
+                        listed.push(item.clone());
+                    }
+                }
+            }
+        }
+        let mut catalog: Vec<_> = rows
+            .iter()
+            .filter(|row| !sections || !listed.contains(&row.identity()))
+            .collect();
+        let grouped = self.connected && !searching;
+        catalog.sort_by(|a, b| {
+            let rank = |row: &Row<'_>| match row.provider {
+                "opencode-go" => 0,
+                "opencode" => 1,
+                _ => 2,
+            };
+            let provider = if grouped {
+                rank(a)
+                    .cmp(&rank(b))
+                    .then_with(|| locale_cmp(a.provider_name(), b.provider_name()))
+            } else {
+                std::cmp::Ordering::Equal
+            };
+            provider
+                .then_with(|| b.entry.input_free.cmp(&a.entry.input_free))
+                .then_with(|| {
+                    b.entry
+                        .released
+                        .unwrap_or(0)
+                        .cmp(&a.entry.released.unwrap_or(0))
+                })
+                .then_with(|| locale_cmp(a.title(), b.title()))
+        });
+        if searching {
+            // prioritizeFavorites: a stable sort keeps metadata order inside both groups.
+            catalog.sort_by_key(|row| !favorites.contains(&row.identity()));
+        }
+        options.extend(catalog.into_iter().map(|row| {
+            let favorite = favorites.contains(&row.identity());
+            option(
+                row,
+                if self.connected {
+                    row.provider_name()
+                } else {
+                    ""
+                },
+                if favorite {
+                    "(Favorite)".into()
+                } else {
+                    String::new()
+                },
+            )
+        }));
+        options
+    }
+}
+
+/// Approximates `String.prototype.localeCompare` (ICU root collation) for the
+/// identifiers seen in catalogs: whitespace < punctuation < symbols < digits <
+/// letters, case-insensitive first, lowercase before uppercase on ties.
+fn locale_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    fn key(c: char) -> (u8, u32) {
+        const PUNCTUATION: &str = "_-,;:!?.'\"()[]{}@*/\\&#%";
+        const SYMBOLS: &str = "`^+<=>|~$";
+        if c.is_whitespace() {
+            (0, c as u32)
+        } else if let Some(i) = PUNCTUATION.find(c) {
+            (1, i as u32)
+        } else if let Some(i) = SYMBOLS.find(c) {
+            (2, i as u32)
+        } else if c.is_numeric() {
+            (3, c.to_digit(10).unwrap_or(c as u32))
+        } else if c.is_alphabetic() {
+            (4, c.to_lowercase().next().unwrap_or(c) as u32)
+        } else {
+            (5, c as u32)
+        }
+    }
+    a.chars()
+        .map(key)
+        .cmp(b.chars().map(key))
+        .then_with(|| b.cmp(a))
+}
+
+#[cfg(test)]
+#[path = "picker/directory_tests.rs"]
+pub(crate) mod directory_tests;
 
 fn parse_persisted(raw: &str) -> Option<Persisted> {
     let value: serde_json::Value = serde_json::from_str(raw).ok()?;

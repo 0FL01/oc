@@ -1618,6 +1618,7 @@ async fn selecting_model_updates_local_draft_without_owner_commit_or_selection_t
             output_known: false,
             variants_known: true,
             capabilities: Default::default(),
+            ..Default::default()
         })
         .collect();
     selected.model_id = "first".into();
@@ -1631,6 +1632,7 @@ async fn selecting_model_updates_local_draft_without_owner_commit_or_selection_t
         &mut LoopState::default(),
         PanelIntent::SelectModel {
             id: "second".into(),
+            recent: None,
         },
     )
     .await
@@ -1659,6 +1661,7 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
             output_known: false,
             variants_known: true,
             capabilities: Default::default(),
+            ..Default::default()
         });
         selected.agents = ["build", "build-yolo"]
             .into_iter()
@@ -1775,6 +1778,7 @@ async fn variant_cycle_drafts_catalog_order_and_stale_default_rules_in_home_and_
                 output_known: false,
                 variants_known: true,
                 capabilities: Default::default(),
+                ..Default::default()
             }];
             selected.variant = current.map(str::to_string);
             state.apply_catalog(selected);
@@ -1833,6 +1837,7 @@ async fn variant_cycle_missing_models_or_named_variants_is_noop_and_child_is_rea
                 output_known: false,
                 variants_known: true,
                 capabilities: Default::default(),
+                ..Default::default()
             });
         }
         state.apply_catalog(selected);

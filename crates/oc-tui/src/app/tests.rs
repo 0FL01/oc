@@ -182,6 +182,7 @@ fn snapshot() -> CatalogSnapshot {
                 output: 100,
                 variants_known: true,
                 capabilities: Default::default(),
+                ..Default::default()
             },
             ModelEntry {
                 display_name: String::new(),
@@ -199,6 +200,7 @@ fn snapshot() -> CatalogSnapshot {
                 output: 100,
                 variants_known: true,
                 capabilities: Default::default(),
+                ..Default::default()
             },
         ],
         model_id: "a".to_string(),

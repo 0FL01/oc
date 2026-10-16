@@ -31,6 +31,7 @@ impl TuiState {
         use crate::dialog::SelectOption;
         let item =
             |value: String, title: String, category: &str, footer: String, current| SelectOption {
+                description: String::new(),
                 value,
                 title,
                 category: category.into(),
@@ -123,6 +124,15 @@ impl TuiState {
                 options
             }
             TuiPanel::Model => {
+                if let Some(directory) = self.model_directory_active() {
+                    let searching = !self.select.query.trim().is_empty();
+                    let options = directory.options(searching, self.dialog_current_model());
+                    return if searching {
+                        self.select.filter_for(options, &self.panel)
+                    } else {
+                        options
+                    };
+                }
                 return self.select.filter_for(
                     self.picker
                         .as_ref()
@@ -990,9 +1000,16 @@ impl TuiState {
             (&keys.end, KeyAction::End),
             (&keys.submit, KeyAction::Enter),
             (&keys.mcp_toggle, KeyAction::McpToggle),
+            (&keys.model_provider, KeyAction::ModelProvider),
+            (&keys.model_favorite, KeyAction::ModelFavorite),
         ];
+        let scoped = |action: &KeyAction| match action {
+            KeyAction::McpToggle => self.panel == TuiPanel::Mcps,
+            KeyAction::ModelProvider | KeyAction::ModelFavorite => self.panel == TuiPanel::Model,
+            _ => true,
+        };
         if let Some(action) = bindings.iter().find_map(|(keys, action)| {
-            (*action != KeyAction::McpToggle || self.panel == TuiPanel::Mcps)
+            scoped(action)
                 .then(|| {
                     keys.split(',').any(|key| {
                         !key.is_empty() && crate::events::dialog_binding(key) == candidate
@@ -1010,7 +1027,7 @@ impl TuiState {
             return Some(action);
         }
         if bindings.iter().any(|(keys, action)| {
-            (*action != KeyAction::McpToggle || self.panel == TuiPanel::Mcps)
+            scoped(action)
                 && keys.split(',').any(|key| {
                     crate::events::dialog_binding(key).starts_with(&format!("{candidate} "))
                 })
@@ -2942,7 +2959,9 @@ impl TuiState {
             }
             KeyAction::SequenceKey(_, _)
             | KeyAction::DialogActionPrevious
-            | KeyAction::McpToggle => KeyOutcome::default(),
+            | KeyAction::McpToggle
+            | KeyAction::ModelProvider
+            | KeyAction::ModelFavorite => KeyOutcome::default(),
             KeyAction::Left
             | KeyAction::Right
             | KeyAction::WordLeft
@@ -3545,7 +3564,10 @@ impl TuiState {
             }
             CommandAction::OpenModelPicker => {
                 self.panel = TuiPanel::Model;
-                open_snapshot(&mut outcome, self.catalog_loaded, PanelIntent::LoadCatalog);
+                self.model_scope = None;
+                // Pinned DialogModel reads current data on every open.
+                outcome.consumed_input = self.catalog_loaded;
+                outcome.intent = Some(PanelIntent::LoadModelDirectory);
             }
             CommandAction::OpenVariants => self.open_variants(),
             CommandAction::NewSession => {
@@ -3657,7 +3679,17 @@ impl TuiState {
         if self.panel == TuiPanel::None && self.questions.active().is_some() {
             return self.questions.key(action);
         }
+        if self.panel == TuiPanel::Model {
+            match action {
+                KeyAction::ModelProvider => return self.model_dialog_provider(),
+                KeyAction::ModelFavorite => return self.model_dialog_favorite(),
+                _ => {}
+            }
+        }
+        // A just-connected custom provider's scoped view keeps its catalog retry
+        // and account actions; the all-provider dialog has no such rows.
         if matches!(action, KeyAction::Left | KeyAction::Right)
+            && self.model_scope.is_some()
             && let Some(binding) = self.custom_picker_binding().cloned()
         {
             return if action == KeyAction::Left {
@@ -4132,9 +4164,12 @@ impl TuiState {
                     .command_unavailable(&CommandAction::OpenSessions)
                     .map(str::to_string)
             }
+            TuiPanel::Model if self.model_directory_active().is_some() => {
+                return self.model_directory_enter();
+            }
             TuiPanel::Model => match self.picker_selection() {
                 Some((id, _)) => {
-                    outcome.intent = Some(PanelIntent::SelectModel { id });
+                    outcome.intent = Some(PanelIntent::SelectModel { id, recent: None });
                 }
                 None => outcome.note = Some("no model selected".to_string()),
             },

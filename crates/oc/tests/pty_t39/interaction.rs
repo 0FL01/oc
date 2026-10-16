@@ -1538,8 +1538,9 @@ fn v04_raw_mouse_wheel_and_hover_select_beyond_visible_rows() {
     pty.send(b"\x18m");
     wait_screen_row(&pty, "Select model", DEADLINE);
     wait_screen_row(&pty, "Mouse 00", DEADLINE);
-    // Mouse scroll preserves the selection; row 11 moves from mouse-00 to
-    // mouse-12 after four 3-row wheels, without scrolling the underlay.
+    // Mouse scroll preserves the selection; after four 3-row wheels row 11
+    // shows mouse-11 (the connected list starts with its `fixture` section
+    // heading), without scrolling the underlay.
     for _ in 0..4 {
         pty.send(b"\x1b[<65;20;12M");
     }
@@ -1555,7 +1556,7 @@ fn v04_raw_mouse_wheel_and_hover_select_beyond_visible_rows() {
     dismissed(&pty, "Select model");
     let off = submit(&mut pty, "wheel hover chosen");
     pty.wait_visible_after(off, "echo: wheel hover chosen", DEADLINE);
-    assert_eq!(fixture.wait_requests(1)[0]["model"], "mouse-12");
+    assert_eq!(fixture.wait_requests(1)[0]["model"], "mouse-11");
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
 }

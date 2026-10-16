@@ -91,15 +91,26 @@ fn slot(theme: &Theme, path: &str) -> Color {
         .unwrap_or(theme.text())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SelectOption {
     pub value: String,
     pub title: String,
+    /// Inline muted text after the title (pinned DialogSelect `description`).
+    pub description: String,
     pub category: String,
     pub footer: String,
     pub current: bool,
     pub running: bool,
     pub destructive: bool,
+}
+
+/// Owner-supplied footer actions below a select list.
+#[derive(Clone, Copy)]
+pub(crate) enum FooterActions<'a> {
+    None,
+    Mcp(&'a [McpServerSnapshot], &'a SelectAction),
+    /// Pinned DialogSelect action row: title plus muted effective binding.
+    Model(&'a [(&'static str, String)]),
 }
 
 #[derive(Default)]
@@ -427,16 +438,30 @@ impl SelectList {
         size: DialogSize,
         options: &[SelectOption],
         footer: Option<&str>,
-        mcp: Option<(&[McpServerSnapshot], &SelectAction)>,
+        actions: FooterActions<'_>,
     ) {
-        let (mcps, action) = mcp.map_or((None, None), |(servers, action)| {
-            (Some(servers), Some(action))
-        });
+        let (mcps, action, model_actions) = match actions {
+            FooterActions::None => (None, None, &[][..]),
+            FooterActions::Mcp(servers, action) => (Some(servers), Some(action), &[][..]),
+            FooterActions::Model(actions) => (None, None, actions),
+        };
         let theme = Theme::dark();
-        let footer_rows = action.map_or_else(
-            || footer.map_or(0, |text| text.lines().count().min(u16::MAX as usize) as u16),
-            |a| a.rows(frame.area().width),
-        );
+        // Pinned DialogSelect footer: a row below 60 columns becomes a column.
+        let stacked_actions = frame.area().width < 60;
+        let footer_rows = if !model_actions.is_empty() {
+            let status = footer.map_or(0, |text| text.lines().count().min(8) as u16);
+            status
+                + if stacked_actions {
+                    model_actions.len() as u16
+                } else {
+                    1
+                }
+        } else {
+            action.map_or_else(
+                || footer.map_or(0, |text| text.lines().count().min(u16::MAX as usize) as u16),
+                |a| a.rows(frame.area().width),
+            )
+        };
         self.footer_rows.set(footer_rows);
         let action_focused = self.action_focused && action.is_some_and(|a| a.enabled);
         let sessions = title == "Sessions" || title.starts_with("Sessions for ");
@@ -642,18 +667,19 @@ impl SelectList {
                 );
                 continue;
             }
-            let right = if sessions && flat && !option.category.is_empty() {
-                option.category.clone()
-            } else if flat && !option.category.is_empty() {
-                format!(
-                    "{}{}{}",
-                    option.category,
-                    if option.footer.is_empty() { "" } else { " · " },
-                    option.footer
-                )
-            } else {
-                option.footer.clone()
-            };
+            let right =
+                if (sessions || !model_actions.is_empty()) && flat && !option.category.is_empty() {
+                    option.category.clone()
+                } else if flat && !option.category.is_empty() {
+                    format!(
+                        "{}{}{}",
+                        option.category,
+                        if option.footer.is_empty() { "" } else { " · " },
+                        option.footer
+                    )
+                } else {
+                    option.footer.clone()
+                };
             let right_width = ratatui::text::Line::raw(right.as_str())
                 .width()
                 .min(if sessions {
@@ -666,18 +692,30 @@ impl SelectList {
             } else {
                 option.title.clone()
             };
-            line(
-                frame,
-                area.x + 4,
-                y,
-                area.width.saturating_sub(9 + right_width),
-                &title,
-                if active && !action_focused {
-                    style.add_modifier(Modifier::BOLD)
-                } else {
-                    style
-                },
-            );
+            let title_style = if active && !action_focused {
+                style.add_modifier(Modifier::BOLD)
+            } else {
+                style
+            };
+            let title_room = area.width.saturating_sub(9 + right_width);
+            line(frame, area.x + 4, y, title_room, &title, title_style);
+            if !option.description.is_empty() {
+                // Same text run as the title: bold/active colour when focused.
+                let used =
+                    (ratatui::text::Line::raw(title.as_str()).width() as u16).min(title_room);
+                line(
+                    frame,
+                    area.x + 4 + used,
+                    y,
+                    title_room - used,
+                    &format!(" {}", option.description),
+                    if active && !action_focused {
+                        title_style
+                    } else {
+                        style.fg(muted)
+                    },
+                );
+            }
             // Status comes from the current typed inventory, never label text.
             // The selected foreground override and intrinsic bold are separate.
             let mut footer_style = if active { style } else { style.fg(muted) };
@@ -763,6 +801,39 @@ impl SelectList {
                         base
                     },
                 );
+            }
+        } else if !model_actions.is_empty() {
+            let (mut x, mut y) = (area.x + 4, area.y + 6 + height as u16);
+            for status in footer.iter().flat_map(|text| text.lines()).take(8) {
+                line(
+                    frame,
+                    x,
+                    y,
+                    area.width.saturating_sub(8),
+                    status,
+                    Style::default().fg(muted),
+                );
+                y += 1;
+            }
+            for (title, key) in model_actions {
+                let room = area.right().saturating_sub(2).saturating_sub(x);
+                let title_width = (ratatui::text::Line::raw(*title).width() as u16).min(room);
+                let key = format!(" {key}");
+                let key_width = ratatui::text::Line::raw(key.as_str()).width() as u16;
+                line(frame, x, y, title_width, title, Style::default().fg(text));
+                line(
+                    frame,
+                    x + title_width,
+                    y,
+                    key_width.min(room - title_width),
+                    &key,
+                    Style::default().fg(muted),
+                );
+                if stacked_actions {
+                    y += 1;
+                } else {
+                    x = x.saturating_add(title_width + key_width + 2);
+                }
             }
         } else if let Some(footer) = footer {
             if sessions {
@@ -899,16 +970,27 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     } else {
         title
     };
+    let title = if state.panel() == &TuiPanel::Model {
+        state.model_dialog_title()
+    } else {
+        title
+    };
     let action = (state.panel() == &TuiPanel::Mcps).then(|| state.mcp_footer_action());
-    let model_details =
-        (state.panel() == &TuiPanel::Model).then(|| state.model_picker_details().join("\n"));
+    let model_actions = if state.panel() == &TuiPanel::Model {
+        state.model_dialog_actions()
+    } else {
+        Vec::new()
+    };
+    let model_status = (state.panel() == &TuiPanel::Model)
+        .then(|| state.model_dialog_status().join("\n"))
+        .filter(|status| !status.is_empty());
     state.select.render(
         frame,
         title,
         size,
         &state.modal_options(),
-        if let Some(details) = &model_details {
-            Some(details.as_str())
+        if model_status.is_some() {
+            model_status.as_deref()
         } else if state.panel() == &TuiPanel::Mcps {
             Some(state.mcp_footer())
         } else if state.panel() == &TuiPanel::Settings {
@@ -920,9 +1002,13 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
                 "all projects ctrl+a"
             })
         },
-        action
-            .as_ref()
-            .map(|action| (state.mcp_list_servers().unwrap_or_default(), action)),
+        match &action {
+            Some(action) => {
+                FooterActions::Mcp(state.mcp_list_servers().unwrap_or_default(), action)
+            }
+            None if !model_actions.is_empty() => FooterActions::Model(&model_actions),
+            None => FooterActions::None,
+        },
     );
 }
 
@@ -1234,6 +1320,7 @@ mod tests {
             ..SelectList::default()
         };
         let options = vec![SelectOption {
+            description: String::new(),
             value: "root".into(),
             title: "x".repeat(70),
             category: "Tue Nov 14 2023".into(),
@@ -1246,7 +1333,14 @@ mod tests {
             let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
             terminal
                 .draw(|frame| {
-                    list.render(frame, "Sessions", DialogSize::Large, &options, None, None)
+                    list.render(
+                        frame,
+                        "Sessions",
+                        DialogSize::Large,
+                        &options,
+                        None,
+                        FooterActions::None,
+                    )
                 })
                 .unwrap();
             let buffer = terminal.backend().buffer();
@@ -1278,6 +1372,7 @@ mod tests {
         use ratatui::{Terminal, backend::TestBackend};
         let list = SelectList::default();
         let options = vec![SelectOption {
+            description: String::new(),
             value: "root".into(),
             title: "Press ctrl+d again to confirm".into(),
             category: "Today".into(),
@@ -1295,7 +1390,7 @@ mod tests {
                     DialogSize::Large,
                     &options,
                     Some("all projects ctrl+a"),
-                    None,
+                    FooterActions::None,
                 )
             })
             .unwrap();
@@ -1431,6 +1526,7 @@ mod tests {
         let options = Rc::new(
             (0..10_000)
                 .map(|i| SelectOption {
+                    description: String::new(),
                     running: false,
                     destructive: false,
                     value: format!("model-{i:05}"),
@@ -1504,6 +1600,7 @@ mod tests {
             let options = Rc::new(
                 (0..10_000)
                     .map(|i| SelectOption {
+                        description: String::new(),
                         running: false,
                         destructive: false,
                         value: i.to_string(),
@@ -1547,6 +1644,7 @@ mod tests {
                     "Select variant",
                     DialogSize::Medium,
                     &[SelectOption {
+                        description: String::new(),
                         running: false,
                         destructive: false,
                         value: String::new(),
@@ -1556,7 +1654,7 @@ mod tests {
                         current: true,
                     }],
                     None,
-                    None,
+                    FooterActions::None,
                 );
             })
             .unwrap();

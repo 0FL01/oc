@@ -64,6 +64,7 @@ fn catalog() -> CatalogSnapshot {
             output: 100,
             variants_known: true,
             capabilities: Default::default(),
+            ..Default::default()
         }],
         model_id: "a".to_string(),
         // Geometry goldens include a variant label only because it is selected.

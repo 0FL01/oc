@@ -482,6 +482,15 @@ pub enum InboxMsg {
     ProviderConnections {
         ack: oneshot::Sender<Result<Vec<crate::queries::ProviderConnection>, CoreError>>,
     },
+    /// All admitted, already-loaded provider views; no discovery or mutation.
+    ModelCatalogs {
+        ack: oneshot::Sender<Result<crate::queries::ModelCatalogs, CoreError>>,
+    },
+    /// Read (`None`) or mutate the model dialog's favorites/recents.
+    ModelPreference {
+        action: Option<crate::queries::ModelPreferenceAction>,
+        ack: oneshot::Sender<Result<crate::queries::ModelPreference, CoreError>>,
+    },
     CustomProvider {
         action: crate::queries::CustomProviderAction,
         ack: oneshot::Sender<Result<crate::queries::CustomProviderReply, CoreError>>,
@@ -1888,6 +1897,31 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Model dialog view of every admitted provider whose catalog is already
+    /// loaded. Never starts discovery, selects a model or reads credentials' values.
+    pub async fn model_catalogs(&self) -> Result<crate::queries::ModelCatalogs, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ModelCatalogs { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Read the model dialog favorites/recents, or apply one owner-side mutation
+    /// and return the stored result. Identity only; never a selection.
+    pub async fn model_preference(
+        &self,
+        action: Option<crate::queries::ModelPreferenceAction>,
+    ) -> Result<crate::queries::ModelPreference, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ModelPreference { action, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Probe, confirm or refresh one custom connection without frontend persistence.
     pub async fn custom_provider(
         &self,
@@ -2522,6 +2556,12 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ProviderConnections { ack } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ModelCatalogs { ack } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ModelPreference { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {

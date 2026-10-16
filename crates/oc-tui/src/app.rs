@@ -277,6 +277,15 @@ pub enum PanelIntent {
     SelectModel {
         /// Exact model id.
         id: String,
+        /// All-provider dialog choice recorded as the newest recent model.
+        recent: Option<oc_core::queries::ModelPreferenceModel>,
+    },
+    /// Read every admitted provider view plus favorites/recents for the dialog.
+    LoadModelDirectory,
+    /// Owner-side favorite toggle for the focused model dialog row.
+    FavoriteModel {
+        model: oc_core::queries::ModelPreferenceModel,
+        enabled: bool,
     },
     /// Apply an exact model + variant choice.
     ChooseModel {
@@ -770,6 +779,10 @@ pub struct TuiState {
     mention_owner_epoch: Option<u64>,
     /// Model picker (present while the Model panel lives).
     pub(crate) picker: Option<ModelPicker>,
+    /// All-provider model dialog rows; absent until the owner query answers.
+    pub(crate) model_directory: Option<crate::picker::ModelDirectory>,
+    /// Provider-scoped dialog title after a connection (pinned `DialogModel providerID`).
+    model_scope: Option<String>,
     model_selection: model_selection::ComposerSelection,
     catalog_loaded: bool,
     /// Agent profiles from the catalog snapshot.
@@ -981,6 +994,8 @@ impl TuiState {
             mention_result: None,
             mention_owner_epoch: None,
             picker: None,
+            model_directory: None,
+            model_scope: None,
             model_selection: Default::default(),
             catalog_loaded: false,
             agents: Vec::new(),
@@ -1057,6 +1072,8 @@ impl TuiState {
         self.generation += 1;
         self.invalidate_submission();
         self.picker = None;
+        self.model_directory = None;
+        self.model_scope = None;
         self.catalog_loaded = false;
         self.agents.clear();
         self.active_agent = None;

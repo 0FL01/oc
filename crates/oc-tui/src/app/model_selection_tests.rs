@@ -61,18 +61,29 @@ fn conn03_snapshot_reconstruction_and_picker_keep_unknown_empty_false_and_exact_
     };
     state.apply_catalog(catalog);
     let picker = state.picker.as_mut().unwrap();
-    let details = picker.model_details("unknown").join("\n");
-    assert!(details.contains("In: unknown · Out: unknown") && details.contains("Effort: unknown"));
-    let details = picker.model_details("empty").join("\n");
-    assert!(details.contains("In: [] · Out: []") && details.contains("Effort: none declared"));
-    assert!(details.contains("Reasoning: unsupported · Tools: unsupported"));
-    let details = picker.model_details("partial").join("\n");
-    assert!(
-        details.contains("Partial image input: supported")
-            && details.contains("Partial PDF input: unsupported")
+    let caps = |picker: &mut crate::picker::ModelPicker, id| {
+        picker.choose_id(id, None).unwrap();
+        oc_adapters::models::capabilities(&picker.selection().unwrap().entry)
+    };
+    let unknown = caps(picker, "unknown");
+    assert_eq!(
+        (unknown.input, unknown.output, unknown.tools),
+        (None, None, None)
     );
-    assert!(details.contains("precise=supplied-exact") && !details.contains("max"));
-    assert!(details.contains("Client media: image input only"));
+    let empty = caps(picker, "empty");
+    assert_eq!((empty.input, empty.output), (Some(vec![]), Some(vec![])));
+    assert_eq!((empty.reasoning, empty.tools), (Some(false), Some(false)));
+    let partial = caps(picker, "partial");
+    assert_eq!(
+        (partial.partial.image_input, partial.partial.pdf_input),
+        (Some(true), Some(false))
+    );
+    assert_eq!(
+        oc_adapters::models::available_variants(&picker.selection().unwrap().entry)
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>(),
+        ["precise"]
+    );
     picker.choose_id("unknown", None).unwrap();
     assert!(picker.selection().unwrap().entry.get("variants").is_none());
     picker.choose_id("partial", Some("precise")).unwrap();
@@ -95,24 +106,20 @@ fn conn03_snapshot_reconstruction_and_picker_keep_unknown_empty_false_and_exact_
     state.panel = TuiPanel::Model;
     state.select.query = "partial".into();
     state.sync_modal_cursor();
+    // Pinned DialogModel has no metadata panel: capabilities stay owner data.
     for (width, height) in [(100, 36), (64, 24)] {
         let frame = crate::views::render_test(&state, width, height).join("\n");
-        assert!(
-            frame.contains("precise=supplied-exact"),
-            "{width}x{height}: {frame}"
-        );
-        assert!(
-            frame.contains("Partial image input: supported"),
-            "{width}x{height}: {frame}"
-        );
-        assert!(
-            frame.contains("Partial PDF input: unsupported"),
-            "{width}x{height}: {frame}"
-        );
-        assert!(
-            frame.contains("Client media: image input only"),
-            "{width}x{height}: {frame}"
-        );
+        assert!(frame.contains("partial"), "{width}x{height}: {frame}");
+        for debug in [
+            "In: ",
+            "Reasoning:",
+            "Effort:",
+            "Limits:",
+            "Client media",
+            "Partial ",
+        ] {
+            assert!(!frame.contains(debug), "{width}x{height}: {frame}");
+        }
     }
 }
 
@@ -193,4 +200,81 @@ fn go05_filtered_picker_keeps_composer_commit_and_captures_target_scope() {
     public.chrome.selection_generation = 99;
     state.apply_picker_catalog(public);
     assert_eq!(state.captured_model_commit().unwrap(), commit);
+}
+
+#[test]
+fn all_provider_dialog_drafts_other_provider_records_recent_and_toggles_favorite() {
+    use crate::picker::directory_tests::{fixture_parts, m};
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("dialog".into()));
+    let (catalogs, preference) = fixture_parts(true);
+    state.apply_catalog(catalogs.catalogs[0].clone());
+    let outcome = state.run_command(CommandAction::OpenModelPicker);
+    assert_eq!(outcome.intent, Some(PanelIntent::LoadModelDirectory));
+    state.apply_model_directory(catalogs, preference.clone());
+
+    let frame = crate::views::render_test(&state, 100, 44).join("\n");
+    for text in [
+        "Favorites",
+        "DeepSeek V4.1 Flash · opencode-go ludka2",
+        "Recent",
+        "OpenCode Go",
+        "Connect an integration ctrl+a  Favorite ctrl+f",
+    ] {
+        assert!(frame.contains(text), "{text}: {frame}");
+    }
+
+    // Ctrl+F is the effective model.dialog.favorite binding, not search input.
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert_eq!(
+        state.handle_panel_key(action).intent,
+        Some(PanelIntent::FavoriteModel {
+            model: m("ludka2", "DeepSeek V4.1 Flash · opencode-go"),
+            enabled: false,
+        })
+    );
+    let mut stored = preference;
+    stored.favorite.remove(0);
+    state.apply_model_preference(stored);
+    assert_eq!(state.modal_options()[0].title, "GLM-5.3");
+    assert_eq!(
+        state.select.cursor, 0,
+        "DialogSelect keeps the focused index"
+    );
+
+    // Enter on another provider's row binds that view, then drafts exactly.
+    state.select.cursor = state
+        .modal_options()
+        .iter()
+        .position(|o| o.title == "Cat Jam Free")
+        .unwrap();
+    let outcome = state.handle_panel_key(KeyAction::Enter);
+    assert_eq!(
+        outcome.intent,
+        Some(PanelIntent::SelectModel {
+            id: "Cat Jam Free".into(),
+            recent: Some(m("opencode-go", "Cat Jam Free")),
+        })
+    );
+    state.draft_model("Cat Jam Free").unwrap();
+    let commit = state.captured_model_commit().unwrap();
+    assert_eq!(
+        (commit.binding.provider.as_str(), commit.model_id.as_str()),
+        ("opencode-go", "Cat Jam Free")
+    );
+    assert!(state.model_selection.committed.is_none());
+
+    // Ctrl+A replaces the dialog with the integration list.
+    state.run_command(CommandAction::OpenModelPicker);
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert!(matches!(
+        state.handle_panel_key(action).intent,
+        Some(PanelIntent::LoadProviderConnections { .. })
+    ));
+    assert_eq!(state.panel(), &TuiPanel::Accounts);
 }

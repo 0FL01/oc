@@ -155,14 +155,13 @@ fn conn04_zero_provider_native_connect_mask_cancel_ack_exact_request_and_restart
     assert!(fixture.requests.lock().unwrap().is_empty());
     counts(&fixture, 0, 0, 0, 0);
     pty.send(b"\r\r"); // Save once; a pending repeat must not queue another save.
-    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
     wait_screen_row(&pty, NAME, DEADLINE);
-    wait_screen_row(&pty, "precise=exact-effort", DEADLINE);
     counts(&fixture, 1, 1, 0, 0);
     let id = saved_id(&fixture);
     saved_cli(&fixture, true, &format!("{id}/{MODEL_ID}\n"));
     pty.send(b"\x1b");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     // Closing after the durable ACK does not undo the connection or select a model.
     counts(&fixture, 1, 1, 0, 0);
     choose_model(&mut pty, NAME);
@@ -214,7 +213,7 @@ fn conn04_saved_failed_catalog_retry_and_key_change_join_old_get_then_empty_is_c
     wait_screen_row(&pty, "Discovery unavailable", DEADLINE);
     counts(&fixture, 0, 0, 0, 0);
     pty.send(b"\r");
-    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
     wait_screen_row(&pty, "Catalog: failed", DEADLINE);
     wait_screen_row(&pty, "Retry GET", DEADLINE);
     counts(&fixture, 1, 1, 0, 0);
@@ -232,7 +231,7 @@ fn conn04_saved_failed_catalog_retry_and_key_change_join_old_get_then_empty_is_c
     paste(&mut pty, NEW_KEY);
     *fixture.expected_auth.lock().unwrap() = NEW_KEY.into();
     pty.send(b"\r");
-    wait_screen_row(&pty, "Select model", DEADLINE);
+    wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
     wait_screen_row(&pty, "Catalog: pending", DEADLINE);
     wait_count(&fixture.catalog_control.closed, 1);
     wait_count(&fixture.discoveries, previous + 2);
@@ -258,7 +257,7 @@ fn conn04_saved_failed_catalog_retry_and_key_change_join_old_get_then_empty_is_c
     counts(&fixture, 1, 2, 0, 0);
     assert!(fixture.requests.lock().unwrap().is_empty());
     pty.send(b"\x1b");
-    dismissed(&pty, "Select model");
+    dismissed(&pty, SCOPED_MODEL_DIALOG);
     quit(&mut pty);
 }
 

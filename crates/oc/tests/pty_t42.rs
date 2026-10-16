@@ -2963,6 +2963,8 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
         "bare Home has no session tab"
     );
     pty.send(b"/models\r");
+    // The footer already names the model; wait for the dialog's own row.
+    wait_screen_row(&pty, "ctrl+a", DEADLINE);
     wait_screen_row(&pty, "T42 model", DEADLINE);
     pty.send(b"\x1b");
     std::thread::sleep(Duration::from_millis(150));
