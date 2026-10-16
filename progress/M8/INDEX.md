@@ -21,4 +21,4 @@ Plan: ../../roadmap/M8.md
 - [T62](T62/INDEX.md) [done] — Canonical OpenCode 2 config only (no OpenCode 1 compatibility); latest: 0001.md.
 - [T63](T63/INDEX.md) [done] — MIT для собственного кода проекта; latest: 0001.md.
 - [T64](T64/INDEX.md) [done] — Publish native oc2 on crates.io; latest: 0002.md.
-- [T65](T65/INDEX.md) [active] — Native V2 provider/cache/transport and ordered permission semantics; latest: нет.
+- [T65](T65/INDEX.md) [active] — Native V2 provider/cache/transport and ordered permission semantics; latest: 0001.md.

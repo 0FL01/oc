@@ -131,7 +131,10 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
             "type":"local", "codemode": false,"command":["/usr/bin/python3",script,report],
             "environment":{"MCP_MEDIA_CANARY":"mcp-media-private-canary"},"timeout":{"catalog": 3000, "execution": 3000}
         }}}),
-        json!([{"action": "media__mcp_media_mixed", "resource": "*", "effect": "allow"}]),
+        json!([
+            {"action": "*", "resource": "*", "effect": "deny"},
+            {"action": "media__mcp_media_mixed", "resource": "*", "effect": "allow"}
+        ]),
     );
     let bytes = fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap();
     let mut first = fixture.spawn_run("mcp12-stdio-restart");

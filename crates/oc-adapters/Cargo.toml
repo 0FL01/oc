@@ -14,7 +14,7 @@ description = "Adapter implementations for oc-core ports: storage, providers, to
 auth-fixture = []
 
 [dependencies]
-oc-core = { path = "../oc-core", version = "0.1.0" }
+oc-core = { path = "../oc-core", version = "0.2.0" }
 tokio.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }

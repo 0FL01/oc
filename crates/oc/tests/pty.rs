@@ -55,6 +55,7 @@ impl Fixture {
         let addr = listener.local_addr().expect("endpoint address");
         let configuration = serde_json::json!({
             "model": format!("fixture/{FIXTURE_MODEL}"),
+            "permissions": [{"action": "*", "resource": "*", "effect": "deny"}],
             "providers": {"fixture": {
                 "package": "@ai-sdk/openai",
                 "settings": {"baseURL": format!("http://{addr}/proxy/v1"),

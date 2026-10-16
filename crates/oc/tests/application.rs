@@ -73,6 +73,7 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     let model = "unseen-fixture-model";
     let mut configuration = serde_json::json!({
         "model": format!("fixture/{model}"),
+        "permissions": [{"action": "*", "resource": "*", "effect": "deny"}],
         "providers": {"fixture": {
             "package": "@ai-sdk/openai",
             "settings": {"baseURL": format!("http://{addr}/proxy/v1"),

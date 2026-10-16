@@ -27,11 +27,11 @@ make и CMake. Квалифицированная платформа — GNU/Lin
 подробности: [docs/CONFIG.md](docs/CONFIG.md). Provider credentials нужны для
 запросов к модели, но не для `--help`/`--version`.
 
-Версия 0.1.0 содержит приложение, а не прежнюю bootstrap-заглушку. Проект остаётся
+Версия 0.2.0 содержит приложение, а не прежнюю bootstrap-заглушку. Проект остаётся
 в разработке: публикация не означает full-product READY или полный паритет с
 OpenCode. Текущие результаты и ограничения — [progress/NOW.md](progress/NOW.md),
-[GOAL.md](GOAL.md); owner-config/E2E06 requalification и известный VIS38 PTY flake
-не исправляются этой публикацией.
+[GOAL.md](GOAL.md); owner-config/E2E06 requalification остаётся отдельной
+обязательной проверкой, полная визуальная приёмка TUI ещё не завершена.
 
 Сборка из checkout:
 

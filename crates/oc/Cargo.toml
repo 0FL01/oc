@@ -17,9 +17,9 @@ path = "src/main.rs"
 auth-fixture = ["oc-adapters/auth-fixture"]
 
 [dependencies]
-oc-core = { path = "../oc-core", version = "0.1.0" }
-oc-adapters = { path = "../oc-adapters", version = "0.1.0" }
-oc-tui = { path = "../oc-tui", version = "0.1.0" }
+oc-core = { path = "../oc-core", version = "0.2.0" }
+oc-adapters = { path = "../oc-adapters", version = "0.2.0" }
+oc-tui = { path = "../oc-tui", version = "0.2.0" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

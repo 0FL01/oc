@@ -1834,10 +1834,11 @@ fn measure_s07(archive: usize) -> S07Run {
         serde_json::from_slice(&std::fs::read(&config).expect("S07 config")).expect("config JSON");
     settings["providers"]["fixture"]["models"][MODEL]["limit"]["context"] =
         serde_json::json!(262_144);
-    settings["permissions"]
-        .as_array_mut()
-        .expect("canonical rules")
-        .push(serde_json::json!({"action": "read", "resource": "*", "effect": "allow"}));
+    // This resource profile admits only read, not the V2 agent's other defaults.
+    settings["permissions"] = serde_json::json!([
+        {"action": "*", "resource": "*", "effect": "deny"},
+        {"action": "read", "resource": "*", "effect": "allow"}
+    ]);
     // The two provider requests have identical active context. DCP's anchors
     // contain durable message ids, which legitimately differ across archives.
     settings["dcp"]["enabled"] = serde_json::json!(false);

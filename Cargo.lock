@@ -1720,7 +1720,7 @@ dependencies = [
 
 [[package]]
 name = "oc-adapters"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anstyle-parse",
  "anyhow",
@@ -1752,7 +1752,7 @@ dependencies = [
 
 [[package]]
 name = "oc-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -1764,7 +1764,7 @@ dependencies = [
 
 [[package]]
 name = "oc-tui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "cc",
@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "oc2"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",

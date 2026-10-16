@@ -10,8 +10,8 @@ readme = "../../README.md"
 description = "Local terminal UI for oc, bound to oc-core application API plus oc-adapters read-side domain (D12)"
 
 [dependencies]
-oc-core = { path = "../oc-core", version = "0.1.0" }
-oc-adapters = { path = "../oc-adapters", version = "0.1.0" }
+oc-core = { path = "../oc-core", version = "0.2.0" }
+oc-adapters = { path = "../oc-adapters", version = "0.2.0" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

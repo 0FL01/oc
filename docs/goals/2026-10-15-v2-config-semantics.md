@@ -126,8 +126,16 @@ the separately frozen T44 objective.
   - Primary evidence: targeted tests; `cargo test --locked -p oc-adapters`,
     `cargo test --locked -p oc2`, `cargo test --locked --workspace --no-fail-fast`,
     fmt/strict Clippy and affected native build gates.
-  - Status: pending
-  - Evidence: pending.
+  - Status: verified
+  - Evidence: first0.2.0 workspace gate1987 PASS/11 FAIL/12existingignored;
+    six binary targets exposed implicit fixture permissions and one VIS31 lag
+    sample. Explicit intended fixture permissions restore five targets63 PASS
+     and S07; unchanged VIS31 also passes its single-test rerun with zero lag.
+     Explicit package gates pass: adapters1086/5existingignored and binary333/
+     7existingignored. Fresh normal two-thread workspace:1998 PASS/0 FAIL/
+     12 unchanged opt-in ignored across46 targets, including VIS31/S07/VIS38.
+     Final fmt/strict workspace Clippy/debug+release/CLI and latest extracted
+     four-package archive verification PASS; no test/guard waiver.
 - R7: deliver this configuration slice, then resume TUI after publication R8.
   - Source: «Потом коммит пуш, и продолжить работу с паритетом TUI».
   - Acceptance: reviewed configuration implementation/evidence committed and
@@ -150,8 +158,12 @@ the separately frozen T44 objective.
     full-product READY claim. Resume TUI only after this delivery.
   - Primary evidence: existing T64 publication workflow reused for the new version,
     real package/publish receipts, registry metadata and isolated install output.
-  - Status: pending
-  - Evidence: pending.
+  - Status: in_progress
+  - Evidence: all four workspace packages/internal requirements and the lock agree
+    on0.2.0; no third-party lock changes. Package inventories30/325/252/85 retain
+    metadata/licenses and exclude private artifacts. Workspace publication dry run
+    builds all four extracted packages against staged registry dependencies. No
+    actual upload performed yet.
 
 ### Constraints and non-goals
 
@@ -179,10 +191,12 @@ the separately frozen T44 objective.
 
 ## Current Checkpoint
 
-- Closes: R6 final subset/security qualification and R8 version preparation.
-- Smallest next action: commit the verified R1 slice; prepare coherent unpublished
-  0.2.0 manifests/lock for the exposed SDK changes, then run the required complete
-  adapter/binary/workspace gates on that final version. No upload before green.
+- Closes: R8 registry delivery, followed by R7 journal return to T44.
+- Smallest next action: commit/push the verified0.2.0 source and factual
+  pre-publication checkpoint, then publish once through existing Cargo credentials.
+  All native/strict/build/CLI/latest-archive gates are green. Verify public metadata
+  and an isolated registry-only install with actual installed behavior before
+  returning to TUI. If interrupted, reconcile registry versions before any retry.
 - Expected evidence: package versions/dependencies agree, complete native gates,
   retained redaction/endpoint/cancel/MCP/Markdown/authority regressions; verified
   package archives before the committed publication checkpoint.
@@ -216,6 +230,22 @@ the separately frozen T44 objective.
   valid unsupported capabilities, opaque settings remain nonlegacy; native
   config44, actual positive/negative binary controls and strict workspace Clippy
   pass. Pinned TS now79/192 expectations. No V1 migration or new capability added.
+- Version preparation: all four packages and six internal requirements are0.2.0,
+  with only the four local lock entries updated. Metadata/licenses and complete
+  package file inventories pass; no secrets/private databases enter packages.
+  All four extracted packages passed latest publication dry-run verification with
+  staged registry dependencies. No actual publication has occurred yet.
+- R6 first aggregate run exposed old implicit fixture restrictions after the
+  required TS agent-default change. Explicit deny-all plus intended read/Shell/MCP
+  allowances restore five targets63 PASS; S07's explicit read-only actor passes
+  unchanged resource/equal-history guards. Unchanged VIS31 passes a single-test
+   rerun (both rates, all1031 events, zero lag), then the normal complete run below.
+   No queue, timing, resource or exact-wire assertion was relaxed.
+- Explicit final package checks pass: adapters1086/0/5existingignored across19
+  targets, binary333/0/7existingignored across23 targets. Fresh serialized workspace
+  also passes1998/0/12existingignored across46 targets with a separate isolated HOME
+  and the unchanged two-thread policy. Final strict workspace Clippy,
+  debug/release/CLI and latest four-package archive verification also pass.
 - Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
   tests/strict Clippy, debug/release/help. These predate this configuration work.
 - Evidence: `evidence/T65/report.md`. No external blocker demonstrated.
