@@ -7,6 +7,9 @@ pub struct ProviderConnection {
     pub name: String,
     /// Effective credential origin, not a selectable login method.
     pub source: AccountAuthSource,
+    /// Pinned `connectionSummary`: stored account labels, or `$ENV` names.
+    /// Never key material; empty when nothing is connected.
+    pub summary: Vec<String>,
 }
 
 /// Ephemeral key input. Deliberately not serializable and always redacted.
@@ -46,6 +49,8 @@ pub struct ProviderAccount {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderAccounts {
     pub provider: String,
+    /// Admitted display name (dialog title), falling back to the ID.
+    pub name: String,
     pub accounts: Vec<ProviderAccount>,
     pub effective: AccountAuthSource,
 }

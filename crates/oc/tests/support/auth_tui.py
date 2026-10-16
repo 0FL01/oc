@@ -99,13 +99,15 @@ class View:
         raise AssertionError('missing public mouse row: '+text)
 
     def connect(self):
-        self.command('connect'); self.see('Search providers:')
-        self.click('OpenAI (openai)'); self.see('Provider: openai')
+        # Pinned DialogIntegration rows; OpenAI then manageConnections/selectMethod.
+        self.command('connect'); self.see('Connect an integration'); self.see('OpenAI')
+        self.click('OpenAI')
+        wait(lambda: any('Connect OpenAI' in row or 'Add account' in row for row in self.screen()), 'OpenAI connection surface')
 
     def methods(self):
         self.connect()
         if any('Add account' in row for row in self.screen()): self.send(b'\r')
-        self.see('Choose authentication method')
+        self.see('Connect OpenAI')
         self.see('ChatGPT Pro/Plus (browser)'); self.see('ChatGPT Pro/Plus (headless)'); self.see('API key')
 
     def browser(self):
@@ -116,7 +118,7 @@ class View:
 
     def quit(self):
         # One Esc unmounts auth; idle Home's following Esc is native quit.
-        titles = ('Connect / accounts', 'Connect an integration', 'Connect a custom provider')
+        titles = ('Connect an integration', 'Connect OpenAI', 'Connected accounts', 'ChatGPT Pro/Plus', 'Custom provider')
         if any(any(title in row for title in titles) for row in self.screen()):
             self.send(b'\x1b')
             wait(lambda: not any(any(title in row for title in titles) for row in self.screen()), 'auth surface unmounted')
@@ -194,25 +196,25 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
         try:
             view.paste('draft-kept-界'); before_selection = selections()
             for label,key in [('Zulu','FIRST_KEY_CANARY'),('Alpha','SECOND_KEY_CANARY')]:
-                view.methods(); view.send(b'jj\r')
-                view.see('API key (masked)'); view.paste(key); view.see('•••••'); view.send(b'\r')
+                view.methods(); view.send(b'\x1b[B\x1b[B\r')  # Search owns letters; arrows choose API key
+                view.see('enter submit'); view.paste(key); view.see('•••••'); view.send(b'\r')
                 view.see('OpenAI collision'); view.see('OpenAI ordinary')
                 wait(lambda: len(accounts())==(1 if label=='Zulu' else 2), 'durable key acknowledgement')
                 assert selections()==before_selection, 'account acknowledgement cannot commit model or retarget collision'
                 view.send(b'\x1b'); view.see('draft-kept-界')
-                view.connect(); view.see('default [active]')
+                view.connect(); view.see('● default')
                 assert any(name=='default' and active for _,name,active in accounts()), 'key connects with the default label before optional Rename'
-                view.click('default [active]'); view.send(b'r'); view.see('Rename account')
-                view.send(b'\x7f'*7); view.paste(label); view.send(b'\r'); view.see(label+' [active]')
+                view.click('● default'); view.send(b'\x12'); view.see('Rename account')  # ctrl+r
+                view.send(b'\x7f'*7); view.paste(label); view.send(b'\r'); view.see('● '+label)
                 assert selections()==before_selection, 'optional Rename cannot commit a model'
                 view.send(b'\x1b'); view.see('draft-kept-界')
-            view.connect(); view.see('Add account'); view.see('Alpha [active]'); view.see('Zulu')
-            view.send(b'jj\r'); wait(lambda: accounts()==[(accounts()[0][0],'Alpha',0),(accounts()[1][0],'Zulu',1)], 'explicit activation')
-            view.send(b'r'); view.see('Rename account')
-            view.send(b'\x7f'*4); view.paste('Beta'); view.send(b'\r'); view.see('Beta [active]')
-            view.send(b'd'); view.see('Press d again to confirm removal'); assert len(accounts())==2
-            view.send(b'd'); wait(lambda: len(accounts())==1, 'confirmed removal')
-            view.see('Alpha [active]'); view.send(b'\x1b'); view.see('draft-kept-界')
+            view.connect(); view.see('Add account'); view.see('● Alpha'); view.see('Zulu')
+            view.send(b'\x1b[B\x1b[B\r'); wait(lambda: accounts()==[(accounts()[0][0],'Alpha',0),(accounts()[1][0],'Zulu',1)], 'explicit activation')
+            view.send(b'\x12'); view.see('Rename account')
+            view.send(b'\x7f'*4); view.paste('Beta'); view.send(b'\r'); view.see('● Beta')
+            view.send(b'\x04'); view.see('Press ctrl+d again to confirm'); assert len(accounts())==2
+            view.send(b'\x04'); wait(lambda: len(accounts())==1, 'confirmed removal')
+            view.see('● Alpha'); view.send(b'\x1b'); view.see('draft-kept-界')
             view.quit(); view = None
         finally:
             if view is not None: view.close()
@@ -220,7 +222,7 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
         view = View(root,env)
         try:
             view.paste('second-draft-界'); view.see('second-draft-界')
-            view.connect(); view.see('Alpha [active]'); view.send(b'\r'); view.see('Choose authentication method')
+            view.connect(); view.see('● Alpha'); view.send(b'\r'); view.see('ChatGPT Pro/Plus (browser)')
             view.send(b'\x1b'); view.browser()
             assert not opened.exists(), 'TUI must not automatically launch a browser'
             view.send(b'o'); wait(opened.exists,'explicit sanitized browser action')

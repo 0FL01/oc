@@ -43,9 +43,10 @@ fn form(pty: &mut PtySession, base: &str) {
     wait_screen_row(pty, "Literal API base URL", DEADLINE);
     paste(pty, base);
     pty.send(b"\r");
-    wait_screen_row(pty, "Choose authentication", DEADLINE);
+    wait_screen_row(pty, "No authentication (explicit)", DEADLINE);
     pty.send(b"\r");
-    wait_screen_row(pty, "API key (masked)", DEADLINE);
+    dismissed(pty, "No authentication (explicit)");
+    wait_screen_row(pty, "enter submit", DEADLINE);
     paste(pty, KEY);
     wait_screen_row(pty, "••••", DEADLINE);
     assert!(!String::from_utf8_lossy(&pty.snapshot()).contains(KEY));
@@ -174,10 +175,10 @@ fn conn04_zero_provider_native_connect_mask_cancel_ack_exact_request_and_restart
     assert_eq!(requests[0]["model"], MODEL_ID);
     assert_eq!(requests[0]["reasoning"]["effort"], "exact-effort");
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "default [active]", DEADLINE);
-    wait_screen_row(&pty, "Effective auth: Stored", DEADLINE);
+    wait_dialog_title(&pty, "CONN04 LAN service");
+    wait_screen_row(&pty, "● default", DEADLINE);
     pty.send(b"\x1b");
-    dismissed(&pty, "Connect / accounts");
+    dismissed(&pty, "Connected accounts");
     quit(&mut pty);
     let session: String = sql(&fixture)
         .query_row("SELECT id FROM sessions", [], |row| row.get(0))
@@ -225,9 +226,9 @@ fn conn04_saved_failed_catalog_retry_and_key_change_join_old_get_then_empty_is_c
     wait_screen_row(&pty, "Catalog: pending", DEADLINE);
     wait_count(&fixture.discoveries, previous + 1);
     pty.send(b"\x1b[C");
-    wait_screen_row(&pty, "default [active]", DEADLINE);
-    pty.send(b"a");
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
+    wait_screen_row(&pty, "● default", DEADLINE);
+    pty.send(b"\r"); // Add account is the first row.
+    wait_dialog_title(&pty, "Connect CONN04 LAN service");
     paste(&mut pty, NEW_KEY);
     *fixture.expected_auth.lock().unwrap() = NEW_KEY.into();
     pty.send(b"\r");

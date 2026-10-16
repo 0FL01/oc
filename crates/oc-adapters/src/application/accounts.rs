@@ -57,11 +57,21 @@ pub(super) fn connections(
                 .and_then(|e| e.name.as_deref())
                 .unwrap_or(&provider)
                 .to_owned();
-            let source = read(db, c, provider.clone())?.effective;
+            let accounts = read(db, c, provider.clone())?;
+            let mut summary: Vec<String> =
+                accounts.accounts.iter().map(|a| a.label.clone()).collect();
+            if accounts.effective == AccountAuthSource::Environment {
+                summary.push(if provider == "openai" {
+                    "$OPENAI_API_KEY".into()
+                } else {
+                    "$OPENCODE_API_KEY".into()
+                });
+            }
             Ok(oc_core::queries::ProviderConnection {
                 provider,
                 name,
-                source,
+                source: accounts.effective,
+                summary,
             })
         })
         .collect()
@@ -185,6 +195,7 @@ pub(super) fn read(
         crate::auth::AuthSource::Missing => AccountAuthSource::Missing,
     };
     Ok(ProviderAccounts {
+        name: super::model_picker::provider_name(c, &provider),
         provider,
         effective,
         accounts: db

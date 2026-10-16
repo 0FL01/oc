@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T12:30:40+00:00
+State updated: 2026-10-16T13:10:52+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,42 +12,32 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Model dialog (Ctrl+X M) parity slice
+# /connect integration flow parity slice
 
 ## Result
 
-Owner-requested slice of T44: the native "Select model" dialog no longer prints
-model metadata/debug lines and now follows pinned DialogModel: all admitted
-providers in connected state, Favorites → Recent → provider sections, search
-flattening, inline provider description, `Free`, `●` current, footer
-`Connect an integration ctrl+a  Favorite ctrl+f`, scoped provider title after a
-connection. Favorites/recents persist through `CoreApp::model_preference` in the
-existing prefs DB key `tui.model_preference` (new key in the live shared store,
-no schema change/migration). Details: evidence/T44/report.md, section
-"Model dialog (Ctrl+X M) — owner request 2026-10-16".
+`/connect` now renders the pinned DialogIntegration flow: searchable integration
+list with Popular/Services, success `✓` and connection summary; provider account
+management (Add account, Connected accounts, ● active, ctrl+r/ctrl+d); method
+choice; DialogPrompt key/rename/custom forms; OAuthView. Only providers the
+native binary can connect are listed (owner decision). Details:
+evidence/T44/report.md, "/connect integration flow (VIS45 presentation)".
 
 ## Checks
 
-oc-core 43/43, oc-tui 553/553, oc-adapters --lib 806/0/1, pty_t39 60/60
-(three full runs), pty_t42 35/35, workspace fmt and strict Clippy clean, debug
-`cargo build -p oc2 --bin oc2 --locked`. Environment-only failures in the
-isolated workspace run (hard-coded /home/opencode tmp path; live_bounded
-envelope and mcp aud24 identical on a clean base worktree) are recorded in the
-report.
+oc-tui 555, oc-core 43, oc-adapters lib 806, oc2 bin 119, pty_t39 60, pty_t42 35,
+fmt + strict Clippy, debug oc2 build; AUTH05 TUI/CLI scripts PASS when run
+manually with a non-/home/opencode TMPDIR.
 
 ## Risks
 
-No paired OC2/native styled-cell/PNG qualification for this slice (NOT_RUN).
-Retained native differences: CONN04 custom-connection scoped status lines,
-no Tab/mouse focus of footer actions, ICU localeCompare approximation,
-not-yet-loaded provider catalogs absent. One unreproduced conn04 PTY failure
-under concurrent workspace load.
+No paired OC2/native capture (NOT_RUN). Native differences listed in the
+report (catalog scope, masked key, custom forms, default label, footer focus).
 
 ## Next
 
-Owner live look via oc2-dev; then paired capture of connected browse/search/
-scoped/favorite/variant states and the remaining ordered T44 slices. T44 stays
-active, not finished.
+Owner live look via oc2-dev; paired capture of list/accounts/method/key/OAuth;
+remaining ordered T44 slices. T44 stays active.
 
 
 Ready (до 5): нет

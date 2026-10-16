@@ -4,6 +4,7 @@ use oc_core::queries::{AccountAuthSource, AccountKind, ProviderAccount};
 fn snapshot() -> ProviderAccounts {
     ProviderAccounts {
         provider: "opencode-go".into(),
+        name: String::from("opencode-go"),
         effective: AccountAuthSource::Stored,
         accounts: vec![ProviderAccount {
             id: "first".into(),
@@ -21,6 +22,7 @@ async fn choose_go(state: &mut TuiState) {
         provider: "opencode-go".into(),
         name: "OpenCode Go".into(),
         source: AccountAuthSource::Missing,
+        summary: Vec::new(),
     }]));
     let choice = state.handle_key(KeyAction::Enter).await;
     assert!(
@@ -29,6 +31,7 @@ async fn choose_go(state: &mut TuiState) {
     );
     state.apply_provider_accounts(Ok(ProviderAccounts {
         provider: "opencode-go".into(),
+        name: String::from("opencode-go"),
         effective: AccountAuthSource::Missing,
         accounts: Vec::new(),
     }));
@@ -65,7 +68,8 @@ async fn conn04_custom_key_probe_api_confirmation_retry_and_save_are_revision_sc
     state.handle_paste("CUSTOM_KEY_CANARY");
     for (width, height) in [(100, 30), (64, 24)] {
         let frame = crate::views::render_test(&state, width, height).join("\n");
-        assert!(frame.contains("API key (masked)") && frame.contains('•'));
+        assert!(frame.contains("Custom provider") && frame.contains("API key"));
+        assert!(frame.contains('•') && frame.contains("enter submit"));
         assert!(!frame.contains("CUSTOM_KEY_CANARY"));
     }
     let submitted = state.handle_key(KeyAction::Enter).await;
@@ -119,6 +123,7 @@ async fn conn04_custom_key_probe_api_confirmation_retry_and_save_are_revision_sc
                 provider: "custom-exact".into(),
                 name: "My LAN endpoint".into(),
                 source: AccountAuthSource::Stored,
+                summary: Vec::new(),
             }))
         ),
         Some("custom-exact".into())
@@ -160,6 +165,7 @@ async fn conn04_custom_anonymous_cancel_edit_and_unmount_retire_the_exact_probe(
             provider: "late".into(),
             name: "Late".into(),
             source: AccountAuthSource::Anonymous,
+            summary: Vec::new(),
         })),
     );
     assert_eq!(state.panel(), &TuiPanel::Accounts);
@@ -184,7 +190,11 @@ async fn go05_masked_connect_moves_secret_once_and_ack_never_commits_selection()
         Some(PanelIntent::LoadProviderConnections { .. })
     ));
     choose_go(&mut state).await;
-    assert!(state.account_lines().join(" ").contains("API key (masked)"));
+    // Pinned KeyMethod DialogPrompt: `Connect <name>` with an `API key` field.
+    assert_eq!(
+        state.account_lines()[..2],
+        ["Connect opencode-go", "API key"]
+    );
     assert!(!state.account_lines().join(" ").contains("Account label"));
     state.handle_paste("KEY_CANARY_MUST_NOT_RENDER");
     let lines = state.account_lines().join("\n");
@@ -236,7 +246,8 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
     ));
     state.apply_provider_accounts(Ok(snapshot()));
     assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
-    state.handle_key(KeyAction::Char('r')).await;
+    // ctrl+r / ctrl+d (`dialog.integration.*`); letters belong to Search.
+    state.handle_key(KeyAction::Rename).await;
     state.handle_paste(" renamed");
     assert!(matches!(state.handle_key(KeyAction::Enter).await.intent,
         Some(PanelIntent::ProviderAccounts { action: Some(AccountAction::Rename { label, .. }), .. })
@@ -244,13 +255,19 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
     state.apply_provider_accounts(Ok(snapshot()));
     assert!(
         state
-            .handle_key(KeyAction::Char('d'))
+            .handle_key(KeyAction::DeleteOrQuit)
             .await
             .intent
             .is_none()
     );
+    assert!(
+        state
+            .account_lines()
+            .join(" ")
+            .contains("Press ctrl+d again to confirm")
+    );
     assert!(matches!(
-        state.handle_key(KeyAction::Char('d')).await.intent,
+        state.handle_key(KeyAction::DeleteOrQuit).await.intent,
         Some(PanelIntent::ProviderAccounts {
             action: Some(AccountAction::Remove {
                 confirmed: true,
@@ -262,7 +279,8 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
     state.apply_provider_accounts(Err(()));
     assert!(state.account_lines().join(" ").contains("refused"));
     assert_eq!(state.input(), "DRAFT");
-    state.handle_key(KeyAction::Char('a')).await;
+    state.handle_key(KeyAction::Home).await;
+    state.handle_key(KeyAction::Enter).await;
     apply_key_method(&mut state);
     state.handle_paste("REJECTED_KEY_CANARY");
     state.handle_key(KeyAction::Enter).await;
@@ -323,19 +341,25 @@ async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
             provider: "opencode-go".into(),
             name: "OpenCode Go".into(),
             source: AccountAuthSource::Environment,
+            summary: vec!["$OPENCODE_API_KEY".into()],
         },
         ProviderConnection {
             provider: "custom".into(),
             name: "Local connection".into(),
             source: AccountAuthSource::Configured,
+            summary: Vec::new(),
         },
     ]));
     let providers = state.account_lines().join(" ");
-    assert!(providers.contains("Popular") && providers.contains("Services"));
-    assert!(providers.contains("✓ OpenCode Go") && providers.contains("Environment"));
+    assert!(providers.contains("[Popular]") && providers.contains("[Services]"));
+    assert!(providers.contains("✓ OpenCode Go | $OPENCODE_API_KEY"));
+    assert!(
+        !providers.contains("✓ Local"),
+        "configured keys are not connections"
+    );
     state.handle_paste("Local");
     assert!(state.accounts.key.is_empty() && state.accounts.label.is_empty());
-    assert_eq!(state.accounts.search, "Local");
+    assert_eq!(state.select.query, "Local");
     assert!(!state.account_lines().join(" ").contains("OpenCode Go"));
     let chosen = state.handle_key(KeyAction::Enter).await;
     assert!(
@@ -344,11 +368,12 @@ async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
     assert_eq!(state.input(), "DRAFT");
     state.apply_provider_accounts(Ok(ProviderAccounts {
         provider: "custom".into(),
+        name: String::from("custom"),
         effective: AccountAuthSource::Missing,
         accounts: Vec::new(),
     }));
     apply_key_method(&mut state);
-    assert!(state.account_lines().join(" ").contains("API key (masked)"));
+    assert_eq!(state.account_lines()[..2], ["Connect custom", "API key"]);
     state.handle_key(KeyAction::Cancel).await;
     state.run_command(CommandAction::OpenConnect);
     state.apply_provider_connections(Err(()));
@@ -359,6 +384,7 @@ async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
 fn openai_snapshot(accounts: Vec<ProviderAccount>) -> ProviderAccounts {
     ProviderAccounts {
         provider: "openai".into(),
+        name: "OpenAI".into(),
         effective: AccountAuthSource::Missing,
         accounts,
     }
@@ -370,6 +396,7 @@ async fn choose_openai(state: &mut TuiState) {
         provider: "openai".into(),
         name: "OpenAI".into(),
         source: AccountAuthSource::Missing,
+        summary: Vec::new(),
     }]));
     state.handle_key(KeyAction::Enter).await;
 }
@@ -393,18 +420,26 @@ async fn auth05_openai_method_choice_pending_details_and_ack_are_isolated() {
     );
     state.handle_paste("NOT_AN_AUTH_FORM_SECRET");
     assert!(state.accounts.key.is_empty() && state.accounts.label.is_empty());
+    // DialogSelect paste is Search text only, never a credential field.
+    assert_eq!(state.select.query, "NOT_AN_AUTH_FORM_SECRET");
+    for _ in 0.."NOT_AN_AUTH_FORM_SECRET".len() {
+        state.handle_key(KeyAction::Backspace).await;
+    }
     assert!(
         state
             .account_lines()
             .join(" ")
             .contains("ChatGPT Pro/Plus (browser)")
     );
+    assert_eq!(state.account_lines()[0], "Connect OpenAI");
     let area = ratatui::layout::Rect::new(0, 0, 100, 30);
-    let rect = crate::dialog::DialogFrame::rect(area, crate::dialog::DialogSize::Medium, 16);
+    crate::views::render_test(&state, area.width, area.height);
+    // DialogSelect rows start five cells below the title; Device is the second.
+    let rect = crate::dialog::DialogFrame::rect(area, crate::dialog::DialogSize::Medium, 3 + 7);
     let mouse = |kind| crossterm::event::MouseEvent {
         kind,
         column: rect.x + 3,
-        row: rect.y + 7,
+        row: rect.y + 6,
         modifiers: crossterm::event::KeyModifiers::NONE,
     };
     state.handle_mouse(
@@ -506,18 +541,23 @@ async fn auth05_openai_existing_accounts_add_first_and_failed_auth_close_retire_
         state.accounts.snapshot.as_ref().unwrap().accounts[0].id,
         "a"
     );
-    assert!(state.account_lines()[2].contains("> Add account"));
-    // The painted eight-row window, not the whole inventory, owns mouse hits.
+    assert_eq!(
+        state.account_lines()[..4],
+        ["OpenAI", ">Add account", "[Connected accounts]", " ● Alpha"]
+    );
+    // Painted DialogSelect rows, not separators/headings, own mouse hits.
     let large = (0..12)
         .map(|i| row(&format!("id-{i:02}"), &format!("Label {i:02}")))
         .collect();
     state.apply_provider_accounts(Ok(openai_snapshot(large)));
     let area = Rect::new(0, 0, 120, 40);
-    let rect = crate::dialog::DialogFrame::rect(area, crate::dialog::DialogSize::Medium, 16);
+    crate::views::render_test(&state, area.width, area.height);
+    // Add row, separator, heading and 12 accounts in a 14-row viewport.
+    let rect = crate::dialog::DialogFrame::rect(area, crate::dialog::DialogSize::Medium, 14 + 7);
     let mouse = |kind| MouseEvent {
         kind,
         column: rect.x + 3,
-        row: rect.y + 14,
+        row: rect.y + 6,
         modifiers: crossterm::event::KeyModifiers::NONE,
     };
     state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
@@ -527,7 +567,7 @@ async fn auth05_openai_existing_accounts_add_first_and_failed_auth_close_retire_
             .intent
             .is_none()
     );
-    assert!(!state.accounts.pending && state.accounts.cursor == 0);
+    assert!(!state.accounts.pending && state.select.cursor == 0);
     state.apply_provider_accounts(Ok(openai_snapshot(vec![row("a", "Alpha")])));
     state.handle_key(KeyAction::Down).await;
     assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
@@ -536,7 +576,8 @@ async fn auth05_openai_existing_accounts_add_first_and_failed_auth_close_retire_
     assert!(matches!(state.handle_key(KeyAction::Enter).await.intent,
         Some(PanelIntent::ProviderAccounts { action: Some(AccountAction::Activate { id }), .. }) if id == "z"));
     state.apply_provider_accounts(Ok(openai_snapshot(vec![row("a", "Alpha")])));
-    state.handle_key(KeyAction::Char('a')).await;
+    state.handle_key(KeyAction::Home).await;
+    state.handle_key(KeyAction::Enter).await;
     let (provider, revision) = state.account_methods_request().unwrap();
     state.apply_auth_methods(
         &provider,
@@ -586,13 +627,19 @@ async fn auth05_openai_existing_accounts_add_first_and_failed_auth_close_retire_
     state.handle_key(KeyAction::Down).await;
     assert!(
         state
-            .handle_key(KeyAction::Char('d'))
+            .handle_key(KeyAction::DeleteOrQuit)
             .await
             .intent
             .is_none()
     );
+    assert!(
+        state
+            .account_lines()
+            .join(" ")
+            .contains("Press ctrl+d again to confirm")
+    );
     assert!(matches!(
-        state.handle_key(KeyAction::Char('d')).await.intent,
+        state.handle_key(KeyAction::DeleteOrQuit).await.intent,
         Some(PanelIntent::ProviderAccounts {
             action: Some(AccountAction::Remove {
                 confirmed: true,
@@ -603,4 +650,152 @@ async fn auth05_openai_existing_accounts_add_first_and_failed_auth_close_retire_
     ));
     assert!(!state.apply_provider_accounts(Ok(openai_snapshot(vec![]))));
     assert_eq!(state.panel(), &TuiPanel::None);
+}
+
+#[tokio::test]
+async fn vis45_integration_list_matches_pinned_dialog_integration_rows() {
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("integrations".into()));
+    state.run_command(CommandAction::OpenConnect);
+    let connection = |provider: &str, name: &str, source, summary: &[&str]| ProviderConnection {
+        provider: provider.into(),
+        name: name.into(),
+        source,
+        summary: summary.iter().map(|s| (*s).into()).collect(),
+    };
+    state.apply_provider_connections(Ok(vec![
+        connection("ludka2", "ludka2", AccountAuthSource::Configured, &[]),
+        connection("openai", "OpenAI", AccountAuthSource::Missing, &[]),
+        connection("a6api", "A6API", AccountAuthSource::Configured, &[]),
+        connection(
+            "opencode-go",
+            "OpenCode Go",
+            AccountAuthSource::Stored,
+            &["API key"],
+        ),
+    ]));
+    let frame = crate::views::render_test(&state, 100, 30);
+    let row = |text: &str| frame.iter().position(|r| r.contains(text)).unwrap();
+    assert!(frame[row("Connect an integration")].contains("esc"));
+    assert!(row("Search") < row("Popular"));
+    assert!(row("Popular") < row("OpenCode Go") && row("OpenCode Go") < row("OpenAI"));
+    assert!(row("OpenAI") < row("Services") && row("Services") < row("A6API"));
+    assert!(row("A6API") < row("ludka2") && row("ludka2") < row("Custom provider…"));
+    assert!(frame[row("OpenCode Go")].contains("API key"));
+    assert!(frame[row("OpenCode Go")].contains("✓ OpenCode Go"));
+    assert!(!frame[row("A6API")].contains('✓'));
+    // Typed search keeps the matching rows under their category.
+    state.handle_paste("lud");
+    let frame = crate::views::render_test(&state, 100, 30);
+    let services = frame.iter().position(|r| r.contains("Services")).unwrap();
+    assert!(frame[services + 1].contains("ludka2"));
+    assert!(!frame.iter().any(|r| r.contains("Popular")));
+}
+
+#[tokio::test]
+async fn vis45_connect_flow_surfaces_follow_pinned_select_prompt_and_oauth_views() {
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("flow".into()));
+    let frame = |state: &TuiState| crate::views::render_test(state, 100, 30);
+    let show = |label: &str, rows: &[String]| {
+        if std::env::var_os("OC_SHOW_FRAMES").is_some() {
+            eprintln!("--- {label}\n{}", rows.join("\n"));
+        }
+    };
+    choose_openai(&mut state).await;
+    state.apply_provider_accounts(Ok(openai_snapshot(vec![ProviderAccount {
+        id: "a".into(),
+        label: "Alpha".into(),
+        kind: AccountKind::Key,
+        method_id: None,
+        active: true,
+        created_at: 1,
+    }])));
+    let rows = frame(&state);
+    show("accounts", &rows);
+    let at = |rows: &[String], text: &str| rows.iter().position(|r| r.contains(text)).unwrap();
+    assert!(rows[at(&rows, "OpenAI")].trim_end().ends_with("esc"));
+    assert!(at(&rows, "Add account") < at(&rows, "Connected accounts"));
+    assert!(rows[at(&rows, "Alpha")].contains("● Alpha"));
+    // rename/delete are hidden on the Add row and shown for an account.
+    assert!(!rows.iter().any(|r| r.contains("rename ctrl+r")));
+    state.handle_key(KeyAction::Down).await;
+    let rows = frame(&state);
+    assert!(
+        rows.iter()
+            .any(|r| r.contains("rename ctrl+r  delete ctrl+d"))
+    );
+    state.handle_key(KeyAction::Home).await;
+    state.handle_key(KeyAction::Enter).await;
+    let (provider, revision) = state.account_methods_request().unwrap();
+    state.apply_auth_methods(
+        &provider,
+        revision,
+        Ok(vec![
+            AuthMethod::Key,
+            AuthMethod::OAuth(OAuthMethod::Browser),
+        ]),
+    );
+    let rows = frame(&state);
+    show("methods", &rows);
+    assert!(
+        rows[at(&rows, "Connect OpenAI")]
+            .trim_end()
+            .ends_with("esc")
+    );
+    // connectMethods: the key method sorts last.
+    assert!(at(&rows, "ChatGPT Pro/Plus (browser)") < at(&rows, "API key"));
+    state.handle_key(KeyAction::Down).await;
+    state.handle_key(KeyAction::Enter).await;
+    state.handle_paste("PROMPT_KEY_CANARY");
+    let rows = frame(&state);
+    show("key", &rows);
+    let title = at(&rows, "Connect OpenAI");
+    assert!(rows[title + 2].contains("•••••") && rows[title + 4].contains("enter submit"));
+    assert!(!rows.join("\n").contains("PROMPT_KEY_CANARY"));
+    state.handle_key(KeyAction::Enter).await;
+    let rows = frame(&state);
+    show("key busy", &rows);
+    assert!(rows.iter().any(|r| r.contains("processing…")));
+    state.apply_provider_accounts(Err(()));
+    let rows = frame(&state);
+    show("key error", &rows);
+    let title = at(&rows, "Connect OpenAI");
+    assert!(rows[title + 2].contains("Account operation refused"));
+    assert!(rows[title + 4].contains("API key"));
+    // OAuthView: title, link, instructions, message and o/c hints.
+    state.handle_key(KeyAction::Cancel).await;
+    choose_openai(&mut state).await;
+    state.apply_provider_accounts(Ok(openai_snapshot(vec![])));
+    let (provider, revision) = state.account_methods_request().unwrap();
+    state.apply_auth_methods(
+        &provider,
+        revision,
+        Ok(vec![AuthMethod::OAuth(OAuthMethod::Device)]),
+    );
+    let request = state.auth_request().unwrap().clone();
+    let rows = frame(&state);
+    assert!(rows.iter().any(|r| r.contains("Starting authorization…")));
+    state.apply_auth_attempt(
+        &request,
+        AuthAttempt {
+            id: "attempt".into(),
+            method: OAuthMethod::Device,
+            state: AuthAttemptState::Pending,
+            url: Some("https://auth.openai.com/codex/device".into()),
+            instructions: Some("Enter code: ABCD-EFGH".into()),
+            user_code: Some("ABCD-EFGH".into()),
+            created_at: 1,
+            expires_at: 601,
+            account_id: None,
+        },
+    );
+    let rows = frame(&state);
+    show("oauth", &rows);
+    let title = at(&rows, "ChatGPT Pro/Plus (headless)");
+    assert!(rows[title].trim_end().ends_with("esc"));
+    assert!(rows[title + 2].contains("https://auth.openai.com/codex/device"));
+    assert!(rows[title + 4].contains("Enter code: ABCD-EFGH"));
+    assert!(rows[title + 6].contains("Waiting for authorization…"));
+    assert!(rows[title + 8].contains("o open  c copy"));
 }

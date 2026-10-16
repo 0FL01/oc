@@ -1334,6 +1334,26 @@ fn saved_selection_record(
 /// Footer row of the connected model dialog; its scoped title is a provider name.
 const SCOPED_MODEL_DIALOG: &str = "Connect an integration ctrl+a";
 
+/// A dialog title row: the title, then only padding up to the muted `esc`.
+fn wait_dialog_title(pty: &PtySession, title: &str) {
+    let start = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows.iter().any(|row| {
+            row.trim()
+                .strip_prefix(title)
+                .is_some_and(|rest| rest.trim() == "esc")
+        }) {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "timeout waiting for dialog title {title:?}; screen: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
 fn dismissed(pty: &PtySession, title: &str) {
     let start = Instant::now();
     while render_screen(&pty.snapshot())

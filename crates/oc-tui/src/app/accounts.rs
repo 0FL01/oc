@@ -5,6 +5,7 @@ use oc_core::queries::{
     CustomProviderAuth, CustomProviderInput, CustomProviderReply, KeyInput, NativeProtocol,
     OAuthMethod, ProviderAccounts, ProviderConnection,
 };
+use std::rc::Rc;
 
 /// Correlates a mounted auth surface, never its URL/code/token, with owned work.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,8 +25,6 @@ pub(super) struct AccountsView {
     provider: String,
     snapshot: Option<ProviderAccounts>,
     connections: Vec<ProviderConnection>,
-    search: String,
-    cursor: usize,
     form: Form,
     label: String,
     key: String,
@@ -49,17 +48,6 @@ pub(super) struct AccountsView {
 }
 
 impl AccountsView {
-    fn providers(&self) -> Vec<&ProviderConnection> {
-        let search = self.search.to_lowercase();
-        self.connections
-            .iter()
-            .filter(|c| {
-                c.name.to_lowercase().contains(&search)
-                    || c.provider.to_lowercase().contains(&search)
-            })
-            .collect()
-    }
-
     fn can_add(&self) -> bool {
         !self
             .snapshot
@@ -69,7 +57,6 @@ impl AccountsView {
 
     fn input(&mut self) -> Option<(&mut String, usize)> {
         match self.form {
-            Form::Providers => Some((&mut self.search, 256)),
             Form::Key | Form::CustomKey => Some((&mut self.key, 16 * 1024)),
             Form::CustomName => Some((&mut self.custom_name, 128)),
             Form::CustomBase => Some((&mut self.custom_base, 4096)),
@@ -136,6 +123,7 @@ impl TuiState {
             ..Default::default()
         };
         self.panel = TuiPanel::Accounts;
+        self.select.reset();
         KeyOutcome {
             intent: Some(if connect {
                 PanelIntent::LoadProviderConnections {
@@ -168,6 +156,7 @@ impl TuiState {
 
     pub(super) fn open_provider_accounts(&mut self, provider: String) -> KeyOutcome {
         self.clear_accounts();
+        self.select.reset();
         self.accounts.provider = provider.clone();
         self.accounts.revision = revision();
         self.accounts.pending = true;
@@ -182,16 +171,6 @@ impl TuiState {
         }
     }
 
-    pub(crate) fn account_title(&self) -> &'static str {
-        if self.accounts.form == Form::Providers {
-            "Connect an integration"
-        } else if self.custom_provider_revision().is_some() {
-            "Connect a custom provider"
-        } else {
-            "Connect / accounts"
-        }
-    }
-
     pub fn apply_provider_connections(&mut self, result: Result<Vec<ProviderConnection>, ()>) {
         if self.panel != TuiPanel::Accounts || self.accounts.form != Form::Providers {
             return;
@@ -199,7 +178,7 @@ impl TuiState {
         self.accounts.failed = result.is_err();
         self.accounts.pending = false;
         self.accounts.connections = result.unwrap_or_default();
-        self.accounts.cursor = 0;
+        self.select.reset();
     }
 
     /// Owner acknowledgement contains safe metadata only. The submitted key was
@@ -219,9 +198,12 @@ impl TuiState {
                 snapshot
                     .accounts
                     .sort_by(|a, b| a.label.cmp(&b.label).then(a.id.cmp(&b.id)));
-                if removing && snapshot.provider == "openai" && snapshot.accounts.is_empty() {
+                // Pinned manageConnections: removing the final credential
+                // closes the dialog with a success toast.
+                if removing && snapshot.accounts.is_empty() {
+                    let message = format!("Disconnected {}", snapshot.name);
                     self.close_panel();
-                    self.push_transient_note("Disconnected OpenAI", NoteVariant::Success);
+                    self.push_transient_note(&message, NoteVariant::Success);
                     return false;
                 }
                 let anonymous =
@@ -233,7 +215,7 @@ impl TuiState {
                         Form::List
                     };
                     self.accounts.connecting = false;
-                    self.accounts.cursor = 0;
+                    self.select.reset();
                 }
                 self.accounts.snapshot = Some(snapshot);
                 self.accounts.failed = false;
@@ -246,7 +228,13 @@ impl TuiState {
             }
             _ => {
                 self.accounts.failed = true;
-                self.accounts.form = Form::List;
+                // KeyMethod keeps its prompt and shows the error under the title.
+                self.accounts.form = if adding {
+                    self.accounts.label = "default".into();
+                    Form::Key
+                } else {
+                    Form::List
+                };
             }
         }
         false
@@ -333,7 +321,8 @@ impl TuiState {
                 self.accounts.custom_models = model_count;
                 self.accounts.failed = diagnostic.is_some();
                 self.accounts.custom_diagnostic = diagnostic;
-                self.accounts.cursor = match suggested {
+                self.select.reset();
+                self.select.cursor = match suggested {
                     Some(NativeProtocol::Messages) => 2,
                     Some(NativeProtocol::Chat) => 1,
                     _ => 0,
@@ -357,7 +346,7 @@ impl TuiState {
                 self.accounts.custom_receipt = None;
                 self.accounts.failed = true;
                 self.accounts.form = Form::CustomAuth;
-                self.accounts.cursor = 0;
+                self.select.reset();
             }
         }
         None
@@ -374,7 +363,7 @@ impl TuiState {
         }
         self.accounts.methods = result.unwrap_or_default();
         self.accounts.failed = self.accounts.methods.is_empty();
-        self.accounts.cursor = 0;
+        self.select.reset();
         if let [method] = self.accounts.methods.as_slice() {
             match *method {
                 AuthMethod::Key => {
@@ -444,52 +433,31 @@ impl TuiState {
     }
 
     pub(super) fn accounts_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
-        use crate::dialog::{DialogFrame, DialogSize};
-        let rect = DialogFrame::rect(area, DialogSize::Medium, 16);
-        let hit = if !rect.contains((event.column, event.row).into()) {
-            Some(AccountHit::Backdrop)
-        } else if event.row == rect.y + 1 && event.column >= rect.right().saturating_sub(7) {
-            Some(AccountHit::Close)
+        use crate::dialog::{DialogHit, DialogSize};
+        let list = self.account_list_form();
+        let hit = if list {
+            let options = self.modal_options();
+            match self
+                .select
+                .hit(area, DialogSize::Medium, &options, event.column, event.row)
+            {
+                DialogHit::Backdrop => Some(AccountHit::Backdrop),
+                DialogHit::Close => Some(AccountHit::Close),
+                DialogHit::Option(index) if !self.accounts.pending => Some(AccountHit::Row(index)),
+                _ => None,
+            }
         } else {
-            let header = 1
-                + usize::from(self.accounts.snapshot.is_some())
-                + usize::from(self.accounts.failed);
-            let start = self.accounts.cursor.saturating_sub(3);
-            let (offset, visible, count) = match self.accounts.form {
-                Form::Providers => {
-                    let count = self.accounts.providers().len() + 1;
-                    (header + 1, count.saturating_sub(start).min(8), count)
-                }
-                Form::Methods => {
-                    let count = self.accounts.methods.len();
-                    (header + 1, count, count)
-                }
-                Form::List => {
-                    let count = self
-                        .accounts
-                        .snapshot
-                        .as_ref()
-                        .map_or(0, |s| s.accounts.len());
-                    let add = usize::from(self.accounts.can_add());
-                    (
-                        header,
-                        count.saturating_sub(start).min(8) + add,
-                        count + add,
-                    )
-                }
-                _ => (0, 0, 0),
-            };
-            usize::from(event.row.saturating_sub(rect.y + 3))
-                .checked_sub(offset)
-                .filter(|row| *row < visible && !self.accounts.pending)
-                .map(|row| match self.accounts.form {
-                    Form::Providers => row + start,
-                    Form::List if self.accounts.can_add() && row == 0 => 0,
-                    Form::List => row + start,
-                    _ => row,
-                })
-                .filter(|row| *row < count)
-                .map(AccountHit::Row)
+            let rect = self.account_surface_rect(area);
+            if !rect.contains((event.column, event.row).into()) {
+                Some(AccountHit::Backdrop)
+            } else if event.row == rect.y + 1
+                && event.column >= rect.right().saturating_sub(5)
+                && event.column < rect.right().saturating_sub(2)
+            {
+                Some(AccountHit::Close)
+            } else {
+                None
+            }
         };
         match event.kind {
             MouseEventKind::Down(MouseButton::Left) => self.accounts.mouse_down = hit,
@@ -498,7 +466,7 @@ impl TuiState {
                     match hit {
                         Some(AccountHit::Close | AccountHit::Backdrop) => self.close_panel(),
                         Some(AccountHit::Row(index)) => {
-                            self.accounts.cursor = index;
+                            self.select.cursor = index;
                             self.accounts.confirmation = None;
                             return self.accounts_key(KeyAction::Enter);
                         }
@@ -506,8 +474,17 @@ impl TuiState {
                     }
                 }
             }
-            MouseEventKind::ScrollUp => return self.accounts_key(KeyAction::Up),
-            MouseEventKind::ScrollDown => return self.accounts_key(KeyAction::Down),
+            // Pinned DialogSelect onMouseMove focuses the hovered row.
+            MouseEventKind::Moved => {
+                if let Some(AccountHit::Row(index)) = hit
+                    && index != self.select.cursor
+                {
+                    self.select.cursor = index;
+                    self.accounts.confirmation = None;
+                }
+            }
+            MouseEventKind::ScrollUp if list => return self.accounts_key(KeyAction::Up),
+            MouseEventKind::ScrollDown if list => return self.accounts_key(KeyAction::Down),
             _ => {}
         }
         KeyOutcome::default()
@@ -543,7 +520,7 @@ impl TuiState {
         self.accounts.form = Form::Methods;
         self.accounts.methods.clear();
         self.accounts.label.clear();
-        self.accounts.cursor = 0;
+        self.select.reset();
         self.accounts.revision = revision();
         self.accounts.confirmation = None;
         KeyOutcome {
@@ -554,20 +531,50 @@ impl TuiState {
         }
     }
 
+    fn account_list_form(&self) -> bool {
+        matches!(
+            self.accounts.form,
+            Form::Providers | Form::List | Form::Methods | Form::CustomAuth | Form::CustomApi
+        )
+    }
+
+    /// DialogSelect forms with a live Search field (native custom choices keep
+    /// their letter actions instead).
+    fn account_searchable(&self) -> bool {
+        matches!(
+            self.accounts.form,
+            Form::Providers | Form::List | Form::Methods
+        )
+    }
+
     pub(super) fn paste_accounts(&mut self, text: &str) -> KeyOutcome {
-        if self.accounts.pending {
+        if self.accounts.pending || text.chars().any(char::is_control) {
             return KeyOutcome::default();
         }
-        let Some((value, cap)) = self.accounts.input() else {
+        if self.account_searchable() {
+            if self.select.query.len().saturating_add(text.len()) <= 256 {
+                self.select.query.push_str(text);
+                self.select.changed_query();
+                self.accounts.confirmation = None;
+            }
             return KeyOutcome::default();
-        };
-        if !text.chars().any(char::is_control) && value.len().saturating_add(text.len()) <= cap {
+        }
+        if let Some((value, cap)) = self.accounts.input()
+            && value.len().saturating_add(text.len()) <= cap
+        {
             value.push_str(text);
         }
-        if self.accounts.form == Form::Providers {
-            self.accounts.cursor = 0;
-        }
         KeyOutcome::default()
+    }
+
+    fn focused_account(&self, value: Option<&str>) -> Option<&oc_core::queries::ProviderAccount> {
+        let value = value.filter(|value| !value.is_empty())?;
+        self.accounts
+            .snapshot
+            .as_ref()?
+            .accounts
+            .iter()
+            .find(|account| account.id == value)
     }
 
     pub(super) fn accounts_key(&mut self, action: KeyAction) -> KeyOutcome {
@@ -585,237 +592,232 @@ impl TuiState {
             return KeyOutcome::default();
         }
         let mut request = None;
-        let action = match (&self.accounts.form, action) {
-            (Form::List | Form::Methods, KeyAction::Char('j')) => KeyAction::Down,
-            (Form::List | Form::Methods, KeyAction::Char('k')) => KeyAction::Up,
-            (_, action) => action,
-        };
-        match (&self.accounts.form, &action) {
-            (Form::Providers, KeyAction::Up | KeyAction::Down) => {
-                self.accounts.cursor = self
-                    .accounts
-                    .cursor
-                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
-                    .min(self.accounts.providers().len());
-            }
-            (Form::Providers, KeyAction::Enter) => {
-                if let Some(connection) = self.accounts.providers().get(self.accounts.cursor) {
-                    self.accounts.provider = connection.provider.clone();
-                    self.accounts.form = Form::List;
-                    self.accounts.cursor = 0;
-                    self.accounts.pending = true;
-                    return KeyOutcome {
-                        intent: Some(PanelIntent::ProviderAccounts {
-                            provider: self.accounts.provider.clone(),
-                            revision: self.accounts.revision,
-                            action: None,
-                        }),
-                        ..Default::default()
-                    };
-                } else {
-                    self.clear_accounts();
-                    self.accounts.form = Form::CustomName;
-                    self.accounts.revision = revision();
+        if self.account_list_form() {
+            let options = self.modal_options();
+            let count = options.len();
+            match action {
+                KeyAction::Up | KeyAction::Down | KeyAction::PageUp | KeyAction::PageDown => {
+                    self.select.move_by(
+                        match action {
+                            KeyAction::Up => -1,
+                            KeyAction::PageUp => -10,
+                            KeyAction::PageDown => 10,
+                            _ => 1,
+                        },
+                        count,
+                    );
+                    self.select.follow_selection();
+                    self.accounts.confirmation = None;
+                    return KeyOutcome::default();
                 }
+                KeyAction::Home | KeyAction::End => {
+                    self.select.cursor = if action == KeyAction::Home {
+                        0
+                    } else {
+                        count.saturating_sub(1)
+                    };
+                    self.select.follow_selection();
+                    self.accounts.confirmation = None;
+                    return KeyOutcome::default();
+                }
+                _ => {}
             }
-            (Form::Methods, KeyAction::Up | KeyAction::Down) => {
-                self.accounts.cursor = self
-                    .accounts
-                    .cursor
-                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
-                    .min(self.accounts.methods.len().saturating_sub(1));
-            }
-            (Form::Methods, KeyAction::Enter) => {
-                match self.accounts.methods.get(self.accounts.cursor).copied() {
-                    Some(AuthMethod::Key) => {
-                        self.accounts.label = "default".into();
-                        self.accounts.form = Form::Key;
-                    }
-                    Some(AuthMethod::OAuth(method)) => {
-                        self.accounts.form = Form::OAuth;
-                        self.accounts.revision = revision();
-                        let request = AuthRequest {
-                            revision: self.accounts.revision,
-                            provider: self.accounts.provider.clone(),
-                            method,
-                        };
-                        self.accounts.auth = Some(request.clone());
+            let focused = options.get(self.select.cursor).map(|o| o.value.clone());
+            match (&self.accounts.form, &action) {
+                (Form::Providers, KeyAction::Enter) => match focused {
+                    Some(provider) if !provider.is_empty() => {
+                        self.accounts.provider = provider;
+                        self.accounts.form = Form::List;
+                        self.select.reset();
+                        self.accounts.pending = true;
                         return KeyOutcome {
-                            intent: Some(PanelIntent::BeginAuthentication(request)),
+                            intent: Some(PanelIntent::ProviderAccounts {
+                                provider: self.accounts.provider.clone(),
+                                revision: self.accounts.revision,
+                                action: None,
+                            }),
                             ..Default::default()
                         };
                     }
+                    Some(_) => {
+                        self.clear_accounts();
+                        self.select.reset();
+                        self.accounts.form = Form::CustomName;
+                        self.accounts.revision = revision();
+                    }
                     None => {}
+                },
+                (Form::Methods, KeyAction::Enter) => {
+                    let method = focused
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .and_then(|index| self.accounts.methods.get(index).copied());
+                    match method {
+                        Some(AuthMethod::Key) => {
+                            self.accounts.label = "default".into();
+                            self.accounts.form = Form::Key;
+                        }
+                        Some(AuthMethod::OAuth(method)) => {
+                            self.accounts.form = Form::OAuth;
+                            self.accounts.revision = revision();
+                            let request = AuthRequest {
+                                revision: self.accounts.revision,
+                                provider: self.accounts.provider.clone(),
+                                method,
+                            };
+                            self.accounts.auth = Some(request.clone());
+                            return KeyOutcome {
+                                intent: Some(PanelIntent::BeginAuthentication(request)),
+                                ..Default::default()
+                            };
+                        }
+                        None => {}
+                    }
                 }
-            }
-            (Form::OAuth, KeyAction::Char('o')) if self.auth_detail(false).is_some() => {
-                return KeyOutcome {
-                    intent: Some(PanelIntent::OpenAuthorization),
-                    ..Default::default()
-                };
-            }
-            (Form::OAuth, KeyAction::Char('c')) if self.auth_detail(true).is_some() => {
-                return KeyOutcome {
-                    intent: Some(PanelIntent::CopyAuthorization),
-                    ..Default::default()
-                };
-            }
-            (Form::Key, KeyAction::Enter) if !self.accounts.key.trim().is_empty() => {
-                request = Some(AccountAction::AddKey {
-                    label: std::mem::take(&mut self.accounts.label).trim().into(),
-                    key: KeyInput::new(std::mem::take(&mut self.accounts.key)),
-                });
-                self.accounts.adding = true;
-                self.accounts.form = Form::List;
-            }
-            (Form::Rename(id), KeyAction::Enter) if !self.accounts.label.trim().is_empty() => {
-                request = Some(AccountAction::Rename {
-                    id: id.clone(),
-                    label: std::mem::take(&mut self.accounts.label).trim().into(),
-                });
-                self.accounts.form = Form::List;
-            }
-            (Form::List, KeyAction::Char('a')) => {
-                return self.choose_account_method();
-            }
-            (Form::List, KeyAction::Up | KeyAction::Down) => {
-                let count = self
-                    .accounts
-                    .snapshot
-                    .as_ref()
-                    .map_or(0, |s| s.accounts.len())
-                    + usize::from(self.accounts.can_add());
-                self.accounts.cursor = self
-                    .accounts
-                    .cursor
-                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
-                    .min(count.saturating_sub(1));
-                self.accounts.confirmation = None;
-            }
-            (
-                Form::List,
-                KeyAction::Enter
-                | KeyAction::Char('r')
-                | KeyAction::Char('d')
-                | KeyAction::Rename
-                | KeyAction::DeleteOrQuit,
-            ) => {
-                if self.accounts.can_add() && self.accounts.cursor == 0 {
-                    if action == KeyAction::Enter {
+                (Form::List, KeyAction::Enter) => {
+                    if focused.as_deref() == Some("") {
                         return self.choose_account_method();
                     }
-                    return KeyOutcome::default();
-                }
-                if let Some(account) = self.accounts.snapshot.as_ref().and_then(|s| {
-                    s.accounts
-                        .get(self.accounts.cursor - usize::from(self.accounts.can_add()))
-                }) {
-                    if action == KeyAction::Enter {
-                        if account.active {
-                            return KeyOutcome::default();
-                        }
+                    if let Some(account) = self.focused_account(focused.as_deref())
+                        && !account.active
+                    {
                         request = Some(AccountAction::Activate {
                             id: account.id.clone(),
                         });
-                    } else if matches!(action, KeyAction::Char('r') | KeyAction::Rename) {
-                        self.accounts.label = account.label.clone();
-                        self.accounts.form = Form::Rename(account.id.clone());
-                    } else if self.accounts.confirmation.as_ref() == Some(&account.id) {
-                        request = Some(AccountAction::Remove {
-                            id: account.id.clone(),
-                            confirmed: true,
-                        });
-                        self.accounts.removing = true;
-                        self.accounts.confirmation = None;
-                    } else {
-                        self.accounts.confirmation = Some(account.id.clone());
                     }
                 }
-            }
-            (Form::CustomName, KeyAction::Enter)
-                if !self.accounts.custom_name.trim().is_empty() =>
-            {
-                self.accounts.form = Form::CustomBase;
-            }
-            (Form::CustomBase, KeyAction::Enter) if !self.accounts.custom_base.is_empty() => {
-                self.accounts.form = Form::CustomAuth;
-                self.accounts.cursor = 0;
-            }
-            (Form::CustomAuth | Form::CustomApi, KeyAction::Up | KeyAction::Down) => {
-                let max = if self.accounts.form == Form::CustomAuth {
-                    1
-                } else {
-                    2
-                };
-                self.accounts.cursor = self
-                    .accounts
-                    .cursor
-                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
-                    .min(max);
-            }
-            (Form::CustomAuth, KeyAction::Enter) => {
-                if self.accounts.cursor == 0 {
-                    self.accounts.form = Form::CustomKey;
-                } else {
-                    return self.probe_custom_provider(CustomProviderAuth::Anonymous);
+                (Form::List, KeyAction::Rename) => {
+                    if let Some(account) = self.focused_account(focused.as_deref()) {
+                        let (label, id) = (account.label.clone(), account.id.clone());
+                        self.accounts.label = label;
+                        self.accounts.form = Form::Rename(id);
+                    }
                 }
-            }
-            (Form::CustomKey, KeyAction::Enter) if !self.accounts.key.trim().is_empty() => {
-                let key = KeyInput::new(std::mem::take(&mut self.accounts.key));
-                return self.probe_custom_provider(CustomProviderAuth::Key(key));
-            }
-            (Form::CustomApi, KeyAction::Enter) if self.accounts.custom_receipt.is_some() => {
-                self.accounts.pending = true;
-                self.accounts.form = Form::CustomSaving;
-                return KeyOutcome {
-                    intent: Some(PanelIntent::SaveCustomProvider {
-                        revision: self.accounts.revision,
-                        receipt: self.accounts.custom_receipt.expect("checked receipt"),
-                        protocol: [
-                            NativeProtocol::Responses,
-                            NativeProtocol::Chat,
-                            NativeProtocol::Messages,
-                        ][self.accounts.cursor],
-                    }),
-                    ..Default::default()
-                };
-            }
-            (Form::CustomApi, KeyAction::Char('r')) if self.accounts.custom_receipt.is_some() => {
-                self.accounts.pending = true;
-                self.accounts.form = Form::CustomProbe;
-                return KeyOutcome {
-                    intent: Some(PanelIntent::RetryCustomProvider {
-                        revision: self.accounts.revision,
-                        receipt: self
-                            .accounts
-                            .custom_receipt
-                            .take()
-                            .expect("checked receipt"),
-                    }),
-                    ..Default::default()
-                };
-            }
-            (Form::CustomApi, KeyAction::Char('e')) => {
-                if let Some(cancel) = self.accounts.custom_cancel.take() {
-                    cancel.0.store(true, std::sync::atomic::Ordering::SeqCst);
+                (Form::List, KeyAction::DeleteOrQuit) => {
+                    if let Some(account) = self.focused_account(focused.as_deref()) {
+                        let id = account.id.clone();
+                        if self.accounts.confirmation.as_ref() == Some(&id) {
+                            request = Some(AccountAction::Remove {
+                                id,
+                                confirmed: true,
+                            });
+                            self.accounts.removing = true;
+                            self.accounts.confirmation = None;
+                        } else {
+                            self.accounts.confirmation = Some(id);
+                        }
+                    }
                 }
-                self.accounts.custom_receipt = None;
-                self.accounts.revision = revision();
-                self.accounts.form = Form::CustomAuth;
-                self.accounts.cursor = 0;
-            }
-            (_, KeyAction::Char(c)) if !c.is_control() => {
-                return self.paste_accounts(&c.to_string());
-            }
-            (_, KeyAction::Backspace) => {
-                if let Some((value, _)) = self.accounts.input() {
-                    value.pop();
+                (Form::CustomAuth, KeyAction::Enter) => {
+                    if self.select.cursor == 0 {
+                        self.accounts.form = Form::CustomKey;
+                    } else {
+                        return self.probe_custom_provider(CustomProviderAuth::Anonymous);
+                    }
                 }
-                if self.accounts.form == Form::Providers {
-                    self.accounts.cursor = 0;
+                (Form::CustomApi, KeyAction::Enter) if self.accounts.custom_receipt.is_some() => {
+                    self.accounts.pending = true;
+                    self.accounts.form = Form::CustomSaving;
+                    return KeyOutcome {
+                        intent: Some(PanelIntent::SaveCustomProvider {
+                            revision: self.accounts.revision,
+                            receipt: self.accounts.custom_receipt.expect("checked receipt"),
+                            protocol: [
+                                NativeProtocol::Responses,
+                                NativeProtocol::Chat,
+                                NativeProtocol::Messages,
+                            ][self.select.cursor.min(2)],
+                        }),
+                        ..Default::default()
+                    };
                 }
+                (Form::CustomApi, KeyAction::Char('r'))
+                    if self.accounts.custom_receipt.is_some() =>
+                {
+                    self.accounts.pending = true;
+                    self.accounts.form = Form::CustomProbe;
+                    return KeyOutcome {
+                        intent: Some(PanelIntent::RetryCustomProvider {
+                            revision: self.accounts.revision,
+                            receipt: self
+                                .accounts
+                                .custom_receipt
+                                .take()
+                                .expect("checked receipt"),
+                        }),
+                        ..Default::default()
+                    };
+                }
+                (Form::CustomApi, KeyAction::Char('e')) => {
+                    if let Some(cancel) = self.accounts.custom_cancel.take() {
+                        cancel.0.store(true, std::sync::atomic::Ordering::SeqCst);
+                    }
+                    self.accounts.custom_receipt = None;
+                    self.accounts.revision = revision();
+                    self.accounts.form = Form::CustomAuth;
+                    self.select.reset();
+                }
+                (_, KeyAction::Char(c)) if !c.is_control() && self.account_searchable() => {
+                    return self.paste_accounts(&c.to_string());
+                }
+                (_, KeyAction::Backspace) if self.account_searchable() => {
+                    self.select.query.pop();
+                    self.select.changed_query();
+                    self.accounts.confirmation = None;
+                }
+                _ => {}
             }
-            _ => {}
+        } else {
+            match (&self.accounts.form, &action) {
+                (Form::OAuth, KeyAction::Char('o')) if self.auth_detail(false).is_some() => {
+                    return KeyOutcome {
+                        intent: Some(PanelIntent::OpenAuthorization),
+                        ..Default::default()
+                    };
+                }
+                (Form::OAuth, KeyAction::Char('c')) if self.auth_detail(true).is_some() => {
+                    return KeyOutcome {
+                        intent: Some(PanelIntent::CopyAuthorization),
+                        ..Default::default()
+                    };
+                }
+                (Form::Key, KeyAction::Enter) if !self.accounts.key.trim().is_empty() => {
+                    // The prompt stays mounted (busy) until the owner ACK.
+                    request = Some(AccountAction::AddKey {
+                        label: std::mem::take(&mut self.accounts.label).trim().into(),
+                        key: KeyInput::new(std::mem::take(&mut self.accounts.key)),
+                    });
+                    self.accounts.adding = true;
+                }
+                (Form::Rename(id), KeyAction::Enter) if !self.accounts.label.trim().is_empty() => {
+                    request = Some(AccountAction::Rename {
+                        id: id.clone(),
+                        label: std::mem::take(&mut self.accounts.label).trim().into(),
+                    });
+                    self.accounts.form = Form::List;
+                }
+                (Form::CustomName, KeyAction::Enter)
+                    if !self.accounts.custom_name.trim().is_empty() =>
+                {
+                    self.accounts.form = Form::CustomBase;
+                }
+                (Form::CustomBase, KeyAction::Enter) if !self.accounts.custom_base.is_empty() => {
+                    self.accounts.form = Form::CustomAuth;
+                    self.select.reset();
+                }
+                (Form::CustomKey, KeyAction::Enter) if !self.accounts.key.trim().is_empty() => {
+                    let key = KeyInput::new(std::mem::take(&mut self.accounts.key));
+                    return self.probe_custom_provider(CustomProviderAuth::Key(key));
+                }
+                (_, KeyAction::Char(c)) if !c.is_control() => {
+                    return self.paste_accounts(&c.to_string());
+                }
+                (_, KeyAction::Backspace) => {
+                    if let Some((value, _)) = self.accounts.input() {
+                        value.pop();
+                    }
+                }
+                _ => {}
+            }
         }
         if request.is_some() {
             self.accounts.pending = true;
@@ -831,207 +833,441 @@ impl TuiState {
         }
     }
 
+    /// Admitted display name for dialog titles, falling back to the ID.
+    fn account_provider_name(&self) -> String {
+        self.accounts
+            .snapshot
+            .as_ref()
+            .filter(|snapshot| snapshot.provider == self.accounts.provider)
+            .map(|snapshot| snapshot.name.clone())
+            .filter(|name| !name.is_empty())
+            .unwrap_or_else(|| self.connected_provider_name())
+    }
+
+    /// Pinned DialogIntegration rows; the Search filter keeps category groups
+    /// in first-ranked order (remeda `groupBy`), not repeated headings.
+    pub(crate) fn account_options(&self) -> Rc<Vec<crate::dialog::SelectOption>> {
+        use crate::dialog::SelectOption;
+        let plain = |value: String, title: &str, category: &str| SelectOption {
+            value,
+            title: title.into(),
+            category: category.into(),
+            ..Default::default()
+        };
+        let options: Vec<SelectOption> = match &self.accounts.form {
+            Form::Providers => {
+                // integrationOptions: pinned priority, then name and ID.
+                let rank = |id: &str| {
+                    [
+                        "opencode-go",
+                        "opencode",
+                        "openai",
+                        "github-copilot",
+                        "anthropic",
+                        "google",
+                    ]
+                    .iter()
+                    .position(|popular| *popular == id)
+                    .unwrap_or(99)
+                };
+                let mut rows: Vec<&ProviderConnection> = self.accounts.connections.iter().collect();
+                rows.sort_by(|a, b| {
+                    rank(&a.provider)
+                        .cmp(&rank(&b.provider))
+                        .then_with(|| crate::picker::locale_cmp(&a.name, &b.name))
+                        .then_with(|| a.provider.cmp(&b.provider))
+                });
+                rows.into_iter()
+                    .map(|connection| SelectOption {
+                        value: connection.provider.clone(),
+                        title: connection.name.clone(),
+                        category: if rank(&connection.provider) < 99 {
+                            "Popular"
+                        } else {
+                            "Services"
+                        }
+                        .into(),
+                        footer: connection.summary.join(", "),
+                        check: !connection.summary.is_empty(),
+                        ..Default::default()
+                    })
+                    // Native custom-connection entry (no pinned equivalent).
+                    .chain(std::iter::once(plain(
+                        String::new(),
+                        "Custom provider…",
+                        "Services",
+                    )))
+                    .collect()
+            }
+            Form::List => {
+                let mut rows = Vec::new();
+                if self.accounts.can_add() {
+                    rows.push(plain(String::new(), "Add account", ""));
+                }
+                if let Some(snapshot) = &self.accounts.snapshot {
+                    rows.extend(snapshot.accounts.iter().map(|account| {
+                        let confirming = self.accounts.confirmation.as_ref() == Some(&account.id);
+                        SelectOption {
+                            value: account.id.clone(),
+                            title: if confirming {
+                                "Press ctrl+d again to confirm".into()
+                            } else {
+                                account.label.clone()
+                            },
+                            category: "Connected accounts".into(),
+                            current: account.active,
+                            destructive: confirming,
+                            ..Default::default()
+                        }
+                    }));
+                }
+                rows
+            }
+            Form::Methods => {
+                // connectMethods: key methods sort after interactive ones.
+                let mut methods: Vec<_> = self.accounts.methods.iter().enumerate().collect();
+                methods.sort_by_key(|(_, method)| matches!(method, AuthMethod::Key));
+                methods
+                    .into_iter()
+                    .map(|(index, method)| plain(index.to_string(), method.label(), ""))
+                    .collect()
+            }
+            Form::CustomAuth => ["API key", "No authentication (explicit)"]
+                .iter()
+                .enumerate()
+                .map(|(index, title)| plain(index.to_string(), title, ""))
+                .collect(),
+            Form::CustomApi => ["Responses", "Chat Completions", "Messages"]
+                .iter()
+                .enumerate()
+                .map(|(index, title)| plain(index.to_string(), title, ""))
+                .collect(),
+            _ => Vec::new(),
+        };
+        let options = Rc::new(options);
+        if !self.account_searchable() || self.select.query.trim().is_empty() {
+            return options;
+        }
+        let ranked = self.select.filter_for(options, &TuiPanel::Accounts);
+        let mut categories: Vec<&str> = Vec::new();
+        for option in ranked.iter() {
+            if !categories.contains(&option.category.as_str()) {
+                categories.push(&option.category);
+            }
+        }
+        Rc::new(
+            categories
+                .iter()
+                .flat_map(|category| {
+                    ranked
+                        .iter()
+                        .filter(move |option| option.category == *category)
+                        .cloned()
+                })
+                .collect(),
+        )
+    }
+
+    /// Which pinned surface the Accounts panel currently mounts.
+    pub(crate) fn account_surface(&self) -> AccountSurface {
+        let view = &self.accounts;
+        let masked = || "•".repeat(view.key.chars().count().min(512));
+        let refused = |text: &str| {
+            if view.failed {
+                vec![(text.to_owned(), true)]
+            } else {
+                Vec::new()
+            }
+        };
+        let notice = |title: String, message: &str| AccountSurface::Notice {
+            title,
+            link: None,
+            instructions: None,
+            message: message.into(),
+            open_copy: false,
+        };
+        let name = self.account_provider_name();
+        match &view.form {
+            Form::Providers if view.pending => {
+                notice(crate::dialog::INTEGRATIONS_TITLE.into(), "Working…")
+            }
+            Form::Providers => AccountSurface::List {
+                title: crate::dialog::INTEGRATIONS_TITLE.into(),
+                status: if view.failed {
+                    vec!["Integrations unavailable".into()]
+                } else {
+                    Vec::new()
+                },
+                actions: Vec::new(),
+            },
+            Form::List if view.pending && view.snapshot.is_none() => notice(name, "Working…"),
+            Form::List => AccountSurface::List {
+                title: name,
+                status: if view.failed {
+                    vec!["Account operation refused; secret input cleared".into()]
+                } else {
+                    Vec::new()
+                },
+                // manageConnections hides rename/delete on the Add row.
+                actions: if self
+                    .focused_account(
+                        self.modal_options()
+                            .get(self.select.cursor)
+                            .map(|o| o.value.as_str()),
+                    )
+                    .is_some()
+                {
+                    vec![("rename", "ctrl+r".into()), ("delete", "ctrl+d".into())]
+                } else {
+                    Vec::new()
+                },
+            },
+            Form::Methods if view.methods.is_empty() && !view.failed => {
+                notice(format!("Connect {name}"), "Working…")
+            }
+            Form::Methods => AccountSurface::List {
+                title: format!("Connect {name}"),
+                status: if view.failed {
+                    vec!["No connection method available".into()]
+                } else {
+                    Vec::new()
+                },
+                actions: Vec::new(),
+            },
+            Form::Key => AccountSurface::Prompt {
+                title: format!("Connect {name}"),
+                description: refused("Account operation refused; secret input cleared"),
+                value: masked(),
+                placeholder: "API key",
+                busy: view.pending,
+            },
+            Form::Rename(_) => AccountSurface::Prompt {
+                title: "Rename account".into(),
+                description: Vec::new(),
+                value: view.label.clone(),
+                placeholder: "Account name",
+                busy: view.pending,
+            },
+            Form::OAuth => {
+                let method = view
+                    .auth
+                    .as_ref()
+                    .map_or("OpenAI authorization", |a| a.method.label());
+                match &view.attempt {
+                    Some(attempt) => AccountSurface::Notice {
+                        title: method.into(),
+                        link: attempt.url.clone(),
+                        instructions: attempt.instructions.clone(),
+                        message: if attempt.state == AuthAttemptState::Complete {
+                            "Refreshing accounts…"
+                        } else if attempt.url.is_some() {
+                            "Waiting for authorization…"
+                        } else {
+                            "Starting authorization…"
+                        }
+                        .into(),
+                        open_copy: self.auth_detail(false).is_some(),
+                    },
+                    None => notice(method.into(), "Starting authorization…"),
+                }
+            }
+            Form::CustomName => AccountSurface::Prompt {
+                title: "Custom provider".into(),
+                description: vec![("Display name".into(), false)],
+                value: view.custom_name.clone(),
+                placeholder: "Display name",
+                busy: false,
+            },
+            Form::CustomBase => AccountSurface::Prompt {
+                title: "Custom provider".into(),
+                description: vec![("Literal API base URL (prefix is preserved)".into(), false)],
+                value: view.custom_base.clone(),
+                placeholder: "API base URL",
+                busy: false,
+            },
+            Form::CustomAuth => AccountSurface::List {
+                title: "Custom provider".into(),
+                status: if view.failed {
+                    vec!["Connection operation refused; secret input cleared".into()]
+                } else {
+                    Vec::new()
+                },
+                actions: Vec::new(),
+            },
+            Form::CustomKey => AccountSurface::Prompt {
+                title: "Custom provider".into(),
+                description: vec![("API key".into(), false)],
+                value: masked(),
+                placeholder: "API key",
+                busy: false,
+            },
+            Form::CustomProbe => notice("Custom provider".into(), "Checking GET /models…"),
+            Form::CustomApi => AccountSurface::List {
+                title: "Confirm generation API".into(),
+                status: vec![match &view.custom_diagnostic {
+                    Some(diagnostic) => format!("Discovery unavailable: {:?}", diagnostic.code),
+                    None => format!(
+                        "Catalog: {} models (catalog is not generation proof)",
+                        view.custom_models
+                    ),
+                }],
+                actions: vec![
+                    ("retry GET", "r".into()),
+                    ("change authentication", "e".into()),
+                ],
+            },
+            Form::CustomSaving => notice("Custom provider".into(), "Saving connection…"),
+        }
+    }
+
+    /// The exact rectangle of a non-list surface (prompt/notice) for hit tests.
+    fn account_surface_rect(&self, area: Rect) -> Rect {
+        match self.account_surface() {
+            AccountSurface::Prompt {
+                description, busy, ..
+            } => crate::dialog::prompt_geometry(area, description.len(), busy),
+            AccountSurface::Notice {
+                title,
+                link,
+                instructions,
+                message,
+                open_copy,
+            } => {
+                crate::dialog::notice_geometry(
+                    area,
+                    &crate::dialog::Notice {
+                        title: &title,
+                        link: link.as_deref(),
+                        instructions: instructions.as_deref(),
+                        message: &message,
+                        open_copy,
+                    },
+                )
+                .0
+            }
+            AccountSurface::List { .. } => Rect::default(),
+        }
+    }
+
+    /// Plain-text projection of the mounted surface (tests and text views).
     /// Rendering gets masked glyphs, never a reference to the key.
     pub(crate) fn account_lines(&self) -> Vec<String> {
-        let view = &self.accounts;
-        if self.custom_provider_revision().is_some() {
-            let mut lines = vec!["Custom provider".into()];
-            match view.form {
-                Form::CustomName => {
-                    lines.push("Display name".into());
-                    lines.push(view.custom_name.clone());
-                }
-                Form::CustomBase => {
-                    lines.push("Literal API base URL (prefix is preserved)".into());
-                    lines.push(view.custom_base.clone());
-                }
-                Form::CustomAuth => {
-                    if view.failed {
-                        lines.push("Connection operation refused; secret input cleared".into());
+        match self.account_surface() {
+            AccountSurface::List {
+                title,
+                status,
+                actions,
+            } => {
+                let mut lines = vec![title];
+                let mut category = "";
+                for (index, option) in self.modal_options().iter().enumerate() {
+                    if option.category != category {
+                        category = &option.category;
+                        lines.push(format!("[{category}]"));
                     }
-                    lines.push("Choose authentication".into());
-                    for (index, label) in ["API key", "No authentication (explicit)"]
-                        .iter()
-                        .enumerate()
-                    {
-                        lines.push(format!(
-                            "{} {label}",
-                            if view.cursor == index { ">" } else { " " }
-                        ));
-                    }
+                    lines.push(format!(
+                        "{}{}{}{}{}",
+                        if index == self.select.cursor {
+                            ">"
+                        } else {
+                            " "
+                        },
+                        if option.check {
+                            "✓ "
+                        } else if option.current {
+                            "● "
+                        } else {
+                            ""
+                        },
+                        option.title,
+                        if option.description.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" {}", option.description)
+                        },
+                        if option.footer.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" | {}", option.footer)
+                        },
+                    ));
                 }
-                Form::CustomKey => {
-                    lines.push("API key (masked)".into());
-                    lines.push("•".repeat(view.key.chars().count().min(48)));
-                }
-                Form::CustomProbe => lines.push("Checking GET /models…".into()),
-                Form::CustomApi => {
-                    if let Some(diagnostic) = &view.custom_diagnostic {
-                        lines.push(format!("Discovery unavailable: {:?}", diagnostic.code));
-                    } else {
-                        lines.push(format!("Catalog: {} models", view.custom_models));
-                    }
-                    lines.push("Confirm generation API (catalog is not generation proof)".into());
-                    for (index, label) in ["Responses", "Chat Completions", "Messages"]
-                        .iter()
-                        .enumerate()
-                    {
-                        lines.push(format!(
-                            "{} {label}",
-                            if view.cursor == index { ">" } else { " " }
-                        ));
-                    }
-                    lines.push("enter save · r retry GET · e change authentication".into());
-                }
-                Form::CustomSaving => lines.push("Saving connection…".into()),
-                _ => unreachable!("custom surface checked"),
+                lines.extend(status);
+                lines.extend(
+                    actions
+                        .into_iter()
+                        .map(|(title, key)| format!("{title} {key}")),
+                );
+                lines
             }
-            lines.push("esc cancel".into());
-            return lines;
-        }
-        if view.form == Form::OAuth {
-            let mut lines = vec![
-                view.auth
-                    .as_ref()
-                    .map_or("OpenAI authorization", |a| a.method.label())
-                    .into(),
-            ];
-            if let Some(attempt) = &view.attempt {
-                if let Some(url) = &attempt.url {
-                    lines.push(url.clone());
-                }
-                if let Some(instructions) = &attempt.instructions {
-                    lines.push(instructions.clone());
-                }
+            AccountSurface::Prompt {
+                title,
+                description,
+                value,
+                placeholder,
+                busy,
+            } => {
+                let mut lines = vec![title];
+                lines.extend(description.into_iter().map(|(line, _)| line));
+                lines.push(if value.is_empty() {
+                    placeholder.into()
+                } else {
+                    value
+                });
                 lines.push(
-                    if attempt.state == AuthAttemptState::Complete {
-                        "Refreshing accounts…"
-                    } else if attempt.url.is_some() {
-                        "Waiting for authorization…"
+                    if busy {
+                        "processing…"
                     } else {
-                        "Starting authorization…"
+                        "enter submit"
                     }
                     .into(),
                 );
-                if self.auth_detail(false).is_some() {
-                    lines.push("o open · c copy".into());
-                }
-            } else {
-                lines.push("Starting authorization…".into());
+                lines
             }
-            lines.push("esc cancel".into());
-            return lines;
+            AccountSurface::Notice {
+                title,
+                link,
+                instructions,
+                message,
+                open_copy,
+            } => {
+                let mut lines = vec![title];
+                lines.extend(link);
+                lines.extend(instructions);
+                lines.push(message);
+                if open_copy {
+                    lines.push("o open  c copy".into());
+                }
+                lines
+            }
         }
-        let mut lines = vec![format!("Provider: {}", view.provider)];
-        if let Some(snapshot) = &view.snapshot {
-            lines.push(format!("Effective auth: {:?}", snapshot.effective));
-        }
-        if view.failed {
-            lines.push("Account operation refused; secret input cleared".into());
-        }
-        if view.pending {
-            lines.push("Working…".into());
-            return lines;
-        }
-        match &view.form {
-            Form::Methods => {
-                lines.push("Choose authentication method".into());
-                for (index, method) in view.methods.iter().enumerate() {
-                    lines.push(format!(
-                        "{} {}",
-                        if index == view.cursor { ">" } else { " " },
-                        method.label()
-                    ));
-                }
-            }
-            Form::OAuth => unreachable!("active auth surface rendered separately"),
-            Form::Providers => {
-                lines.push(format!("Search providers: {}", view.search));
-                for (index, connection) in view
-                    .providers()
-                    .into_iter()
-                    .map(Some)
-                    .chain(std::iter::once(None))
-                    .enumerate()
-                    .skip(view.cursor.saturating_sub(3))
-                    .take(8)
-                {
-                    let cursor = if index == view.cursor { ">" } else { " " };
-                    if let Some(connection) = connection {
-                        let category =
-                            if matches!(connection.provider.as_str(), "opencode-go" | "openai") {
-                                "Popular"
-                            } else {
-                                "Services"
-                            };
-                        let connected = !matches!(
-                            connection.source,
-                            AccountAuthSource::Missing | AccountAuthSource::UnsupportedOAuth
-                        );
-                        lines.push(format!(
-                            "{cursor} {category} · {}{} ({}) [{:?}]",
-                            if connected { "✓ " } else { "" },
-                            connection.name,
-                            connection.provider,
-                            connection.source
-                        ));
-                    } else {
-                        lines.push(format!("{cursor} Services · Custom provider…"));
-                    }
-                }
-            }
-            Form::Key => {
-                lines.push("API key (masked)".into());
-                lines.push("•".repeat(view.key.chars().count().min(48)));
-            }
-            Form::Rename(_) => {
-                lines.push("Rename account".into());
-                lines.push(view.label.clone());
-            }
-            Form::List => {
-                if view.can_add() {
-                    lines.push(format!(
-                        "{} Add account",
-                        if view.cursor == 0 { ">" } else { " " }
-                    ));
-                }
-                if let Some(snapshot) = &view.snapshot {
-                    for (index, account) in snapshot
-                        .accounts
-                        .iter()
-                        .enumerate()
-                        .skip(view.cursor.saturating_sub(3))
-                        .take(8)
-                    {
-                        lines.push(format!(
-                            "{} {}{} ({:?})",
-                            if index + usize::from(view.can_add()) == view.cursor {
-                                ">"
-                            } else {
-                                " "
-                            },
-                            account.label,
-                            if account.active { " [active]" } else { "" },
-                            account.kind
-                        ));
-                    }
-                }
-                if view.confirmation.is_some() {
-                    lines.push("Press d again to confirm removal".into());
-                }
-                lines.push("a add · enter activate · r rename · d remove".into());
-            }
-            Form::CustomName
-            | Form::CustomBase
-            | Form::CustomAuth
-            | Form::CustomKey
-            | Form::CustomProbe
-            | Form::CustomApi
-            | Form::CustomSaving => unreachable!("custom surface rendered above"),
-        }
-        lines.push("enter continue · esc cancel".into());
-        lines
     }
+}
+
+/// The three pinned dialog shapes the Accounts state machine mounts.
+pub(crate) enum AccountSurface {
+    /// DialogSelect with Search (`modal_options` rows).
+    List {
+        title: String,
+        status: Vec<String>,
+        actions: Vec<(&'static str, String)>,
+    },
+    /// DialogPrompt; `value` is display text (secrets are masked).
+    Prompt {
+        title: String,
+        description: Vec<(String, bool)>,
+        value: String,
+        placeholder: &'static str,
+        busy: bool,
+    },
+    /// OAuthView / progress view.
+    Notice {
+        title: String,
+        link: Option<String>,
+        instructions: Option<String>,
+        message: String,
+        open_copy: bool,
+    },
 }
 
 #[cfg(test)]

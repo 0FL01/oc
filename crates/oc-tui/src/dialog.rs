@@ -97,6 +97,8 @@ pub struct SelectOption {
     pub title: String,
     /// Inline muted text after the title (pinned DialogSelect `description`).
     pub description: String,
+    /// Pinned DialogIntegration success gutter `✓` (replaces the `●` column).
+    pub check: bool,
     pub category: String,
     pub footer: String,
     pub current: bool,
@@ -104,13 +106,16 @@ pub struct SelectOption {
     pub destructive: bool,
 }
 
+/// Pinned DialogIntegration title; its list keeps categories while searching.
+pub(crate) const INTEGRATIONS_TITLE: &str = "Connect an integration";
+
 /// Owner-supplied footer actions below a select list.
 #[derive(Clone, Copy)]
 pub(crate) enum FooterActions<'a> {
     None,
     Mcp(&'a [McpServerSnapshot], &'a SelectAction),
     /// Pinned DialogSelect action row: title plus muted effective binding.
-    Model(&'a [(&'static str, String)]),
+    Actions(&'a [(&'static str, String)]),
 }
 
 #[derive(Default)]
@@ -443,7 +448,7 @@ impl SelectList {
         let (mcps, action, model_actions) = match actions {
             FooterActions::None => (None, None, &[][..]),
             FooterActions::Mcp(servers, action) => (Some(servers), Some(action), &[][..]),
-            FooterActions::Model(actions) => (None, None, actions),
+            FooterActions::Actions(actions) => (None, None, actions),
         };
         let theme = Theme::dark();
         // Pinned DialogSelect footer: a row below 60 columns becomes a column.
@@ -465,7 +470,9 @@ impl SelectList {
         self.footer_rows.set(footer_rows);
         let action_focused = self.action_focused && action.is_some_and(|a| a.enabled);
         let sessions = title == "Sessions" || title.starts_with("Sessions for ");
-        self.session_categories.set(sessions || title == "Settings");
+        // Settings and the integration list are not `flat` DialogSelects.
+        self.session_categories
+            .set(sessions || title == "Settings" || title == INTEGRATIONS_TITLE);
         // Sessions and Settings retain their actual category headings while filtering.
         let flat = !self.session_categories.get() && !self.query.is_empty();
         let mut rows: Vec<(Option<usize>, String)> = Vec::new();
@@ -632,7 +639,16 @@ impl SelectList {
                 ),
                 Rect::new(area.x + 1, y, area.width - 2, 1),
             );
-            if option.running {
+            if option.check {
+                line(
+                    frame,
+                    area.x + 2,
+                    y,
+                    1,
+                    "✓",
+                    style.fg(slot(theme, "text.feedback.success.base")),
+                );
+            } else if option.running {
                 line(frame, area.x + 2, y, 1, crate::tools::SPINNER, style);
             } else if option.current {
                 line(frame, area.x + 2, y, 1, "●", style);
@@ -917,22 +933,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         return;
     }
     if state.panel() == &TuiPanel::Accounts {
-        let rect = DialogFrame::rect(frame.area(), DialogSize::Medium, 16);
-        DialogFrame::paint(frame, rect, Theme::dark());
-        if rect.width >= 8 && rect.height >= 4 {
-            frame.render_widget(
-                Paragraph::new(state.account_title()),
-                Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1),
-            );
-            frame.render_widget(
-                Paragraph::new("esc"),
-                Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
-            );
-            frame.render_widget(
-                Paragraph::new(state.account_lines().join("\n")),
-                Rect::new(rect.x + 2, rect.y + 3, rect.width - 4, rect.height - 3),
-            );
-        }
+        render_accounts(frame, state);
         return;
     }
     if state.panel() == &TuiPanel::Rename {
@@ -1006,7 +1007,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
             Some(action) => {
                 FooterActions::Mcp(state.mcp_list_servers().unwrap_or_default(), action)
             }
-            None if !model_actions.is_empty() => FooterActions::Model(&model_actions),
+            None if !model_actions.is_empty() => FooterActions::Actions(&model_actions),
             None => FooterActions::None,
         },
     );
@@ -1015,15 +1016,48 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
 /// The pinned DialogPrompt uses a medium 60-cell surface and a focused,
 /// single-line textarea with wrapMode=none.
 pub(crate) fn rename_geometry(area: Rect) -> Rect {
-    DialogFrame::rect(area, DialogSize::Medium, 7)
+    prompt_geometry(area, 0, false)
+}
+
+/// Pinned DialogPrompt: title row, optional description elements (each
+/// followed by a gap), the one-line field, optional busy row and footer.
+pub(crate) fn prompt_geometry(area: Rect, description: usize, busy: bool) -> Rect {
+    let rows = 7 + 2 * description.min(8) as u16 + if busy { 2 } else { 0 };
+    DialogFrame::rect(area, DialogSize::Medium, rows)
+}
+
+/// One DialogPrompt frame. `value` is already display text (secrets masked);
+/// `cursor` is its byte offset.
+pub(crate) struct Prompt<'a> {
+    pub title: &'a str,
+    pub description: &'a [(String, bool)],
+    pub value: &'a str,
+    pub cursor: usize,
+    pub placeholder: &'a str,
+    pub busy: bool,
 }
 
 fn render_rename(frame: &mut Frame<'_>, state: &TuiState) {
+    let value = state.rename_title().unwrap_or("");
+    render_prompt(
+        frame,
+        &Prompt {
+            title: "Rename session",
+            description: &[],
+            value,
+            cursor: state.rename_cursor(),
+            placeholder: "Session title",
+            busy: false,
+        },
+    );
+}
+
+pub(crate) fn render_prompt(frame: &mut Frame<'_>, prompt: &Prompt<'_>) {
     use unicode_segmentation::UnicodeSegmentation;
     use unicode_width::UnicodeWidthStr;
 
     let theme = Theme::dark();
-    let rect = rename_geometry(frame.area());
+    let rect = prompt_geometry(frame.area(), prompt.description.len(), prompt.busy);
     DialogFrame::paint(frame, rect, theme);
     if rect.width < 12 || rect.height < 6 {
         return;
@@ -1033,7 +1067,7 @@ fn render_rename(frame: &mut Frame<'_>, state: &TuiState) {
     let inner = Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1);
     frame.render_widget(
         Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
-            "Rename session",
+            prompt.title,
             Style::default().fg(text).add_modifier(Modifier::BOLD),
         ))),
         inner,
@@ -1046,8 +1080,23 @@ fn render_rename(frame: &mut Frame<'_>, state: &TuiState) {
         Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
     );
     let width = rect.width.saturating_sub(4) as usize;
-    let input = state.rename_title().unwrap_or("");
-    let cursor = state.rename_cursor();
+    let mut y = rect.y + 3;
+    for (line, error) in prompt.description.iter().take(8) {
+        frame.render_widget(
+            Paragraph::new(ratatui::text::Line::styled(
+                line.chars().filter(|c| !c.is_control()).collect::<String>(),
+                Style::default().fg(if *error {
+                    slot(theme, "text.feedback.error.base")
+                } else {
+                    muted
+                }),
+            )),
+            Rect::new(rect.x + 2, y, width as u16, 1),
+        );
+        y += 2;
+    }
+    let input = prompt.value;
+    let cursor = prompt.cursor.min(input.len());
     // Clip by whole graphemes; the caret follows the end of a horizontally
     // scrolled one-line field instead of wrapping into the next modal row.
     let before = UnicodeWidthStr::width(&input[..cursor]);
@@ -1066,36 +1115,254 @@ fn render_rename(frame: &mut Frame<'_>, state: &TuiState) {
             break;
         }
     }
-    let field = Rect::new(rect.x + 2, rect.y + 3, width as u16, 1);
+    let field = Rect::new(rect.x + 2, y, width as u16, 1);
     frame.render_widget(
         Paragraph::new(ratatui::text::Line::from(ratatui::text::Span::styled(
             if input.is_empty() {
-                "Session title"
+                prompt.placeholder
             } else {
                 &visible
             },
             Style::default().fg(if input.is_empty() {
                 muted
+            } else if prompt.busy {
+                slot(theme, "text.formfield.disabled")
             } else {
                 slot(theme, "text.formfield.base")
             }),
         ))),
         field,
     );
+    y += 2;
+    if prompt.busy {
+        frame.render_widget(
+            Paragraph::new(ratatui::text::Line::styled(
+                format!("{} Working…", crate::tools::SPINNER),
+                Style::default().fg(muted),
+            )),
+            Rect::new(rect.x + 2, y, width as u16, 1),
+        );
+        y += 2;
+    }
     frame.render_widget(
-        Paragraph::new(ratatui::text::Line::from(vec![
-            ratatui::text::Span::styled("enter ", Style::default().fg(text)),
-            ratatui::text::Span::styled("submit", Style::default().fg(muted)),
-        ])),
-        Rect::new(rect.x + 2, rect.y + 5, width as u16, 1),
+        Paragraph::new(if prompt.busy {
+            ratatui::text::Line::styled("processing…", Style::default().fg(muted))
+        } else {
+            ratatui::text::Line::from(vec![
+                ratatui::text::Span::styled("enter ", Style::default().fg(text)),
+                ratatui::text::Span::styled("submit", Style::default().fg(muted)),
+            ])
+        }),
+        Rect::new(rect.x + 2, y, width as u16, 1),
     );
-    frame.set_cursor_position((
-        field.x
-            + before
-                .saturating_sub(start_cells)
-                .min(width.saturating_sub(1)) as u16,
-        field.y,
-    ));
+    if !prompt.busy {
+        frame.set_cursor_position((
+            field.x
+                + before
+                    .saturating_sub(start_cells)
+                    .min(width.saturating_sub(1)) as u16,
+            field.y,
+        ));
+    }
+}
+
+/// Pinned OAuthView / CommandView: title, wrapped link and instructions,
+/// a muted status message and optional `o open` / `c copy` hints.
+pub(crate) struct Notice<'a> {
+    pub title: &'a str,
+    pub link: Option<&'a str>,
+    pub instructions: Option<&'a str>,
+    pub message: &'a str,
+    pub open_copy: bool,
+}
+
+fn wrap_cells(text: &str, width: usize) -> Vec<String> {
+    use unicode_width::UnicodeWidthChar;
+    let mut lines = Vec::new();
+    for paragraph in text.lines() {
+        let mut line = String::new();
+        let mut cells = 0;
+        for word in paragraph.split_inclusive(' ') {
+            let size: usize = word.chars().map(|c| c.width().unwrap_or(0)).sum();
+            if cells + size > width && !line.is_empty() {
+                lines.push(std::mem::take(&mut line).trim_end().to_owned());
+                cells = 0;
+            }
+            for c in word.chars() {
+                let size = c.width().unwrap_or(0);
+                if cells + size > width {
+                    lines.push(std::mem::take(&mut line));
+                    cells = 0;
+                }
+                line.push(c);
+                cells += size;
+            }
+        }
+        lines.push(line.trim_end().to_owned());
+    }
+    lines.truncate(12);
+    lines
+}
+
+pub(crate) fn notice_geometry(area: Rect, notice: &Notice<'_>) -> (Rect, Vec<String>, Vec<String>) {
+    let width = (DialogFrame::rect(area, DialogSize::Medium, 7).width as usize)
+        .saturating_sub(4)
+        .max(1);
+    let link = notice
+        .link
+        .map(|l| wrap_cells(l, width))
+        .unwrap_or_default();
+    let instructions = notice
+        .link
+        .and(notice.instructions)
+        .map(|i| wrap_cells(i, width))
+        .unwrap_or_default();
+    let mut rows = 1 + 2 + 1; // title, gaps, message
+    if !link.is_empty() {
+        rows += link.len()
+            + 1
+            + if instructions.is_empty() {
+                0
+            } else {
+                instructions.len() + 1
+            };
+    }
+    // The hint row exists even when empty, so its gap remains (OpenTUI gap).
+    rows += 1 + usize::from(notice.open_copy) + 1;
+    let rect = DialogFrame::rect(area, DialogSize::Medium, rows.min(u16::MAX as usize) as u16);
+    (rect, link, instructions)
+}
+
+pub(crate) fn render_notice(frame: &mut Frame<'_>, notice: &Notice<'_>) {
+    let theme = Theme::dark();
+    let (rect, link, instructions) = notice_geometry(frame.area(), notice);
+    DialogFrame::paint(frame, rect, theme);
+    if rect.width < 12 || rect.height < 5 {
+        return;
+    }
+    let text = slot(theme, "text.base");
+    let muted = slot(theme, "text.muted");
+    let width = rect.width.saturating_sub(4);
+    let line = |frame: &mut Frame<'_>, y: u16, content: ratatui::text::Line<'_>| {
+        if y < rect.bottom() {
+            frame.render_widget(Paragraph::new(content), Rect::new(rect.x + 2, y, width, 1));
+        }
+    };
+    line(
+        frame,
+        rect.y + 1,
+        ratatui::text::Line::styled(
+            notice.title.to_owned(),
+            Style::default().fg(text).add_modifier(Modifier::BOLD),
+        ),
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::styled(
+            "esc",
+            Style::default().fg(muted),
+        )),
+        Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
+    );
+    let mut y = rect.y + 3;
+    if !link.is_empty() {
+        for part in &link {
+            line(
+                frame,
+                y,
+                ratatui::text::Line::styled(
+                    part.clone(),
+                    Style::default()
+                        .fg(slot(theme, "markdown.link"))
+                        .add_modifier(Modifier::UNDERLINED),
+                ),
+            );
+            y += 1;
+        }
+        y += 1;
+        if !instructions.is_empty() {
+            for part in &instructions {
+                line(
+                    frame,
+                    y,
+                    ratatui::text::Line::styled(part.clone(), Style::default().fg(muted)),
+                );
+                y += 1;
+            }
+            y += 1;
+        }
+    }
+    line(
+        frame,
+        y,
+        ratatui::text::Line::styled(notice.message.to_owned(), Style::default().fg(muted)),
+    );
+    if notice.open_copy {
+        line(
+            frame,
+            y + 2,
+            ratatui::text::Line::from(vec![
+                ratatui::text::Span::styled("o ", Style::default().fg(text)),
+                ratatui::text::Span::styled("open", Style::default().fg(muted)),
+                ratatui::text::Span::raw("  "),
+                ratatui::text::Span::styled("c ", Style::default().fg(text)),
+                ratatui::text::Span::styled("copy", Style::default().fg(muted)),
+            ]),
+        );
+    }
+}
+
+fn render_accounts(frame: &mut Frame<'_>, state: &TuiState) {
+    match state.account_surface() {
+        crate::app::AccountSurface::List {
+            title,
+            status,
+            actions,
+        } => state.select.render(
+            frame,
+            &title,
+            DialogSize::Medium,
+            &state.modal_options(),
+            (!status.is_empty()).then(|| status.join("\n")).as_deref(),
+            if actions.is_empty() {
+                FooterActions::None
+            } else {
+                FooterActions::Actions(&actions)
+            },
+        ),
+        crate::app::AccountSurface::Prompt {
+            title,
+            description,
+            value,
+            placeholder,
+            busy,
+        } => render_prompt(
+            frame,
+            &Prompt {
+                title: &title,
+                description: &description,
+                cursor: value.len(),
+                value: &value,
+                placeholder,
+                busy,
+            },
+        ),
+        crate::app::AccountSurface::Notice {
+            title,
+            link,
+            instructions,
+            message,
+            open_copy,
+        } => render_notice(
+            frame,
+            &Notice {
+                title: &title,
+                link: link.as_deref(),
+                instructions: instructions.as_deref(),
+                message: &message,
+                open_copy,
+            },
+        ),
+    }
 }
 
 /// The detail viewport has a fixed header and footer and no searchable list.
@@ -1321,6 +1588,7 @@ mod tests {
         };
         let options = vec![SelectOption {
             description: String::new(),
+            check: false,
             value: "root".into(),
             title: "x".repeat(70),
             category: "Tue Nov 14 2023".into(),
@@ -1373,6 +1641,7 @@ mod tests {
         let list = SelectList::default();
         let options = vec![SelectOption {
             description: String::new(),
+            check: false,
             value: "root".into(),
             title: "Press ctrl+d again to confirm".into(),
             category: "Today".into(),
@@ -1527,6 +1796,7 @@ mod tests {
             (0..10_000)
                 .map(|i| SelectOption {
                     description: String::new(),
+                    check: false,
                     running: false,
                     destructive: false,
                     value: format!("model-{i:05}"),
@@ -1601,6 +1871,7 @@ mod tests {
                 (0..10_000)
                     .map(|i| SelectOption {
                         description: String::new(),
+                        check: false,
                         running: false,
                         destructive: false,
                         value: i.to_string(),
@@ -1645,6 +1916,7 @@ mod tests {
                     DialogSize::Medium,
                     &[SelectOption {
                         description: String::new(),
+                        check: false,
                         running: false,
                         destructive: false,
                         value: String::new(),

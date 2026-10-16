@@ -276,6 +276,7 @@ impl Work {
                     let reply = ProviderConnection {
                         provider: row.id.clone(),
                         name: row.name.clone(),
+                        summary: Vec::new(),
                         source: match row.auth {
                             crate::auth::AuthPolicy::Key | crate::auth::AuthPolicy::OAuth => {
                                 oc_core::queries::AccountAuthSource::Stored

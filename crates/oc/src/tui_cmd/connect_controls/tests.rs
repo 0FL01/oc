@@ -116,6 +116,7 @@ async fn conn04_save_ack_opens_only_its_provider_picker_without_model_commit() {
         provider: "custom-exact".into(),
         name: "Endpoint".into(),
         source: AccountAuthSource::Anonymous,
+        summary: Vec::new(),
     })))
     .unwrap();
     let InboxMsg::ProviderCatalog { provider, ack } = inbox.recv().await.unwrap() else {

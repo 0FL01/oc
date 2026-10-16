@@ -32,6 +32,7 @@ impl TuiState {
         let item =
             |value: String, title: String, category: &str, footer: String, current| SelectOption {
                 description: String::new(),
+                check: false,
                 value,
                 title,
                 category: category.into(),
@@ -337,7 +338,8 @@ impl TuiState {
                     )
                 })
                 .collect(),
-            TuiPanel::Rename | TuiPanel::Accounts => Vec::new(),
+            TuiPanel::Accounts => return self.account_options(),
+            TuiPanel::Rename => Vec::new(),
             TuiPanel::Mcps => self.mcp_options(),
             TuiPanel::None => Vec::new(),
             _ => crate::views::panel_lines(self)

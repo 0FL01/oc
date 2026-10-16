@@ -120,6 +120,7 @@ impl TuiState {
             .iter()
             .map(|server| crate::dialog::SelectOption {
                 description: String::new(),
+                check: false,
                 value: server.id.clone(),
                 title: server.name.clone(),
                 category: String::new(),

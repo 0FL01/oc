@@ -1509,6 +1509,7 @@ impl TuiState {
 }
 
 mod accounts;
+pub(crate) use accounts::AccountSurface;
 mod execute;
 pub use accounts::AuthRequest;
 mod foreground;

@@ -1806,3 +1806,51 @@ ICU `localeCompare`; providers whose catalogs have not been loaded yet (e.g. an
 unselected custom connection before its first GET) are absent until loaded.
 No paired OC2/native styled-cell/PNG capture was run for this slice — visual
 qualification remains NOT_RUN; T44 stays ACTIVE.
+
+## /connect integration flow (VIS45 presentation) — owner request 2026-10-16
+
+Base `c721ef8dd`. Owner report: `/connect` rendered a plain-text list
+(`> Popular · OpenCode Go (opencode-go) [Missing]`, `enter continue · esc cancel`)
+instead of pinned `DialogIntegration`. Reference: `component/dialog-integration.tsx`,
+`ui/dialog-select.tsx`, `ui/dialog-prompt.tsx` at `6f655dcba`.
+
+Owner decisions: list only providers the native binary can actually connect
+(admitted Go/OpenAI/config/custom connections plus native "Custom provider…");
+bring the whole flow to parity (list → accounts → method → key/OAuth).
+
+Implemented (`AccountSurface` over the existing Accounts state machine; no new
+owner, store or migration):
+
+- Integration list: DialogSelect "Connect an integration" with Search; pinned
+  `integrationOptions` order (opencode-go, opencode, openai, github-copilot,
+  anthropic, google, then name/ID), Popular/Services headings kept while
+  searching (groupBy of ranked rows), success-coloured `✓` gutter and right
+  `connectionSummary` (stored account labels or `$OPENCODE_API_KEY` /
+  `$OPENAI_API_KEY`). Config-file keys are not connections (no `✓`), matching
+  the owner's OC2 screenshot.
+- manageConnections: title = provider name, `Add account`, "Connected accounts"
+  with `●` on the active credential, footer `rename ctrl+r  delete ctrl+d`
+  hidden on the Add row, destructive "Press ctrl+d again to confirm"; removing
+  the final credential closes with "Disconnected <name>". Letters now go to
+  Search (old `a`/`r`/`d`/`j`/`k` shortcuts removed).
+- selectMethod: "Connect <name>", key method sorted last.
+- KeyMethod / Rename / custom name/base/key: shared pinned DialogPrompt
+  renderer (extracted from Rename session, unchanged geometry), busy
+  "processing…", refused error under the title; key glyphs stay masked.
+- OAuth: OAuthView (title, underlined link, instructions, status, `o open  c copy`).
+- Data: `ProviderConnection.summary`, `ProviderAccounts.name` (query fields only;
+  no storage change).
+
+Checks: oc-tui 555/555 (new `vis45_integration_list_*`, `vis45_connect_flow_*`),
+oc-core 43, oc-adapters lib 806/0/1, oc2 bin 119, pty_t39 60/60, pty_t42 35/35,
+fmt and strict Clippy clean, debug `oc2` build. `auth05` TUI and CLI scenarios
+(hard-coded `/home/opencode` TMPDIR in their Rust wrappers) were run manually
+with another TMPDIR against the rebuilt binary: both PASS. Remaining isolated
+workspace failures are the same environment set as the previous slice.
+
+Native differences (not waived): no full models.dev integration catalog or
+generic provider connect; masked key input; native custom-provider forms
+(name/base URL/auth/API confirmation with `r`/`e`); credential default label
+stays `default` (upstream derives it from the integration ref name); no Tab
+focus/mouse on footer actions; loading states show a short "Working…" notice.
+Paired OC2/native capture NOT_RUN; T44 stays ACTIVE.

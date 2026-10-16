@@ -96,6 +96,7 @@ impl ModelPicker {
                 });
                 crate::dialog::SelectOption {
                     description: String::new(),
+                    check: false,
                     running: false,
                     destructive: false,
                     value: id.clone(),
@@ -143,6 +144,7 @@ impl ModelPicker {
             .into_iter()
             .map(|name| crate::dialog::SelectOption {
                 description: String::new(),
+                check: false,
                 running: false,
                 destructive: false,
                 title: if name == "default" {
@@ -591,6 +593,7 @@ impl ModelDirectory {
                 title: row.title().to_owned(),
                 category: category.to_owned(),
                 description,
+                check: false,
                 footer: if row.entry.input_free {
                     "Free".into()
                 } else {
@@ -673,7 +676,7 @@ impl ModelDirectory {
 /// Approximates `String.prototype.localeCompare` (ICU root collation) for the
 /// identifiers seen in catalogs: whitespace < punctuation < symbols < digits <
 /// letters, case-insensitive first, lowercase before uppercase on ties.
-fn locale_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+pub(crate) fn locale_cmp(a: &str, b: &str) -> std::cmp::Ordering {
     fn key(c: char) -> (u8, u32) {
         const PUNCTUATION: &str = "_-,;:!?.'\"()[]{}@*/\\&#%";
         const SYMBOLS: &str = "`^+<=>|~$";

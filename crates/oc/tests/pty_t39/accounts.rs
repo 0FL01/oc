@@ -8,6 +8,8 @@ use oc_adapters::{
 const KEY: &str = "GO05_PTY_KEY_NEVER_RENDER_54c1";
 const CANCELLED: &str = "GO05_CANCELLED_NEVER_SAVE_8e43";
 const GO_KEY: &str = "GO05_GO_SCOPE_NOT_CUSTOM_901c";
+/// Any mounted DialogSelect (integration/account list) shows its Search field.
+const ACCOUNTS_SEARCH: &str = "Search";
 
 fn paste(pty: &mut PtySession, text: &str) {
     pty.send(format!("\x1b[200~{text}\x1b[201~").as_bytes());
@@ -15,15 +17,17 @@ fn paste(pty: &mut PtySession, text: &str) {
 
 fn connect_go(pty: &mut PtySession) {
     pty.send(b"/connect\r");
-    wait_screen_row(pty, "Search providers:", DEADLINE);
-    wait_screen_row(pty, "opencode-go)", DEADLINE);
+    wait_dialog_title(pty, "Connect an integration");
+    wait_screen_row(pty, "OpenCode Go", DEADLINE);
     pty.send(b"\r");
-    wait_screen_row(pty, "API key (masked)", DEADLINE);
+    // Pinned KeyMethod DialogPrompt.
+    wait_dialog_title(pty, "Connect OpenCode Go");
+    wait_screen_row(pty, "API key", DEADLINE);
 }
 
 fn close(pty: &mut PtySession) {
     pty.send(b"\x1b");
-    dismissed(pty, "Connect / accounts");
+    dismissed(pty, ACCOUNTS_SEARCH);
     pty.send(b"/exit\r");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored());
@@ -62,13 +66,11 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     let mut pty = PtySession::spawn(fixture.clone(), "go05-connect", None);
     pty.wait_visible(READY, DEADLINE);
     connect_go(&mut pty);
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, CANCELLED);
     wait_screen_row(&pty, "••••", DEADLINE);
     pty.send(b"\x1b");
-    dismissed(&pty, "Connect / accounts");
+    dismissed(&pty, "Connect OpenCode Go");
     connect_go(&mut pty);
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     wait_screen_row(&pty, "••••", DEADLINE);
     pty.send(b"\r");
@@ -80,14 +82,16 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     pty.send(b"\x1b");
     dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "default [active]", DEADLINE);
-    wait_screen_row(&pty, "Effective auth: Stored", DEADLINE);
+    // manageConnections: Add account, then the current (●) credential.
+    wait_dialog_title(&pty, "OpenCode Go");
+    wait_screen_row(&pty, "Connected accounts", DEADLINE);
+    wait_screen_row(&pty, "● default", DEADLINE);
     pty.send(b"\x1b[B"); // Add account is the shared first row.
-    pty.send(b"r");
+    pty.send(b"\x12"); // ctrl+r: dialog.integration.rename
     wait_screen_row(&pty, "Rename account", DEADLINE);
     paste(&mut pty, " renamed");
     pty.send(b"\r");
-    wait_screen_row(&pty, "default renamed [active]", DEADLINE);
+    wait_screen_row(&pty, "● default renamed", DEADLINE);
     close(&mut pty);
     let db = Db::open(&fixture.data_dir()).unwrap();
     let scope = AuthScope::admit("opencode-go", GO_BASE_URL).unwrap();
@@ -99,12 +103,13 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     let mut restarted = PtySession::spawn(fixture.clone(), "go05-connect", None);
     restarted.wait_visible(READY, DEADLINE);
     restarted.send(b"/accounts\r");
-    wait_screen_row(&restarted, "default renamed [active]", DEADLINE);
+    wait_screen_row(&restarted, "● default renamed", DEADLINE);
     restarted.send(b"\x1b[B");
-    restarted.send(b"d");
-    wait_screen_row(&restarted, "confirm removal", DEADLINE);
-    restarted.send(b"d");
-    wait_screen_row(&restarted, "Effective auth: Missing", DEADLINE);
+    restarted.send(b"\x04"); // ctrl+d: dialog.integration.delete
+    wait_screen_row(&restarted, "Press ctrl+d again to confirm", DEADLINE);
+    restarted.send(b"\x04");
+    // Removing the final credential closes with a success toast.
+    wait_screen_row(&restarted, "Disconnected OpenCode Go", DEADLINE);
     close(&mut restarted);
     let db = Db::open(&fixture.data_dir()).unwrap();
     assert!(
@@ -144,7 +149,6 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     let mut pty = PtySession::spawn(fixture.clone(), "go05-custom-connect", None);
     pty.wait_visible(READY, DEADLINE);
     connect_go(&mut pty);
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     pty.send(b"\r");
     wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
@@ -154,16 +158,17 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     pty.send(b"\x1b");
     dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "Provider: fixture", DEADLINE);
+    wait_dialog_title(&pty, "fixture");
     // The connect ACK changed only Go credentials, not the current connection/model.
     pty.send(b"\x1b");
-    dismissed(&pty, "Connect / accounts");
+    dismissed(&pty, ACCOUNTS_SEARCH);
     pty.send(b"/connect\r");
-    wait_screen_row(&pty, "Search providers:", DEADLINE);
+    wait_dialog_title(&pty, "Connect an integration");
+    wait_screen_row(&pty, "✓ OpenCode Go", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "Add account", DEADLINE);
     pty.send(b"\r");
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
+    wait_dialog_title(&pty, "Connect OpenCode Go");
     paste(&mut pty, KEY);
     pty.send(b"\r");
     wait_screen_row(&pty, "GO05 independent Go choice", DEADLINE);
@@ -172,12 +177,12 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     // Picker choice is a draft. Blank Enter is the existing explicit commit.
     pty.send(b"\r");
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
+    wait_dialog_title(&pty, "OpenCode Go");
     close(&mut pty);
     let mut pty = PtySession::spawn(fixture.clone(), "go05-custom-connect", None);
     pty.wait_visible(READY, DEADLINE);
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
+    wait_dialog_title(&pty, "OpenCode Go");
     close(&mut pty);
     let db = Db::open(&fixture.data_dir()).unwrap();
     let scope = AuthScope::admit("opencode-go", GO_BASE_URL).unwrap();
@@ -234,7 +239,6 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     let mut pty = PtySession::spawn(fixture.clone(), session, None);
     pty.wait_visible(READY, DEADLINE);
     connect_go(&mut pty);
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, GO_KEY);
     pty.send(b"\r");
     wait_screen_row(&pty, "GO05 offline Go selection", DEADLINE);
@@ -242,9 +246,9 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"\r");
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
+    wait_dialog_title(&pty, "OpenCode Go");
     pty.send(b"\x1b");
-    dismissed(&pty, "Connect / accounts");
+    dismissed(&pty, ACCOUNTS_SEARCH);
     assert!(fixture.requests.lock().unwrap().is_empty());
     // Retain the exact Go choice as unavailable, rather than replacing it. The
     // next executable choice is an explicit custom-provider commit below.
@@ -285,11 +289,12 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
         );
     }
     pty.send(b"/connect\r");
-    wait_screen_row(&pty, "Search providers:", DEADLINE);
-    wait_screen_row(&pty, "(fixture)", DEADLINE);
+    wait_dialog_title(&pty, "Connect an integration");
+    wait_screen_row(&pty, "fixture", DEADLINE);
+    // Popular OpenAI precedes Services; Search narrows to the custom peer.
+    pty.send(b"fixture");
     pty.send(b"\r");
-    wait_screen_row(&pty, "Provider: fixture", DEADLINE);
-    wait_screen_row(&pty, "API key (masked)", DEADLINE);
+    wait_dialog_title(&pty, "Connect fixture");
     paste(&mut pty, KEY);
     pty.send(b"\r");
     wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
@@ -309,7 +314,7 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     vis28_wait_gone(&pty);
     fixture.vis28_continue.store(true, Ordering::Relaxed);
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "default [active]", DEADLINE);
+    wait_screen_row(&pty, "● default", DEADLINE);
     close(&mut pty);
     let history = persisted(&fixture.data_dir(), session);
     assert!(
@@ -326,8 +331,8 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     pty.wait_visible("Fixture session title", DEADLINE);
     wait_screen_row(&pty, "echo: GO05 connected completion", DEADLINE);
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "Provider: fixture", DEADLINE);
-    wait_screen_row(&pty, "Effective auth: Stored", DEADLINE);
+    wait_dialog_title(&pty, "fixture");
+    wait_screen_row(&pty, "● default", DEADLINE);
     close(&mut pty);
     let sql = rusqlite::Connection::open_with_flags(
         fixture.data_dir().join("oc.sqlite"),
