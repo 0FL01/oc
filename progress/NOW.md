@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T17:20:28+00:00
+State updated: 2026-10-16T18:15:53+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,27 +12,14 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Model/effort persistence across restart
-
 ## Result
-
-Saved model and effort survive restarts with another default provider;
-remembered effort skips the variant dialog; Home without configured model
-starts from the most recent choice. Details in evidence/T44/report.md.
-
+Model+effort remembered on choice (0a2e8411f, pushed); debug oc2 built.
 ## Checks
-
-New adapter + TUI regression tests; suites green except load flakes; fmt +
-strict Clippy; debug oc2 built.
-
+oc2 bin 122, pty_t39 60, pty_t42 35, pty 16, adapters/tui green modulo load flakes; fmt+clippy.
 ## Risks
-
-Full pty_t39 shows one rotating flaky failure per run (pass in isolation), not
-yet compared with the previous commit. New provider-free prefs keys in live DB.
-
+Repo opencode.json pins muse-spark (honored by pinned fallbackModel when no Home draft); env-only failures of BASE-dir harness tests.
 ## Next
-
-Baseline comparison of pty_t39 flakes; owner live check via oc2-dev.
+Owner decides on removing the repo model pin; T44 stays open.
 
 
 Ready (до 5): нет
