@@ -1310,7 +1310,8 @@ fn saved_selection_record(
     db: &oc_adapters::storage::Db,
     fixture: &Fixture,
     session: &str,
-    provider: &str,
+    // Scoped keys are provider-free; each saved choice names its provider.
+    _provider: &str,
 ) -> Option<serde_json::Value> {
     let key = format!(
         "tui.selection.session:{}",
@@ -1322,7 +1323,6 @@ fn saved_selection_record(
                 .canonicalize()
                 .unwrap()
                 .to_string_lossy(),
-            provider,
             session
         ])
     );

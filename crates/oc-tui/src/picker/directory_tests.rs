@@ -85,6 +85,7 @@ pub(crate) fn fixture_parts(connected: bool) -> (ModelCatalogs, ModelPreference)
                 m("ludka2", "DeepSeek V4.1 Flash · opencode-go"),
                 m("gone", "y"),
             ],
+            variants: Vec::new(),
         },
     )
 }

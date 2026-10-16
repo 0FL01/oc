@@ -40,7 +40,7 @@ pub(super) async fn run(
         if cancel.load(Ordering::Acquire) {
             return Err(app_error("user shell admission cancelled"));
         }
-        let (selected, selection) = match choice {
+        let (selected, selection, remember) = match choice {
             UserShellSelection::Fresh(choice) => {
                 match db.session_meta(&session.0) {
                     Err(StorageError::SessionNotFound) => {}
@@ -72,14 +72,14 @@ pub(super) async fn run(
                     None => current,
                 };
                 let record = selection::command_record(db, composition, &session.0, &selected)?;
-                (selected, record)
+                (selected, record, Vec::new())
             }
         };
         selected.admit_selection(composition)?;
         publish_workspace(runtime, composition, &selected).map_err(app_error)?;
-        Ok((selected, selection))
+        Ok((selected, selection, remember))
     })();
-    let (selected, record) = match prepared {
+    let (selected, record, mut remember) = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
             let _ = ack.send(Err(error));
@@ -109,6 +109,10 @@ pub(super) async fn run(
             },
             |operation| {
                 admitted = true;
+                // Remembered model/effort follow durable admission only.
+                if !remember.is_empty() {
+                    let _ = db.set_prefs(&std::mem::take(&mut remember));
+                }
                 if let Some(ack) = ack.take() {
                     let _ = ack.send(Ok(operation.to_owned()));
                 }

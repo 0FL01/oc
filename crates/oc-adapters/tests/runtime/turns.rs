@@ -3143,7 +3143,7 @@ async fn application_fresh_turn_validates_and_atomically_pins_home_choice() {
     let key = |id: &str| {
         format!(
             "tui.selection.session:{}",
-            serde_json::json!([location, "fixture", id])
+            serde_json::json!([location, id]) // provider-free scoped key
         )
     };
     let implicit_record: serde_json::Value = serde_json::from_str(
@@ -3353,7 +3353,7 @@ async fn application_home_actions_are_sessionless_and_fresh_turn_pins_current_lo
     );
     let key = format!(
         "tui.selection.session:{}",
-        serde_json::json!([location, "fixture", "home-chosen"])
+        serde_json::json!([location, "home-chosen"])
     );
     let pinned: serde_json::Value = serde_json::from_str(
         &conn

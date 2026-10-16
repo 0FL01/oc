@@ -1913,3 +1913,33 @@ Checks: `models_dev::openai_tests::experimental_modes_*`,
 passed (known load flake passes alone), oc2 bin 119, pty_t39 60, pty_t42 35,
 fmt + strict Clippy, debug build. No paid/live request was made; the owner
 verifies via `oc2-dev`.
+
+## Model/effort persistence across restart — owner request 2026-10-16
+
+Repro: pick a model (e.g. ludka2 `cx/gpt-6-luna`), choose effort in the dialog,
+send, restart → model becomes unknown; picking it again asks for effort again.
+Pinned OC2 keeps the choice (unless the agent pins a model) and remembers the
+effort per model; Ctrl+T cycles it.
+
+Causes: scoped selection keys embedded the composition's default provider
+(`[project, provider, session]`), so a start with another default provider
+(no configured `model`) missed the saved choice; the first Home send
+(`fresh_captured`) never recorded per-model variant memory; the TUI drafted
+variants only from in-process memory.
+
+Fix: provider-free `session`/`draft`/`home_agent`/`legacy_epoch` keys with
+read fallback to legacy records (current provider, then a bounded prefix scan);
+storage validation/deletion/fork accept both shapes; an explicit first Home send
+records the per-model variant only after durable acceptance; Home without a
+configured/agent model starts from the most recent admitted dialog choice
+(pinned `fallbackModel`); `model_preference()` exposes remembered named
+variants and `draft_model` reuses a still-available one (this process's own
+choice, including Default, wins). **Storage disclosure:** new prefs keys in the
+live shared DB, legacy keys kept readable; no schema change.
+
+Checks: new `model_picker::tests::selection_and_effort_survive_*` and TUI
+`remembered_effort_skips_the_variant_dialog_*`; updated runtime/PTY tests that
+read keys directly; oc-adapters/oc-tui/oc-core green except load flakes that pass
+alone; oc2 bin 119, pty 16, pty_t42 35; full pty_t39 runs show one different
+failing test per run (var01/ui07/conn04), each passing in isolation — not
+compared against the previous commit yet (open). fmt + strict Clippy, debug build.

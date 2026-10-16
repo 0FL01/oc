@@ -71,7 +71,7 @@ impl Db {
         source: &str,
         before: &str,
         location: &str,
-        provider: &str,
+        _provider: &str, // selection keys are provider-free; kept for callers
         providers: &HashSet<String>,
         choice: &str,
     ) -> Result<ForkSessionSnapshot, ForkError> {
@@ -455,7 +455,7 @@ impl Db {
         )?;
         let selection_key = format!(
             "tui.selection.session:{}",
-            serde_json::to_string(&[location, provider, &root]).expect("strings")
+            serde_json::to_string(&[location, &root]).expect("strings")
         );
         Self::upsert_pref(&tx, &selection_key, choice)?;
         Self::upsert_pref(&tx, &tab_adoption_key(location, &root), TAB_ADOPTION_VALUE)?;

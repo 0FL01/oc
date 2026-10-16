@@ -170,3 +170,134 @@ async fn unselected_dynamic_view_discovers_its_catalog_without_selecting_it() {
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 }
+
+#[tokio::test]
+async fn selection_and_effort_survive_a_restart_with_another_default_provider() {
+    use oc_core::queries::{ModelCommit, SelectionBinding, SessionSelectionAction as Action};
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    let config = |model: &str| {
+        serde_json::json!({
+            "model": model,
+            "providers": {
+                "alpha": {"package": "@ai-sdk/openai",
+                    "settings": {"baseURL": "http://127.0.0.1:9/alpha", "apiKey": "A"},
+                    "models": {"a1": {"limit": {"context": 1000, "output": 100}}}},
+                "gamma": {"package": "@ai-sdk/openai",
+                    "settings": {"baseURL": "http://127.0.0.1:9/gamma", "apiKey": "G"},
+                    "models": {"g1": {"limit": {"context": 1000, "output": 100}}}},
+                "beta": {"package": "@ai-sdk/openai",
+                    "settings": {"baseURL": "http://127.0.0.1:9/beta", "apiKey": "B"},
+                    "models": {"b1": {"limit": {"context": 1000, "output": 100},
+                        "variants": [{"id": "low", "settings": {"reasoningEffort": "low"}},
+                                     {"id": "high", "settings": {"reasoningEffort": "high"}}]}}}
+            },
+            "permissions": [{"action": "*", "resource": "*", "effect": "allow"}],
+            "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+        })
+        .to_string()
+    };
+    std::fs::write(project.join("opencode.json"), config("alpha/a1")).unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let home = app.home_selection(Action::Current).await.unwrap();
+    let commit = |snapshot: &oc_core::queries::CatalogSnapshot| {
+        Action::Commit(ModelCommit {
+            caller: 1,
+            binding: SelectionBinding {
+                location: snapshot.chrome.location.clone(),
+                generation: snapshot.chrome.selection_generation,
+                provider: "beta".into(),
+                agent_id: snapshot.agent_id.clone(),
+            },
+            model_id: "b1".into(),
+            variant: Some("high".into()),
+            draft_revision: 1,
+        })
+    };
+    app.home_selection(commit(&home)).await.unwrap();
+    let session = SessionId::new("persisted").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    let current = app
+        .session_selection(session.clone(), false, Action::Current)
+        .await
+        .unwrap();
+    let chosen = app
+        .session_selection(session.clone(), false, commit(&current))
+        .await
+        .unwrap();
+    assert_eq!(
+        (
+            chosen.provider.as_str(),
+            chosen.model_id.as_str(),
+            chosen.variant.as_deref()
+        ),
+        ("beta", "b1", Some("high"))
+    );
+    let legacy = SessionId::new("legacy").unwrap();
+    app.create_session(legacy.clone()).await.unwrap();
+    let remembered = app.model_preference(None).await.unwrap();
+    assert!(
+        remembered
+            .variants
+            .iter()
+            .any(|(m, v)| m.provider == "beta" && m.model == "b1" && v == "high")
+    );
+    let location = home.chrome.location.clone().unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    // A pre-change record keyed by the then-default provider stays readable.
+    let db = crate::storage::Db::open(&data).unwrap();
+    db.set_pref(
+        &format!(
+            "tui.selection.session:{}",
+            serde_json::json!([location, "alpha", "legacy"])
+        ),
+        &serde_json::json!({"agent": chosen.agent_id, "models": {
+            chosen.agent_id.clone().unwrap_or_default():
+                {"provider": "beta", "id": "b1", "variant": "low"}}})
+        .to_string(),
+    )
+    .unwrap();
+    drop(db);
+    // The next start defaults to another provider: choices keep their own.
+    std::fs::write(project.join("opencode.json"), config("gamma/g1")).unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let home = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(
+        (
+            home.provider.as_str(),
+            home.model_id.as_str(),
+            home.variant.as_deref()
+        ),
+        ("beta", "b1", Some("high"))
+    );
+    let restored = app
+        .session_selection(session, false, Action::Current)
+        .await
+        .unwrap();
+    assert_eq!(
+        (
+            restored.provider.as_str(),
+            restored.model_id.as_str(),
+            restored.variant.as_deref()
+        ),
+        ("beta", "b1", Some("high"))
+    );
+    let legacy = app
+        .session_selection(legacy, false, Action::Current)
+        .await
+        .unwrap();
+    assert_eq!(
+        (legacy.provider.as_str(), legacy.variant.as_deref()),
+        ("beta", Some("low"))
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}

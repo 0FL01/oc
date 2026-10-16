@@ -4767,6 +4767,7 @@ async fn worker(
                 // Resolve from the owning session, never whichever TUI tab was
                 // most recently viewed. Title and inherited child requests use
                 // this same selection and agent workspace.
+                let mut remembered_selection = Vec::new();
                 let (turn_selection, initial_selection, command_route) =
                     match (|| -> Result<_, CoreError> {
                         if is_fresh {
@@ -4778,7 +4779,7 @@ async fn worker(
                         }
                         let (selected, initial_selection) = match fresh {
                             Some(choice) => {
-                                let (selected, record) = selection::fresh_captured(
+                                let (selected, record, remember) = selection::fresh_captured(
                                     db,
                                     composition,
                                     effective,
@@ -4787,6 +4788,7 @@ async fn worker(
                                     home_choices,
                                     location_epoch.load(Ordering::SeqCst),
                                 )?;
+                                remembered_selection = remember;
                                 (selected, Some(record))
                             }
                             None => {
@@ -4984,6 +4986,10 @@ async fn worker(
                         >| {
                             let id = WorkerTurnId(id.to_string());
                             turn = Some(id.clone());
+                            // Remembered model/effort follow durable acceptance only.
+                            if !remembered_selection.is_empty() {
+                                let _ = db.set_prefs(&std::mem::take(&mut remembered_selection));
+                            }
                             if let Some(ack) = ack.take() {
                                 let _ = ack.send(Ok(id.clone()));
                             }

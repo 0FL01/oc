@@ -443,7 +443,17 @@ impl TuiState {
             .find(|(owner, model)| {
                 owner == &agent && model.id == id && model.provider == picker.provider()
             })
-            .and_then(|(_, model)| model.variant.clone());
+            // This process's own choice (even an explicit Default) wins.
+            .map(|(_, model)| model.variant.clone())
+            // Pinned DialogModel: otherwise a remembered, still available effort
+            // is reused instead of asking again (survives restarts).
+            .unwrap_or_else(|| {
+                self.model_directory
+                    .as_ref()
+                    .and_then(|directory| directory.remembered_variant(picker.provider(), id))
+                    .filter(|variant| picker.has_variant(id, variant))
+                    .map(str::to_owned)
+            });
         picker
             .choose_id(id, variant.as_deref())
             .map_err(|error| error.to_string())?;

@@ -30,15 +30,22 @@ struct SessionChoice {
     command_parents: Vec<String>,
 }
 
+// Scoped selection keys are Location-only: each saved choice already names
+// its provider. Earlier keys also embedded the then-selected composition
+// provider, so a later start with another default provider lost the choice;
+// those `legacy_*` records are still read (never written) as a fallback.
 fn epoch_key(c: &Composition) -> String {
-    key(
-        "legacy_epoch",
-        &[&c.project.to_string_lossy(), &c.catalog.provider],
-    )
+    key("legacy_epoch", &[&c.project.to_string_lossy()])
 }
 
 pub(super) fn legacy_epoch(db: &Db, c: &Composition) -> Result<u64, CoreError> {
-    Ok(load::<u64>(db, &epoch_key(c))?.unwrap_or(0))
+    let legacy = key(
+        "legacy_epoch",
+        &[&c.project.to_string_lossy(), &c.catalog.provider],
+    );
+    Ok(load::<u64>(db, &epoch_key(c))?
+        .unwrap_or(0)
+        .max(load::<u64>(db, &legacy)?.unwrap_or(0)))
 }
 
 pub(super) fn next_legacy_epoch(db: &Db, c: &Composition) -> Result<(String, String), CoreError> {
@@ -61,28 +68,94 @@ pub(super) fn tab_deck_key(location: &str) -> String {
 }
 
 fn session_key(c: &Composition, session: &str) -> String {
-    key(
-        "session",
-        &[&c.project.to_string_lossy(), &c.catalog.provider, session],
-    )
+    key("session", &[&c.project.to_string_lossy(), session])
 }
 
 fn draft_key(c: &Composition, agent: Option<&str>) -> String {
     key(
         "draft",
-        &[
-            &c.project.to_string_lossy(),
-            &c.catalog.provider,
-            agent.unwrap_or(""),
-        ],
+        &[&c.project.to_string_lossy(), agent.unwrap_or("")],
     )
 }
 
 fn home_agent_key(c: &Composition) -> String {
-    key(
-        "home_agent",
-        &[&c.project.to_string_lossy(), &c.catalog.provider],
+    key("home_agent", &[&c.project.to_string_lossy()])
+}
+
+fn load_session(
+    db: &Db,
+    c: &Composition,
+    session: &str,
+) -> Result<Option<SessionChoice>, CoreError> {
+    load_scoped(
+        db,
+        "session",
+        &c.project.to_string_lossy(),
+        &c.catalog.provider,
+        Some(session),
     )
+}
+
+fn load_draft(
+    db: &Db,
+    c: &Composition,
+    agent: Option<&str>,
+) -> Result<Option<ModelChoice>, CoreError> {
+    load_scoped(
+        db,
+        "draft",
+        &c.project.to_string_lossy(),
+        &c.catalog.provider,
+        Some(agent.unwrap_or("")),
+    )
+}
+
+/// Read a Location-scoped record, falling back to the earlier
+/// `[project, provider, tail]` key: the current provider first, then any
+/// provider (bounded, key order). Values keep their own provider.
+fn load_scoped<T: serde::de::DeserializeOwned>(
+    db: &Db,
+    kind: &str,
+    project: &str,
+    provider: &str,
+    tail: Option<&str>,
+) -> Result<Option<T>, CoreError> {
+    let parts = |middle: &[&str]| {
+        let mut parts = vec![project];
+        parts.extend_from_slice(middle);
+        parts.extend(tail);
+        key(kind, &parts)
+    };
+    if let Some(value) = load(db, &parts(&[]))? {
+        return Ok(Some(value));
+    }
+    if let Some(value) = load(db, &parts(&[provider]))? {
+        return Ok(Some(value));
+    }
+    let prefix = format!(
+        "tui.selection.{kind}:[{},",
+        serde_json::to_string(project).expect("string")
+    );
+    let rows = db
+        .prefs_with_prefix(&prefix, 64, 64 * 1024)
+        .map_err(|error| query_storage_error(db, error))?;
+    let kind_prefix = format!("tui.selection.{kind}:");
+    for (record_key, raw) in rows {
+        let Some(Ok(parts)) = record_key
+            .strip_prefix(&kind_prefix)
+            .map(serde_json::from_str::<Vec<String>>)
+        else {
+            continue;
+        };
+        if parts.len() == 2 + usize::from(tail.is_some())
+            && parts[0] == project
+            && parts.get(2).map(String::as_str) == tail
+            && let Ok(value) = serde_json::from_str(&raw)
+        {
+            return Ok(Some(value));
+        }
+    }
+    Ok(None)
 }
 
 fn variant_key(provider: &str, id: &str) -> String {
@@ -231,7 +304,7 @@ fn resolve(
     let model = match choice.models.get(agent) {
         Some(model) => model.clone(),
         None => {
-            let draft = load::<ModelChoice>(db, &draft_key(c, choice.agent.as_deref()))?;
+            let draft = load_draft(db, c, choice.agent.as_deref())?;
             match draft {
                 Some(draft) => draft,
                 None => preferred(db, c, &selected, selected.model_id.clone())?,
@@ -260,7 +333,7 @@ pub(super) fn for_turn(
     fallback: &Effective,
     session: &str,
 ) -> Result<Effective, CoreError> {
-    match load::<SessionChoice>(db, &session_key(c, session))? {
+    match load_session(db, c, session)? {
         Some(choice) if choice.epoch >= fallback.legacy_epoch => resolve(db, c, fallback, &choice),
         Some(_) => Ok(fallback.clone()), // explicit legacy API supersedes older scoped drafts
         None => Ok(fallback.clone()),    // existing headless selection contract
@@ -294,15 +367,23 @@ pub(crate) fn request_choice(
     agent: Option<&str>,
 ) -> Result<Option<oc_core::queries::ModelRef>, crate::runtime::RuntimeError> {
     let project = project.to_string_lossy();
-    let session_record = key("session", &[&project, provider, session]);
-    let epoch = load::<u64>(db, &key("legacy_epoch", &[&project, provider]))
-        .map_err(|_| crate::runtime::RuntimeError::Storage)?
-        .unwrap_or(0);
+    let storage = |_| crate::runtime::RuntimeError::Storage;
+    let epoch = load::<u64>(db, &key("legacy_epoch", &[&project]))
+        .map_err(storage)?
+        .unwrap_or(0)
+        .max(
+            load::<u64>(db, &key("legacy_epoch", &[&project, provider]))
+                .map_err(storage)?
+                .unwrap_or(0),
+        );
     let choice = match db
-        .get_pref_bounded(&session_record, 64 * 1024)
+        .get_pref_bounded(&key("session", &[&project, session]), 64 * 1024)
         .map_err(|_| crate::runtime::RuntimeError::Storage)?
     {
-        crate::storage::BoundedPref::Missing => None,
+        crate::storage::BoundedPref::Missing => {
+            load_scoped::<SessionChoice>(db, "session", &project, provider, Some(session))
+                .map_err(storage)?
+        }
         crate::storage::BoundedPref::TooLarge => return Err(crate::runtime::RuntimeError::Storage),
         crate::storage::BoundedPref::Value(raw) => Some(
             serde_json::from_str::<SessionChoice>(&raw)
@@ -331,7 +412,7 @@ pub(super) fn fork_choice(
         .get_pref_bounded(&session_key(c, session), 64 * 1024)
         .map_err(|error| query_storage_error(db, error))?
     {
-        crate::storage::BoundedPref::Missing => SessionChoice::default(),
+        crate::storage::BoundedPref::Missing => load_session(db, c, session)?.unwrap_or_default(),
         crate::storage::BoundedPref::TooLarge => {
             return Err(CoreError::Diagnostic(crate::config::diagnostic::failure(
                 &db.root().to_string_lossy(),
@@ -386,11 +467,12 @@ pub(super) fn fresh_captured(
     choice: Option<FreshSelection>,
     home_choices: &BTreeMap<String, Effective>,
     generation: u64,
-) -> Result<(Effective, (String, String)), CoreError> {
+) -> Result<FreshCaptured, CoreError> {
     let home = || match home_choices.get(c.project.to_string_lossy().as_ref()) {
         Some(selected) => Ok(selected.clone()),
         None => home_current(db, c, fallback),
     };
+    let explicit = choice.is_some();
     let choice = match choice {
         Some(mut choice) => {
             if let Some(binding) = &choice.binding {
@@ -430,8 +512,24 @@ pub(super) fn fresh_captured(
             }
         }
     };
-    fresh(c, fallback, session, choice)
+    let (selected, session_record) = fresh(c, fallback, session, choice)?;
+    // Pinned DialogVariant remembers the chosen effort per model: the next
+    // pick of this model reuses it (Ctrl+T keeps cycling). Persisted only once
+    // the turn is durably accepted; the model itself is the recent list's.
+    let remember = if explicit {
+        vec![record(
+            variant_key(&selected.provider_id, &selected.model_id),
+            &selected.variant,
+        )?]
+    } else {
+        Vec::new()
+    };
+    Ok((selected, session_record, remember))
 }
+
+/// Fresh admission: selection, the session record committed with the root,
+/// and preference records to store after acceptance.
+pub(super) type FreshCaptured = (Effective, (String, String), Vec<(String, String)>);
 
 pub(super) fn fresh(
     c: &Composition,
@@ -469,9 +567,12 @@ fn home_for_agent(
     agent: Option<&str>,
 ) -> Result<Effective, CoreError> {
     let mut selected = base_for_agent(c, fallback, agent)?;
-    let choice = match load::<ModelChoice>(db, &draft_key(c, agent))? {
+    let choice = match load_draft(db, c, agent)? {
         Some(draft) => draft,
-        None => preferred(db, c, &selected, selected.model_id.clone())?,
+        None => match recent_fallback(db, c, &selected)? {
+            Some(recent) => recent,
+            None => preferred(db, c, &selected, selected.model_id.clone())?,
+        },
     };
     // A retired draft stays visible until the user explicitly replaces it.
     if choice.id != selected.model_id
@@ -490,6 +591,47 @@ fn home_for_agent(
     Ok(selected)
 }
 
+/// Pinned `fallbackModel`: without a configured or agent-pinned model, Home
+/// starts from the most recent dialog choice that is currently admitted (with
+/// its remembered effort). Re-resolved on every read, so a provider whose
+/// catalog is still loading is used once it arrives.
+fn recent_fallback(
+    db: &Db,
+    c: &Composition,
+    selected: &Effective,
+) -> Result<Option<ModelChoice>, CoreError> {
+    if !selected.model_id.is_empty() {
+        return Ok(None);
+    }
+    let raw = match db
+        .get_pref_bounded(
+            oc_core::queries::PREF_MODEL_PREFERENCE,
+            oc_core::queries::MAX_MODEL_PREFERENCE_BYTES,
+        )
+        .map_err(|error| query_storage_error(db, error))?
+    {
+        crate::storage::BoundedPref::Value(raw) => Some(raw),
+        _ => None,
+    };
+    let preference = oc_core::queries::ModelPreference::decode(raw.as_deref());
+    for recent in preference.recent {
+        if c.catalog_for(&recent.provider)
+            .is_some_and(|catalog| catalog.models.contains_key(&recent.model))
+        {
+            let variant =
+                load::<Option<String>>(db, &variant_key(&recent.provider, &recent.model))?
+                    .flatten()
+                    .filter(|name| name != "default");
+            return Ok(Some(ModelChoice {
+                provider: Some(recent.provider),
+                id: recent.model,
+                variant,
+            }));
+        }
+    }
+    Ok(None)
+}
+
 /// Resolve an unchosen Home from this generation and the effective agent's
 /// durable Location draft. A read must not turn this into an explicit choice.
 pub(super) fn home_current(
@@ -497,7 +639,13 @@ pub(super) fn home_current(
     c: &Composition,
     fallback: &Effective,
 ) -> Result<Effective, CoreError> {
-    let agent = load::<String>(db, &home_agent_key(c))?;
+    let agent = load_scoped::<String>(
+        db,
+        "home_agent",
+        &c.project.to_string_lossy(),
+        &c.catalog.provider,
+        None,
+    )?;
     home_for_agent(
         db,
         c,
@@ -656,7 +804,7 @@ pub(super) fn apply(
         }
     }
     let key = session_key(c, session);
-    let existing = load::<SessionChoice>(db, &key)?;
+    let existing = load_session(db, c, session)?;
     if existing.is_none() && action == Action::Current && fallback.legacy_epoch != 0 {
         return Ok(fallback.clone());
     }
@@ -853,7 +1001,7 @@ pub(super) fn command_record(
     selected: &Effective,
 ) -> Result<(String, String), CoreError> {
     let key = session_key(c, session);
-    let mut choice = load::<SessionChoice>(db, &key)?.unwrap_or_default();
+    let mut choice = load_session(db, c, session)?.unwrap_or_default();
     if choice.epoch < selected.legacy_epoch {
         choice.models.clear();
     }

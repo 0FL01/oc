@@ -278,3 +278,70 @@ fn all_provider_dialog_drafts_other_provider_records_recent_and_toggles_favorite
     ));
     assert_eq!(state.panel(), &TuiPanel::Accounts);
 }
+
+#[test]
+fn remembered_effort_skips_the_variant_dialog_like_pinned_dialog_model() {
+    use oc_core::queries::{ModelCatalogs, ModelEntry, ModelPreference, VariantEntry};
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("effort".into()));
+    let variant = |name: &str| VariantEntry {
+        name: name.into(),
+        disabled: false,
+        reasoning_effort: Some(name.into()),
+    };
+    let snapshot = CatalogSnapshot {
+        chrome: Default::default(),
+        auto_accept: Default::default(),
+        provider: "ludka2".into(),
+        model_id: String::new(),
+        variant: None,
+        agents: Vec::new(),
+        agent_id: None,
+        commands: Vec::new(),
+        command_descriptions: Default::default(),
+        models: vec![ModelEntry {
+            id: "cx/gpt-6-luna".into(),
+            display_name: "GPT-6 Luna".into(),
+            variants: vec![variant("low"), variant("high")],
+            variants_known: true,
+            ..Default::default()
+        }],
+    };
+    state.apply_catalog(snapshot.clone());
+    let remembered = |variants| ModelPreference {
+        variants,
+        ..Default::default()
+    };
+    let model = oc_core::queries::ModelPreferenceModel {
+        provider: "ludka2".into(),
+        model: "cx/gpt-6-luna".into(),
+    };
+    // Without memory the first pick asks for the effort.
+    state.run_command(CommandAction::OpenModelPicker);
+    state.apply_model_directory(
+        ModelCatalogs {
+            connected: true,
+            catalogs: vec![snapshot.clone()],
+        },
+        remembered(Vec::new()),
+    );
+    state.draft_model("cx/gpt-6-luna").unwrap();
+    assert_eq!(state.panel(), &TuiPanel::Variant);
+    state.close_panel();
+    // A fresh process (no in-memory recents) reuses the owner's memory.
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("effort-restart".into()));
+    state.apply_catalog(snapshot.clone());
+    state.run_command(CommandAction::OpenModelPicker);
+    state.apply_model_directory(
+        ModelCatalogs {
+            connected: true,
+            catalogs: vec![snapshot],
+        },
+        remembered(vec![(model, "high".into())]),
+    );
+    state.draft_model("cx/gpt-6-luna").unwrap();
+    assert_eq!(state.panel(), &TuiPanel::None);
+    let commit = state.captured_model_commit().unwrap();
+    assert_eq!(commit.variant.as_deref(), Some("high"));
+}

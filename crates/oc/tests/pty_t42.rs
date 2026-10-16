@@ -1035,8 +1035,7 @@ fn session_selection_key(project: &Path, session: &str) -> String {
         "tui.selection.session:{}",
         serde_json::json!([
             project.canonicalize().unwrap().to_string_lossy(),
-            "fixture",
-            session
+            session // provider-free scoped key
         ])
     )
 }

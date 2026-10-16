@@ -116,5 +116,24 @@ pub(super) fn preference(
         )
         .map_err(|error| query_storage_error(db, error))?;
     }
+    // The selection owner's per-model variant memory (`[provider, model]`).
+    const PREFIX: &str = "tui.selection.variant:";
+    for (key, raw) in db
+        .prefs_with_prefix(PREFIX, 1024, 1024)
+        .map_err(|error| query_storage_error(db, error))?
+    {
+        let Ok([provider, model]) = serde_json::from_str::<[String; 2]>(&key[PREFIX.len()..])
+        else {
+            continue;
+        };
+        if let Ok(Some(variant)) = serde_json::from_str::<Option<String>>(&raw)
+            && variant != "default"
+        {
+            preference.variants.push((
+                oc_core::queries::ModelPreferenceModel { provider, model },
+                variant,
+            ));
+        }
+    }
     Ok(preference)
 }

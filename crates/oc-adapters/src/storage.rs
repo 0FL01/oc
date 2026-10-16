@@ -124,6 +124,12 @@ pub(crate) fn session_project_root(directory: &Path) -> Option<PathBuf> {
     std::fs::canonicalize(common.parent()?).ok()
 }
 const TAB_ADOPTION_PREFIX: &str = "tui.selection.tab_adoption:";
+
+/// Session selection keys are `[location, session]`; records written before
+/// provider-free keys used `[location, provider, session]` and stay valid.
+fn session_selection_key_for(parts: &[String], session: &str) -> bool {
+    matches!(parts, [_, id] | [_, _, id] if id == session)
+}
 const MAX_TAB_ADOPTIONS: usize = 16;
 const MAX_TAB_ADOPTION_KEY_BYTES: usize = 8192;
 const TAB_ADOPTION_VALUE: &str = "pending";
@@ -758,7 +764,7 @@ impl Db {
             let belongs_to_session = key
                 .strip_prefix("tui.selection.session:")
                 .and_then(|parts| serde_json::from_str::<Vec<String>>(parts).ok())
-                .is_some_and(|parts| parts.len() == 3 && parts[2] == id);
+                .is_some_and(|parts| session_selection_key_for(&parts, id));
             if !belongs_to_session {
                 return Err(StorageError::Io(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
@@ -1215,7 +1221,7 @@ impl Db {
                 tx.execute(&format!("DELETE FROM {table} WHERE {predicate}"), [])?;
             }
         }
-        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT 'cache.lineage.'||id FROM deleting_family) OR key IN (SELECT 'dcp.projection_owned.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND json_extract(substr(key,23),'$[2]') IN deleting_family) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
+        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT 'cache.lineage.'||id FROM deleting_family) OR key IN (SELECT 'dcp.projection_owned.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND (json_extract(substr(key,23),'$[2]') IN deleting_family OR (json_array_length(substr(key,23))=2 AND json_extract(substr(key,23),'$[1]') IN deleting_family))) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
         tx.execute("DELETE FROM sessions WHERE id IN deleting_family", [])?;
         tx.execute_batch("DELETE FROM deleting_family;")?;
         tx.commit()?;
@@ -2266,6 +2272,37 @@ impl Db {
         Ok(value)
     }
 
+    /// Bounded exact-prefix listing of small preference rows (key order). Rows
+    /// whose value exceeds `max_bytes` are skipped, never truncated.
+    pub(crate) fn prefs_with_prefix(
+        &self,
+        prefix: &str,
+        limit: usize,
+        max_bytes: usize,
+    ) -> Result<Vec<(String, String)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut statement = conn.prepare_cached(
+            "SELECT key, value FROM prefs WHERE key >= ?1 AND key < ?2
+               AND length(CAST(value AS BLOB)) <= ?3 ORDER BY key LIMIT ?4",
+        )?;
+        let upper = format!("{prefix}\u{10FFFF}");
+        let rows = statement
+            .query_map(
+                params![
+                    prefix,
+                    upper,
+                    i64::try_from(max_bytes).unwrap_or(i64::MAX),
+                    i64::try_from(limit).unwrap_or(i64::MAX)
+                ],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows
+            .into_iter()
+            .filter(|(key, _)| key.starts_with(prefix))
+            .collect())
+    }
+
     /// Materialize a preference only when its stored UTF-8 byte length fits.
     pub(crate) fn get_pref_bounded(
         &self,
@@ -2444,7 +2481,7 @@ impl Db {
             let valid = key
                 .strip_prefix("tui.selection.session:")
                 .and_then(|parts| serde_json::from_str::<Vec<String>>(parts).ok())
-                .is_some_and(|parts| parts.len() == 3 && parts[2] == session);
+                .is_some_and(|parts| session_selection_key_for(&parts, session));
             if !valid {
                 return Err(invalid_tab_adoption());
             }

@@ -23,6 +23,9 @@ pub struct ModelPreferenceModel {
 pub struct ModelPreference {
     pub recent: Vec<ModelPreferenceModel>,
     pub favorite: Vec<ModelPreferenceModel>,
+    /// Remembered named variant per model (pinned `variant` map), owned by the
+    /// selection prefs; read-only here. Default/no memory is absent.
+    pub variants: Vec<(ModelPreferenceModel, String)>,
 }
 
 /// Owner-side read-modify-write mutation, so parked tabs never save stale lists.
@@ -73,6 +76,7 @@ impl ModelPreference {
         Self {
             recent: models(root.get("recent"), MAX_RECENT_MODELS),
             favorite: models(root.get("favorite"), MAX_FAVORITE_MODELS),
+            variants: Vec::new(),
         }
     }
 

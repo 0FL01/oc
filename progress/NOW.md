@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T14:04:30+00:00
+State updated: 2026-10-16T17:20:28+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,27 +12,27 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# OpenAI/Codex Fast tier
+# Model/effort persistence across restart
 
 ## Result
 
-models.dev `experimental.modes` now expand like pinned OC2 (`<id>-<mode>`,
-"<Name> Fast"), and public request bindings carry the mode body
-(`service_tier: "priority"`), so ChatGPT-plan users see GPT-6 Luna Fast etc.
+Saved model and effort survive restarts with another default provider;
+remembered effort skips the variant dialog; Home without configured model
+starts from the most recent choice. Details in evidence/T44/report.md.
 
 ## Checks
 
-Two new adapter tests; adapters/tui/core, oc2 bin, pty_t39, pty_t42 green;
-fmt + strict Clippy; debug oc2 built.
+New adapter + TUI regression tests; suites green except load flakes; fmt +
+strict Clippy; debug oc2 built.
 
 ## Risks
 
-No live paid request; `ultrafast` tier offered exactly as the catalog declares.
-Modes appear after the 5-minute catalog cache refresh.
+Full pty_t39 shows one rotating flaky failure per run (pass in isolation), not
+yet compared with the previous commit. New provider-free prefs keys in live DB.
 
 ## Next
 
-Owner live check via oc2-dev.
+Baseline comparison of pty_t39 flakes; owner live check via oc2-dev.
 
 
 Ready (до 5): нет

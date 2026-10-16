@@ -254,6 +254,14 @@ impl ModelPicker {
             .collect()
     }
 
+    /// Whether `name` is an available (declared, enabled) variant of `id`.
+    pub(crate) fn has_variant(&self, id: &str, name: &str) -> bool {
+        self.catalog
+            .models
+            .get(id)
+            .is_some_and(|entry| models::available_variants(entry).any(|(n, _)| n == name))
+    }
+
     /// Human metadata for a browsed id; selection continues to use the exact id.
     pub(crate) fn model_name(&self, id: &str) -> Option<&str> {
         self.catalog.models.get(id)?.get("name")?.as_str()
@@ -510,6 +518,15 @@ impl ModelDirectory {
     pub fn set_preference(&mut self, preference: ModelPreference) {
         self.preference = preference;
         self.cache.take();
+    }
+
+    /// The owner-remembered named variant for this exact model, if any.
+    pub fn remembered_variant(&self, provider: &str, model: &str) -> Option<&str> {
+        self.preference
+            .variants
+            .iter()
+            .find(|(m, _)| m.provider == provider && m.model == model)
+            .map(|(_, variant)| variant.as_str())
     }
 
     pub fn is_favorite(&self, model: &ModelPreferenceModel) -> bool {
