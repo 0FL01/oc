@@ -1008,6 +1008,16 @@
       "work": "Owner decision 2026-10-16 (D28): remove the OpenCode 1 vocabulary/detector (config/legacy.rs, LegacyConfig/ReplaceLegacyConfig, replacement table, V1-specific guards) and keep only canonical OC2. Fail closed through a schema-derived allowlist of OC2 v2.0.12 keys (plus T65-oracle provider compatibility and declared native extensions dcp/animations/terminal) at root, experimental, compaction, providers/models/variants, mcp/servers/oauth, agents/commands (JSON and Markdown), cli.json sections and donor keybind names; open records (settings/body/headers/env/environment/options) stay open. One unknown_config_key report with every path and source, no values or replacements, before provider/MCP effects on startup, reload (last-good) and oc2 models. Also fix lost model compatibility overrides equal to the Rust default (provider maxTokensField default vs model override). Repo opencode.json converted to OC2; the owner converts ~/.config/opencode himself. No V1 migration, warn-and-ignore mode or user-config edits.",
       "evidence": "evidence/T66/report.md",
       "spec": "docs/goals/2026-10-16-v2-allowlist.md"
+    },
+    {
+      "id": "T67",
+      "phase": "M8",
+      "title": "Owner live dev launcher oc2-dev",
+      "depends_on": ["T66"],
+      "tests": [],
+      "work": "Owner request 2026-10-16: add an oc2-dev alias to the owner's ~/.zshrc that loads secrets.env like oc2 and execs ~/ai/oc/target/debug/oc2 from the current directory, sharing ~/.config/opencode and the ~/.local/share/oc store with release oc2 (DataRootBusy when both run). oc2-dev never builds; AGENTS.md records the soft rule that agents build the debug binary (cargo build -p oc2 --bin oc2 --locked) when a change is worth a live owner check, keep target/debug and the default target dir, never launch oc2-dev themselves and flag storage schema changes. No secrets read or printed, no runtime code changes.",
+      "evidence": "evidence/T67/report.md",
+      "spec": "AGENTS.md"
     }
   ]
 }

@@ -15,7 +15,7 @@
 - Rust 2024, небольшой workspace, KISS/YAGNI. Ядро не зависит от UI; в production нет Node/Bun/JS-host. Внешний MCP через npx — только явная пользовательская зависимость.
 - [Long Horizon](docs/LONG_HORIZON.md) — явная дивергенция форка: без искусственных round/step stops; finite failure retries и resource/security guards сохраняются. DCP Compress встроен, отключаем через config; решение не означает implementation PASS.
 - OpenProxy подключается нативным Responses adapter. `providers.<id>.package: "@ai-sdk/openai"` — alias конфигурации, не npm dependency. Не зашивать model IDs, reasoning allowlists по именам и vendor-specific маршруты; discovery сверять с владельческим кодом в `references/`.
-- Бинарник `oc2`; каждый процесс независим — без shared service/IPC/`oc service` (D26). Config — только канонический schema OpenCode 2; ключи OpenCode 1 отказывают fail-closed (D27/T62).
+- Бинарник `oc2`; каждый процесс независим — без shared service/IPC/`oc service` (D26). Config — только канонический schema OpenCode 2; ключи вне OC2 allowlist отказывают fail-closed (D27/T62, D28/T66).
 - Файловые tools выбираются по OC2 predicate: `apply_patch` либо `edit`/`write`; T50/R1/R9 в `GOAL.md` требует live switch перед следующим request той же задачи, не только новым user turn. Prepared request и его tools сохраняют captured model/view; picker draft отличается от committed selection. Это узкое model-name exception, не provider/reasoning routing. Shell не sandbox; raw history неизменна, DCP меняет provider projection.
 
 ## Файлы, слайсы и контекст
@@ -35,6 +35,14 @@
 - Запускай проверки затронутого crate; workspace fmt/clippy/tests/build — когда этого требует task, интеграционная граница или финальная приёмка. Обязательные IDs/gates из `GOAL.md`, task и `docs/TEST_PLAN.md` остаются обязательными. Не отключай failing tests, не меняй baseline или GOAL ради зелёного статуса.
 - Если для разработки нужен реальный API-вызов, владелец разрешил брать тестовые `LUDKA2_API_URL`, `LUDKA2_API_KEY` и `OC_TEST_MODEL` из gitignored `.local/live.env`: там уже реальные значения. Используй их только для конкретного bounded live-теста по `docs/AGENT_RUNBOOK.md`, не для настройки authoring-agent; значения не печатай и не добавляй в Git.
 - `checkpoint` — перед interruption/неизвестным внешним эффектом, при blocker или существенном незакоммиченном handoff, не на каждый commit. Для завершённого task — factual report и `python3 scripts/progress.py finish ...`; utility проверяет структуру, не истинность PASS.
+
+## Live dev-сборка владельца (`oc2-dev`)
+
+- `oc2-dev` — alias в `~/.zshrc` владельца (T67): грузит `secrets.env` как `oc2` и запускает `~/ai/oc/target/debug/oc2` из текущего каталога, ничего не собирая. Config (`~/.config/opencode`) и хранилище (`~/.local/share/oc`) общие с release `oc2`, поэтому одновременно они не работают (`DataRootBusy`).
+- Мягкое правило: если изменение стоит посмотреть вживую, в конце задачи собери `cargo build -p oc2 --bin oc2 --locked` (debug, `<worktree>/target`) и сообщи, что `oc2-dev` готов; подходит и бинарник, уже собранный тестами. Это не gate и не замена обязательных проверок. Новая сборка подхватывается при следующем запуске `oc2-dev`.
+- Не делай `cargo clean`, не удаляй `target/debug` и не переопределяй `CARGO_TARGET_DIR`: на этот путь опирается `oc2-dev`.
+- Сам `oc2-dev` не запускай: это интерактивный запуск владельца с его секретами. Live-проверки агента — только по `docs/AGENT_RUNBOOK.md`.
+- Хранилище общее с рабочим `oc2`: изменения схемы или миграций storage сразу затрагивают живые данные владельца. Явно отмечай такие изменения в отчёте.
 
 ## Безопасность и остановка
 
