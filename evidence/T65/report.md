@@ -2,10 +2,12 @@
 
 ## Result
 
-**CONFIGURATION QUALIFIED / REGISTRY PUBLISHED / INSTALL CHECK PENDING.** R1–R6
+**CONFIGURATION QUALIFIED / REGISTRY PUBLISHED / INSTALLED BEHAVIOR PASS.** R1–R6
 pass for the owner's specified subset. Coherent version0.2.0 is published for
 `oc-core`, `oc-adapters`, `oc-tui` and the sole native binary package `oc2`.
-Actual installed-binary verification is running; R7/R8 are not completion claims.
+Actual installed-binary verification and R7's journal return to TUI pass. R1–R8
+are verified and T65 is complete. See [the closeout receipt](closeout.md) and
+[actual T44 return](../T44/configuration-return-20261016.md).
 
 Configuration oracle: TS V2 **b4f19bfe74a972c2919aa4c9d7445fa61f41b226**, before
 upstream's fifteen-minute chunk-default change. This preserves the owner's
@@ -95,26 +97,29 @@ Rust jobs3/test threads2 and approved TMPDIR were used for final native gates.
   actual workspace publication now passes; independent public version API reads
   confirm all four0.2.0 packages, unyanked, published_by0FL01, correct licenses
   and oc2 as the only executable. See [the actual receipt](publication.md).
-- Source/checkpoint `feeea77fc` was committed/pushed before upload. An isolated
-  registry-only installation is now running outside the checkout; no install
-  PASS or final R8 completion is claimed before actual installed checks.
+- Source/checkpoint `feeea77fc` was committed/pushed before upload. The isolated
+  registry-only installation outside the checkout passes; Cargo records the real
+  crates.io source and only executable oc2. Actual installed ELF version/help/
+  smoke, canonical V2 headless cache/affinity and persisted-session listing with
+  no repeat generation pass in fresh HOME/XDG/data/project roots with empty PATH.
+  The test helper's initially obsolete model id was correctly refused; changing
+  only that fixture to modelID and using a fresh root completes the check.
 
 ## Risks
 
 No known configuration blocker remains. This is not full TS application,
 plugin-runtime, built-in-agent, storage/service or TUI parity; no product READY
 claim. No real provider credentials, user configuration or secrets.env loader
-were used/changed. Cargo publication will use its existing credential mechanism
+were used/changed. Cargo publication used its existing credential mechanism
 without displaying secrets. No release/tag or default-user installation.
 
-T44 remains paused; its exact parked WIP is stash
-`1087067b3025322885c6a964579d80cea4931b06`. Do not restore it until registry
-delivery/install verification is complete. All four uploads are now confirmed;
+T44's exact parked WIP was restored once from stash
+`1087067b3025322885c6a964579d80cea4931b06`, which remains preserved. Registry
+delivery/install verification and the journal handoff are complete. All uploads are confirmed;
 do not repeat publication. Never repeat an unknown external effect.
 
 ## Next
 
-Complete the isolated registry-only installation and actual installed CLI/headless
-behavior checks; source/checkpoint push, publication and public metadata are
-confirmed. Then close T65 through
-the existing journal, resume T44 and restore its WIP once after checking Git.
+T65 is finished; active work is the resumed full TUI-parity goal. Its known
+Shell-notice regression and small-profile WIP are separate from the published
+green configuration snapshot. No further publication or configuration expansion.

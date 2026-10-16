@@ -1,6 +1,6 @@
 # Goal: native V2 provider and permission semantics
 
-Status: active
+Status: complete
 Source: owner plan 2026-10-15, sections1–5 and done/check/scope clauses; explicit
 instruction to pause T44, implement this plan, commit/push, then resume TUI parity.
 Additional source: owner explicitly authorizes a version bump and crates.io
@@ -144,8 +144,12 @@ the separately frozen T44 objective.
     Git state. No T44 completion or reduced visual acceptance is implied.
   - Primary evidence: implementation/closeout commits, ordinary push and journal
     transition; T44 resume checkpoint.
-  - Status: pending
-  - Evidence: pending.
+   - Status: verified
+   - Evidence: implementation/checkpoint feeea77fc and publication receipt6e06a150c
+     pushed normally. After installed-registry proof, journal finish T65/start T44
+     succeeded and stash1087067b3025322885c6a964579d80cea4931b06 was applied once,
+     without conflict or deletion. The return checkpoint records the pending TUI
+     work separately from the qualified published configuration snapshot.
 - R8: bump and publish the completed configuration implementation to crates.io.
   - Source: subsequent explicit owner publication authorization.
   - Acceptance: choose an appropriate unpublished version for exposed API changes,
@@ -158,15 +162,16 @@ the separately frozen T44 objective.
     full-product READY claim. Resume TUI only after this delivery.
   - Primary evidence: existing T64 publication workflow reused for the new version,
     real package/publish receipts, registry metadata and isolated install output.
-  - Status: in_progress
+   - Status: verified
   - Evidence: all four workspace packages/internal requirements and the lock agree
     on0.2.0; no third-party lock changes. Package inventories30/325/252/85 retain
     metadata/licenses and exclude private artifacts. Workspace publication dry run
     builds all four extracted packages against staged registry dependencies. A
     single actual publication PASS after pushed checkpoint feeea77fc. Public
     metadata confirms all four0.2.0 versions unyanked/by0FL01 with correct licenses
-    and only the oc2 executable. Isolated registry installation is running;
-    installed behavior must pass before R8 completion or TUI return.
+     and only the oc2 executable. Isolated crates-io installation passes; actual
+     installed ELF version/help/smoke and canonical V2 headless/cache/affinity/
+     persisted-session/no-replay checks pass with fresh HOME and empty PATH.
 
 ### Constraints and non-goals
 
@@ -194,23 +199,20 @@ the separately frozen T44 objective.
 
 ## Current Checkpoint
 
-- Closes: R8 registry delivery, followed by R7 journal return to T44.
-- Smallest next action: finish the running isolated registry-only install and
-  bounded actual installed-binary checks. All native/strict/build/CLI/archive gates
-  pass; source/checkpoint feeea77fc was pushed, all four0.2.0 packages published and
-  independently confirmed in public metadata. Do not repeat publication. Return
-  to TUI only after installed behavior is verified.
-- Expected evidence: package versions/dependencies agree, complete native gates,
-  retained redaction/endpoint/cancel/MCP/Markdown/authority regressions; verified
-  package archives before the committed publication checkpoint.
-- Replan if: a required gate exposes an unmet frozen outcome; do not suppress it,
-  relax the legacy gate, or publish an unqualified version.
+- Resolved: R1–R8. No further substantive configuration work is authorized by this
+  completed goal. All four0.2.0 packages are published and the registry-installed
+  ELF passes its actual checks. Do not repeat publication.
+- Journal now owns active T44; its parked WIP was restored once. Continue that
+  separately frozen objective at its actual return checkpoint, not by expanding
+  or reopening this completed configuration subset.
 
 ## Current State
 
-- T44 delivered through `8a68dde06` and paused by the latest owner instruction.
-  WIP is parked at Git stash `1087067b3025322885c6a964579d80cea4931b06`, not applied.
-  Its detailed continuation is in `evidence/T44/configuration-pause-20261015.md`.
+- T44 delivered through `8a68dde06`, then paused for this configuration slice.
+  After publication/install verification, the journal resumed T44 and its WIP was
+  restored once from stash `1087067b3025322885c6a964579d80cea4931b06`; the stash
+  remains preserved. Current continuation is
+  `evidence/T44/configuration-return-20261016.md`; the pause receipt remains history.
 - Old TUI pin/stale `v2` branch lack required configuration fields; initial f16
   established compatibility/cache behavior, then R4's explicit300000ms defaults
   selected the exact pre-fifteen-minute-change revision above. R2/R3 are verified:
@@ -228,7 +230,7 @@ the separately frozen T44 objective.
   child41, strict binary4 and workspace Clippy after the reviewed scalar-ceiling
   fix. Broader adapter library801/1ignored passed before that fix. Ordinary config
   phases are separate from native/programmatic/captured-parent constraints.
-   Final gates/publication remain unresolved.
+   Final configuration gates and publication now pass below.
 - R1 is verified: shared canonical schema cases distinguish malformed values from
   valid unsupported capabilities, opaque settings remain nonlegacy; native
   config44, actual positive/negative binary controls and strict workspace Clippy
@@ -238,7 +240,8 @@ the separately frozen T44 objective.
   package file inventories pass; no secrets/private databases enter packages.
   All four extracted packages passed latest publication dry-run verification with
   staged registry dependencies. Actual publication and public0.2.0 metadata now
-  pass after pushed checkpoint feeea77fc; isolated installed checks are pending.
+   pass after pushed checkpoint feeea77fc; isolated registry installation and
+   actual installed ELF checks pass. See evidence/T65/closeout.md.
 - R6 first aggregate run exposed old implicit fixture restrictions after the
   required TS agent-default change. Explicit deny-all plus intended read/Shell/MCP
   allowances restore five targets63 PASS; S07's explicit read-only actor passes
@@ -296,5 +299,13 @@ the separately frozen T44 objective.
 
 ## Completion
 
-Not complete; R1–R5 are verified, R6–R8 remain unresolved. T44 resumes after
-T65 delivery/publication.
+- Resolved outcomes: R1–R8 verified, no pending/blocked requirement.
+- Primary evidence: `evidence/T65/report.md`, `publication.md`, `closeout.md` and
+  the actual T44 return checkpoint. Shared TS79/192 expectations; native package
+  1086/333 passed and workspace1998/0/12 existing opt-in ignored; strict/build/
+  archive checks and actual registry-installed ELF behavior pass.
+- Constraint/diff check: four native crates; no V1 migration, real provider
+  credentials, user-config edits, new runtime dependency/service/store, tag or
+  release. Independent native authority/cancellation/data/resource guards remain.
+- Final status: complete. Published source/checkpoint feeea77fc; subsequent work
+  belongs to the resumed T44 goal, not a full-product READY claim.

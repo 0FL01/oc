@@ -43,6 +43,10 @@ product, built-in-agent or TUI parity. T44's stash remains intact and unapplied.
 
 ## Next
 
+Resolved by [the installed-registry closeout](closeout.md): registry install and
+actual installed ELF checks pass; T65 is finished, T44 is active and its stash was
+restored once. The following publication-time next action is retained as history.
+
 Wait for the managed registry-install completion; inspect its actual result,
 then run the bounded installed-ELF check in a fresh HOME/project/data root and
 empty PATH. Require actual version/help/smoke, a local synthetic headless turn

@@ -1,6 +1,6 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
-Status: blocked
+Status: active
 Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
 Additional source: owner-approved canonical effort ordering after RECON, 2026-09-27.
 Additional source: owner-reported missing Middle Click tab close and explicit request to add the detailed work plan, 2026-09-30.
@@ -12,18 +12,24 @@ Additional source: owner-reported phantom caret over large highlighted tool outp
 Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
 Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
 Additional source: owner-reported repeated Part/output preview markers in MCP/Shell cards, pinned OC2 TS RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS16/VIS17 own synthetic-marker suppression and Generic/MCP collapse/expand parity; T50/R10 supplies minimal structured presentation facts. T44 remains PAUSED.
-Last updated: 2026-10-15
+Last updated: 2026-10-16
 
-## Current execution checkpoint — 2026-10-15
+## Current execution checkpoint — 2026-10-16
 
-**PAUSED by the latest owner instruction until T65 is implemented and pushed.**
-This is scheduling, not a technical impossibility or a reduced finish line.
-Active work is [V2 configuration semantics](2026-10-15-v2-config-semantics.md).
-Delivered TUI HEAD `8a68dde06`; unfinished work safely parked at Git stash
-`1087067b3025322885c6a964579d80cea4931b06`. The exact state, checks and red pending
-Shell notice regression are in the [pause handoff](../../evidence/T44/configuration-pause-20261015.md).
-After T65 delivery, start T44 and restore that WIP once after inspecting Git;
-all R1–R6/VIS01–VIS46 and the full visual/interaction finish line remain unchanged.
+**RESUMED after T65 implementation, push and verified registry delivery.**
+[V2 configuration semantics](2026-10-15-v2-config-semantics.md) is complete;
+all four0.2.0 crates are published and the installed native binary passes actual
+isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succeeds.
+The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
+conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
+
+Next: fix the reproduced model-Shell success notice and resulting collapsed-tail
+budget from owned exit facts, without changing standalone user-Shell presentation
+or RAW. Qualify the restored small-output paired profile against current0.2.0
+source, then continue the ordered slices below. The old13-stage small profile
+already proved effects/reopen/restart and real5.5s footer buckets, but all26 full
+comparisons differed; it is not current-source or whole-slice pixel PASS.
+All R1–R6/VIS01–VIS46 and the full visual/interaction finish line are unchanged.
 
 ### Earlier activation and verified slices
 

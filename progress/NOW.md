@@ -1,71 +1,63 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T00:55:21+00:00
-Active: T65
+State updated: 2026-10-16T01:02:48+00:00
+Active: T44
 
 Сверить Git status/diff до выполнения команд.
-Task: T65 — Native V2 provider/cache/transport and ordered permission semantics
-Spec: docs/goals/2026-10-15-v2-config-semantics.md
-Evidence target: evidence/T65/report.md
+Task: T44 — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors и чистый диалог без diagnostic spam (VIS42), компактный live-preview indicator (VIS17), скрытые synthetic tool-preview markers и Generic/MCP expand (VIS16/VIS17), provider retry (VIS43), Middle Click tab close (VIS44), tool-output phantom caret / prompt blink (VIS16/VIS31), историю промптов Up/Down и установку каретки мышью (VIS12), Codex/OpenAI connect/accounts/browser/device/key auth (VIS45), Code Mode execute inline calls/detail dialog (VIS46)
+Spec: docs/goals/2026-09-21-tui-pixel-parity.md
+Evidence target: evidence/T44/report.md
 
-Owner plan 2026-10-15 pauses T44 until this configuration slice is implemented, verified and normally committed/pushed; subsequent explicit authorization also requires a coherent version bump, crates.io publication using existing Cargo credentials without printing them, and isolated registry install verification before returning to full TUI parity. Configuration oracle: TS V2 at b4f19bfe74a972c2919aa4c9d7445fa61f41b226 (before the upstream fifteen-minute chunk default), separate from frozen TUI2670273. Separately merge provider/model documents then effective compatibility provider defaults→model overrides preserving explicit false across protocols; remove settings.setCacheKey runtime gate, preserve tri-state/protocol cache-key/cache:none/header-affinity/Anthropic policies; keep timeout/headerTimeout/chunkTimeout/transport provider-only and separate HTTP300000ms header/chunk, false-disabled and optional total deadlines, with WS-specific behavior and cancellation. Ordinary permissions use TS ordered overrides (agent defaults→top-level docs→agent-specific docs→session handling), while saved allow cannot bypass final configured deny and authority/sandbox/delegation ceilings remain non-widenable. V1 remains legacy_config before effects; valid unsupported V2 capability and malformed V2 value diagnostics stay distinct, arbitrary package settings are not legacy by name. Shared synthetic V2 fixtures/expected results for covered TS/Rust subset; existing redaction, admission, cancellation, MCP/package/Markdown/authority regressions and affected/full Cargo gates. No real credentials in fixtures/user config/secrets.env changes, V1 migration, plugin host, shared service or full application/built-in-agent parity. Preserve T44 stash1087067b3025322885c6a964579d80cea4931b06 for the explicit return after delivery.
+Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMENDMENT.md, ACCEPTANCE.json and SAFETY_REGRESSIONS.md; navigation is not reduced acceptance. Owner explicitly resumed2026-10-07: full closure, realtime todos, checked commit/push per major slice. First clean-dialogue e2120e418 qualified1720/0/11; pinned attempt005 eleven stages per side/22 stable frames, ALL22 strict comparisons DIFFERENT. Next concise typed submitted-refusal facet qualified current1721/0/11 plus strict Clippy/debug-release/release-startup; safe captured detail and pre-effect draft preserved. Receipts evidence/tui/vis42-clean-dialogue.md and vis42-request-refusal.md. Whole VIS42/V09/T44 is not PASS. Continue ordered structured tool-body/guidance/ref/capture and Generic-MCP VIS16/VIS17, remaining VIS42 styled/detail integration and every approved prompt/caret/blink/pacing/scroll/profile/model/live-selection/tabs/session/Revert/compaction/file/approval/question/DCP/child/Shell/Terminals/retry/MCP/auth slice. Consume landed backend owners without whole-task done cycles. Actual effects plus running OC2/native full styled-cell/PNG/cursor proof, not own goldens/historical PASS; disclose native differences. Four crates/one owner/immutable RAW/permissions/redaction/caps/no unknown replay; no new registry/store/poll/paid campaign/user config edits. AUTH06 deferred; original24/24 and Go13/24 unchanged. Owner-approved 2026-10-14 VIS46: Code Mode execute producer facts/live ToolCallProgress, inline nested-call rows and execute detail dialog (Code/Output/c/o/esc) with paired qualification after T59 finish; supersedes only T60 generic-card difference, NOT_RUN. Finish only after all mandatory T44 outcomes and final current-source R6/V09 gates.
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T65 — actual0.2.0 publication receipt
+# T44 — return after completed configuration delivery
 
 ## Result
 
-**All four0.2.0 crates are published.** Verified source/checkpoint commit
-`feeea77fc` was normally pushed before the single actual publication command.
-No release/tag or default-user installation was created. Configuration gates
-are green; isolated installed-binary verification is still running, so R8/T65
-completion is not claimed yet.
+T65's requested V2 semantics, coherent0.2.0 publication and actual isolated
+registry-installed behavior are verified. Journal finish T65/start T44 succeeded.
+After Git inspection, stash `1087067b3025322885c6a964579d80cea4931b06` was applied
+**once**, without conflicts; it was not popped or dropped. T44 is active again.
 
 ## Checks
 
-`cargo publish --workspace --no-verify --locked`: PASS. Prior latest dry-run
-verification built every extracted package against staged registry dependencies;
-production source, manifests, tests/assets and packaged README were unchanged
-between verification and upload; Cargo's VCS metadata now names the clean checkpoint.
-Cargo uploaded, waited for availability and reported Published in dependency order:
-core → adapters → TUI → oc2. Log: `.local/evidence/t65-publish-actual-01.log`.
+Published source/checkpoint `feeea77fc` and publication receipt `6e06a150c` were
+normally pushed. Public metadata and Cargo's isolated registry installation
+confirm all four0.2.0 versions and sole ELF `oc2`. Installed fresh-HOME/empty-PATH
+CLI, canonical V2 headless cache/affinity and persisted-session/no-replay checks
+pass. Configuration workspace1998/0/12 unchanged opt-in ignored, explicit
+adapters1086 and binary333 passed, strict/build/archive gates pass.
+See [T65 closeout](../T65/closeout.md); no upload must be repeated.
 
-Independent public crates.io version API reads returned200 for every package,
-each version0.2.0, unyanked and published_by0FL01, rust_version1.93:
-
-| Crate | Published UTC,2026-10-16 | Public archive bytes | License | Binaries |
-| --- | --- | ---: | --- | --- |
-| oc-core | 00:49:24.525624 | 72543 | MIT | none |
-| oc-adapters | 00:49:27.871314 | 1477829 | MIT AND AGPL-3.0-or-later | none |
-| oc-tui | 00:49:31.732725 | 8057839 | MIT AND AGPL-3.0-or-later | none |
-| oc2 | 00:49:35.316828 | 457551 | MIT AND AGPL-3.0-or-later | oc2 only |
-
-Fresh approved scratch work/HOME/install roots were created without replacing
-an existing installation. Registry-only installation is running from outside the
-checkout with `cargo install oc2 --version 0.2.0 --locked --registry crates-io`,
-explicit isolated `--root` and the existing compilation cache reused solely as
-`--target-dir`. No path/git package selection; environment excludes provider
-credentials. Log: `.local/evidence/t65-registry-install-01.log`.
+Restored TUI WIP is exactly the parked small-output capture profile, its Python
+controls and the red model-Shell success-notice regression. Its historical third
+attempt had13 behavioral stages per side,5 requests/3 effects, one17-byte Shell
+effect and natural exits/restart without repeats; both real elapsed buckets5.5s.
+All26 full comparisons were DIFFERENT and all13 final cursors equal. Those
+pre-configuration captures are not current0.2.0 qualification or T44 completion.
 
 ## Risks
 
-Publication is an observed completed external effect: **do not repeat it**.
-No credentials were printed; existing Cargo authentication was used unchanged.
-The old locked yanked-dependency warning remained visible. This is not full
-product, built-in-agent or TUI parity. T44's stash remains intact and unapplied.
+No external blocker. The restored red Shell test is existing unfinished TUI work,
+not included in the published green configuration snapshot. New canonical agent
+defaults are now Allow; keep intended actors explicit in fixtures, never weaken
+permissions or exact comparison/effect/resource assertions. TUI reference remains
+pinned V2.0.12/2670273, separate from T65's configuration oracle.
 
 ## Next
 
-Wait for the managed registry-install completion; inspect its actual result,
-then run the bounded installed-ELF check in a fresh HOME/project/data root and
-empty PATH. Require actual version/help/smoke, a local synthetic headless turn
-with canonical V2 cache configuration, and persisted-session listing with no
-new generation. Record the receipt, finish T65 and resume T44/restore its parked
-WIP once after inspecting Git. No further upload is needed.
+Fix `append_shell_status` to retain the model-owned known zero-exit notice and
+its real newline/tail budget; standalone user Shell keeps its separate contract.
+Do not parse arbitrary output or change RAW. Run the nearest regression, affected
+TUI tests and a fresh full small-output paired capture; fix only demonstrated
+differences. Then continue prompt/caret/blink/scroll, questions/tabs, VIS46 execute
+presentation and remaining frozen R1–R6/VIS01–VIS46 workflows. Keep major verified
+commit/push slices and all original temporal/safety/resource/full-frame gates.
 
 
 Ready (до 5): нет
-Blocked: T27, T44, T45, T57, T61
+Blocked: T27, T45, T57, T61
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
