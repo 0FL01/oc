@@ -206,7 +206,7 @@ async fn compaction_owner_measured_23000_context_survives_restart_and_history_co
             ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
         ]);
         let (app, guard, notes) = spawn_with_env(&project, &data, env.clone()).await.unwrap();
-        // OpenCode 1 compaction keys are a T62 fail-closed report, not soft notes.
+        // Compaction keys outside the OC2 schema are a T66 refusal, not soft notes.
         assert!(
             app.catalog()
                 .await

@@ -255,8 +255,9 @@ pub struct LoadedDefs {
     pub shadowed: Vec<String>,
     /// Per-file diagnostics.
     pub diagnostics: Vec<Diagnostic>,
-    /// OpenCode 1 frontmatter per root origin and kind; such files are not loaded.
-    pub(crate) legacy: Vec<(String, &'static str, Vec<crate::config::legacy::Finding>)>,
+    /// Frontmatter keys outside the OC2 allowlist per root origin and kind; such
+    /// files are not loaded and the configuration is refused.
+    pub(crate) unknown_keys: Vec<(String, &'static str, Vec<crate::config::admission::Finding>)>,
 }
 
 /// Primary-agent selection failure.
@@ -1680,22 +1681,18 @@ fn load_entry(
                     return;
                 }
             };
-            // T62: only canonical OpenCode 2 frontmatter is admitted, never migrated.
+            // T66: only canonical OpenCode 2 frontmatter keys are admitted.
             let fields: serde_json::Map<_, _> = frontmatter.fields.clone().into_iter().collect();
-            let (label, findings) = if kind == "agent" {
-                (
-                    "agent definitions",
-                    crate::config::legacy::scan_agent_frontmatter(&fields),
-                )
-            } else {
-                (
-                    "command definitions",
-                    crate::config::legacy::scan_command_frontmatter(&fields),
-                )
-            };
-            if !findings.is_empty() {
-                out.defs.legacy.push((root.origin.clone(), label, findings));
-                return;
+            if kind == "agent" {
+                let findings = crate::config::admission::scan_agent_frontmatter(&fields);
+                if !findings.is_empty() {
+                    out.defs.unknown_keys.push((
+                        root.origin.clone(),
+                        "agent definitions",
+                        findings,
+                    ));
+                    return;
+                }
             }
             if kind == "agent" {
                 if diagnose_step_constraints(
@@ -2113,10 +2110,10 @@ mod tests {
                 .iter()
                 .any(|d| d.reason.contains("reserved"))
         );
-        // OpenCode 1 `tools` is reported by the T62 gate and never loaded.
+        // `tools` is outside the OC2 frontmatter allowlist: reported, never loaded.
         assert!(
             loaded
-                .legacy
+                .unknown_keys
                 .iter()
                 .any(|(_, _, findings)| findings.iter().any(|finding| finding.path == "tools"))
         );

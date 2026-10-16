@@ -101,7 +101,7 @@ pub(super) fn merge_document(
         field: "mcp".into(),
         reason: "must be an object".into(),
     })?;
-    // Canonical OpenCode 2 only: `mcp.timeout` and `mcp.servers` (T62).
+    // Canonical OpenCode 2 only: `mcp.timeout` and `mcp.servers` (T66 allowlist).
     if let Some(raw) = map.get("timeout") {
         let layer = parse_timeout(raw).map_err(|field| ConfigError::Invalid {
             field: format!("mcp.timeout.{field}"),
@@ -209,28 +209,19 @@ pub(crate) fn source_protected_values(
         return Ok(Vec::new());
     };
     let mut raw = Vec::new();
-    for namespace in ["provider", "providers"] {
-        if let Some(providers) = obj.get(namespace).and_then(Value::as_object) {
-            for provider in providers.values() {
-                source_provider_credentials(provider, &mut raw);
-                if let Some(models) = provider.get("models").and_then(Value::as_object) {
-                    for model in models.values() {
-                        source_provider_credentials(model, &mut raw);
-                        if let Some(variants) = model.get("variants") {
-                            match variants {
-                                Value::Array(items) => {
-                                    for variant in items {
-                                        source_provider_credentials(variant, &mut raw);
-                                    }
-                                }
-                                Value::Object(items) => {
-                                    for variant in items.values() {
-                                        source_provider_credentials(variant, &mut raw);
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
+    if let Some(providers) = obj.get("providers").and_then(Value::as_object) {
+        for provider in providers.values() {
+            source_provider_credentials(provider, &mut raw);
+            if let Some(models) = provider.get("models").and_then(Value::as_object) {
+                for model in models.values() {
+                    source_provider_credentials(model, &mut raw);
+                    for variant in model
+                        .get("variants")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                    {
+                        source_provider_credentials(variant, &mut raw);
                     }
                 }
             }
@@ -289,22 +280,11 @@ pub(crate) fn source_protected_values(
 }
 
 fn source_provider_credentials<'a>(provider: &'a Value, values: &mut Vec<&'a str>) {
-    // Legacy provider/model endpoint aliases are recognized before normalization,
-    // including inactive model overrides whose credentials stay unresolved.
-    values.extend(provider.get("api").and_then(Value::as_str));
-    values.extend(
-        provider
-            .get("provider")
-            .and_then(|provider| provider.get("api"))
-            .and_then(Value::as_str),
-    );
-    for options in [
-        provider.get("options"),
-        provider.get("settings"),
-        Some(provider),
-    ]
-    .into_iter()
-    .flatten()
+    // Recognized before normalization, including inactive model overrides whose
+    // credentials stay unresolved.
+    for options in [provider.get("settings"), Some(provider)]
+        .into_iter()
+        .flatten()
     {
         for field in ["apiKey", "authToken", "baseURL", "headers"] {
             if let Some(value) = options.get(field) {

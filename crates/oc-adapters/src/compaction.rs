@@ -193,9 +193,9 @@ impl CompactionConfig {
     }
 }
 
-/// Canonical OpenCode 2 compaction (`auto`, `keep.tokens`, `buffer`). Unknown keys
-/// are silently omitted; malformed recognized leaves do not erase valid neighbors
-/// or lower layers. OpenCode 1 keys never reach here (T62 gate).
+/// Canonical OpenCode 2 compaction (`auto`, `keep.tokens`, `buffer`). Keys outside
+/// the schema are refused by the T66 allowlist before assembly; malformed
+/// recognized leaves do not erase valid neighbors or lower layers.
 pub(crate) fn normalize_compaction(
     source: &str,
     value: &serde_json::Value,
@@ -281,12 +281,12 @@ mod usage_tests {
             "../tests/fixtures/compaction_normalization.json"
         ))
         .unwrap();
-        // Donor fixture cases with OpenCode 1 keys are refused by the T62 gate.
-        let legacy = ["preserve_recent_tokens", "reserved", "prune", "tail_turns"];
+        // Donor cases with keys outside the OC2 schema are refused by admission.
+        let canonical = ["auto", "keep", "buffer"];
         for case in fixtures["cases"].as_array().unwrap().iter().filter(|case| {
             !case["input"]
                 .as_object()
-                .is_some_and(|input| legacy.iter().any(|key| input.contains_key(*key)))
+                .is_some_and(|input| input.keys().any(|key| !canonical.contains(&key.as_str())))
         }) {
             let (normalized, notes) = normalize_compaction("fixture", &case["input"]);
             let encoded = normalized
@@ -311,9 +311,23 @@ mod usage_tests {
             assert_eq!(json!(diagnostics), case["diagnostics"], "{}", case["name"]);
         }
         let sources = [
-            crate::config::Source { path:"global".into(),trusted:true,text:json!({"compaction":{"auto":false,"keep":{"tokens":11},"buffer":12}}).to_string() },
-            crate::config::Source { path:"project".into(),trusted:true,text:json!({"compaction":{"auto":null,"keep":{"tokens":13},"buffer":15,"future":"SECRET-VALUE"}}).to_string() },
-            crate::config::Source { path:"last".into(),trusted:true,text:json!({"compaction":{"auto":"SECRET-VALUE","buffer":false}}).to_string() },
+            crate::config::Source {
+                path: "global".into(),
+                trusted: true,
+                text: json!({"compaction":{"auto":false,"keep":{"tokens":11},"buffer":12}})
+                    .to_string(),
+            },
+            crate::config::Source {
+                path: "project".into(),
+                trusted: true,
+                text: json!({"compaction":{"auto":null,"keep":{"tokens":13},"buffer":15}})
+                    .to_string(),
+            },
+            crate::config::Source {
+                path: "last".into(),
+                trusted: true,
+                text: json!({"compaction":{"auto":"SECRET-VALUE","buffer":false}}).to_string(),
+            },
         ];
         let generation = crate::config::assemble(&sources, &Default::default(), None).unwrap();
         assert_eq!(

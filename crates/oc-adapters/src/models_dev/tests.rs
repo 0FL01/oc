@@ -427,6 +427,20 @@ async fn go02_malformed_public_rows_fail_atomically_without_inferred_controls() 
             .is_empty()
     );
     assert!(result.models["chat"].get("compatibility").is_none());
+    // All-zero limits (image-generation rows upstream) drop that row only.
+    let mut rows = self::document();
+    let mut image = rows[PROVIDER]["models"]["chat"].clone();
+    image["id"] = json!("image");
+    image["limit"] = json!({"context":0,"input":0,"output":0});
+    rows[PROVIDER]["models"]["image"] = image;
+    client.replace(rows);
+    let result = owner
+        .refresh(&db, &client, &BTreeMap::new(), TTL_MS + 2, true)
+        .await;
+    assert!(result.failure.is_none());
+    assert_eq!(result.fetched_at_ms, Some(TTL_MS + 2));
+    assert_eq!(result.models.len(), 4);
+    assert!(!result.models.contains_key("image"));
 }
 
 #[tokio::test]

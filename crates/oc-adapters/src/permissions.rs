@@ -242,15 +242,9 @@ impl PermissionRules {
         }
     }
     /// Parse canonical ordered `permissions` rules without dropping order or
-    /// resources. OpenCode 1 `permission`/`tools` shapes are refused by T62.
+    /// resources. Other rule sources are refused by the T66 key allowlist.
     pub fn from_config(value: &serde_json::Value) -> Result<Self, ConfigError> {
         let mut result = Self::default();
-        // Never silently drop an OpenCode 1 rule source: that would widen authority.
-        for legacy in ["permission", "tools"] {
-            if value.get(legacy).is_some() {
-                return Err(invalid(legacy));
-            }
-        }
         if let Some(raw) = value.get("permissions") {
             if !raw.is_array() {
                 return Err(invalid("permissions"));
@@ -690,6 +684,9 @@ fn invalid(field: &str) -> ConfigError {
     }
 }
 
+/// Internal tool identities behind `edit`, `shell` and `subagent`.
+const RESERVED_ACTIONS: &[&str] = &["write", "patch", "apply_patch", "bash", "task"];
+
 fn parse(value: &serde_json::Value, field: &str) -> Result<Vec<Rule>, ConfigError> {
     value
         .as_array()
@@ -697,6 +694,14 @@ fn parse(value: &serde_json::Value, field: &str) -> Result<Vec<Rule>, ConfigErro
         .iter()
         .map(|raw| {
             let mut rule: Rule = serde_json::from_value(raw.clone()).map_err(|_| invalid(field))?;
+            // Native tool identities are not OC2 actions. TS ignores such a rule,
+            // while the internal mapping would apply it: refuse instead of either.
+            if RESERVED_ACTIONS.contains(&rule.action.as_str()) {
+                return Err(ConfigError::Invalid {
+                    field: format!("{field}[].action"),
+                    reason: "not an OpenCode 2 permission action".into(),
+                });
+            }
             rule.action = legacy_key(&rule.action).into();
             Ok(rule)
         })

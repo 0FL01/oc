@@ -4,7 +4,7 @@
 
 ## Граница
 
-Для OpenProxy lane одна native protocol family: OpenAI Responses. `providers.<id>.package: "@ai-sdk/openai"` — protocol alias (канонический OpenCode 2; OpenCode 1 `npm`/`options` отказывают, T62). OpenProxy делает свои OAuth/vendor/account routing; `oc2` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
+Для OpenProxy lane одна native protocol family: OpenAI Responses. `providers.<id>.package: "@opencode/ai/providers/openai"` (или alias `@ai-sdk/openai`) — protocol alias (канонический OpenCode 2; ключи вне схемы, например `npm`/`options`, отказывают, T66). OpenProxy делает свои OAuth/vendor/account routing; `oc2` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
 
 Owner-approved [T53](goals/2026-09-29-opencode-go-and-provider-auth.md) отдельно добавляет
 Go/models.dev и общий credential owner (implementation pending). Это не смена

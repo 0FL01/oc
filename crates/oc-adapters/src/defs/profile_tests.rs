@@ -274,9 +274,9 @@ fn r6_color_native_pattern_refuses_theme_names_and_supplied_merge() {
         origin: "global".into(),
     }]);
     assert_eq!(defs.agents["native"].color.as_deref(), Some("#A1b2C3"));
-    // T62: OpenCode 1 frontmatter is reported, never migrated or loaded.
+    // T66: frontmatter keys outside the OC2 allowlist are reported, never loaded.
     assert!(!defs.agents.contains_key("legacy"));
-    assert_eq!(defs.legacy.len(), 1);
+    assert_eq!(defs.unknown_keys.len(), 1);
     for refused in ["theme", "short"] {
         assert!(!defs.agents.contains_key(refused), "{refused}");
     }

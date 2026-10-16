@@ -629,8 +629,16 @@ impl GoCatalog {
                     root.0
                         .remove(id)
                         .map(|value| {
-                            let record: ProviderRecord = serde_json::from_value(value)
+                            let mut record: ProviderRecord = serde_json::from_value(value)
                                 .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
+                            // All-zero limits mark non-text rows (image generation),
+                            // which the native catalog does not offer; a partial zero
+                            // limit stays a malformed document.
+                            record.models.retain(|_, model| {
+                                model.limit.context != 0
+                                    || model.limit.output != 0
+                                    || model.limit.input.is_some_and(|input| input != 0)
+                            });
                             if record.id != id {
                                 return Err(discovery::DiscoveryError::InvalidResponse);
                             }

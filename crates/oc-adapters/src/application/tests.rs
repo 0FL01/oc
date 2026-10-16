@@ -1871,7 +1871,7 @@ mod reload_tests {
     }
 
     #[tokio::test]
-    async fn cfg13_opencode1_key_on_reload_keeps_last_good_and_reports_every_key() {
+    async fn cfg13_unknown_key_on_reload_keeps_last_good_and_reports_every_key() {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
         let data = root.path().join("data");
@@ -1882,28 +1882,27 @@ mod reload_tests {
         std::fs::write(&path, &canonical).unwrap();
         let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
         let before = app.catalog().await.unwrap();
-        let mut legacy: serde_json::Value = serde_json::from_str(&canonical).unwrap();
-        legacy["permission"] = serde_json::json!({"read": "deny"});
-        legacy["provider"] = serde_json::json!({"other": {"npm": "@ai-sdk/openai"}});
-        std::fs::write(&path, legacy.to_string()).unwrap();
+        let mut unknown: serde_json::Value = serde_json::from_str(&canonical).unwrap();
+        unknown["permission"] = serde_json::json!({"read": "deny"});
+        unknown["providers"]["other"] = serde_json::json!({"npm": "@ai-sdk/openai"});
+        std::fs::write(&path, unknown.to_string()).unwrap();
         let Err(CoreError::LocationSwitch {
             diagnostic: Some(diagnostic),
             ..
         }) = app.reload_location().await
         else {
-            panic!("OpenCode 1 keys must refuse the reload");
+            panic!("unknown keys must refuse the reload");
         };
-        assert_eq!(diagnostic.code, oc_core::queries::ServiceCode::LegacyConfig);
+        assert_eq!(
+            diagnostic.code,
+            oc_core::queries::ServiceCode::UnknownConfigKey
+        );
         let details = diagnostic.details.as_deref().unwrap();
         for expected in [
-            "location opencode.json: permission → permissions",
-            "location opencode.json: provider → providers",
-            "location opencode.json: provider.<id>.npm → package",
+            "location opencode.json: permission",
+            "location opencode.json: providers.<id>.npm",
         ] {
-            assert!(
-                details.iter().any(|line| line.starts_with(expected)),
-                "{details:?}"
-            );
+            assert!(details.iter().any(|line| line == expected), "{details:?}");
         }
         assert_eq!(app.catalog().await.unwrap(), before, "last-good retained");
         std::fs::write(&path, &canonical).unwrap();

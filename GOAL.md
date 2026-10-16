@@ -36,7 +36,7 @@
 
 **A12 HANDOFF:** `evidence/FINAL.md` содержит code commit, команды проверки, отдельный результат каждого A-gate, supported differences, инструкцию запуска и известные ограничения. Лицензии и provenance DCP/upstream сохранены до push производного кода. Нет обещания full OpenCode parity.
 
-**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. До T61 один turn использует одну immutable Location/config generation; утверждённый T61 target ниже переносит same-Location config adoption на fresh request boundary, сохраняя issued request/full tool batch. Switch сохраняет global и убирает старое project-local состояние; session_move остаётся отдельным turn boundary. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Принимается только канонический config OpenCode 2 (T62): любой ключ OpenCode 1 отказывает fail-closed одним отчётом со всеми ключами, источниками и каноническими заменами; неподдерживаемые канонические optional entries/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG13, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
+**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. До T61 один turn использует одну immutable Location/config generation; утверждённый T61 target ниже переносит same-Location config adoption на fresh request boundary, сохраняя issued request/full tool batch. Switch сохраняет global и убирает старое project-local состояние; session_move остаётся отдельным turn boundary. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Принимается только канонический config OpenCode 2 (T62, D28/T66): любой ключ вне OC2 allowlist отказывает fail-closed одним отчётом со всеми путями и источниками, без значений и V1-подсказок; неподдерживаемые канонические optional entries/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG13, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
 
 Детальные test IDs и методики: `docs/TEST_PLAN.md`. Задачи/зависимости: `planning/tasks.json`.
 
@@ -999,6 +999,14 @@ oc2 будет работать независимо»; «совместимос
 Узко superseded: shared-service часть amendment 2026-10-14 и D25, а также формулировки
 «pinned OC2 normalizer/migration как oracle» для v1-форм в T43/T45 R6/T46 MCP09/T53 GO02.
 Завершённые evidence не переписываются. T61 paused, T62 todo.
+
+- **D28/T66 (owner 2026-10-16).** «Выкинуть поддержку легаси пути, оставить только
+  oc2»: словарь OpenCode 1 (`config/legacy.rs`, `LegacyConfig`, подсказки замены,
+  V1-guards) удалён; fail-closed сохраняется через OC2 key allowlist
+  (`config/admission.rs`) — любой ключ вне схемы (+ объявленные native-расширения)
+  отказывает одним `unknown_config_key` отчётом без значений на startup, reload
+  (last-good) и `oc2 models`. Заменяет форму отчёта D27/CFG11–CFG13 (CFG18).
+  `~/.config/opencode` владелец конвертирует сам; E2E06 переквалифицируется после.
 
 ## Owner amendment (2026-10-14 — Code Mode `execute` TUI parity; pending)
 

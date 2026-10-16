@@ -114,6 +114,21 @@ Contract: [T62](goals/2026-10-15-canonical-v2-config.md).
 - **CFG13.** Running process: add a v1 key → reload refused, last-good kept, report
   visible; canonical correction adopted. Catalog-only `oc2 models` refuses before discovery.
 
+## OC2 key allowlist — T66/CFG18 (owner D28 2026-10-16)
+
+Contract: [T66](goals/2026-10-16-v2-allowlist.md). Supersedes the CFG11–CFG13 report
+form; their T62 evidence stays historical.
+
+- **CFG18.** Owner unit tests (`config/admission_tests.rs`): a document with former V1
+  and other foreign keys at every allowlist level yields every `path` once, `<id>` map
+  IDs, no values; the owner-shaped canonical document (native packages, open settings,
+  overlays, mcp local/remote, agents/commands, plugins, native extensions) has no
+  findings; Markdown agent and cli.json sections/keybinds are checked. Reload keeps
+  last-good (`cfg13_unknown_key_on_reload…`); actual binary refuses before MCP/provider
+  effects (`cfg11_canonical_opaque_settings_work_but_unknown_keys_stop…`,
+  `vis34_compaction_prune…`). Reserved tool identities are refused as rule actions.
+  CFG14 fixture gains the model override equal to the native default.
+
 ## Native V2 configuration semantics — T65/CFG14–CFG17
 
 Contract: [T65](goals/2026-10-15-v2-config-semantics.md). Configuration oracle is

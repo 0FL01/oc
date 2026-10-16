@@ -340,7 +340,7 @@ fn admit_sources(
     let mut sources = Vec::new();
     let mut source_authority = BTreeMap::new();
     let mut seen = HashSet::new();
-    let mut legacy = config::legacy::Report::default();
+    let mut unknown = config::admission::Report::default();
     for (index, (root, admitted)) in roots.iter().zip(&admitted_roots).enumerate() {
         let Some(admitted) = admitted else { continue };
         for name in ["opencode.json", "opencode.jsonc"] {
@@ -379,9 +379,9 @@ fn admit_sources(
                     ),
                 );
                 if let Ok(document) = config::parse_jsonc(&text, &source_path) {
-                    legacy.add(
-                        &format!("{} {name}", legacy_scope(index, global.is_some())),
-                        &config::legacy::scan_document(&document),
+                    unknown.add(
+                        &format!("{} {name}", admission_scope(index, global.is_some())),
+                        &config::admission::scan_document(&document),
                     );
                 }
                 sources.push(config::Source {
@@ -394,7 +394,7 @@ fn admit_sources(
             }
         }
     }
-    legacy_gate(legacy, &admitted_roots, global.is_some())?;
+    admission_gate(unknown, &admitted_roots, global.is_some())?;
     Ok(AdmittedSources {
         project,
         global,
@@ -406,7 +406,7 @@ fn admit_sources(
 }
 
 /// Static scope label for an admitted config root; never a filesystem path.
-fn legacy_scope(index: usize, has_global: bool) -> &'static str {
+fn admission_scope(index: usize, has_global: bool) -> &'static str {
     match (has_global, index) {
         (true, 0) => "global",
         (true, 1) | (false, 0) => "location",
@@ -414,11 +414,12 @@ fn legacy_scope(index: usize, has_global: bool) -> &'static str {
     }
 }
 
-/// T62 fail-closed gate: any OpenCode 1 key in an admitted document or cli.json
-/// refuses admission with one complete report, including Markdown definitions.
-/// Clean documents leave definitions to the ordinary loader (`LoadedDefs::legacy`).
-fn legacy_gate(
-    mut report: config::legacy::Report,
+/// T66 fail-closed gate: any key outside the OpenCode 2 allowlist in an admitted
+/// document or cli.json refuses admission with one complete report, including
+/// Markdown definitions. Clean documents leave definitions to the ordinary loader
+/// (`LoadedDefs::unknown_keys`).
+fn admission_gate(
+    mut report: config::admission::Report,
     admitted_roots: &[Option<AdmittedRoot>],
     has_global: bool,
 ) -> Result<(), LoadFailure> {
@@ -430,8 +431,8 @@ fn legacy_gate(
             };
             if let Ok(document) = config::parse_jsonc(&text, name) {
                 report.add(
-                    &format!("{} {name}", legacy_scope(index, has_global)),
-                    &config::legacy::scan_cli(&document),
+                    &format!("{} {name}", admission_scope(index, has_global)),
+                    &config::admission::scan_cli(&document),
                 );
             }
         }
@@ -454,17 +455,17 @@ fn legacy_gate(
             &admitted.dir,
             None,
         );
-        add_definition_findings(&mut report, legacy_scope(index, has_global), &scanned);
+        add_definition_findings(&mut report, admission_scope(index, has_global), &scanned);
     }
     Err(LoadFailure::Configuration(report.diagnostic()))
 }
 
 fn add_definition_findings(
-    report: &mut config::legacy::Report,
+    report: &mut config::admission::Report,
     scope: &str,
     loaded: &defs::LoadedDefs,
 ) {
-    for (_, kind, findings) in &loaded.legacy {
+    for (_, kind, findings) in &loaded.unknown_keys {
         report.add(&format!("{scope} {kind}"), findings);
     }
 }
@@ -847,13 +848,13 @@ async fn load_stages(
             Some(&observe_definition),
         );
     }
-    if !loaded_defs.legacy.is_empty() {
-        let mut report = config::legacy::Report::default();
+    if !loaded_defs.unknown_keys.is_empty() {
+        let mut report = config::admission::Report::default();
         let global_origin = global
             .as_ref()
             .and(admitted_roots[0].as_ref())
             .map(|root| root.path.to_string_lossy().into_owned());
-        for (origin, kind, findings) in &loaded_defs.legacy {
+        for (origin, kind, findings) in &loaded_defs.unknown_keys {
             let scope = if Some(origin) == global_origin.as_ref() {
                 "global"
             } else {
@@ -2597,7 +2598,7 @@ mod tests {
     #[tokio::test]
     async fn v07a_large_normal_config_is_not_limited_to_one_mib() {
         let dir = tempfile::tempdir().expect("fixture");
-        let mut config = r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}},"unused":""#.to_string();
+        let mut config = r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}},"username":""#.to_string();
         config.push_str(&"x".repeat(1024 * 1024 + 16));
         config.push_str("\"}");
         std::fs::write(dir.path().join("opencode.json"), config).expect("large config");

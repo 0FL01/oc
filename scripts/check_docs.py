@@ -171,13 +171,14 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     assert "DISCOVERY_ATTEMPT_TIMEOUT_MS = 15000" in reference
     assert "DISCOVERY_TOTAL_TIMEOUT_MS = 30000" in reference
     sample = jsonc((root / "examples/opencode.jsonc").read_text())
-    # T62: the sample is canonical OpenCode 2 config (no OpenCode 1 keys).
-    for legacy in ("provider", "permission", "tools", "agent", "command", "plugin",
-                   "enabled_providers", "disabled_providers", "snapshot"):
-        assert legacy not in sample, f"OpenCode 1 key in examples/opencode.jsonc: {legacy}"
+    # T66: the sample uses only keys of the OC2 allowlist (config/admission.rs ROOT).
+    admission = (root / "crates/oc-adapters/src/config/admission.rs").read_text()
+    roots = set(re.findall(r'"([^"]+)"', admission.split("const ROOT: &[&str] = &[", 1)[1].split("];", 1)[0]))
+    assert set(sample) <= roots, f"Non-OC2 key in examples/opencode.jsonc: {sorted(set(sample) - roots)}"
     assert sample["mcp"]["servers"]["chrome-devtools"]["disabled"] is True
     assert sample["mcp"]["servers"]["codex_web"]["oauth"] is False
-    assert sample["providers"]["ludka2"]["package"] == "@ai-sdk/openai"
+    assert sample["providers"]["ludka2"]["package"] == "@opencode/ai/providers/openai"
+    assert "setCacheKey" not in sample["providers"]["ludka2"]["settings"]
     assert not sample["providers"]["ludka2"].get("models"), "Do not bake in dynamic model IDs"
     journal = Journal(root)
     with journal.lock():

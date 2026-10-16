@@ -14,8 +14,8 @@ use std::path::{Component, Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub(crate) mod admission;
 pub(crate) mod diagnostic;
-pub(crate) mod legacy;
 pub(crate) mod mcp;
 mod providers;
 pub use crate::tools::output::Limits as ToolOutputLimits;
@@ -1110,12 +1110,12 @@ fn assemble_with_admission(
             field: source.path.clone(),
             reason: "root must be an object".to_string(),
         })?;
-        // T62 defense in depth: composition reports every key first; a direct
-        // assembler caller still cannot admit an OpenCode 1 shape.
-        if let Some(finding) = legacy::scan_document(&value).into_iter().next() {
+        // T66 defense in depth: composition reports every key first; a direct
+        // assembler caller still cannot admit a key outside the OpenCode 2 schema.
+        if let Some(finding) = admission::scan_document(&value).into_iter().next() {
             return Err(ConfigError::Invalid {
                 field: finding.path,
-                reason: format!("OpenCode 1 key; use {}", finding.replacement),
+                reason: "not in the OpenCode 2 schema".into(),
             });
         }
 
@@ -1621,9 +1621,8 @@ pub(crate) fn provider_wire(
             value,
             &default_compatibility,
         )?;
-        if compat != Default::default() {
-            compatibility.insert(model.clone(), compat);
-        }
+        // An override equal to the native default must still beat provider defaults.
+        compatibility.insert(model.clone(), compat);
     }
     let mut wire = match protocol {
         Protocol::Chat => crate::provider::WireBinding::chat(BTreeMap::new()),
@@ -1725,7 +1724,7 @@ pub(crate) fn provider_wire(
 
 /// OC2 `Model.Compatibility` subset with actual native semantics. Internal
 /// catalog `interleaved` facts are separate from the canonical string field;
-/// external OpenCode 1 documents are refused before this projection.
+/// config documents with keys outside the OC2 allowlist never reach it.
 fn chat_compat(
     field: &str,
     model: &serde_json::Value,
@@ -1837,12 +1836,12 @@ fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
 
 /// Internal permission action identity for native tools: canonical `edit` and
 /// `shell` rules (and tool names) resolve to the `apply_patch`/`bash` actions.
-/// Not OpenCode 1 config compatibility — those keys are refused by T62.
+/// Not config compatibility: these names are not OC2 rule actions (T66).
 pub fn legacy_key(key: &str) -> &str {
     match key {
         "write" | "edit" | "patch" => "apply_patch",
         "shell" => "bash",
-        // v1 `task` is the v2.0.12 `subagent` action.
+        // Internal `task` tool identity of the v2.0.12 `subagent` action.
         "task" => "subagent",
         _ => key,
     }
@@ -3175,7 +3174,9 @@ mod tests {
             Some("reasoning_details")
         );
         assert!(
-            !wire.compatibility.contains_key("c") && !wire.compatibility.contains_key("d"),
+            ["c", "d"]
+                .iter()
+                .all(|model| wire.compatibility[*model].reasoning_field.is_none()),
             "boolean interleaved invents no field"
         );
         for bad in [

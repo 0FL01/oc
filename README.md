@@ -22,8 +22,8 @@ make и CMake. Квалифицированная платформа — GNU/Lin
 отдельной qualification Fedora/macOS/Windows пока нет. После установки запускается
 один native-бинарник, без отдельного сервиса и загрузки грамматик.
 
-Конфигурация — только каноническая OpenCode 2; OpenCode 1 config отвергается с
-диагностикой, автоматической миграции нет. Пример: [examples/opencode.jsonc](examples/opencode.jsonc),
+Конфигурация — только каноническая OpenCode 2: ключи вне её схемы отвергаются одним
+отчётом `unknown_config_key`, автоматической миграции нет. Пример: [examples/opencode.jsonc](examples/opencode.jsonc),
 подробности: [docs/CONFIG.md](docs/CONFIG.md). Provider credentials нужны для
 запросов к модели, но не для `--help`/`--version`.
 

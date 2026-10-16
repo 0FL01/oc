@@ -163,7 +163,7 @@ fn provider(value: &Value, field: &str) -> Result<Value, ConfigError> {
     Ok(Value::Object(raw))
 }
 
-/// Canonical `providers` only; OpenCode 1 `provider` is refused by the T62 gate.
+/// Canonical `providers` only; other root keys are refused by the T66 allowlist.
 pub(super) fn document(obj: &Map<String, Value>) -> Result<BTreeMap<String, Value>, ConfigError> {
     let mut out = BTreeMap::new();
     if let Some(value) = obj.get("providers") {

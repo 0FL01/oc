@@ -377,13 +377,13 @@ fn compaction_config_canonical_layers_and_invalid_leaves() {
         (false, 456, 654)
     );
     assert_eq!(generation.provenance["compaction"], "project");
-    // OpenCode 1 compaction keys are refused, never folded into native values.
-    let legacy = [crate::config::Source {
-        path: "legacy".into(),
+    // Compaction keys outside the OC2 schema are refused, never folded in.
+    let unknown = [crate::config::Source {
+        path: "unknown".into(),
         trusted: true,
         text: serde_json::json!({"compaction":{"reserved":1}}).to_string(),
     }];
-    assert!(crate::config::assemble(&legacy, &BTreeMap::new(), None).is_err());
+    assert!(crate::config::assemble(&unknown, &BTreeMap::new(), None).is_err());
 }
 
 #[tokio::test]

@@ -1,5 +1,5 @@
-//! MCP09 canonical OpenCode 2 `mcp.servers`/`mcp.timeout` semantics (T62: no
-//! OpenCode 1 direct entries, `enabled` or numeric timeouts).
+//! MCP09 canonical OpenCode 2 `mcp.servers`/`mcp.timeout` semantics (T66: direct
+//! entries, `enabled` and numeric timeouts are not OC2 and never load).
 use super::*;
 
 fn source(value: serde_json::Value) -> Source {
@@ -122,7 +122,7 @@ fn mcp09_server_names_are_free_and_donor_timeout_defaults_apply() {
         ),
         (30_000, 30_000, 43_200_000)
     );
-    // OpenCode 1 direct entries never load (T62).
+    // Direct `mcp.<id>` entries are unknown keys and never load (T66).
     assert!(
         assemble(
             &[source(
@@ -249,7 +249,7 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
     ];
     for (raw, field, code) in bad {
         let generation = assemble(&[source(serde_json::json!({"mcp":{"servers":{
-            "broken":raw,"healthy":{"type":"local","command":["x"],"codemode":false,"metadata":"CANARY"},
+            "broken":raw,"healthy":{"type":"local","command":["x"],"codemode":false},
             "disabled":{"type":"local","command":["npx"],"disabled":true,"environment":{"TOKEN":"{file:missing}"}}
         }}}))], &BTreeMap::new(), None).unwrap();
         assert_eq!(generation.mcp.len(), 3);

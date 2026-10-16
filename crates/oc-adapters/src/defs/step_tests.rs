@@ -32,7 +32,7 @@ fn step_constraints_are_typed_source_fields_not_silent_profile_limits() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir(dir.path().join("agents")).unwrap();
     let path = dir.path().join("agents/constrained.md");
-    // Canonical `steps` is the Long Horizon refusal; OpenCode 1 `maxSteps` is a T62 report.
+    // Canonical `steps` is the Long Horizon refusal; `maxSteps` is an unknown key (T66).
     std::fs::write(&path, "---\nsteps: 16\n---\nbody").unwrap();
     let defs = load_definitions(&[DefRoot {
         dir: dir.path().into(),

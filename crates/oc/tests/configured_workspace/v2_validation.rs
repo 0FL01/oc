@@ -1,4 +1,4 @@
-//! Canonical package JSON versus legacy rejection before actual effects.
+//! Canonical package JSON versus unknown-key rejection before actual effects.
 use super::*;
 
 fn active_probe() -> Value {
@@ -11,7 +11,7 @@ fn active_probe() -> Value {
 }
 
 #[test]
-fn cfg11_canonical_opaque_settings_work_but_v1_stops_before_mcp_and_provider() {
+fn cfg11_canonical_opaque_settings_work_but_unknown_keys_stop_before_mcp_and_provider() {
     let fixture = Fixture::new();
     let mut additions = fixture.base_config();
     merge_object(&mut additions, active_probe());
@@ -35,7 +35,7 @@ fn cfg11_canonical_opaque_settings_work_but_v1_stops_before_mcp_and_provider() {
     fixture.assert_no_loader_execution();
 
     let model_path = format!("/providers/fixture/models/{MODEL}");
-    for (id, target, legacy) in [
+    for (id, target, unknown) in [
         (
             "provider",
             "",
@@ -58,12 +58,16 @@ fn cfg11_canonical_opaque_settings_work_but_v1_stops_before_mcp_and_provider() {
             .unwrap()
             .as_object_mut()
             .unwrap()
-            .insert(id.into(), legacy);
+            .insert(id.into(), unknown);
         fixture.write_base_config(additions);
-        let mut process = fixture.spawn(&fixture.project_a, "s-legacy-refused", "must not run", id);
+        let mut process =
+            fixture.spawn(&fixture.project_a, "s-unknown-refused", "must not run", id);
         assert!(!fixture.wait_for_preflight_failure(&mut process).success());
         let diagnostic = process.diagnostics();
-        assert!(diagnostic.contains("legacy_config"), "{id}: {diagnostic}");
+        assert!(
+            diagnostic.contains("unknown_config_key"),
+            "{id}: {diagnostic}"
+        );
         assert!(!diagnostic.contains("SCHEMA_VALUE_CANARY"));
         assert!(!fixture.project_a.join("r1-mcp-started").exists(), "{id}");
         fixture.assert_no_request();

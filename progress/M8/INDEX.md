@@ -22,3 +22,4 @@ Plan: ../../roadmap/M8.md
 - [T63](T63/INDEX.md) [done] — MIT для собственного кода проекта; latest: 0001.md.
 - [T64](T64/INDEX.md) [done] — Publish native oc2 on crates.io; latest: 0002.md.
 - [T65](T65/INDEX.md) [done] — Native V2 provider/cache/transport and ordered permission semantics; latest: 0003.md.
+- [T66](T66/INDEX.md) [done] — Strict OpenCode 2 key allowlist replaces the OpenCode 1 detector; latest: 0001.md.

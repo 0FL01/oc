@@ -264,6 +264,16 @@
       }
     },
     {
+      "id": "model-override-equal-to-native-default",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "maxTokensField": "max_completion_tokens" },
+          "models": { "m": { "compatibility": { "maxTokensField": "max_tokens" } } }
+        } } }
+      ],
+      "expected": { "maxTokensField": "max_tokens" }
+    },
+    {
       "id": "later-model-override",
       "documents": [
         { "providers": { "fixture": { "models": { "m": {

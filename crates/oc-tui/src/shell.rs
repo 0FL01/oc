@@ -160,13 +160,13 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
             unreachable!("diagnostic category projected above")
         }
     };
-    let legacy = diagnostic
-        .as_ref()
-        .is_some_and(|diagnostic| diagnostic.code == oc_core::queries::ServiceCode::LegacyConfig);
-    let (reason, action) = if legacy {
+    let unknown = diagnostic.as_ref().is_some_and(|diagnostic| {
+        diagnostic.code == oc_core::queries::ServiceCode::UnknownConfigKey
+    });
+    let (reason, action) = if unknown {
         (
-            "OpenCode 1 config keys are not supported",
-            "Replace each key below with its canonical OpenCode 2 form, then restart.",
+            "Config keys outside the OpenCode 2 schema",
+            "Remove or rename each key below (OpenCode 2 schema only), then restart.",
         )
     } else {
         (reason, action)

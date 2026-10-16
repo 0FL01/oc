@@ -75,7 +75,7 @@ fn plan_baseline_grants_never_erase_explicit_central_profile_or_parent_rules() {
                 Permission::Deny
             );
         }
-        for action in ["*", "edit", "apply_patch", "write", "external_directory"] {
+        for action in ["*", "edit", "external_directory"] {
             for effect in ["deny", "ask"] {
                 let ceiling = PermissionRules::from_config(
                     &serde_json::json!({"permissions":[{"action":action,"resource":"*","effect":effect}]}),

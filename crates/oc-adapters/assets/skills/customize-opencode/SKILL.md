@@ -87,10 +87,10 @@ Do not initiate a paid model request or OAuth flow merely to validate syntax.
 ## Provider and model example
 
 This is an illustrative **canonical OpenCode 2 shape**, not credentials or a
-promise that the placeholder model exists. OpenCode 1 keys (`provider`, `npm`,
-`options`, `permission`, `tools`, `agent`, `command`, `plugin`, `mcp.<name>`,
-`enabled_providers` …) are refused with one `legacy_config` report listing every
-key and its canonical replacement; convert them, never re-add OpenCode 1 shapes. Replace endpoint/ID with the user's
+promise that the placeholder model exists. Only keys of the OpenCode 2 schema are
+accepted: any other key (for example `provider`, `npm`, `options`, `permission`,
+`tools`, `agent`, `plugin`, `mcp.<name>`) is refused with one `unknown_config_key`
+report listing every path; use the canonical OpenCode 2 field instead. Replace endpoint/ID with the user's
 actual admitted values and verified model metadata (the limits below illustrate
 the shape, not a claim about an existing model); merge into the existing file.
 
@@ -98,7 +98,7 @@ the shape, not a claim about an existing model); merge into the existing file.
 {
   "providers": {
     "lab": {
-      "package": "@ai-sdk/openai",
+      "package": "@opencode/ai/providers/openai",
       "compatibility": { "supportsPromptCacheKey": true },
       "settings": {
         "baseURL": "https://api.example.invalid/v1",
@@ -117,10 +117,11 @@ the shape, not a claim about an existing model); merge into the existing file.
 ```
 
 The `package` value is a **native protocol alias**, not npm execution:
-`@ai-sdk/openai` (also `@opencode/ai/providers/openai`) selects Responses;
+`@opencode/ai/providers/openai` (also `@ai-sdk/openai`) selects Responses;
 `@ai-sdk/openai-compatible` / `@opencode/ai/providers/openai-compatible` select
 Chat Completions; `@ai-sdk/anthropic` / `@opencode/ai/providers/anthropic` select
-Messages. Unknown packages are unsupported, not dynamically imported. Preserve
+Messages. TS OpenCode 2 maps the same `@ai-sdk/*` aliases to these native
+packages too. Unknown packages are unsupported, not dynamically imported. Preserve
 the exact configured base path; do not append a vendor route or infer protocol,
 reasoning or capabilities from a model name. Use supported catalog/variant IDs;
 static metadata and discovery do not prove wire support. File-tool schemas follow

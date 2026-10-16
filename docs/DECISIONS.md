@@ -264,6 +264,19 @@ closed with one complete report of offending keys, sources and canonical replace
 Supersedes earlier "pinned OC2 normalizer/migration as oracle" wording for v1 shapes
 (T43/T45 R6/T46 MCP09/T53 GO02 legacy-equivalence). Owner converts their config. T62.
 
+### D28 — OC2 key allowlist, no OpenCode 1 vocabulary (owner 2026-10-16)
+
+Owner: «выкинуть из код базы поддержку легаси пути и оставить только oc2»; chosen
+form «V1-детектор → V2-allowlist». The OpenCode 1 key tables, replacement hints,
+`LegacyConfig`/`ReplaceLegacyConfig`, the specialised startup screen and V1-only
+guards are removed. Admission stays fail-closed through a schema-derived OC2
+allowlist (`config/admission.rs`): any other key refuses startup/reload/`oc2 models`
+with one `unknown_config_key` report (paths only, no values or replacements).
+Declared native extensions: root `dcp`/`animations`/`terminal`, variant `disabled`.
+Stricter than TS (`onExcessProperty: "ignore"`) by design. Supersedes the report
+form of D27 and the T46 omission of unknown MCP metadata. Owner converts
+`~/.config/opencode` himself. T66, CFG18.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

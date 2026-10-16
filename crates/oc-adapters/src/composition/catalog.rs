@@ -154,8 +154,7 @@ async fn load_catalog_inner(
     let openai_requested = policy.names(crate::models_dev::OPENAI)
         || admitted.sources.iter().any(|s| {
             config::parse_jsonc(&s.text, &s.path).ok().is_some_and(|v| {
-                v.pointer("/provider/openai").is_some()
-                    || v.pointer("/providers/openai").is_some()
+                v.pointer("/providers/openai").is_some()
                     || v.get("model")
                         .and_then(serde_json::Value::as_str)
                         .is_some_and(|s| {

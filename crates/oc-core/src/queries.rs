@@ -939,8 +939,8 @@ pub enum ServiceCode {
     CleanupFailed,
     Cancelled,
     UnsafeRetry,
-    /// OpenCode 1 config keys; only the canonical OpenCode 2 schema is admitted.
-    LegacyConfig,
+    /// Keys outside the canonical OpenCode 2 schema allowlist.
+    UnknownConfigKey,
 }
 
 impl ServiceCode {
@@ -990,7 +990,7 @@ impl ServiceCode {
             Self::CleanupFailed => "cleanup_failed",
             Self::Cancelled => "cancelled",
             Self::UnsafeRetry => "unsafe_retry",
-            Self::LegacyConfig => "legacy_config",
+            Self::UnknownConfigKey => "unknown_config_key",
         }
     }
 }
@@ -1014,7 +1014,7 @@ pub enum ServiceAction {
     ReviewRecovery,
     ReduceCapacity,
     UseInteractiveTui,
-    ReplaceLegacyConfig,
+    RemoveUnknownConfigKeys,
 }
 
 impl std::fmt::Display for ServiceDiagnostic {
@@ -1066,8 +1066,8 @@ impl std::fmt::Display for ServiceDiagnostic {
                     "reduce the admitted input or resource size; limits remain enforced",
                 ServiceAction::UseInteractiveTui =>
                     "use the interactive TUI to answer; --auto only accepts permissions",
-                ServiceAction::ReplaceLegacyConfig =>
-                    "replace OpenCode 1 keys with the canonical OpenCode 2 keys listed",
+                ServiceAction::RemoveUnknownConfigKeys =>
+                    "remove or rename each listed key; only the canonical OpenCode 2 schema is accepted",
             }
         )?;
         for detail in self.details.iter().flat_map(|details| details.iter()) {

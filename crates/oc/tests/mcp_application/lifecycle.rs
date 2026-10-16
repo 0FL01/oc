@@ -565,6 +565,11 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     tui.send_line("/mcps");
     wait_row(&tui, "late", "Connecting");
     close_mcps(&mut tui);
+    // The watcher may publish the edited sources before the explicit forced
+    // reload republishes them; both precede the acknowledgement above. The
+    // contract is that nothing starts after the Location retires the scope.
+    let spawned = event_count(&fixture, "late", "spawn");
+    assert!((1..=2).contains(&spawned), "late spawned {spawned} times");
     let other = fixture.project.with_file_name("other-location");
     fs::create_dir(&other).unwrap();
     tui.send_line(&format!("/location {}", other.display()));
@@ -579,7 +584,11 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
         0,
         "old completion escaped Location scope"
     );
-    assert_eq!(event_count(&fixture, "late", "spawn"), 1);
+    assert_eq!(
+        event_count(&fixture, "late", "spawn"),
+        spawned,
+        "retired scope spawned again"
+    );
     assert!(
         responses.requests().is_empty(),
         "connection controls generated model requests"

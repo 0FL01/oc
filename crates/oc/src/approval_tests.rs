@@ -124,7 +124,7 @@ async fn owner_settings_preserves_jsonc_and_missing_global_uses_admitted_locatio
     let project = fixture.root.path().join("project");
     std::fs::create_dir_all(&project).unwrap();
     let cli = project.join("cli.jsonc");
-    let original = "// retained comment 🦊\n{\"session\": {\"permissions\": \"prompt\", /* note */ \"tps\": false,}, \"unknown\": [1,2,], \"keybinds\": {\"leader\":\"alt+x\", \"permission.prompt.fullscreen\":\"<leader>f\", \"app.exit\":\"<leader>q,ctrl+c\"},}\n";
+    let original = "// retained comment 🦊\n{\"session\": {\"permissions\": \"prompt\", /* note */ \"tps\": false,}, \"experimental\": {\"one\": true, \"two\": false,}, \"keybinds\": {\"leader\":\"alt+x\", \"permission.prompt.fullscreen\":\"<leader>f\", \"app.exit\":\"<leader>q,ctrl+c\"},}\n";
     std::fs::write(&cli, original).unwrap();
     let (app, guard) = fixture.app_with_config_dir(false).await;
     app.set_permission_mode(true).await.unwrap();
