@@ -1749,7 +1749,11 @@ async fn home_model_pick_outlives_a_restart_over_the_configured_model() {
 #[tokio::test]
 async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
     use oc_core::queries::{AgentEntry, ModelEntry};
-    for existing_note in [None, Some("unrelated warning")] {
+    for (open_picker, existing_note) in [
+        (true, None),
+        (true, Some("unrelated warning")),
+        (false, None),
+    ] {
         let (app, mut inbox, _) = CoreApp::channel(4);
         let mut state = TuiState::new(app.clone(), SessionId::new("agent-selection").unwrap());
         let mut selected = catalog();
@@ -1784,7 +1788,36 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
         if let Some(note) = existing_note {
             state.push_note(note);
         }
-        state.handle_key(oc_tui::events::KeyAction::Agents).await;
+        let mut scroll = None;
+        if open_picker {
+            state.handle_key(oc_tui::events::KeyAction::Agents).await;
+        } else {
+            state.attach_page(&oc_core::queries::HistoryPage {
+                rows: vec![oc_core::queries::HistoryMessage {
+                    id: oc_core::session::MessageId("cycle-history".into()),
+                    seq: 1,
+                    role: Role::User,
+                    text: "retained history row\n".repeat(80),
+                    turn: None,
+                    model_switch: None,
+                    child: None,
+                    shell_notice: None,
+                    user_shell: None,
+                }],
+                total: 1,
+                ..Default::default()
+            });
+            let mut terminal =
+                ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
+            terminal
+                .draw(|frame| oc_tui::shell::render(frame, &state))
+                .unwrap();
+            state.scroll_transcript(true);
+            state.wheel_transcript_at(true, 1, Instant::now());
+            assert!(state.scroll() > 0);
+            let deadline = state.next_scroll_animation_deadline().unwrap();
+            scroll = Some((state.scroll(), deadline));
+        }
         let worker = tokio::spawn(async move {
             let Some(InboxMsg::SessionSelection { action, ack, .. }) = inbox.recv().await else {
                 panic!("selection")
@@ -1808,6 +1841,10 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
         assert_eq!(state.input(), "preserved draft");
         assert_eq!(state.panel(), &oc_tui::app::TuiPanel::None);
         assert_eq!(state.note(), existing_note);
+        if let Some((position, deadline)) = scroll {
+            assert_eq!(state.scroll(), position);
+            assert_eq!(state.next_scroll_animation_deadline(), Some(deadline));
+        }
         worker.await.unwrap();
     }
     // Owner failures stay errors and leave the dialog/draft available.

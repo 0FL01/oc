@@ -64,7 +64,7 @@ pub enum KeyAction {
     Backspace,
     /// Submit input buffer.
     Enter,
-    /// Complete the focused inline suggestion.
+    /// Complete the focused inline suggestion, or cycle primary profiles at root.
     Tab,
     /// Previous available Select footer action (modal-owned Shift+Tab).
     DialogActionPrevious,

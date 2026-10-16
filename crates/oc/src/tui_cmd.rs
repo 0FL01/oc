@@ -3100,7 +3100,9 @@ async fn apply_owned_intent(
         PanelIntent::SelectAgent { id } => {
             let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
             state.apply_catalog(snapshot);
-            state.close_panel();
+            if *state.panel() != TuiPanel::None {
+                state.close_panel();
+            }
         }
         PanelIntent::SwitchSession { id } => {
             // The worker is single-turn: refuse the switch while a turn runs

@@ -8,6 +8,16 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current owner-requested direct Tab profile cycle (2026-10-16)
+
+[Bounded correction receipt](tab-cycle-20261016.md): root Tab directly cycles the
+existing visible-primary catalog without a picker; explicit picker commands and
+selection ownership remain intact. The owner requested this narrow slice after
+the prior pause. Targeted regressions, workspace fmt/strict Clippy and debug build
+pass. Full workspace result is2018 passed/15 failed/12 ignored; seven non-path
+failures pass individually, but provider-burst latency and seven hardcoded-path
+fixtures remain unqualified. R6/full T44 is NOT PASS; details are in the receipt.
+
 ## Current usage settlement correction and pause (2026-10-16)
 
 [Current receipt](usage-settlement-20261016.md) and

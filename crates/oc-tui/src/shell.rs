@@ -45,7 +45,7 @@ pub const JUMP_TO_LATEST: &str = "Jump to latest ↓";
 /// Interrupt hint while a turn streams (`component/prompt/index.tsx:139-142`).
 pub const ESC_INTERRUPT: (&str, &str) = ("esc ", "interrupt");
 /// Prompt footer shortcuts (`feature-plugins/prompt/footer.tsx:89-104`).
-pub const AGENTS_HINT: (&str, &str) = (crate::commands::AGENTS_BINDING, "agents");
+pub const AGENTS_HINT: (&str, &str) = ("tab", "agents");
 /// Prompt footer shortcuts (`feature-plugins/prompt/footer.tsx:89-104`).
 pub const COMMANDS_HINT: (&str, &str) = (crate::commands::COMMANDS_BINDING, "commands");
 /// Toast max width (`ui/toast.tsx:50`: `min(60, width - 6)`).

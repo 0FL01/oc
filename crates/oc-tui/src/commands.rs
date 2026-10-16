@@ -193,7 +193,6 @@ pub fn direct(event: crossterm::event::KeyEvent) -> Option<CommandAction> {
         .find(|c| {
             c.shortcuts.iter().any(|binding| {
                 let (code, modifiers) = match *binding {
-                    "shift+tab" => (KeyCode::BackTab, KeyModifiers::SHIFT),
                     s if s.starts_with("ctrl+") && s.len() == 6 => (
                         KeyCode::Char(s.as_bytes()[5] as char),
                         KeyModifiers::CONTROL,
@@ -207,7 +206,6 @@ pub fn direct(event: crossterm::event::KeyEvent) -> Option<CommandAction> {
 }
 
 pub const COMMANDS_BINDING: &str = "ctrl+p";
-pub const AGENTS_BINDING: &str = "shift+tab";
 
 pub const REGISTRY: &[CommandSpec] = &[
     CommandSpec {
@@ -382,7 +380,7 @@ pub const REGISTRY: &[CommandSpec] = &[
         id: "agent.list",
         title: "Switch agent",
         group: "Agent",
-        shortcuts: &["ctrl+x a", AGENTS_BINDING],
+        shortcuts: &["ctrl+x a"],
         aliases: &["agents", "agent"],
         action: CommandAction::OpenAgents,
     },

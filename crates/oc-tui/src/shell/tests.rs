@@ -2795,7 +2795,7 @@ async fn vis28_narrow_running_footer_keeps_right_hints_and_dynamic_usage() {
     let turn = oc_core::core_app::WorkerTurnId("footer-clip".into());
     state.begin_compress_turn(turn.clone());
     state.close_panel();
-    let hints = "shift+tab agents  ctrl+p commands";
+    let hints = "tab agents  ctrl+p commands";
     for animations in [true, false] {
         state.chrome.animations = Some(animations);
         for (width, height) in [(43, 24), (44, 24), (80, 24), (120, 40)] {
@@ -2816,9 +2816,9 @@ async fn vis28_narrow_running_footer_keeps_right_hints_and_dynamic_usage() {
                 assert!(!row.contains("ctrl+p"));
             } else if width == 44 {
                 let clipped = if animations {
-                    "   ■⬝⬝⬝"
+                    "   ■⬝⬝⬝⬝⬝⬝⬝ e"
                 } else {
-                    "   [⋯] "
+                    "   [⋯] esc in"
                 };
                 assert_eq!(row, &format!("{clipped}  {hints}"));
             } else {
@@ -2840,9 +2840,9 @@ async fn vis28_narrow_running_footer_keeps_right_hints_and_dynamic_usage() {
                 terminal.draw(|frame| render(frame, &state)).unwrap();
                 let buffer = terminal.backend().buffer();
                 let hint_x = width - 2 - hints.len() as u16;
-                assert_eq!(buffer[(hint_x, y as u16)].symbol(), "s");
+                assert_eq!(buffer[(hint_x, y as u16)].symbol(), "t");
                 assert_eq!(buffer[(width - 3, y as u16)].symbol(), "s");
-                assert_eq!(buffer[(hint_x + 18, y as u16)].fg, Theme::dark().text());
+                assert_eq!(buffer[(hint_x + 12, y as u16)].fg, Theme::dark().text());
             }
         }
     }
@@ -3129,7 +3129,7 @@ async fn prompt_metadata_uses_upstream_budget_not_only_painted_width() {
 #[tokio::test]
 async fn golden_screen_80x24() {
     let state = golden_state().await;
-    let hints = "shift+tab agents  ctrl+p commands";
+    let hints = "tab agents  ctrl+p commands";
     let mut expected = vec![String::new(); 24];
     // Tabs rail: default idle status leaves the indicator blank before the title.
     expected[0] = "   Untitled session".to_string();
@@ -3159,7 +3159,7 @@ async fn golden_screen_80x24() {
 #[tokio::test]
 async fn golden_screen_120x40() {
     let state = golden_state().await;
-    let hints = "shift+tab agents  ctrl+p commands";
+    let hints = "tab agents  ctrl+p commands";
     let mut expected = vec![String::new(); 40];
     expected[0] = "   Untitled session".to_string();
     // Same message presentation as 80x24, just taller.

@@ -3231,12 +3231,41 @@ impl TuiState {
                 }
             }
             KeyAction::Enter => self.handle_enter().await,
-            KeyAction::Tab => KeyOutcome::default(),
+            KeyAction::Tab => self.cycle_agent(),
             KeyAction::Shells
             | KeyAction::ShellBackground
             | KeyAction::BackgroundSession
             | KeyAction::Children
             | KeyAction::ComposerNoop => KeyOutcome::default(),
+        }
+    }
+
+    fn cycle_agent(&self) -> KeyOutcome {
+        if self.prompt_shell_mode() {
+            return KeyOutcome::default();
+        }
+        if let Some(reason) = self.command_unavailable(&CommandAction::OpenAgents) {
+            return KeyOutcome {
+                note: Some(reason.into()),
+                ..KeyOutcome::default()
+            };
+        }
+        if self.agents.len() <= 1 {
+            return KeyOutcome::default();
+        }
+        let Some(index) = self
+            .agents
+            .iter()
+            .position(|agent| Some(agent.id.as_str()) == self.active_agent())
+        else {
+            return KeyOutcome::default();
+        };
+        let next = &self.agents[(index + 1) % self.agents.len()];
+        KeyOutcome {
+            intent: Some(PanelIntent::SelectAgent {
+                id: next.id.clone(),
+            }),
+            ..KeyOutcome::default()
         }
     }
 

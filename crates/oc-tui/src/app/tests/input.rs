@@ -2214,7 +2214,7 @@ async fn vis11_commands_hints_project_effective_leaders_and_literal_overrides() 
     );
     assert_eq!(
         state.command_footer(spec(&CommandAction::OpenAgents)),
-        "ctrl+g a alt+x a shift+tab"
+        "ctrl+g a alt+x a"
     );
     assert_eq!(
         state.command_footer(spec(&CommandAction::OpenCommands)),
@@ -2227,10 +2227,7 @@ async fn vis11_commands_hints_project_effective_leaders_and_literal_overrides() 
             state.command_footer(spec(&CommandAction::OpenModelPicker)),
             ""
         );
-        assert_eq!(
-            state.command_footer(spec(&CommandAction::OpenAgents)),
-            "shift+tab"
-        );
+        assert_eq!(state.command_footer(spec(&CommandAction::OpenAgents)), "");
         assert_eq!(
             state.command_footer(spec(&CommandAction::OpenCommands)),
             "ctrl+g p alt+p"
@@ -2584,6 +2581,12 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
         assert!(outcome.note.unwrap().contains("turn active"));
         assert_eq!(state.panel(), &TuiPanel::None);
     }
+    let outcome = state.handle_key(KeyAction::Tab).await;
+    assert_eq!(outcome.intent, None);
+    assert_eq!(
+        outcome.note.as_deref(),
+        Some("turn active; action unavailable")
+    );
     for (action, panel, intent) in [
         // DialogModel re-reads provider views/preferences on every open (read-only).
         (
@@ -3146,6 +3149,65 @@ async fn vis07_submit_pointer_in_unpainted_transcript_space_is_inert() {
 }
 
 #[tokio::test]
+async fn tab_cycles_catalog_agents_without_a_picker_or_draft_changes() {
+    use crate::commands::CommandAction;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    let mut state = fresh_state("tab-agent-cycle").await;
+    let mut catalog = snapshot();
+    catalog.agents = ["z-default", "a-custom", "m-plan"]
+        .into_iter()
+        .enumerate()
+        .map(|(color_index, id)| AgentEntry {
+            id: id.into(),
+            color_index,
+            description: String::new(),
+            model: None,
+            variant: None,
+        })
+        .collect();
+    catalog.agent_id = Some("z-default".into());
+    state.apply_catalog(catalog.clone());
+    type_text(&mut state, "preserved draft Ω界").await;
+    state.handle_key(KeyAction::Left).await;
+    let caret = state.editor.cursor;
+
+    // A dismissed picker highlight is not the committed profile.
+    state.run_command(CommandAction::OpenAgents);
+    state.handle_panel_key(KeyAction::Down);
+    state.handle_panel_key(KeyAction::Cancel);
+    assert_eq!(state.selected_agent().as_deref(), Some("a-custom"));
+    assert_eq!(state.active_agent(), Some("z-default"));
+    for next in ["a-custom", "m-plan", "z-default"] {
+        let action = state
+            .terminal_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE))
+            .unwrap();
+        let outcome = state.handle_key(action).await;
+        assert_eq!(
+            outcome.intent,
+            Some(PanelIntent::SelectAgent { id: next.into() })
+        );
+        assert_eq!(state.active_agent(), catalog.agent_id.as_deref());
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert_eq!(state.input(), "preserved draft Ω界");
+        assert_eq!(state.editor.cursor, caret);
+        catalog.agent_id = Some(next.into());
+        state.apply_catalog(catalog.clone());
+    }
+    assert_eq!(
+        state.terminal_key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT)),
+        None
+    );
+
+    catalog.agents.truncate(1);
+    state.apply_catalog(catalog.clone());
+    assert_eq!(state.handle_key(KeyAction::Tab).await.intent, None);
+    catalog.agents.clear();
+    state.apply_catalog(catalog);
+    assert_eq!(state.handle_key(KeyAction::Tab).await.intent, None);
+}
+
+#[tokio::test]
 async fn panel_enter_returns_selection_intents() {
     let mut state = fresh_state("s-panels").await;
     state.apply_catalog(snapshot());
@@ -3228,6 +3290,7 @@ async fn r4a_unavailable_primary_row_is_read_only_and_draft_survives_agent_repai
     state.handle_paste("retained draft");
     let label = format!("{requested} (unavailable)");
     assert_eq!(state.active_agent(), Some(label.as_str()));
+    assert_eq!(state.handle_key(KeyAction::Tab).await.intent, None);
     state.run_command(crate::commands::CommandAction::OpenAgents);
     assert_eq!(state.panel(), &TuiPanel::Agents);
     assert!(state.modal_options()[0].title.contains("unavailable"));
