@@ -212,6 +212,11 @@ impl Composition {
     /// not publish policy, activate MCP, read new config files or open another Db.
     pub(crate) fn admit_provider_views(&mut self) -> Result<(), LoadFailure> {
         let mut ids: BTreeSet<_> = self.generation.providers.keys().cloned().collect();
+        // The native dynamic-discovery provider has no static models, so the
+        // selected generation drops it as inert metadata. Its own per-view
+        // admission below (policy, endpoint, credential) decides, and skips it
+        // when unconfigured.
+        ids.insert(crate::discovery::PROVIDER_ID.into());
         if self.generation.public_go_enabled {
             ids.insert(crate::models_dev::PROVIDER.into());
         }

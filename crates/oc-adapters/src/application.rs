@@ -1912,6 +1912,9 @@ async fn start_worker_inner(
                     provider_catalog::CatalogOutcome::OpenAi(outcome) => {
                         composition.accept_public_view_for(crate::models_dev::OPENAI, outcome)
                     }
+                    provider_catalog::CatalogOutcome::View(outcome) => {
+                        composition.accept_view_catalog(crate::discovery::PROVIDER_ID, outcome)
+                    }
                     provider_catalog::CatalogOutcome::Custom(outcome) => {
                         provider_work
                             .custom

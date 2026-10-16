@@ -11,6 +11,10 @@ pub(super) struct ProviderWork {
     public_task:
         Option<JoinHandle<Result<crate::discovery::DiscoveryOutcome, composition::LoadFailure>>>,
     public_provider: &'static str,
+    /// The native dynamic-discovery view (`ludka2`) when it is admitted but not
+    /// the selected provider. Without it that view keeps only static models.
+    view_task:
+        Option<JoinHandle<Result<crate::discovery::DiscoveryOutcome, composition::LoadFailure>>>,
     pub(super) custom: super::provider_connections::Work,
 }
 
@@ -18,6 +22,8 @@ pub(super) enum CatalogOutcome {
     Selected(crate::discovery::DiscoveryOutcome),
     Public(crate::discovery::DiscoveryOutcome),
     OpenAi(crate::discovery::DiscoveryOutcome),
+    /// Discovery for the unselected native dynamic view.
+    View(crate::discovery::DiscoveryOutcome),
     Custom(Result<crate::custom_discovery::CustomCatalog, crate::discovery::DiscoveryError>),
 }
 
@@ -66,6 +72,22 @@ impl ProviderWork {
             let models = view.entry.models.clone();
             tokio::spawn(refresh_public(db, public_provider.into(), models))
         });
+        // One read-only GET per pending admitted view, like the selected one;
+        // finished (Ready/Failed) views are not swept again.
+        let view_task = (composition.catalog.provider != crate::discovery::PROVIDER_ID)
+            .then(|| {
+                composition
+                    .provider_views
+                    .get(crate::discovery::PROVIDER_ID)
+            })
+            .flatten()
+            .filter(|view| view.state.catalog_status == ProviderStatus::Pending)
+            .map(|view| {
+                tokio::spawn(Composition::discover_provider(
+                    view.provider.clone(),
+                    view.entry.models.clone(),
+                ))
+            });
         let mut custom = super::provider_connections::Work::default();
         let selected_custom = composition
             .custom_revisions
@@ -85,12 +107,16 @@ impl ProviderWork {
             task,
             public_task,
             public_provider,
+            view_task,
             custom,
         }
     }
 
     pub(super) fn pending(&self) -> bool {
-        self.task.is_some() || self.public_task.is_some() || self.custom.pending()
+        self.task.is_some()
+            || self.public_task.is_some()
+            || self.view_task.is_some()
+            || self.custom.pending()
     }
 
     pub(super) fn selected_pending(&self) -> bool {
@@ -121,12 +147,17 @@ impl ProviderWork {
         tokio::select! {
             result = wait_task(&mut self.task) => result.map(CatalogOutcome::Selected),
             result = wait_task(&mut self.public_task) => result.map(|o| if openai { CatalogOutcome::OpenAi(o) } else { CatalogOutcome::Public(o) }),
+            result = wait_task(&mut self.view_task) => result.map(CatalogOutcome::View),
             result = self.custom.wait(), if self.custom.pending() => result.map(CatalogOutcome::Custom),
         }
     }
 
     pub(super) async fn stop(&mut self) -> Result<(), oc_core::queries::ServiceDiagnostic> {
-        let tasks = [self.task.take(), self.public_task.take()];
+        let tasks = [
+            self.task.take(),
+            self.public_task.take(),
+            self.view_task.take(),
+        ];
         for task in tasks.iter().flatten() {
             task.abort();
         }
@@ -196,6 +227,9 @@ impl Drop for ProviderWork {
             task.abort();
         }
         if let Some(task) = &self.public_task {
+            task.abort();
+        }
+        if let Some(task) = &self.view_task {
             task.abort();
         }
     }

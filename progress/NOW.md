@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T13:10:52+00:00
+State updated: 2026-10-16T13:45:58+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,32 +12,30 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# /connect integration flow parity slice
+# ludka2 unavailable in native TUI
 
 ## Result
 
-`/connect` now renders the pinned DialogIntegration flow: searchable integration
-list with Popular/Services, success `✓` and connection summary; provider account
-management (Add account, Connected accounts, ● active, ctrl+r/ctrl+d); method
-choice; DialogPrompt key/rename/custom forms; OAuthView. Only providers the
-native binary can connect are listed (owner decision). Details:
-evidence/T44/report.md, "/connect integration flow (VIS45 presentation)".
+Root cause: no configured `model` + empty saved selection selects opencode-go;
+the zero-static-model ludka2 was then dropped from the generation and never
+discovered, so it had no view/catalog and could not be chosen. Fix admits the
+native discovery provider view and discovers it in the background without
+changing selection. Details in evidence/T44/report.md.
 
 ## Checks
 
-oc-tui 555, oc-core 43, oc-adapters lib 806, oc2 bin 119, pty_t39 60, pty_t42 35,
-fmt + strict Clippy, debug oc2 build; AUTH05 TUI/CLI scripts PASS when run
-manually with a non-/home/opencode TMPDIR.
+New adapter regression test; oc-adapters + oc-tui green (one known load flake);
+oc2 env-only failures unchanged; fmt + strict Clippy; debug oc2 built.
 
 ## Risks
 
-No paired OC2/native capture (NOT_RUN). Native differences listed in the
-report (catalog scope, masked key, custom forms, default label, footer focus).
+One additional read-only GET /models to ludka2 at startup when it is admitted
+but not selected (upstream also loads all providers). No live check by the
+agent; owner verifies via oc2-dev.
 
 ## Next
 
-Owner live look via oc2-dev; paired capture of list/accounts/method/key/OAuth;
-remaining ordered T44 slices. T44 stays active.
+Owner live look; continue T44 slices.
 
 
 Ready (до 5): нет

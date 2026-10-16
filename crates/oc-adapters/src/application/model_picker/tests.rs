@@ -96,3 +96,77 @@ async fn all_loaded_provider_views_and_preferences_survive_reopen() {
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 }
+
+#[tokio::test]
+async fn unselected_dynamic_view_discovers_its_catalog_without_selecting_it() {
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut bytes = Vec::new();
+        while !bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+            let mut chunk = [0; 1024];
+            let count = socket.read(&mut chunk).await.unwrap();
+            assert!(count > 0 && bytes.len() < 65_536);
+            bytes.extend_from_slice(&chunk[..count]);
+        }
+        assert!(bytes.starts_with(b"GET /v1/models HTTP/1.1\r\n"));
+        let body = serde_json::json!({"object":"list", "data":[{"id":"dyn-1", "opencode":{
+            "name":"Discovered One", "limit":{"context":32768,"output":4096}
+        }}]})
+        .to_string();
+        socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+    });
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let global = root.path().join("global");
+    let data = root.path().join("data");
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::create_dir_all(&global).unwrap();
+    std::fs::write(project.join("opencode.json"), serde_json::json!({
+        "model": "alpha/a1",
+        "providers": {
+            "alpha": {"package": "@ai-sdk/openai",
+                "settings": {"baseURL": "http://127.0.0.1:9/alpha", "apiKey": "ALPHA_KEY"},
+                "models": {"a1": {"limit": {"context": 1000, "output": 100}}}},
+            "ludka2": {"package": "@ai-sdk/openai", "settings": {"baseURL": format!("http://{addr}/v1"), "apiKey": "fixture"}}
+        },
+        "permissions": [{"action": "*", "resource": "*", "effect": "allow"}],
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+    }).to_string()).unwrap();
+    let env = BTreeMap::from([
+        (
+            "OPENCODE_CONFIG_DIR".into(),
+            global.to_string_lossy().into_owned(),
+        ),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _, _) = spawn_inner(&project, &data, env, true)
+        .await
+        .unwrap_or_else(|issue| panic!("{:?}", issue.category));
+    tokio::time::timeout(std::time::Duration::from_secs(5), peer)
+        .await
+        .unwrap()
+        .unwrap();
+    let ludka2 = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            let catalogs = app.model_catalogs().await.unwrap();
+            if let Some(view) = catalogs
+                .catalogs
+                .iter()
+                .find(|c| c.provider == "ludka2" && !c.models.is_empty())
+            {
+                break (catalogs.catalogs[0].provider.clone(), view.clone());
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("unselected ludka2 view must load its catalog");
+    assert_eq!(ludka2.0, "alpha", "discovery never changes the selection");
+    assert_eq!(ludka2.1.models[0].id, "dyn-1");
+    assert!(ludka2.1.model_id.is_empty());
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}

@@ -103,6 +103,11 @@ impl TuiState {
             .flatten()
     }
 
+    /// The open model dialog currently shows the all-provider directory.
+    pub fn model_directory_visible(&self) -> bool {
+        self.panel == TuiPanel::Model && self.model_directory_active().is_some()
+    }
+
     /// Pinned DialogModel title: the provider name when scoped.
     pub(crate) fn model_dialog_title(&self) -> &str {
         self.model_scope.as_deref().unwrap_or("Select model")

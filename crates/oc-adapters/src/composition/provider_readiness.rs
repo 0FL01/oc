@@ -479,6 +479,26 @@ impl Composition {
         Ok(discovery::refresh_provider(&client, &provider, &models, &AtomicBool::new(false)).await)
     }
 
+    /// Discovery result for an admitted but unselected provider view. The
+    /// selected composition, its readiness and any prepared request are untouched.
+    pub(crate) fn accept_view_catalog(
+        &mut self,
+        id: &str,
+        outcome: discovery::DiscoveryOutcome,
+    ) -> bool {
+        if id == self.catalog.provider {
+            return false;
+        }
+        let Some(view) = self.provider_views.get_mut(id) else {
+            return false;
+        };
+        let before = (view.state.catalog_status, view.catalog.models.clone());
+        view.state.finish(&outcome);
+        view.catalog.models = outcome.models;
+        self.generation.warnings.extend(outcome.warnings);
+        before != (view.state.catalog_status, view.catalog.models.clone())
+    }
+
     pub(crate) fn accept_provider_catalog(&mut self, outcome: discovery::DiscoveryOutcome) {
         if outcome.replaced {
             trace::log(

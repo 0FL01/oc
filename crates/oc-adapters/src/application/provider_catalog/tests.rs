@@ -15,6 +15,7 @@ async fn ui07_completed_catalog_join_failure_is_not_suppressed_on_stop() {
         task: Some(task),
         public_task: None,
         public_provider: crate::models_dev::PROVIDER,
+        view_task: None,
         custom: Default::default(),
     };
     let result = work.stop().await;
@@ -90,6 +91,7 @@ async fn go05_independent_public_job_publishes_only_its_view_and_stops_without_l
         task: Some(selected),
         public_task: Some(public_task),
         public_provider: crate::models_dev::PROVIDER,
+        view_task: None,
         custom: Default::default(),
     };
     let CatalogOutcome::Public(outcome) =
@@ -134,6 +136,7 @@ async fn go05_independent_public_job_publishes_only_its_view_and_stops_without_l
         task: None,
         public_task: Some(public_task),
         public_provider: crate::models_dev::PROVIDER,
+        view_task: None,
         custom: Default::default(),
     };
     assert!(retired.pending() && !retired.selected_pending());

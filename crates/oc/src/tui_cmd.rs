@@ -1652,6 +1652,13 @@ async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
             state.apply_picker_catalog(catalog);
         }
     }
+    // A provider view finished discovery while the all-provider dialog is open.
+    if state.model_directory_visible()
+        && let Ok(catalogs) = app.model_catalogs().await
+    {
+        let preference = app.model_preference(None).await.unwrap_or_default();
+        state.apply_model_directory(catalogs, preference);
+    }
 }
 
 async fn refresh_provider_views(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {

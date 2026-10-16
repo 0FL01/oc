@@ -1854,3 +1854,37 @@ generic provider connect; masked key input; native custom-provider forms
 stays `default` (upstream derives it from the integration ref name); no Tab
 focus/mouse on footer actions; loading states show a short "Working…" notice.
 Paired OC2/native capture NOT_RUN; T44 stays ACTIVE.
+
+## ludka2 unavailable in the native TUI — investigation 2026-10-16
+
+Owner report: `ludka2` not available in `oc2-dev` while the provider itself works.
+Base `4677bafd0`.
+
+Findings (no generation; `oc2 models` read-only listing showed 50 ludka2 models in
+both the release and debug binaries, so config/env/discovery were fine):
+
+1. The config has no `model` and the live store has no saved selection, so the
+   composition selects `opencode-go` (`composition.rs` default).
+2. An unselected provider with zero static models is dropped from the selected
+   generation (`config.rs` inert-metadata branch requires `!models.is_empty()`).
+   ludka2 is catalog-by-discovery only, so it had no provider view, no catalog,
+   no `/connect` row and no picker rows: it could not be selected at all. It
+   worked previously only while ludka2 was the saved selection.
+3. Even an admitted ludka2 view would stay `Pending`: background discovery ran
+   only for the selected provider and the public Go catalog.
+
+Fix:
+- `admit_provider_views` always attempts the native discovery provider
+  (`discovery::PROVIDER_ID`) through the existing per-view admission (policy,
+  endpoint, credential); unconfigured stays absent.
+- `ProviderWork` gains one read-only `GET /models` task for that view while it is
+  `Pending`; `Composition::accept_view_catalog` applies the result to the view only
+  (selection, readiness and prepared requests untouched); `ProviderChanged`
+  follows. An open Ctrl+X M directory reloads on provider refresh.
+
+Checks: new `application::model_picker::tests::unselected_dynamic_view_discovers_*`
+(fake `/v1/models`, selection stays `alpha`), oc-adapters + oc-tui 1647 passed
+(only the known load flake `subagent::cancel_mid_child_stream_*`, passes alone),
+oc2 failures identical to the known environment set, fmt + strict Clippy,
+debug build. Live check against the real ludka2 is left to the owner via
+`oc2-dev` (secrets file is not read by the agent).
