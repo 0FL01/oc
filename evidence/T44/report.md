@@ -1943,3 +1943,31 @@ read keys directly; oc-adapters/oc-tui/oc-core green except load flakes that pas
 alone; oc2 bin 119, pty 16, pty_t42 35; full pty_t39 runs show one different
 failing test per run (var01/ui07/conn04), each passing in isolation — not
 compared against the previous commit yet (open). fmt + strict Clippy, debug build.
+
+## Model and effort remembered on choice, without sending — owner request 2026-10-16
+
+Repro: in Home pick `cx/gpt-6-luna`, choose effort, quit without sending, restart →
+the effort dialog appears again and Home is back on the configured model.
+
+Pinned OC2 (`context/local.tsx`): `variant.set` calls `saveVariant` at once (dialog and
+Ctrl+T); `model.set(..., {recent:true})` adds a recent entry at once; a Home pick is
+`newSessionModelByLocationAgent` (kept for later new sessions, ahead of the agent/config
+model). Pinned `fallbackModel` = args → configured `model` → recent → first, so
+**OC2 also opens on the project `opencode.json` `model`** (this repo pins
+`ludka2/ocg/muse-spark-1.3-contributor`) after a restart.
+
+Fix: `ModelPreferenceAction::Variant` stores the per-model effort when it is chosen
+(dialog/Ctrl+T, sessions and Home; a no-op cycle writes nothing). A manual Home pick
+is committed as the durable Home draft at once (existing Home `Commit`), so it also
+survives a restart over the configured model (native extension of the in-memory
+pinned draft; previously it was persisted only after a send). Best effort: a refused
+write never undoes the draft. **Storage disclosure:** existing prefs keys only.
+
+Checks: new routing tests `home_model_pick_*` (one fails without the fix with
+`("m", None)` vs `("n", Some("high"))`) and `chosen_and_cycled_effort_*`; adapters
+`home_pick_and_effort_are_remembered_without_sending`; updated pty_t39 v04 (Home draft
+now carries to later new sessions, as pinned) and r4a (Home pick repairs the blocked
+pin). oc2 bin 122, pty_t39 60, pty_t42 35, pty 16, oc-adapters green (subagent cancel
+flake passes alone), oc-tui green except a load flake per run that passes alone;
+fmt + strict Clippy. Other oc2 integration targets that fail in 0.1 s need a host base
+dir missing here (`assert BASE.is_dir()`), unrelated to selection.

@@ -301,3 +301,68 @@ async fn selection_and_effort_survive_a_restart_with_another_default_provider() 
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 }
+
+#[tokio::test]
+async fn home_pick_and_effort_are_remembered_without_sending() {
+    use oc_core::queries::SessionSelectionAction as Action;
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    // No configured `model`: pinned fallbackModel uses the recent choice.
+    std::fs::write(
+        project.join("opencode.json"),
+        serde_json::json!({
+            "providers": {
+                "beta": {"package": "@ai-sdk/openai",
+                    "settings": {"baseURL": "http://127.0.0.1:9/beta", "apiKey": "B"},
+                    "models": {"b1": {"limit": {"context": 1000, "output": 100},
+                        "variants": [{"id": "low", "settings": {"reasoningEffort": "low"}},
+                                     {"id": "high", "settings": {"reasoningEffort": "high"}}]}}}
+            },
+            "permissions": [{"action": "*", "resource": "*", "effect": "allow"}],
+            "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let model = ModelPreferenceModel {
+        provider: "beta".into(),
+        model: "b1".into(),
+    };
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    app.model_preference(Some(ModelPreferenceAction::Recent(model.clone())))
+        .await
+        .unwrap();
+    let stored = app
+        .model_preference(Some(ModelPreferenceAction::Variant {
+            model: model.clone(),
+            variant: Some("high".into()),
+        }))
+        .await
+        .unwrap();
+    assert_eq!(stored.variants, vec![(model.clone(), "high".to_string())]);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let home = app.home_selection(Action::Current).await.unwrap();
+    assert_eq!(
+        (
+            home.provider.as_str(),
+            home.model_id.as_str(),
+            home.variant.as_deref()
+        ),
+        ("beta", "b1", Some("high"))
+    );
+    assert_eq!(
+        app.model_preference(None).await.unwrap().variants,
+        vec![(model, "high".to_string())]
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}

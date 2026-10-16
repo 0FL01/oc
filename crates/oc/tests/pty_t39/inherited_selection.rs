@@ -778,9 +778,16 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
             .unwrap();
             let home = app.home_selection(Action::Current).await.unwrap();
             assert_eq!(home.agent_id.as_deref(), Some("lost"));
-            assert_eq!(home.chrome.selection.unwrap().diagnostic.code, ServiceCode::ModelUnavailable,
-                "committing a captured fresh session does not rewrite independent Home/config preferences");
-            let active = app.session_selection(SessionId::new(ACTIVE).unwrap(), false, Action::Current).await.unwrap();
+            // The explicit Home pick before quitting is the durable Home draft.
+            assert_eq!(home.model_id, MODEL);
+            assert!(
+                home.chrome.selection.is_none(),
+                "the Home pick repaired the blocked pin"
+            );
+            let active = app
+                .session_selection(SessionId::new(ACTIVE).unwrap(), false, Action::Current)
+                .await
+                .unwrap();
             assert_eq!(active.agent_id.as_deref(), Some("lost"));
             assert_eq!(active.model_id, MODEL);
             assert!(active.chrome.selection.is_none());

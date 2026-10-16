@@ -2297,21 +2297,31 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
         7,
         "navigation and unavailable actions never submit"
     );
-    for (i, request) in requests.iter().enumerate() {
-        if [0, 2, 5, 6].contains(&i) {
-            assert_eq!(request["model"], ALT_MODEL);
-            assert_eq!(
-                request["reasoning"]["effort"], "high",
-                "original session restored"
-            );
-        } else {
-            assert_eq!(
-                request["model"], MODEL,
-                "new Home uses its own draft/configured fallback"
-            );
-            assert!(request["reasoning"]["effort"].is_null());
-        }
-    }
+    // Pinned `newSessionModelByLocationAgent`: a Home pick stays the Home
+    // draft for later new sessions; it is also remembered across restarts.
+    let wire: Vec<_> = requests
+        .iter()
+        .map(|request| {
+            (
+                request["model"].as_str().unwrap().to_owned(),
+                request["reasoning"]["effort"].as_str().map(str::to_owned),
+            )
+        })
+        .collect();
+    let alt = || (ALT_MODEL.to_owned(), Some("high".to_owned()));
+    assert_eq!(
+        wire,
+        [
+            alt(),
+            (MODEL.to_owned(), None),
+            alt(),
+            alt(),
+            alt(),
+            alt(),
+            alt()
+        ],
+        "original session restored; new Home uses its own draft/configured fallback"
+    );
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     let saved = saved_selection(&db, &fixture, "v04-new", DEFAULT_AGENT);
     let draft_key = format!(
@@ -2324,13 +2334,15 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
                 .canonicalize()
                 .unwrap()
                 .to_string_lossy(),
-            "fixture",
             DEFAULT_AGENT
         ])
     );
-    assert!(
-        db.get_pref(&draft_key).unwrap().is_none(),
-        "local Home picker choice is captured into its accepted session, never a persisted uncommitted draft"
+    let draft: serde_json::Value =
+        serde_json::from_str(&db.get_pref(&draft_key).unwrap().unwrap()).unwrap();
+    assert_eq!(
+        (&draft["id"], &draft["variant"]),
+        (&serde_json::json!(ALT_MODEL), &serde_json::json!("fast")),
+        "a manual Home pick is the durable Home draft at once"
     );
     assert_eq!(saved["id"], ALT_MODEL);
     assert_eq!(

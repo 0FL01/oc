@@ -108,7 +108,20 @@ pub(super) fn preference(
         BoundedPref::Missing | BoundedPref::TooLarge => None,
     };
     let mut preference = ModelPreference::decode(raw.as_deref());
-    if let Some(action) = action {
+    if let Some(ModelPreferenceAction::Variant { model, variant }) = &action {
+        if model.provider.is_empty()
+            || model.model.is_empty()
+            || variant
+                .as_ref()
+                .is_some_and(|v| v.is_empty() || v.len() > 128)
+        {
+            return Err(app_error("invalid remembered variant"));
+        }
+        let (key, value) =
+            super::selection::variant_record(&model.provider, &model.model, variant)?;
+        db.set_pref(&key, &value)
+            .map_err(|error| query_storage_error(db, error))?;
+    } else if let Some(action) = action {
         preference.apply(action);
         db.set_pref(
             PREF_MODEL_PREFERENCE,

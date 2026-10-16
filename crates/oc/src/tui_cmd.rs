@@ -1636,6 +1636,28 @@ fn at_tty() -> bool {
     std::io::stdin().is_terminal()
 }
 
+/// A manual Home choice becomes the durable Home draft at once, so the next
+/// launch opens with it without a send first. Best effort: a refused or failed
+/// write never undoes the draft (the send path still validates and persists).
+async fn remember_home_draft(app: &CoreApp, state: &TuiState) {
+    if state.attached_session().is_none()
+        && let Some(commit) = state.captured_model_commit()
+    {
+        let _ = app.home_selection(SelectionAction::Commit(commit)).await;
+    }
+}
+
+/// Pinned `saveVariant`: the effort is remembered as soon as it is chosen,
+/// independent of sending; a storage failure never undoes the draft.
+async fn remember_drafted_variant(app: &CoreApp, state: &mut TuiState) {
+    remember_home_draft(app, state).await;
+    if let Some(action) = state.drafted_variant()
+        && let Ok(preference) = app.model_preference(Some(action)).await
+    {
+        state.apply_model_preference(preference);
+    }
+}
+
 async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
     let picker_provider = state.picker_provider_filter().map(str::to_owned);
     let catalog = if let Some(session) = state.attached_session() {
@@ -2862,6 +2884,7 @@ async fn apply_owned_intent(
             {
                 state.apply_model_preference(preference);
             }
+            remember_home_draft(app, state).await;
         }
         PanelIntent::LoadModelDirectory => {
             if !state.catalog_loaded() {
@@ -2884,9 +2907,12 @@ async fn apply_owned_intent(
         }
         PanelIntent::ChooseModel { variant, .. } => {
             state.draft_variant(variant.as_deref())?;
+            remember_drafted_variant(app, state).await;
         }
         PanelIntent::CycleVariant => {
-            state.cycle_variant_draft()?;
+            if state.cycle_variant_draft()? {
+                remember_drafted_variant(app, state).await;
+            }
         }
         PanelIntent::NewSession | PanelIntent::AddSessionTab => {
             let busy_add = intent == PanelIntent::AddSessionTab && state.is_busy();

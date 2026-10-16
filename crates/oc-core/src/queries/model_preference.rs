@@ -38,6 +38,13 @@ pub enum ModelPreferenceAction {
         model: ModelPreferenceModel,
         enabled: bool,
     },
+    /// Pinned `saveVariant`: remember this model's effort as soon as it is
+    /// chosen (dialog or Ctrl+T); `None` is an explicit Default. Stored by the
+    /// selection owner, not in this document.
+    Variant {
+        model: ModelPreferenceModel,
+        variant: Option<String>,
+    },
 }
 
 fn models(value: Option<&serde_json::Value>, cap: usize) -> Vec<ModelPreferenceModel> {
@@ -95,6 +102,7 @@ impl ModelPreference {
                     self.favorite.truncate(MAX_FAVORITE_MODELS);
                 }
             }
+            ModelPreferenceAction::Variant { .. } => {}
         }
     }
 

@@ -1643,6 +1643,110 @@ async fn selecting_model_updates_local_draft_without_owner_commit_or_selection_t
 }
 
 #[tokio::test]
+async fn home_model_pick_is_remembered_as_the_home_draft_without_sending() {
+    use oc_core::queries::ModelEntry;
+
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new_home(app.clone());
+    let mut selected = catalog();
+    selected.models = ["first", "second"]
+        .into_iter()
+        .map(|id| ModelEntry {
+            id: id.into(),
+            display_name: id.into(),
+            variants_known: true,
+            ..Default::default()
+        })
+        .collect();
+    selected.model_id = "first".into();
+    state.apply_catalog(selected);
+    let owner = async {
+        let Some(InboxMsg::HomeSelection {
+            action: SelectionAction::Commit(commit),
+            ack,
+        }) = tokio::time::timeout(Duration::from_secs(5), inbox.recv())
+            .await
+            .ok()
+            .flatten()
+        else {
+            panic!("a Home pick must become the durable Home draft at once");
+        };
+        let _ = ack.send(Err(CoreError::TurnBusy));
+        commit
+    };
+    let mut deck = LoopState::default();
+    let pick = PanelIntent::SelectModel {
+        id: "second".into(),
+        recent: None,
+    };
+    let (commit, applied) = tokio::join!(owner, apply_intent(&app, &mut state, &mut deck, pick));
+    applied.unwrap();
+    assert_eq!((commit.model_id.as_str(), commit.variant), ("second", None));
+    assert_eq!(
+        state.active_model_label(),
+        Some(("second".into(), None)),
+        "a refused memory write never undoes the draft"
+    );
+    assert!(inbox.try_recv().is_err(), "a pick never submits");
+}
+
+#[tokio::test]
+async fn home_model_pick_outlives_a_restart_over_the_configured_model() {
+    use std::collections::BTreeMap;
+
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(
+        project.join("opencode.json"),
+        serde_json::json!({
+            "model": "fixture/m",
+            "providers": {"fixture": {"package": "@ai-sdk/openai",
+                "settings": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "fixture-key"},
+                "models": {"m": {}, "n": {"variants": [
+                    {"id": "high", "settings": {"reasoningEffort": "high"}}]}}}}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let env = BTreeMap::from([("HOME".into(), root.path().to_string_lossy().to_string())]);
+    let data = root.path().join("data");
+    let (app, guard, _) = oc_adapters::application::spawn_with_env(&project, &data, env.clone())
+        .await
+        .unwrap();
+    let mut state = TuiState::new_home(app.clone());
+    state.apply_catalog(app.home_selection(SelectionAction::Current).await.unwrap());
+    let mut deck = LoopState::default();
+    let pick = PanelIntent::SelectModel {
+        id: "n".into(),
+        recent: None,
+    };
+    let choose = PanelIntent::ChooseModel {
+        id: "n".into(),
+        variant: Some("high".into()),
+    };
+    for intent in [pick, choose] {
+        apply_intent(&app, &mut state, &mut deck, intent)
+            .await
+            .unwrap();
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let (app, guard, _) = oc_adapters::application::spawn_with_env(&project, &data, env)
+        .await
+        .unwrap();
+    let home = app.home_selection(SelectionAction::Current).await.unwrap();
+    assert_eq!(
+        (home.model_id.as_str(), home.variant.as_deref()),
+        ("n", Some("high")),
+        "the manual Home choice and effort survive quitting without a send"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
     use oc_core::queries::{AgentEntry, ModelEntry};
     for existing_note in [None, Some("unrelated warning")] {
@@ -1788,9 +1892,35 @@ async fn variant_cycle_drafts_catalog_order_and_stale_default_rules_in_home_and_
                 .await
                 .intent
                 .unwrap();
-            apply_intent(&app, &mut state, &mut LoopState::default(), intent)
-                .await
-                .unwrap();
+            // The cycled effort is remembered at once (pinned `saveVariant`).
+            // Home also records the durable Home draft first.
+            let owner = async {
+                if home {
+                    let Some(InboxMsg::HomeSelection {
+                        action: SelectionAction::Commit(commit),
+                        ack,
+                    }) = inbox.recv().await
+                    else {
+                        panic!("expected an immediate Home draft write");
+                    };
+                    assert_eq!(commit.variant.as_deref(), expected);
+                    let _ = ack.send(Err(CoreError::TurnBusy));
+                }
+                let Some(InboxMsg::ModelPreference { action, ack }) = inbox.recv().await else {
+                    panic!("expected an immediate effort memory write");
+                };
+                let _ = ack.send(Ok(Default::default()));
+                action
+            };
+            let mut deck = LoopState::default();
+            let (remembered, applied) =
+                tokio::join!(owner, apply_intent(&app, &mut state, &mut deck, intent));
+            applied.unwrap();
+            assert!(matches!(
+                remembered,
+                Some(oc_core::queries::ModelPreferenceAction::Variant { variant, .. })
+                    if variant.as_deref() == expected
+            ));
             assert_eq!(
                 state.active_model_label(),
                 Some(("Dynamic model".into(), expected.map(str::to_string)))
@@ -1963,9 +2093,10 @@ async fn variant_cycle_persists_and_next_real_request_uses_selected_overlay() {
         app.session_selection(session.clone(), false, SelectionAction::Current)
             .await
             .unwrap()
-            .variant,
-        None,
-        "variant cycle remains local until composer admission"
+            .variant
+            .as_deref(),
+        Some("custom"),
+        "a cycled effort is remembered before any send"
     );
     state.handle_key(KeyAction::Enter).await;
     assert_eq!(
@@ -3712,4 +3843,81 @@ async fn home_refuses_session_scoped_queries() {
             "no session-scoped query reached worker"
         );
     }
+}
+
+#[tokio::test]
+async fn chosen_and_cycled_effort_is_remembered_immediately_without_sending() {
+    use oc_core::queries::{ModelEntry, ModelPreferenceAction, VariantEntry};
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app.clone(), SessionId::new("effort-memory").unwrap());
+    let mut selected = catalog();
+    let variant = |name: &str| VariantEntry {
+        name: name.into(),
+        disabled: false,
+        reasoning_effort: Some(name.into()),
+    };
+    selected.models = vec![ModelEntry {
+        id: "first".into(),
+        display_name: "first".into(),
+        variants: vec![variant("low"), variant("high")],
+        variants_known: true,
+        ..Default::default()
+    }];
+    state.apply_catalog(selected);
+    state.draft_model("first").unwrap();
+    let provider = state.drafted_variant().map(|action| match action {
+        ModelPreferenceAction::Variant { model, .. } => model.provider,
+        _ => unreachable!(),
+    });
+    let owner = async {
+        let mut seen = Vec::new();
+        for _ in 0..2 {
+            let Some(InboxMsg::ModelPreference { action, ack }) = inbox.recv().await else {
+                panic!("expected an immediate effort memory write");
+            };
+            seen.push(action);
+            let _ = ack.send(Ok(Default::default()));
+        }
+        seen
+    };
+    let ui = async {
+        apply_intent(
+            &app,
+            &mut state,
+            &mut LoopState::default(),
+            PanelIntent::ChooseModel {
+                id: "first".into(),
+                variant: Some("high".into()),
+            },
+        )
+        .await
+        .unwrap();
+        apply_intent(
+            &app,
+            &mut state,
+            &mut LoopState::default(),
+            PanelIntent::CycleVariant,
+        )
+        .await
+        .unwrap();
+    };
+    let (seen, ()) = tokio::join!(owner, ui);
+    let remembered: Vec<_> = seen
+        .into_iter()
+        .map(|action| match action {
+            Some(ModelPreferenceAction::Variant { model, variant }) => {
+                assert_eq!(
+                    (Some(model.provider), model.model.as_str()),
+                    (provider.clone(), "first")
+                );
+                variant
+            }
+            other => panic!("unexpected {other:?}"),
+        })
+        .collect();
+    assert_eq!(remembered[0].as_deref(), Some("high"));
+    assert_ne!(
+        remembered[1], remembered[0],
+        "Ctrl+T cycle is remembered too"
+    );
 }

@@ -162,6 +162,15 @@ fn variant_key(provider: &str, id: &str) -> String {
     key("variant", &[provider, id])
 }
 
+/// The per-model remembered variant record (`None` = explicit Default).
+pub(super) fn variant_record(
+    provider: &str,
+    id: &str,
+    variant: &Option<String>,
+) -> Result<(String, String), CoreError> {
+    record(variant_key(provider, id), variant)
+}
+
 fn load<T: serde::de::DeserializeOwned>(db: &Db, key: &str) -> Result<Option<T>, CoreError> {
     db.get_pref(key)
         .map_err(|error| query_storage_error(db, error))?

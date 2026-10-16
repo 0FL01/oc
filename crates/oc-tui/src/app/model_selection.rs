@@ -474,6 +474,19 @@ impl TuiState {
         Ok(())
     }
 
+    /// The drafted model and its variant, for remembering the effort at once.
+    pub fn drafted_variant(&self) -> Option<oc_core::queries::ModelPreferenceAction> {
+        let picker = self.picker.as_ref()?;
+        let selection = picker.selection()?;
+        Some(oc_core::queries::ModelPreferenceAction::Variant {
+            model: ModelPreferenceModel {
+                provider: picker.provider().to_owned(),
+                model: selection.id.clone(),
+            },
+            variant: selection.variant.as_ref().map(|v| v.name.clone()),
+        })
+    }
+
     pub fn draft_variant(&mut self, variant: Option<&str>) -> Result<(), String> {
         let picker = self.picker.as_mut().ok_or("model catalog unavailable")?;
         let id = picker
@@ -490,16 +503,17 @@ impl TuiState {
         Ok(())
     }
 
-    pub fn cycle_variant_draft(&mut self) -> Result<(), String> {
+    /// Returns whether a variant was drafted (no-op without named variants).
+    pub fn cycle_variant_draft(&mut self) -> Result<bool, String> {
         let picker = self.picker.as_ref().ok_or("model catalog unavailable")?;
         let Some(selection) = picker.selection() else {
-            return Ok(());
+            return Ok(false);
         };
         let named = oc_adapters::models::available_variants(&selection.entry)
             .map(|(name, _)| name.to_owned())
             .collect::<Vec<_>>();
         if named.is_empty() {
-            return Ok(());
+            return Ok(false);
         }
         let current = picker
             .retired_variant()
@@ -518,7 +532,7 @@ impl TuiState {
                 .and_then(|i| named.get(i + 1))
                 .cloned(),
         };
-        self.draft_variant(next.as_deref())
+        self.draft_variant(next.as_deref()).map(|()| true)
     }
 
     pub(super) fn commit_composer_model(&mut self) -> Result<(), String> {
