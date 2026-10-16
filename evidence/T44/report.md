@@ -5,6 +5,16 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current cursor temporal subset (2026-10-16)
+
+[Nine-profile current-source receipt](cursor-resume-20261016.md): native cadence,
+default/nonblink, fallback ordering and caret checks qualify after isolating an
+artificial acquisition delay, without changing terminal code or criteria. The
+original's narrow-hover failure remains explicit. Independent audit of five
+both-qualified profiles validates720 complete PNGs and348 matched-phase pairs;
+776 comparisons remain DIFFERENT/48 unmatched. This is behavioral qualification,
+not full VIS16/VIS31/T44 pixel PASS. Next: structured execute presentation (VIS46).
+
 ## Current Generic/MCP follow facet (2026-10-16)
 
 [Current0.2.0 tool-preview receipt](tool-preview-return-20261016.md): typed Generic

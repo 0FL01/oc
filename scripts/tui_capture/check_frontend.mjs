@@ -48,6 +48,14 @@ try {
       f=await page.evaluate(()=>readTerminal());
       assert.deepEqual(f.cursor,{x:4,y:2,visible:true,shape:'underline'});
       console.log(`PASS ${renderer}: RGB, styled blanks, 8 attributes, CJK continuation, combining text, cursor and DSR reply`);
+      const fragmented=Buffer.from('\x1bc\x1b[38;2;18;52;86;48;2;101;67;33mA 界е́\x1b[3;5H\x1b[4 q\x1b[?25h');
+      const fragments=[...fragmented].map(byte=>Buffer.from([byte]).toString('base64'));
+      for(const data of fragments)await page.evaluate(data=>writeTerminal(data),data);
+      const serial=await page.evaluate(()=>readTerminal());
+      await write('\x1bc');
+      await Promise.all(fragments.map(data=>page.evaluate(data=>writeTerminal(data),data)));
+      assert.deepEqual(await page.evaluate(()=>readTerminal()),serial);
+      console.log(`PASS ${renderer}: ordered eager PTY writes equal serial callbacks across UTF-8 and VT fragments`);
       await write('\x1bc');
       await page.evaluate(()=>term.resize(8,3));
       await write('ABCDEFGH');

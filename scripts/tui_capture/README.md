@@ -1381,8 +1381,12 @@ diagnostic control: observed hover blink starvation is not accepted as PASS.
 
 `cursor_frontend.js` observes the actual mature parser after each original command
 and samples the real fixed input-owner raster. It never rewrites commands, patches
-CSS phase or paints a substitute cursor. Independent 20-ms SGR hover injection
-continues while each 5.6-second state collects at most 1,200 raster samples,
+CSS phase or paints a substitute cursor. Available temporal PTY chunks are
+enqueued in arrival order without a parser-callback RPC round trip between chunks.
+The raw arrival timeline is retained; ordinary captures keep serial delivery.
+DOM/WebGL checks compare eager and serial UTF-8/control fragments exactly.
+Independent 20-ms SGR hover injection continues while each 5.6-second state
+collects at most 1,200 raster samples,
 50,000 command observations and twelve full opaque renderer-canvas PNG/grid/cursor
 snapshots. Temporal pictures are timestamped, explicitly unsettled actual renderer
 frames, not settled/atomic screenshot claims. Blink requires at least three full

@@ -23,8 +23,17 @@ isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succe
 The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
 conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
 
-Next: continue prompt/caret/blink/scroll qualification using the existing real
-temporal profiles after delivering the verified Generic sticky-follow slice.
+Next: implement missing structured execute presentation (VIS46) through existing
+producer/UI owners. [Current temporal receipt](../../evidence/T44/cursor-resume-20261016.md):
+nine profiles retain zero phantom states; native blink cadence and steady/default
+controls qualify after isolating one artificial per-chunk acquisition delay.
+The unchanged default/nonblink fallback control passes with available PTY bytes
+queued naturally; no native cursor or criterion change was needed. Original
+narrow-hover blink starvation remains explicit failed reference evidence, not a
+behavior to imitate or a full pixel PASS. Independent artifact audit qualifies
+the five both-qualified profiles:720 full PNGs,348 matched phase pairs;776 full
+comparisons DIFFERENT/48 unmatched, never full parity. Generic sticky-follow was
+delivered in `ca37eca0a`.
 Current0.2.0 paired proof passes13 stages per side, real5.5s footer buckets and
 no replay. Expanded MCP differences fall from1710/1700 to34 Shell-region cells;
 all26 full comparisons still differ honestly under the native Shell policy.

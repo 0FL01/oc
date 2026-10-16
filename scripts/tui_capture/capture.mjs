@@ -595,11 +595,19 @@ try {
         const bytes=Buffer.from(event.data, 'base64');
         const n=event.generation || 0;
          chunks[n].push(bytes);
-          if(boundedMode==='wheel'||compactionAnimation||leaderPending) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
+          if(boundedMode==='wheel'||compactionAnimation||leaderPending||cursorTemporal) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
         // Keep a diagnostic VT prefix if the capture process is interrupted
         // before the normal per-generation teardown writes its sealed copy.
         fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
-        if(n===generation) writeQueue = writeQueue.then(() => page.evaluate(d => writeTerminal(d), event.data));
+        if(n===generation) {
+          // A terminal queues available PTY bytes without waiting for the previous
+          // parser callback. Serial RPC round trips can otherwise stretch a split
+          // hidden-cursor paint across renderer frames in the temporal observer.
+          const write = () => page.evaluate(d => writeTerminal(d), event.data);
+          writeQueue = cursorTemporal
+            ? Promise.all([writeQueue, write()]).then(() => {})
+            : writeQueue.then(write);
+        }
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
     const frame = async () => {
