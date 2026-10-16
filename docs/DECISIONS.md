@@ -277,6 +277,15 @@ Stricter than TS (`onExcessProperty: "ignore"`) by design. Supersedes the report
 form of D27 and the T46 omission of unknown MCP metadata. Owner converts
 `~/.config/opencode` himself. T66, CFG18.
 
+### D29 — devtools bar hidden unless enabled (owner 2026-10-16)
+
+Owner resumed T44 and asked to remove the ` Native runtime  ○ UI` row: with
+`oc2-dev` (debug binary) it took a TUI row because the native debug build mapped to
+upstream's `local` channel (`debug.devtools ?? channel == local`). Native now shows
+the devtools bar only for explicit `debug.devtools: true`, in debug and release
+alike; the build-channel concept is removed. Matches packaged TS defaults; a
+deliberate divergence from upstream's local developer channel. T44.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

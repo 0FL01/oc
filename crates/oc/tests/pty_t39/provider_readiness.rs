@@ -388,7 +388,7 @@ for line in sys.stdin:
 
 fn spawn(fixture: Arc<Fixture>, session: &str) -> PtySession {
     let pty = PtySession::spawn_sized(fixture, session, None, 120, 40);
-    pty.wait_visible("Native runtime", DEADLINE);
+    pty.wait_visible("ctrl+p commands", DEADLINE);
     pty
 }
 

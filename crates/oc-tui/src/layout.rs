@@ -447,7 +447,7 @@ pub struct ShellRegions {
     pub tabs: Rect,
     /// Main column: the session route.
     pub session: Rect,
-    /// Height-1 devtools bar (local channel default, `app.tsx:472`).
+    /// Height-1 devtools bar, only for explicit `debug.devtools: true` (D29; upstream `app.tsx:472`).
     pub devtools: Rect,
 }
 

@@ -606,10 +606,9 @@ versions and randomized Home examples cannot establish parity.
 
 `--tabs vertical --columns 162` and `--columns 163` check both sides of the
 42-cell rail-adjusted auto-sidebar breakpoint using text **and styled blank
-backgrounds**. `--devtools unset` omits the explicit override; native debug builds
-then show native diagnostics, while the packaged original defaults to hidden.
-Explicit `true`/`false` overrides the default in either application. These are
-honest effective-channel differences, not identical-state comparisons.
+backgrounds**. `--devtools unset` omits the explicit override; since D29 both the
+native build (debug or release) and the packaged original then hide the bar.
+Explicit `true`/`false` overrides the default in either application.
 
 For the completed Reader/tools sidebar palette probe, run two **fresh** attempts
 at 160×48 with `--geometry true --sample tools --columns 160 --rows 48

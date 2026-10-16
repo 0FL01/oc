@@ -59,7 +59,7 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
     try:
         initial = drain(fd, .8)
         assert len(set(re.findall(r'ROW-\d+', initial))) > 35, (mode, initial)
-        assert ('Native runtime' in initial) == (mode in ['debug', 'default-debug']), mode
+        assert ('Native runtime' in initial) == (mode == 'debug'), mode
         assert ('Context' in initial) == (mode not in ['hidden', 'child', 'vertical']), mode
         os.write(fd, b'\x1b[200~draft-one\ndraft-two\ndraft-three\x1b[201~')
         drain(fd)
@@ -70,7 +70,7 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
             assert '[Pasted ~3 lines]' in frame and 'draft-three' not in frame, (mode, width, frame)
             expected = width > 120 and mode not in ['hidden', 'child', 'vertical']
             assert ('Context' in frame) == expected, (mode, width, frame)
-            assert ('Native runtime' in frame) == (mode in ['debug', 'default-debug']), (mode, width)
+            assert ('Native runtime' in frame) == (mode == 'debug'), (mode, width)
         print(mode, 'resize/draft/sidebar/debug PASS')
     finally:
         stop(child, fd)

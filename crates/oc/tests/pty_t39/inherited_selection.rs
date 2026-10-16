@@ -265,7 +265,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     assert_eq!(old_main, 1);
     assert_eq!(old_effects.0, 1);
     let mut home = home_pty(fixture.clone());
-    wait_screen_row(&home, "Native runtime", DEADLINE);
+    wait_screen_row(&home, "ctrl+p commands", DEADLINE);
     inspect_settings_code(&mut home, "agent_unavailable");
     wait_idle(&home);
     home.send(b"/agents\r");
@@ -355,7 +355,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     // The Home choice is explicit and Location-scoped. Repairing it does not
     // silently repair the three independently saved session selections.
     let mut home = home_pty(fixture.clone());
-    wait_screen_row(&home, "Native runtime", DEADLINE);
+    wait_screen_row(&home, "ctrl+p commands", DEADLINE);
     home.send(b"/agents\r");
     wait_screen_row(&home, "Saved agent agent-", DEADLINE);
     home.send(b"\x1b[B\r");
@@ -636,7 +636,7 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     let old_requests = fixture.requests.lock().unwrap().len();
 
     let mut home = home_pty(fixture.clone());
-    wait_screen_row(&home, "Native runtime", DEADLINE);
+    wait_screen_row(&home, "ctrl+p commands", DEADLINE);
     inspect_settings_code(&mut home, "model_unavailable");
     wait_idle(&home);
     home.send(b"/agents\r");

@@ -570,6 +570,7 @@ retained as history, not a current pause instruction or unresolved credential bl
 - 2026-09-23: Owner's traced run resolved the startup cause: the failing shell exported a stale `LUDKA2_API_KEY` (`fingerprint=1101b285`), while `~/.config/opencode/secrets.env` — the file the `oc` alias loads — holds the working identity (`54f454fc`); config root/sources/model/provider/URL matched the working smoke and the catalog answered 401 for the stale key. Fix is credential sourcing, not a binary defect; durable `oc2` wrapper proposed. Recorded in `evidence/tui/recovery-startup/owner-catalog-recon.md`; T44 remains paused with S05/S06/S08, S07 and VIS01–VIS24 open.
 
 - 2026-09-24: Owner amendment adds mandatory inline `/` autocomplete (VIS25) and `@` file mention (VIS26) to R5; implementation slices, deferred skills/non-primary agent sections (T45) and supported differences are recorded in `tui-recovery/T44_CONTRACT_AMENDMENT.md`; ACCEPTANCE.json extended to VIS01–VIS26.
+- 2026-10-16: owner resumed T44 (D29): the devtools bar is hidden unless `debug.devtools: true` in debug and release builds; the native build-channel default is removed.
 
 ## Completion
 

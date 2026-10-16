@@ -3150,7 +3150,7 @@ async fn golden_screen_80x24() {
     expected[20] = format!("  ╹{}", "▀".repeat(75));
     expected[21] = format!("  {}", right_aligned(hints, 76));
     expected[22] = String::new();
-    // Devtools bar (local channel default), height 1.
+    // Devtools bar (fixture sets debug.devtools: true), height 1.
     expected[23] = "  Native runtime  ○ UI".to_string();
     assert_eq!(screen(&state, 80, 24), expected);
 }

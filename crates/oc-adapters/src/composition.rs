@@ -1461,11 +1461,6 @@ async fn load_stages(
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
         animations: generation.animations,
-        build_channel: if cfg!(debug_assertions) {
-            oc_core::queries::TuiBuildChannel::Local
-        } else {
-            oc_core::queries::TuiBuildChannel::Packaged
-        },
         ..Default::default()
     };
     // Use the existing admitted-root reader, not arbitrary TUI-side filesystem access.

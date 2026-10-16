@@ -696,10 +696,8 @@ pub struct TuiChrome {
     pub selection: Option<SelectionReadiness>,
     /// Canonical application Location, unknown in mock workers.
     pub location: Option<String>,
-    /// Explicit debug.devtools override; absence uses the build channel.
+    /// Explicit debug.devtools override; absence hides the bar (D29).
     pub devtools: Option<bool>,
-    /// Effective native build channel, projected by the composition owner.
-    pub build_channel: TuiBuildChannel,
     /// session.sidebar == hide.
     pub sidebar_hidden: bool,
     /// Width occupied by configured vertical tabs (zero for horizontal).
@@ -1408,25 +1406,15 @@ pub enum TabIndicators {
     Numbers,
 }
 
-/// Native debug builds map to upstream's local channel; release builds to packaged.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum TuiBuildChannel {
-    /// Locally built debug executable.
-    Local,
-    /// Packaged/release executable (also the neutral mock default).
-    #[default]
-    Packaged,
-}
-
 impl TuiChrome {
     pub fn leader_timeout_ms(&self) -> u64 {
         self.leader_timeout_ms.unwrap_or(2000)
     }
 
-    /// Match upstream `debug.devtools ?? channel == local` without fake controls.
+    /// Upstream shows the bar for `debug.devtools ?? channel == local`; native
+    /// builds hide it unless explicitly enabled, debug or release alike (D29).
     pub fn devtools_visible(&self) -> bool {
-        self.devtools
-            .unwrap_or(self.build_channel == TuiBuildChannel::Local)
+        self.devtools.unwrap_or(false)
     }
 
     /// Match upstream `config.animations ?? true`.
@@ -1440,18 +1428,13 @@ mod chrome_tests {
     use super::*;
 
     #[test]
-    fn v03_devtools_override_and_channel_default() {
-        for channel in [TuiBuildChannel::Local, TuiBuildChannel::Packaged] {
-            let mut chrome = TuiChrome {
-                build_channel: channel,
-                ..Default::default()
-            };
-            assert_eq!(chrome.devtools_visible(), channel == TuiBuildChannel::Local);
-            chrome.devtools = Some(false);
-            assert!(!chrome.devtools_visible());
-            chrome.devtools = Some(true);
-            assert!(chrome.devtools_visible());
-        }
+    fn v03_devtools_hidden_by_default_and_explicit_override() {
+        let mut chrome = TuiChrome::default();
+        assert!(!chrome.devtools_visible());
+        chrome.devtools = Some(false);
+        assert!(!chrome.devtools_visible());
+        chrome.devtools = Some(true);
+        assert!(chrome.devtools_visible());
     }
 }
 

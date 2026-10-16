@@ -3,7 +3,7 @@
 //!
 //! Geometry uses actual frame dimensions and bounded transcript rows. Safe DTOs
 //! supply the title, Location, parent relationship, model/agent and measured usage.
-//! Native debug chrome follows the override/build channel and labels the in-process runtime: upstream
+//! Native debug chrome appears only for explicit `debug.devtools: true` (D29) and labels the in-process runtime: upstream
 //! server/Theme/Tools/Experiments actions are not advertised as working controls.
 //!
 //! Transient notes render as the upstream toast (`ui/toast.tsx:48-50`). Shared

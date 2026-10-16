@@ -1007,6 +1007,9 @@ oc2 будет работать независимо»; «совместимос
   отказывает одним `unknown_config_key` отчётом без значений на startup, reload
   (last-good) и `oc2 models`. Заменяет форму отчёта D27/CFG11–CFG13 (CFG18).
   `~/.config/opencode` владелец конвертирует сам; E2E06 переквалифицируется после.
+- **D29/T44 (owner 2026-10-16).** T44 снят с паузы владельцем. Devtools-панель
+  (` Native runtime  ○ UI`) скрыта, пока не задан явный `debug.devtools: true`, в debug
+  и release одинаково (дивергенция от upstream local-канала, совпадает с packaged TS).
 
 ## Owner amendment (2026-10-14 — Code Mode `execute` TUI parity; pending)
 
