@@ -1888,3 +1888,28 @@ Checks: new `application::model_picker::tests::unselected_dynamic_view_discovers
 oc2 failures identical to the known environment set, fmt + strict Clippy,
 debug build. Live check against the real ludka2 is left to the owner via
 `oc2-dev` (secrets file is not read by the agent).
+
+## OpenAI/Codex Fast tier — owner request 2026-10-16
+
+Owner report: with Codex (ChatGPT plan) authorization the OpenAI list showed
+`GPT-6 Luna`, `GPT-6 Sol` … but no `… Fast` entries. Pinned
+`packages/core/src/models-dev.ts:108` expands every models.dev
+`experimental.modes.<mode>` into `<id>-<mode>` ("<Name> <Mode>", same API
+model, merged cost, the mode's request headers/body); the pinned OpenAI
+subscription transform removes only `body.reasoning.mode == "pro"`. The native
+`models_dev::SourceModel` ignored `experimental`, and public request bindings
+never carried model `body`/`headers`.
+
+Fix: `SourceModel.experimental` is parsed (raw per-mode, malformed modes
+skipped) and expanded by `mode_model`; modes whose request would only touch
+adapter-owned fields (`pro` → `reasoning`) or change nothing are not offered;
+`go_catalog::public_bindings` adds non-reserved model body fields and headers
+(e.g. `service_tier: "priority"`) to the per-model request. Current models.dev
+gives `Fast` for GPT-5.6/GPT-6 families and `Ultrafast` for GPT-6 Astra /
+GPT-6.1 Sol. Existing caches pick up modes on the next 5-minute TTL refresh.
+
+Checks: `models_dev::openai_tests::experimental_modes_*`,
+`go_catalog::tests::catalog_mode_body_*`; oc-adapters/oc-tui/oc-core 1692
+passed (known load flake passes alone), oc2 bin 119, pty_t39 60, pty_t42 35,
+fmt + strict Clippy, debug build. No paid/live request was made; the owner
+verifies via `oc2-dev`.

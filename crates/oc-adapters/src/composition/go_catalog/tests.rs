@@ -216,3 +216,40 @@ async fn go02_public_models_capture_independent_native_wires_and_retire_bindings
         ProviderStatus::Unavailable
     );
 }
+
+#[test]
+fn catalog_mode_body_reaches_the_request_without_adapter_owned_fields() {
+    let catalog = models::ModelCatalog {
+        provider: crate::models_dev::OPENAI.into(),
+        models: BTreeMap::from([(
+            "gpt-6-luna-fast".to_string(),
+            json!({"modelID":"gpt-6-luna","package":"@ai-sdk/openai",
+                "body":{"service_tier":"priority","reasoning":{"mode":"pro"}}}),
+        )]),
+    };
+    let provider = provider::ResponsesConfig {
+        base_url: "https://api.openai.com/v1".into(),
+        api_key: String::new(),
+        timeout: Some(false),
+        header_timeout_ms: None,
+        chunk_timeout_ms: None,
+        connect_timeout: Duration::from_secs(5),
+        allow_private: false,
+        headers: BTreeMap::new(),
+        cache: provider::CacheMode::Auto,
+        wire: Default::default(),
+    };
+    let entry = config::ProviderEntry {
+        npm: Some("@ai-sdk/openai".into()),
+        name: None,
+        env: Vec::new(),
+        compatibility: Default::default(),
+        options: Default::default(),
+        models: BTreeMap::new(),
+    };
+    let requests = public_bindings(&entry, &catalog, &provider);
+    let request = &requests[&("gpt-6-luna-fast".to_string(), None)];
+    assert_eq!(request.wire.api_model.as_deref(), Some("gpt-6-luna"));
+    assert_eq!(request.wire.settings.body["service_tier"], "priority");
+    assert!(!request.wire.settings.body.contains_key("reasoning"));
+}

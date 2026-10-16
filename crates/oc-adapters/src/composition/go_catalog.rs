@@ -243,6 +243,30 @@ fn public_bindings(
                 })
                 .is_ok();
             request.wire.unsupported |= !supported;
+            // Catalog mode requests (e.g. `service_tier`), validated at
+            // expansion; adapter-owned fields such as `reasoning` never pass.
+            if let Some(body) = model.get("body").and_then(Value::as_object) {
+                for (field, value) in body {
+                    if !provider::RESERVED_BODY_FIELDS.contains(&field.as_str()) {
+                        request
+                            .wire
+                            .settings
+                            .body
+                            .entry(field.clone())
+                            .or_insert_with(|| value.clone());
+                    }
+                }
+            }
+            if let Some(headers) = model.get("headers").and_then(Value::as_object) {
+                for (name, value) in headers {
+                    if let Some(value) = value.as_str() {
+                        request
+                            .headers
+                            .entry(name.to_ascii_lowercase())
+                            .or_insert_with(|| value.to_owned());
+                    }
+                }
+            }
             requests.insert(key, request);
         }
     }

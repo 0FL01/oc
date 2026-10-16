@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T13:45:58+00:00
+State updated: 2026-10-16T14:04:30+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,30 +12,27 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# ludka2 unavailable in native TUI
+# OpenAI/Codex Fast tier
 
 ## Result
 
-Root cause: no configured `model` + empty saved selection selects opencode-go;
-the zero-static-model ludka2 was then dropped from the generation and never
-discovered, so it had no view/catalog and could not be chosen. Fix admits the
-native discovery provider view and discovers it in the background without
-changing selection. Details in evidence/T44/report.md.
+models.dev `experimental.modes` now expand like pinned OC2 (`<id>-<mode>`,
+"<Name> Fast"), and public request bindings carry the mode body
+(`service_tier: "priority"`), so ChatGPT-plan users see GPT-6 Luna Fast etc.
 
 ## Checks
 
-New adapter regression test; oc-adapters + oc-tui green (one known load flake);
-oc2 env-only failures unchanged; fmt + strict Clippy; debug oc2 built.
+Two new adapter tests; adapters/tui/core, oc2 bin, pty_t39, pty_t42 green;
+fmt + strict Clippy; debug oc2 built.
 
 ## Risks
 
-One additional read-only GET /models to ludka2 at startup when it is admitted
-but not selected (upstream also loads all providers). No live check by the
-agent; owner verifies via oc2-dev.
+No live paid request; `ultrafast` tier offered exactly as the catalog declares.
+Modes appear after the 5-minute catalog cache refresh.
 
 ## Next
 
-Owner live look; continue T44 slices.
+Owner live check via oc2-dev.
 
 
 Ready (до 5): нет

@@ -128,6 +128,15 @@ struct SourceModel {
     reasoning_options: Option<Vec<ReasoningOption>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     body: Option<ModelBody>,
+    /// Pinned `experimental.modes`: each becomes a `<id>-<mode>` model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    experimental: Option<Experimental>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+struct Experimental {
+    /// Raw per-mode objects; malformed modes are skipped, not fatal.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    modes: BTreeMap<String, Value>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct ModelBody {
@@ -421,12 +430,100 @@ impl ProviderRecord {
                     map.insert("variants".into(), json!(variants));
                 }
             }
+            let modes = model
+                .experimental
+                .as_ref()
+                .map(|experimental| &experimental.modes);
+            for (mode, options) in modes.into_iter().flatten() {
+                let mode_id = format!("{id}-{mode}");
+                if self.models.contains_key(&mode_id) {
+                    continue;
+                }
+                let Some(mut entry) = mode_model(&metadata, &model.name, mode, options) else {
+                    continue;
+                };
+                if let Some(local) = local.get(&mode_id).and_then(Value::as_object) {
+                    let map = entry.as_object_mut().expect("metadata object");
+                    for (key, value) in local {
+                        map.insert(key.clone(), value.clone());
+                    }
+                }
+                if entry.get("disabled").and_then(Value::as_bool) != Some(true) {
+                    models.insert(mode_id, entry);
+                }
+            }
             if metadata.get("disabled").and_then(Value::as_bool) != Some(true) {
                 models.insert(id.clone(), metadata);
             }
         }
         models
     }
+}
+
+/// Pinned `models-dev.ts` mode expansion: same API model, `"<Name> <Mode>"`,
+/// mode cost over the base cost and the mode's request headers/body. A mode
+/// that would touch adapter-owned request fields (e.g. `reasoning`) or set no
+/// request change at all is not offered, rather than silently becoming the base.
+fn mode_model(base: &Value, name: &str, mode: &str, options: &Value) -> Option<Value> {
+    if mode.is_empty()
+        || mode.len() > 32
+        || !mode
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return None;
+    }
+    let provider = options.get("provider");
+    let body = match provider.and_then(|p| p.get("body")) {
+        None => serde_json::Map::new(),
+        Some(body) => body.as_object()?.clone(),
+    };
+    let headers = match provider.and_then(|p| p.get("headers")) {
+        None => BTreeMap::new(),
+        Some(headers) => headers
+            .as_object()?
+            .iter()
+            .map(|(k, v)| Some((k.to_ascii_lowercase(), v.as_str()?.to_owned())))
+            .collect::<Option<BTreeMap<_, _>>>()?,
+    };
+    if body.is_empty() && headers.is_empty() {
+        return None;
+    }
+    crate::provider::RequestOverlay {
+        headers: headers.clone(),
+        body: body.clone(),
+    }
+    .validate()
+    .ok()?;
+    let mut entry = base.clone();
+    let mut chars = mode.chars();
+    let title: String = chars
+        .next()
+        .map(|c| c.to_uppercase().chain(chars).collect())
+        .unwrap_or_default();
+    entry["name"] = json!(format!("{name} {title}"));
+    if let Some(cost) = options.get("cost").and_then(Value::as_object)
+        && let Some(target) = entry.get_mut("cost").and_then(Value::as_object_mut)
+    {
+        for key in ["input", "output", "cache_read", "cache_write"] {
+            if let Some(value) = cost.get(key).filter(|v| v.is_number()) {
+                target.insert(key.into(), value.clone());
+            }
+        }
+    }
+    let mut merged = entry
+        .get("body")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    merged.extend(body);
+    if !merged.is_empty() {
+        entry["body"] = Value::Object(merged);
+    }
+    if !headers.is_empty() {
+        entry["headers"] = json!(headers);
+    }
+    Some(entry)
 }
 
 #[derive(Clone, Serialize, Deserialize)]
