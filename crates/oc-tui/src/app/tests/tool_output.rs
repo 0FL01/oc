@@ -91,6 +91,66 @@ fn generic_continuation_indents_inherit_canvas_not_muted_labels() {
 }
 
 #[tokio::test]
+async fn generic_expansion_keeps_sticky_follow_or_the_detached_top_row() {
+    for (scroll, newer) in [(0, false), (3, false), (0, true)] {
+        let mut state = fresh_state("expansion-follow").await;
+        let original = operation();
+        let mut answer = msg(2, Role::Assistant, "");
+        answer.turn = Some(HistoryTurn {
+            id: "expansion-turn".into(),
+            status: "completed".into(),
+            parts: vec![
+                TranscriptPart::Tool(original.clone()),
+                TranscriptPart::Text("LATEST RESULT".into()),
+            ],
+            ..Default::default()
+        });
+        let prefix = (0..30)
+            .map(|i| format!("PREFIX-{i}\n\n"))
+            .collect::<String>();
+        state.attach_page(&page(
+            vec![msg(1, Role::Assistant, &prefix), answer],
+            if newer { 100 } else { 2 },
+            false,
+            newer,
+        ));
+        state.input = "kept draft".into();
+        state.editor.cursor = 4;
+        state.scroll = scroll;
+        let frame = Rect::new(0, 0, 120, 20);
+        let area = crate::shell::transcript_area(&state, frame);
+        let (before, total, shown) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.observe_transcript_viewport(area.width, frame.width, area.height, total, shown);
+        assert_eq!(shown, scroll);
+
+        state.toggle_tool_expansion_at(&original.op, frame);
+        let (after, expanded_total, shown) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        assert!(expanded_total > total);
+        if scroll == 0 && !newer {
+            assert_eq!(shown, 0, "expanding a tool must not detach sticky follow");
+            assert!(
+                after
+                    .iter()
+                    .any(|line| line.plain_text().contains("LATEST RESULT"))
+            );
+        } else {
+            assert_eq!(
+                after.first(),
+                before.first(),
+                "detached reader keeps its top row"
+            );
+            assert!(shown > 0);
+        }
+        assert_eq!(
+            (&state.input, state.editor.cursor),
+            (&"kept draft".to_owned(), 4)
+        );
+    }
+}
+
+#[tokio::test]
 async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_truth() {
     let mut state = fresh_state("preview-owner").await;
     let mut guidance_only = operation();

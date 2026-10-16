@@ -5,6 +5,18 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current Generic/MCP follow facet (2026-10-16)
+
+[Current0.2.0 tool-preview receipt](tool-preview-return-20261016.md): typed Generic
+expansion no longer detaches sticky follow or hides the final answer. Detached/
+older-page and existing Explored-group anchors remain intact. All542 TUI tests,
+five nearest expansion regressions and strict affected-crate Clippy pass. Fresh
+paired13-stage captures retain exact effects/reopen/restart/natural exits; MCP
+expanded differences fall1710/1700→34 cells, all in the explicitly different Shell
+output. All26 full grid/PNG comparisons remain DIFFERENT; this is a narrow facet,
+not whole VIS16/17, cursor-temporal or T44 PASS. The explicit no-synthesized-zero-
+exit Shell contract and existing goldens remain unchanged.
+
 ## Current resumed baseline (2026-10-15)
 
 [Current-source resume receipt](../tui/resume-20261015.md): capture environment

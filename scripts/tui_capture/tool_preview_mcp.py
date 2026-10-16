@@ -31,7 +31,10 @@ for line in sys.stdin:
             log.write(json.dumps({'method':method, 'arguments':args}) + '\n')
         number = args['index']
         label = 'FIRST' if number == 1 else 'SECOND'
-        text = ('VIS-MCP-ERROR: genuine producer failure' if number == 4 else
+        text = (f'VIS-MCP-{label}-BEGIN\n[Part preview truncated]\n'
+                '[output preview truncated; full result retained]\n[truncated]\n' +
+                f'VIS-MCP-{label}-END\n' if '--small' in sys.argv else
+                'VIS-MCP-ERROR: genuine producer failure' if number == 4 else
                 f'VIS-MCP-{label}-BEGIN\n[Part preview truncated]\n'
                 '[output preview truncated; full result retained]\n[truncated]\n' +
                 ''.join(f'VIS-MCP-{label}-LINE-{n:03} actual output words\n' for n in range(1, 121)) +

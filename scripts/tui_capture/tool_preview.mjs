@@ -4,7 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,questionProbe,userShellProbe,composerProbe,syntaxProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,questionProbe,userShellProbe,composerProbe,syntaxProbe,smallProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -48,7 +48,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return f;
   };
   const slash=async text=>{send(text,'tool_preview_command');await waitFor(f=>f.text.includes(text),'draft '+text,6000);send('\r','tool_preview_command_enter');};
-   const target=(f,index)=>visibleMatches(f,'vis16_output [index='+index);
+   const target=(f,index)=>visibleMatches(f,(smallProbe?'vispreview_output':'vis16_output')+' [index='+index);
   const click=async index=>{
     const hits=target(await frame(),index);if(hits.length!==1)throw Error('Generic header not unique '+index);
     const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_click');
@@ -79,6 +79,11 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(smallProbe) {
+      result.differences=['Small real producer outputs and a bounded real response wait; no clock/history/paint override. Full frames remain unmasked and behavior alone is not pixel qualification.'];
+      result.small_profile=await smallProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch,resize,slash,reopen,click,target});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(questionProbe) {
       result.differences=['Question ownership, structured answers, cancellation and durable restart are observed through the real binaries. Native JSON result and donor canonical model content are separately validated; full styled grids/PNGs/cursors remain unmasked, not global parity.'];
       result.question_forms=await questionProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch});

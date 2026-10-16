@@ -2022,8 +2022,8 @@ impl TuiState {
                             .as_deref()
                             == Some(&op)
                     {
-                        // Keep the clicked header at its painted row by anchoring
-                        // the first visible row, rather than the bottom offset.
+                        // The expansion owner preserves Generic sticky follow
+                        // and the distinct Explored-group header anchor.
                         self.toggle_tool_expansion_at(&op, area);
                     }
                     // The pinned original toggles onMouseUp without a down.

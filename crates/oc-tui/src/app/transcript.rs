@@ -1353,6 +1353,21 @@ impl TuiState {
             self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
         let first = before.saturating_sub(height).saturating_sub(displayed);
         let rows = self.transcript_rows();
+        // GenericTool keeps ScrollBox sticky follow; the Explored group has
+        // a separate header-anchor interaction that must remain unchanged.
+        let following = displayed == 0
+            && !self.window.has_newer()
+            && rows.iter().any(|row| {
+                row.tool.as_ref().is_some_and(|card| {
+                    card.op == operation
+                        && matches!(
+                            &card.render,
+                            crate::tools::ToolRender::Inline(
+                                crate::tools::InlineRender::Generic { .. }
+                            )
+                        )
+                })
+            });
         self.exploration_expanded.retain(|id| {
             rows.iter()
                 .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
@@ -1361,7 +1376,11 @@ impl TuiState {
             self.exploration_expanded.remove(operation);
         }
         let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
-        self.scroll = after.saturating_sub(height).saturating_sub(first);
+        self.scroll = if following {
+            0
+        } else {
+            after.saturating_sub(height).saturating_sub(first)
+        };
         self.observe_transcript_viewport(rect.width, frame.width, rect.height, after, self.scroll);
     }
 

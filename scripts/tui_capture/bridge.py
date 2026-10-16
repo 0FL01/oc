@@ -789,6 +789,10 @@ try:
                         elif command['kind'] == 'release_wheel' and spec.get('wheel_probe'):
                             wheel_release.set()
                         elif command['kind'] == 'input':
+                            if spec.get('tool_preview_small') and command.get('source') == 'tool_preview_submit':
+                                if base64.b64decode(command['data']) != b'\r':
+                                    raise AssertionError('Small preview submission must be Enter')
+                                tool_preview_fixture.mark_small_submission(time.monotonic_ns())
                             os.write(master, base64.b64decode(command['data']))
                             if spec.get('wheel_probe') or spec.get('leader_pending'):
                                 emit({'kind':'input_written','at_ns':time.monotonic_ns(),'base64':command['data']})

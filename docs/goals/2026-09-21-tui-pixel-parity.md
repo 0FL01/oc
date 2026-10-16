@@ -23,12 +23,21 @@ isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succe
 The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
 conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
 
-Next: fix the reproduced model-Shell success notice and resulting collapsed-tail
-budget from owned exit facts, without changing standalone user-Shell presentation
-or RAW. Qualify the restored small-output paired profile against current0.2.0
-source, then continue the ordered slices below. The old13-stage small profile
-already proved effects/reopen/restart and real5.5s footer buckets, but all26 full
-comparisons differed; it is not current-source or whole-slice pixel PASS.
+Next: continue prompt/caret/blink/scroll qualification using the existing real
+temporal profiles after delivering the verified Generic sticky-follow slice.
+Current0.2.0 paired proof passes13 stages per side, real5.5s footer buckets and
+no replay. Expanded MCP differences fall from1710/1700 to34 Shell-region cells;
+all26 full comparisons still differ honestly under the native Shell policy.
+The fix preserves detached/older-page and Explored-group anchors; all542 TUI
+tests, five nearest expansion regressions and strict affected-crate Clippy pass.
+The restored proposal
+to synthesize a Shell zero-exit notice was rejected after the existing tests and
+explicit `fee0123a0`/VIS16 contract contradicted it; that experiment and its new
+test are removed, existing omission assertions remain unchanged. Preserve actual
+output and abnormal outcomes; do not force equality by adding forbidden status.
+See [current experiment receipt](../../evidence/T44/tool-preview-return-20261016.md).
+Neither the baseline nor earlier profiles are whole-slice pixel PASS. Continue
+the ordered slices below after qualification.
 All R1–R6/VIS01–VIS46 and the full visual/interaction finish line are unchanged.
 
 ### Earlier activation and verified slices

@@ -912,6 +912,44 @@ redaction is never bypassed to force fixture text equality. `PASS_BEHAVIOR_ONLY`
 does not qualify VIS16/VIS17 pixels, prompt blink, all history paging/capture
 faults, release behavior or T44/V09. Missing/failed attempts stay diagnostic.
 
+### Comparable small producer outputs
+
+`--tool-preview true --tool-preview-small true` is a separate exclusive profile
+using the same real binaries, bridge, renderer and full comparator. Start at
+120×40 with `--build-oc true`; compressed cells/frames remain available. It does
+not replace the large-output/error/resource or cursor-temporal profiles above.
+
+The peer exposes direct `vispreview.output` with two complete short results,
+including **literal** preview-marker strings. One actual Shell emits ten short
+lines and appends one17-byte effect in its private HOME (the displayed project
+path is common to the two sides). The original's exact
+permissions cover the two simple/redirected AST statements; native authorizes
+the exact compound command. Both remain deny-by-default with explicit direct MCP
+and the unchanged12-line/1024-byte producer limits. No redaction is bypassed.
+
+There are five provider requests (title plus four main requests), three tool
+calls, MCP hover/expand/re-collapse, Shell expand/re-collapse, ordinary terminal
+resizes, real session reopening and process restart. Read-only SQL/artifact/call
+snapshots must remain unchanged. This profile deliberately does not first induce
+service failures: stale diagnostics are not a substitute for equivalent state.
+
+Only the fixture's final local response is held until a **real** monotonic
+deadline: native PTY submission plus5500ms; original actual public user-message
+creation plus5500ms, read-only from `session_message.time_created`. The original
+has an observed200ms admission delay, so PTY-relative timing alone does not align
+its footer. Typed input tags, actual admission offsets and submission/response
+clocks are recorded. This may align quantized real footer values; it
+does not change either binary's clocks, elapsed facts, history or paint, and
+missed buckets remain visible to full comparisons. The ordinary600-second outer
+watchdog remains outside the application. Behavior-only status is never pixel
+PASS; failed attempts and every full grid/PNG/cursor difference remain retained.
+
+Add these flags to the earlier invocation, with a fresh immutable output path:
+
+```sh
+--tool-preview-small true --compress-cells true --compress-frames true
+```
+
 ## VIS40 mixed MCP modal status
 
 `--tool-preview true --mcp-status true` exclusively selects a zero-model diagnostic

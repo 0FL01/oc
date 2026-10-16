@@ -1,9 +1,11 @@
 """VIS16/17 ordinary provider calls; binaries own execution and output preparation."""
 import hashlib
+import contextlib
 import json
 from pathlib import Path
 import sqlite3
 import threading
+import time
 import prompt_caret_fixture
 import prompt_history_fixture
 import user_shell_fixture
@@ -13,11 +15,62 @@ import question_fixture
 
 lock = threading.Lock()
 requests = 0
+small_submitted_ns = None
+small_submitted_wall_ns = None
+SMALL_ELAPSED_MS = 5500
+SMALL_PRINTF = "printf 'VIS\\nb\\nc\\nd\\ne\\nf\\ng\\nh\\ni\\nj\\n'"
+SMALL_EFFECT = 'echo VIS-SHELL-EFFECT>>"$HOME/effect"'
+SMALL_COMMAND = SMALL_PRINTF + ';' + SMALL_EFFECT
 COMMAND = "printf 'VIS-SHELL-LINE-%03d\\n' " + ' '.join(str(n) for n in range(1, 81)) + "; printf '[Part preview truncated]\\n[output preview truncated; full result retained]\\n[truncated]\\n'"
 PROMPT = 'VIS16 preview: execute the supplied MCP and Shell calls exactly once.'
 
 def command(spec):
+    if spec.get('tool_preview_small'):
+        return SMALL_COMMAND
     return COMMAND + "; printf 'VIS-SHELL-EFFECT\\n' >> tool-preview-" + spec['origin'] + '.effects'
+
+def mark_small_submission(at_ns):
+    global small_submitted_ns, small_submitted_wall_ns
+    with lock:
+        if small_submitted_ns is not None:
+            raise AssertionError('Small preview allows exactly one submission')
+        small_submitted_ns = at_ns
+        small_submitted_wall_ns = time.time_ns()
+
+def wait_small_completion(spec, emit):
+    with lock:
+        submitted = small_submitted_ns
+        submitted_wall = small_submitted_wall_ns
+    if submitted is None:
+        raise AssertionError('Missing actual PTY submission clock')
+    admission_ns = 0
+    basis = 'pty_submission'
+    if spec['origin'] == 'upstream':
+        # AssistantFooter uses the public user-message creation time, not PTY
+        # input time. Read the actual projection; never rewrite its timestamps.
+        created = []
+        home = Path(spec['isolated_root']) / 'upstream' / 'home'
+        for database in (home / 'data').rglob('*'):
+            if database.suffix not in ('.db','.sqlite','.sqlite3'):
+                continue
+            with contextlib.closing(sqlite3.connect(database.as_uri()+'?mode=ro', uri=True)) as connection:
+                if connection.execute("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name='session_message')").fetchone()[0]:
+                    created += [row[0] for row in connection.execute(
+                        "SELECT time_created FROM session_message WHERE type='user' ORDER BY seq LIMIT 2")]
+        if len(created) != 1:
+            raise AssertionError('Expected one actual original user-message clock')
+        admission_ns = created[0] * 1_000_000 - submitted_wall
+        if abs(admission_ns) > 10_000_000_000:
+            raise AssertionError('Original user admission exceeds bounded timing fixture')
+        basis = 'original_user_time_created'
+    deadline = submitted + admission_ns + SMALL_ELAPSED_MS * 1_000_000
+    remaining = deadline - time.monotonic_ns()
+    if remaining > 0:
+        time.sleep(remaining / 1_000_000_000)
+    emit({'kind':'fixture_real_elapsed_barrier', 'submitted_ns':submitted,
+          'response_ns':time.monotonic_ns(), 'target_ms':SMALL_ELAPSED_MS,
+          'deadline_ns':deadline, 'clock_basis':basis,
+          'admission_after_submit_ms':admission_ns / 1_000_000})
 
 def configure(spec, home, project, config, cli):
     (home / 'vis16-peer-phase.json').write_text(json.dumps({'phase':'healthy'}))
@@ -40,6 +93,17 @@ def configure(spec, home, project, config, cli):
                                  {'action':'vis16__output','resource':'*','effect':'allow'},
                                  {'action':'shell','resource':command(spec),'effect':'allow'}]
         config['mcp'] = {'servers':{'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'codemode':False}}}
+    if spec.get('tool_preview_small'):
+        server = config['mcp']['servers'].pop('vis16')
+        server['command'].append('--small')
+        config['mcp']['servers']['vispreview'] = server
+        config['permissions'][1]['action'] = 'vispreview__output' if spec['origin'] == 'oc' else 'vispreview_output'
+        if spec['origin'] == 'upstream':
+            # Pinned ShellParse authorizes each simple/redirected AST statement,
+            # not the compound command string used by the native shell owner.
+            config['permissions'][2:] = [
+                {'action':'shell','resource':resource,'effect':'allow'}
+                for resource in [SMALL_PRINTF, SMALL_EFFECT]]
     if spec.get('mcp_status'):
         servers = config['mcp']['servers']
         # A safe display key distinct from handshake/argv and inherited scalar
@@ -127,7 +191,7 @@ def snapshot(home, project, spec):
         data = file.read_bytes()
         artifacts[str(file.relative_to(home))] = {
             'bytes':len(data), 'sha256':hashlib.sha256(data).hexdigest()}
-    effect = project / ('tool-preview-' + spec['origin'] + '.effects')
+    effect = home / 'effect' if spec.get('tool_preview_small') else project / ('tool-preview-' + spec['origin'] + '.effects')
     effect_bytes = None
     if effect.exists():
         with effect.open('rb') as counter:
@@ -154,8 +218,14 @@ def respond(handler, body, spec, emit):
         requests += 1
         number = requests
     items = body.get('input', [])
-    system = str(body.get('instructions','')) + json.dumps([x for x in items if x.get('role') in ('system','developer')])
-    title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
+    small = spec.get('tool_preview_small', False)
+    if small:
+        # This fixture's title request has no tools; every main request must
+        # retain both admitted tools. No classification of free LLM prose.
+        title = not body.get('tools')
+    else:
+        system = str(body.get('instructions','')) + json.dumps([x for x in items if x.get('role') in ('system','developer')])
+        title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
     if spec.get('question_forms'):
         return question_fixture.respond(handler, body, spec, emit, title, number)
     if spec.get('prompt_caret'):
@@ -164,21 +234,25 @@ def respond(handler, body, spec, emit):
         return prompt_history_fixture.respond(handler, body, spec, emit, title, number)
     results = [x for x in items if x.get('type') == 'function_call_output']
     definitions = {x.get('name'):x for x in body.get('tools', [])}
-    mcp = 'vis16__output' if spec['origin'] == 'oc' else 'vis16_output'
+    prefix = 'vispreview' if small else 'vis16'
+    mcp = prefix + ('__output' if spec['origin'] == 'oc' else '_output')
     shell = 'shell' if 'shell' in definitions else 'bash'
     index = len(results)
-    valid = handler.path == '/v1/responses' and body.get('stream') is True and body.get('model') == 'fixture-model-1' and number <= 6
-    valid = valid and (title or (index <= 4 and mcp in definitions and shell in definitions))
+    count = 3 if small else 4
+    valid = handler.path == '/v1/responses' and body.get('stream') is True and body.get('model') == 'fixture-model-1' and number <= count + 2
+    valid = valid and (title or (index <= count and mcp in definitions and shell in definitions))
     for i, result in enumerate(results):
         valid = valid and result.get('call_id') == f'call_vis16_{i}'
         output = str(result.get('output',''))
-        valid = valid and ('VIS-MCP-' + ['FIRST','SECOND'][i] in output if i < 2 else 'VIS-SHELL-LINE-080' in output if i == 2 else ('mcp tool reported failure' if spec['origin']=='oc' else 'VIS-MCP-ERROR') in output)
+        valid = valid and ('VIS-MCP-' + ['FIRST','SECOND'][i] in output if i < 2 else ('VIS' if small else 'VIS-SHELL-LINE-080') in output if i == 2 else ('mcp tool reported failure' if spec['origin']=='oc' else 'VIS-MCP-ERROR') in output)
     emit({'kind':'provider', 'operation':'title' if title else 'tool_preview', 'valid':valid,
           'index':index, 'actual_results':results, 'registered_tools':list(definitions)})
     if not valid:
         handler.send_error(400,'VIS16 fixture contract rejected')
         return
-    tool = not title and index < 4
+    tool = not title and index < count
+    if small and not title and not tool:
+        wait_small_completion(spec, emit)
     text = 'VIS16 tool preview fixture' if title else 'VIS16-DONE: bounded results verified.'
     if tool:
         name = shell if index == 2 else mcp
