@@ -6,6 +6,17 @@ const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export async function probeQuestionForms({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch}) {
   const providers=()=>logs.filter(e=>e.kind==='provider');
   const mains=()=>providers().filter(e=>e.operation==='question_main');
+  const exit=async generation=>{
+    send('\x03','question_clean_exit');
+    const deadline=Date.now()+6000;
+    while(!logs.some(e=>e.kind==='exit'&&e.generation===generation)) {
+      if(Date.now()>deadline)throw Error('Question process did not exit');
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    const event=logs.find(e=>e.kind==='exit'&&e.generation===generation);
+    if(event.code!==0||event.termination!=='natural')throw Error('Question process did not restore naturally');
+    return {generation,code:event.code,termination:event.termination};
+  };
   const operations=s=>s.observations.flatMap(o=>o.data.question_records?.operations||[]);
   const verify=(s,cancelled=false)=>{
     const records=operations(s);
@@ -91,9 +102,7 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
   await slash('/new');await shot('question-switched',f=>f.text.includes('Ask anything'));
   await reopen('question-reopened');const reopened=await snapshot('question_reopened');verify(reopened);
   if(!eq(completed.observations,reopened.observations)||providers().length!==3)throw Error('Question viewing changed records/replayed');
-  send('\x03','question_clean_exit');
-  const deadline=Date.now()+6000;while(!logs.some(e=>e.kind==='exit'&&e.generation===0)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,25));
-  if(!logs.some(e=>e.kind==='exit'&&e.generation===0))throw Error('Question process did not exit cleanly');
+  const firstExit=await exit(0);
   await relaunch();await waitFor(f=>f.text.includes('Ask anything')||f.text.includes(DONE),'question same-root restart',15000);
   await reopen('question-restarted');const restarted=await snapshot('question_restarted');verify(restarted);
   if(!eq(completed.observations,restarted.observations)||providers().length!==3)throw Error('Question restart replayed or changed durable source');
@@ -105,8 +114,11 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
   await slash('/new');await shot('question-cancel-switched',f=>f.text.includes('Ask anything'));
   await reopen('question-cancel-reopened');const final=await snapshot('question_cancel_reopened');verify(final,true);
   if(!eq(dismissed.observations,final.observations)||providers().length!==4||providers().some(e=>!e.valid))throw Error('Dismissed question reappeared/replayed or changed RAW');
+  const finalExit=await exit(1);
+  if(providers().length!==4||logs.filter(e=>e.kind==='fixture_tool_call').length!==2)throw Error('Question final shutdown replayed work');
   return {status:'OBSERVED_OWNED_QUESTION',provider_requests:4,main_requests:3,explicit_user_submissions:2,
     explicit_answer_submissions:1,question_calls:2,answers,completed,reopened,restarted,dismissed,final,
+    exits:[firstExit,finalExit],
     no_edit_submission:true,no_restart_replay:true,cancellation_not_answered:true,
     tab_and_backtab_committed_without_submit:true,return_after_tab_reopens_custom:true,
     optional_empty_custom_tab_did_not_submit:true,multiselect_focus_painted_before_toggle:true,

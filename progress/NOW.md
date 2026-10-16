@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T05:22:52+00:00
+State updated: 2026-10-16T05:33:49+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,52 +12,62 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS46 — implemented Execute UI, current paired qualification
+# VIS37 — current question/form and clean restart qualification
 
 ## Result
 
-Execute UI is implemented in the current worktree; **whole VIS46/T44 visual
-acceptance remains OPEN**. Detailed evidence and source provenance are in
-`evidence/T44/execute-ui-20261016.md` and the immutable
-`evidence/tui/execute-preview-20261016-07` capture.
+Current source `462543894720b3923955ed864bc246160dad988a` completes the existing
+question/form workflow against pinned Original `2670273ff17da96f85c5826ced57aa1b368754fa`
+at80x24,120x40 and160x48. This qualifies the measured functional/form subset,
+**not whole VIS37 or T44 visual parity**. No question renderer or backend change
+was needed. The fixture's ordered deny-all/question-allow policy is valid under
+the completed T65 semantics; no duplicate actor configuration was introduced.
 
-Both actual binaries complete20 stages: Receiving/Running/Completed live detail,
-real OSC52 Code/Output, pan/scroll,80x24/120x40/160x48 modal geometry, child input
-expansion, error interaction, reopen and restart. Each side retains exactly five
-provider requests, two execute operations, three nested MCP calls and one local
-GET; both process generations exit naturally with code0 and no effect replay.
-
-The pinned original returns interpreter errors as completed tool metadata and
-opens a Failed dialog. The frozen native contract instead requires a failed
-parent's inline error toggle. These actual different states are recorded with
-`error_state_equivalence:false`; they are NOT a newly approved parity exception.
+The driver now verifies natural code0 shutdown for BOTH generations, including
+the final cancelled-question session. It no longer treats forced final teardown
+as clean-exit evidence. No existing action, reply, replay or comparison assertion
+was removed.
 
 ## Checks
 
-- Current Execute UI tests5 PASS; full TUI548 PASS; strict workspace/all-targets
-  Clippy PASS. Logs: `.local/evidence/t44-vis46-ui-{unit-08,all-06,clippy-06}.log`.
-- Runtime Code Mode9 PASS, including captured fetch display order; capture
-  Python11 PASS and JS syntax checks PASS. Existing SQLite warnings stay visible.
-- All40 full grid/PNG comparisons remain strict:4 PASS /36 DIFFERENT. Receiving
-  transcript and dialog match completely. Resizing back to120x40 no longer
-  resurrects stale scroll:947 differing cells reduce to two actual elapsed cells.
-- Unchanged real PTY regression target:60 PASS, including S07/VIS38 resources,
-  VIS31 idle/burst pacing, question ownership, selection and terminal restoration.
-  Log: `.local/evidence/t44-vis46-ui-pty-regressions-01.log`.
+- Fresh immutable captures: `evidence/tui/question-resume-20261016-02-small`,
+  `-02-wide`, `-02-tall`; logs
+  `.local/evidence/t44-question-resume-02-{small,wide,tall}.log`.
+- Each actual binary/geometry passes18 stages: multiselect mouse/focus, long
+  question, empty custom Tab/BackTab, Unicode paste/edit/review, explicit answer,
+  answered card, switch/reopen/restart, explicit dismissal and cancelled reopen.
+- Each side/geometry retains exactly four provider requests, two question calls,
+  two user submissions and one explicit answer. Across the campaign:24 provider
+  requests,12 question calls and six answer submissions. Exact ordered answers,
+  durable completed/cancelled outcomes and unchanged snapshots are asserted.
+  No MCP, Shell, artifact or effect replay is permitted or observed.
+- All12 process exits (two generations × two binaries × three geometries) are
+  natural/code0. All54 cursor pairs are identical.
+- Full unmasked comparisons: small18 PASS/18 DIFFERENT; wide16 PASS/20 DIFFERENT;
+  tall16 PASS/20 DIFFERENT. Total **50 PASS /58 DIFFERENT** across108 grid/PNG
+  comparisons. All eight first-form stages match complete frames at every size.
+- The three captures share actual Rust source manifest
+  `e1c4dd101bbf32b6fee4c381661aa890ca69a72efed27a2c0e40794af73d5c90`
+  and rebuilt ELF `df6535757202d8119fdd10567c0b097ebeccb0e581c1d2f8dc8425c314611940`.
+  Actual per-capture build, source and binary provenance remain in capture.lock.
+- `node --check scripts/tui_capture/question_forms.mjs` passes. Rust is unchanged
+  from the preceding548-TUI/60-PTY/strict-workspace-Clippy verified slice.
 
 ## Risks
 
-Remaining differences include actual elapsed labels, hidden last-paint cursor
-coordinates, busy-footer/background presentation and the unequal error states.
-No clock, pixels, cells, RAW history, security boundary or comparator is rewritten.
-OSC52 proves terminal transport, not desktop clipboard acceptance. Existing Shell
-success omission, Explored anchors and all resource/selection guards remain.
+Complete-frame differences remain visible: the one-to-three-cell answer/cancel
+differences are actual elapsed labels; Home/switch frames also retain rotating
+examples and product version differences. No clocks, source records, pixels,
+cursor fields or comparison criteria are normalized. Historical capture012 and
+the first current wide baseline remain separate immutable evidence; their forced
+final teardown is not promoted to the new clean-final proof.
 
 ## Next
 
-Commit/push the verified major UI slice. Continue current-source paired
-question/form and remaining frozen R1–R6/VIS01–VIS46 qualification; do not finish
-T44 from this functional facet or reopen completed T65/publication.
+Keep all frozen R1–R6/VIS01–VIS46 requirements. Diagnose the reproduced Execute
+busy-footer usage timing through its runtime event owner: measured accounting
+must remain intact while UI publication follows settled local tool execution.
+Then return to current-source paired TUI qualification and the remaining slices.
 
 
 Ready (до 5): нет

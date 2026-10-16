@@ -23,9 +23,14 @@ isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succe
 The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
 conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
 
-Next: commit/push the verified VIS46 UI slice, then return to current-source paired
-question/form and remaining frozen qualification. The typed Execute renderer,
-child targets and live Code/Output dialog are implemented in the worktree.
+Next: reproduce and correct the backend usage-event timing behind the Execute
+busy-footer difference, preserving accounting/checkpoints, then return to paired
+TUI and remaining frozen slices. The typed Execute UI is pushed in `462543894`.
+[Current question receipt](../../evidence/T44/question-resume-20261016.md): both
+binaries pass18 stages at all three geometries, with12 natural/code0 process exits
+and54 equal cursor pairs. Full comparisons remain50 PASS/58 DIFFERENT; all eight
+first-form states match completely. Only the fixture's final-exit proof changed;
+no question production code, actor policy or comparison criterion changed.
 [Current UI receipt](../../evidence/T44/execute-ui-20261016.md): attempt07 passes20
 actual interaction stages on both binaries, including real clipboard transport,
 three geometries and natural restart without replay;4/40 complete comparisons

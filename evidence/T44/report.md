@@ -5,6 +5,13 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current question/form subset (2026-10-16)
+
+[Current-source receipt](question-resume-20261016.md): both binaries pass18 stages
+at80x24/120x40/160x48; all12 process exits are natural/code0, all54 cursor pairs
+match, and effect/request counts stay exact without replay. Full comparisons:
+50 PASS/58 DIFFERENT. No question production change or whole VIS37 PASS is claimed.
+
 ## Current execute UI facet (2026-10-16)
 
 [VIS46 UI receipt](execute-ui-20261016.md): typed inline calls and live centered
@@ -15,7 +22,7 @@ differ. The reference completed-metadata-error dialog and frozen native failed-
 parent inline toggle are explicitly incomparable, not a newly approved exception.
 Latest5 UI tests/548 full TUI tests and strict workspace Clippy pass, including a
 reproduced resize-scroll fix; actual resize differences fall947→2 elapsed cells,
-with hidden pen differences retained. The real-PTY regression target is running. Full VIS46/T44
+with hidden pen differences retained. The unchanged real-PTY target passes60 tests. Full VIS46/T44
 visual acceptance remains open.
 
 ## Current execute producer facet (2026-10-16)
