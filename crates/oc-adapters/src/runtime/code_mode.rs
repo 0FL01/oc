@@ -472,7 +472,7 @@ impl Runtime<'_> {
                     HostRequest::Fetch { request, .. } => progress.start(
                         "fetch",
                         &serde_json::json!({
-                            "url": request.url, "method": request.method,
+                            "method": request.method, "url": request.url,
                         }),
                     ),
                 };

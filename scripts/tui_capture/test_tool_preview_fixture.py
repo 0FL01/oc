@@ -9,6 +9,23 @@ import tool_preview_fixture as fixture
 
 
 class ToolPreviewFixtureTests(unittest.TestCase):
+    def test_execute_profile_uses_real_codemode_with_only_exact_nested_authorities(self):
+        for origin, tool in [('oc', 'visexecute__output'), ('upstream', 'visexecute_output')]:
+            with self.subTest(origin=origin), tempfile.TemporaryDirectory() as directory:
+                config = {}
+                spec = {'origin':origin, 'execute_preview':True, 'execute_fixture_port':45678}
+                fixture.configure(spec, pathlib.Path(directory), pathlib.Path(directory),
+                                  config, {'session':{}})
+                server = config['mcp']['servers']['visexecute']
+                self.assertIs(server['codemode'], True)
+                self.assertEqual(server['command'][-1], '--small')
+                self.assertEqual(config['permissions'], [
+                    {'action':'*', 'resource':'*', 'effect':'deny'},
+                    {'action':'execute', 'resource':'*', 'effect':'allow'},
+                    {'action':tool, 'resource':'*', 'effect':'allow'},
+                    {'action':'webfetch', 'resource':'http://localhost:45678/vis46-fetch', 'effect':'allow'}])
+                self.assertNotIn('setCacheKey', config)
+
     def test_generic_preview_uses_explicit_direct_mcp_on_both_binaries(self):
         for origin, tool in [('oc', 'vis16__output'), ('upstream', 'vis16_output')]:
             with self.subTest(origin=origin), tempfile.TemporaryDirectory() as directory:

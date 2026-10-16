@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawn, spawnSync} from 'node:child_process';
 import readline from 'node:readline';
+import net from 'node:net';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
 import {probeMessageActions} from './message_actions.mjs';
@@ -19,6 +20,7 @@ import {probePermission} from './permission.mjs';
 import {probeServices} from './services.mjs';
 import {probeToolPreview} from './tool_preview.mjs';
 import {probeSmallToolPreview} from './tool_preview_small.mjs';
+import {probeExecute} from './execute_preview.mjs';
 import {probeMcpStatus} from './mcp_status.mjs';
 import {probeMcpFooter} from './mcp_footer.mjs';
 import {probePromptCaret} from './prompt_caret.mjs';
@@ -48,6 +50,9 @@ const toolPreviewSmall = args['tool-preview-small'] === 'true';
 if(args['tool-preview-small']!==undefined&&(!toolPreview||!['true','false'].includes(args['tool-preview-small'])))throw Error('--tool-preview-small requires tool-preview and true|false');
 if(toolPreviewSmall&&Object.keys(args).some(k=>!['reference','oc','build-oc','geometry','sample','sidebar','tool-preview','tool-preview-small','columns','rows','output','compress-cells','compress-frames','syntax-cache'].includes(k)))throw Error('--tool-preview-small requires an exclusive paired small-output profile');
 if(toolPreviewSmall&&args['build-oc']!=='true')throw Error('--tool-preview-small requires a current repository build');
+const executePreview = args['execute-preview'] === 'true';
+if(args['execute-preview']!==undefined&&(!toolPreview||!['true','false'].includes(args['execute-preview'])))throw Error('--execute-preview requires tool-preview and true|false');
+if(executePreview&&(args['build-oc']!=='true'||Object.keys(args).some(k=>!['reference','oc','build-oc','geometry','sample','sidebar','tool-preview','execute-preview','columns','rows','output','compress-cells','compress-frames','syntax-cache'].includes(k))))throw Error('--execute-preview requires an exclusive paired current-build profile');
 const tabMiddleClose = args['tab-middle-close'] === 'true';
 const middleCase = args['middle-case'] || 'horizontal';
 const railPersistence = args['rail-persistence'] === 'true';
@@ -104,7 +109,7 @@ const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal||combinedComposer||questionForms?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','tool-preview-small','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','tool-preview-small','execute-preview','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -372,6 +377,17 @@ if (tabClick && (args.geometry !== 'true' || args.sample !== 'tools' || args.sid
   throw Error('--tab-click true requires both binaries, --geometry true --sample tools --sidebar hide --agent-profile true --columns 120 --rows 40, horizontal tabs and no matrix/scroll-resize/startup-error/seed-root');
 if (args.sample === 'rows-reflow' && args.matrix === 'true')
   throw Error('--sample rows-reflow does not support --matrix true; use --sample rows for the matrix/clamp run');
+// One actual loopback endpoint is reused by the sequential isolated sides. Avoid
+// the fixture's deliberately protected scalar "1" in the displayed program.
+let executeFixturePort;
+if(executePreview) {
+  do {
+    executeFixturePort=await new Promise((resolve,reject)=>{
+      const server=net.createServer();server.once('error',reject);
+      server.listen(0,'127.0.0.1',()=>{const port=server.address().port;server.close(error=>error?reject(error):resolve(port));});
+    });
+  } while(String(executeFixturePort).includes('1'));
+}
 const output = path.resolve(args.output || path.join(repo, 'evidence/tui/recovery-v00', new Date().toISOString().replaceAll(':', '-')));
 fs.mkdirSync(path.dirname(output), {recursive: true});
 try { fs.mkdirSync(output); }
@@ -384,6 +400,7 @@ const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => 
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
     ...(questionForms?{question_forms:true,probe:sha(fs.readFileSync(path.join(here,'question_forms.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'question_fixture.py')))}:{}),
     ...(toolPreviewSmall?{tool_preview_small:true,small_probe:sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs'))),real_response_barrier_ms:5500}:{}),
+    ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort,probe:sha(fs.readFileSync(path.join(here,'execute_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'execute_fixture.py')))}:{}),
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
     ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(syntaxCache?{syntax_cache:true,syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json'))),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
@@ -430,6 +447,7 @@ if(permission){for(const n of ['permission.mjs','permission_fixture.py','permiss
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py','home_mcp.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreviewSmall)lock.runner_hashes['tool_preview_small.mjs']=sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs')));
+if(executePreview)for(const name of ['execute_preview.mjs','execute_fixture.py'])lock.runner_hashes[name]=sha(fs.readFileSync(path.join(here,name)));
 if(tabMiddleClose)lock.runner_hashes['middle_tabs.mjs']=sha(fs.readFileSync(path.join(here,'middle_tabs.mjs')));
 if(mcpStatus)lock.runner_hashes['mcp_status.mjs']=sha(fs.readFileSync(path.join(here,'mcp_status.mjs')));
 if(mcpFooter)lock.runner_hashes['mcp_footer.mjs']=sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')));
@@ -514,7 +532,8 @@ try {
         ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,syntax_cache:syntaxCache,syntax_inventory:syntaxInventory,cells_encoding:compressCells?'gzip':'json',frame_sidecars_encoding:compressFrames?'gzip':'plain',same_side_identical_png_links:compressFrames,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
      unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
       ...(questionForms?{question_forms:true}:{}),
-      ...(toolPreviewSmall?{tool_preview_small:true,real_response_barrier_ms:5500}:{}),
+       ...(toolPreviewSmall?{tool_preview_small:true,real_response_barrier_ms:5500}:{}),
+       ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort}:{}),
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
@@ -543,7 +562,8 @@ try {
               apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
                clean_services:cleanServices,
                    tool_preview:toolPreview, tab_middle_close:tabMiddleClose, middle_case:middleCase,
-                   tool_preview_small:toolPreviewSmall,
+                    tool_preview_small:toolPreviewSmall,
+                    execute_preview:executePreview,execute_fixture_port:executeFixturePort,
                   mcp_status:mcpStatus,
                    mcp_footer:mcpFooter||null,
                    prompt_caret:promptCaret,
@@ -788,7 +808,9 @@ try {
          if(toolPreview) {
             const resize=async (rows,columns=profile.columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');};
               const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
-                  smallProbe:toolPreviewSmall?probeSmallToolPreview:null,
+                   smallProbe:toolPreviewSmall?probeSmallToolPreview:null,
+                   executeProbe:executePreview?probeExecute:null,
+                   readVt:()=>Buffer.concat(chunks[generation]).toString('latin1'),
                  syntaxProbe:syntaxInventory?probeSyntax:null,
                  promptProbe:promptCaret?probePromptCaret:null,
                  questionProbe:questionForms?probeQuestionForms:null,
@@ -3154,7 +3176,8 @@ try {
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
       if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
-       if(toolPreviewSmall)lock.qualification={status:'DIAGNOSTIC_SMALL_TOOL_PREVIEW_ONLY',actual_requests:'Two small real MCP calls and one real Shell effect; same12-line/1024-byte producer limits; local fake Responses only',clock:'Actual PTY submission monotonic clock and bounded real5500ms final-response wait; no clock/history/paint override',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Full unmasked grid/PNG/cursor comparators decide frame equality','Large-output/error/resource/temporal and other frozen T44 outcomes remain separate gates']};
+        if(toolPreviewSmall)lock.qualification={status:'DIAGNOSTIC_SMALL_TOOL_PREVIEW_ONLY',actual_requests:'Two small real MCP calls and one real Shell effect; same12-line/1024-byte producer limits; local fake Responses only',clock:'Actual PTY submission monotonic clock and bounded real5500ms final-response wait; no clock/history/paint override',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Full unmasked grid/PNG/cursor comparators decide frame equality','Large-output/error/resource/temporal and other frozen T44 outcomes remain separate gates']};
+        if(executePreview)lock.qualification={status:'DIAGNOSTIC_EXECUTE_ONLY',actual_requests:'Two execute operations: real nested MCP success/error and one real controlled HTTP fetch; receiving/running/final live dialog and actual OSC52 copy',replay:'Read-only operations/artifacts/MCP audit through UI reopen and natural process restart',unresolved:['Full unmasked styled-grid/PNG/cursor comparators remain independent','Real elapsed time is not frozen','Other frozen T44 outcomes and final resource/safety gates remain mandatory']};
         if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:rootHandoff?'Actual Root remapped foreground Subagent then Shell hints/handoff, same source/process and custom profile footer across three geometries; local fake Responses only':modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':subagentCards?'Actual inline Subagent foreground/background/model/hover/navigation, same-child continuation and missing-agent error; one episode across three real geometries, local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
         if(syntaxInventory)lock.qualification={status:'DIAGNOSTIC_SYNTAX_INVENTORY_ONLY',actual_requests:'One actual scoped Write overwrite, title and all39 ordinary streamed grammar cases; real busy Root Add/return/parked completion, then one explicit same-root cancelled generation; zero MCP/Shell calls',reference_inputs:'Original worker consumes explicitly frozen real WASM/highlight cache inputs; official compatible Swift query freeze is recorded without changing descriptors or binary',replay:'Natural process exit/relaunch and painted session-list reopening before the explicit cancel turn; original file/operation facts and Write count must remain unchanged',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other full frozen T44 outcomes require independent qualification','Actual elapsed-time values are not frozen']};
        if(mcpStatus)lock.qualification={status:mcpFooter?'DIAGNOSTIC_MCP_FOOTER_ONLY':'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:mcpFooter?'Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames':'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};

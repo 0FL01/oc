@@ -1742,6 +1742,7 @@ impl TuiState {
                 if card.op == op && matches!(card.state.as_str(), "started" | "running"))
         }) {
             card.output_presentation = Some(presentation);
+            card.render = crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute);
         }
         self.enforce_parts();
     }
@@ -1956,12 +1957,17 @@ impl TuiState {
                     dcp: None,
                     dcp_topic: None,
                 });
-                card.render =
-                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
-                        args: Vec::new(),
-                        summary: String::new(),
-                        arguments_limited: false,
-                    });
+                if !matches!(
+                    card.render,
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)
+                ) {
+                    card.render =
+                        crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
+                            args: Vec::new(),
+                            summary: String::new(),
+                            arguments_limited: false,
+                        });
+                }
                 // Bounded raw prefix is presentation text only, not input JSON.
                 let mut end = preview
                     .len()
@@ -1998,6 +2004,11 @@ impl TuiState {
                         continue;
                     }
                     if card.op == key {
+                        if let Some(detail) = self.execute_detail.as_mut()
+                            && detail.operation == key
+                        {
+                            detail.operation.clone_from(op);
+                        }
                         card.op.clone_from(op);
                         card.state = "started".into();
                         card.input_preview.clear();

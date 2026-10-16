@@ -106,6 +106,8 @@ struct ToastExpiry {
 /// Open TUI panel (bounded view state; one at a time).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiPanel {
+    /// Read-only live execute Code/Output detail.
+    Execute,
     Settings,
     MessageActions {
         message: oc_core::session::MessageId,
@@ -663,6 +665,8 @@ pub struct TuiState {
     can_add_tab: bool,
     /// Only operation IDs whose exploration headers were explicitly opened.
     exploration_expanded: BTreeSet<String>,
+    execute_calls_expanded: BTreeMap<String, BTreeSet<usize>>,
+    pub(crate) execute_detail: Option<execute::Detail>,
     exploration_down: Option<(String, u16, u16)>,
     child_notice_down: Option<transcript::ChildNoticePress>,
     reasoning_expanded: BTreeSet<crate::messages::ReasoningIdentity>,
@@ -899,6 +903,8 @@ impl TuiState {
             active_tab: 0,
             can_add_tab: false,
             exploration_expanded: BTreeSet::new(),
+            execute_calls_expanded: BTreeMap::new(),
+            execute_detail: None,
             exploration_down: None,
             child_notice_down: None,
             reasoning_expanded: BTreeSet::new(),
@@ -1040,6 +1046,7 @@ impl TuiState {
         self.active_tab = 0;
         self.can_add_tab = false;
         self.exploration_expanded.clear();
+        self.execute_calls_expanded.clear();
         self.reasoning_expanded.clear();
         self.reasoning_down = None;
         self.chrome = Default::default();
@@ -1091,6 +1098,7 @@ impl TuiState {
         self.slash_dismissed = None;
         self.clear_mentions();
         self.exploration_expanded.clear();
+        self.execute_calls_expanded.clear();
         self.reasoning_expanded.clear();
         self.reasoning_down = None;
         self.cards.clear();
@@ -1331,6 +1339,15 @@ impl TuiState {
                 .map(LivePart::retained_bytes)
                 .sum::<usize>()
             + self.input.len()
+            + self
+                .execute_detail
+                .as_ref()
+                .map_or(0, |detail| detail.operation.len())
+            + self
+                .execute_calls_expanded
+                .iter()
+                .map(|(op, calls)| op.len() + calls.len() * std::mem::size_of::<usize>())
+                .sum::<usize>()
             + self.mention_result.as_ref().map_or(0, |(key, result)| {
                 key.query.len()
                     + key.location.len()
@@ -1475,6 +1492,7 @@ impl TuiState {
 }
 
 mod accounts;
+mod execute;
 pub use accounts::AuthRequest;
 mod foreground;
 mod input;

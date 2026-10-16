@@ -4,7 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,questionProbe,userShellProbe,composerProbe,syntaxProbe,smallProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,questionProbe,userShellProbe,composerProbe,syntaxProbe,smallProbe,executeProbe,readVt}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -79,6 +79,11 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(executeProbe) {
+      result.differences=['Actual execute operations, nested MCP/fetch, live Code/Output and terminal clipboard; full unmasked comparisons remain independent of behavior qualification.'];
+      result.execute=await executeProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch,resize,slash,control,readVt});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(smallProbe) {
       result.differences=['Small real producer outputs and a bounded real response wait; no clock/history/paint override. Full frames remain unmasked and behavior alone is not pixel qualification.'];
       result.small_profile=await smallProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch,resize,slash,reopen,click,target});

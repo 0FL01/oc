@@ -1582,6 +1582,7 @@ impl TuiState {
         self.card_scroll = 0;
         self.card_seen.set(0);
         self.mcp_detail = None;
+        self.execute_detail = None;
         self.mcp_focused = None;
         self.mcp_action_down = None;
         self.mouse_down = None;
@@ -1600,6 +1601,11 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.panel == TuiPanel::Execute && self.approvals.active().is_none() {
+            self.child_notice_down = None;
+            self.cancel_shell_footer_pointer();
+            return self.execute_mouse(event, area);
+        }
         if let Some(commit) = self.rail_resize_mouse(event, area) {
             return KeyOutcome {
                 intent: commit.map(|width| PanelIntent::SetTabRailWidth { width }),
@@ -2656,6 +2662,10 @@ impl TuiState {
                 && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
         {
             return self.questions.key(action);
+        }
+        if self.panel == TuiPanel::Execute {
+            self.leader = None;
+            return self.execute_key(action);
         }
         if self.panel == TuiPanel::None && self.shell_viewer().is_some() {
             self.leader = None;
@@ -4070,6 +4080,7 @@ impl TuiState {
     pub(super) fn panel_enter(&mut self) -> KeyOutcome {
         let mut outcome = KeyOutcome::default();
         match self.panel.clone() {
+            TuiPanel::Execute => {}
             TuiPanel::MessageActions { message, seq } => {
                 if !self
                     .window

@@ -224,6 +224,19 @@ impl TuiState {
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
         self.window.reset(page);
+        self.execute_calls_expanded.retain(|operation, calls| {
+            if let Some(facts) = self.window.rows().iter().find_map(|row| {
+                row.tool
+                    .as_ref()
+                    .filter(|card| &card.op == operation)
+                    .and_then(crate::tools::execute::facts)
+            }) {
+                calls.retain(|index| *index < facts.calls.len());
+                !calls.is_empty()
+            } else {
+                false
+            }
+        });
         self.refresh_running_user_shell_output();
         self.scroll = 0;
         self.wheel_motion = None;
@@ -447,7 +460,7 @@ impl TuiState {
             (widths.0, widths.1, None),
             &|agent| self.agent_color(agent),
             &self.markdown_cache,
-            &|op| self.exploration_expanded.contains(op),
+            &|target| self.tool_expanded(target),
             part,
         )
     }
@@ -574,6 +587,28 @@ impl TuiState {
             self.exploration_hit_with_range(frame, x, y)
                 .map(|(_, range)| range)
         });
+        // Derive child hover from this frame's unhovered geometry, including a
+        // just-expanded row. Input still validates the same paint generation.
+        {
+            let mut painted = self.painted_transcript.borrow_mut();
+            if !painted.as_ref().is_some_and(|previous| {
+                previous.area == area
+                    && previous.total == total
+                    && previous.scroll == scroll
+                    && previous.rows == rows
+                    && previous.user_targets == user_targets
+            }) {
+                self.paint_generation
+                    .set(self.paint_generation.get().wrapping_add(1));
+                *painted = Some(PaintedTranscript {
+                    area,
+                    rows: rows.to_vec(),
+                    user_targets: user_targets.to_vec(),
+                    total,
+                    scroll,
+                });
+            }
+        }
         let hover_child = frame.and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
             (owner == frame).then_some(())?;
@@ -586,8 +621,7 @@ impl TuiState {
                 && selected.painted.rows == rows
                 && self.panel == TuiPanel::None
         });
-        let result = rows
-            .iter()
+        rows.iter()
             .enumerate()
             .map(|(row, line)| {
                 let hovered;
@@ -615,6 +649,9 @@ impl TuiState {
                                 crate::messages::hover_child_notice(line, theme, job)
                             }
                             crate::messages::CapturedChildTarget::ErrorDetails(_) => line.clone(),
+                            crate::messages::CapturedChildTarget::Execute { .. } => {
+                                crate::tools::execute::hover(line, theme)
+                            }
                         }
                     };
                     &hovered
@@ -649,26 +686,7 @@ impl TuiState {
                 }
                 line.clone()
             })
-            .collect();
-        let mut painted = self.painted_transcript.borrow_mut();
-        if !painted.as_ref().is_some_and(|previous| {
-            previous.area == area
-                && previous.total == total
-                && previous.scroll == scroll
-                && previous.rows == rows
-                && previous.user_targets == user_targets
-        }) {
-            self.paint_generation
-                .set(self.paint_generation.get().wrapping_add(1));
-            *painted = Some(PaintedTranscript {
-                area,
-                rows: rows.to_vec(),
-                user_targets: user_targets.to_vec(),
-                total,
-                scroll,
-            });
-        }
-        result
+            .collect()
     }
 
     /// Configuration/test override of the platform's native clipboard mode.
@@ -773,6 +791,17 @@ impl TuiState {
 
     /// The binary reports the actual asynchronous clipboard write outcome.
     pub fn report_clipboard_result(&mut self, result: Result<(), String>) {
+        if let Some(detail) = &mut self.execute_detail
+            && let Some(key) = detail.copy_pending.take()
+        {
+            if result.is_ok() {
+                detail.copied = Some(key);
+            }
+            if let Err(error) = result {
+                self.push_transient_note(&error, NoteVariant::Error);
+            }
+            return;
+        }
         if let Some(detail) = &mut self.mcp_detail
             && detail.copy_pending
         {
@@ -1142,7 +1171,7 @@ impl TuiState {
             |agent| self.agent_color(agent),
             &self.markdown_cache,
             (
-                &|op| self.exploration_expanded.contains(op),
+                &|target| self.tool_expanded(target),
                 ((x - rect.x) as usize, (y - rect.y) as usize),
             ),
         )
@@ -1176,7 +1205,7 @@ impl TuiState {
             |agent| self.agent_color(agent),
             &self.markdown_cache,
             (
-                &|op| self.exploration_expanded.contains(op),
+                &|target| self.tool_expanded(target),
                 ((x - rect.x) as usize, (y - rect.y) as usize),
             ),
         )
@@ -1242,11 +1271,11 @@ impl TuiState {
                 || row
                     .tool
                     .as_ref()
-                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_)))
+                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)))
         }) && !self
             .live_parts
             .iter()
-            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_))))
+            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute))))
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
             || self.questions.active().is_some()
@@ -1286,7 +1315,7 @@ impl TuiState {
             |agent| self.agent_color(agent),
             &self.markdown_cache,
             (
-                &|op| self.exploration_expanded.contains(op),
+                &|target| self.tool_expanded(target),
                 ((x - rect.x) as usize, (y - rect.y) as usize),
             ),
         )
@@ -1295,6 +1324,7 @@ impl TuiState {
                 self.attached_session() == Some(&job.parent)
             }
             crate::messages::CapturedChildTarget::ErrorDetails(_) => true,
+            crate::messages::CapturedChildTarget::Execute { .. } => true,
         })
     }
 
@@ -1339,11 +1369,25 @@ impl TuiState {
                         self.toggle_tool_expansion_at(&operation, frame);
                         KeyOutcome::default()
                     }
+                    crate::messages::CapturedChildTarget::Execute { operation, call } => {
+                        self.activate_execute(&operation, call, frame);
+                        KeyOutcome::default()
+                    }
                 });
             }
             _ => {}
         }
         None
+    }
+
+    pub(super) fn tool_expanded(&self, target: crate::messages::ToolExpansion<'_>) -> bool {
+        match target {
+            crate::messages::ToolExpansion::Operation(op) => self.exploration_expanded.contains(op),
+            crate::messages::ToolExpansion::ExecuteCall(op, index) => self
+                .execute_calls_expanded
+                .get(op)
+                .is_some_and(|calls| calls.contains(&index)),
+        }
     }
 
     pub(super) fn toggle_tool_expansion_at(&mut self, operation: &str, frame: Rect) {
@@ -1656,7 +1700,7 @@ impl TuiState {
             terminal_width,
             |agent| self.agent_color(agent),
             Some(&self.markdown_cache),
-            &|op| self.exploration_expanded.contains(op),
+            &|target| self.tool_expanded(target),
         )
     }
 
@@ -1743,7 +1787,7 @@ impl TuiState {
                 (height, scroll, live_row),
                 |agent| self.agent_color(agent),
                 &self.markdown_cache,
-                &|op| self.exploration_expanded.contains(op),
+                &|target| self.tool_expanded(target),
             )
         };
         let previous = self.viewport.get();

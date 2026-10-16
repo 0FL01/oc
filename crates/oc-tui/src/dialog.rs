@@ -841,6 +841,10 @@ impl SelectList {
 }
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    if state.panel() == &TuiPanel::Execute {
+        crate::execute_view::render(frame, state);
+        return;
+    }
     if state.panel() == &TuiPanel::Accounts {
         let rect = DialogFrame::rect(frame.area(), DialogSize::Medium, 16);
         DialogFrame::paint(frame, rect, Theme::dark());
@@ -881,7 +885,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",
         TuiPanel::Sessions => "Sessions",
-        TuiPanel::Rename | TuiPanel::Accounts => unreachable!("rendered above"),
+        TuiPanel::Rename | TuiPanel::Accounts | TuiPanel::Execute => unreachable!("rendered above"),
         TuiPanel::Skills => "Skills",
         TuiPanel::Mcps => "MCP servers",
         TuiPanel::Cards => "Tool cards",

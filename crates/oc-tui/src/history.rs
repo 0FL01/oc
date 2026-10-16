@@ -1375,6 +1375,12 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     } else {
         ToolRender::parse(&row.name, row.input.as_deref(), output, &row.state)
     };
+    if output_presentation
+        .as_ref()
+        .is_some_and(|facts| facts.execute.is_some())
+    {
+        render = ToolRender::Inline(crate::tools::InlineRender::Execute);
+    }
     if let ToolRender::Shell(shell) = &mut render
         && let Some(facts) = output_presentation
             .as_ref()

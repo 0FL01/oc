@@ -12,6 +12,7 @@ import user_shell_fixture
 import composer_fixture
 import syntax_fixture
 import question_fixture
+import execute_fixture
 
 lock = threading.Lock()
 requests = 0
@@ -73,6 +74,8 @@ def wait_small_completion(spec, emit):
           'admission_after_submit_ms':admission_ns / 1_000_000})
 
 def configure(spec, home, project, config, cli):
+    if spec.get('execute_preview'):
+        return execute_fixture.configure(spec, home, project, config, cli)
     (home / 'vis16-peer-phase.json').write_text(json.dumps({'phase':'healthy'}))
     config['snapshots'] = False
     config['compaction'] = {'auto':False}
@@ -137,6 +140,8 @@ def configure(spec, home, project, config, cli):
         question_fixture.configure(spec, config)
 
 def control(home, action, project=None, spec=None):
+    if spec and spec.get('execute_preview'):
+        return execute_fixture.control(action)
     if spec and spec.get('syntax_inventory'):
         return syntax_fixture.control(action)
     if spec and spec.get('combined_composer'):
@@ -209,6 +214,8 @@ def snapshot(home, project, spec):
             'mcp_calls':[json.loads(line) for line in peer.read_text().splitlines()] if peer.exists() else []}
 
 def respond(handler, body, spec, emit):
+    if spec.get('execute_preview'):
+        return execute_fixture.respond(handler, body, spec, emit)
     if spec.get('syntax_inventory'):
         return syntax_fixture.respond(handler, body, spec, emit)
     if spec.get('combined_composer'):

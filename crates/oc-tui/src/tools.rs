@@ -36,6 +36,8 @@ use crate::theme::Theme;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+pub(crate) mod execute;
+
 /// Block-card inner padding: `padding 1/2` (`index.tsx:2784-2866`).
 pub const TOOL_PADDING: usize = 2;
 /// Inline icon column (`message-parts.tsx:18,213-219`).
@@ -176,6 +178,8 @@ pub enum InlineRender {
     /// Count from a validated, complete question input for this operation.
     /// Argument-stream fragments never supply a count or an answer result.
     Question { count: Option<usize> },
+    /// Structured execute facts are owned by the card, never reparsed from RAW.
+    Execute,
     /// Any other tool (MCP included): `key: value` arguments.
     Generic {
         /// Available recorded parameters, bounded independently of the summary.
@@ -237,7 +241,7 @@ impl ToolRender {
             ) => pattern.len(),
             Self::Inline(InlineRender::WebFetch { url }) => url.len(),
             Self::Inline(InlineRender::Skill { id }) => id.len(),
-            Self::Inline(InlineRender::Question { .. }) => 0,
+            Self::Inline(InlineRender::Question { .. } | InlineRender::Execute) => 0,
             Self::Inline(InlineRender::Generic { args, summary, .. }) => {
                 summary.len() + args.iter().map(|(k, v)| k.len() + v.len()).sum::<usize>()
             }
@@ -301,6 +305,7 @@ impl InlineRender {
             InlineRender::WebFetch { .. } => "Fetching from the web…",
             InlineRender::Skill { .. } => "Loading skill…",
             InlineRender::Question { .. } => "Asking questions…",
+            InlineRender::Execute => "execute",
             InlineRender::Generic { .. } => "",
         }
     }
@@ -1421,6 +1426,12 @@ pub(crate) fn subagent_block_expanded(
 }
 
 fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Line> {
+    if matches!(inline, InlineRender::Execute) {
+        return execute::block(card, theme, 0, &|_| false)
+            .into_iter()
+            .map(|row| row.line)
+            .collect();
+    }
     if matches!(inline, InlineRender::Generic { .. }) {
         return generic_block_expanded(inline, card, theme, 0, false);
     }
@@ -1592,6 +1603,7 @@ fn inline_label(inline: &InlineRender) -> String {
             if *count == 1 { "" } else { "s" }
         ),
         InlineRender::Question { count: None } => "Asking questions…".into(),
+        InlineRender::Execute => "execute".into(),
         InlineRender::Generic { summary, .. } => summary.clone(),
     }
 }

@@ -110,6 +110,12 @@ class Provider(BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass
 
+    def do_GET(self):
+        if spec.get('execute_preview'):
+            tool_preview_fixture.execute_fixture.fetch(self, emit)
+            return
+        self.send_error(404)
+
     def do_POST(self):
         global transcript_round, title_round, bounded_requests, live_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
@@ -475,7 +481,7 @@ def middle_snapshot():
     return snapshot
 
 
-server = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
+server = ThreadingHTTPServer(('127.0.0.1', spec.get('execute_fixture_port', 0)), Provider)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 home = root / spec['origin'] / 'home'
 project = root / 'project'
@@ -618,6 +624,9 @@ env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HO
        'OPENCODE_TEST_HOME': str(home), 'OPENCODE_DISABLE_AUTOUPDATE': '1',
        'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
         'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+if spec.get('execute_preview') and spec['origin'] == 'oc':
+    # Provider endpoint and webfetch admission have distinct test-only guards.
+    env['OC_TEST_WEBFETCH_ALLOW_LOOPBACK'] = '1'
 if spec.get('clean_services'):
     # The fixture-owned file is the authority, so real /reload can adopt recovery.
     env.pop('OPENCODE_CONFIG_CONTENT')

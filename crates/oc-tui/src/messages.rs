@@ -547,6 +547,12 @@ pub(crate) fn transcript_with_cache(
     )
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ToolExpansion<'a> {
+    Operation(&'a str),
+    ExecuteCall(&'a str, usize),
+}
+
 pub(crate) fn transcript_with_expansion(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -554,7 +560,7 @@ pub(crate) fn transcript_with_expansion(
     terminal_width: u16,
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: Option<&RefCell<MarkdownCache>>,
-    expanded: &impl Fn(&str) -> bool,
+    expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> Vec<Line> {
     let mut out = Vec::new();
     let mut grouped_until = 0;
@@ -575,7 +581,7 @@ pub(crate) fn transcript_with_expansion(
             }
             let op = &row.tool.as_ref().expect("group has tool").op;
             out.extend(group);
-            if expanded(op) {
+            if expanded(ToolExpansion::Operation(op)) {
                 for member in rows[index..]
                     .iter()
                     .take_while(|row| exploration_kind(row).is_some())
@@ -619,7 +625,7 @@ fn expandable_tool_entry(
     row: &HistoryRow,
     theme: &Theme,
     width: u16,
-    expanded: &dyn Fn(&str) -> bool,
+    expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
     leading: bool,
 ) -> Option<Vec<Line>> {
     let card = row
@@ -627,12 +633,20 @@ fn expandable_tool_entry(
         .as_ref()
         .filter(|_| matches!(row.role.as_str(), "tool" | "shell" | "shell_input"))?;
     let rendered = match &card.render {
-        crate::tools::ToolRender::Shell(shell) => {
-            crate::tools::shell_block_expanded(shell, card, theme, width, expanded(&card.op))
-        }
-        crate::tools::ToolRender::Subagent(subagent) => {
-            crate::tools::subagent_block_expanded(subagent, card, theme, width, expanded(&card.op))
-        }
+        crate::tools::ToolRender::Shell(shell) => crate::tools::shell_block_expanded(
+            shell,
+            card,
+            theme,
+            width,
+            expanded(ToolExpansion::Operation(&card.op)),
+        ),
+        crate::tools::ToolRender::Subagent(subagent) => crate::tools::subagent_block_expanded(
+            subagent,
+            card,
+            theme,
+            width,
+            expanded(ToolExpansion::Operation(&card.op)),
+        ),
         crate::tools::ToolRender::Inline(inline @ crate::tools::InlineRender::Generic { .. })
             if card.question.is_none()
                 && !matches!(
@@ -640,7 +654,19 @@ fn expandable_tool_entry(
                     "argument_stream" | "permission_pending"
                 ) =>
         {
-            crate::tools::generic_block_expanded(inline, card, theme, width, expanded(&card.op))
+            crate::tools::generic_block_expanded(
+                inline,
+                card,
+                theme,
+                width,
+                expanded(ToolExpansion::Operation(&card.op)),
+            )
+        }
+        crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute) => {
+            crate::tools::execute::block(card, theme, width, expanded)
+                .into_iter()
+                .map(|row| row.line)
+                .collect()
         }
         _ => return None,
     };
@@ -1905,7 +1931,7 @@ pub(crate) fn exploration_header_at(
     viewport: (usize, usize, Option<usize>),
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+    hit: (&impl Fn(ToolExpansion<'_>) -> bool, (usize, usize)),
 ) -> Option<String> {
     exploration_header_at_with_range(rows, theme, widths, viewport, agent_color, cache, hit)
         .map(|(operation, _)| operation)
@@ -1919,7 +1945,7 @@ pub(crate) fn exploration_header_at_with_range(
     viewport: (usize, usize, Option<usize>),
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+    hit: (&impl Fn(ToolExpansion<'_>) -> bool, (usize, usize)),
 ) -> Option<(String, std::ops::Range<usize>)> {
     visible_transcript_indexed(
         rows,
@@ -1948,7 +1974,7 @@ pub(crate) fn reasoning_header_at(
     viewport: (usize, usize, Option<usize>),
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+    hit: (&impl Fn(ToolExpansion<'_>) -> bool, (usize, usize)),
 ) -> Option<ReasoningIdentity> {
     visible_transcript_indexed(
         rows,
@@ -1977,7 +2003,7 @@ pub(crate) fn captured_child_at_with_range(
     viewport: (usize, usize, Option<usize>),
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+    hit: (&impl Fn(ToolExpansion<'_>) -> bool, (usize, usize)),
 ) -> Option<(CapturedChildTarget, std::ops::Range<usize>, bool)> {
     visible_transcript_indexed(
         rows,
@@ -2039,7 +2065,7 @@ pub(crate) fn visible_transcript_expanded(
     viewport: (usize, usize, Option<usize>),
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    expanded: &impl Fn(&str) -> bool,
+    expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize) {
     let (lines, total, _, _) = visible_transcript_indexed(
         rows,
@@ -2138,7 +2164,7 @@ pub(crate) fn visible_transcript_user_targets(
     viewport: (usize, usize, Option<usize>),
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    expanded: &impl Fn(&str) -> bool,
+    expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize, Vec<Option<UserMessageTarget>>) {
     let (lines, total, _, targets) = visible_transcript_indexed(
         rows,
@@ -2158,7 +2184,7 @@ pub(crate) fn visible_transcript_user_targets(
 
 #[derive(Clone, Copy)]
 struct ExplorationOptions<'a> {
-    expanded: &'a dyn Fn(&str) -> bool,
+    expanded: &'a dyn Fn(ToolExpansion<'_>) -> bool,
     point: Option<(usize, usize)>,
     retries: u8,
 }
@@ -2167,6 +2193,10 @@ struct ExplorationOptions<'a> {
 pub(crate) enum CapturedChildTarget {
     Navigate(Box<oc_core::queries::ChildJob>),
     ErrorDetails(String),
+    Execute {
+        operation: String,
+        call: Option<usize>,
+    },
 }
 
 enum TranscriptHit {
@@ -2259,7 +2289,9 @@ fn visible_transcript_indexed(
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
             let is_expanded = !group.is_empty()
-                && (options.expanded)(&row.tool.as_ref().expect("group has tool").op);
+                && (options.expanded)(ToolExpansion::Operation(
+                    &row.tool.as_ref().expect("group has tool").op,
+                ));
             if !group.is_empty()
                 && let Some((x, y)) = options.point
             {
@@ -2361,6 +2393,25 @@ fn visible_transcript_indexed(
                                     true,
                                 ));
                             }
+                        }
+                        None
+                    }
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute) => {
+                        let rendered =
+                            crate::tools::execute::block(card, theme, width, options.expanded);
+                        if let Some(target) = rendered.get(relative - margin)
+                            && let Some(call) = target.target
+                            && x >= MESSAGE_PADDING
+                            && x < UnicodeWidthStr::width(target.line.plain_text().trim_end())
+                        {
+                            hit = Some(TranscriptHit::ChildNotice(
+                                CapturedChildTarget::Execute {
+                                    operation: card.op.clone(),
+                                    call: call.index(),
+                                },
+                                y..y + 1,
+                                false,
+                            ));
                         }
                         None
                     }
@@ -2537,7 +2588,7 @@ pub(crate) fn transcript_part_positions(
     geometry: (u16, u16, Option<usize>),
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
-    expanded: &dyn Fn(&str) -> bool,
+    expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
     mut part: impl FnMut(usize, usize, usize),
 ) -> usize {
     let (width, terminal_width, live_row) = geometry;
@@ -2557,8 +2608,10 @@ pub(crate) fn transcript_part_positions(
             continue;
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
-            let is_expanded =
-                !group.is_empty() && expanded(&row.tool.as_ref().expect("group has tool").op);
+            let is_expanded = !group.is_empty()
+                && expanded(ToolExpansion::Operation(
+                    &row.tool.as_ref().expect("group has tool").op,
+                ));
             for line in group {
                 total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }

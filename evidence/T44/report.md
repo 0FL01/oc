@@ -5,13 +5,26 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current execute UI facet (2026-10-16)
+
+[VIS46 UI receipt](execute-ui-20261016.md): typed inline calls and live centered
+Code/Output detail follow Receiving, progress and terminal facts; actual bounded
+clipboard transport, pan/scroll, three geometries and restart/no-replay are tested.
+Attempt07 completes20 interaction stages per side;4 full comparisons match and36
+differ. The reference completed-metadata-error dialog and frozen native failed-
+parent inline toggle are explicitly incomparable, not a newly approved exception.
+Latest5 UI tests/548 full TUI tests and strict workspace Clippy pass, including a
+reproduced resize-scroll fix; actual resize differences fall947→2 elapsed cells,
+with hidden pen differences retained. The real-PTY regression target is running. Full VIS46/T44
+visual acceptance remains open.
+
 ## Current execute producer facet (2026-10-16)
 
 [VIS46 producer receipt](execute-producer-20261016.md): additive bounded/redacted
 facts and disposable progress are implemented under one operation. Real MCP/fetch,
 cancelled single-effect and durable/reopened snapshot checks pass (runtime9/core2/
-producer3/interpreter22/live-owner1), as does strict workspace Clippy. Execute UI,
-dialog, PTY and full paired qualification remain open; no full VIS46/T44 PASS.
+producer3/interpreter22/live-owner1), as does strict workspace Clippy. The UI and
+actual paired interaction receipt is above; no full VIS46/T44 PASS is claimed.
 
 ## Current cursor temporal subset (2026-10-16)
 

@@ -1057,7 +1057,7 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
             width,
             |_| theme.text(),
             Some(&cache),
-            &|op| op == "read",
+            &|op| op == ToolExpansion::Operation("read"),
         );
         let (visible, total) = visible_transcript_expanded(
             &rows,
@@ -1066,7 +1066,7 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
             (100, 0, None),
             |_| theme.text(),
             &cache,
-            &|op| op == "read",
+            &|op| op == ToolExpansion::Operation("read"),
         );
         let full = styled::wrap_lines(&full, width as usize)
             .into_iter()

@@ -206,6 +206,18 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
         facts.calls[2].input,
         Some(serde_json::json!({"url":url,"method":"GET"}))
     );
+    assert_eq!(
+        facts.calls[2]
+            .input
+            .as_ref()
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["method", "url"]
+    );
     assert!(!facts.error && !facts.calls_limited && facts.elapsed_ms.is_some());
     assert_eq!(
         facts.output.iter().map(|p| p.kind).collect::<Vec<_>>(),

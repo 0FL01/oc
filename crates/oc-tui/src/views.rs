@@ -172,6 +172,11 @@ pub fn render_test(state: &TuiState, width: u16, height: u16) -> Vec<String> {
 pub fn panel_lines(state: &TuiState) -> Vec<String> {
     const ROWS: usize = 8;
     match state.panel() {
+        TuiPanel::Execute => crate::execute_view::layout(state, state.detail_area())
+            .rows
+            .iter()
+            .map(crate::styled::Line::plain_text)
+            .collect(),
         TuiPanel::Settings
         | TuiPanel::Commands
         | TuiPanel::Mcps

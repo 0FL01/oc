@@ -17,6 +17,7 @@ pub mod dcp_view;
 pub mod dialog;
 mod editor;
 pub mod events;
+mod execute_view;
 mod fuzzy;
 pub mod history;
 pub mod layout;

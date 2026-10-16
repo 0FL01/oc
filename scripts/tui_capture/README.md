@@ -1294,6 +1294,33 @@ ordinary27-stage or default WebGL144-opaque temporal regressions, other VIS39
 presentation/assets or final full T44 qualification. Geometry visitation within
 one owner is declared, not separate admitted episodes or global pixel parity.
 
+## VIS46 Execute inline calls and live Code/Output dialog
+
+The exclusive `--tool-preview true --execute-preview true` profile requires both
+explicit binaries, `--build-oc true`, short sample, hidden sidebar and120x40
+geometry. Run it with the same600-second outer watchdog and a fresh immutable
+output directory. It also visits actual80x24 and160x48 modal geometry. The profile
+and fixture hashes include both Execute source files and the shared local port;
+ordinary tool-preview/small/temporal modes remain separate and unchanged.
+
+`execute_fixture.py` uses the existing real stdio MCP peer with Code Mode enabled,
+deny-all followed by exact Execute/MCP/fetch authorities, and one controlled local
+HTTP GET. A real incomplete argument stream holds the Receiving dialog; releasing
+it executes two nested MCP calls, then a held fetch supplies Running before the
+same dialog follows terminal JSON plus typed Logs. The native fixture explicitly
+opts into the existing test-only webfetch loopback admission. Production network
+policy, interpreter limits, permissions and RAW data are not changed.
+
+`execute_preview.mjs` records actual terminal OSC52 Code/Output bytes, pan and End
+scroll, all three modal sizes, selection-safe child input toggling, failed-parent
+expand/re-collapse, and session reopen/process restart. It requires exactly five
+provider requests, two Execute operations, three MCP calls and one GET; read-only
+snapshots and natural exits prove there is no replay. Desktop clipboard acceptance
+is not inferred from terminal delivery. Runtime elapsed values are not frozen.
+Full styled-cell, PNG and cursor comparisons stay unmasked and strict; functional
+probe success is not VIS46/T44 pixel PASS. Current evidence and failed experiments
+are recorded in `evidence/T44/execute-ui-20261016.md`.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode
