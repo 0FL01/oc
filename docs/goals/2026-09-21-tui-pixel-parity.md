@@ -1,6 +1,6 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
-Status: active
+Status: blocked
 Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
 Additional source: owner-approved canonical effort ordering after RECON, 2026-09-27.
 Additional source: owner-reported missing Middle Click tab close and explicit request to add the detailed work plan, 2026-09-30.
@@ -16,16 +16,31 @@ Last updated: 2026-10-16
 
 ## Current execution checkpoint — 2026-10-16
 
-**RESUMED after T65 implementation, push and verified registry delivery.**
+**OWNER SCHEDULING PAUSE after the verified usage-timing correction.**
+The latest instruction is “доделывай, коммит и пуш, далее пауза”. The current
+correction is qualified for commit/push; do not start another slice after delivery.
+This is not an external technical blocker, full T44 completion or an acceptance waiver.
+
+Earlier execution resumed after T65 implementation, push and verified registry delivery.
 [V2 configuration semantics](2026-10-15-v2-config-semantics.md) is complete;
 all four0.2.0 crates are published and the installed native binary passes actual
 isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succeeds.
 The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
 conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
 
-Next: reproduce and correct the backend usage-event timing behind the Execute
-busy-footer difference, preserving accounting/checkpoints, then return to paired
-TUI and remaining frozen slices. The typed Execute UI is pushed in `462543894`.
+Owner instruction: finish the current backend/live-projection usage timing
+correction, commit and push it, then pause. Do not start another TUI slice after
+delivery. The final full-workspace gate passes2012 tests with zero failures; this owner
+scheduling pause does not waive or complete any frozen T44 requirement.
+[Current usage receipt](../../evidence/T44/usage-settlement-20261016.md) records
+the reproduced publication/read paths. Final-source Execute attempt10 removes all16
+busy-footer cell differences: running/copied-Code PNGs match completely, and
+copied-Code also matches the full grid/cursor. Both binaries pass20 functional
+stages; all40 complete comparisons remain7 PASS/33 DIFFERENT, not whole parity.
+Accounting/checkpoints remain unchanged. Runtime130/TUI549 and strict workspace
+Clippy pass; the final isolated workspace gate passes2012/0 with12 unchanged opt-in
+ignored cases across46 targets. The typed Execute UI is
+pushed in `462543894`.
 [Current question receipt](../../evidence/T44/question-resume-20261016.md): both
 binaries pass18 stages at all three geometries, with12 natural/code0 process exits
 and54 equal cursor pairs. Full comparisons remain50 PASS/58 DIFFERENT; all eight

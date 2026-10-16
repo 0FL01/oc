@@ -86,6 +86,7 @@ fn call_output(request: &serde_json::Value, call_id: &str) -> String {
 
 #[tokio::test]
 async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_replay() {
+    use oc_core::core_app::CoreEvent;
     use oc_core::tool_output::{ExecuteCallStatus, ExecuteOutputKind};
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/fetch", listener.local_addr().unwrap());
@@ -112,6 +113,8 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
     let (harness, generation) = make_harness(permissions(Permission::Allow));
     let generation = fixture_generation(&harness, generation, None);
     let runtime = runtime_allowing_private(&harness, generation, true);
+    let (events, mut event_rx) = tokio::sync::broadcast::channel(256);
+    runtime.set_approval_events(&events);
     runtime.create_session("s").unwrap();
     wait_initial_mcp(&runtime).await;
     let code = format!(
@@ -126,6 +129,7 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
     );
     let mut updates = Vec::new();
     let mut finished = None;
+    let mut premature_usage = Vec::new();
     let report = runtime
         .run_turn_with_tool_events(
             params(
@@ -143,6 +147,16 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
                     op,
                     output_presentation,
                 } => {
+                    while let Ok(event) = event_rx.try_recv() {
+                        if let CoreEvent::TurnContextUsage {
+                            input_tokens,
+                            output_tokens,
+                            ..
+                        } = event
+                        {
+                            premature_usage.push((input_tokens, output_tokens));
+                        }
+                    }
                     assert!(op.ends_with("vis46"));
                     assert!(output_presentation.is_valid() && output_presentation.label_only);
                     updates.push(output_presentation.clone());
@@ -157,6 +171,22 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
         .await
         .unwrap();
     peer.join().unwrap();
+    assert!(
+        premature_usage.is_empty(),
+        "step usage reached the UI before its local tools settled: {premature_usage:?}"
+    );
+    let mut settled_usage = Vec::new();
+    while let Ok(event) = event_rx.try_recv() {
+        if let CoreEvent::TurnContextUsage {
+            input_tokens,
+            output_tokens,
+            ..
+        } = event
+        {
+            settled_usage.push((input_tokens, output_tokens));
+        }
+    }
+    assert_eq!(settled_usage, [(10, 5), (10, 5)]);
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(report.calls.len(), 1);
     assert!(updates.iter().any(|p| {

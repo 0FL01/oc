@@ -91,6 +91,70 @@ fn generic_continuation_indents_inherit_canvas_not_muted_labels() {
 }
 
 #[tokio::test]
+async fn in_flight_checkpoint_does_not_publish_unsettled_step_usage() {
+    let mut state = fresh_state("settled-usage").await;
+    let turn = WorkerTurnId("usage-turn".into());
+    state.active_turn = Some(turn.clone());
+    state.apply_tool_started(&turn, "op", "execute", r#"{"code":"return 1;"}"#);
+    let mut projection = HistoryTurn {
+        id: turn.0.clone(),
+        status: "started".into(),
+        revision: 1,
+        context_usage: Some((1234, 64)),
+        context_usage_limit: Some(65536),
+        ..Default::default()
+    };
+    state.apply_presentation(&turn, &projection);
+    assert_eq!(
+        state.context_usage(),
+        None,
+        "checkpoint precedes tool settlement"
+    );
+
+    let mut current = msg(2, Role::Assistant, "");
+    current.turn = Some(projection.clone());
+    state.attach_page(&page(vec![current.clone()], 1, false, false));
+    assert_eq!(
+        state.context_usage(),
+        None,
+        "retaining an in-flight checkpoint does not settle its usage"
+    );
+    let mut previous = msg(1, Role::Assistant, "previous step");
+    previous.turn = Some(HistoryTurn {
+        id: "previous-turn".into(),
+        status: "completed".into(),
+        context_usage: Some((500, 10)),
+        context_usage_limit: Some(65536),
+        ..Default::default()
+    });
+    state.attach_page(&page(vec![previous, current], 2, false, false));
+    assert_eq!(
+        state.context_usage(),
+        Some((510, Some(65536))),
+        "history fallback retains the last settled measurement"
+    );
+
+    state.apply_context_usage(&turn, 1234, 64, 65536);
+    projection.revision = 2;
+    projection.context_usage = Some((2200, 80));
+    state.apply_presentation(&turn, &projection);
+    assert_eq!(
+        state.context_usage(),
+        Some((1298, Some(65536))),
+        "keep the previous settled step"
+    );
+
+    projection.revision = 3;
+    projection.status = "completed".into();
+    state.apply_presentation(&turn, &projection);
+    assert_eq!(
+        state.context_usage(),
+        Some((2280, Some(65536))),
+        "terminal projection recovers measured usage"
+    );
+}
+
+#[tokio::test]
 async fn execute_progress_replaces_only_the_current_running_operation() {
     let mut state = fresh_state("execute-progress").await;
     let turn = WorkerTurnId("execute-turn".into());

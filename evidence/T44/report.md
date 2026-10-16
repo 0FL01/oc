@@ -1,9 +1,25 @@
 # T44 — parity qualification remains open (2026-09-28)
 
-**Execution resumed by the owner's changed-plan instruction. T52 R0–R7 /
+**OWNER SCHEDULING PAUSE after the verified current correction, per the latest
+instruction to finish, commit/push and pause. This is not an external blocker.
+Full T44 acceptance remains open. Earlier execution resumed by the owner's
+changed-plan instruction. T52 R0–R7 /
 ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
+
+## Current usage settlement correction and pause (2026-10-16)
+
+[Current receipt](usage-settlement-20261016.md) and
+[compact handoff](usage-checkpoint-20261016.md): live events, in-flight projections
+and retained-history fallback no longer expose unsettled step usage. Accounting,
+durable checkpoints, RAW history and captured context limits remain unchanged.
+Runtime130/TUI549 tests and strict workspace Clippy pass; the final isolated
+workspace passes2012/0 with12 unchanged opt-in ignored cases across46 targets.
+Actual final-source paired attempt10 completes20 stages per binary without replay;
+the16-cell busy-footer difference is gone, with complete running/copied-Code PNG
+equality. Full comparisons remain7 PASS/33 DIFFERENT; no whole VIS46/T44 PASS.
+Commit/push the current verified slice, then leave T44 paused until owner resume.
 
 ## Current question/form subset (2026-10-16)
 

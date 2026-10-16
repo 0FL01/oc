@@ -1069,3 +1069,9 @@ Execution status2026-10-16: [T65 complete](evidence/T65/closeout.md), source che
 `feeea77fc` pushed, all four0.2.0 crates published and isolated registry-installed
 ELF verified. Journal finished T65 and resumed T44; [return checkpoint](evidence/T44/configuration-return-20261016.md).
 Full TUI acceptance and per-slice commit/push remain mandatory; no READY claim.
+
+Owner scheduling update2026-10-16: finish the verified current usage-timing
+correction, commit/push, then PAUSE T44 as explicitly requested. The final
+workspace gate passes2012/0 with12 existing opt-in ignored cases. See the
+[pause handoff](evidence/T44/usage-checkpoint-20261016.md). Do not start another
+slice without owner resume; full TUI acceptance is not completed or waived.

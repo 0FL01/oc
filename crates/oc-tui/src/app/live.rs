@@ -1360,7 +1360,12 @@ impl TuiState {
             return;
         }
         self.live_projection_revision = Some((turn.clone(), projection.revision));
-        if let Some((input, output)) = projection.context_usage {
+        // In-flight checkpoints retain measured usage for recovery before tools
+        // run. Only the settled-step event may advance live footer usage; a
+        // terminal projection can recover it after completion or failure.
+        if projection.status != "started"
+            && let Some((input, output)) = projection.context_usage
+        {
             self.apply_context_usage(
                 turn,
                 input,
@@ -1392,7 +1397,9 @@ impl TuiState {
         self.invalidate_transcript();
         self.live_preview_truncated |= projection.truncated;
         self.live_agent_color_index = projection.agent_color_index;
-        self.live_terminal_status = Some(projection.status.clone());
+        if projection.status != "started" {
+            self.live_terminal_status = Some(projection.status.clone());
+        }
         self.live_model_label = projection
             .spans
             .last()

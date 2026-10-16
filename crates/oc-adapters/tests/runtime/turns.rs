@@ -2804,8 +2804,12 @@ async fn dto_application_events_surface_reasoning_and_usage() {
                 assert_eq!(turn, accepted);
                 assert_eq!(
                     reported,
-                    [(1400, 30, 65536)],
-                    "measured context is published before tools; a missing round cannot erase it"
+                    if tool_starts == 0 {
+                        vec![]
+                    } else {
+                        vec![(1400, 30, 65536)]
+                    },
+                    "only settled steps are visible; a missing round cannot erase the previous measurement"
                 );
                 tool_starts += 1;
             }

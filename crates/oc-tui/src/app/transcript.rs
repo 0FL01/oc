@@ -2090,10 +2090,13 @@ impl TuiState {
             .as_ref()
             .map(|u| ((u.input_tokens, u.output_tokens), None))
             .or_else(|| {
-                // Live usage is handled above; frozen/live/compaction rows
-                // have no footer measurement. Borrow the retained durable tail.
+                // Live usage is handled above. Retained in-flight checkpoints
+                // carry accounting facts, not a settled step's UI measurement.
                 self.window.rows().iter().rev().find_map(|r| {
                     let m = r.meta.as_ref()?;
+                    if m.status.as_deref() == Some("started") {
+                        return None;
+                    }
                     m.context_usage
                         .map(|usage| (usage, m.context_usage_limit))
                         .or_else(|| Some(((m.input_tokens?, m.output_tokens?), None)))

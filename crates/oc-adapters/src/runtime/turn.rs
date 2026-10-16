@@ -3124,20 +3124,6 @@ impl<'a> Runtime<'a> {
                 context_usage = Some(reported);
                 turn_log.display["context_usage"] = serde_json::json!(reported);
                 turn_log.display["context_usage_limit"] = budget.context.into();
-                if let Some(events) = self
-                    .compaction_events
-                    .lock()
-                    .expect("event publisher")
-                    .as_ref()
-                {
-                    let _ = events.send(oc_core::core_app::CoreEvent::TurnContextUsage {
-                        session: oc_core::domain::SessionId(params.session.clone()),
-                        turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
-                        input_tokens: reported.0,
-                        output_tokens: reported.1,
-                        context_limit: budget.context,
-                    });
-                }
             }
             // Usage: the last round's input tokens, output summed over rounds
             // (upstream aggregates per-step output for tok/s, runtime.rs docs).
@@ -3395,6 +3381,23 @@ impl<'a> Runtime<'a> {
                     lane,
                 )
                 .await;
+            // Accounting/checkpoints precede effects, but the UI observes usage
+            // only after this step's local tools settle (also on tool failure).
+            if let Some(reported) = generation.usage
+                && let Some(events) = self
+                    .compaction_events
+                    .lock()
+                    .expect("event publisher")
+                    .as_ref()
+            {
+                let _ = events.send(oc_core::core_app::CoreEvent::TurnContextUsage {
+                    session: oc_core::domain::SessionId(params.session.clone()),
+                    turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
+                    input_tokens: reported.0,
+                    output_tokens: reported.1,
+                    context_limit: budget.context,
+                });
+            }
             tool_event(
                 &turn_id,
                 &ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Clear {

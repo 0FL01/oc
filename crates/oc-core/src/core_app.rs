@@ -281,6 +281,7 @@ pub enum CoreEvent {
     },
     /// Latest completed generation's measured context, independent of billed
     /// turn totals. Missing usage does not publish an estimate or erase it.
+    /// Published after its local tools settle, including failed tool execution.
     TurnContextUsage {
         /// Session that owns the captured provider request.
         session: SessionId,
