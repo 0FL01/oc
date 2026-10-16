@@ -889,6 +889,9 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::TurnInterrupted { .. }
             | CoreEvent::Compaction(_) => {}
             CoreEvent::ToolArgumentStream { event, .. } => argument_events.push(event),
+            CoreEvent::ToolCallProgress { .. } => {
+                panic!("unexpected execute in patch-only fixture")
+            }
             CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {}
             CoreEvent::QuestionAsked(_) | CoreEvent::QuestionResolved { .. } => {}
         }

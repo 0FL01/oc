@@ -91,6 +91,64 @@ fn generic_continuation_indents_inherit_canvas_not_muted_labels() {
 }
 
 #[tokio::test]
+async fn execute_progress_replaces_only_the_current_running_operation() {
+    let mut state = fresh_state("execute-progress").await;
+    let turn = WorkerTurnId("execute-turn".into());
+    state.active_turn = Some(turn.clone());
+    state.input = "preserved draft".into();
+    state.editor.cursor = 4;
+    let mut facts = Presentation::new("", 0, false);
+    facts.label_only = true;
+    facts.execute = Some(oc_core::tool_output::Execute {
+        code: Some("return 1;".into()),
+        ..Default::default()
+    });
+    state.apply_tool_progress(&turn, "op", Box::new(facts.clone()));
+    assert!(state.transcript_rows().iter().all(|row| row.tool.is_none()));
+    state.apply_tool_started(&turn, "op", "execute", r#"{"code":"return 1;"}"#);
+    state.apply_tool_progress(&turn, "op", Box::new(facts.clone()));
+    let current = || {
+        state
+            .transcript_rows()
+            .into_iter()
+            .find_map(|row| row.tool)
+            .unwrap()
+    };
+    assert_eq!(current().output_presentation.as_deref(), Some(&facts));
+    let mut terminal = facts.clone();
+    terminal.label_only = false;
+    terminal.body = "1".into();
+    terminal.body_bytes = 1;
+    terminal.execute.as_mut().unwrap().elapsed_ms = Some(5);
+    state.apply_tool_finished_with_output_presentation(
+        &turn,
+        "op",
+        "execute",
+        "completed",
+        "1",
+        1,
+        false,
+        None,
+        None,
+        None,
+        Some(Box::new(terminal.clone())),
+    );
+    state.apply_tool_progress(&turn, "op", Box::new(facts));
+    let rows = state.transcript_rows();
+    let cards = rows
+        .iter()
+        .filter_map(|row| row.tool.as_ref())
+        .collect::<Vec<_>>();
+    assert_eq!(cards.len(), 1);
+    assert_eq!(cards[0].state, "completed");
+    assert_eq!(cards[0].output_presentation.as_deref(), Some(&terminal));
+    assert_eq!(
+        (&state.input, state.editor.cursor),
+        (&"preserved draft".to_owned(), 4)
+    );
+}
+
+#[tokio::test]
 async fn generic_expansion_keeps_sticky_follow_or_the_detached_top_row() {
     for (scroll, newer) in [(0, false), (3, false), (0, true)] {
         let mut state = fresh_state("expansion-follow").await;

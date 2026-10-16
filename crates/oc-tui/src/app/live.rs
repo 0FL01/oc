@@ -348,6 +348,14 @@ impl ScriptDriver {
                         state.apply_child_jobs(jobs);
                     }
                 }
+                Ok(Ok(CoreEvent::ToolCallProgress {
+                    turn,
+                    op,
+                    output_presentation,
+                    ..
+                })) => {
+                    state.apply_tool_progress(&turn, &op, output_presentation);
+                }
                 Ok(Ok(CoreEvent::ToolCallFinished {
                     turn,
                     op,
@@ -1712,6 +1720,30 @@ impl TuiState {
         self.enforce_parts();
         self.sync_compaction_clock();
         self.refresh_running_user_shell_output();
+    }
+
+    /// Replace disposable facts on the existing operation; never create a row
+    /// or let a delayed update resurrect a terminal operation.
+    pub fn apply_tool_progress(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        presentation: Box<oc_core::tool_output::Presentation>,
+    ) {
+        if self.active_turn.as_ref() != Some(turn)
+            || !presentation.label_only
+            || !presentation.is_valid()
+            || presentation.execute.is_none()
+        {
+            return;
+        }
+        if let Some(LivePart::Tool { card, .. }) = self.live_parts.iter_mut().find(|part| {
+            matches!(part, LivePart::Tool { card, .. }
+                if card.op == op && matches!(card.state.as_str(), "started" | "running"))
+        }) {
+            card.output_presentation = Some(presentation);
+        }
+        self.enforce_parts();
     }
 
     /// Apply disposable provider snapshots. Raw fragments never enter the

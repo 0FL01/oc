@@ -808,6 +808,11 @@ pub struct CallRecord {
 pub enum ToolCallEvent {
     /// Live-only argument presentation, never a durable tool intent.
     ArgumentStream(oc_core::tool_stream::ToolStreamEvent),
+    /// Disposable replacement facts under an existing operation; never journaled.
+    Progress {
+        op: String,
+        output_presentation: Box<oc_core::tool_output::Presentation>,
+    },
     /// Intent durably recorded; the call may now run.
     Started {
         output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
@@ -2199,8 +2204,9 @@ impl<'a> Runtime<'a> {
 
     /// Like [`Runtime::run_turn_with_events`] but also forwards one
     /// [`ToolCallEvent`] per recorded tool intent/outcome, in execution order,
-    /// plus bounded live-only argument snapshots. Only `Started`, `Finished`
-    /// and argument `Linked` imply a durable record; `Pending` never does.
+    /// plus bounded live-only argument and coalesced execute-progress snapshots.
+    /// Only `Started`, `Finished` and argument `Linked` imply a durable record;
+    /// `Pending` and `Progress` never do.
     pub async fn run_turn_with_tool_events(
         &self,
         params: TurnParams<'_>,

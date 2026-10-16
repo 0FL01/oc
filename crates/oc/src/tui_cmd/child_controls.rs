@@ -220,6 +220,7 @@ pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::ReasoningItemEnded { session, .. }
         | CoreEvent::ToolCallStarted { session, .. }
         | CoreEvent::ToolArgumentStream { session, .. }
+        | CoreEvent::ToolCallProgress { session, .. }
         | CoreEvent::ToolCallFinished { session, .. }
         | CoreEvent::TurnUsage { session, .. }
         | CoreEvent::TurnContextUsage { session, .. }

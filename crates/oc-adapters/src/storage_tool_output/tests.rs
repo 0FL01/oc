@@ -1,6 +1,40 @@
 use super::*;
 
 #[test]
+fn execute_facts_fit_the_actual_escaped_operation_envelope_without_changing_raw() {
+    use oc_core::tool_output::*;
+    let raw = "\u{0}".repeat(PREVIEW_BYTES);
+    let mut facts = Presentation::new(&raw, raw.len() as u64, false);
+    facts.execute = Some(Execute {
+        code: Some("\u{0}".repeat(EXECUTE_CODE_BYTES)),
+        calls: vec![
+            ExecuteCall {
+                tool: "x".repeat(EXECUTE_TOOL_BYTES),
+                tool_limited: false,
+                status: ExecuteCallStatus::Completed,
+                input: Some(serde_json::json!({"x":"x".repeat(490)})),
+                input_limited: false
+            };
+            EXECUTE_CALLS_CAP
+        ],
+        elapsed_ms: Some(50),
+        ..Default::default()
+    });
+    assert!(facts.is_valid());
+    let operation = "\n".repeat(8000);
+    let fitted = Db::bounded_mcp_presentation(&operation, Some(Box::new(facts))).unwrap();
+    assert!(fitted.is_valid());
+    assert!(
+        serde_json::json!({"operation":operation,"presentation":fitted})
+            .to_string()
+            .len()
+            <= RECORD_BYTES
+    );
+    assert!(fitted.execute.as_ref().unwrap().code_limited);
+    assert_eq!(raw, "\u{0}".repeat(PREVIEW_BYTES));
+}
+
+#[test]
 fn mcp_label_intent_and_result_survive_exact_raw_reopen_and_fork() {
     use oc_core::tool_output::{McpLabel, Presentation};
     for prepared in [false, true] {

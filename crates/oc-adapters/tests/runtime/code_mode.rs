@@ -85,6 +85,215 @@ fn call_output(request: &serde_json::Value, call_id: &str) -> String {
 }
 
 #[tokio::test]
+async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_replay() {
+    use oc_core::tool_output::{ExecuteCallStatus, ExecuteOutputKind};
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/fetch", listener.local_addr().unwrap());
+    let peer = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        let mut reader = BufReader::new(&mut stream);
+        let mut first = String::new();
+        reader.read_line(&mut first).unwrap();
+        assert_eq!(first, "GET /fetch HTTP/1.1\r\n");
+        loop {
+            let mut line = String::new();
+            assert!(reader.read_line(&mut line).unwrap() > 0);
+            if line == "\r\n" {
+                break;
+            }
+        }
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+            .unwrap();
+    });
+    let (harness, generation) = make_harness(permissions(Permission::Allow));
+    let generation = fixture_generation(&harness, generation, None);
+    let runtime = runtime_allowing_private(&harness, generation, true);
+    runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
+    let code = format!(
+        "const values = await Promise.all([tools.fixture.add({{a:2,b:3}}), tools.fixture.add({{a:1,b:1}})]);\nconst response = await fetch({url:?});\nconsole.log('actual log');\nreturn {{values, status:response.status}};"
+    );
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("vis46", "execute", &serde_json::json!({"code":code})) + &sse_completed(),
+            sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let mut updates = Vec::new();
+    let mut finished = None;
+    let report = runtime
+        .run_turn_with_tool_events(
+            params(
+                "s",
+                "actual calls",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| match event {
+                ToolCallEvent::Progress {
+                    op,
+                    output_presentation,
+                } => {
+                    assert!(op.ends_with("vis46"));
+                    assert!(output_presentation.is_valid() && output_presentation.label_only);
+                    updates.push(output_presentation.clone());
+                }
+                ToolCallEvent::Finished {
+                    output_presentation,
+                    ..
+                } => finished = output_presentation.clone(),
+                _ => {}
+            },
+        )
+        .await
+        .unwrap();
+    peer.join().unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls.len(), 1);
+    assert!(updates.iter().any(|p| {
+        p.execute
+            .as_ref()
+            .unwrap()
+            .calls
+            .iter()
+            .any(|c| c.status == ExecuteCallStatus::Running)
+    }));
+    assert!(updates.iter().any(|p| {
+        p.execute
+            .as_ref()
+            .unwrap()
+            .calls
+            .iter()
+            .any(|call| call.status == ExecuteCallStatus::Completed)
+    }));
+    assert!(
+        updates.len() <= 8,
+        "bounded replacement snapshots, not one retained event per byte"
+    );
+    let rows = harness.db.list_tool_ops("s").unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].output_presentation, finished);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(rows[0].input.as_deref().unwrap()).unwrap()["code"],
+        code
+    );
+    let facts = finished.as_ref().unwrap().execute.as_ref().unwrap();
+    assert_eq!(facts.code.as_deref(), Some(code.as_str()));
+    assert_eq!(
+        facts
+            .calls
+            .iter()
+            .map(|c| c.tool.as_str())
+            .collect::<Vec<_>>(),
+        ["fixture.add", "fixture.add", "fetch"]
+    );
+    assert!(
+        facts
+            .calls
+            .iter()
+            .all(|c| c.status == ExecuteCallStatus::Completed)
+    );
+    assert_eq!(
+        facts.calls[2].input,
+        Some(serde_json::json!({"url":url,"method":"GET"}))
+    );
+    assert!(!facts.error && !facts.calls_limited && facts.elapsed_ms.is_some());
+    assert_eq!(
+        facts.output.iter().map(|p| p.kind).collect::<Vec<_>>(),
+        [ExecuteOutputKind::Json, ExecuteOutputKind::Logs]
+    );
+    assert_eq!(facts.output[1].text, "Logs:\nactual log");
+    let request_count = requests.lock().unwrap().len();
+    assert_eq!(request_count, 2);
+    runtime.shutdown_mcp().await.unwrap();
+    drop(runtime);
+    drop(harness.db);
+    let reopened = Db::open(harness._data.path()).unwrap();
+    assert_eq!(reopened.list_tool_ops("s").unwrap(), rows);
+    assert_eq!(requests.lock().unwrap().len(), request_count);
+    assert!(!harness._project.path().join("marks").exists());
+}
+
+#[tokio::test]
+async fn vis46_cancel_keeps_observed_calls_and_the_single_effect() {
+    use oc_core::tool_output::ExecuteCallStatus;
+    let (harness, generation) = make_harness(permissions(Permission::Allow));
+    let generation = fixture_generation(&harness, generation, None);
+    let runtime = runtime_allowing_private(&harness, generation, false);
+    runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
+    let code = "await tools.fixture.mark({}); while (true) {}";
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("vis46-cancel", "execute", &serde_json::json!({"code":code}))
+                + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let cancel = std::sync::atomic::AtomicBool::new(false);
+    let report = tokio::time::timeout(
+        Duration::from_secs(5),
+        runtime.run_turn_with_tool_events(
+            params(
+                "s",
+                "cancel after the actual call",
+                &harness,
+                provider_of(&base),
+                &cancel,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| {
+                if let ToolCallEvent::Progress {
+                    output_presentation,
+                    ..
+                } = event
+                    && output_presentation.execute.as_ref().is_some_and(|facts| {
+                        facts
+                            .calls
+                            .iter()
+                            .any(|call| call.status == ExecuteCallStatus::Completed)
+                    })
+                {
+                    cancel.store(true, std::sync::atomic::Ordering::Release);
+                }
+            },
+        ),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(report.status, TurnStatus::Cancelled);
+    assert!(cancel.load(std::sync::atomic::Ordering::Acquire));
+    let rows = harness.db.list_tool_ops("s").unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].state, "cancelled");
+    let presentation = rows[0].output_presentation.as_ref().unwrap();
+    assert!(presentation.is_valid());
+    let facts = presentation.execute.as_ref().unwrap();
+    assert!(facts.error && facts.elapsed_ms.is_some());
+    assert_eq!(facts.calls.len(), 1);
+    assert_eq!(facts.calls[0].tool, "fixture.mark");
+    assert_eq!(facts.calls[0].status, ExecuteCallStatus::Completed);
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("marks")).unwrap(),
+        "M\n"
+    );
+    assert_eq!(requests.lock().unwrap().len(), 1);
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
 async fn code_mode_routes_mcp_tools_through_execute() {
     let (harness, generation) = make_harness(permissions(Permission::Allow));
     let generation = fixture_generation(&harness, generation, None);
@@ -220,6 +429,22 @@ async fn code_mode_keeps_literal_mcp_path_segments_distinct() {
             ["tools[\"fixture.v1\"].add", "tools[\"fixture.v1\"].mark"]
         ])
     );
+    let rows = harness.db.list_tool_ops("s").unwrap();
+    let facts = rows[0]
+        .output_presentation
+        .as_ref()
+        .unwrap()
+        .execute
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        facts
+            .calls
+            .iter()
+            .map(|c| c.tool.as_str())
+            .collect::<Vec<_>>(),
+        ["fixture[\"v1.add\"]", "[\"fixture.v1\"].add"]
+    );
     let execute = requests[0]["tools"]
         .as_array()
         .unwrap()
@@ -268,6 +493,19 @@ async fn code_mode_nested_calls_keep_their_own_permissions() {
         .unwrap();
     assert_eq!(report.calls[0].state, "completed");
     assert!(!harness._project.path().join("marks").exists());
+    let rows = harness.db.list_tool_ops("s").unwrap();
+    let facts = rows[0]
+        .output_presentation
+        .as_ref()
+        .unwrap()
+        .execute
+        .as_ref()
+        .unwrap();
+    assert!(!facts.error);
+    assert_eq!(
+        facts.calls[1].status,
+        oc_core::tool_output::ExecuteCallStatus::Error
+    );
     let output = call_output(&requests.lock().unwrap()[1], "exec-ask");
     assert_eq!(
         output,
@@ -304,6 +542,19 @@ async fn code_mode_denied_tools_leave_the_catalog_and_failures_are_reported() {
         .await
         .unwrap();
     assert_eq!(report.calls[0].state, "failed");
+    let rows = harness.db.list_tool_ops("s").unwrap();
+    let facts = rows[0]
+        .output_presentation
+        .as_ref()
+        .unwrap()
+        .execute
+        .as_ref()
+        .unwrap();
+    assert!(facts.error && facts.elapsed_ms.is_some());
+    assert!(
+        facts.calls.is_empty(),
+        "a missing catalog entry never became a host invocation"
+    );
     let requests = requests.lock().unwrap();
     let execute = requests[0]["tools"]
         .as_array()

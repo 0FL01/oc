@@ -2713,7 +2713,15 @@ impl<'a> Runtime<'a> {
                                         item_id,
                                         call_id,
                                         name,
-                                        attached.label(name, &label_secrets),
+                                        if name == code_mode::EXECUTE_TOOL {
+                                            code_mode::intent_presentation(
+                                                call_id,
+                                                &serde_json::Value::Null,
+                                                &label_secrets,
+                                            )
+                                        } else {
+                                            attached.label(name, &label_secrets)
+                                        },
                                     ) {
                                         tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
                                     }
@@ -3955,8 +3963,13 @@ impl<'a> Runtime<'a> {
             };
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
-            let intent_presentation =
-                Db::bounded_mcp_presentation(&op, attached.label(name, &output_secrets));
+            let intent_presentation = if let Assembled::Call(call) = unit
+                && name == super::code_mode::EXECUTE_TOOL
+            {
+                super::code_mode::intent_presentation(&op, &call.arguments, &output_secrets)
+            } else {
+                Db::bounded_mcp_presentation(&op, attached.label(name, &output_secrets))
+            };
             let mut guarded = unit.clone();
             // Paths use the captured product HOME/Location, never ambient runner
             // environment or a later configuration generation.
@@ -4441,6 +4454,12 @@ impl<'a> Runtime<'a> {
                 positioned.push((index, position));
             }
             if let Some((state, output)) = &rejection {
+                let refusal_presentation = code_mode::refusal_presentation(
+                    &op,
+                    intent_presentation.clone(),
+                    output,
+                    &output_secrets,
+                );
                 turn_log.input.push(InputItem::FunctionCallOutput {
                     call_id: id.clone(),
                     output: output.clone(),
@@ -4454,7 +4473,7 @@ impl<'a> Runtime<'a> {
                     state,
                     output,
                     &turn_log.to_json().to_string(),
-                    intent_presentation.as_deref(),
+                    refusal_presentation.as_deref(),
                 )?;
                 if let Some(identity) = &stream_identities[i] {
                     tool_event(
@@ -4476,7 +4495,7 @@ impl<'a> Runtime<'a> {
                     output,
                     None,
                     None,
-                    intent_presentation.clone(),
+                    refusal_presentation,
                 );
                 records.push(CallRecord {
                     name: name.to_string(),
@@ -4765,6 +4784,7 @@ impl<'a> Runtime<'a> {
             let mut read_producer_limited = None;
             let mut shell_text_prepared = false;
             let mut shell_presentation = None;
+            let mut execute_presentation = None;
             let mut read_directory = false;
             let read_path = match &guarded {
                 Assembled::Call(call) if call.name == "read" => {
@@ -5229,20 +5249,25 @@ impl<'a> Runtime<'a> {
                         }
                     }
                     Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL => {
-                        self.execute_code_mode(
-                            issuing,
-                            call,
-                            session,
-                            turn_id,
-                            &op,
-                            ctx,
-                            policy,
-                            attached,
-                            cancel,
-                            turn_log.display["agent"].as_str().map(str::to_string),
-                            turn_log.active_agent_digest().map(str::to_owned),
-                        )
-                        .await
+                        let (state, output, facts) = self
+                            .execute_code_mode(
+                                issuing,
+                                call,
+                                session,
+                                turn_id,
+                                &op,
+                                ctx,
+                                policy,
+                                attached,
+                                cancel,
+                                turn_log.display["agent"].as_str().map(str::to_string),
+                                turn_log.active_agent_digest().map(str::to_owned),
+                                &output_secrets,
+                                tool_event,
+                            )
+                            .await;
+                        execute_presentation = Some(facts);
+                        (state, output)
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {
                         let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;
@@ -5378,6 +5403,20 @@ impl<'a> Runtime<'a> {
                     // claiming an empty result body or hiding the actual error.
                     output_presentation = Some(intent);
                 }
+            }
+            if let Some(mut execute) = execute_presentation {
+                execute.error |= state != "completed";
+                let presentation = output_presentation.get_or_insert_with(|| {
+                    let mut safe = output.clone();
+                    crate::tools::output::redact_string(&mut safe, &output_secrets);
+                    Box::new(oc_core::tool_output::Presentation::new(
+                        &safe,
+                        safe.len() as u64,
+                        false,
+                    ))
+                });
+                presentation.label_only = false;
+                presentation.execute = Some(execute);
             }
             output_presentation = Db::bounded_mcp_presentation(&op, output_presentation);
             // Failure here leaves started/unknown; never continue the batch.

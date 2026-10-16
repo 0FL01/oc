@@ -86,6 +86,15 @@ pub(crate) fn publish_tool_event(
             turn,
             event: event.clone(),
         },
+        ToolCallEvent::Progress {
+            op,
+            output_presentation,
+        } => CoreEvent::ToolCallProgress {
+            session: session.clone(),
+            turn,
+            op: op.clone(),
+            output_presentation: output_presentation.clone(),
+        },
         ToolCallEvent::Started {
             output_presentation,
             dcp_topic,
@@ -127,8 +136,10 @@ pub(crate) fn publish_tool_event(
             output_truncated: *output_truncated,
         },
     });
-    if !matches!(event, ToolCallEvent::ArgumentStream(_))
-        && let Ok(Some(projection)) = db.turn_presentation(&session.0, id)
+    if !matches!(
+        event,
+        ToolCallEvent::ArgumentStream(_) | ToolCallEvent::Progress { .. }
+    ) && let Ok(Some(projection)) = db.turn_presentation(&session.0, id)
     {
         let _ = events.send(CoreEvent::TurnPresentation {
             session: session.clone(),

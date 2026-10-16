@@ -335,6 +335,13 @@ pub enum CoreEvent {
         /// Recorded arguments JSON.
         input: String,
     },
+    /// Coalesced live facts for the existing operation, not a durable event/card.
+    ToolCallProgress {
+        session: SessionId,
+        turn: WorkerTurnId,
+        op: String,
+        output_presentation: Box<crate::tool_output::Presentation>,
+    },
     /// One tool call reached a terminal state (durable outcome recorded);
     /// the transcript updates the card in place.
     ToolCallFinished {
@@ -2650,6 +2657,7 @@ mod tests {
                 | CoreEvent::TurnContextUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolArgumentStream { .. }
+                | CoreEvent::ToolCallProgress { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::ChildNotice(_)
@@ -2978,6 +2986,7 @@ mod tests {
                 | CoreEvent::TurnContextUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolArgumentStream { .. }
+                | CoreEvent::ToolCallProgress { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::ChildNotice(_)

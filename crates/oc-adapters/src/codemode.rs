@@ -117,6 +117,24 @@ pub struct Outcome {
     pub tool_calls: u32,
 }
 
+/// Formatter-owned sections; literal marker text in a returned value is data.
+pub(crate) struct OutputSections {
+    pub value: String,
+    pub warnings: String,
+    pub logs: String,
+}
+
+impl OutputSections {
+    pub fn output(&self) -> String {
+        [&self.value, &self.warnings, &self.logs]
+            .into_iter()
+            .filter(|part| !part.is_empty())
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .join("\n\n")
+    }
+}
+
 impl Outcome {
     fn failure(diagnostic: Diagnostic) -> Outcome {
         Outcome {
@@ -134,6 +152,10 @@ impl Outcome {
 
     /// Model-facing text, as the donor's `formatResult`.
     pub fn output(&self) -> String {
+        self.output_sections().output()
+    }
+
+    pub(crate) fn output_sections(&self) -> OutputSections {
         let main = match &self.value {
             Ok(Json::String(s)) => s.clone(),
             Ok(value) => json::write_json(value, "  "),
@@ -149,16 +171,17 @@ impl Outcome {
                 lines.join("\n").trim().to_string()
             }
         };
-        let mut parts = vec![main];
-        if self.value.is_ok() && !self.warnings.is_empty() {
+        let warnings = if self.value.is_ok() && !self.warnings.is_empty() {
             let lines: Vec<String> = self
                 .warnings
                 .iter()
                 .map(|w| format!("- [{}] {}", w.kind, w.message))
                 .collect();
-            parts.push(format!("Warnings:\n{}", lines.join("\n")));
-        }
-        if !self.logs.is_empty() || self.logs_dropped > 0 {
+            format!("Warnings:\n{}", lines.join("\n"))
+        } else {
+            String::new()
+        };
+        let logs = if !self.logs.is_empty() || self.logs_dropped > 0 {
             let mut logs = self.logs.join("\n");
             if self.logs_dropped > 0 {
                 if !logs.is_empty() {
@@ -169,10 +192,15 @@ impl Outcome {
                     self.logs_dropped
                 ));
             }
-            parts.push(format!("Logs:\n{logs}"));
+            format!("Logs:\n{logs}")
+        } else {
+            String::new()
+        };
+        OutputSections {
+            value: main,
+            warnings,
+            logs,
         }
-        parts.retain(|p| !p.is_empty());
-        parts.join("\n\n")
     }
 }
 

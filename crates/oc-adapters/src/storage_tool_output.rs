@@ -65,6 +65,54 @@ impl Db {
             }
             facts.mcp_label = None;
         }
+        if let Some(facts) = presentation.as_mut()
+            && facts.is_valid()
+            && facts.execute.is_some()
+        {
+            // Budget the real escaped journal envelope, not just retained text.
+            // The same reduced snapshot is sent live and committed at finish.
+            while serde_json::json!({"operation":operation,"presentation":facts})
+                .to_string()
+                .len()
+                > oc_core::tool_output::RECORD_BYTES
+            {
+                let execute = facts.execute.as_mut().expect("execute facts");
+                if let Some(code) = execute.code.as_mut().filter(|code| !code.is_empty()) {
+                    code.truncate(code.floor_char_boundary(code.len() / 2));
+                    execute.code_limited = true;
+                } else if let Some(call) = execute
+                    .calls
+                    .iter_mut()
+                    .rev()
+                    .find(|call| call.input.is_some())
+                {
+                    call.input = None;
+                    call.input_limited = true;
+                } else if let Some(section) = execute
+                    .output
+                    .iter_mut()
+                    .rev()
+                    .find(|section| !section.text.is_empty())
+                {
+                    section
+                        .text
+                        .truncate(section.text.floor_char_boundary(section.text.len() / 2));
+                    section.limited = true;
+                } else if execute.calls.pop().is_some() {
+                    execute.calls_limited = true;
+                } else if !facts.body.is_empty() {
+                    facts
+                        .body
+                        .truncate(facts.body.floor_char_boundary(facts.body.len() / 2));
+                    facts.body_limited = true;
+                } else {
+                    // An irreducible foreign operation ID already consumes the
+                    // envelope. As for an oversized MCP intent, omit optional
+                    // facts rather than changing the settled effect's outcome.
+                    return None;
+                }
+            }
+        }
         presentation
     }
 

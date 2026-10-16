@@ -23,8 +23,12 @@ isolated CLI/headless/cache/no-replay checks. Journal finish T65/start T44 succe
 The parked stash `1087067b3025322885c6a964579d80cea4931b06` was applied once without
 conflicts and remains preserved. See the [return checkpoint](../../evidence/T44/configuration-return-20261016.md).
 
-Next: implement missing structured execute presentation (VIS46) through existing
-producer/UI owners. [Current temporal receipt](../../evidence/T44/cursor-resume-20261016.md):
+Next: implement VIS46's Execute renderer/child targets/live Code+Output dialog.
+The [producer facet](../../evidence/T44/execute-producer-20261016.md) now supplies
+bounded redacted ordered facts and coalesced same-operation progress; actual MCP,
+fetch, cancellation/single-effect and reopen proofs plus strict workspace Clippy
+pass. UI/PTY/paired qualification remains open, not full VIS46 PASS.
+[Current temporal receipt](../../evidence/T44/cursor-resume-20261016.md):
 nine profiles retain zero phantom states; native blink cadence and steady/default
 controls qualify after isolating one artificial per-chunk acquisition delay.
 The unchanged default/nonblink fallback control passes with available PTY bytes

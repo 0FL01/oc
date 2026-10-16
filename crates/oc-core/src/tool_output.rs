@@ -8,6 +8,117 @@ pub const PREVIEW_BYTES: usize = 2_048;
 /// Two bounded text previews at worst-case JSON escaping, plus reference/fields.
 pub const RECORD_BYTES: usize = PREVIEW_BYTES * 12 + 8192;
 
+pub const EXECUTE_CALLS_CAP: usize = 16;
+pub const EXECUTE_CODE_BYTES: usize = PREVIEW_BYTES * 2;
+pub const EXECUTE_INPUT_BYTES: usize = 512;
+pub const EXECUTE_TOOL_BYTES: usize = 512;
+
+/// Observed host-call state under one execute operation, not another operation.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ExecuteCallStatus {
+    Running,
+    Completed,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExecuteCall {
+    /// Captured catalog path (including literal segments, without `tools`), or fetch.
+    pub tool: String,
+    pub tool_limited: bool,
+    pub status: ExecuteCallStatus,
+    /// Structured redacted preview. Omitted fields are disclosed by input_limited.
+    pub input: Option<serde_json::Value>,
+    pub input_limited: bool,
+}
+
+/// Section provenance comes from the interpreter outcome, never marker matching.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecuteOutputKind {
+    Text,
+    Json,
+    Warnings,
+    Logs,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExecuteOutput {
+    pub kind: ExecuteOutputKind,
+    pub text: String,
+    pub limited: bool,
+}
+
+/// Bounded immutable display facts, also used as disposable live replacements.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Execute {
+    /// None while receiving/unavailable; Some("") is a captured empty program.
+    pub code: Option<String>,
+    pub code_limited: bool,
+    pub calls: Vec<ExecuteCall>,
+    pub calls_limited: bool,
+    pub error: bool,
+    pub elapsed_ms: Option<u64>,
+    pub output: Vec<ExecuteOutput>,
+}
+
+impl Execute {
+    pub fn retained_bytes(&self) -> usize {
+        self.code.as_ref().map_or(0, String::len)
+            + self
+                .calls
+                .iter()
+                .map(|call| {
+                    call.tool.len()
+                        + call
+                            .input
+                            .as_ref()
+                            .map_or(0, |input| input.to_string().len())
+                })
+                .sum::<usize>()
+            + self
+                .output
+                .iter()
+                .map(|section| section.text.len())
+                .sum::<usize>()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        let mut previous = 0;
+        self.code
+            .as_ref()
+            .is_none_or(|code| code.len() <= EXECUTE_CODE_BYTES)
+            && self.calls.len() <= EXECUTE_CALLS_CAP
+            && self.calls.iter().all(|call| {
+                !call.tool.is_empty()
+                    && call.tool.len() <= EXECUTE_TOOL_BYTES
+                    && !call.tool.chars().any(char::is_control)
+                    && call
+                        .input
+                        .as_ref()
+                        .is_none_or(|input| input.to_string().len() <= EXECUTE_INPUT_BYTES)
+            })
+            && self.output.len() <= 3
+            && self
+                .output
+                .iter()
+                .map(|section| section.text.len())
+                .sum::<usize>()
+                <= PREVIEW_BYTES
+            && self.output.iter().all(|section| {
+                let order = match section.kind {
+                    ExecuteOutputKind::Text | ExecuteOutputKind::Json => 1,
+                    ExecuteOutputKind::Warnings => 2,
+                    ExecuteOutputKind::Logs => 3,
+                };
+                let valid = order > previous;
+                previous = order;
+                valid
+            })
+    }
+}
+
 /// State of the existing owned text capture. Serialization retains its original
 /// descriptor representation; this is not a second capture lifecycle.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -110,6 +221,8 @@ pub struct Presentation {
     pub shell: Option<Shell>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub write: Option<Write>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execute: Option<Execute>,
 }
 
 impl Presentation {
@@ -129,6 +242,7 @@ impl Presentation {
                 .write
                 .as_ref()
                 .map_or(0, |write| write.path.len() + write.content.len())
+            + self.execute.as_ref().map_or(0, Execute::retained_bytes)
     }
 
     /// Retain the already admitted/redacted body at the existing preview limit.
@@ -145,6 +259,7 @@ impl Presentation {
             capture: None,
             shell: None,
             write: None,
+            execute: None,
         }
     }
 
@@ -159,10 +274,20 @@ impl Presentation {
     /// their producer. Invalid/unknown records fall back to unknown provenance.
     pub fn is_valid(&self) -> bool {
         self.body.len() <= PREVIEW_BYTES
+            && self.execute.as_ref().is_none_or(|execute| {
+                execute.is_valid()
+                    && self.mcp_label.is_none()
+                    && self.shell.is_none()
+                    && self.write.is_none()
+                    && (!self.label_only
+                        || (execute.elapsed_ms.is_none()
+                            && !execute.error
+                            && execute.output.is_empty()))
+            })
             && self.mcp_label.as_ref().is_none_or(McpLabel::is_valid)
             && (self.mcp_label.is_none() || (self.shell.is_none() && self.write.is_none()))
             && (!self.label_only
-                || (self.mcp_label.is_some()
+                || ((self.mcp_label.is_some() || self.execute.is_some())
                     && self.body.is_empty()
                     && self.body_bytes == 0
                     && !self.body_limited
@@ -200,3 +325,6 @@ impl Presentation {
             })
     }
 }
+
+#[cfg(test)]
+mod tests;

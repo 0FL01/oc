@@ -5,6 +5,14 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current execute producer facet (2026-10-16)
+
+[VIS46 producer receipt](execute-producer-20261016.md): additive bounded/redacted
+facts and disposable progress are implemented under one operation. Real MCP/fetch,
+cancelled single-effect and durable/reopened snapshot checks pass (runtime9/core2/
+producer3/interpreter22/live-owner1), as does strict workspace Clippy. Execute UI,
+dialog, PTY and full paired qualification remain open; no full VIS46/T44 PASS.
+
 ## Current cursor temporal subset (2026-10-16)
 
 [Nine-profile current-source receipt](cursor-resume-20261016.md): native cadence,

@@ -661,6 +661,20 @@ impl Catalog {
         self.entries.iter().map(|e| &e.tool)
     }
 
+    /// Display the captured path without the `tools` root. Unlike a host key or
+    /// dot-joined segments, its bracket notation preserves literal identities.
+    pub(crate) fn display_path_for_host(&self, host: &str) -> Option<&str> {
+        self.entries
+            .iter()
+            .find(|entry| entry.tool.path == host)
+            .and_then(|entry| {
+                entry
+                    .expression
+                    .strip_prefix("tools.")
+                    .or_else(|| entry.expression.strip_prefix("tools"))
+            })
+    }
+
     pub(crate) fn get(&self, path: &[String]) -> Option<&CodeModeTool> {
         self.entries
             .iter()

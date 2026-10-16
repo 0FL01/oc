@@ -3776,6 +3776,7 @@ async fn handle_worker_event(
         | CoreEvent::ReasoningItemEnded { session, .. }
         | CoreEvent::ToolCallStarted { session, .. }
         | CoreEvent::ToolArgumentStream { session, .. }
+        | CoreEvent::ToolCallProgress { session, .. }
         | CoreEvent::ToolCallFinished { session, .. }
         | CoreEvent::TurnUsage { session, .. }
         | CoreEvent::TurnContextUsage { session, .. }
@@ -3958,6 +3959,14 @@ async fn handle_worker_event(
             if name == "subagent" && state.active_turn() == Some(&turn) {
                 child_controls::refresh(app, state).await?;
             }
+        }
+        CoreEvent::ToolCallProgress {
+            turn,
+            op,
+            output_presentation,
+            ..
+        } => {
+            state.apply_tool_progress(&turn, &op, output_presentation);
         }
         CoreEvent::ToolCallFinished {
             turn,

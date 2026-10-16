@@ -292,6 +292,7 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
                     ToolCallEvent::Started { .. } => "started",
                     ToolCallEvent::Finished { .. } => "finished",
                     ToolCallEvent::ArgumentStream(_) => "argument_stream",
+                    ToolCallEvent::Progress { .. } => "progress",
                 });
             },
         )
@@ -1281,7 +1282,9 @@ async fn cancelled_public_prefix_stays_incomplete_without_admitting_partial_tool
             |_| {},
             |_, event| match event {
                 ToolCallEvent::ArgumentStream(_) => announced = true,
-                ToolCallEvent::Started { .. } | ToolCallEvent::Finished { .. } => {
+                ToolCallEvent::Started { .. }
+                | ToolCallEvent::Finished { .. }
+                | ToolCallEvent::Progress { .. } => {
                     panic!("partial arguments must never become an admitted operation")
                 }
             },
@@ -2746,6 +2749,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::TextDelta { .. }
             | CoreEvent::ToolCallStarted { .. }
             | CoreEvent::ToolArgumentStream { .. }
+            | CoreEvent::ToolCallProgress { .. }
             | CoreEvent::ToolCallFinished { .. }
             | CoreEvent::TurnInterrupted { .. }
             | CoreEvent::Compaction(_)
