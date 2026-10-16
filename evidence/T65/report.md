@@ -2,10 +2,10 @@
 
 ## Result
 
-**CONFIGURATION QUALIFIED; PUBLICATION / RETURN TO TUI PENDING.** R1–R6 pass for
-the owner's specified subset. Coherent version0.2.0 is prepared for `oc-core`,
-`oc-adapters`, `oc-tui` and the sole native binary package `oc2`. No actual upload
-has occurred yet; R7/R8 are not completion claims.
+**CONFIGURATION QUALIFIED / REGISTRY PUBLISHED / INSTALL CHECK PENDING.** R1–R6
+pass for the owner's specified subset. Coherent version0.2.0 is published for
+`oc-core`, `oc-adapters`, `oc-tui` and the sole native binary package `oc2`.
+Actual installed-binary verification is running; R7/R8 are not completion claims.
 
 Configuration oracle: TS V2 **b4f19bfe74a972c2919aa4c9d7445fa61f41b226**, before
 upstream's fifteen-minute chunk-default change. This preserves the owner's
@@ -91,8 +91,13 @@ Rust jobs3/test threads2 and approved TMPDIR were used for final native gates.
 - Both the initial and latest archive dry runs verified all four packages, not
   sibling-path fallbacks. The existing locked yoke-derive0.8.3 yanked warning was
   retained, not suppressed or addressed through unrelated dependency updates.
-- Public registry ownership is0FL01. Fresh pre-upload version lookups still
-  return404 for all four0.2.0 packages. This is not an upload receipt.
+- Pre-upload version lookups returned404 for all four0.2.0 packages. The single
+  actual workspace publication now passes; independent public version API reads
+  confirm all four0.2.0 packages, unyanked, published_by0FL01, correct licenses
+  and oc2 as the only executable. See [the actual receipt](publication.md).
+- Source/checkpoint `feeea77fc` was committed/pushed before upload. An isolated
+  registry-only installation is now running outside the checkout; no install
+  PASS or final R8 completion is claimed before actual installed checks.
 
 ## Risks
 
@@ -104,12 +109,12 @@ without displaying secrets. No release/tag or default-user installation.
 
 T44 remains paused; its exact parked WIP is stash
 `1087067b3025322885c6a964579d80cea4931b06`. Do not restore it until registry
-delivery/install verification is complete. If an upload is interrupted, reconcile
-public package versions before any retry; never repeat an unknown external effect.
+delivery/install verification is complete. All four uploads are now confirmed;
+do not repeat publication. Never repeat an unknown external effect.
 
 ## Next
 
-Commit/push the verified0.2.0 source and journal publication checkpoint, publish
-once in dependency order, verify public metadata and an isolated registry-only
-installation plus actual installed CLI/headless behavior. Then close T65 through
+Complete the isolated registry-only installation and actual installed CLI/headless
+behavior checks; source/checkpoint push, publication and public metadata are
+confirmed. Then close T65 through
 the existing journal, resume T44 and restore its WIP once after checking Git.

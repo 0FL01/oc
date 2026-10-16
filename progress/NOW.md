@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-16T00:48:12+00:00
+State updated: 2026-10-16T00:55:21+00:00
 Active: T65
 
 Сверить Git status/diff до выполнения команд.
@@ -12,41 +12,57 @@ Owner plan 2026-10-15 pauses T44 until this configuration slice is implemented, 
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T65 — verified0.2.0 pre-publication checkpoint
+# T65 — actual0.2.0 publication receipt
 
 ## Result
 
-Configuration R1–R6 is qualified. All four packages and six internal requirements
-are0.2.0; only four local lock versions changed. This checkpoint is committed
-before any actual upload. Public lookups still show all four0.2.0 versions absent.
-Implementation commits:2df915e0e,0d773d72e,ea49f2cfe,c5e9c3765,1b48f77fa.
+**All four0.2.0 crates are published.** Verified source/checkpoint commit
+`feeea77fc` was normally pushed before the single actual publication command.
+No release/tag or default-user installation was created. Configuration gates
+are green; isolated installed-binary verification is still running, so R8/T65
+completion is not claimed yet.
 
 ## Checks
 
-Pinned TS/shared79 PASS; adapters1086/0/5existingignored, binary333/0/7existingignored,
-fresh normal two-thread workspace1998/0/12existingignored across46 targets PASS.
-Fmt, strict workspace/all-target Clippy, debug/release build and actual release
-help/version/smoke with empty PATH PASS. Latest extracted four-package workspace
-publish dry run PASS, all uploads explicitly aborted; licenses/assets retained.
-Full evidence: evidence/T65/report.md and its linked candidate history/logs.
+`cargo publish --workspace --no-verify --locked`: PASS. Prior latest dry-run
+verification built every extracted package against staged registry dependencies;
+production source, manifests, tests/assets and packaged README were unchanged
+between verification and upload; Cargo's VCS metadata now names the clean checkpoint.
+Cargo uploaded, waited for availability and reported Published in dependency order:
+core → adapters → TUI → oc2. Log: `.local/evidence/t65-publish-actual-01.log`.
+
+Independent public crates.io version API reads returned200 for every package,
+each version0.2.0, unyanked and published_by0FL01, rust_version1.93:
+
+| Crate | Published UTC,2026-10-16 | Public archive bytes | License | Binaries |
+| --- | --- | ---: | --- | --- |
+| oc-core | 00:49:24.525624 | 72543 | MIT | none |
+| oc-adapters | 00:49:27.871314 | 1477829 | MIT AND AGPL-3.0-or-later | none |
+| oc-tui | 00:49:31.732725 | 8057839 | MIT AND AGPL-3.0-or-later | none |
+| oc2 | 00:49:35.316828 | 457551 | MIT AND AGPL-3.0-or-later | oc2 only |
+
+Fresh approved scratch work/HOME/install roots were created without replacing
+an existing installation. Registry-only installation is running from outside the
+checkout with `cargo install oc2 --version 0.2.0 --locked --registry crates-io`,
+explicit isolated `--root` and the existing compilation cache reused solely as
+`--target-dir`. No path/git package selection; environment excludes provider
+credentials. Log: `.local/evidence/t65-registry-install-01.log`.
 
 ## Risks
 
-R8 actual publication and isolated registry install are still pending; R7 journal
-return follows them. No full product/TUI READY claim. Existing locked yanked
-dependency warning is unchanged. Use only Cargo's existing credential mechanism;
-never print credentials or repeat an unknown publication effect after interruption.
-T44 WIP remains stash1087067b3025322885c6a964579d80cea4931b06, not applied.
+Publication is an observed completed external effect: **do not repeat it**.
+No credentials were printed; existing Cargo authentication was used unchanged.
+The old locked yanked-dependency warning remained visible. This is not full
+product, built-in-agent or TUI parity. T44's stash remains intact and unapplied.
 
 ## Next
 
-After committing/pushing this checkpoint, run the already-verified workspace's
-ordinary `cargo publish --workspace --no-verify --locked` once. Reconcile public
-versions if interrupted; publish only confirmed missing packages in dependency
-order. Verify public0.2.0 metadata and registry-only isolated `cargo install oc2
---version 0.2.0 --locked`, then actual installed help/version/smoke/headless turn
-and session persistence. Record receipts, finish T65, start T44 and restore the
-parked WIP once after checking Git. No release/tag or user-config replacement.
+Wait for the managed registry-install completion; inspect its actual result,
+then run the bounded installed-ELF check in a fresh HOME/project/data root and
+empty PATH. Require actual version/help/smoke, a local synthetic headless turn
+with canonical V2 cache configuration, and persisted-session listing with no
+new generation. Record the receipt, finish T65 and resume T44/restore its parked
+WIP once after inspecting Git. No further upload is needed.
 
 
 Ready (до 5): нет

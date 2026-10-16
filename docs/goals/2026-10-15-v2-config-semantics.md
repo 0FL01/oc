@@ -162,8 +162,11 @@ the separately frozen T44 objective.
   - Evidence: all four workspace packages/internal requirements and the lock agree
     on0.2.0; no third-party lock changes. Package inventories30/325/252/85 retain
     metadata/licenses and exclude private artifacts. Workspace publication dry run
-    builds all four extracted packages against staged registry dependencies. No
-    actual upload performed yet.
+    builds all four extracted packages against staged registry dependencies. A
+    single actual publication PASS after pushed checkpoint feeea77fc. Public
+    metadata confirms all four0.2.0 versions unyanked/by0FL01 with correct licenses
+    and only the oc2 executable. Isolated registry installation is running;
+    installed behavior must pass before R8 completion or TUI return.
 
 ### Constraints and non-goals
 
@@ -192,11 +195,11 @@ the separately frozen T44 objective.
 ## Current Checkpoint
 
 - Closes: R8 registry delivery, followed by R7 journal return to T44.
-- Smallest next action: commit/push the verified0.2.0 source and factual
-  pre-publication checkpoint, then publish once through existing Cargo credentials.
-  All native/strict/build/CLI/latest-archive gates are green. Verify public metadata
-  and an isolated registry-only install with actual installed behavior before
-  returning to TUI. If interrupted, reconcile registry versions before any retry.
+- Smallest next action: finish the running isolated registry-only install and
+  bounded actual installed-binary checks. All native/strict/build/CLI/archive gates
+  pass; source/checkpoint feeea77fc was pushed, all four0.2.0 packages published and
+  independently confirmed in public metadata. Do not repeat publication. Return
+  to TUI only after installed behavior is verified.
 - Expected evidence: package versions/dependencies agree, complete native gates,
   retained redaction/endpoint/cancel/MCP/Markdown/authority regressions; verified
   package archives before the committed publication checkpoint.
@@ -234,7 +237,8 @@ the separately frozen T44 objective.
   with only the four local lock entries updated. Metadata/licenses and complete
   package file inventories pass; no secrets/private databases enter packages.
   All four extracted packages passed latest publication dry-run verification with
-  staged registry dependencies. No actual publication has occurred yet.
+  staged registry dependencies. Actual publication and public0.2.0 metadata now
+  pass after pushed checkpoint feeea77fc; isolated installed checks are pending.
 - R6 first aggregate run exposed old implicit fixture restrictions after the
   required TS agent-default change. Explicit deny-all plus intended read/Shell/MCP
   allowances restore five targets63 PASS; S07's explicit read-only actor passes
