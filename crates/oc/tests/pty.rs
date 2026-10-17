@@ -8,6 +8,8 @@
 use std::io::{Read, Write};
 #[path = "support/context_ids.rs"]
 mod context_ids;
+#[path = "support/seed.rs"]
+mod seed;
 #[path = "support/terminal.rs"]
 mod terminal;
 #[path = "support/title.rs"]
@@ -769,10 +771,54 @@ fn seed_history(data_dir: &Path, project: &Path, session: &str, messages: usize)
             .to_string_lossy(),
     )
     .expect("session Location");
-    for i in 0..messages {
-        let role = if i % 2 == 0 { "user" } else { "assistant" };
-        db.append_message(session, role, &seed_row(i)).expect("msg");
+    let conn = seed::connection(data_dir);
+    seed::messages(
+        &conn,
+        session,
+        (0..messages).map(|i| {
+            let role = if i % 2 == 0 { "user" } else { "assistant" };
+            (role, seed_row(i))
+        }),
+    );
+}
+
+#[test]
+fn prelaunch_message_seed_matches_owner_ids_rows_and_events() {
+    let roots = [tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap()];
+    let rows = [
+        ("user", "first".to_string()),
+        ("assistant", "second Ω".to_string()),
+    ];
+    let mut observed = Vec::new();
+    for (index, root) in roots.iter().enumerate() {
+        let db = oc_adapters::storage::Db::open(root.path()).unwrap();
+        db.create_session("other").unwrap();
+        db.append_message("other", "system", "global prefix")
+            .unwrap();
+        db.create_session("s").unwrap();
+        let conn = seed::connection(root.path());
+        assert_eq!(
+            conn.pragma_query_value(None, "synchronous", |r| r.get::<_, u32>(0))
+                .unwrap(),
+            2
+        );
+        let ids = if index == 0 {
+            rows.iter()
+                .map(|(role, text)| db.append_message("s", role, text).unwrap())
+                .collect()
+        } else {
+            seed::messages(&conn, "s", rows.clone().into_iter())
+        };
+        let events: Vec<(String, String, String)> = conn
+            .prepare("SELECT session_id,kind,payload FROM events ORDER BY seq")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        observed.push((ids, db.read_history_full("s").unwrap(), events));
     }
+    assert_eq!(observed[0], observed[1]);
 }
 
 /// Deterministic per-row unique text: after any scroll, newly visible rows

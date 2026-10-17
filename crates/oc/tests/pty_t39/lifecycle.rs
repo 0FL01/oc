@@ -1387,37 +1387,45 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     seed_session(&fixture.data_dir(), &project, session, 0);
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     db.apply_dcp_schema().unwrap();
+    let conn = seed::connection(&fixture.data_dir());
     let mut end = None;
-    for i in 0..archive {
-        end = Some(
-            db.append_message(
-                session,
-                if i.is_multiple_of(2) {
-                    "user"
-                } else {
-                    "assistant"
-                },
-                &format!("archive-{i:04} {}", "x".repeat(16 * 1024)),
-            )
-            .unwrap(),
+    for start in (0..archive).step_by(64) {
+        let stop = (start + 64).min(archive);
+        let ids = seed::messages(
+            &conn,
+            session,
+            (start..stop).map(|i| {
+                (
+                    if i.is_multiple_of(2) {
+                        "user"
+                    } else {
+                        "assistant"
+                    },
+                    format!("archive-{i:04} {}", "x".repeat(16 * 1024)),
+                )
+            }),
         );
+        end = ids.last().cloned();
         // Real bounded prune commits, not a synthetic mark that bypasses the
         // owner's active-input cap for this deliberately 48MiB raw archive.
-        if (i + 1) % 64 == 0 {
+        if stop % 64 == 0 {
             db.save_prune_mark(session, end.as_ref().unwrap()).unwrap();
         }
     }
     if let Some(id) = end {
         db.save_prune_mark(session, &id).unwrap();
     }
-    for i in 0..4 {
-        db.append_message(
-            session,
-            if i % 2 == 0 { "user" } else { "assistant" },
-            &format!("active-{i} {}", "closed requirement ".repeat(1000)),
-        )
-        .unwrap();
-    }
+    seed::messages(
+        &conn,
+        session,
+        (0..4).map(|i| {
+            (
+                if i % 2 == 0 { "user" } else { "assistant" },
+                format!("active-{i} {}", "closed requirement ".repeat(1000)),
+            )
+        }),
+    );
+    drop(conn);
     drop(db);
     let mut prepare = PtySession::spawn_sized(fixture.clone(), session, None, 120, 40);
     prepare.wait_visible(READY, DEADLINE);

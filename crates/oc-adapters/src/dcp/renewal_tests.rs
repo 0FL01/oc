@@ -176,9 +176,20 @@ fn addressed_legacy_coverage_does_not_transfer_4096_historical_members() {
     let db = crate::storage::Db::open(data.path()).unwrap();
     db.create_session("s").unwrap();
     db.apply_dcp_schema().unwrap();
-    let ids = (0..4100)
-        .map(|_| db.append_message("s", "user", "archived").unwrap())
-        .collect::<Vec<_>>();
+    // Archive preparation is not the addressed-snapshot operation. Keep every
+    // owner row/event/ID, but commit this preexisting fixture in one transaction.
+    let conn = rusqlite::Connection::open(data.path().join("oc.sqlite")).unwrap();
+    conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;")
+        .unwrap();
+    let tx = conn.unchecked_transaction().unwrap();
+    let ids = (1..=4100).map(|seq| {
+        let id = format!("m{seq:04}");
+        tx.execute("INSERT INTO messages(id,session_id,seq,role,text) VALUES(?1,'s',?2,'user','archived')", rusqlite::params![id, seq]).unwrap();
+        tx.execute("INSERT INTO events(session_id,kind,payload) VALUES('s','message',?1)", [&id]).unwrap();
+        id
+    }).collect::<Vec<_>>();
+    tx.commit().unwrap();
+    drop(conn);
     let block = db
         .save_compression_block(
             "s",

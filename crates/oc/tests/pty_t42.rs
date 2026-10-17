@@ -1952,9 +1952,30 @@ fn explicit_foreign_and_unbound_rows_are_refused_without_claiming_or_listing() {
     let fixture = Fixture::new();
     let project = fixture.project_a();
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let conn = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();
+    conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;")
+        .unwrap();
+    let tx = conn.unchecked_transaction().unwrap();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        .to_string();
     for i in 0..1500 {
-        db.create_session(&format!("closed-{i:04}")).unwrap();
+        let id = format!("closed-{i:04}");
+        tx.execute(
+            "INSERT INTO sessions(id,created_at) VALUES(?1,?2)",
+            rusqlite::params![id, now],
+        )
+        .unwrap();
+        tx.execute(
+            "INSERT INTO events(session_id,kind,payload) VALUES(?1,'session_created','{}')",
+            [&id],
+        )
+        .unwrap();
     }
+    tx.commit().unwrap();
+    drop(conn);
     for id in ["foreign-root", "unbound-root"] {
         db.create_session(id).unwrap();
     }

@@ -9,6 +9,8 @@
 use std::io::{Read, Write};
 #[path = "support/context_ids.rs"]
 mod context_ids;
+#[path = "support/seed.rs"]
+mod seed;
 #[path = "support/screen.rs"]
 mod tui_screen;
 use tui_screen::render_screen;
@@ -1741,22 +1743,30 @@ fn seed_session(data_dir: &Path, project: &Path, session: &str, messages: usize)
             .to_string_lossy(),
     )
     .expect("session Location");
-    for i in 0..messages {
-        let role = if i % 2 == 0 { "user" } else { "assistant" };
-        db.append_message(session, role, &format!("seeded row {i:05} payload"))
-            .expect("msg");
-    }
+    let conn = seed::connection(data_dir);
+    seed::messages(
+        &conn,
+        session,
+        (0..messages).map(|i| {
+            let role = if i % 2 == 0 { "user" } else { "assistant" };
+            (role, format!("seeded row {i:05} payload"))
+        }),
+    );
 }
 
 fn seed_tool_ops(data_dir: &Path, session: &str, ops: usize) {
-    let db = oc_adapters::storage::Db::open(data_dir).expect("db");
+    let conn = seed::connection(data_dir);
+    let tx = conn.unchecked_transaction().unwrap();
     for i in 0..ops {
         let op = format!("op-{i:04}");
-        db.record_tool_intent(&op, session, None, &format!("tool-{i:04}"), "{}")
-            .expect("intent");
-        db.record_tool_outcome(&op, "completed", Some(&format!("result-{i:04}")))
-            .expect("outcome");
+        tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output) VALUES(?1,?2,NULL,?3,'started','{}',NULL)", rusqlite::params![op, session, format!("tool-{i:04}")]).unwrap();
+        tx.execute(
+            "UPDATE tool_operations SET state='completed',output=?2 WHERE id=?1",
+            rusqlite::params![op, format!("result-{i:04}")],
+        )
+        .unwrap();
     }
+    tx.commit().unwrap();
 }
 
 struct S07Run {
@@ -1932,15 +1942,19 @@ fn measure_s07(archive: usize) -> S07Run {
     if archive_mark.is_none() {
         assert_eq!(db.prune_bound(session).expect("empty prune bound"), None);
     }
-    for i in 0..200 {
-        let role = if (archive + i).is_multiple_of(2) {
-            "user"
-        } else {
-            "assistant"
-        };
-        db.append_message(session, role, &format!("shared tail {i:02} payload"))
-            .expect("shared tail");
-    }
+    let conn = seed::connection(&data_dir);
+    seed::messages(
+        &conn,
+        session,
+        (0..200).map(|i| {
+            let role = if (archive + i).is_multiple_of(2) {
+                "user"
+            } else {
+                "assistant"
+            };
+            (role, format!("shared tail {i:02} payload"))
+        }),
+    );
     let large_output = "s07-result-line-0123456789\n".repeat(5_000);
     db.record_tool_intent(
         "s07-large-output",
@@ -1952,6 +1966,7 @@ fn measure_s07(archive: usize) -> S07Run {
     .expect("large tool intent");
     db.record_tool_outcome("s07-large-output", "completed", Some(&large_output))
         .expect("large tool result");
+    drop(conn);
     drop(db);
     let path = fixture.root.path().join("s07-metrics.json");
     let mut pty = PtySession::spawn(fixture.clone(), session, Some(&path));

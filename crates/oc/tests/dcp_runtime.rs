@@ -18,6 +18,8 @@ use oc_adapters::storage::Db;
 use serde_json::{Value, json};
 #[path = "support/context_ids.rs"]
 mod context_ids;
+#[path = "support/seed.rs"]
+mod seed;
 
 const TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -1395,24 +1397,25 @@ fn seed_crash_history(
             .to_string_lossy(),
     )
     .expect("bind crash session to fixture Location");
+    let conn = seed::connection(&fixture.data());
     let padding = "x".repeat(512);
     let mut ranges = Vec::with_capacity(CRASH_RANGES);
     for range_index in 0..CRASH_RANGES {
-        let mut members = Vec::with_capacity(CRASH_MEMBERS_PER_RANGE);
-        for member_index in 0..CRASH_MEMBERS_PER_RANGE {
-            let ordinal = range_index * CRASH_MEMBERS_PER_RANGE + member_index;
-            let role = if ordinal.is_multiple_of(2) {
-                "user"
-            } else {
-                "assistant"
-            };
-            let text =
-                format!("{CRASH_FILLER} range={range_index} member={member_index} {padding}");
-            members.push(
-                db.append_message(session, role, &text)
-                    .expect("seed covered message"),
-            );
-        }
+        let members = seed::messages(
+            &conn,
+            session,
+            (0..CRASH_MEMBERS_PER_RANGE).map(|member_index| {
+                let ordinal = range_index * CRASH_MEMBERS_PER_RANGE + member_index;
+                let role = if ordinal.is_multiple_of(2) {
+                    "user"
+                } else {
+                    "assistant"
+                };
+                let text =
+                    format!("{CRASH_FILLER} range={range_index} member={member_index} {padding}");
+                (role, text)
+            }),
+        );
         ranges.push(RequestedRange {
             start: members.first().expect("range start").clone(),
             end: members.last().expect("range end").clone(),

@@ -41,7 +41,10 @@ evidence and smallest unlock.
   - Acceptance: все сообщения, IDs, порядок, events, bindings и tool states сохранены;
     весь измеряемый workload неизменен, включая 47 prune-операций VIS38 и SIGKILL.
   - Primary evidence: семь существующих cases с пометкой `seed` ниже, setup/case timing.
-  - Status: pending. Evidence: pending.
+  - Status: verified.
+  - Evidence: `R2-bulk-seeds.log` / `R2-junit.xml`: все7 PASS, все <30s в targeted run;
+    `R2-seed-parity.log`: 1 PASS, owner IDs/rows/events и synchronous=FULL совпадают.
+    Production storage/schema не менялись. Все47 VIS38 prune calls сохранены.
 - R3 — убрать лишние filler-publication boundaries из registered-stream case.
   - Source: третий пункт плана, где 2051 caller append не является assertion.
   - Acceptance: те же 16,785,408 filler bytes и два исходных secret-split appends;
@@ -61,7 +64,10 @@ evidence and smallest unlock.
   - Acceptance: production deadline 30000ms и реальная проверка не сокращаются;
     исключение с причиной/численным бюджетом возможно только после согласия владельца.
   - Primary evidence: UI07 case; решение владельца, если требуется исключение.
-  - Status: pending. Evidence: исключение пока НЕ согласовано.
+  - Status: in_progress.
+  - Evidence: владелец явно ответил «Да, до 40 с» (2026-10-17). Единственное
+    согласованное исключение — весь этот case до40s; осталось записать рядом с
+    кодом и подтвердить текущим полным gate. Для других cases исключений нет.
 - R6 — итоговая квалификация и Git delivery.
   - Source: итеративная реализация/commit/push; обязательные repository gates.
   - Acceptance: сохранены все исходные тесты/assertions и штатные opt-in ignores;
@@ -137,12 +143,30 @@ test-local SQL within those targets. Production changes require a measured R1–
 blocker at the actual owner and a recorded minimal envelope expansion first.
 Test names and acceptance assertions remain discoverable; no unrelated cleanup.
 
+### R2 targeted evidence
+
+| Case (сокращённо) | Исходный full gate, s | Текущий targeted, s |
+|---|---:|---:|
+| legacy coverage4100 | 82.583 | 2.366 |
+| PTY long history3000 | 60.525 | 3.086 |
+| foreign/unbound roots1502 | 35.005 | 3.295 |
+| actual32-range SIGKILL/reopen | 42.289 | 6.037 |
+| AUD31 history/tool cards | 95.298 | 8.197 |
+| S07 equal active/archive | 86.204 | 9.446 |
+| VIS38 real DCP/archive | 83.409 | 15.430 |
+
+Условия различны: семь выбранных cases против2054 в старом full gate. Setup
+отдельно наблюдаем:3000 history messages119.7ms,4100 rows/events в одной транзакции;
+VIS38 commits по64 сообщения перед прежними prune calls. Измеряемые runtime
+операции и все прежние assertions не урезаны. Один новый parity test защищает
+копию SQL-owner semantics; не новый framework или Cargo target.
+
 ## Current checkpoint / state
 
-- Closes: R2. Inspect exact fixture rows/events/IDs and batch prelaunch SQL only;
-  start with existing large history fixture, retaining every measured action.
-- R1 resolved: existing fake returns a terminal SSE rejection after acceptance;
-  targeted PASS, diff reviewed. Deliver this first checked iteration, then continue.
+- Closes: R3. Inspect caller-publication contract, retain all filler bytes and two
+  cross-secret appends; measure bounded filler calls with the existing cap/lease test.
+- R1 delivered in `f493f191e523150752a93a7766aaa887f9a9c112`, pushed.
+- R2 targeted PASS and diff reviewed; deliver this checked batch, then continue.
 - R2–R5 follow the order above using the evidence from each completed checkpoint.
 - Active repository task remains T44; this is its
   owner-requested qualification-performance slice, not a new general backlog.
@@ -154,6 +178,9 @@ Test names and acceptance assertions remain discoverable; no unrelated cleanup.
 - 2026-10-17: copied the approved plan and existing RECON; no new benchmark invented.
 - 2026-10-17 R1: retained all assertions, replaced incidental retry exhaustion;
   exact existing case PASS in0.819s, production policy unchanged.
+- 2026-10-17 R2: all7 existing cases and one new owner-parity check PASS; setup
+  transaction amortization only, no removed rows/events/actions/fsync guarantees.
+- 2026-10-17 R5: owner explicitly approved only UI07's40s real-deadline budget.
 
 ## Completion
 
