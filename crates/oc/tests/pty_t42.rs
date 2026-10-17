@@ -2616,6 +2616,7 @@ fn hovered_close_reopens_durable_session_without_creating_a_root() {
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "persisted before close");
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty);
     assert_eq!(journal_counts(&fixture).0, 1);
 
     // The 32-cell first tab paints its hovered close at x=31 (one-based).
@@ -3185,6 +3186,7 @@ fn reload_refuses_busy_turn_and_refreshes_parked_tab_after_owner_success() {
     );
     wait_screen_row(&pty, "answer:slow stream", DEADLINE);
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty); // New session is an idle-only action, not an echo barrier.
     pty.send(&[0x7f; 64]);
     pty.send(b"/new\r");
     wait_screen_row(&pty, "New session", DEADLINE);

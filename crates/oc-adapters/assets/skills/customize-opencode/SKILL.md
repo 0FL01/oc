@@ -313,6 +313,14 @@ explicit user keybindings and use the effective command hints; never guess an
 upstream key ID/shape. Autoaccept is an explicit mode choice, not a default
 security fix. Do not advertise the entire upstream CLI schema as native support.
 
+Native `keybinds["prompt.paste"]` defaults to `"ctrl+v"`; a shortcut string remaps
+it and `false` disables it. At an editable chat prompt it reads PNG, then UTF-8
+text, from the clipboard of the Linux host running `oc2`. Wayland requires
+`wl-paste` (`wl-clipboard`); X11 requires `xclip`. Helpers are not installed
+automatically. Ordinary SSH/bracketed text paste does not transfer binary images.
+The literal `[Image N]` marker carries a separate attachment; recalled text-only
+Up/Down history does not reattach images. Shell/slash commands refuse attachments.
+
 ## Before finishing
 
 Review the exact authorized diff and actual post-reload behavior. Report the

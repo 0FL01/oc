@@ -78,6 +78,7 @@ fn tps_page() -> oc_core::queries::HistoryPage {
     oc_core::queries::HistoryPage {
         total: 1,
         rows: vec![oc_core::queries::HistoryMessage {
+            images: Vec::new(),
             id: oc_core::session::MessageId("measured-answer".into()),
             seq: 1,
             role: Role::Assistant,

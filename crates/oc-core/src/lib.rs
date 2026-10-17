@@ -13,6 +13,7 @@ pub mod dcp_view;
 pub mod domain;
 pub mod patch;
 pub mod ports;
+pub mod prompt;
 pub mod queries;
 pub mod question;
 pub mod runtime;

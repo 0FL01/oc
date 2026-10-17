@@ -418,7 +418,7 @@ async fn post_accept_failure_still_delivers_fresh_root_and_turn_receipt() {
     let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
     conn.execute_batch(
         "CREATE TRIGGER fail_checkpoint BEFORE UPDATE ON turns
-         WHEN NEW.session_id = 'checkpoint-fresh'
+         WHEN NEW.session_id = 'checkpoint-fresh' AND OLD.result IS NOT NULL
          BEGIN SELECT RAISE(ABORT, 'injected checkpoint failure'); END;",
     )
     .unwrap();

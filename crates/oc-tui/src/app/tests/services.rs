@@ -49,7 +49,7 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
     let Some(InboxMsg::SubmitFresh { text, ack, .. }) = inbox.recv().await else {
         panic!("fresh request receipt")
     };
-    assert_eq!(text, state.input());
+    assert_eq!(text.text, state.input());
     let mut issue = diagnostic(ServiceKind::Selection);
     issue.code = ServiceCode::ModelUnavailable;
     issue.action = ServiceAction::SelectModel;

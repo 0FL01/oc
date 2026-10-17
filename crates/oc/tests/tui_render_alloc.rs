@@ -191,6 +191,7 @@ fn page(older: usize) -> HistoryPage {
                 ..HistoryTurn::default()
             });
             HistoryMessage {
+                images: Vec::new(),
                 id: oc_core::session::MessageId(format!(
                     "fixture-{:08}",
                     i64::from(seq) + older as i64

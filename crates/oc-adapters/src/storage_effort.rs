@@ -16,6 +16,14 @@ impl Db {
         after_event: i64,
     ) -> Result<Vec<EffortFact>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
+        Self::effort_facts_in(&conn, session, after_event)
+    }
+
+    pub(super) fn effort_facts_in(
+        conn: &rusqlite::Connection,
+        session: &str,
+        after_event: i64,
+    ) -> Result<Vec<EffortFact>, StorageError> {
         let mut query = conn.prepare_cached(
             "SELECT e.seq, json_extract(e.payload, '$.effort_update'),
                (SELECT m.payload FROM events m JOIN messages text ON text.id=m.payload

@@ -54,6 +54,7 @@ fn vis12_shared_input_history_bounds_filters_dedups_and_commits_with_acceptance(
         &model,
         None,
         Some("user Ω界"),
+        None,
     )
     .unwrap();
     assert_eq!(db.prompt_history(None).unwrap().last().unwrap(), "user Ω界");
@@ -73,7 +74,8 @@ fn vis12_shared_input_history_bounds_filters_dedups_and_commits_with_acceptance(
             None,
             &model,
             None,
-            Some("not accepted")
+            Some("not accepted"),
+            None,
         )
         .is_err()
     );

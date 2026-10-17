@@ -489,7 +489,7 @@ fn params<'c>(
 ) -> TurnParams<'c> {
     TurnParams {
         session: session.to_string(),
-        prompt: prompt.to_string(),
+        prompt: prompt.into(),
         invocation: None,
         catalog: &harness.catalog,
         model_id: "gpt-fixture".to_string(),

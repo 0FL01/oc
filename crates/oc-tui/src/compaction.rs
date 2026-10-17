@@ -518,6 +518,7 @@ mod tests {
             total: 3,
             rows: vec![
                 HistoryMessage {
+                    images: Vec::new(),
                     id: MessageId("user".into()),
                     seq: 1,
                     role: Role::User,
@@ -529,6 +530,7 @@ mod tests {
                     user_shell: None,
                 },
                 HistoryMessage {
+                    images: Vec::new(),
                     id: MessageId("answer".into()),
                     seq: 2,
                     role: Role::Assistant,
@@ -563,6 +565,7 @@ mod tests {
                     }),
                 },
                 HistoryMessage {
+                    images: Vec::new(),
                     id: MessageId("next".into()),
                     seq: 3,
                     role: Role::User,

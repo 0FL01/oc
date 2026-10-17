@@ -93,6 +93,7 @@ impl Db {
         if role != "user" {
             return Err(refuse("boundary is not a user message").into());
         }
+        let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
         // A switch notice belongs to the selected prompt, not its preceding turn.
         if let Some((seq, role)) = tx.query_row("SELECT seq,role FROM conversation_messages WHERE session_id=?1 AND seq<?2 ORDER BY seq DESC LIMIT 1", params![source,cutoff], |r| Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?))).optional()?
             && role == "model_switch" { cutoff = seq; }
@@ -479,6 +480,7 @@ impl Db {
         )?;
         tx.commit()?;
         Ok(ForkSessionSnapshot {
+            images: restored_prompt.images,
             session: SessionId(root),
             prompt,
         })

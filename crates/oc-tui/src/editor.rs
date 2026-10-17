@@ -1,5 +1,6 @@
 //! Byte offsets are always extended grapheme boundaries. The text stays in
 //! `TuiState` so submission still snapshots the exact application draft.
+use oc_core::prompt::{IMAGES_TOTAL_BYTES, ImageMark, PromptImage, PromptInput};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -35,9 +36,12 @@ struct PasteChip {
     start: usize,
     end: usize,
     lines: usize,
+    // Exact label range may sit inside a boundary grapheme (e.g. ] + accent).
+    // The outer chip range remains grapheme-aligned for atomic editing.
+    image: Option<PromptImage>,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Editor {
     pub cursor: usize,
     pub anchor: Option<usize>,
@@ -51,17 +55,35 @@ pub struct Editor {
     recent_mention: Option<(String, Vec<(usize, usize)>)>,
 }
 
+/// Opaque bounded unfinished composer state, without Location/config/UI state.
+#[derive(Clone)]
+pub struct ComposerDraft {
+    pub(crate) text: String,
+    pub(crate) editor: Editor,
+}
+
+fn image_bytes<'a>(chips: impl Iterator<Item = &'a PasteChip>) -> usize {
+    let mut seen = std::collections::BTreeSet::new();
+    chips
+        .filter_map(|c| c.image.as_ref())
+        .filter(|i| seen.insert(std::sync::Arc::as_ptr(&i.png) as *const u8 as usize))
+        .map(|i| i.png.len())
+        .sum()
+}
+
 impl Editor {
     pub fn retained_bytes(&self) -> usize {
-        self.undo
-            .iter()
-            .chain(&self.redo)
-            .map(|s| {
-                s.text.len()
-                    + s.chips.len() * std::mem::size_of::<PasteChip>()
-                    + s.mentions.len() * std::mem::size_of::<(usize, usize)>()
-            })
-            .sum::<usize>()
+        self.retained_image_bytes()
+            + self
+                .undo
+                .iter()
+                .chain(&self.redo)
+                .map(|s| {
+                    s.text.len()
+                        + s.chips.len() * std::mem::size_of::<PasteChip>()
+                        + s.mentions.len() * std::mem::size_of::<(usize, usize)>()
+                })
+                .sum::<usize>()
             + self.chips.len() * std::mem::size_of::<PasteChip>()
             + self.mentions.len() * std::mem::size_of::<(usize, usize)>()
             + self.recent_mention.as_ref().map_or(0, |(text, marks)| {
@@ -73,6 +95,15 @@ impl Editor {
                     + draft.mentions.len() * std::mem::size_of::<(usize, usize)>()
                     + items.iter().map(String::len).sum::<usize>()
             })
+    }
+
+    fn retained_image_bytes(&self) -> usize {
+        image_bytes(
+            self.chips
+                .iter()
+                .chain(self.undo.iter().chain(&self.redo).flat_map(|s| &s.chips))
+                .chain(self.history.iter().flat_map(|(_, _, draft)| &draft.chips)),
+        )
     }
     pub fn clear(&mut self) {
         *self = Self::default();
@@ -112,6 +143,7 @@ impl Editor {
                 })
                 .sum::<usize>()
                 > 2 * 1024 * 1024
+            || self.retained_image_bytes() > 2 * IMAGES_TOTAL_BYTES
         {
             self.undo.remove(0);
         }
@@ -154,8 +186,10 @@ impl Editor {
             && let Some(start) = self.chips.iter().find_map(|chip| {
                 // Raw end already projects past the chip's virtual separator.
                 // A real suffix space advances beyond the repeat boundary.
-                (self.cursor == chip.end && text[chip.start..chip.end] == *normalized.trim())
-                    .then_some(chip.start)
+                (chip.image.is_none()
+                    && self.cursor == chip.end
+                    && text[chip.start..chip.end] == *normalized.trim())
+                .then_some(chip.start)
             })
         {
             self.expand_chip(text, start);
@@ -182,13 +216,105 @@ impl Editor {
     /// Removing the display extmark exposes the existing draft bytes exactly once.
     /// Like the donor's selection replacement, expansion ends at the stored text.
     pub fn expand_chip(&mut self, text: &str, start: usize) -> bool {
-        let Some(index) = self.chips.iter().position(|chip| chip.start == start) else {
+        let Some(index) = self
+            .chips
+            .iter()
+            .position(|chip| chip.start == start && chip.image.is_none())
+        else {
             return false;
         };
         self.save(text);
         self.cursor = self.chips.remove(index).end;
         self.anchor = None;
         true
+    }
+
+    pub(crate) fn prompt(&self, text: &str) -> PromptInput {
+        PromptInput {
+            text: text.into(),
+            images: self.chips.iter().filter_map(|c| c.image.clone()).collect(),
+        }
+    }
+
+    pub(crate) fn restore_images(&mut self, text: &str, images: Vec<PromptImage>) {
+        self.chips = images
+            .into_iter()
+            .map(|image| PasteChip {
+                start: image.mark.start,
+                end: image.mark.end,
+                lines: 0,
+                image: Some(image),
+            })
+            .collect();
+        self.revalidate_chips(text);
+    }
+
+    pub(crate) fn has_images(&self) -> bool {
+        self.chips.iter().any(|c| c.image.is_some())
+    }
+
+    pub(crate) fn paste_image(
+        &mut self,
+        text: &mut String,
+        png: std::sync::Arc<[u8]>,
+        limit: usize,
+    ) -> Result<(), String> {
+        let (a, b) = self.selection().unwrap_or((self.cursor, self.cursor));
+        let start = self.snap(a, false);
+        let end = self.snap(b, true);
+        let surviving = self
+            .chips
+            .iter()
+            .filter(|c| c.end <= start || c.start >= end);
+        let ordinal = surviving
+            .clone()
+            .filter_map(|c| c.image.as_ref().map(|i| i.mark.ordinal))
+            .max()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or("image ordinal limit reached")?;
+        let label = format!("[Image {ordinal}]");
+        if surviving.clone().count() >= MAX_PASTE_CHIPS
+            || png.len() > oc_core::prompt::IMAGE_BYTES
+            || surviving
+                .filter_map(|c| c.image.as_ref())
+                .map(|i| i.png.len())
+                .sum::<usize>()
+                + png.len()
+                > IMAGES_TOTAL_BYTES
+            || text.len() - (end - start) + label.len() + 1 > limit
+        {
+            return Err("image draft limit exceeded".into());
+        }
+        self.save(text);
+        self.adjust_chips(start, end, label.len() + 1);
+        self.adjust_mentions(start, end, label.len() + 1);
+        text.replace_range(start..end, &format!("{label} "));
+        let at = self.chips.partition_point(|c| c.start < start);
+        self.chips.insert(
+            at,
+            PasteChip {
+                start,
+                end: start + label.len(),
+                lines: 0,
+                image: Some(PromptImage {
+                    mark: ImageMark {
+                        start,
+                        end: start + label.len(),
+                        ordinal,
+                    },
+                    png,
+                }),
+            },
+        );
+        self.revalidate_chips(text);
+        self.revalidate_mentions(text);
+        self.cursor = following_boundary(text, start + label.len() + 1);
+        self.anchor = None;
+        while !self.undo.is_empty() && self.retained_image_bytes() > 2 * IMAGES_TOTAL_BYTES {
+            self.undo.remove(0);
+        }
+        Ok(())
     }
 
     fn insert(
@@ -198,7 +324,9 @@ impl Editor {
         limit: usize,
         paste: bool,
     ) -> PasteOutcome {
-        let (start, end) = self.selection().unwrap_or((self.cursor, self.cursor));
+        let (a, b) = self.selection().unwrap_or((self.cursor, self.cursor));
+        let start = self.snap(a, false);
+        let end = self.snap(b, true);
         let room = limit.saturating_sub(text.len() - (end - start));
         let mut kept = 0;
         for grapheme in inserted.graphemes(true) {
@@ -242,6 +370,7 @@ impl Editor {
                     start,
                     end: start + kept,
                     lines,
+                    image: None,
                 },
             );
         }
@@ -269,13 +398,21 @@ impl Editor {
             .map(|(offset, _)| offset)
             .chain(std::iter::once(text.len()))
             .peekable();
-        self.chips.retain(|chip| {
+        let mut previous = 0;
+        self.chips.retain_mut(|chip| {
             while boundaries.peek().is_some_and(|&at| at < chip.start) {
-                boundaries.next();
+                previous = boundaries.next().unwrap_or(previous);
             }
             let start_ok = boundaries.peek().is_some_and(|&at| at == chip.start);
+            if chip.image.is_some() && !start_ok {
+                chip.start = previous;
+            }
             while boundaries.peek().is_some_and(|&at| at < chip.end) {
-                boundaries.next();
+                previous = boundaries.next().unwrap_or(previous);
+            }
+            if chip.image.is_some() {
+                chip.end = boundaries.peek().copied().unwrap_or(text.len());
+                return true;
             }
             start_ok && boundaries.peek().is_some_and(|&at| at == chip.end)
         });
@@ -288,6 +425,10 @@ impl Editor {
             if chip.start >= end {
                 chip.start = chip.start - (end - start) + inserted;
                 chip.end = chip.end - (end - start) + inserted;
+                if let Some(image) = &mut chip.image {
+                    image.mark.start = image.mark.start - (end - start) + inserted;
+                    image.mark.end = image.mark.end - (end - start) + inserted;
+                }
             }
         }
     }
@@ -519,7 +660,11 @@ impl Editor {
         for chip in &self.chips {
             visible.push_str(&text[last..chip.start]);
             let start = visible.len();
-            visible.push_str(&format!("[Pasted ~{} lines] ", chip.lines));
+            if chip.image.is_some() {
+                visible.push_str(&text[chip.start..chip.end]);
+            } else {
+                visible.push_str(&format!("[Pasted ~{} lines] ", chip.lines));
+            }
             map.push((chip.start, chip.end, start, visible.len()));
             last = chip.end;
         }
@@ -543,7 +688,8 @@ impl Editor {
             .collect();
         let chips: Vec<_> = map
             .iter()
-            .map(|&(_, _, start, end)| (start, end - 1))
+            .zip(&self.chips)
+            .map(|(&(_, _, start, end), chip)| (start, end - usize::from(chip.image.is_none())))
             .collect();
         let (mut rows, caret) = layout_wrapped(
             &visible,

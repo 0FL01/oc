@@ -29,6 +29,7 @@ fn child_notice_is_not_an_undo_prompt_and_redo_keeps_the_exact_delivery() {
                 &model("fixture"),
                 None,
                 None,
+                None,
             )
             .unwrap()
             .user_message;
@@ -132,6 +133,7 @@ fn model_shell_notice_is_bounded_exact_data_and_redo_preserves_its_raw_delivery(
                 "one",
                 None,
                 &model("fixture"),
+                None,
                 None,
                 None,
             )
@@ -336,6 +338,7 @@ fn direct_user_shell_is_not_an_undo_prompt_and_whole_tail_redo_preserves_raw_and
                 &model("fixture"),
                 None,
                 None,
+                None,
             )
             .unwrap()
             .user_message;
@@ -434,6 +437,7 @@ fn direct_user_shell_admission_after_undo_or_revert_atomically_opens_the_new_bra
                 "one",
                 None,
                 &model("fixture"),
+                None,
                 None,
                 None,
             )

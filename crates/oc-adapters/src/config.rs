@@ -323,6 +323,7 @@ pub(crate) struct ConversationKeybinds {
     composer: oc_core::queries::ComposerShortcuts,
     dialog: oc_core::queries::DialogShortcuts,
     prompt_history: [String; 2],
+    prompt_paste: String,
 }
 
 impl Default for ConversationKeybinds {
@@ -348,6 +349,7 @@ impl Default for ConversationKeybinds {
             dialog: Default::default(),
             composer: Default::default(),
             prompt_history: ["up".into(), "down".into()],
+            prompt_paste: "ctrl+v".into(),
         }
     }
 }
@@ -389,6 +391,7 @@ impl ConversationKeybinds {
             (&["app.exit"][..], &mut self.exit),
             (&["session.child.first"][..], &mut self.child_first),
             (&["session.background"][..], &mut self.background),
+            (&["prompt.paste"][..], &mut self.prompt_paste),
         ] {
             for name in names {
                 if let Some(value) = bindings.get(*name) {
@@ -497,6 +500,7 @@ impl ConversationKeybinds {
             composer: Default::default(),
             dialog: Default::default(),
             prompt_history: Default::default(),
+            prompt_paste: String::new(),
         }
         .resolve();
         oc_core::queries::PermissionShortcuts {
@@ -631,6 +635,16 @@ impl ConversationKeybinds {
             undo: resolve(&self.undo),
             redo: resolve(&self.redo),
         }
+    }
+
+    pub(crate) fn prompt_paste_shortcut(&self) -> String {
+        Self {
+            leader: self.leader.clone(),
+            undo: self.prompt_paste.clone(),
+            ..Self::default()
+        }
+        .resolve()
+        .undo
     }
 }
 

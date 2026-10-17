@@ -56,6 +56,7 @@ mod terminals;
 pub(crate) mod tool_output;
 #[path = "storage_turn_history.rs"]
 mod turn_history;
+mod user_images;
 pub(crate) use session_move::MoveRecord;
 pub(crate) use shell_jobs::AdmittedUserShell;
 
@@ -700,6 +701,7 @@ impl Db {
             model,
             None,
             None,
+            None,
         )
     }
 
@@ -715,6 +717,7 @@ impl Db {
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
         history_input: Option<&str>,
+        seed: Option<&mut crate::tools::TurnLog>,
     ) -> Result<AcceptedTurn, StorageError> {
         let marker = Self::fresh_root_marker(id, location, initial_selection)?;
         let mut conn = self.conn.lock().expect("db mutex");
@@ -731,6 +734,7 @@ impl Db {
             model,
             reminder,
             history_input,
+            seed,
         )?;
         if let Some((key, value)) = initial_selection {
             Self::upsert_pref(&tx, key, value)?;
@@ -2448,20 +2452,8 @@ impl Db {
         user_text: &str,
         model: &oc_core::queries::ModelRef,
     ) -> Result<AcceptedTurn, StorageError> {
-        self.accept_turn_with_reminder(turn, session, prompt, user_text, model, None)
-    }
-
-    pub(crate) fn accept_turn_with_reminder(
-        &self,
-        turn: &str,
-        session: &str,
-        prompt: &str,
-        user_text: &str,
-        model: &oc_core::queries::ModelRef,
-        reminder: Option<&str>,
-    ) -> Result<AcceptedTurn, StorageError> {
         self.accept_turn_with_selection(
-            turn, session, prompt, user_text, model, reminder, None, None,
+            turn, session, prompt, user_text, model, None, None, None, None,
         )
     }
 
@@ -2476,6 +2468,7 @@ impl Db {
         reminder: Option<&str>,
         selection: Option<(&str, &str)>,
         history_input: Option<&str>,
+        seed: Option<&mut crate::tools::TurnLog>,
     ) -> Result<AcceptedTurn, StorageError> {
         if let Some((key, _)) = selection {
             let valid = key
@@ -2497,6 +2490,7 @@ impl Db {
             model,
             reminder,
             history_input,
+            seed,
         )?;
         if let Some((key, value)) = selection {
             Self::upsert_pref(&tx, key, value)?;
@@ -2515,6 +2509,7 @@ impl Db {
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
         history_input: Option<&str>,
+        seed: Option<&mut crate::tools::TurnLog>,
     ) -> Result<AcceptedTurn, StorageError> {
         use oc_core::queries::ModelRef;
         Self::conversation_admit(conn, turn, session)?;
@@ -2559,6 +2554,25 @@ impl Db {
         )?;
         if let Some(text) = history_input {
             Self::prompt_history_in(conn, Some(text))?;
+        }
+        if let Some(log) = seed {
+            // Idle selection facts precede this exact accepted input. Resolve
+            // them using the same transaction, after the user anchor exists.
+            let mut input: Vec<_> = Self::effort_facts_in(conn, session, 0)?
+                .into_iter()
+                .filter(|fact| fact.before_message.as_deref() == Some(&user_message))
+                .map(|fact| fact.item)
+                .collect();
+            if let Some(metadata) = log.display.get_mut("user_images") {
+                metadata["input_index"] = input.len().into();
+            }
+            input.append(&mut log.input);
+            log.input = input;
+            log.user_message = Some(user_message.clone());
+            conn.execute(
+                "UPDATE turns SET result=?2 WHERE id=?1",
+                params![turn, log.to_json().to_string()],
+            )?;
         }
         Ok(AcceptedTurn {
             user_message,

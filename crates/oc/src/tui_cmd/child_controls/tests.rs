@@ -597,6 +597,7 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
         assert_eq!(limit, 1);
         ack.send(Ok(HistoryPage {
             rows: vec![oc_core::queries::HistoryMessage {
+                images: Vec::new(),
                 id: oc_core::session::MessageId("leaf-committed".into()),
                 seq: 3,
                 role: oc_core::session::Role::User,

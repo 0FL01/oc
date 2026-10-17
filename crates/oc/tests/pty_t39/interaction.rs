@@ -2537,6 +2537,7 @@ fn aud29_pty_panels_change_runtime_state() {
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
 
     // Agent picker: prompt and pinned model come from the agent definition.
+    wait_idle(&pty); // Visible echo/title can precede TurnFinished.
     pty.send(b"/agents\r");
     wait_screen_row(&pty, "Select agent", DEADLINE);
     wait_screen_row(&pty, "t39agent", DEADLINE);

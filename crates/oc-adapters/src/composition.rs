@@ -1593,6 +1593,7 @@ async fn load_stages(
     tui_chrome.terminal_shortcuts = conversation_keybinds.terminal_shortcuts();
     tui_chrome.dialog_shortcuts = conversation_keybinds.dialog_shortcuts();
     tui_chrome.prompt_history_shortcuts = conversation_keybinds.prompt_history_shortcuts();
+    tui_chrome.prompt_paste_shortcut = Some(conversation_keybinds.prompt_paste_shortcut());
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     watch_inputs.borrow().validate()?;
     Ok(Composition {

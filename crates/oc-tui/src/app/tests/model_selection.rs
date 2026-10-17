@@ -101,7 +101,7 @@ async fn tool12_message_captures_draft_and_pending_acceptance_does_not_erase_new
     else {
         panic!("captured submit");
     };
-    assert_eq!(text, "/workspace captured-command");
+    assert_eq!(text.text, "/workspace captured-command");
     assert_eq!(captured.model_id, "b");
     state.draft_model("a").unwrap();
     state.draft_variant(Some("low")).unwrap();

@@ -317,6 +317,14 @@ impl HistoryWindow {
         }
     }
 
+    pub(crate) fn set_latest_user_images(&mut self, count: usize) {
+        if let Some(row) = self.rows.last_mut().filter(|row| row.role == "user") {
+            row.chips = clipboard_chips(count);
+            self.revision = self.revision.wrapping_add(1);
+            self.enforce(Evict::Oldest);
+        }
+    }
+
     /// Receipt-owned echo: real operation ID, no invented durable message/turn.
     pub(crate) fn push_user_shell(&mut self, operation: String, command: &str) {
         if self.rows.iter().any(|row| {
@@ -715,13 +723,22 @@ fn row_from_page(
             }),
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
-        chips: Vec::new(),
+        chips: clipboard_chips(row.images.len()),
         reasoning: None,
         meta: None,
         tool: None,
         child_notice: None,
         shell_notice: None,
     }
+}
+
+fn clipboard_chips(count: usize) -> Vec<crate::messages::Chip> {
+    (0..count)
+        .map(|_| crate::messages::Chip {
+            kind: crate::messages::ChipKind::File,
+            name: "clipboard".into(),
+        })
+        .collect()
 }
 
 pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) -> String {
@@ -1521,6 +1538,7 @@ mod tests {
 
     fn row(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            images: Vec::new(),
             id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,

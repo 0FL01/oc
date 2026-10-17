@@ -666,6 +666,7 @@ async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live
         assert_eq!(message, Some(MessageId("actual-message".into())));
         assert_eq!(limit, 1);
         let row = HistoryMessage {
+            images: Vec::new(),
             id: MessageId("actual-message".into()),
             seq: 9,
             role: Role::User,
@@ -856,6 +857,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
         message_id: Some("actual-notice".into()),
     };
     let notice = HistoryMessage {
+        images: Vec::new(),
         id: MessageId("actual-notice".into()),
         seq: 9,
         role: Role::User,
@@ -901,6 +903,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
         ack.send(Ok(HistoryPage {
             rows: vec![
                 HistoryMessage {
+                    images: Vec::new(),
                     id: MessageId("accepted-prompt".into()),
                     seq: 8,
                     role: Role::User,
@@ -1091,6 +1094,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
         );
         ack.send(Ok(HistoryPage {
             rows: vec![HistoryMessage {
+                images: Vec::new(),
                 id: MessageId("actual-shell-notice".into()),
                 seq: 7,
                 role: Role::User,
@@ -1466,6 +1470,7 @@ async fn accepted_conversation_survives_refresh_failure_and_retries_queries_only
                     panic!("mutation once")
                 };
                 ack.send(Ok(ConversationSnapshot {
+                    images: Vec::new(),
                     session,
                     draft: Some("owner restored".into()),
                     can_undo: false,
@@ -1550,6 +1555,7 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
         assert_eq!(limit, 1);
         ack.send(Ok(HistoryPage {
             rows: vec![HistoryMessage {
+                images: Vec::new(),
                 id: MessageId("opaque-user".into()),
                 seq: 42,
                 role: Role::User,
@@ -1887,6 +1893,7 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
         } else {
             state.attach_page(&oc_core::queries::HistoryPage {
                 rows: vec![oc_core::queries::HistoryMessage {
+                    images: Vec::new(),
                     id: oc_core::session::MessageId("cycle-history".into()),
                     seq: 1,
                     role: Role::User,
@@ -3149,6 +3156,7 @@ async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query
     state.handle_paste("first draft");
     state.attach_page(&HistoryPage {
         rows: vec![HistoryMessage {
+            images: Vec::new(),
             seq: 1,
             role: Role::User,
             id: oc_core::session::MessageId("viewport-user".into()),
@@ -3207,6 +3215,7 @@ async fn rail_release_saves_once_and_only_acknowledged_width_changes_the_deck() 
     state.restore_prompt("kept rail draft Ω界".into());
     state.attach_page(&oc_core::queries::HistoryPage {
         rows: vec![oc_core::queries::HistoryMessage {
+            images: Vec::new(),
             id: oc_core::session::MessageId("rail-history".into()),
             seq: 1,
             role: Role::User,
@@ -3699,6 +3708,7 @@ async fn picker_open_preserves_child_read_only_policy_without_owner_or_deck_chan
 async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let row = |seq| oc_core::queries::HistoryMessage {
+        images: Vec::new(),
         id: oc_core::session::MessageId(format!("m{seq}")),
         seq,
         role: Role::User,

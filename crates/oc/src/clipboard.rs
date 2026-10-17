@@ -4,6 +4,9 @@
 
 use std::io::{self, IsTerminal as _};
 
+mod read;
+pub use read::{Content, read};
+
 const MAX_TEXT_BYTES: usize = oc_tui::app::MAX_SELECTION_BYTES;
 const PREFIX: &[u8] = b"\x1b]52;c;";
 const TERMINATOR: &[u8] = b"\x07";

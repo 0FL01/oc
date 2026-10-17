@@ -79,6 +79,7 @@ pub enum ConversationAction {
 pub struct ConversationSnapshot {
     pub session: SessionId,
     pub draft: Option<String>,
+    pub images: Vec<crate::prompt::PromptImage>,
     pub can_undo: bool,
     pub can_redo: bool,
     pub reverted: Option<RevertedConversation>,
@@ -98,6 +99,7 @@ pub struct RevertedConversation {
 pub struct ForkSessionSnapshot {
     pub session: SessionId,
     pub prompt: String,
+    pub images: Vec<crate::prompt::PromptImage>,
 }
 
 /// One Location-verified session ID, without enumerating the archive.
@@ -234,6 +236,8 @@ pub struct HistoryMessage {
     pub role: Role,
     /// Message text.
     pub text: String,
+    /// Metadata only; original PNGs stay in the owning turn journal.
+    pub images: Vec<crate::prompt::ImageMark>,
     /// Safe projection of this row's turn; absent for legacy text-only rows.
     pub turn: Option<HistoryTurn>,
     /// Public model transition committed with the following accepted prompt.
@@ -740,6 +744,8 @@ pub struct TuiChrome {
     pub dialog_shortcuts: DialogShortcuts,
     /// Effective shared input-history bindings; visual prompt movement wins first.
     pub prompt_history_shortcuts: PromptHistoryShortcuts,
+    /// Effective `prompt.paste`; None keeps Ctrl+V, empty disables it.
+    pub prompt_paste_shortcut: Option<String>,
     /// Admitted leader.timeout (preferred over legacy leader_timeout), in milliseconds.
     pub leader_timeout_ms: Option<u64>,
     /// Admitted command.palette.show binding; None keeps the native default.

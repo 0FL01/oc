@@ -76,6 +76,8 @@ pub enum KeyAction {
     /// Effective history binding, distinct from physical default arrow fallback.
     PromptHistoryPrevious,
     PromptHistoryNext,
+    /// Read the host clipboard; only the binary performs this asynchronous effect.
+    Paste,
     /// Higher-priority history may decline the same effective live-job chord.
     PromptHistoryNextOrShells,
     /// Cancel active turn.

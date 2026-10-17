@@ -493,7 +493,7 @@ impl Db {
         Ok(result)
     }
 
-    fn raw_descriptor_in(
+    pub(super) fn raw_descriptor_in(
         conn: &Connection,
         turn: &str,
         ordinal: i64,
@@ -545,7 +545,7 @@ impl Db {
 
     /// One admitted payload and at most two indexed adjacent descriptors. No
     /// historical payload scan, and the caller owns a consistent read snapshot.
-    fn validated_raw_page_in(
+    pub(super) fn validated_raw_page_in(
         conn: &Connection,
         turn: &str,
         ordinal: i64,

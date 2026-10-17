@@ -222,7 +222,7 @@ fn params<'c>(
 ) -> TurnParams<'c> {
     TurnParams {
         session: session.to_string(),
-        prompt: prompt.to_string(),
+        prompt: prompt.into(),
         invocation: None,
         catalog: &harness.catalog,
         model_id: "gpt-fixture".to_string(),
@@ -611,7 +611,7 @@ async fn e2e01_seeded_coding_fix() {
     let report = runtime
         .run_turn(TurnParams {
             session: "e1".to_string(),
-            prompt: "fix the add bug and run tests".to_string(),
+            prompt: "fix the add bug and run tests".into(),
             invocation: None,
             catalog: &catalog,
             model_id: "gpt-fixture".to_string(),

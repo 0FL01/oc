@@ -2,6 +2,17 @@
 
 use super::*;
 
+/// Captured editable composer identity; no payload or rendered text.
+#[derive(Clone, PartialEq, Eq)]
+pub struct ClipboardTarget {
+    session: Option<SessionId>,
+    generation: u64,
+    config_generation: u64,
+    revision: u64,
+    cursor: usize,
+    anchor: Option<usize>,
+}
+
 /// Mark a command as fully handled, or request its snapshot when the view
 /// has never loaded one.
 fn open_snapshot(outcome: &mut KeyOutcome, loaded: bool, intent: PanelIntent) {
@@ -894,12 +905,23 @@ impl TuiState {
         };
         let bindings = [
             (
-                &self.chrome.prompt_history_shortcuts.previous,
+                self.chrome.prompt_history_shortcuts.previous.as_str(),
                 KeyAction::PromptHistoryPrevious,
             ),
             (
-                &self.chrome.prompt_history_shortcuts.next,
+                self.chrome.prompt_history_shortcuts.next.as_str(),
                 KeyAction::PromptHistoryNext,
+            ),
+            (
+                if self.clipboard_target().is_some() {
+                    self.chrome
+                        .prompt_paste_shortcut
+                        .as_deref()
+                        .unwrap_or("ctrl+v")
+                } else {
+                    ""
+                },
+                KeyAction::Paste,
             ),
         ];
         if let Some(action) = bindings.iter().find_map(|(keys, action)| {
@@ -1246,6 +1268,44 @@ impl TuiState {
             && self.linked_child().is_none()
             && !self.terminal_focused()
             && self.status != TuiStatus::Quit
+    }
+
+    pub fn clipboard_target(&self) -> Option<ClipboardTarget> {
+        (self.prompt_mouse_editable()
+            && !self.prompt_shell_mode()
+            && !self.user_shell_pending()
+            && self.pending.is_none()
+            && self.clipboard_mode != ClipboardMode::Disabled)
+            .then(|| ClipboardTarget {
+                session: self.session.clone(),
+                generation: self.generation,
+                config_generation: self.chrome.selection_generation,
+                revision: self.input_revision,
+                cursor: self.editor.cursor,
+                anchor: self.editor.anchor,
+            })
+    }
+
+    pub fn paste_clipboard_image(&mut self, png: std::sync::Arc<[u8]>) -> KeyOutcome {
+        if self.clipboard_target().is_none() {
+            return KeyOutcome::default();
+        }
+        match self
+            .editor
+            .paste_image(&mut self.input, png, MAX_INPUT_BYTES)
+        {
+            Ok(()) => {
+                self.input_revision += 1;
+                self.slash_dismissed = None;
+                self.mention_dismissed = None;
+                self.clear_prompt_paint();
+                KeyOutcome::default()
+            }
+            Err(error) => KeyOutcome {
+                note: Some(error),
+                ..Default::default()
+            },
+        }
     }
 
     pub(crate) fn observe_prompt_paint(
@@ -3268,7 +3328,8 @@ impl TuiState {
             | KeyAction::ShellBackground
             | KeyAction::BackgroundSession
             | KeyAction::Children
-            | KeyAction::ComposerNoop => KeyOutcome::default(),
+            | KeyAction::ComposerNoop
+            | KeyAction::Paste => KeyOutcome::default(),
         }
     }
 
@@ -3330,6 +3391,14 @@ impl TuiState {
     async fn handle_enter(&mut self) -> KeyOutcome {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
+        }
+        if self.editor.has_images()
+            && (self.prompt_shell_mode() || self.input.trim_start().starts_with('/'))
+        {
+            return KeyOutcome {
+                note: Some("image attachments are only supported in chat prompts".into()),
+                ..Default::default()
+            };
         }
         if self.prompt_shell_mode() {
             return self.submit_user_shell();
@@ -3449,6 +3518,7 @@ impl TuiState {
         // Capture now; owner preparation commits only after earlier admissions.
         let fresh = self.session.is_none();
         let session = self.session.clone().unwrap_or_else(fresh_session_id);
+        let prompt = self.editor.prompt(&self.input).trimmed();
         let result = if fresh {
             let selection =
                 self.captured_model_commit()
@@ -3459,10 +3529,13 @@ impl TuiState {
                         variant: commit.variant,
                     });
             self.app
-                .request_submit_fresh(session.clone(), text, selection)
+                .request_submit_input_fresh(session.clone(), prompt, selection)
         } else {
-            self.app
-                .request_submit_selected(session.clone(), text, self.captured_model_commit())
+            self.app.request_submit_input_selected(
+                session.clone(),
+                prompt,
+                self.captured_model_commit(),
+            )
         };
         match result {
             Ok(receipt) => {

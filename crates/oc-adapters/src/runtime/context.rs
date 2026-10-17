@@ -1696,6 +1696,7 @@ impl<'a> Runtime<'a> {
             // Legacy command records without a usable prepared prompt retain
             // their immutable public invocation, never today's expansion.
             if block_id.is_none()
+                && log.display.get("user_images").is_none()
                 && prompt.as_deref().is_none_or(str::is_empty)
                 && let Some((_, _, public)) = projected.iter().find(|row| row.0 == anchor)
                 && let Some(user) = input.iter_mut().find(|item| {

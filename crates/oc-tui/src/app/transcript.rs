@@ -776,24 +776,52 @@ impl TuiState {
         self.input_revision += 1;
     }
 
+    pub fn restore_prompt_input(&mut self, prompt: oc_core::prompt::PromptInput) {
+        self.restore_prompt(prompt.text);
+        self.editor.restore_images(&self.input, prompt.images);
+    }
+
+    pub fn composer_draft(&self) -> crate::ComposerDraft {
+        crate::ComposerDraft {
+            text: self.input.clone(),
+            editor: self.editor.clone(),
+        }
+    }
+
+    pub fn restore_composer_draft(&mut self, draft: crate::ComposerDraft) {
+        self.cancel_text_selection();
+        self.input = draft.text;
+        self.editor = draft.editor;
+        self.input_revision += 1;
+    }
+
     pub fn conversation_applied(
         &mut self,
         snapshot: &oc_core::queries::ConversationSnapshot,
         page: &HistoryPage,
     ) {
-        let draft = snapshot.draft.clone().unwrap_or_else(|| {
-            if matches!(
-                dispatch(self.input.trim()),
-                Some(CommandAction::UndoConversation | CommandAction::RedoConversation)
-            ) {
-                String::new()
-            } else {
-                self.input.clone()
-            }
-        });
+        let draft = snapshot
+            .draft
+            .clone()
+            .map(|text| oc_core::prompt::PromptInput {
+                text,
+                images: snapshot.images.clone(),
+            })
+            .or_else(|| {
+                if matches!(
+                    dispatch(self.input.trim()),
+                    Some(CommandAction::UndoConversation | CommandAction::RedoConversation)
+                ) {
+                    Some(oc_core::prompt::PromptInput::default())
+                } else {
+                    None
+                }
+            });
         self.set_session(snapshot.session.clone());
         self.attach_page(page);
-        self.restore_prompt(draft);
+        if let Some(draft) = draft {
+            self.restore_prompt_input(draft);
+        }
         self.conversation_available = Some((snapshot.can_undo, snapshot.can_redo));
         self.reverted = snapshot.reverted.clone();
         self.dcp = DcpPanelState::default();

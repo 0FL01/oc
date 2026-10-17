@@ -207,6 +207,7 @@ fn sampled_view_metrics_include_parked_routes_and_preserve_peaks() {
     let mut parked = TuiState::new(app, SessionId::new("parked").unwrap());
     parked.attach_page(&HistoryPage {
         rows: vec![HistoryMessage {
+            images: Vec::new(),
             seq: 1,
             role: Role::Assistant,
             id: oc_core::session::MessageId("cached-assistant".into()),
@@ -291,7 +292,7 @@ async fn immediate_quit_reconciles_only_accepted_fresh_root_before_owner_shutdow
             else {
                 panic!("one fresh submission")
             };
-            assert_eq!(text, "first prompt");
+            assert_eq!(text.text, "first prompt");
             // The user can still edit the draft while acceptance is pending.
             state.handle_key(KeyAction::Char('!')).await;
             let root = session.clone();
@@ -1054,6 +1055,7 @@ async fn quit_pending_fork_saves_accepted_identity_even_when_refresh_fails() {
                 panic!("one creation")
             };
             ack.send(Ok(ForkSessionSnapshot {
+                images: Vec::new(),
                 session: fork,
                 prompt: "unsent selected prompt".into(),
             }))
@@ -1377,6 +1379,7 @@ async fn conversation_commands_wait_for_owner_then_refresh_without_submission() 
     };
     assert_eq!(action, ConversationAction::Undo);
     ack.send(Ok(ConversationSnapshot {
+        images: Vec::new(),
         session: session.clone(),
         draft: Some("original prompt".into()),
         can_undo: false,
@@ -1477,6 +1480,7 @@ async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure(
         let (app, mut inbox, _) = CoreApp::channel(8);
         let mut state = TuiState::new(app.clone(), SessionId::new("copy-dialog").unwrap());
         let row = HistoryMessage {
+            images: Vec::new(),
             id: MessageId("copy-id".into()),
             seq: 4,
             role: Role::User,
@@ -1607,6 +1611,7 @@ async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_sou
     assert_eq!(received, source);
     assert_eq!(message.0, "selected-user");
     ack.send(Ok(ForkSessionSnapshot {
+        images: Vec::new(),
         session: fork.clone(),
         prompt: "selected public prompt".into(),
     }))
@@ -1872,7 +1877,7 @@ async fn closing_tab_with_pending_title_cancels_only_title_and_survivor_can_subm
             panic!("surviving tab must be able to submit after title cancellation")
         };
         assert_eq!(session.0, "survivor");
-        assert_eq!(text, "survivor prompt");
+        assert_eq!(text.text, "survivor prompt");
         ack.send(Ok(WorkerTurnId("survivor-turn".into()))).unwrap();
         assert!(
             inbox.try_recv().is_err(),
@@ -2691,7 +2696,7 @@ async fn vis11_binary_events_preserve_focused_lifecycle_then_submit_exact_draft(
     let Some(InboxMsg::Submit { text, .. }) = inbox.try_recv().ok() else {
         panic!("pending Enter must route an actual owner Submit request")
     };
-    assert_eq!(text, submitted);
+    assert_eq!(text.text, submitted);
 }
 
 #[tokio::test]
@@ -3297,7 +3302,7 @@ async fn home_reserves_sixteenth_slot_against_new_session_selection() {
     let Some(InboxMsg::SubmitFresh { text, ack, .. }) = inbox.recv().await else {
         panic!("expected fresh Home submission")
     };
-    assert_eq!(text, "Home draft");
+    assert_eq!(text.text, "Home draft");
     ack.send(Ok(WorkerTurnId("accepted-home-turn".into())))
         .unwrap();
     state.poll_submission();

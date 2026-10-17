@@ -35,17 +35,25 @@ import {probeSyntax} from './syntax_preview.mjs';
 import {probeMiddleTabs} from './middle_tabs.mjs';
 import {probeQuestionForms} from './question_forms.mjs';
 import {probeMcpSidebar, mcpSidebarReference} from './mcp_sidebar.mjs';
+import {probeClipboardImages, clipboardReference} from './clipboard_images.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
 const args = Object.fromEntries(process.argv.slice(2).map((v, i, a) => v.startsWith('--') ? [v.slice(2), a[i+1]] : null).filter(Boolean));
 const mcpSidebar = args['mcp-sidebar'] === 'true';
+const clipboardImages = args['clipboard-images'] === 'true';
+if (args['clipboard-images'] !== undefined && (!clipboardImages || args.geometry !== 'true' || args.sample !== 'short' ||
+    args.sidebar !== 'hide' || ![80,120].includes(Number(args.columns)) || ![24,40].includes(Number(args.rows)) ||
+    !args.reference || !args.oc || args['build-oc'] !== 'true' ||
+    args['supplementary-reference-sha256'] !== clipboardReference.binary_sha256 ||
+    Object.keys(args).some(key => !['clipboard-images','reference','oc','build-oc','tools','geometry','sample','sidebar','columns','rows','output','supplementary-reference-sha256'].includes(key))))
+  throw Error('--clipboard-images requires exclusive supplementary 2.0.31 paired 80/120 short/sidebar-hide current-build profile and explicit digest');
 if (args['mcp-sidebar'] !== undefined && (!mcpSidebar || args.geometry !== 'true' || args.sample !== 'short' ||
     args.sidebar !== 'auto' || Number(args.columns) !== 160 || Number(args.rows) !== 48 || !args.reference || !args.oc ||
     args['supplementary-reference-sha256'] !== mcpSidebarReference.binary_sha256 ||
     Object.keys(args).some(key => !['mcp-sidebar','reference','oc','build-oc','tools','geometry','sample','sidebar','columns','rows','output','supplementary-reference-sha256'].includes(key))))
   throw Error('--mcp-sidebar requires the exclusive supplementary 2.0.31 paired 160x48 short/sidebar-auto profile and its explicit reference digest');
-if (!mcpSidebar && args['supplementary-reference-sha256'] !== undefined) throw Error('Supplementary digest is restricted to --mcp-sidebar');
+if (!mcpSidebar && !clipboardImages && args['supplementary-reference-sha256'] !== undefined) throw Error('Supplementary digest is restricted to exclusive supplementary profiles');
 const boundedMode = args['bounded-mode'];
 const sessionsInteraction = args['sessions-interaction'] === 'true';
 const revertRedo = args['revert-redo'] === 'true';
@@ -460,6 +468,19 @@ if (mcpSidebar) {
   for (const name of ['mcp_sidebar.mjs','mcp_sidebar_fixture.py','tool_preview_mcp.py']) lock.runner_hashes[name] = sha(fs.readFileSync(path.join(here,name)));
 }
 if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prompt_paste.mjs']:[])])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if (clipboardImages) {
+  const donor = path.join(repo, '.local/opencode');
+  if (execute(['git','-C',donor,'rev-parse','HEAD']).stdout.trim() !== clipboardReference.donor_commit)
+    throw Error('Supplementary clipboard donor checkout changed');
+  for (const [name, hash] of Object.entries(clipboardReference.source_hashes))
+    if (sha(fs.readFileSync(path.join(donor,name))) !== hash) throw Error('Supplementary clipboard source changed: ' + name);
+  lock.sources.supplementary_clipboard_images = clipboardReference;
+  for (const name of ['clipboard_images.mjs','clipboard_fixture.py']) lock.runner_hashes[name] = sha(fs.readFileSync(path.join(here,name)));
+  lock.qualification = {status:'SUPPLEMENTARY_CLIPBOARD_IMAGES_ONLY', reference:clipboardReference,
+    transport:'Real private headless Wayland PNG owner; actual binaries and local fake Responses endpoint',
+    unresolved:['Not whole T44/pinned 2.0.12 qualification; full grids/PNGs/cursors compared without masks',
+      'Session-route release delta is confined to unrelated copy commands; feature source verification is recorded in supplementary reference metadata']};
+}
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
@@ -497,7 +518,7 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // These stateful probes must be new even when fresh output trees share a
 // basename. Reusing a home mixes prior operations/cache/history into proof.
-const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar;
+const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
@@ -568,7 +589,7 @@ try {
     if (!binary) { lock.attempts.push({origin, status: 'SKIPPED', reason: 'No explicit binary supplied'}); continue; }
     if (!path.isAbsolute(binary)) throw Error('Binary must be an explicit absolute path');
     const hash = sha(fs.readFileSync(binary));
-    if (origin === 'upstream' && hash !== (mcpSidebar ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
+    if (origin === 'upstream' && hash !== (mcpSidebar || clipboardImages ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
     const dir = path.join(output, origin);
     fs.mkdirSync(dir);
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
@@ -584,7 +605,8 @@ try {
                    tool_preview:toolPreview, tab_middle_close:tabMiddleClose, middle_case:middleCase,
                     tool_preview_small:toolPreviewSmall,
                     execute_preview:executePreview,execute_fixture_port:executeFixturePort,
-                   mcp_status:mcpStatus, ...(mcpSidebar ? {mcp_sidebar:true} : {}),
+                    mcp_status:mcpStatus, ...(mcpSidebar ? {mcp_sidebar:true} : {}),
+                    ...(clipboardImages ? {clipboard_images:true} : {}),
                    mcp_footer:mcpFooter||null,
                    prompt_caret:promptCaret,
                      prompt_history:promptHistory||null,
@@ -734,7 +756,7 @@ try {
       const cellsFile=name+'.cells.json'+(compressCells?'.gz':'');
       const cellsBytes=Buffer.from(JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
-         producer_commit: origin==='upstream' ? (mcpSidebar ? mcpSidebarReference.release_commit : lock.sources.upstream_commit) : commit, ...grid}));
+          producer_commit: origin==='upstream' ? (mcpSidebar || clipboardImages ? mcpSidebarReference.release_commit : lock.sources.upstream_commit) : commit, ...grid}));
       fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
       const pngSeal=writeFrame(scenario,'.png',png);
       const textSeal=writeFrame(scenario,'.txt',text+'\n');
@@ -807,6 +829,12 @@ try {
           lock.mcp_sidebar[origin] = await probeMcpSidebar({origin,dir,send,waitFor,capture,visibleMatches,logs,
             prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim(),
             control:command=>child.stdin.write(JSON.stringify(command)+'\n')});
+          json('capture.lock.json',lock); continue;
+        }
+        if (clipboardImages) {
+          lock.clipboard_images ??= {};
+          lock.clipboard_images[origin] = await probeClipboardImages({origin,dir,send,waitFor,capture,logs,
+            prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim()});
           json('capture.lock.json',lock); continue;
         }
         if(leaderPending) {

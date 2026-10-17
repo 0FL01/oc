@@ -25,6 +25,7 @@ fn job(state: ChildState) -> ChildJob {
 }
 fn message(state: ChildState) -> HistoryMessage {
     HistoryMessage {
+        images: Vec::new(),
         id: MessageId("actual-notice".into()),
         seq: 9,
         role: Role::User,

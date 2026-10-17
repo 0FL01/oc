@@ -708,6 +708,33 @@ pub fn estimate_tokens(text: &str) -> u64 {
     (text.len() / 4) as u64
 }
 
+// Preserve the existing JSON/text and native-read estimate, but do not charge
+// inline base64 as prompt text. Images use the same 1500-token heuristic as
+// compaction; independent serialized-byte guards still see the whole payload.
+fn estimate_input_tokens<'a>(serialized: &str, input: impl Iterator<Item = &'a InputItem>) -> u64 {
+    let mut bytes = serialized.len();
+    let mut media = 0u64;
+    for item in input {
+        match item {
+            InputItem::Message { content, .. } => {
+                for part in content {
+                    if let crate::provider::InputContent::InputImage { image_url, .. } = part {
+                        bytes = bytes.saturating_sub(image_url.len());
+                        media = media.saturating_add(1500);
+                    }
+                }
+            }
+            InputItem::ReadFunctionCallOutput { output, .. } => {
+                media = media
+                    .saturating_add(output.estimated_tokens())
+                    .saturating_add((output.facts().to_string().len() as u64).div_ceil(4));
+            }
+            _ => {}
+        }
+    }
+    (bytes as u64 / 4).saturating_add(media)
+}
+
 /// One bounded literal command expansion: `$ARGUMENTS` gets all args,
 /// `$1..$9` get positionals; no recursion, no shell interpolation.
 pub fn expand_command(body: &str, args: &[String]) -> Result<String, RuntimeError> {
@@ -914,7 +941,7 @@ pub struct TurnParams<'c> {
     /// Session id (Location-bound).
     pub session: String,
     /// User prompt, or expanded command text.
-    pub prompt: String,
+    pub prompt: oc_core::prompt::PromptInput,
     /// Original command invocation, stored as the user message.
     pub invocation: Option<String>,
     /// Model catalog for exact selection (no fallback).
@@ -1195,6 +1222,10 @@ pub(crate) fn next_turn_id(session: &str, timestamp: u64) -> String {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "runtime/user_images_tests.rs"]
+mod user_images_tests;
 
 #[cfg(test)]
 mod media_tests;

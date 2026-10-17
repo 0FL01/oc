@@ -38,6 +38,8 @@ use oc_tui::views::{cursor_color, render_frame};
 
 mod auth_controls;
 mod child_controls;
+mod clipboard;
+use clipboard::{ClipboardJob, start_clipboard, sync_clipboard};
 mod connect_controls;
 mod terminal_controls;
 
@@ -284,7 +286,9 @@ struct LoopState {
     compaction_job: Option<CompactionAdmission>,
     /// Bounded prompt drafts for picker Location round trips. Views and
     /// configuration are rebuilt from the newly accepted owner receipt.
-    picker_drafts: std::collections::BTreeMap<String, Vec<(Option<SessionId>, String)>>,
+    picker_drafts:
+        std::collections::BTreeMap<String, Vec<(Option<SessionId>, oc_tui::ComposerDraft)>>,
+    clipboard_job: Option<ClipboardJob>,
     picker_pending_tabs: std::collections::HashSet<SessionId>,
     conversation_job: Option<tokio::task::JoinHandle<Result<ConversationResult, String>>>,
     conversation_recovery: Option<(SessionId, std::time::Instant)>,
@@ -436,10 +440,15 @@ impl LoopState {
             | (u8::from(self.reload_job.is_some()) << 4)
             | (u8::from(self.compaction_job.is_some()) << 5)
             | (u8::from(self.authentication.pending()) << 6)
+            | (u8::from(self.clipboard_job.is_some()) << 7)
     }
 
     fn ready_job(&self) -> bool {
         self.authentication.ready()
+            || self
+                .clipboard_job
+                .as_ref()
+                .is_some_and(ClipboardJob::is_finished)
             || self
                 .compaction_job
                 .as_ref()
@@ -959,7 +968,10 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
         Ok(ConversationResult::Forked(snapshot, refresh)) => {
             let before = deck.snapshot(state);
             let mut next = TuiState::new(app.clone(), snapshot.session.clone());
-            next.restore_prompt(snapshot.prompt);
+            next.restore_prompt_input(oc_core::prompt::PromptInput {
+                text: snapshot.prompt,
+                images: snapshot.images,
+            });
             state.close_panel();
             next.take_tab_clocks_from(state);
             if let Some(old) = deck.active_tab.take() {
@@ -1192,6 +1204,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= sync_mention(app, &mut state, &mut loop_state).await;
         finish_conversation(app, &mut state, &mut loop_state).await;
         finish_compaction_admission(&mut state, &mut loop_state).await;
+        dirty |= sync_clipboard(&mut state, &mut loop_state).await;
         dirty |= job_ready || had_pending != state.has_pending_submission();
         if loop_state.reload_job.is_some()
             && loop_state.reload_painted
@@ -1494,6 +1507,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         }
     }
     loop_state.authentication.shutdown(app).await?;
+    if let Some(job) = loop_state.clipboard_job.take() {
+        job.cancel().await;
+    }
     if let Some((session, job)) = loop_state.title_job.take() {
         let _ = app.cancel_title(session).await;
         let _ = job.await;
@@ -2118,6 +2134,15 @@ async fn handle_event_ticks(
         Some(UiEvent::Key(action)) => {
             let submits = action == KeyAction::Enter
                 || matches!(&action, KeyAction::SequenceKey(key, _) if key == "enter");
+            sync_clipboard(state, loop_state).await;
+            if action == KeyAction::Paste {
+                start_clipboard(state, loop_state);
+                return Ok(());
+            }
+            if submits && loop_state.clipboard_job.is_some() {
+                state.push_note("clipboard paste pending; wait or edit to cancel");
+                return Ok(());
+            }
             if action == KeyAction::Cancel
                 && *state.panel() == TuiPanel::None
                 && state.input().trim() == "/rename"
@@ -2151,6 +2176,10 @@ async fn handle_event_ticks(
             apply_outcome(app, state, loop_state, outcome, typed_new).await;
         }
         Some(UiEvent::Paste(text)) => {
+            if text.is_empty() && state.clipboard_target().is_some() {
+                start_clipboard(state, loop_state);
+                return Ok(());
+            }
             let outcome = state.handle_paste(&text);
             apply_outcome(app, state, loop_state, outcome, false).await;
         }
@@ -3470,15 +3499,15 @@ async fn adopt_picker_open(
         .remove(&receipt.location)
         .unwrap_or_default();
     if let Some(location) = &deck.location {
-        let mut old = vec![(state.attached_session().cloned(), state.input().to_owned())];
+        let mut old = vec![(state.attached_session().cloned(), state.composer_draft())];
         old.extend(
             deck.tabs
                 .iter()
                 .flatten()
-                .map(|view| (view.attached_session().cloned(), view.input().to_owned())),
+                .map(|view| (view.attached_session().cloned(), view.composer_draft())),
         );
         if let Some(home) = &deck.home {
-            old.push((None, home.input().to_owned()));
+            old.push((None, home.composer_draft()));
         }
         if deck.picker_drafts.len() >= 4
             && let Some(key) = deck.picker_drafts.keys().next().cloned()
@@ -3520,7 +3549,7 @@ async fn adopt_picker_open(
         .iter()
         .find(|(id, _)| id.as_ref() == Some(&receipt.session))
     {
-        active.restore_prompt(draft.clone());
+        active.restore_composer_draft(draft.clone());
     }
     // Adopt the accepted route before any optional parked-view refresh.
     *state = active;
@@ -3540,7 +3569,7 @@ async fn adopt_picker_open(
             view.new_session_tab = new_session_tab;
             view.apply_catalog(receipt.catalog.clone());
             if let Some((_, draft)) = drafts.iter().find(|(id, _)| id.as_ref() == Some(&session)) {
-                view.restore_prompt(draft.clone());
+                view.restore_composer_draft(draft.clone());
             }
             let page = app
                 .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
@@ -3575,7 +3604,7 @@ async fn adopt_picker_open(
                 home.push_note("Home selection refresh pending");
             }
         }
-        home.restore_prompt(draft.clone());
+        home.restore_composer_draft(draft.clone());
         deck.home = Some(home);
     }
     deck.sync_tabs(state);

@@ -165,6 +165,7 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
         has_newer: false,
         rows: (0..20)
             .map(|seq| HistoryMessage {
+                images: Vec::new(),
                 id: MessageId(format!("message-{seq}")),
                 seq,
                 role: Role::Assistant,

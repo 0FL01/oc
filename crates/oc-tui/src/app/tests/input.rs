@@ -678,7 +678,7 @@ async fn vis26_enter_submits_unmodified_text_without_implicit_file_read() {
     let Some(oc_core::core_app::InboxMsg::SubmitFresh { text, .. }) = inbox.recv().await else {
         panic!("ordinary Home submission");
     };
-    assert_eq!(text, "inspect @src/main.rs");
+    assert_eq!(text.text, "inspect @src/main.rs");
 }
 
 #[tokio::test]
@@ -1748,10 +1748,10 @@ async fn v05_review_chip_trim_keeps_visible_and_submitted_draft_in_sync() {
     let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
         panic!("submission")
     };
-    assert_eq!(text, "a\nb\ncZ");
+    assert_eq!(text.text, "a\nb\ncZ");
     ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
     state.poll_submission();
-    assert_eq!(state.history().rows()[0].text, text);
+    assert_eq!(state.history().rows()[0].text, text.text);
 
     let (app, _, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("plain-paste"));
@@ -2015,7 +2015,7 @@ async fn v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable() {
     let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
         panic!("submission")
     };
-    assert_eq!(text, "a\nb\nc");
+    assert_eq!(text.text, "a\nb\nc");
     state.handle_key(KeyAction::Char('Z')).await;
     state.handle_key(KeyAction::Enter).await; // pending cannot duplicate
     assert!(inbox.try_recv().is_err());
@@ -2023,7 +2023,7 @@ async fn v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable() {
     state.poll_submission();
     assert_eq!(state.input(), "a\nb\ncZ");
     assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~3 lines] Z");
-    assert_eq!(state.history().rows()[0].text, text);
+    assert_eq!(state.history().rows()[0].text, text.text);
 }
 
 #[tokio::test]
@@ -2149,7 +2149,7 @@ async fn vis11_leader_pending_lifecycle_preserves_editor_and_expires_without_inp
     let Some(oc_core::core_app::InboxMsg::Submit { text, .. }) = inbox.try_recv().ok() else {
         panic!("unmatched Enter must use normal submission")
     };
-    assert_eq!(text, draft);
+    assert_eq!(text.text, draft);
 }
 
 #[tokio::test]

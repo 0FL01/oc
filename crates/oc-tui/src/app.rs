@@ -525,6 +525,7 @@ struct PendingSubmission {
     session: SessionId,
     fresh: bool,
     draft: String,
+    images: Vec<oc_core::prompt::PromptImage>,
     mentions: Vec<(usize, usize)>,
     revision: u64,
     receipt: SubmissionReceipt,
@@ -1385,10 +1386,9 @@ impl TuiState {
                 .as_ref()
                 .map_or(0, |key| key.query.len() + key.location.len())
             + self.editor.retained_bytes()
-            + self
-                .pending
-                .as_ref()
-                .map_or(0, |pending| pending.draft.len())
+            + self.pending.as_ref().map_or(0, |pending| {
+                pending.draft.len() + pending.images.iter().map(|i| i.png.len()).sum::<usize>()
+            })
     }
 
     /// No transcript projection, Markdown parse, or history walk. The cache is
@@ -1524,6 +1524,7 @@ pub use accounts::AuthRequest;
 mod foreground;
 mod input;
 pub use foreground::ForegroundWork;
+pub use input::ClipboardTarget;
 mod live;
 mod mcp;
 mod model_selection;

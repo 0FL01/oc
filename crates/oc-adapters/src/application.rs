@@ -3321,6 +3321,9 @@ async fn query(
                                 .model_shell_notice(&session.0, &id)
                                 .map_err(|error| query_storage_error(db, error))?;
                             Ok(HistoryMessage {
+                                images: db
+                                    .user_images(&session.0, &id.0, &text)
+                                    .map_err(|error| query_storage_error(db, error))?,
                                 id,
                                 user_shell,
                                 child,
@@ -3989,6 +3992,9 @@ async fn query(
                             .model_shell_notice(child, &row.id)
                             .map_err(|error| query_storage_error(db, error))?;
                         Ok(HistoryMessage {
+                            images: db
+                                .user_images(child, &row.id.0, &row.text)
+                                .map_err(|e| query_storage_error(db, e))?,
                             id: row.id,
                             child: child_history,
                             shell_notice,
@@ -4365,7 +4371,7 @@ async fn worker(
                 }
                 InboxMsg::Submit {
                     session,
-                    text: compress_prompt(&focus),
+                    text: compress_prompt(&focus).into(),
                     selection: None,
                     ack,
                 }
@@ -4770,7 +4776,12 @@ async fn worker(
                     let _ = ack.send(Err(app_error("empty prompt")));
                     continue;
                 }
-                let (prompt, invocation) = match resolve_submission(composition, text) {
+                if !text.images.is_empty() && text.trim_start().starts_with('/') {
+                    let _ = ack.send(Err(app_error("commands do not accept image attachments")));
+                    continue;
+                }
+                let images = text.images;
+                let (prompt, invocation) = match resolve_submission(composition, text.text) {
                     Ok(resolved) => resolved,
                     Err(error) => {
                         let _ = ack.send(Err(app_error(error)));
@@ -4974,7 +4985,10 @@ async fn worker(
                 let title_env = composition.parent_env.clone();
                 let params = TurnParams {
                     session: session.0.clone(),
-                    prompt,
+                    prompt: oc_core::prompt::PromptInput {
+                        text: prompt,
+                        images,
+                    },
                     invocation,
                     catalog: &turn_catalog,
                     model_id: turn_selection.model_id.clone(),
@@ -4985,7 +4999,7 @@ async fn worker(
                     provider: turn_provider.clone(),
                     cancel: &cancel,
                 };
-                let title_prompt = params.prompt.clone();
+                let title_prompt = params.prompt.text.clone();
                 let mut ack = Some(ack);
                 let mut turn = None;
                 let mut shutdown = false;

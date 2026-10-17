@@ -185,9 +185,9 @@ async fn live_workflow_harness() {
             .run_turn(TurnParams {
                 session: "live".to_string(),
                 prompt: if attempt == 0 {
-                    prompt.clone()
+                    prompt.clone().into()
                 } else {
-                    format!("Continue: {prompt} Previous attempt stalled; re-read src/lib.rs and finish the fix.")
+                    format!("Continue: {prompt} Previous attempt stalled; re-read src/lib.rs and finish the fix.").into()
                 },
                 invocation: None,
                 catalog: &catalog,
@@ -230,7 +230,7 @@ async fn live_workflow_harness() {
         let candidate = runtime
             .run_turn(TurnParams {
                 session: "live".to_string(),
-                prompt: "Reply with the single word READY.".to_string(),
+                prompt: "Reply with the single word READY.".into(),
                 invocation: None,
                 catalog: &catalog,
                 model_id: model.clone(),
@@ -316,7 +316,7 @@ async fn live_workflow_harness() {
         let candidate = runtime2
             .run_turn(TurnParams {
                 session: "live".to_string(),
-                prompt: "Reply with the single word RESUMED.".to_string(),
+                prompt: "Reply with the single word RESUMED.".into(),
                 invocation: None,
                 catalog: &catalog,
                 model_id: model.clone(),
@@ -480,7 +480,7 @@ async fn live_code_mode_execute_reaches_mcp() {
                 tool from the Code Mode catalog to search for \"Rust programming language\" with a \
                 short response, and return the first result title or URL as a string. Then reply \
                 with one short sentence and stop."
-                    .to_string(),
+                    .into(),
             invocation: None,
             catalog: &catalog,
             model_id: model.clone(),

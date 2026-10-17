@@ -617,7 +617,7 @@ pub enum InboxMsg {
         /// Owning session.
         session: SessionId,
         /// Input text.
-        text: String,
+        text: crate::prompt::PromptInput,
         /// Optional exact selection prepared in the same admission order.
         selection: Option<crate::queries::ModelCommit>,
         /// Durable acceptance or rejection.
@@ -630,7 +630,7 @@ pub enum InboxMsg {
         /// New, unused root session id.
         session: SessionId,
         /// Input text.
-        text: String,
+        text: crate::prompt::PromptInput,
         /// Optional explicit Home selection for this root.
         selection: Option<FreshSelection>,
         /// Durable acceptance or rejection.
@@ -1305,7 +1305,7 @@ impl CoreApp {
         self.inbox
             .send(InboxMsg::Submit {
                 session,
-                text,
+                text: text.into(),
                 selection: None,
                 ack: ack_tx,
             })
@@ -1327,7 +1327,7 @@ impl CoreApp {
         self.inbox
             .try_send(InboxMsg::Submit {
                 session,
-                text,
+                text: text.into(),
                 selection: None,
                 ack: ack_tx,
             })
@@ -1381,9 +1381,16 @@ impl CoreApp {
         text: String,
         selection: Option<crate::queries::ModelCommit>,
     ) -> Result<SubmissionReceipt, CoreError> {
-        if text.len() > MAX_INPUT_BYTES {
-            return Err(CoreError::InputTooLarge);
-        }
+        self.request_submit_input_selected(session, text.into(), selection)
+    }
+
+    pub fn request_submit_input_selected(
+        &self,
+        session: SessionId,
+        text: crate::prompt::PromptInput,
+        selection: Option<crate::queries::ModelCommit>,
+    ) -> Result<SubmissionReceipt, CoreError> {
+        text.check_budget()?;
         let (ack, receipt) = oneshot::channel();
         self.inbox
             .try_send(InboxMsg::Submit {
@@ -1428,9 +1435,16 @@ impl CoreApp {
         text: String,
         selection: Option<FreshSelection>,
     ) -> Result<SubmissionReceipt, CoreError> {
-        if text.len() > MAX_INPUT_BYTES {
-            return Err(CoreError::InputTooLarge);
-        }
+        self.request_submit_input_fresh(session, text.into(), selection)
+    }
+
+    pub fn request_submit_input_fresh(
+        &self,
+        session: SessionId,
+        text: crate::prompt::PromptInput,
+        selection: Option<FreshSelection>,
+    ) -> Result<SubmissionReceipt, CoreError> {
+        text.check_budget()?;
         let (ack, receipt) = oneshot::channel();
         self.inbox
             .try_send(InboxMsg::SubmitFresh {
@@ -1461,7 +1475,7 @@ impl CoreApp {
         self.inbox
             .send(InboxMsg::SubmitFresh {
                 session,
-                text,
+                text: text.into(),
                 selection,
                 ack,
             })
@@ -2417,10 +2431,17 @@ fn scripted_accept_submit(
     turn_counter: &mut u64,
     prompt_history: &mut Vec<String>,
     session: SessionId,
-    text: String,
+    text: crate::prompt::PromptInput,
     fresh: bool,
     ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
 ) {
+    if !text.images.is_empty() {
+        let _ = ack.send(Err(CoreError::Application(
+            "image input unavailable in mock runtime".into(),
+        )));
+        return;
+    }
+    let text = text.text;
     if text.len() > MAX_INPUT_BYTES {
         let _ = ack.send(Err(CoreError::InputTooLarge));
         return;
@@ -2902,7 +2923,7 @@ mod tests {
             panic!("expected fresh submit");
         };
         assert_eq!(session, sid("fresh"));
-        assert_eq!(text, "prompt");
+        assert_eq!(text.text, "prompt");
         assert_eq!(selection, Some(selected));
         assert!(receipt.try_result().is_none());
         ack.send(Ok(WorkerTurnId("durable-turn".into())))

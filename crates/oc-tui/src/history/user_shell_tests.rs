@@ -20,6 +20,7 @@ fn message(state: &str, exit: Option<i32>, stdout: &str) -> HistoryMessage {
         cancelled: state == "cancelled",
     });
     HistoryMessage {
+        images: Vec::new(),
         id: oc_core::session::MessageId("actual-notice".into()),
         seq: 7,
         role: Role::User,
@@ -230,6 +231,7 @@ fn direct_user_shell_separate_pages_and_live_refresh_retire_only_matching_input(
         ..Default::default()
     };
     let ordinary = HistoryMessage {
+        images: Vec::new(),
         id: oc_core::session::MessageId("ordinary".into()),
         seq: 2,
         role: Role::User,

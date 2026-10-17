@@ -1058,6 +1058,11 @@ impl TuiState {
         if self.is_busy() {
             return Err(CoreError::TurnBusy);
         }
+        if self.editor.has_images() {
+            return Err(CoreError::Application(
+                "commands do not accept image attachments".into(),
+            ));
+        }
         if !self.chrome.dcp.commands_enabled {
             return Err(CoreError::Application(
                 oc_core::dcp_view::DcpUnavailable::CommandsOff
@@ -1096,6 +1101,7 @@ impl TuiState {
             session,
             fresh,
             draft: self.input.clone(),
+            images: self.editor.prompt(&self.input).images,
             mentions: self.editor.submitted_mentions(&self.input),
             revision: self.input_revision,
             receipt,
@@ -1188,6 +1194,7 @@ impl TuiState {
                         pending.agent,
                         pending.agent_color_index,
                     );
+                    self.window.set_latest_user_images(pending.images.len());
                     self.prune_reasoning();
                 }
                 self.compress_turn = pending.compress.then(|| turn.clone());

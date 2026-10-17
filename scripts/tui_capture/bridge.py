@@ -26,6 +26,7 @@ import services_fixture
 import tool_preview_fixture
 import syntax_cache
 import mcp_sidebar_fixture
+import clipboard_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -302,6 +303,10 @@ class Provider(BaseHTTPRequestHandler):
                     else f'VIS44-ANSWER-{names[turn_number]}: completed.') if valid else ''
             record.update(valid=valid, fixture_prompt=expected, fixture_response=text,
                           request_input=body.get('input'), tool_result_count=len(tool_results))
+        if spec.get('clipboard_images') and not is_title:
+            verified = clipboard_fixture.verify(body)
+            valid = valid and verified and not tool_results and transcript_round <= 1
+            record.update(valid=valid, clipboard_png_verified=verified)
         emit(record)
         if not valid:
             self.send_error(400, 'fixture contract rejected')
@@ -628,7 +633,13 @@ env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HO
        'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'OC_TEST_ALLOW_LOOPBACK': '1',
        'OPENCODE_TEST_HOME': str(home), 'OPENCODE_DISABLE_AUTOUPDATE': '1',
        'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
-        'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+         'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+clipboard = None
+if spec.get('clipboard_images'):
+    models['fixture-model-1']['capabilities'] = {'input': ['text', 'image'], 'output': ['text']}
+    (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
+    env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
+    clipboard = clipboard_fixture.Clipboard(env)
 if spec.get('mcp_sidebar'):
     (home / 'tmp').mkdir(exist_ok=True)
     env['TMPDIR'] = str(home / 'tmp')
@@ -907,6 +918,8 @@ try:
         emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
 finally:
     compaction_fixture.release.set()
+    if clipboard:
+        clipboard.close()
     scanner_release.set()
     server.shutdown()
     server.server_close()

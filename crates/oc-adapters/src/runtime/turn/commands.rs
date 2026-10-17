@@ -67,7 +67,7 @@ impl Runtime<'_> {
             background: true,
             agent: child.agent.clone(),
             description: child.description.clone(),
-            prompt: params.prompt.clone(),
+            prompt: params.prompt.text.clone(),
             model: Some(model.stored(&child.provider)),
             session_id: None,
             context_message_ids: Vec::new(),
@@ -94,8 +94,9 @@ impl Runtime<'_> {
             session: child_id.clone(),
             prompt: format!(
                 "You are a subagent spawned by another session.\n{}",
-                params.prompt
-            ),
+                params.prompt.text
+            )
+            .into(),
             invocation: None,
             catalog: target.catalog,
             model_id: model.id.clone(),

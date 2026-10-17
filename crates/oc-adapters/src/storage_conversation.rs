@@ -506,7 +506,8 @@ impl Db {
             let draft = if matches!(action, ConversationAction::Redo) {
                 None
             } else {
-                Some(tx.query_row("SELECT m.text FROM turn_acceptances a JOIN messages m ON m.id=a.user_message WHERE a.turn_id=?1",[turn],|r|r.get(0))?)
+                let (message, text) = tx.query_row("SELECT m.id,m.text FROM turn_acceptances a JOIN messages m ON m.id=a.user_message WHERE a.turn_id=?1",[turn],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?;
+                Some(Self::user_prompt_in(&tx, session, &message, text)?)
             };
             if matches!(action, ConversationAction::Redo) {
                 let pending: String = tx.query_row(
@@ -569,7 +570,8 @@ impl Db {
             tx.commit()?;
             Ok(ConversationSnapshot {
                 session: SessionId(session.into()),
-                draft,
+                images: draft.as_ref().map(|d| d.images.clone()).unwrap_or_default(),
+                draft: draft.map(|d| d.text),
                 can_undo,
                 can_redo,
                 reverted,

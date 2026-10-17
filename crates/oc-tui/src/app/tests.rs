@@ -23,6 +23,7 @@ pub(super) fn sid(raw: &str) -> SessionId {
 
 pub(super) fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
     HistoryMessage {
+        images: Vec::new(),
         id: oc_core::session::MessageId(format!("fixture-{seq}")),
         turn: None,
         model_switch: None,
@@ -256,6 +257,7 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
     (rect.x + column as u16, rect.y + row as u16)
 }
 
+mod clipboard_images;
 mod dcp_controls;
 mod execute;
 mod foreground;

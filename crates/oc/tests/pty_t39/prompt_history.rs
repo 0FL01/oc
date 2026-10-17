@@ -1,6 +1,6 @@
 use super::*;
 
-fn wait_prompt(pty: &PtySession, lines: &[&str]) {
+pub(super) fn wait_prompt(pty: &PtySession, lines: &[&str]) {
     let start = Instant::now();
     loop {
         let rows = render_screen(&pty.snapshot()).rows();

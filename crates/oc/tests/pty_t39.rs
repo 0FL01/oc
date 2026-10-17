@@ -235,6 +235,12 @@ impl Fixture {
             .env("OC_FIXTURE_KEY", "fixture-not-a-secret")
             .env("OC_TEST_ALLOW_LOOPBACK", "1")
             .current_dir(self.root.path().join("project"));
+        let clipboard = self.root.path().join("clipboard-bin");
+        if clipboard.is_dir() {
+            command
+                .env("PATH", clipboard)
+                .env("WAYLAND_DISPLAY", "fixture-only");
+        }
         command
     }
 
@@ -2193,6 +2199,8 @@ fn measure_s07(archive: usize) -> S07Run {
 
 #[path = "pty_t39/accounts.rs"]
 mod accounts;
+#[path = "pty_t39/clipboard_images.rs"]
+mod clipboard_images;
 #[path = "pty_t39/fatal_diagnostics.rs"]
 mod fatal_diagnostics;
 #[path = "pty_t39/inherited_selection.rs"]

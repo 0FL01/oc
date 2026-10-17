@@ -174,6 +174,7 @@ async fn scripted_notice_after_submit_refusal_refreshes_idle_tail_without_raw_pr
         let session = sid("script-notice");
         let mut state = TuiState::new(app.clone(), session.clone());
         let old = HistoryMessage {
+            images: Vec::new(),
             id: MessageId("older-message".into()),
             seq: 1,
             role: Role::Assistant,
@@ -198,6 +199,7 @@ async fn scripted_notice_after_submit_refusal_refreshes_idle_tail_without_raw_pr
         ack.send(Err(CoreError::Application("refused".into())))
             .unwrap();
         let mut row = HistoryMessage {
+            images: Vec::new(),
             id: MessageId("actual-notice".into()),
             seq: 3,
             role: Role::User,
@@ -431,7 +433,7 @@ async fn fresh_rejection_preserves_home_draft_and_retry_uses_new_candidate() {
     else {
         panic!("fresh submit")
     };
-    assert_eq!(text, "retry me");
+    assert_eq!(text.text, "retry me");
     assert!(
         selection.is_none(),
         "the application owns the Home selection"
@@ -580,7 +582,7 @@ async fn pending_receipt_preserves_edits_and_ignores_old_generation() {
     let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
         panic!("submission")
     };
-    assert_eq!(text, "original");
+    assert_eq!(text.text, "original");
     state.handle_key(KeyAction::Enter).await;
     assert!(inbox.try_recv().is_err(), "duplicate not enqueued");
     type_text(&mut state, " edited").await;

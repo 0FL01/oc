@@ -341,6 +341,7 @@ mod tests {
 
     fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         HistoryMessage {
+            images: Vec::new(),
             id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,

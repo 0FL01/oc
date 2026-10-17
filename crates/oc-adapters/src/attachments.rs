@@ -7,10 +7,41 @@
 
 use thiserror::Error;
 
+mod prompt;
+pub(crate) use prompt::{image_metadata, prepare_prompt, restore_prompt};
+
+pub(crate) fn admit_images(
+    entry: &serde_json::Value,
+    history: &[crate::provider::InputItem],
+    pending: &[crate::provider::InputItem],
+) -> Result<(), String> {
+    use crate::provider::{InputContent, InputItem};
+    if history.iter().chain(pending).any(|item| {
+        matches!(item, InputItem::Message { content, .. }
+        if content.iter().any(|part| matches!(part, InputContent::InputImage { .. })))
+    }) && !crate::models::capabilities(entry).supports_image()
+    {
+        return Err("selected model does not support image input".into());
+    }
+    Ok(())
+}
+
+/// Full bounded PNG verification shared by clipboard acquisition and admission.
+pub fn validate_png(
+    bytes: &[u8],
+    cancel: &std::sync::atomic::AtomicBool,
+) -> Result<(), AttachmentError> {
+    if bytes.len() > ATTACHMENT_CAP_BYTES {
+        return Err(AttachmentError::TooLarge);
+    }
+    crate::files::read::validate_image(bytes, image::ImageFormat::Png, cancel)
+        .map_err(|_| AttachmentError::VerificationFailed)
+}
+
 /// Single attachment cap (mirrors `attachment_bytes` 8 MiB).
-pub const ATTACHMENT_CAP_BYTES: usize = 8 * 1024 * 1024;
+pub const ATTACHMENT_CAP_BYTES: usize = oc_core::prompt::IMAGE_BYTES;
 /// Total attachments cap per request (`attachments_total_bytes` 16 MiB).
-pub const ATTACHMENTS_TOTAL_CAP_BYTES: usize = 16 * 1024 * 1024;
+pub const ATTACHMENTS_TOTAL_CAP_BYTES: usize = oc_core::prompt::IMAGES_TOTAL_BYTES;
 
 /// Typed attachment errors (kinds only, no contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]

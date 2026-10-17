@@ -563,7 +563,7 @@ impl TurnSubagent<'_, '_> {
         let budget = models::budget(&base, 0, fallback);
         let params = TurnParams {
             session: child_session.to_string(),
-            prompt: prompt.to_string(),
+            prompt: prompt.into(),
             invocation: None,
             catalog,
             model_id: model.id.clone(),
@@ -1351,6 +1351,11 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let mut selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let new_prompt = resume
+            .is_none()
+            .then(|| crate::attachments::prepare_prompt(&params.prompt, params.cancel))
+            .transpose()
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let params = TurnParams {
             provider: crate::auth::prepare_request(
                 &params.provider,
@@ -1550,7 +1555,7 @@ impl<'a> Runtime<'a> {
                 Some(&lane.request_profile()),
             )
         } else {
-            vec![InputItem::message(InputRole::User, &params.prompt)]
+            vec![new_prompt.expect("new turn prompt prepared before admission")]
         };
         let plan_reminder = crate::plan::missing(
             &history,
@@ -1561,22 +1566,24 @@ impl<'a> Runtime<'a> {
             history.push(InputItem::message(InputRole::System, text));
         }
         let admitted_history = dcp_continuation(&history, &[], &tool_projection);
-        let assembled_estimate = estimate_tokens(
+        crate::attachments::admit_images(&selection.entry, &admitted_history, &prompt_input)
+            .map_err(RuntimeError::InvalidArgs)?;
+        let admission_bytes =
+            serde_json::to_vec(&(&fixed_input, &admitted_history, &prompt_input, &tool_defs))
+                .map_err(|_| RuntimeError::Storage)?
+                .len();
+        if admission_bytes > ACTIVE_CONTEXT_BYTES_CAP {
+            return Err(RuntimeError::InvalidArgs(
+                "active context byte limit exceeded".into(),
+            ));
+        }
+        let assembled_estimate = estimate_input_tokens(
             &serde_json::to_string(&(&fixed_input, &admitted_history, &prompt_input, &tool_defs))
                 .map_err(|_| RuntimeError::Storage)?,
-        )
-        .saturating_add(
-            admitted_history
+            fixed_input
                 .iter()
-                .filter_map(|item| match item {
-                    InputItem::ReadFunctionCallOutput { output, .. } => Some(
-                        output
-                            .estimated_tokens()
-                            .saturating_add((output.facts().to_string().len() as u64).div_ceil(4)),
-                    ),
-                    _ => None,
-                })
-                .sum::<u64>(),
+                .chain(&admitted_history)
+                .chain(&prompt_input),
         );
         let compaction_config = published.config.compaction.clone();
         let usage_scope = crate::compaction::fingerprint(&(
@@ -1599,9 +1606,10 @@ impl<'a> Runtime<'a> {
             .unwrap_or(0);
         // A new prompt that cannot fit even with an empty history cannot be
         // repaired by summarization. Refuse before spending a summary request.
-        let irreducible = estimate_tokens(
+        let irreducible = estimate_input_tokens(
             &serde_json::to_string(&(&fixed_input, &prompt_input, &tool_defs))
                 .map_err(|_| RuntimeError::Storage)?,
+            fixed_input.iter().chain(&prompt_input),
         );
         models::admit_budget(&selection, irreducible, budget)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
@@ -1684,9 +1692,40 @@ impl<'a> Runtime<'a> {
                 .map(|variant| variant.name.clone())
                 .filter(|name| name != "default"),
         };
-        let accepted_turn = if let Some(log) = &resume {
+        let resuming = resume.is_some();
+        let mut turn_log = resume
+            .unwrap_or_else(|| TurnLog::new(&turn_id, &selection.id, &params.catalog.provider));
+        if !resuming {
+            turn_log.binding = Some(binding.clone());
+            turn_log.protocol = binding.protocol;
+            turn_log.display = serde_json::json!({
+                "location":self.location,
+                "move_epoch": if fresh_selection.is_some() { 0 } else { self.db.session_move_epoch(&params.session)? },
+                "config_generation":published.id,
+                "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
+                "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
+                "agent":lane.agent_id,
+                "agent_color_index":lane.agent_color_index,
+            });
+            turn_log.agent_digest = lane.agent_digest.clone();
+            turn_log.input = prompt_input.clone();
+            if !params.prompt.images.is_empty() {
+                turn_log.display["user_images"] =
+                    serde_json::to_value(oc_core::prompt::UserImages {
+                        input_index: 0,
+                        images: params
+                            .prompt
+                            .images
+                            .iter()
+                            .map(|i| i.mark.clone())
+                            .collect(),
+                    })
+                    .map_err(|_| RuntimeError::Storage)?;
+            }
+        }
+        let accepted_turn = if resuming {
             crate::storage::AcceptedTurn {
-                user_message: log.user_message.clone().ok_or(RuntimeError::Storage)?,
+                user_message: turn_log.user_message.clone().ok_or(RuntimeError::Storage)?,
                 model_switch: None,
             }
         } else if let Some(initial_selection) = fresh_selection {
@@ -1707,19 +1746,7 @@ impl<'a> Runtime<'a> {
                 &model_ref,
                 plan_reminder.as_deref(),
                 history_input,
-            )?
-        } else if command
-            .and_then(|command| command.selection.as_ref())
-            .is_none()
-            && history_input.is_none()
-        {
-            self.db.accept_turn_with_reminder(
-                &turn_id,
-                &params.session,
-                &params.prompt,
-                user_text,
-                &model_ref,
-                plan_reminder.as_deref(),
+                Some(&mut turn_log),
             )?
         } else {
             self.db.accept_turn_with_selection(
@@ -1736,6 +1763,7 @@ impl<'a> Runtime<'a> {
                         .map(|(key, value)| (key.as_str(), value.as_str()))
                 }),
                 history_input,
+                Some(&mut turn_log),
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
@@ -1752,9 +1780,6 @@ impl<'a> Runtime<'a> {
         let mut usage_complete = true;
         let mut streamed = Duration::ZERO;
         let mut calls = Vec::new();
-        let resuming = resume.is_some();
-        let mut turn_log = resume
-            .unwrap_or_else(|| TurnLog::new(&turn_id, &selection.id, &params.catalog.provider));
         // Provider-only recovery keeps the last measured generation even if
         // the resumed generation omits usage. A fresh log has no such pair.
         let mut context_usage = turn_log.display["context_usage"]
@@ -1766,33 +1791,6 @@ impl<'a> Runtime<'a> {
             .max()
             .unwrap_or(0);
         if !resuming {
-            turn_log.binding = Some(binding.clone());
-            turn_log.protocol = binding.protocol;
-            turn_log.display = serde_json::json!({
-                "location":self.location,
-                "move_epoch":self.db.session_move_epoch(&params.session)?,
-                "config_generation":published.id,
-                "owning_operation":lane.owning_operation.as_deref().unwrap_or(&turn_id),
-                "model_label":selection.entry.get("name").and_then(|v|v.as_str()).unwrap_or(&selection.id),
-                "agent":lane.agent_id,
-                "agent_color_index":lane.agent_color_index,
-            });
-            turn_log.agent_digest = lane.agent_digest.clone();
-            // Idle selection facts originally trail history. Acceptance gives
-            // them a next-message boundary at this new input, which is excluded
-            // from the rebuilt prior history below. Capture them in the owning
-            // journal before that input, for root and child continuation alike.
-            turn_log.input.extend(
-                self.db
-                    .effort_facts(&params.session, 0)?
-                    .into_iter()
-                    .filter(|fact| fact.before_message.as_deref() == Some(user_message.as_str()))
-                    .map(|fact| fact.item),
-            );
-            turn_log.user_message = Some(user_message);
-            turn_log
-                .input
-                .push(InputItem::message(InputRole::User, &params.prompt));
             let instruction_position = if instruction_revision != 0 {
                 turn_log.input.len()
             } else {
@@ -2454,12 +2452,13 @@ impl<'a> Runtime<'a> {
                 Vec::new()
             };
             let (nudge, persisted_nudge) = {
-                let estimate = estimate_tokens(
+                let estimate = estimate_input_tokens(
                     &serde_json::to_string(&(
                         fixed_input.as_slice(),
                         projected_continuation.as_slice(),
                     ))
                     .map_err(|_| RuntimeError::Storage)?,
+                    fixed_input.iter().chain(&projected_continuation),
                 );
                 let mut states = self.nudge_state.lock().expect("nudge lock");
                 let state = states.entry(state_key.clone()).or_default();
@@ -2514,21 +2513,11 @@ impl<'a> Runtime<'a> {
                 .chain(&continuation)
                 .cloned()
                 .collect();
-            let request_estimate = estimate_tokens(
+            crate::attachments::admit_images(&selection.entry, &input, &[])
+                .map_err(RuntimeError::InvalidArgs)?;
+            let request_estimate = estimate_input_tokens(
                 &serde_json::to_string(&(&input, &tool_defs)).map_err(|_| RuntimeError::Storage)?,
-            )
-            .saturating_add(
-                input
-                    .iter()
-                    .filter_map(|item| match item {
-                        InputItem::ReadFunctionCallOutput { output, .. } => {
-                            Some(output.estimated_tokens().saturating_add(
-                                (output.facts().to_string().len() as u64).div_ceil(4),
-                            ))
-                        }
-                        _ => None,
-                    })
-                    .sum::<u64>(),
+                input.iter(),
             );
             let read_log_base = turn_log.to_json().to_string().len();
             let read_context_bytes = serde_json::to_vec(&input)
@@ -3550,7 +3539,7 @@ impl<'a> Runtime<'a> {
         }
         let params = TurnParams {
             session: session.to_string(),
-            prompt,
+            prompt: prompt.into(),
             invocation: None,
             catalog,
             model_id: model.id.clone(),

@@ -192,6 +192,7 @@ async fn model_shell_live_capture_preserves_tool_graph_and_actual_background_con
     });
     state.attach_page(&oc_core::queries::HistoryPage {
         rows: vec![oc_core::queries::HistoryMessage {
+            images: Vec::new(),
             id: oc_core::session::MessageId("cold-model-message".into()),
             seq: 4,
             role: oc_core::session::Role::Assistant,
@@ -289,6 +290,7 @@ async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachm
     );
     let page = HistoryPage {
         rows: vec![HistoryMessage {
+            images: Vec::new(),
             id: MessageId("actual-input".into()),
             seq: 2,
             role: Role::User,

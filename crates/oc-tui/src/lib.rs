@@ -16,6 +16,7 @@ pub mod dcp_panel;
 pub mod dcp_view;
 pub mod dialog;
 mod editor;
+pub use editor::ComposerDraft;
 pub mod events;
 mod execute_view;
 mod fuzzy;
