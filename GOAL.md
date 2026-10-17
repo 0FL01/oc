@@ -50,7 +50,7 @@
 
 ## Вне этого goal
 
-OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), общий HTTP/remote serve/attach parity и любой локальный shared service/daemon/IPC/`oc service` (каждый `oc2` — независимый процесс; D26, 2026-10-15), web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer (включая нормализацию OpenCode 1 config, D27), publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
+OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), общий HTTP/remote serve/attach parity (локальный shared TUI runtime разрешён только amendment 2026-10-17 ниже; D26 узко superseded, реализация не заявлена), web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer (включая нормализацию OpenCode 1 config, D27), publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
 
 ## Owner scope amendment (2026-09-21)
 
@@ -1086,3 +1086,39 @@ correction, commit/push, then PAUSE T44 as explicitly requested. The final
 workspace gate passes2012/0 with12 existing opt-in ignored cases. See the
 [pause handoff](evidence/T44/usage-checkpoint-20261016.md). Do not start another
 slice without owner resume; full TUI acceptance is not completed or waived.
+
+## Owner amendment (2026-10-17 — общий runtime, зеркальные вкладки и lifetime по TUI)
+
+По запросу «Делай копию плана в цель» сохранён
+[RECON-план с последующими уточнениями владельца](docs/goals/2026-10-17-shared-tui-runtime.md).
+План прошёл аудит; 2026-10-18 владелец поручил исправить его, commit/push и начать
+итеративную реализацию. Implementation owner — T68, не whole T44/T61 completion.
+
+- Один native owner на UID/data root, auto-discovery/start через Unix domain socket
+  без control TCP-порта. Второй TUI подключается, а не пытается стать вторым Db owner;
+  `root` и `stfu` не разделяют привилегированный executor.
+- TUI одного проекта зеркалят общий workspace: те же вкладки D/S и live состояние
+  чатов. Новый подключённый TUI получает существующее состояние; закрытие старого
+  при наличии другого не прерывает и не перезапускает агентов.
+- Счётчик TUI глобальный для UID/data root: TUI проекта C поддерживает работу A/B,
+  даже если их TUI закрыты. Последний глобальный disconnect вызывает Esc-отмену всех
+  interactive задач, durable **Interrupted** и joined cleanup. Не auto-resume.
+- Утверждено 2026-10-18: active tab общий, unsent text/PNG drafts локальны. Finite
+  run/auth/sessions leases отдельно от TUI count; headless run не отменяется уходом
+  последнего TUI. Host env фиксировано при старте, последующие клиенты не подменяют его.
+- Разные root-сессии могут работать одновременно в одном каталоге; одна сессия
+  сохраняет execution/conversation mutation ownership и captured request/full batch.
+- Предложения первой версии про независимые persisted ViewId/`--view` и продолжение
+  интерактивных задач при нуле TUI superseded последними уточнениями владельца.
+
+Узко superseded D26/запрет локального shared service и соответствующие per-process
+предпосылки. **A02: второй storage owner по-прежнему отклоняется**; SQLite/flock,
+security/permissions, RAW/HOT, DCP, finite retries, no unknown replay и cleanup guards
+не ослабляются. T61 R3/HOT03 не возвращаются автоматически, D27/D28 не меняются;
+HTTP/remote parity, privileged broker и вечный daemon не входят в эту цель.
+
+Контракт **active/frozen**, R1–R5 pending. T44 временно приостановлена для T68 без
+completion; T61 остаётся paused. Удалены обязательные новые retry receipts/index/
+tombstones и произвольный load128/8; ambiguous mutations автоматически не пересылаются.
+Activation нового owner только после цельного cutover TUI/headless/auth/sessions.
+Implementation NOT_STARTED на момент фиксации плана; runtime gates NOT_RUN.

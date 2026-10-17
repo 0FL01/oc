@@ -1018,6 +1018,16 @@
       "work": "Owner request 2026-10-16: add an oc2-dev alias to the owner's ~/.zshrc that loads secrets.env like oc2 and execs ~/ai/oc/target/debug/oc2 from the current directory, sharing ~/.config/opencode and the ~/.local/share/oc store with release oc2 (DataRootBusy when both run). oc2-dev never builds; AGENTS.md records the soft rule that agents build the debug binary (cargo build -p oc2 --bin oc2 --locked) when a change is worth a live owner check, keep target/debug and the default target dir, never launch oc2-dev themselves and flag storage schema changes. No secrets read or printed, no runtime code changes.",
       "evidence": "evidence/T67/report.md",
       "spec": "AGENTS.md"
+    },
+    {
+      "id": "T68",
+      "phase": "M8",
+      "title": "Portless shared runtime, mirrored TUI and global client lifetime",
+      "depends_on": ["T66"],
+      "tests": ["A01", "A02", "A03", "A08", "A10", "A13", "SRV01", "SRV02", "SRV03", "SRV04", "SRV05"],
+      "work": "Owner-approved 2026-10-18 audited plan: one native UID/data-root Db/resource owner, private UDS and session-scoped parallel roots including same directory. Shared Location deck/order/active tab/live state; unsent text/PNG drafts client-local. Global TUI count across projects A/B/C: C keeps A/B work after their viewers close; last TUI ordinary Esc/Interrupted/settlement for interactive work, no auto-resume. Finite run/auth/sessions leases separate; headless run survives last-TUI close, auth startup needs no project/model/MCP; immutable startup env. One real Db election/recovery, scoped profile/MCP/control/auto, observer live projection and full normal-quit migration. Three dependent steps: shared application authority; bounded UDS/lifecycle; atomic consumer cutover plus focused/current offline qualification. No ambiguous mutation resend, new persistent retry ledger/schema/tombstones, arbitrary128/8 load gate, public daemon manager/remote API/JS host/paid campaign. T44 temporarily paused, T61 remains paused; preserve guards and existing memory workload while accounting owner+client+children. Commit/push reviewed plan first, then verified cohesive implementation slices; no whole T44/READY claim.",
+      "evidence": "evidence/T68/report.md",
+      "spec": "docs/goals/2026-10-17-shared-tui-runtime.md"
     }
   ]
 }

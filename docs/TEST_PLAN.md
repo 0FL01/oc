@@ -58,6 +58,20 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
+## Shared native runtime — T68/SRV01–SRV05 (approved 2026-10-18; pending)
+
+Contract: [T68](goals/2026-10-17-shared-tui-runtime.md). One task owner, no HOT03 revival.
+SRV01 single authority/startup, SRV02 mirrored workspace/normal-quit handoff, SRV03
+global A/B/C lifetime plus finite CLI leases, SRV04 session concurrency/scoped controls,
+SRV05 private peer boundary and preserved bounded contracts. Specifications are not PASS.
+Use existing owner modules/Cargo targets; same-directory provider barrier, paired PTY
+mirror and three-Location actual-binary lifecycle are distinct evidence surfaces.
+Preserve archive-memory workload/limits while measuring owner+client+owned processes;
+no guessed128/8 load gate, new retry ledger or paid campaign. Default cutover waits for
+all affected consumers; startup.py second ordinary client becomes attach, low-level
+STORE02 second storage-owner refusal remains. Targeted checks then full offline gate;
+no requirement to close whole T44/T61 or repeat unrelated visual/live campaigns.
+
 ## Hot reload (per-process) — T61/HOT01, HOT02, HOT04 (approved 2026-10-14, amended 2026-10-15; pending)
 
 Contract: [T61](goals/2026-10-14-hot-reload-shared-service.md) R1/R2/R4/R5; R3 descoped. Three cohesive
@@ -82,7 +96,8 @@ scenarios, only T61 owns them; not one gate per field/layer or a new paid campai
   unknown quarantine and repeated edits stay truthful/bounded. Explicit reload settles
   affected unresolved interaction once as Reloaded, not entire task/user cancel.
 - **HOT03 — removed 2026-10-15.** Shared service descoped by owner; independent
-  processes only. Second process on the same data root stays `DataRootBusy` (existing STORE checks).
+  processes were the D26 scope. T68 now owns the narrowly approved shared runtime;
+  HOT03 is not restored. Second storage owner remains `DataRootBusy` (STORE checks).
 - **HOT04 — actual TUI settings.** PTY atomic valid/invalid/delete edits test native
   precedence/runtime fallback/captured client overlay, compiled theme dark/light/system,
   binding forms/events/leader reset and supported tabs/diffs/TPS/copy/animations. Palette
