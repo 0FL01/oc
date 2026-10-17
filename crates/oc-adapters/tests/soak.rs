@@ -116,14 +116,17 @@ impl Fake {
     }
 
     /// Headers immediately, body stalled: cancel must land mid-stream.
-    fn start_stalled() -> String {
+    fn start_stalled() -> (String, tokio::sync::oneshot::Receiver<()>) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let base = format!(
             "http://127.0.0.1:{}/v1",
             listener.local_addr().expect("addr").port()
         );
+        let (ready, streaming) = tokio::sync::oneshot::channel();
+        let ready = Arc::new(Mutex::new(Some(ready)));
         std::thread::spawn(move || {
             for stream in listener.incoming().filter_map(Result::ok) {
+                let ready = ready.clone();
                 std::thread::spawn(move || {
                     let mut reader = BufReader::new(stream);
                     loop {
@@ -138,22 +141,28 @@ impl Fake {
                         }
                     }
                     let stream = reader.get_mut();
-                    let _ = stream.write_all(
+                    if stream.write_all(
                         b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n",
-                    );
-                    let _ = stream.flush();
+                    ).is_err() || stream.flush().is_err() {
+                        return;
+                    }
                     let start = std::time::Instant::now();
                     while start.elapsed() < Duration::from_secs(30) {
                         if stream.write_all(b": hb\n\n").is_err() {
                             return;
                         }
-                        let _ = stream.flush();
+                        if stream.flush().is_err() {
+                            return;
+                        }
+                        if let Some(ready) = ready.lock().expect("stream readiness").take() {
+                            let _ = ready.send(());
+                        }
                         std::thread::sleep(Duration::from_millis(100));
                     }
                 });
             }
         });
-        base
+        (base, streaming)
     }
 }
 
@@ -468,7 +477,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         }
     }
     // One cancel against a stalled stream.
-    let stalled = Fake::start_stalled();
+    let (stalled, streaming) = Fake::start_stalled();
     let flag = AtomicBool::new(false);
     let (accepted, ready) = tokio::sync::oneshot::channel();
     let mut accepted = Some(accepted);
@@ -483,7 +492,10 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         ),
         async {
             ready.await.expect("accepted before cancellation");
-            tokio::time::sleep(Duration::from_millis(300)).await;
+            tokio::time::timeout(Duration::from_secs(5), streaming)
+                .await
+                .expect("stalled response opens before cancellation")
+                .expect("headers and first heartbeat flushed");
             flag.store(true, Ordering::Relaxed);
         }
     );
@@ -710,7 +722,7 @@ async fn crash_injection_recovers_and_restarts() {
     // Crash mid-turn: the stream stalls on heartbeats before any tool
     // outcome, and a watchdog timeout drops the future mid-flight (no
     // commit, no cleanup). Durable intent (begin_turn, user message) stays.
-    let stalled = Fake::start_stalled();
+    let (stalled, _streaming) = Fake::start_stalled();
     static CANCEL: AtomicBool = AtomicBool::new(false);
     let crashed = tokio::time::timeout(
         Duration::from_millis(500),
