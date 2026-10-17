@@ -8,6 +8,23 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current prompt/chrome selection and test acceleration (2026-10-17)
+
+[Completed slice receipt](text-selection-20261017.md), source
+`75c664379ab048a3c98372db7d268af6a753e7df` pushed to master: Home/session draft,
+prompt Location, sidebar title/Context/MCP/Location support source-owned drag
+selection through the existing Editor/OSC52/mode owners. Click/drag arbitration,
+stale-source guards, Unicode/chips and cancellation are qualified by native and
+actual binary tests. No storage/schema/user-config change or new clipboard backend.
+
+Complete normal `bash scripts/test.sh`: **2054 passed/0 failed/12 original opt-in
+ignored**, fmt/strict Clippy/rustdoc/debug build/help/version PASS. Total454.464s,
+at least80.055% below the interrupted serial lower bound2278.65s; not a completed
+old PASS or universal/cold-build guarantee. Inventory retains every original case;
+zero retries, unchanged assertions/resource bounds. Actual system clipboard
+acceptance and whole visual T44 parity are not claimed. Failed attempts remain
+in the receipt rather than being relabelled as successful.
+
 ## Current fixture temp-root portability (2026-10-17)
 
 [Fixture correction receipt](fixture-temp-portability-20261017.md): the seven
