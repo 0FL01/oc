@@ -176,6 +176,34 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     dismissed(&pty, SCOPED_MODEL_DIALOG);
     // Picker choice is a draft. Blank Enter is the existing explicit commit.
     pty.send(b"\r");
+    // The draft label is already Go before its asynchronous commit ACK. Observe
+    // durable selection, then let the ordinary idle reconciliation adopt it.
+    let sql = rusqlite::Connection::open_with_flags(
+        fixture.data_dir().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let deadline = Instant::now() + DEADLINE;
+    while sql
+        .query_row(
+            "SELECT count(*) FROM prefs WHERE key LIKE 'tui.selection.session:%' \
+             AND json_valid(value) \
+             AND json_extract(value,'$.models.build.provider')='opencode-go' \
+             AND json_extract(value,'$.models.build.id')='cached/slash'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap()
+        == 0
+    {
+        assert!(
+            Instant::now() < deadline,
+            "explicit Go selection was not committed"
+        );
+        std::thread::sleep(POLL);
+    }
+    drop(sql);
+    wait_idle(&pty);
     pty.send(b"/accounts\r");
     wait_dialog_title(&pty, "OpenCode Go");
     close(&mut pty);

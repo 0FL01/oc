@@ -75,15 +75,20 @@ evidence and smallest unlock.
     Завершённый `strace -w -c` измерил21.029s ожидания в2324 fsync при52.981s
     всего. Отдельный untraced run измерил23.18s userCPU/4.00s systemCPU. Оба
     вида работы существенны; нельзя заявлять, что прежний замер исключил I/O.
+    R6 повторно открыл shell budget:42.120s в полном gate и41.746s отдельно,
+    с1275/1276 ingress chunks вместо641. Readiness-wait correction затем дал
+    PASS21.530s и641 chunks на каждом producer; все9 capture/conversion cases PASS
+    (`R6-pipe-readiness.log`/JUnit). Полная текущая квалификация остаётся R6.
 - R5 — сохранить настоящий UI07 discovery deadline и решить оставшийся бюджет явно.
   - Source: пункт плана о единственном очевидном 30s временном контракте; AGENTS.md.
   - Acceptance: production deadline 30000ms и реальная проверка не сокращаются;
     исключение с причиной/численным бюджетом возможно только после согласия владельца.
   - Primary evidence: UI07 case; решение владельца, если требуется исключение.
-  - Status: in_progress.
+  - Status: verified.
   - Evidence: владелец явно ответил «Да, до 40 с» (2026-10-17). Единственное
     согласованное исключение — весь этот case до40s; причина/бюджет уже записаны
-    рядом с кодом, осталось подтвердить текущим полным gate. Для других cases
+    рядом с кодом. В `R6-failed-junit.xml` сам case PASS32.451s при неизменных
+    реальных30000ms; полный gate при этом FAILED по двум другим cases. Для других cases
     исключений нет; предложенное soak<=75s владелец отклонил: «Продолжить до ≤30 с».
 - R6 — итоговая квалификация и Git delivery.
   - Source: итеративная реализация/commit/push; обязательные repository gates.
@@ -203,6 +208,21 @@ host I/O and leave little room under30s. Reserve the existing nextest pool for
 this one case, as for existing timing measurements, rather than benchmark other
 cases' I/O contention. No test is omitted, retried or given a longer deadline.
 
+R6 first full qualification kept all2055 runnable cases and twelve original
+ignores. It exposed two fixture phase races: Go's draft label was treated as a
+completed model-commit ACK, and a held MCP response's first painted answer as a
+completed/idle turn. Synchronize those measured preconditions with committed
+selection and stable idle observation, retaining every original outcome check.
+The unchanged120-turn soak passed29.821s, but the two-producer shell I/O case
+took42.120s under competing writes. Qualify that fixed-load measurement with the
+existing whole-pool reservation too; keep both20MiB producers and all durability.
+The isolated follow-up still took41.746s: ingress chunks grew from641 to1275/1276
+per producer, disproving contention as the sole explanation. The drain sleeps
+the entire2ms coalescing window on `WouldBlock`, so the next read publishes a
+partial buffer instead of collecting an already-ready burst. Replace that wait
+with bounded native pipe readiness polling only while bytes are pending. Keep
+the32KiB/2ms limits, original idle sleep, stop/EOF flush and durable publication.
+
 ### R2 targeted evidence
 
 | Case (сокращённо) | Исходный full gate, s | Текущий targeted, s |
@@ -223,16 +243,18 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 
 ## Current checkpoint / state
 
-- Closes: R5/R6. R1–R4 targeted checks завершены; исходный soak body PASS29.904s
-  с единым dev opt1, без исключения/изменения120turns/fsync/assertions. Временная
-  профилировочная обвязка удалена. Полный gate теперь проверит тот же состав тестов,
-  все14 case budgets (только UI07<=40s), fmt/Clippy/doctests/debug build и реальные
-  full timings. После commit/push R4 запустить его один раз, не повторять уже
-  завершённые focused checks. T44 не закрывать.
+- Closes: R6. R1–R5 подтверждены ближайшими checks; первый полный gate FAILED по
+  двум fixture phase races и shell budget. Их коррекции проверены: account/MCP
+  cases PASS2.721s/2.089s, capture/conversion9 PASS и shell21.530s с прежними байтами.
+  Commit/push связной коррекции, затем один полный gate:2055 runnable/12 original
+  ignores, все budgets<=30s кроме UI07<=40s, fmt/Clippy/doctests/debug build.
+  Не повторять уже завершённые focused checks. T44 не закрывать.
 - R1 delivered in `f493f191e523150752a93a7766aaa887f9a9c112`, pushed.
 - R2 delivered in `9c87af602e93bf61efcdd2a797be51dbc34b225d`, pushed.
 - R3 delivered in `a2867f2423231d23bf2bf338b00219f547e6b263`, pushed.
 - R4 guarded retry delivered in `c329d206641f2a75661e38fdcc6a6b530e833c02`, pushed.
+- R4 production/compiler/matrix batch delivered in
+  `746f09951de096bf8f6d07cc5c4ba1c998356d0f`, pushed.
 - Active repository task remains T44; this is its
   owner-requested qualification-performance slice, not a new general backlog.
 - Stop/replan on a proven contract mismatch or required public/storage/clock redesign;
@@ -259,6 +281,11 @@ VIS38 commits по64 сообщения перед прежними prune calls.
   third-party+backend=31.486s, single dev opt1=29.904s. Retained only the single
   coherent profile; restored original soak body. All120 turns/durable effects and
   debug/security checks remain. Cold compile is not included in case timing.
+- 2026-10-17 R6: first full run2053 PASS/2 FAIL/12 ignored,452.677s including
+  Clippy compilation. No test omitted; UI07 PASS32.451s, soak29.821s. Two explicit
+  commit/idle preconditions now pass unchanged outcome checks. Native pipe-ready
+  polling restores full bounded chunks: shell21.530s, all9 nearest cases PASS.
+  Failed receipt remains; the corrected complete gate is pending.
 
 ## Completion
 

@@ -639,6 +639,25 @@ fn mcp_late_failure_published_during_held_native_turn_is_visible_scoped_and_reap
     close_mcps(&mut tui);
     release.store(true, Ordering::SeqCst);
     tui.wait_screen("answer:held late warning", TIMEOUT);
+    // Final answer bytes can precede TurnFinished and owner retirement. The
+    // next phase submits an idle turn, not a steering draft into the held turn.
+    let deadline = Instant::now() + TIMEOUT;
+    let mut idle_since = None;
+    loop {
+        let busy = tui
+            .screen()
+            .iter()
+            .any(|row| row.contains("esc interrupt") || row.contains("submission pending"));
+        if busy {
+            idle_since = None;
+        } else if idle_since.get_or_insert_with(Instant::now).elapsed()
+            >= Duration::from_millis(100)
+        {
+            break;
+        }
+        assert!(Instant::now() < deadline, "held turn did not become idle");
+        std::thread::sleep(POLL);
+    }
     assert!(
         tui.screen().iter().all(|row| !row.contains("warning: mcp")),
         "completion duplicated a background diagnostic into dialogue"

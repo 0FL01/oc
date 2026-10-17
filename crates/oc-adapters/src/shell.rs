@@ -665,11 +665,25 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
                     match pipe.read(&mut tmp[pending..]) {
                         Ok(0) => break,
                         Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                            if pending > 0 && since.elapsed() >= Duration::from_millis(2) {
-                                if let Some((capture, stream)) = &live {
-                                    capture.ingest(*stream, &tmp[..pending], false, true);
+                            if pending > 0 {
+                                if since.elapsed() >= Duration::from_millis(2) {
+                                    if let Some((capture, stream)) = &live {
+                                        capture.ingest(*stream, &tmp[..pending], false, true);
+                                    }
+                                    pending = 0;
+                                } else {
+                                    // Wake on the next burst fragment, not only
+                                    // after spending the whole coalescing window.
+                                    let mut ready = libc::pollfd {
+                                        fd,
+                                        events: libc::POLLIN,
+                                        revents: 0,
+                                    };
+                                    // SAFETY: fd and ready stay live for this
+                                    // bounded wait; read handles EOF/errors.
+                                    unsafe { libc::poll(&mut ready, 1, 2) };
+                                    continue;
                                 }
-                                pending = 0;
                             }
                             std::thread::sleep(Duration::from_millis(2));
                         }
