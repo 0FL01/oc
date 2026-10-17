@@ -868,10 +868,21 @@ fn tool21_registered_stream_cap_redaction_leases_and_shared_quota() {
         .unwrap();
     writer.append("hello secret-").unwrap();
     writer.append("sentinel\n").unwrap();
-    for _ in 0..2049 {
-        writer.append(&"x".repeat(8192)).unwrap();
+    // Filler volume, not caller publication count, exercises the artifact cap.
+    // Match bounded shell ingress without changing the two secret-split calls.
+    const FILLER_BYTES: usize = 2049 * 8192;
+    let filler = "x".repeat(32 * 1024);
+    for _ in 0..FILLER_BYTES / filler.len() {
+        writer.append(&filler).unwrap();
     }
+    writer
+        .append(&filler[..FILLER_BYTES % filler.len()])
+        .unwrap();
     let resource = writer.finish(false).unwrap();
+    assert_eq!(
+        resource.admitted_bytes,
+        (FILLER_BYTES + "hello [redacted]\n".len()) as u64
+    );
     assert_eq!(resource.state, CaptureState::ArtifactCap);
     assert_eq!(resource.bytes, CAP);
     let mut reader = db.open_tool_output("s", &resource.path).unwrap();

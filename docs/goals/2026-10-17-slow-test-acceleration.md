@@ -51,7 +51,11 @@ evidence and smallest unlock.
     bounded caller chunks, прежние cap/redaction/quota/lease/expiry assertions;
     каждая фактическая публикация остаётся durable.
   - Primary evidence: существующий registered-stream case и ближайшие publication tests.
-  - Status: pending. Evidence: pending.
+  - Status: verified.
+  - Evidence: `R3-filler-publications.log` / `R3-junit.xml`: existing case PASS12.717s,
+    nearest publication-fault/shared-quota cases PASS2.150s/1.531s. Filler uses513
+    bounded calls instead of2049, first two calls unchanged; exact admitted bytes
+    additionally asserted. Production writer/publication/fsync untouched.
 - R4 — оставшиеся retry/matrix/soak/shell случаи исправлять по дорогой фазе.
   - Source: следующий этап плана после простых исправлений.
   - Acceptance: сохранить шесть guard-сценариев и 11 unclosed attempts, все 24 matrix
@@ -163,11 +167,11 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 
 ## Current checkpoint / state
 
-- Closes: R3. Inspect caller-publication contract, retain all filler bytes and two
-  cross-secret appends; measure bounded filler calls with the existing cap/lease test.
+- Closes: R4. Drive only the unclosed fixture's emitted retry waits with guarded
+  Tokio time advancement; first profile current isolated matrix/soak/shell phases.
 - R1 delivered in `f493f191e523150752a93a7766aaa887f9a9c112`, pushed.
-- R2 targeted PASS and diff reviewed; deliver this checked batch, then continue.
-- R2–R5 follow the order above using the evidence from each completed checkpoint.
+- R2 delivered in `9c87af602e93bf61efcdd2a797be51dbc34b225d`, pushed.
+- R3 targeted PASS and diff reviewed; deliver this checked batch, then continue.
 - Active repository task remains T44; this is its
   owner-requested qualification-performance slice, not a new general backlog.
 - Stop/replan on a proven contract mismatch or required public/storage/clock redesign;
@@ -181,6 +185,8 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 - 2026-10-17 R2: all7 existing cases and one new owner-parity check PASS; setup
   transaction amortization only, no removed rows/events/actions/fsync guarantees.
 - 2026-10-17 R5: owner explicitly approved only UI07's40s real-deadline budget.
+- 2026-10-17 R3: exact filler/redaction/cap/quota/lease assertions PASS12.717s;
+  each actual caller append still uses the unchanged durable publication path.
 
 ## Completion
 
