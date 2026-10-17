@@ -259,8 +259,14 @@ fn allow_all() -> BTreeMap<String, Permission> {
 }
 
 fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generation) {
+    make_harness_in(permissions, tempfile::tempdir().expect("data"))
+}
+
+fn make_harness_in(
+    permissions: BTreeMap<String, Permission>,
+    data: tempfile::TempDir,
+) -> (Harness, Generation) {
     let project = tempfile::tempdir().expect("project");
-    let data = tempfile::tempdir().expect("data");
     let db = Db::open(data.path()).expect("db");
     let models = [
         (
@@ -384,6 +390,10 @@ static NO_CANCEL: AtomicBool = AtomicBool::new(false);
 #[tokio::test]
 async fn approval_structural_invalid_child_never_asks_saves_or_starts() {
     use oc_core::core_app::CoreEvent;
+    // Schema installation is not the matrix's contract. Clone only a closed,
+    // empty owner-created fixture; every case still opens its own Db/runtime.
+    let empty = tempfile::tempdir().unwrap();
+    drop(Db::open(empty.path()).unwrap());
     let cases = [
         (serde_json::json!({"agent":"ghost"}), 1, "Unknown agent"),
         (
@@ -424,7 +434,14 @@ async fn approval_structural_invalid_child_never_asks_saves_or_starts() {
             args["prompt"] = serde_json::json!("Must not execute");
             let mut permissions = allow_all();
             permissions.insert("subagent".into(), permission);
-            let (harness, generation) = make_harness(permissions);
+            let started = std::time::Instant::now();
+            let data = tempfile::tempdir().unwrap();
+            std::fs::copy(
+                empty.path().join("oc.sqlite"),
+                data.path().join("oc.sqlite"),
+            )
+            .unwrap();
+            let (harness, generation) = make_harness_in(permissions, data);
             let runtime = runtime_of(&harness, generation);
             runtime
                 .publish_subagents(Some(catalog(
@@ -449,6 +466,7 @@ async fn approval_structural_invalid_child_never_asks_saves_or_starts() {
                 subagent_call("invalid", args) + &sse_completed(),
                 sse_delta("recovered") + &sse_completed(),
             ]);
+            let setup = started.elapsed();
             let report = tokio::time::timeout(
                 Duration::from_secs(5),
                 runtime.run_turn(params(
@@ -493,6 +511,10 @@ async fn approval_structural_invalid_child_never_asks_saves_or_starts() {
                 0
             );
             assert_eq!(requests.lock().unwrap().len(), 2);
+            eprintln!(
+                "invalid child {permission:?} auto={auto_once} expected={expected:?} setup={setup:?} run_and_checks={:?}",
+                started.elapsed() - setup
+            );
         }
     }
 }

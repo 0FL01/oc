@@ -2675,8 +2675,6 @@ impl<'a> Runtime<'a> {
                     let mut partial_opaque = Vec::new();
                     let mut semantic_started = false;
                     let mut checkpoint_failed = false;
-                    self.db
-                        .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
                     let result = {
                         let mut observe = |item: &crate::provider::StreamItem| {
                             if !semantic_started

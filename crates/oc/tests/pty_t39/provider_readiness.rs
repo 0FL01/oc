@@ -658,6 +658,8 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     assert_wire_counts(&fixture, 2, 1);
 }
 
+// Owner-approved 2026-10-17 exception: <=40s for this whole case, including
+// startup and repair, because it must exercise the real 30000ms discovery budget.
 #[test]
 fn ui07_native_discovery_deadline_is_local_and_explicit_known_model_works() {
     let fixture = Fixture::new();

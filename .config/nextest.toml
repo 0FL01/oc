@@ -16,10 +16,10 @@ t39 = { max-threads = 1 }
 archives = { max-threads = 1 }
 
 [[profile.default.overrides]]
-# These transport/drain deadlines and CPU/input-latency measurements need the
+# These transport/drain deadlines and CPU/input/I/O measurements need the
 # otherwise idle host used by the original serial gate. Preserve their bounds
 # and event rates; do not measure contention from unrelated test processes.
-filter = 'test(=discovery::tests::reqwest_http_error_status_precedes_oversized_or_slow_body) | test(=shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal) | (binary(=pty_t39) & (test(=lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints) | test(=lifecycle::vis31_high_rate_input_during_provider_burst)))'
+filter = 'test(=discovery::tests::reqwest_http_error_status_precedes_oversized_or_slow_body) | test(=shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal) | (binary(=pty_t39) & (test(=lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints) | test(=lifecycle::vis31_high_rate_input_during_provider_burst))) | (binary(=soak) & test(=soak_two_epochs_bounded_growth))'
 threads-required = 'num-test-threads'
 priority = 100
 

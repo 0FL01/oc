@@ -214,8 +214,10 @@ fn shell_plain_display_strips_split_ansi_and_bounds_osc_before_secret_admission(
     // `core` uses an inline 1KiB OSC buffer even when other users enable utf8.
     assert!((1024..2048).contains(&std::mem::size_of::<anstyle_parse::Parser>()));
     let capture = Capture::new(Arc::default());
+    capture.ingest(Stream::Stdout, b"prefix\n", false, true);
+    let before_escape = capture.presentation().body;
     capture.ingest(Stream::Stdout, b"\x1b[3", false, true);
-    assert!(capture.presentation().body.is_empty());
+    assert_eq!(capture.presentation().body, before_escape);
     capture.ingest(Stream::Stdout, b"1mred\x1b[0m\r", false, true);
     capture.ingest(Stream::Stdout, b"\n\x1b]52;c;", false, true);
     for _ in 0..128 {
@@ -230,7 +232,7 @@ fn shell_plain_display_strips_split_ansi_and_bounds_osc_before_secret_admission(
         true,
     );
     let (display, omitted) = capture.stream.lock().unwrap().display();
-    assert_eq!(display, "red\r\nplain\ngreen\n");
+    assert_eq!(display, "prefix\nred\r\nplain\ngreen\n");
     assert!(
         !omitted,
         "discarded terminal control payload is not missing process text"
@@ -377,6 +379,7 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
         ),
         (32768, crate::storage::tool_output::CaptureState::Quota),
     ] {
+        let started = std::time::Instant::now();
         let temp = tempfile::tempdir().unwrap();
         let project = temp.path().join("project");
         fs::create_dir(&project).unwrap();
@@ -391,6 +394,7 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
         let shell = Shell::new(&project).unwrap();
         let argv = vec!["/bin/sh".into(), "-c".into(), command.into()];
         let pinned = shell.pin_cwd(&argv, ".").unwrap();
+        let setup = started.elapsed();
         jobs.launch_mode(
             shell,
             BTreeMap::new(),
@@ -440,6 +444,16 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
         assert_eq!(
             fs::read_to_string(project.join("effect")).unwrap(),
             "effect"
+        );
+        eprintln!(
+            "SHELL_CAP_PHASE quota={quota} setup={setup:?} real_capture_and_checks={:?}",
+            started.elapsed() - setup
+        );
+        eprintln!(
+            "SHELL_CAP_PHASE admitted={} stored={} ingress_chunks={}",
+            resource.admitted_bytes,
+            resource.bytes,
+            resource.shell.as_ref().unwrap().observed_chunks
         );
     }
 }

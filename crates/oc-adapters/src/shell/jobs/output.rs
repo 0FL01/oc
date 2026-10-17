@@ -87,22 +87,32 @@ impl TextStream {
             }
         }
         let mut plain = Plain(String::new());
-        for c in normalized.chars() {
-            // This parser's state machine uses the 7-bit escape spelling. UTF-8
-            // encoded C1 introducers denote the same control, not visible text.
-            let spelling: Option<&[u8]> = match c {
-                '\u{90}' => Some(b"\x1bP"),
-                '\u{98}' => Some(b"\x1bX"),
-                '\u{9b}' => Some(b"\x1b["),
-                '\u{9c}' => Some(b"\x1b\\"),
-                '\u{9d}' => Some(b"\x1b]"),
-                '\u{9e}' => Some(b"\x1b^"),
-                '\u{9f}' => Some(b"\x1b_"),
-                _ => None,
-            };
-            let mut utf8 = [0; 4];
-            for &byte in spelling.unwrap_or_else(|| c.encode_utf8(&mut utf8).as_bytes()) {
-                self.ansi.advance(&mut plain, byte);
+        // Exact initial state makes this equivalent to native print/execute;
+        // an open escape/OSC/DCS (including split reads) can never take it.
+        if self.ansi == anstyle_parse::Parser::default()
+            && normalized
+                .bytes()
+                .all(|byte| byte.is_ascii_graphic() || matches!(byte, b' ' | b'\n' | b'\r' | b'\t'))
+        {
+            plain.0 = normalized;
+        } else {
+            for c in normalized.chars() {
+                // This parser's state machine uses the 7-bit escape spelling. UTF-8
+                // encoded C1 introducers denote the same control, not visible text.
+                let spelling: Option<&[u8]> = match c {
+                    '\u{90}' => Some(b"\x1bP"),
+                    '\u{98}' => Some(b"\x1bX"),
+                    '\u{9b}' => Some(b"\x1b["),
+                    '\u{9c}' => Some(b"\x1b\\"),
+                    '\u{9d}' => Some(b"\x1b]"),
+                    '\u{9e}' => Some(b"\x1b^"),
+                    '\u{9f}' => Some(b"\x1b_"),
+                    _ => None,
+                };
+                let mut utf8 = [0; 4];
+                for &byte in spelling.unwrap_or_else(|| c.encode_utf8(&mut utf8).as_bytes()) {
+                    self.ansi.advance(&mut plain, byte);
+                }
             }
         }
         let admitted = self.redactor.push(&plain.0, end);

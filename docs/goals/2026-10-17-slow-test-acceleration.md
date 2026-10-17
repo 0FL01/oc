@@ -62,12 +62,19 @@ evidence and smallest unlock.
     cases, 120 normal soak turns и оба настоящих 20 MiB producers. По замеру выбрать
     минимальную правку владельца; не начинать с общего Runtime-clock рефакторинга.
   - Primary evidence: четыре соответствующих существующих case, фазовые замеры.
-  - Status: in_progress.
-  - Evidence: `R4-retry-and-phase-profile.log` / `R4-junit.xml`: все4 cases PASS;
-    retry-11 теперь12.423s, все6 scenarios/11 HTTP attempts и десять emitted
-    attempts2..11 сохранены. Остальные ещё выше бюджета: matrix42.917s
-    (setup24×1.24–1.58s), shell50.221s (capture28.40s+19.37s), soak61.678s
-    (normal turns/compression31.59s+26.74s). Это не завершение R4.
+  - Status: verified.
+  - Evidence: retry-11 PASS12.423s, все6 scenarios/11 HTTP attempts и десять emitted
+    attempts2..11 сохранены. После фазового RECON matrix PASS20.420s вместо42.917s:
+    все24 data roots независимы, копируется только закрытая пустая owner-DB.
+    Native ASCII fast path: shell cap/quota PASS26.078s с прежними2×20MiB,
+    641 ingress chunks/producer; остальные7 module cases также PASS (ANSI guard
+    отдельно после исправления ожидаемого непустого prefix). Soak с единым dev
+    opt-level1 и точным исходным телом PASS29.904s, `R4-soak-dev-opt1.log`/JUnit;
+    cold compile3m24 отдельно. Полный конкурентный gate ещё не квалифицирован.
+    Исправление атрибуции: `strace -c`0.571s отражает kernel CPU, не disk-wait.
+    Завершённый `strace -w -c` измерил21.029s ожидания в2324 fsync при52.981s
+    всего. Отдельный untraced run измерил23.18s userCPU/4.00s systemCPU. Оба
+    вида работы существенны; нельзя заявлять, что прежний замер исключил I/O.
 - R5 — сохранить настоящий UI07 discovery deadline и решить оставшийся бюджет явно.
   - Source: пункт плана о единственном очевидном 30s временном контракте; AGENTS.md.
   - Acceptance: production deadline 30000ms и реальная проверка не сокращаются;
@@ -75,8 +82,9 @@ evidence and smallest unlock.
   - Primary evidence: UI07 case; решение владельца, если требуется исключение.
   - Status: in_progress.
   - Evidence: владелец явно ответил «Да, до 40 с» (2026-10-17). Единственное
-    согласованное исключение — весь этот case до40s; осталось записать рядом с
-    кодом и подтвердить текущим полным gate. Для других cases исключений нет.
+    согласованное исключение — весь этот case до40s; причина/бюджет уже записаны
+    рядом с кодом, осталось подтвердить текущим полным gate. Для других cases
+    исключений нет; предложенное soak<=75s владелец отклонил: «Продолжить до ≤30 с».
 - R6 — итоговая квалификация и Git delivery.
   - Source: итеративная реализация/commit/push; обязательные repository gates.
   - Acceptance: сохранены все исходные тесты/assertions и штатные opt-in ignores;
@@ -159,6 +167,42 @@ and resumes time before any next HTTP poll. No new package, production clock/API
 or retry-policy change; other five scenarios keep real time. Profile matrix,
 soak and shell setup/run phases before choosing any further edit.
 
+R4 matrix profile measured24 independent setups at1.24–1.58s each. Seed each
+still-independent data root from one test-owned, owner-created-and-closed empty
+database before normal `Db::open`; do not share a live connection, runtime,
+grants/history or persistent cache. Keep all24 executions and assertions.
+
+R4 measured follow-up: empty-owner seeding makes matrix PASS20.420s with all24
+isolated cases. Shell alone still takes30.579s:12.75s userCPU/2.18s systemCPU,
+641 ingress chunks per unchanged20MiB producer (already full32KiB coalescing).
+Allow one narrow production `TextStream::admit` fast path only when the native
+parser equals its exact initial state and the normalized chunk contains only
+printable ASCII/retained whitespace. Other parser states, controls, Unicode and
+redaction retain the existing path; never bypass sync/publication/quota.
+Soak remains54.523s across120 real turns. Inspection found two identical,
+adjacent pre-dispatch checkpoints with no log mutation between them; remove only
+the second redundant write. This does not waive the remaining30s investigation
+or permit a new storage/schema/clock API.
+
+R4 owner decision: continue soak to<=30s, rather than grant75s. Correct wall-time
+profiling identifies21.029s in2324 fsync plus substantial CPU work, not an artificial
+sleep. The current backend dev/test code is compiled at Cargo's default opt-level0.
+The backend-only opt-level1 experiment passed43.839s. Adding bundled SQLite/JSON
+at1 passed35.244s and cut measured turn CPU further, but still did not reach30s.
+Optimizing all third-party dependencies plus the backend passed31.486s, still
+above30s. The remaining workspace units still compile unoptimized. Use one Cargo
+`profile.dev` opt-level1 rather than more package exceptions, preserving debug
+assertions, overflow checks, SQLite API armor, release and every durable effect.
+Remove temporary profiling callbacks/CPU clocks and restore the exact original
+soak body; nextest still measures the whole case. Keep only measured benefit;
+do not waive30s or add a new profile/runner/dependency/cache.
+
+The original soak body passed29.904s with the single dev override; profiling
+callbacks and process clocks are removed. Its measured2324 durable syncs dominate
+host I/O and leave little room under30s. Reserve the existing nextest pool for
+this one case, as for existing timing measurements, rather than benchmark other
+cases' I/O contention. No test is omitted, retried or given a longer deadline.
+
 ### R2 targeted evidence
 
 | Case (сокращённо) | Исходный full gate, s | Текущий targeted, s |
@@ -179,12 +223,16 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 
 ## Current checkpoint / state
 
-- Closes: R4. Retry waits исправлены; устранить повторный empty-DB setup, сохранив
-  24 изолированных matrix states. Для shell получить CPU/I/O/chunk evidence;
-  для soak разделить normal-turn costs по kind, не сокращая120 turns.
+- Closes: R5/R6. R1–R4 targeted checks завершены; исходный soak body PASS29.904s
+  с единым dev opt1, без исключения/изменения120turns/fsync/assertions. Временная
+  профилировочная обвязка удалена. Полный gate теперь проверит тот же состав тестов,
+  все14 case budgets (только UI07<=40s), fmt/Clippy/doctests/debug build и реальные
+  full timings. После commit/push R4 запустить его один раз, не повторять уже
+  завершённые focused checks. T44 не закрывать.
 - R1 delivered in `f493f191e523150752a93a7766aaa887f9a9c112`, pushed.
 - R2 delivered in `9c87af602e93bf61efcdd2a797be51dbc34b225d`, pushed.
 - R3 delivered in `a2867f2423231d23bf2bf338b00219f547e6b263`, pushed.
+- R4 guarded retry delivered in `c329d206641f2a75661e38fdcc6a6b530e833c02`, pushed.
 - Active repository task remains T44; this is its
   owner-requested qualification-performance slice, not a new general backlog.
 - Stop/replan on a proven contract mismatch or required public/storage/clock redesign;
@@ -203,6 +251,14 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 - 2026-10-17 R4 retry: guarded dev-only virtual waits PASS12.423s; no production
   clock/retry-policy change. Phase evidence identifies the next three edits;
   matrix/soak/shell are not silently accepted above30s.
+- 2026-10-17 R4: matrix PASS20.420s; shell cap/quota PASS26.078s; all module
+  security/publication checks pass, including split OSC/DCS/Unicode/redaction.
+  Ранний soak sync summary показывал kernel CPU, не elapsed wait; его прежняя
+  интерпретация как опровержения disk latency отозвана. No full-gate/completion claim.
+- 2026-10-17 R4: backend opt1=43.839s, SQLite/JSON+backend=35.244s,
+  third-party+backend=31.486s, single dev opt1=29.904s. Retained only the single
+  coherent profile; restored original soak body. All120 turns/durable effects and
+  debug/security checks remain. Cold compile is not included in case timing.
 
 ## Completion
 
