@@ -40,28 +40,6 @@ struct Publication {
     fatal: Option<RuntimeError>,
 }
 
-struct RequestWait<'a> {
-    owner: &'a McpOwner,
-    armed: bool,
-}
-
-impl Drop for RequestWait<'_> {
-    fn drop(&mut self) {
-        if self.armed {
-            self.owner
-                .shared
-                .publication
-                .read()
-                .expect("MCP publication")
-                .request
-                .poisoned
-                .store(true, Ordering::SeqCst);
-            self.owner.shared.stop.store(true, Ordering::SeqCst);
-            self.owner.shared.wake.notify_one();
-        }
-    }
-}
-
 enum Command {
     Reconcile {
         config: Box<Generation>,
@@ -471,11 +449,9 @@ impl McpOwner {
                 .request
                 .clone());
         };
+        // Connect/relist work belongs to the supervisor. This caller owns only
+        // its reply, never the lifetime of another turn's admitted clients.
         let (ack, mut reply) = oneshot::channel();
-        let mut wait = RequestWait {
-            owner: self,
-            armed: true,
-        };
         sender
             .send(Command::Request(ack))
             .await
@@ -483,14 +459,10 @@ impl McpOwner {
         loop {
             tokio::select! {
                 result = &mut reply => {
-                    wait.armed = false;
                     return result.map_err(|_| RuntimeError::McpShutdown)?;
                 },
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {
                     if cancel.load(Ordering::SeqCst) {
-                        self.shared.publication.read().expect("MCP publication").request.poisoned.store(true, Ordering::SeqCst);
-                        self.stop().await?;
-                        wait.armed = false;
                         return Err(RuntimeError::Cancelled);
                     }
                 }
@@ -927,6 +899,10 @@ impl Scope {
     }
 
     fn request(&mut self, ack: RequestAck) {
+        self.requests.retain(|reply| !reply.is_closed());
+        if ack.is_closed() {
+            return;
+        }
         if self.requests.len() >= MAX_MCP_SERVERS {
             let _ = ack.send(Err(RuntimeError::TurnActive));
             return;

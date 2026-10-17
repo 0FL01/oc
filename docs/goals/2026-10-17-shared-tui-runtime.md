@@ -111,8 +111,9 @@ evidence and smallest unlock.
     Navigation/model/cancel/move одного чата не меняют captured execution другого.
   - Primary evidence: application owner barrier test: оба provider requests начаты
     до освобождения любого; same-session refusal происходит до input/effects.
-  - Status: pending
-  - Evidence: NOT_RUN.
+  - Status: in_progress
+  - Evidence: MCP prerequisite verified: отмена/drop metadata waiter не останавливают
+    соседние ожидания и shared supervisor. Owner concurrency barrier ещё NOT_RUN.
 - R5 — пользовательская граница исключает root-executor для stfu.
   - Source: исходная проблема файлов в home `stfu`, созданных общим root-сервером.
   - Acceptance: endpoint/data-root/peer UID проверены; клиент чужого UID не attach-ится
@@ -358,10 +359,10 @@ socket не обещает отсутствия иных явно нужных l
 
 ## Current Checkpoint
 
-- Closes: R4 и prerequisites R1/R2, шаг 1; R1–R5 ещё pending.
-- Smallest next action: после commit/push frozen плана выделить session-local execution
-  и shared Location/profile/resource ownership за существующим CoreApp; начать с
-  same-directory owner barrier и scoped same-session reservation.
+- Closes: R4 и prerequisites R1/R2, шаг 1; полностью verified outcomes ещё нет.
+- Smallest next action: shared Location/MCP state для owned root runtimes и session-local
+  primary profile вместо общего selected workspace; затем root dispatch/reservation
+  и same-directory owner barrier за существующим CoreApp.
 - Expected evidence: targeted application test: оба независимых provider requests
   начались до освобождения любого, competing same-session request без input/effects.
 - Stop or replan if: решение противоречит зеркальному workspace, Esc/Interrupted на
@@ -369,14 +370,21 @@ socket не обещает отсутствия иных явно нужных l
 
 ## Current State
 
-- Resolved: RECON и уточнения отражены в цели; runtime ещё in-process/DataRootBusy.
-- Last relevant evidence: read-only аудит и source checks на base HEAD; service
-  tests/build/live ещё NOT_RUN. Выбор владельца замораживает контракт, не даёт runtime PASS.
+- Resolved: frozen план committed/pushed (`2dd2a3504`); первый runtime slice устраняет
+  teardown общего MCP supervisor при отмене/drop одного metadata waiter. Закрытые
+  replies освобождают существующий waiter cap; dispatched-call unknown guards неизменны.
+  Runtime ещё in-process/DataRootBusy: shared server не активирован.
+- Last relevant evidence: новый regression на старом коде FAILED (0.09s); после fix
+  `cargo test -p oc-adapters --lib runtime::mcp::lifecycle::tests --locked` — 16 PASS,
+  2.56s без компиляции. Fixture использует real stdio/list-changed, сохраняет тот же
+  client, проверяет отсутствие restart и reaping процесса после explicit shutdown.
+  Primary R1–R5/server/binary qualification и полный offline gate ещё NOT_RUN.
 - Blocker: отсутствует; material product boundaries утверждены 2026-10-18.
 - Next: T68 implementation; T44 temporarily paused/incomplete, T61 paused,
   historical evidence неизменны. Commit/push по проверенным cohesive slices.
 
 ## Completion
 
-- R1–R5: pending, implementation NOT_STARTED, runtime qualification NOT_RUN.
+- R1/R2/R3/R5 pending, R4 in_progress; implementation IN_PROGRESS.
+- Полных verified R нет; server qualification NOT_RUN, MCP prerequisite — targeted PASS.
 - Сохранение/commit плана не завершает эту продуктовую цель и не меняет readiness.

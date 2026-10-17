@@ -4,6 +4,7 @@ const RECONCILE_STDIO: &str = r#"
 import json, os, pathlib, sys, time
 label = sys.argv[1]
 count = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+listed = False
 with open('starts', 'a') as output: output.write(label + ':' + str(os.getpid()) + '\n')
 for line in sys.stdin:
     message = json.loads(line)
@@ -12,8 +13,16 @@ for line in sys.stdin:
     if method == 'initialize' and label == 'initializing':
         pathlib.Path('initialize-entered').write_text('ready')
         while not pathlib.Path('initialize-release').exists(): time.sleep(0.002)
-    if method == 'initialize': result = {'protocolVersion':'2024-11-05','capabilities':{'tools':{},'resources':{}},'serverInfo':{'name':'reconcile','version':'1'}}
-    elif method == 'tools/list': result = {'tools':[{'name':label if count == 1 else label + '_' + str(index),'inputSchema':{'type':'object'}} for index in range(count)]}
+    if method == 'initialize': result = {'protocolVersion':'2024-11-05','capabilities':{'tools':{'listChanged':True} if label == 'waiters' else {},'resources':{}},'serverInfo':{'name':'reconcile','version':'1'}}
+    elif method == 'tools/list':
+        if label == 'waiters' and listed:
+            pathlib.Path('list-entered').write_text('ready')
+            while not pathlib.Path('list-release').exists(): time.sleep(0.002)
+        listed = True
+        result = {'tools':[{'name':label if count == 1 else label + '_' + str(index),'inputSchema':{'type':'object'}} for index in range(count)]}
+    elif method == 'tools/call' and label == 'waiters':
+        print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
+        result = {'content':[{'type':'text','text':'LEASED_ISSUED_RESULT'}]}
     elif method == 'resources/read':
         pathlib.Path('lookup-entered').write_text('ready')
         while not pathlib.Path('lookup-release').exists(): time.sleep(0.002)
@@ -58,6 +67,103 @@ async fn connected(owner: &McpOwner, names: &[&str]) {
     })
     .await
     .unwrap();
+}
+
+#[tokio::test]
+async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_running() {
+    let project = tempfile::tempdir().unwrap();
+    let owner = McpOwner::new("shared-location", 1);
+    let config = Generation {
+        mcp: BTreeMap::from([("peer".into(), reconcile_entry(project.path(), "waiters"))]),
+        ..Default::default()
+    };
+    owner
+        .start(config.clone(), project.path().into(), BTreeMap::new(), None)
+        .unwrap();
+    connected(&owner, &["peer"]).await;
+    let initial = owner.request_view().unwrap();
+    let original_client = Arc::downgrade(&initial.servers[0].client);
+    let AttachedServer::Stdio(client) = initial.servers[0].client.as_ref() else {
+        unreachable!("local fixture")
+    };
+    // A real list-changed notification precedes this call's acknowledged reply.
+    client
+        .call_tool("waiters", serde_json::json!({}), &AtomicBool::new(false))
+        .await
+        .unwrap();
+    drop(initial);
+    let cancel = AtomicBool::new(false);
+    let keep_running = AtomicBool::new(false);
+    let mut cancelled = Box::pin(owner.request(&cancel));
+    let mut survivor = Box::pin(owner.request(&keep_running));
+    let mut dropped = Box::pin(owner.request(&keep_running));
+    let initially_pending = [
+        futures_util::poll!(cancelled.as_mut()).is_pending(),
+        futures_util::poll!(survivor.as_mut()).is_pending(),
+        futures_util::poll!(dropped.as_mut()).is_pending(),
+    ];
+    let entered = tokio::time::timeout(Duration::from_secs(3), async {
+        while !project.path().join("list-entered").exists() {
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+    })
+    .await;
+    cancel.store(true, Ordering::SeqCst);
+    let cancelled_result = tokio::time::timeout(Duration::from_secs(2), cancelled).await;
+    let cancelled_as_expected = matches!(cancelled_result, Ok(Err(RuntimeError::Cancelled)));
+    drop(cancelled_result);
+    drop(dropped);
+    // Closed replies must not exhaust the existing waiter cap while relisting.
+    let mut dropped_pending = true;
+    for _ in 0..MAX_MCP_SERVERS {
+        let mut abandoned = Box::pin(owner.request(&keep_running));
+        dropped_pending &= futures_util::poll!(abandoned.as_mut()).is_pending();
+    }
+    let replies = tokio::time::timeout(Duration::from_secs(3), async {
+        tokio::join!(survivor, owner.request(&keep_running), async {
+            // The no-change ACK fences the preceding waiter commands without
+            // changing the physical client or releasing the held list reply.
+            let fence = owner.reconcile(config, 1, None, false, None).await;
+            std::fs::write(project.path().join("list-release"), "ready").unwrap();
+            fence
+        })
+    })
+    .await;
+    let poisoned = owner.poisoned();
+    let fenced = replies.as_ref().is_ok_and(|(_, _, fence)| fence.is_ok());
+    let preserved = replies.as_ref().is_ok_and(|(first, second, _)| {
+        [first, second].into_iter().all(|reply| {
+            reply.as_ref().is_ok_and(|view| {
+                view.entries.len() == 1
+                    && view.servers.first().is_some_and(|server| {
+                        std::sync::Weak::ptr_eq(&original_client, &Arc::downgrade(&server.client))
+                    })
+            })
+        })
+    });
+    // Only actual issued work pins a physical client through owner shutdown.
+    drop(replies);
+    let stopped = owner.stop().await;
+
+    assert!(entered.is_ok(), "fixture never entered relisting");
+    assert_eq!(initially_pending, [true; 3]);
+    assert!(cancelled_as_expected);
+    assert!(dropped_pending);
+    assert!(fenced);
+    assert!(!poisoned, "a metadata waiter poisoned the shared owner");
+    assert!(
+        preserved,
+        "surviving waiters lost the catalog or its physical client"
+    );
+    stopped.unwrap();
+    let starts = std::fs::read_to_string(project.path().join("starts")).unwrap();
+    assert_eq!(
+        starts.lines().count(),
+        1,
+        "cancellation restarted the server"
+    );
+    let pid = starts.trim().split_once(':').unwrap().1;
+    assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
 }
 
 #[tokio::test]
