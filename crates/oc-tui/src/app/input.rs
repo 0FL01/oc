@@ -1238,7 +1238,7 @@ impl TuiState {
         self.painted_prompt.borrow_mut().take();
     }
 
-    fn prompt_mouse_editable(&self) -> bool {
+    pub(super) fn prompt_mouse_editable(&self) -> bool {
         self.panel == TuiPanel::None
             && self.approvals.active().is_none()
             && self.questions.active().is_none()
@@ -1259,7 +1259,7 @@ impl TuiState {
         if !self.prompt_mouse_editable() {
             return;
         }
-        let toast = crate::shell::toast_rect(self, frame);
+        let toast = crate::shell::text_toast_rect(self, frame);
         let mut chips = Vec::new();
         for (index, row) in rows
             .iter()
@@ -1300,6 +1300,7 @@ impl TuiState {
             cursor: self.editor.cursor,
             anchor: self.editor.anchor,
             input,
+            top,
             rows: rows
                 .iter()
                 .skip(top)
@@ -1586,6 +1587,7 @@ impl TuiState {
 
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
+        self.cancel_text_selection();
         self.invalidate_sidebar_pointer();
         self.clear_accounts();
         self.questions.cancel_pointer();
@@ -1621,6 +1623,9 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.continue_text_mouse(event, area) {
+            return KeyOutcome::default();
+        }
         if !matches!(
             event.kind,
             MouseEventKind::Up(MouseButton::Left) | MouseEventKind::Moved
@@ -1844,6 +1849,9 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel == TuiPanel::None {
+            if self.start_readonly_selection(event, area) {
+                return KeyOutcome::default();
+            }
             if let Some(outcome) = self.sidebar_mouse(event, area) {
                 return outcome;
             }
@@ -1885,6 +1893,7 @@ impl TuiState {
                             && p.generation == self.generation
                             && p.cursor == self.editor.cursor
                             && p.anchor == self.editor.anchor
+                            && p.input == crate::shell::prompt_text_geometry(self, area).0
                     })
                     .map(|p| {
                         let chip = p
@@ -1933,6 +1942,7 @@ impl TuiState {
                     self.slash_selected = 0;
                     self.mention_selected = 0;
                     self.clear_transcript_selection();
+                    self.start_prompt_selection();
                     self.click = None;
                     self.tab_down = None;
                     self.exploration_down = None;
@@ -1942,6 +1952,7 @@ impl TuiState {
                 }
             }
             self.handle_transcript_selection(event, area);
+            self.observe_transcript_gesture(event);
             if let Some(outcome) = self.child_notice_mouse(event, area) {
                 return outcome;
             }
@@ -2420,6 +2431,7 @@ impl TuiState {
 
     /// Handle a bracketed paste as one bounded event (never per-char).
     pub fn handle_paste(&mut self, text: &str) -> KeyOutcome {
+        self.cancel_text_selection();
         self.cancel_sidebar_press();
         if self.panel == TuiPanel::Accounts {
             if self.approvals.active().is_some() || self.questions.active().is_some() {
@@ -2669,6 +2681,7 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        self.cancel_text_selection();
         self.cancel_sidebar_press();
         self.child_notice_down = None;
         self.cancel_shell_footer_pointer();

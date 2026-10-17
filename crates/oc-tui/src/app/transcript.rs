@@ -691,6 +691,9 @@ impl TuiState {
 
     /// Configuration/test override of the platform's native clipboard mode.
     pub fn set_clipboard_mode(&mut self, mode: ClipboardMode) {
+        if self.clipboard_mode != mode {
+            self.cancel_text_selection();
+        }
         self.clipboard_mode = mode;
     }
 
@@ -719,11 +722,13 @@ impl TuiState {
     /// catalog query fails. Apply this safety-sensitive owner setting first so
     /// a stale view cannot keep auto-copy enabled after switching to manual.
     pub fn refresh_clipboard_mode(&mut self, mode: Option<oc_core::queries::TerminalCopyMode>) {
+        self.cancel_text_selection();
         self.clear_transcript_selection();
         self.apply_owner_clipboard_mode(mode);
     }
 
     pub fn disable_clipboard_until_catalog(&mut self) {
+        self.cancel_text_selection();
         self.clear_transcript_selection();
         self.clipboard_mode = ClipboardMode::Disabled;
     }
@@ -733,12 +738,16 @@ impl TuiState {
         mode: Option<oc_core::queries::TerminalCopyMode>,
     ) {
         self.owner_clipboard_mode = mode;
+        let previous = self.clipboard_mode;
         self.chrome.terminal_copy = mode;
         self.clipboard_mode = match mode {
             Some(oc_core::queries::TerminalCopyMode::Select) => ClipboardMode::Select,
             Some(oc_core::queries::TerminalCopyMode::Manual) => ClipboardMode::Manual,
             None => ClipboardMode::default(),
         };
+        if previous != self.clipboard_mode {
+            self.cancel_text_selection();
+        }
     }
 
     /// Drain the mouse copy request once. The caller performs the actual
@@ -760,6 +769,7 @@ impl TuiState {
     }
 
     pub fn restore_prompt(&mut self, text: String) {
+        self.cancel_text_selection();
         self.input = text;
         self.editor.clear();
         self.editor.cursor = self.input.len();
@@ -824,6 +834,7 @@ impl TuiState {
     }
 
     pub(crate) fn clear_transcript_selection(&mut self) {
+        self.cancel_transcript_capture();
         self.child_notice_down = None;
         self.reverted_down = None;
         self.message_down = None;
@@ -832,7 +843,9 @@ impl TuiState {
         self.selection = None;
         self.selection_gesture = false;
         self.click = None;
-        self.pending_copy = None;
+        if !self.has_new_text_selection() {
+            self.pending_copy = None;
+        }
         *self.painted_transcript.borrow_mut() = None;
     }
 

@@ -573,6 +573,7 @@ struct VisibleTranscriptProjection {
 }
 
 /// Visible editor insertion stops and chip cells from the latest prompt paint.
+#[derive(Clone)]
 struct PaintedPrompt {
     frame: Rect,
     main: Rect,
@@ -583,6 +584,7 @@ struct PaintedPrompt {
     cursor: usize,
     anchor: Option<usize>,
     input: Rect,
+    top: usize,
     rows: Vec<Vec<(usize, usize)>>,
     toast: Option<Rect>,
     chips: Vec<(Rect, usize)>,
@@ -646,6 +648,7 @@ pub struct TuiState {
     selection: Option<TranscriptSelection>,
     selection_gesture: bool,
     click: Option<TranscriptClick>,
+    text_selection: text_selection::SelectionState,
     /// Current session's durable human title, refreshed with history.
     pub session_title: Option<String>,
     /// Tab presentation only, persisted by the existing deck owner. Never a
@@ -885,6 +888,7 @@ impl TuiState {
             leader_key: "ctrl+x".into(),
             owner_clipboard_mode: None,
             pending_copy: None,
+            text_selection: Default::default(),
             selection: None,
             selection_gesture: false,
             click: None,
@@ -1525,6 +1529,7 @@ mod mcp;
 mod model_selection;
 mod services;
 mod tabs;
+pub(crate) mod text_selection;
 mod transcript;
 mod user_shell;
 

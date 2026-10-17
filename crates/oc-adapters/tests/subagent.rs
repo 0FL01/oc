@@ -153,17 +153,23 @@ impl Fake {
 
     /// Serve `first` immediately; every later request stalls with heartbeats
     /// (a child stream that only ends on cancellation).
-    fn start_cancelable(first: String, stall: Duration) -> String {
+    fn start_cancelable(
+        first: String,
+        stall: Duration,
+    ) -> (String, tokio::sync::oneshot::Receiver<()>) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let base = format!(
             "http://127.0.0.1:{}/v1",
             listener.local_addr().expect("addr").port()
         );
         let hits = Arc::new(Mutex::new(0usize));
+        let (started, child_started) = tokio::sync::oneshot::channel();
+        let started = Arc::new(Mutex::new(Some(started)));
         std::thread::spawn(move || {
             for stream in listener.incoming().filter_map(Result::ok) {
                 let hits = hits.clone();
                 let first = first.clone();
+                let started = started.clone();
                 std::thread::spawn(move || {
                     let mut reader = BufReader::new(stream);
                     let mut content_length = 0usize;
@@ -203,21 +209,30 @@ impl Fake {
                         let _ = stream.write_all(response.as_bytes());
                         return;
                     }
-                    let _ = stream.write_all(
+                    if stream.write_all(
                         "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n"
                             .as_bytes(),
-                    );
-                    let _ = stream.flush();
+                    ).and_then(|()| stream.flush()).is_err() {
+                        return;
+                    }
                     let start = Instant::now();
                     while start.elapsed() < stall {
-                        let _ = stream.write_all(b": hb\n\n");
-                        let _ = stream.flush();
+                        if stream
+                            .write_all(b": hb\n\n")
+                            .and_then(|()| stream.flush())
+                            .is_err()
+                        {
+                            break;
+                        }
+                        if let Some(started) = started.lock().expect("child handshake").take() {
+                            let _ = started.send(());
+                        }
                         std::thread::sleep(Duration::from_millis(100));
                     }
                 });
             }
         });
-        base
+        (base, child_started)
     }
 }
 
@@ -1521,7 +1536,7 @@ async fn cancel_mid_child_stream_cancels_child_and_parent() {
         "call-cancel",
         serde_json::json!({"agent": "helper", "description": "Slow", "prompt": "slow"}),
     ) + &sse_completed();
-    let base = Fake::start_cancelable(first, Duration::from_secs(30));
+    let (base, mut child_started) = Fake::start_cancelable(first, Duration::from_secs(30));
     let cancel = AtomicBool::new(false);
     let mut active_during_child = false;
     let result = {
@@ -1536,7 +1551,8 @@ async fn cancel_mid_child_stream_cancels_child_and_parent() {
         loop {
             tokio::select! {
                 value = &mut turn => break value,
-                _ = tokio::time::sleep(Duration::from_millis(300)), if !cancel.load(Ordering::Relaxed) => {
+                ready = tokio::time::timeout(Duration::from_secs(5), &mut child_started), if !cancel.load(Ordering::Relaxed) => {
+                    ready.expect("child request must start").expect("child stream handshake");
                     active_during_child = runtime.turn_active();
                     cancel.store(true, Ordering::Relaxed);
                 }

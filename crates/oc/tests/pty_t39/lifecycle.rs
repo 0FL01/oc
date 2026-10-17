@@ -2,6 +2,52 @@
 
 use super::*;
 
+fn wait_input_receipt(pty: &PtySession, offset: usize, sent: Instant, glyph: &str) -> Duration {
+    loop {
+        let (received, checked) = pty.received_at(offset, glyph.as_bytes());
+        // The receiver timestamps the bytes; a descheduled observer cannot
+        // turn an old absent snapshot into a late-paint failure. Late arrivals
+        // still fail, even if the observer first sees them much later.
+        let latency = received.unwrap_or(checked).duration_since(sent);
+        assert!(
+            latency < Duration::from_millis(100),
+            "input paint exceeded100ms: glyph={glyph:?} latency={latency:?} received={received:?} screen={:?}",
+            render_screen(&pty.snapshot()).rows()
+        );
+        if received.is_some() {
+            return latency;
+        }
+        std::thread::sleep(Duration::from_micros(100));
+    }
+}
+
+#[test]
+fn vis31_input_receipts_use_final_byte_arrival_not_observer_clock() {
+    let sent = Instant::now() - Duration::from_millis(200);
+    let mut output = PtyOutput::default();
+    let glyph = "字".as_bytes();
+    output.append(glyph, sent - Duration::from_millis(10));
+    let offset = output.bytes.len();
+    output.append(&glyph[..2], sent + Duration::from_millis(40));
+    assert_eq!(output.received_at(offset, glyph), None);
+    output.append(&glyph[2..], sent + Duration::from_millis(50));
+    let received = output.received_at(offset, glyph).unwrap();
+    assert_eq!(received.duration_since(sent), Duration::from_millis(50));
+    assert!(
+        sent.elapsed() > Duration::from_millis(100),
+        "observer is deliberately late"
+    );
+    let late = output.bytes.len();
+    output.append(glyph, sent + Duration::from_millis(101));
+    assert!(
+        output
+            .received_at(late, glyph)
+            .unwrap()
+            .duration_since(sent)
+            > Duration::from_millis(100)
+    );
+}
+
 /// VIS31: actual terminal writes and process CPU in a stable idle window,
 /// followed by paced unique glyphs (not a configured FPS inferred as output).
 #[test]
@@ -46,14 +92,7 @@ fn vis31_demand_driven_idle_and_high_rate_input_paints() {
             }
         });
         for (sent, glyph) in rx {
-            while !contains(&pty.snapshot()[offset..], glyph.as_bytes()) {
-                assert!(
-                    sent.elapsed() < Duration::from_millis(100),
-                    "glyph did not paint promptly"
-                );
-                std::thread::sleep(Duration::from_micros(100));
-            }
-            latencies.push(sent.elapsed().as_micros());
+            latencies.push(wait_input_receipt(&pty, offset, sent, &glyph).as_micros());
         }
         sender.join().unwrap();
         latencies.sort_unstable();
@@ -114,14 +153,7 @@ fn vis31_high_rate_input_during_provider_burst() {
         });
         let mut latencies = Vec::new();
         for (sent, glyph) in rx {
-            while !contains(&pty.snapshot()[offset..], glyph.as_bytes()) {
-                assert!(
-                    sent.elapsed() < Duration::from_millis(100),
-                    "provider burst starved input paint"
-                );
-                std::thread::sleep(Duration::from_micros(100));
-            }
-            latencies.push(sent.elapsed().as_micros());
+            latencies.push(wait_input_receipt(&pty, offset, sent, &glyph).as_micros());
         }
         sender.join().unwrap();
         pty.wait_visible_after(off, "VIS31_PROVIDER_BURST_DONE", DEADLINE);

@@ -153,7 +153,7 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     pty.send(b"\r");
     wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);
     wait_screen_row(&pty, "GO05 independent Go choice", DEADLINE);
-    let screen = render_screen(&pty.output.lock().unwrap()).rows().join("\n");
+    let screen = render_screen(&pty.snapshot()).rows().join("\n");
     assert!(!screen.contains("T39 model") && !screen.contains("T39 alt"));
     pty.send(b"\x1b");
     dismissed(&pty, SCOPED_MODEL_DIALOG);

@@ -649,15 +649,28 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
             {
                 complete = false;
             } else {
-                let mut tmp = [0u8; 8192];
+                // Preserve durable admission for every published chunk, but
+                // coalesce a burst before paying its file+SQLite sync cost.
+                // The coalescing window is bounded by 32 KiB / 2 ms (not a
+                // write-latency guarantee). Sparse output and cancellation
+                // never wait for a full buffer.
+                let mut tmp = [0u8; 32 * 1024];
+                let mut pending = 0;
+                let mut since = Instant::now();
                 loop {
                     if stopping.load(Ordering::Acquire) {
                         complete = false;
                         break;
                     }
-                    match pipe.read(&mut tmp) {
+                    match pipe.read(&mut tmp[pending..]) {
                         Ok(0) => break,
                         Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            if pending > 0 && since.elapsed() >= Duration::from_millis(2) {
+                                if let Some((capture, stream)) = &live {
+                                    capture.ingest(*stream, &tmp[..pending], false, true);
+                                }
+                                pending = 0;
+                            }
                             std::thread::sleep(Duration::from_millis(2));
                         }
                         Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
@@ -667,7 +680,16 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
                         }
                         Ok(n) => {
                             if let Some((capture, stream)) = &live {
-                                capture.ingest(*stream, &tmp[..n], false, true);
+                                if pending == 0 {
+                                    since = Instant::now();
+                                }
+                                pending += n;
+                                if pending == tmp.len()
+                                    || since.elapsed() >= Duration::from_millis(2)
+                                {
+                                    capture.ingest(*stream, &tmp[..pending], false, true);
+                                    pending = 0;
+                                }
                                 continue;
                             }
                             let mut guard = worker.lock().expect("drain state");
@@ -684,6 +706,11 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
                             }
                         }
                     }
+                }
+                if pending > 0
+                    && let Some((capture, stream)) = &live
+                {
+                    capture.ingest(*stream, &tmp[..pending], false, true);
                 }
             }
         }

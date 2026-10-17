@@ -52,6 +52,9 @@ const PEAK_DELTA_BOUND: usize = 8 * 1024 * 1024;
 
 static LIVE: AtomicUsize = AtomicUsize::new(0);
 static PEAK: AtomicUsize = AtomicUsize::new(0);
+// This executable's allocation counter is process-global. Other cases must
+// not seed/free their archives while AUD32 measures, even with parallel libtest.
+static MEASUREMENT: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 struct Counting;
 
@@ -512,6 +515,7 @@ fn measure_turn(pairs: usize) -> (usize, String) {
 
 #[test]
 fn aud32_equal_active_context_bounded_construction() {
+    let _measurement = MEASUREMENT.blocking_lock();
     let (small_peak, small_body) = measure_turn(SMALL_PAIRS);
     let (large_peak, large_body) = measure_turn(LARGE_PAIRS);
     println!(
@@ -538,6 +542,7 @@ fn aud32_equal_active_context_bounded_construction() {
 
 #[tokio::test]
 async fn aud33_payload_above_64k_within_budget_is_complete() {
+    let _measurement = MEASUREMENT.lock().await;
     let data = tempfile::tempdir().expect("data");
     let project = tempfile::tempdir().expect("project");
     let harness = make_harness(data, project);
@@ -605,6 +610,7 @@ async fn aud33_payload_above_64k_within_budget_is_complete() {
 
 #[tokio::test]
 async fn aud34_tool_output_beyond_preview_is_retrievable() {
+    let _measurement = MEASUREMENT.lock().await;
     let data = tempfile::tempdir().expect("data");
     let project = tempfile::tempdir().expect("project");
     // A 4 KiB file with a marker after the first 2048 bytes.

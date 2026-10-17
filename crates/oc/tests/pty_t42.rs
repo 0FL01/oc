@@ -3597,6 +3597,9 @@ fn aud38_location_switch_is_one_lifecycle() {
     assert!(!tool_names(&requests[0]).contains(&B_MCP_TOOL.to_string()));
 
     // A switch while a turn streams is refused, not raced.
+    // The first answer/title can paint before its completion is adopted. This
+    // phase starts a new turn, not a steering draft inside that earlier one.
+    wait_idle(&pty);
     let off = submit(&mut pty, "slow stream");
     // The prompt is visible before async acceptance. Synchronize on the real
     // provider request so this remains a streaming-switch test, not an edit

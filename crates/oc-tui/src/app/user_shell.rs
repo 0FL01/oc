@@ -45,6 +45,7 @@ impl TuiState {
     }
 
     pub(super) fn change_prompt_shell_mode(&mut self, mode: bool) {
+        self.cancel_text_selection();
         if mode && !self.user_shell.mode && self.home {
             self.user_shell.example = SystemTime::now()
                 .duration_since(UNIX_EPOCH)

@@ -18,7 +18,7 @@ pub(super) struct SidebarMcp {
     open: bool,
     scroll: std::cell::Cell<usize>,
     painted: std::cell::RefCell<Option<SidebarPaint>>,
-    pressed: Option<(SidebarPaint, Rect, String)>,
+    pressed: Option<(SidebarPaint, Rect, Option<String>)>,
 }
 
 impl Default for SidebarMcp {
@@ -72,6 +72,7 @@ impl TuiState {
     }
 
     pub(super) fn invalidate_sidebar_pointer(&mut self) {
+        self.cancel_sidebar_selection();
         self.sidebar_mcp.pressed = None;
         self.clear_sidebar_paint();
     }
@@ -162,26 +163,38 @@ impl TuiState {
                     .is_some_and(|rect| rect.contains((event.column, event.row).into()))
                     && self.sidebar_mcp_servers().len() > 2
                 {
-                    outcome.intent = Some(PanelIntent::SetSidebarMcpOpen {
-                        open: !self.sidebar_mcp.open,
-                    });
+                    self.sidebar_mcp.pressed =
+                        Some((paint, layout.header.expect("hit header"), None));
                 } else if let Some((rect, index)) = layout
                     .rows
                     .iter()
                     .find(|(rect, _)| rect.contains((event.column, event.row).into()))
                 {
-                    self.sidebar_mcp.pressed =
-                        Some((paint, *rect, self.sidebar_mcp_servers()[*index].id.clone()));
+                    self.sidebar_mcp.pressed = Some((
+                        paint,
+                        *rect,
+                        Some(self.sidebar_mcp_servers()[*index].id.clone()),
+                    ));
                 }
             }
             MouseEventKind::Up(MouseButton::Left) if painted && event.modifiers.is_empty() => {
                 if let Some((pressed, rect, id)) = self.sidebar_mcp.pressed.take()
                     && pressed == paint
                     && rect.contains((event.column, event.row).into())
-                    && layout.rows.iter().any(|(current, index)| {
-                        *current == rect && self.sidebar_mcp_servers()[*index].id == id
-                    })
                 {
+                    let Some(id) = id else {
+                        if layout.header == Some(rect) && self.sidebar_mcp_servers().len() > 2 {
+                            outcome.intent = Some(PanelIntent::SetSidebarMcpOpen {
+                                open: !self.sidebar_mcp.open,
+                            });
+                        }
+                        return Some(outcome);
+                    };
+                    if !layout.rows.iter().any(|(current, index)| {
+                        *current == rect && self.sidebar_mcp_servers()[*index].id == id
+                    }) {
+                        return Some(outcome);
+                    }
                     outcome = self.run_command(crate::commands::CommandAction::OpenMcps);
                     if self.panel == TuiPanel::Mcps
                         && outcome.intent == Some(PanelIntent::LoadMcps)

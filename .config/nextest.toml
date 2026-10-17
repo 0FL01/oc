@@ -1,0 +1,36 @@
+# Schedule the existing Cargo tests, never omit or retry a failure.
+[profile.default]
+retries = 0
+fail-fast = false
+# Bound durable-I/O contention on the qualified 16-core host; this is not CPU
+# affinity. NEXTEST_TEST_THREADS can lower concurrency on smaller machines.
+test-threads = 10
+
+[profile.default.junit]
+path = 'junit.xml'
+
+[test-groups]
+# T39's frame/cursor/resource observations require serial execution. Start this
+# long lane early while independent targets use the other available slots.
+t39 = { max-threads = 1 }
+archives = { max-threads = 1 }
+
+[[profile.default.overrides]]
+# These transport/drain deadlines and CPU/input-latency measurements need the
+# otherwise idle host used by the original serial gate. Preserve their bounds
+# and event rates; do not measure contention from unrelated test processes.
+filter = 'test(=discovery::tests::reqwest_http_error_status_precedes_oversized_or_slow_body) | test(=shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal) | (binary(=pty_t39) & (test(=lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints) | test(=lifecycle::vis31_high_rate_input_during_provider_burst)))'
+threads-required = 'num-test-threads'
+priority = 100
+
+[[profile.default.overrides]]
+# These independent private-DB/archive/PID measurements are not interactive
+# cursor cases. Keep them serial with each other, off the interactive lane.
+filter = 'binary(=pty_t39) & (test(=lifecycle::aud31_pty_bounded_backing_state) | test(=lifecycle::s07_pty_equal_view_archive_resource_samples) | test(=lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples))'
+test-group = 'archives'
+priority = 50
+
+[[profile.default.overrides]]
+filter = 'binary(=pty_t39)'
+test-group = 't39'
+priority = 50

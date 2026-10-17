@@ -268,6 +268,7 @@ mod prompt_history;
 mod retry;
 mod select;
 mod services;
+mod text_selection;
 mod tool_output;
 mod transcript;
 mod user_shell;

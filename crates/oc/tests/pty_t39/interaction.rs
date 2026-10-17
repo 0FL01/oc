@@ -439,8 +439,25 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
     // The source line selection trims leading transcript padding.
     const LINE: &[u8] = b"echo: amber cobalt zircon";
     let fixture = Fixture::new();
+    let trap = fixture.root.path().join("must-not-spawn");
+    let write_config = |manual: bool| {
+        let mut config = serde_json::json!({"mcp":{"servers":{"copy-disabled":{
+            "type":"local", "disabled":true,
+            "command":["/bin/sh", "-c", "touch \"$0\"", trap]
+        }}}});
+        if manual {
+            config["terminal"] = serde_json::json!({"copy":"manual"});
+        }
+        std::fs::write(
+            fixture.root.path().join("project/opencode.json"),
+            config.to_string(),
+        )
+        .unwrap();
+    };
+    write_config(false);
+    vis27_home_chrome_copy(fixture.clone(), false);
     let session = "vis27-select";
-    let mut pty = PtySession::spawn(fixture.clone(), session, None);
+    let mut pty = PtySession::spawn_sized(fixture.clone(), session, None, 160, 40);
     pty.wait_visible(READY, DEADLINE);
     assert!(
         contains(&pty.snapshot(), b"\x1b[?1006h"),
@@ -507,6 +524,7 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
     vis27_mouse(&mut pty, 32, x + 6, y, 'M');
     vis27_mouse(&mut pty, 0, x + 6, y, 'm');
     wait_clipboard(&pty, 3, b"amber cobalt");
+    vis27_session_chrome_copy(&mut pty, false, 3);
     assert!(
         *fixture.requests.lock().unwrap() == requests_before,
         "selection sent provider traffic"
@@ -518,7 +536,7 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
         "select-mode terminal recovery"
     );
     assert!(contains(&output, ALT_LEAVE) && contains(&output, b"\x1b[?1006l"));
-    assert_eq!(osc52_clipboard(&output).len(), 3);
+    assert_eq!(osc52_clipboard(&output).len(), 10);
     assert_eq!(
         persisted(pty.data_dir(), session),
         [
@@ -530,13 +548,10 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
 
     // Write an admitted project config before a *new* binary launch. The
     // fixture global config and data root stay isolated throughout.
-    std::fs::write(
-        fixture.root.path().join("project/opencode.json"),
-        r#"{"terminal":{"copy":"manual"}}"#,
-    )
-    .expect("manual project config");
+    write_config(true);
+    vis27_home_chrome_copy(fixture.clone(), true);
     let session = "vis27-manual";
-    let mut manual = PtySession::spawn(fixture.clone(), session, None);
+    let mut manual = PtySession::spawn_sized(fixture.clone(), session, None, 160, 40);
     manual.wait_visible(READY, DEADLINE);
     submit(&mut manual, PROMPT);
     // wait_requests counts main turns, not ancillary title requests.
@@ -605,6 +620,7 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
         "manual highlight lost after copy"
     );
     assert_eq!(vis27_answer_cell(&manual), (x, y));
+    vis27_session_chrome_copy(&mut manual, true, 1);
     assert!(
         *fixture.requests.lock().unwrap() == requests_before,
         "manual selection sent provider traffic"
@@ -616,7 +632,7 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
         "manual-mode terminal recovery"
     );
     assert!(contains(&output, ALT_LEAVE) && contains(&output, b"\x1b[?1006l"));
-    assert_eq!(osc52_clipboard(&output).len(), 1);
+    assert_eq!(osc52_clipboard(&output).len(), 8);
     assert_eq!(
         persisted(manual.data_dir(), session),
         [
@@ -625,6 +641,114 @@ fn vis27_real_pty_osc52_select_and_manual_clipboard_modes() {
         ],
         "manual selection changed the two-message history"
     );
+    assert!(!trap.exists(), "disabled MCP must never execute");
+}
+
+fn vis27_painted_text(pty: &PtySession, needle: &str, sidebar: bool, last: bool) -> (u16, u16) {
+    let started = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        let mut hits = rows.iter().enumerate().filter_map(|(y, row)| {
+            row.match_indices(needle).find_map(|(at, _)| {
+                let x = row[..at].chars().count();
+                ((x >= 120) == sidebar).then_some((x as u16 + 1, y as u16 + 1))
+            })
+        });
+        if let Some(point) = if last { hits.next_back() } else { hits.next() } {
+            return point;
+        }
+        assert!(
+            started.elapsed() < DEADLINE,
+            "missing {needle:?}, sidebar={sidebar}: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+fn vis27_close_copy_toast(pty: &mut PtySession) {
+    let started = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        let Some((y, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.contains("Copied to clipboard"))
+        else {
+            return;
+        };
+        let x = row[..row.find("Copied to clipboard").unwrap()]
+            .chars()
+            .count()
+            + "Copied to clipboard".len()
+            + 2;
+        mouse_click(pty, x as u16 + 1, y as u16 + 1);
+        assert!(started.elapsed() < DEADLINE, "copy toast did not dismiss");
+        std::thread::sleep(POLL);
+    }
+}
+
+fn vis27_copy_painted(
+    pty: &mut PtySession,
+    manual: bool,
+    count: usize,
+    needle: &str,
+    sidebar: bool,
+    last: bool,
+) {
+    vis27_close_copy_toast(pty);
+    let (x, y) = vis27_painted_text(pty, needle, sidebar, last);
+    let before = pty.snapshot().len();
+    vis27_mouse(pty, 0, x, y, 'M');
+    vis27_mouse(pty, 32, x + needle.len() as u16, y, 'M');
+    vis27_mouse(pty, 0, x + needle.len() as u16, y, 'm');
+    if manual {
+        pty.wait_visible_after(before, needle, DEADLINE);
+        assert_eq!(
+            osc52_clipboard(&pty.snapshot()).len(),
+            count - 1,
+            "manual drag copied"
+        );
+        assert!(!contains(&pty.snapshot()[before..], b"Copied to clipboard"));
+        vis27_mouse(pty, 2, x, y, 'M');
+    }
+    wait_clipboard(pty, count, needle.as_bytes());
+    pty.wait_visible_after(before, "Copied to clipboard", DEADLINE);
+    vis27_close_copy_toast(pty);
+}
+
+fn vis27_home_chrome_copy(fixture: Arc<Fixture>, manual: bool) {
+    let before = fixture.requests.lock().unwrap().clone();
+    let mut pty = PtySession::spawn_connection(fixture.clone(), None, None, 160, 40, true);
+    pty.wait_visible("█▀▀█ █▀▀█", DEADLINE);
+    pty.send(b"\x1b[200~draft cobalt untouched\x1b[201~");
+    vis27_copy_painted(&mut pty, manual, 1, "cobalt", false, true);
+    vis27_copy_painted(&mut pty, manual, 2, "project", false, true);
+    assert_eq!(
+        *fixture.requests.lock().unwrap(),
+        before,
+        "Home copy generated traffic"
+    );
+    pty.send(b"\x03/quit\r");
+    let (status, output) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && pty.restored());
+    assert_eq!(osc52_clipboard(&output).len(), 2);
+}
+
+fn vis27_session_chrome_copy(pty: &mut PtySession, manual: bool, mut count: usize) {
+    pty.send(b"\x1b[200~draft cobalt untouched\x1b[201~");
+    for (needle, sidebar, last) in [
+        ("cobalt", false, true),
+        ("project", false, true),
+        ("Fixture session title", true, false),
+        ("Context", true, false),
+        ("copy-disabled", true, false),
+        ("Disabled", true, false),
+        ("project", true, true),
+    ] {
+        count += 1;
+        vis27_copy_painted(pty, manual, count, needle, sidebar, last);
+    }
+    pty.send(b"\x03"); // existing draft-clear semantics, never submit the selected draft
 }
 
 #[test]

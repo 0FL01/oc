@@ -747,11 +747,38 @@ fn dup_fd(fd: &OwnedFd) -> OwnedFd {
     unsafe { OwnedFd::from_raw_fd(duped) }
 }
 
+#[derive(Default)]
+struct PtyOutput {
+    bytes: Vec<u8>,
+    // One receipt per existing 8-KiB pipe read, not per byte or polling sample.
+    arrivals: Vec<(usize, Instant)>,
+}
+
+impl PtyOutput {
+    fn append(&mut self, bytes: &[u8], received: Instant) {
+        self.bytes.extend_from_slice(bytes);
+        self.arrivals.push((self.bytes.len(), received));
+    }
+
+    fn received_at(&self, offset: usize, needle: &[u8]) -> Option<Instant> {
+        let start = self
+            .bytes
+            .get(offset..)?
+            .windows(needle.len())
+            .position(|bytes| bytes == needle)?;
+        let end = offset + start + needle.len();
+        let receipt = self
+            .arrivals
+            .partition_point(|(end_offset, _)| *end_offset < end);
+        self.arrivals.get(receipt).map(|&(_, received)| received)
+    }
+}
+
 /// Live PTY session: `oc tui` attached to the slave, master driven here.
 struct PtySession {
     master: std::fs::File,
     child: Child,
-    output: Arc<Mutex<Vec<u8>>>,
+    output: Arc<Mutex<PtyOutput>>,
     fixture: Arc<Fixture>,
     data_dir: PathBuf,
 }
@@ -842,7 +869,7 @@ impl PtySession {
 
     fn finish_spawn(master: OwnedFd, child: Child, fixture: Arc<Fixture>) -> Self {
         let master_file: std::fs::File = master.into();
-        let output = Arc::new(Mutex::new(Vec::new()));
+        let output = Arc::new(Mutex::new(PtyOutput::default()));
         let out = output.clone();
         // SAFETY: master is open; dup returns a second open fd for the reader
         // thread, closed when its File drops.
@@ -856,7 +883,10 @@ impl PtySession {
             loop {
                 match reader.read(&mut chunk) {
                     Ok(0) | Err(_) => break,
-                    Ok(n) => out.lock().expect("output").extend_from_slice(&chunk[..n]),
+                    Ok(n) => {
+                        let received = Instant::now();
+                        out.lock().expect("output").append(&chunk[..n], received);
+                    }
                 }
             }
         });
@@ -870,7 +900,14 @@ impl PtySession {
     }
 
     fn snapshot(&self) -> Vec<u8> {
-        self.output.lock().expect("output").clone()
+        self.output.lock().expect("output").bytes.clone()
+    }
+
+    /// Observe bytes and the check time under one lock. Never measure observer
+    /// scheduling after an old absent snapshot as if the child's paint were late.
+    fn received_at(&self, offset: usize, needle: &[u8]) -> (Option<Instant>, Instant) {
+        let output = self.output.lock().expect("output");
+        (output.received_at(offset, needle), Instant::now())
     }
 
     fn data_dir(&self) -> &Path {
@@ -991,8 +1028,13 @@ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {
 
 /// Background faults are compact status, with typed facts on the real Settings route.
 fn inspect_settings_code(pty: &mut PtySession, code: &str) {
+    // An empty pre-startup screen also looks idle. Observe the real prompt
+    // before entering this command, then submit its painted atomic draft.
+    wait_screen_row(pty, "ctrl+p commands", DEADLINE);
     wait_idle(pty);
-    pty.send(b"/settings\r");
+    pty.send(b"\x1b[200~/settings\x1b[201~");
+    wait_screen_row(pty, "/settings", DEADLINE);
+    pty.send(b"\r");
     wait_screen_row(pty, "Settings", DEADLINE);
     wait_screen_row(pty, code, DEADLINE);
     pty.send(b"\x1b");

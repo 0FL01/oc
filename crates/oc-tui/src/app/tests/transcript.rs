@@ -1099,6 +1099,15 @@ async fn reasoning_painted_release_only_toggles_and_preserves_anchor() {
     let y = paint(&state);
     let release = selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y);
     let id = ReasoningIdentity::Durable(9, 0);
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), rect.x + 1, y),
+        frame,
+    );
+    state.handle_mouse(release, frame);
+    assert!(
+        state.reasoning_expanded.is_empty(),
+        "a non-header press must not become a standalone header release"
+    );
     state.handle_mouse(release, frame);
     assert!(state.reasoning_expanded.contains(&id));
     assert_eq!(paint(&state), y, "expanded header stays at its painted row");

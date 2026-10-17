@@ -1435,7 +1435,18 @@ fn pty_slow_consumer_stall_then_drain() {
         &["--session", "s-slow"],
         None,
     );
-    std::thread::sleep(Duration::from_secs(1));
+    // Drain startup only, then deliberately stop reading throughout the turn.
+    // A fixed sleep could send the draft before raw input/first paint was ready.
+    let startup = Instant::now();
+    let mut initial = Vec::new();
+    while !contains(&initial, READY.as_bytes()) || !contains(&initial, b"\x1b[?2026l") {
+        initial.extend(pty.drain());
+        assert!(
+            startup.elapsed() < DEADLINE,
+            "initial frame before consumer stall"
+        );
+        std::thread::sleep(POLL);
+    }
     pty.send(b"hello\r");
     std::thread::sleep(Duration::from_secs(2));
     pty.send(b"\x03"); // Ctrl-C while output sits in the PTY buffer

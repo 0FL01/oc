@@ -2185,13 +2185,23 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         }
     };
 
-    let builder = reqwest::Client::builder()
+    let mut builder = reqwest::Client::builder()
         .retry(reqwest::retry::never())
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
         .user_agent(crate::USER_AGENT)
         .resolve_to_addrs(&host, &addresses)
         .connect_timeout(config.connect_timeout);
+    // The captured plain-HTTP endpoint cannot use TLS and redirects are refused.
+    // Avoid loading an unused system verifier on every physical attempt; HTTPS
+    // retains its normal system trust store and all endpoint/peer checks.
+    if reqwest::Url::parse(&url)
+        .map_err(|_| ProviderError::InvalidConfig)?
+        .scheme()
+        == "http"
+    {
+        builder = builder.tls_certs_only([]);
+    }
     let builder = if let Some(deadline) = total_deadline {
         let remaining = deadline
             .checked_duration_since(tokio::time::Instant::now())

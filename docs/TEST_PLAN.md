@@ -9,7 +9,20 @@ scenario и не второй owner. Unknown IDs, duplicate references, shadowin
 
 ## Команды качества
 
-После появления workspace полный offline gate выполняется в T29:
+Полный offline gate после owner-requested ускорения (2026-10-17):
+
+```sh
+bash scripts/test.sh
+```
+
+Он сохраняет полный Cargo test set: unit/integration cases исполняет nextest,
+doctests — отдельный `cargo test --workspace --locked --doc --no-fail-fast`.
+Fmt, strict all-target Clippy, debug build/help/version входят в тот же скрипт.
+Профиль `.config/nextest.toml` меняет только scheduling, не assertions/timeouts,
+не повторяет failures и не добавляет filters/skips. Prerequisite и изоляция
+интерактивных T39/archive/timing-sensitive случаев — `docs/AGENT_RUNBOOK.md`.
+
+Исходный последовательный по targets вариант из T29 также доступен:
 
 ```sh
 cargo fmt --all -- --check

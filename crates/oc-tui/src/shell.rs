@@ -233,6 +233,7 @@ pub fn render_background(frame: &mut Frame<'_>) {
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     state.clear_prompt_paint();
     state.clear_sidebar_paint();
+    state.clear_text_paint(frame.area());
     state.shells.footer_hit.set(None);
     let theme = Theme::dark();
     let area = frame.area();
@@ -1330,11 +1331,20 @@ fn sidebar_layout_for_pane(state: &TuiState, pane: Rect) -> SidebarLayout {
     }
 }
 
-fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, layout: &SidebarLayout) {
-    frame.render_widget(
-        Block::default().style(Style::default().bg(theme.background_panel())),
-        layout.pane,
-    );
+fn sidebar_text_rows(
+    state: &TuiState,
+    theme: &Theme,
+    layout: &SidebarLayout,
+) -> Vec<(Rect, crate::styled::Line)> {
+    let first = layout.title.y;
+    let mut result: Vec<_> = (first..layout.footer.bottom())
+        .map(|y| {
+            (
+                Rect::new(layout.footer.x, y, layout.footer.width, 1),
+                crate::styled::Line::default(),
+            )
+        })
+        .collect();
     let title_style = Style::default()
         .fg(theme.text())
         .add_modifier(Modifier::BOLD);
@@ -1351,7 +1361,19 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, layout
             line
         })
         .collect();
-    frame.render_widget(Paragraph::new(title), layout.title);
+    for (index, line) in title
+        .into_iter()
+        .take(layout.title.height as usize)
+        .enumerate()
+    {
+        let rect = Rect::new(
+            layout.title.x,
+            layout.title.y + index as u16,
+            layout.title.width,
+            1,
+        );
+        result[(rect.y - first) as usize] = (rect, selection_line(line, rect.width));
+    }
     let mut lines = Vec::new();
     lines.push(Line::styled(
         "Context",
@@ -1459,10 +1481,63 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, layout
             }
         }
     }
+    for (index, line) in lines
+        .into_iter()
+        .skip(layout.offset)
+        .take(layout.body.height as usize)
+        .enumerate()
+    {
+        let rect = Rect::new(
+            layout.body.x,
+            layout.body.y + index as u16,
+            layout.body.width,
+            1,
+        );
+        result[(rect.y - first) as usize] = (rect, selection_line(line, rect.width));
+    }
+    if layout.footer.height > 0 {
+        result[(layout.footer.y - first) as usize] = (
+            layout.footer,
+            crate::styled::Line::styled(
+                compact_path(
+                    state
+                        .chrome
+                        .location
+                        .as_deref()
+                        .unwrap_or("Location unknown"),
+                    layout.footer.width as usize,
+                ),
+                Style::default().fg(theme.text_muted()),
+            ),
+        );
+    }
+    result
+}
+
+fn selection_line(line: Line<'static>, width: u16) -> crate::styled::Line {
+    crate::styled::Line::new(
+        clip_footer_spans(line.spans, width as usize)
+            .into_iter()
+            .map(|span| {
+                crate::styled::Span::styled(span.content.into_owned(), line.style.patch(span.style))
+            })
+            .collect(),
+    )
+}
+
+fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, layout: &SidebarLayout) {
     frame.render_widget(
-        Paragraph::new(lines).scroll((layout.offset as u16, 0)),
-        layout.body,
+        Block::default().style(Style::default().bg(theme.background_panel())),
+        layout.pane,
     );
+    let rows = state.paint_text(
+        crate::app::text_selection::TextSource::Sidebar,
+        frame.area(),
+        sidebar_text_rows(state, theme, layout),
+    );
+    for (rect, line) in rows {
+        frame.render_widget(Paragraph::new(line.into_ratatui()), rect);
+    }
     if layout.body.height > 0 && layout.content_height > layout.body.height as usize {
         let mut scroll = ScrollbarState::new(layout.content_height)
             .position(layout.offset)
@@ -1475,22 +1550,6 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, layout
                 .thumb_style(Style::default().fg(theme.scrollbar())),
             Rect::new(layout.body.right(), layout.body.y, 1, layout.body.height),
             &mut scroll,
-        );
-    }
-    if layout.footer.height > 0 {
-        frame.render_widget(
-            Paragraph::new(Line::styled(
-                compact_path(
-                    state
-                        .chrome
-                        .location
-                        .as_deref()
-                        .unwrap_or("Location unknown"),
-                    layout.footer.width as usize,
-                ),
-                Style::default().fg(theme.text_muted()),
-            )),
-            layout.footer,
         );
     }
     state.remember_sidebar_paint(frame.area(), layout);
@@ -1509,7 +1568,7 @@ fn thousands(n: u64) -> String {
         })
 }
 
-fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
+fn home_prompt_geometry(state: &TuiState, frame: Rect, area: Rect) -> (u16, Rect, Rect, Rect) {
     let width = area
         .width
         .saturating_sub(2 * layout::session_padding(area.width))
@@ -1517,10 +1576,10 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     let x = area.x + area.width.saturating_sub(width).div_ceil(2);
     let input_height = (prompt_lines(state, width + 2 * layout::session_padding(area.width)).len()
         as u16)
-        .min((frame.area().height / 3).max(6))
+        .min((frame.height / 3).max(6))
         .max(1);
     let h = input_height + 3;
-    let logo = home_logo(theme, area.width, area.height);
+    let logo = home_logo(Theme::dark(), area.width, area.height);
     let logo_height = logo.len() as u16;
     // The footer is a separate flex child: absent below 44x12, padding-only
     // without an item at 44..63, and unpadded below 16 rows. Inventory that
@@ -1540,16 +1599,6 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
             .saturating_sub(h + logo_height + 6 + footer_rows)
             / 2
         + top_spacer;
-    let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;
-    frame.render_widget(
-        Paragraph::new(logo),
-        Rect::new(
-            area.x + area.width.saturating_sub(logo_width).div_ceil(2),
-            y,
-            logo_width.min(area.width),
-            logo_height.min(area.bottom().saturating_sub(y)),
-        ),
-    );
     let prompt_y = (y + logo_height + 2).min(area.bottom());
     let body = Rect::new(
         x,
@@ -1563,19 +1612,85 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
         width,
         u16::from(body.bottom() < area.bottom()),
     );
+    let footer = Rect::new(
+        x,
+        underline.bottom(),
+        width,
+        u16::from(underline.bottom() < area.bottom()),
+    );
+    (y, body, underline, footer)
+}
+
+/// Geometry shared by painting and source validation, including narrow Home MCP layout.
+pub(crate) fn prompt_text_geometry(state: &TuiState, frame: Rect) -> (Rect, Rect, u16) {
+    let main = prompt_main(state, frame);
+    let (body, footer, terminal_width) = if state.home {
+        let (_, body, _, footer) = home_prompt_geometry(state, frame, main);
+        (
+            body,
+            footer,
+            body.width + 2 * layout::session_padding(main.width),
+        )
+    } else {
+        let regions = session_regions(state, main, frame.height);
+        (regions.prompt, regions.footer, main.width)
+    };
+    let pad = layout::session_padding(terminal_width);
+    (
+        Rect::new(
+            body.x.saturating_add(1 + pad),
+            body.y.saturating_add(1),
+            body.width.saturating_sub(1 + 2 * pad),
+            body.height.saturating_sub(3),
+        ),
+        footer,
+        main.width,
+    )
+}
+
+pub(crate) fn selectable_rows(
+    state: &TuiState,
+    frame: Rect,
+    source: crate::app::text_selection::TextSource,
+) -> Option<Vec<(Rect, crate::styled::Line)>> {
+    use crate::app::text_selection::TextSource;
+    match source {
+        TextSource::Sidebar => sidebar_layout(state, frame)
+            .map(|layout| sidebar_text_rows(state, Theme::dark(), &layout)),
+        TextSource::Location => {
+            let (_, rect, width) = prompt_text_geometry(state, frame);
+            let (_, _, line) = footer_projection(state, Theme::dark(), rect.width, width);
+            line.filter(|_| !rect.is_empty()).map(|line| {
+                vec![(
+                    Rect::new(rect.x, rect.y, line.width() as u16, 1),
+                    selection_line(line, rect.width),
+                )]
+            })
+        }
+    }
+}
+
+fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
+    let (y, body, underline, footer) = home_prompt_geometry(state, frame.area(), area);
+    let logo = home_logo(theme, area.width, area.height);
+    let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;
+    let logo_height = logo.len() as u16;
+    frame.render_widget(
+        Paragraph::new(logo),
+        Rect::new(
+            area.x + area.width.saturating_sub(logo_width).div_ceil(2),
+            y,
+            logo_width.min(area.width),
+            logo_height.min(area.bottom().saturating_sub(y)),
+        ),
+    );
     render_prompt(
         frame,
         state,
         theme,
         body,
         underline,
-        width + 2 * layout::session_padding(area.width),
-    );
-    let footer = Rect::new(
-        x,
-        underline.bottom(),
-        width,
-        u16::from(underline.bottom() < area.bottom()),
+        body.width + 2 * layout::session_padding(area.width),
     );
     render_footer(frame, state, theme, footer, area.width);
     render_slash(frame, state, theme, body);
@@ -2022,10 +2137,12 @@ fn render_prompt(
         if body.height > 1 {
             let (input_rows, caret) = state.prompt_layout(text_width as usize);
             let visible = body.height.saturating_sub(3) as usize;
-            let start = caret
-                .0
-                .saturating_sub(visible.saturating_sub(1))
-                .min(input_rows.len().saturating_sub(visible));
+            let start = state.prompt_drag_top().unwrap_or_else(|| {
+                caret
+                    .0
+                    .saturating_sub(visible.saturating_sub(1))
+                    .min(input_rows.len().saturating_sub(visible))
+            });
             state.observe_prompt_paint(
                 frame.area(),
                 Rect {
@@ -2114,6 +2231,8 @@ fn render_prompt(
                 && text_width > 0
                 && !state.terminal_focused()
                 && *state.panel() == crate::app::TuiPanel::None
+                && caret.0 >= start
+                && caret.0 < start + visible
             {
                 frame.set_cursor_position((
                     text_x + (caret.1 as u16).min(text_width - 1),
@@ -2330,7 +2449,18 @@ fn render_footer(
     if area.height == 0 || area.width == 0 {
         return;
     }
-    let (mut line, live) = footer_projection(state, theme, area.width, terminal_width);
+    let (mut line, live, location) = footer_projection(state, theme, area.width, terminal_width);
+    if let Some(location) = location {
+        let rect = Rect::new(area.x, area.y, location.width() as u16, 1);
+        let rows = state.paint_text(
+            crate::app::text_selection::TextSource::Location,
+            frame.area(),
+            vec![(rect, selection_line(location, area.width))],
+        );
+        if let Some((_, highlighted)) = rows.into_iter().next() {
+            line.spans.splice(..1, highlighted.into_ratatui().spans);
+        }
+    }
     if let Some(live) = live
         .filter(|_| !state.composer_open())
         .map(|range| range.start..range.end.min(area.width as usize))
@@ -2446,7 +2576,11 @@ fn footer_projection(
     theme: &Theme,
     layout_width: u16,
     terminal_width: u16,
-) -> (Line<'static>, Option<std::ops::Range<usize>>) {
+) -> (
+    Line<'static>,
+    Option<std::ops::Range<usize>>,
+    Option<Line<'static>>,
+) {
     let muted = Style::default().fg(theme.text_muted());
     let shell_mode = state.prompt_shell_mode();
     let live = (!shell_mode)
@@ -2554,6 +2688,7 @@ fn footer_projection(
     let mut left_width =
         (layout_width as usize).saturating_sub(hints.width() + usize::from(hints_visible) * 2);
     let mut spans: Vec<Span<'static>> = Vec::new();
+    let mut location_line = None;
     if let Some(notice) = state.retry_notice() {
         spans.push(Span::styled(notice, Style::default().fg(theme.warning())));
     } else if state.status() == &TuiStatus::Streaming {
@@ -2591,6 +2726,7 @@ fn footer_projection(
         ));
     } else if let Some(location) = &state.chrome.location {
         spans.push(Span::styled(compact_path(location, left_width), muted));
+        location_line = Some(Line::from(spans.clone()));
     }
     if hints.spans.len() > service_start
         && (state.status() == &TuiStatus::Streaming || state.retry_notice().is_some())
@@ -2615,7 +2751,7 @@ fn footer_projection(
     // The hints breakpoint reads the terminal width, the alignment the row
     // width (`feature-plugins/prompt/footer.tsx:53`).
     if !hints_visible {
-        return (line, None);
+        return (line, None, location_line);
     }
     let gap = layout_width
         .saturating_sub(line.width() as u16)
@@ -2625,7 +2761,7 @@ fn footer_projection(
     }
     let live = live_width.map(|width| line.width()..line.width() + width);
     line.spans.extend(hints.spans);
-    (line, live)
+    (line, live, location_line)
 }
 
 /// Height-1 devtools bar (`component/devtools-bar.tsx:232-445`), background
@@ -2672,6 +2808,13 @@ pub(crate) fn toast_rect(state: &TuiState, area: Rect) -> Option<Rect> {
         .saturating_add(2)
         .min(area.height.saturating_sub(1));
     Some(Rect::new(x, y, width, height))
+}
+
+pub(crate) fn text_toast_rect(state: &TuiState, area: Rect) -> Option<Rect> {
+    toast_rect(state, area).or_else(|| {
+        (state.note().is_some() && !area.is_empty())
+            .then(|| Rect::new(area.x, area.bottom() - 1, area.width, 1))
+    })
 }
 
 fn render_toast(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {

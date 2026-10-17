@@ -2611,6 +2611,7 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     append_tab(&app, &mut deck, &mut state, "second");
     state.apply_catalog(old.clone());
     state.handle_paste("/reload");
+    let captured = vis27_begin_prompt_drag(&mut state, "/reload");
     state.attach_page(&tps_page());
     assert!(
         state
@@ -2687,6 +2688,13 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     assert!(state.is_workspace_command("/old-command"));
     assert!(!state.is_workspace_command("/fresh-command"));
     assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
+    assert_eq!(
+        vis27_release_prompt_drag(&mut state, captured),
+        None,
+        "published Manual cancels the old automatic gesture even after route read failure"
+    );
+    let captured = vis27_begin_prompt_drag(&mut state, "/reload");
+    assert_eq!(vis27_release_prompt_drag(&mut state, captured), None);
     for view in [&state, deck.tabs[0].as_ref().unwrap()] {
         let text = view
             .visible_transcript(80, 80, 40)
@@ -2754,12 +2762,71 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     assert_eq!(state.input(), "/reload");
 }
 
+fn vis27_begin_prompt_drag(
+    state: &mut TuiState,
+    text: &str,
+) -> (ratatui::layout::Rect, crossterm::event::MouseEvent) {
+    use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+    state.restore_prompt(text.into());
+    let area = Rect::new(0, 0, 120, 40);
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| oc_tui::shell::render(frame, state))
+        .unwrap();
+    let (x, y) = (0..40)
+        .rev()
+        .find_map(|y| {
+            let row = (0..120)
+                .map(|x| terminal.backend().buffer()[(x, y)].symbol())
+                .collect::<String>();
+            row.find(text)
+                .map(|at| (row[..at].chars().count() as u16, y))
+        })
+        .unwrap();
+    let event = |kind, x| MouseEvent {
+        kind,
+        column: x,
+        row: y,
+        modifiers: KeyModifiers::NONE,
+    };
+    state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), x), area);
+    state.handle_mouse(
+        event(
+            MouseEventKind::Drag(MouseButton::Left),
+            x + text.len() as u16,
+        ),
+        area,
+    );
+    (
+        area,
+        event(MouseEventKind::Up(MouseButton::Left), x + text.len() as u16),
+    )
+}
+
+fn vis27_release_prompt_drag(
+    state: &mut TuiState,
+    (area, event): (ratatui::layout::Rect, crossterm::event::MouseEvent),
+) -> Option<String> {
+    state.handle_mouse(event, area);
+    let mut copied = None;
+    report_copy_request_with(state, |text| {
+        copied = Some(text.to_owned());
+        Ok(())
+    });
+    assert!(
+        state.take_copy_request().is_none(),
+        "producing view is drained exactly once"
+    );
+    copied
+}
+
 #[tokio::test]
 async fn vis27_mismatched_published_reload_disables_copy_until_owner_catalog() {
     use oc_core::queries::TerminalCopyMode;
     use oc_tui::app::ClipboardMode;
 
-    let (app, _inbox, _) = CoreApp::channel(8);
+    let (app, mut inbox, _) = CoreApp::channel(8);
     let mut current = catalog();
     current.chrome.location = Some("/B".into());
     current.chrome.terminal_copy = Some(TerminalCopyMode::Select);
@@ -2786,8 +2853,19 @@ async fn vis27_mismatched_published_reload_disables_copy_until_owner_catalog() {
     .unwrap_err();
     assert!(error.contains("Location changed"));
     assert_eq!(state.clipboard_mode(), ClipboardMode::Disabled);
+    let captured = vis27_begin_prompt_drag(&mut state, "copy draft");
+    assert_eq!(vis27_release_prompt_drag(&mut state, captured), None);
+    assert_eq!(state.input(), "copy draft");
+    assert!(inbox.try_recv().is_err());
     state.apply_catalog(current);
     assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+    let captured = vis27_begin_prompt_drag(&mut state, "copy draft");
+    assert_eq!(
+        vis27_release_prompt_drag(&mut state, captured),
+        Some("copy draft".into())
+    );
+    assert_eq!(state.input(), "copy draft");
+    assert!(inbox.try_recv().is_err());
 }
 
 #[tokio::test]
@@ -2891,6 +2969,11 @@ async fn vis27_reload_projects_owner_mode_to_active_parked_and_home() {
         assert_eq!(meta.output_tokens, Some(200));
     }
     assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+    let captured = vis27_begin_prompt_drag(&mut state, "copy draft");
+    assert_eq!(
+        vis27_release_prompt_drag(&mut state, captured),
+        Some("copy draft".into())
+    );
     assert_eq!(
         deck.tabs[0].as_ref().unwrap().clipboard_mode(),
         ClipboardMode::Select
@@ -2901,6 +2984,11 @@ async fn vis27_reload_projects_owner_mode_to_active_parked_and_home() {
     );
     deck.activate(&mut state, 0).unwrap();
     assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+    let captured = vis27_begin_prompt_drag(&mut state, "copy draft");
+    assert_eq!(
+        vis27_release_prompt_drag(&mut state, captured),
+        Some("copy draft".into())
+    );
     assert!(
         !state
             .visible_transcript(80, 80, 40)
@@ -2910,6 +2998,11 @@ async fn vis27_reload_projects_owner_mode_to_active_parked_and_home() {
     );
     assert!(deck.restore_home(&mut state));
     assert_eq!(state.clipboard_mode(), ClipboardMode::Select);
+    let captured = vis27_begin_prompt_drag(&mut state, "copy draft");
+    assert_eq!(
+        vis27_release_prompt_drag(&mut state, captured),
+        Some("copy draft".into())
+    );
 }
 
 #[tokio::test]

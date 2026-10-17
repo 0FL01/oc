@@ -249,7 +249,7 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
                 crate::endpoint::resolve(url, self.endpoint.as_ref(), self.test_loopback)
                     .await
                     .map_err(|_| DiscoveryError::InvalidConfig)?;
-            let client = reqwest::Client::builder()
+            let mut builder = reqwest::Client::builder()
                 .retry(reqwest::retry::never())
                 // The metadata consumer validates records between reads. Bound
                 // transport credit too, rather than queueing multi-MiB DATA
@@ -261,9 +261,18 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
                 .no_proxy()
                 .user_agent(crate::USER_AGENT)
                 .connect_timeout(self.connect_timeout)
-                .resolve_to_addrs(&host, &addresses)
-                .build()
-                .map_err(|_| DiscoveryError::Network)?;
+                .resolve_to_addrs(&host, &addresses);
+            // A validated plain-HTTP URL cannot use TLS, and redirects are
+            // refused. Don't synchronously load the system trust store inside
+            // its attempt budget. HTTPS retains reqwest's system verifier.
+            if reqwest::Url::parse(url)
+                .map_err(|_| DiscoveryError::InvalidConfig)?
+                .scheme()
+                == "http"
+            {
+                builder = builder.tls_certs_only([]);
+            }
+            let client = builder.build().map_err(|_| DiscoveryError::Network)?;
             let req = client
                 .get(url)
                 .headers(headers.clone())

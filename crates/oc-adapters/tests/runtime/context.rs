@@ -120,7 +120,9 @@ for line in sys.stdin:
                 .unwrap()
                 .unwrap()
             {
-                CoreEvent::TurnFinished { .. } => break,
+                CoreEvent::TurnFinished {
+                    session: finished, ..
+                } if finished == session => break,
                 CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error}"),
                 _ => {}
             }
@@ -148,7 +150,7 @@ for line in sys.stdin:
         Some("review")
     );
     let mut events = app.subscribe();
-    app.submit(session, "try restored tools".into())
+    app.submit(session.clone(), "try restored tools".into())
         .await
         .unwrap();
     loop {
@@ -157,7 +159,9 @@ for line in sys.stdin:
             .unwrap()
             .unwrap()
         {
-            CoreEvent::TurnFinished { .. } => break,
+            CoreEvent::TurnFinished {
+                session: finished, ..
+            } if finished == session => break,
             CoreEvent::TurnFailed { error, .. } => panic!("restored turn failed: {error}"),
             _ => {}
         }

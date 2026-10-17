@@ -1320,10 +1320,40 @@ fn aud24_binary_routes_collision_names_to_exact_original_server_and_tool() {
         json!([{"action": "a__b__c", "resource": "*", "effect": "allow"}, {"action": "a__b__c__2", "resource": "*", "effect": "allow"}]),
     );
 
-    let mut process = fixture.spawn_run("aud24-routing");
-    let status = process.wait();
-    assert!(status.success(), "{}", process.diagnostics());
-    assert_eq!(process.output().trim(), "MCP routing observed");
+    // This case measures exactly two routing requests, not asynchronous catalog
+    // startup. Observe both catalogs in the same process before submitting, or
+    // FakeResponses legitimately inserts its builtin glob readiness request.
+    let session = "aud24-routing";
+    let data = fixture.home.join("data/oc");
+    {
+        let db = oc_adapters::storage::Db::open(&data).unwrap();
+        db.create_session(session).unwrap();
+        db.set_pref(
+            &format!("{}{session}", oc_adapters::runtime::SESSION_LOCATION_PREFIX),
+            &fixture.project.canonicalize().unwrap().to_string_lossy(),
+        )
+        .unwrap();
+    }
+    let mut process = PtyProcess::spawn(&fixture, session);
+    process.wait_visible(READY);
+    process.send_line("/mcps");
+    lifecycle::wait_row(&process, " a ", "Connected");
+    lifecycle::wait_row(&process, "a__b", "Connected");
+    lifecycle::close_mcps(&mut process);
+    assert!(
+        responses.requests().is_empty(),
+        "catalog readiness must not generate"
+    );
+    process.send_line("aud24-routing");
+    process.wait_screen("MCP routing observed", TIMEOUT);
+    responses.wait_requests(3);
+    process.raw(b"\x03");
+    assert!(process.wait_exit().success());
+    let db = oc_adapters::storage::Db::open(&data).unwrap();
+    assert_eq!(
+        db.read_history(session).unwrap().last(),
+        Some(&("assistant".into(), "MCP routing observed".into()))
+    );
     let requests = responses.requests();
     assert_eq!(requests.len(), 3, "tool round, final round, title");
     assert_eq!(requests.iter().filter(|r| title::is_title(r)).count(), 1);

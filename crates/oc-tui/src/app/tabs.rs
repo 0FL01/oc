@@ -868,6 +868,7 @@ impl TuiState {
 
     /// Clear a mouse surface when it is hidden or no longer admitted.
     pub fn clear_mouse_position(&mut self) {
+        self.cancel_text_selection();
         self.invalidate_sidebar_pointer();
         self.tab_view.get_mut().rail_drag = None;
         self.tab_view.get_mut().rail_preview = None;
@@ -886,6 +887,7 @@ impl TuiState {
     /// hover resolves current painted identity; only a same-ID tab may retain
     /// its marquee clock across the admitted new layout.
     pub fn resize_mouse_position(&mut self, area: Rect) {
+        self.cancel_text_selection();
         self.invalidate_sidebar_pointer();
         self.tab_view.get_mut().rail_drag = None;
         self.tab_view.get_mut().rail_preview = None;

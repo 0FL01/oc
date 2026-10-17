@@ -246,6 +246,60 @@ async fn term01_raw_priority_controls_leader_and_first_click_restore_draft() {
 }
 
 #[tokio::test]
+async fn term01_text_drag_across_pty_does_not_focus_or_forward() {
+    use ratatui::{Terminal, backend::TestBackend};
+    let (mut state, app, guard) = state().await;
+    attach(&mut state, entry("drag-target"));
+    state.focus_terminal(false);
+    state.restore_prompt("copy draft".into());
+    let area = Rect::new(0, 0, 160, 40);
+    let mut terminal = Terminal::new(TestBackend::new(160, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    let (x, y) = (0..40)
+        .rev()
+        .find_map(|y| {
+            let row = (0..160)
+                .map(|x| terminal.backend().buffer()[(x, y)].symbol())
+                .collect::<String>();
+            row.find("copy draft")
+                .map(|at| (row[..at].chars().count() as u16, y))
+        })
+        .unwrap();
+    let pointer = |kind, x, y| MouseEvent {
+        kind,
+        column: x,
+        row: y,
+        modifiers: KeyModifiers::NONE,
+    };
+    state.handle_mouse(pointer(MouseEventKind::Down(MouseButton::Left), x, y), area);
+    state.handle_mouse(
+        pointer(MouseEventKind::Drag(MouseButton::Left), x + 4, y),
+        area,
+    );
+    let pane = split(&state, area).1;
+    assert!(!pane.is_empty());
+    let outcome = state.handle_mouse(
+        pointer(MouseEventKind::Up(MouseButton::Left), pane.x + 2, y),
+        area,
+    );
+    assert!(outcome.intent.is_none());
+    assert_eq!(state.take_copy_request(), Some("copy draft".into()));
+    assert!(!state.terminal_focused());
+    state.handle_mouse(
+        pointer(MouseEventKind::Down(MouseButton::Left), pane.x + 2, y),
+        area,
+    );
+    assert!(
+        state.terminal_focused(),
+        "a fresh PTY press still transfers focus"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn term01_permission_and_question_own_keys_and_pointer_over_focused_pty() {
     use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
     use oc_core::question::{QuestionInput, QuestionRequest};

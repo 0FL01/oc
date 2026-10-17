@@ -137,6 +137,13 @@ impl Editor {
         self.selection()
     }
 
+    pub(crate) fn chip_end(&self, start: usize) -> Option<usize> {
+        self.chips
+            .iter()
+            .find(|chip| chip.start == start)
+            .map(|chip| chip.end)
+    }
+
     pub fn replace(&mut self, text: &mut String, inserted: &str, limit: usize) -> usize {
         self.insert(text, inserted, limit, false).inserted
     }
