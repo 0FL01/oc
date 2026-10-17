@@ -1,6 +1,6 @@
 # Goal: Clipboard PNG input
 
-Status: active
+Status: complete
 Source: owner request and approved RECON plan, 2026-10-17; implementation/commit/push/debug build explicitly requested.
 Last updated: 2026-10-17
 
@@ -67,13 +67,15 @@ every required outcome is resolved and affected constraints remain satisfied.
   - Acceptance: bounded PTY fake-clipboard/wire/restart proof; narrow paired
     draft/sent visual qualification at 80/120; checks, debug build, commit/push.
   - Primary evidence: PTY/capture artifacts, gate output and Git delivery.
-  - Status: in_progress
+  - Status: verified
   - Evidence: fresh isolated 80/120 draft/sent captures pass both binaries'
     PNG/wire/natural-exit checks in `.local/evidence/clipboard-images/fresh/`.
     All eight unmasked full-grid/PNG comparisons remain DIFFERENT; cursors match.
     Required image marker/chip styling agrees on inspected frames. Final
     `scripts/test.sh` exits 0: 2062 PASS/0 FAIL/12 original opt-in ignores,
-    fmt/strict Clippy/doctests/debug build/help/version pass. Git delivery pending.
+    fmt/strict Clippy/doctests/debug build/help/version pass. Implementation
+    `a4b456652d472e3d863abf390284056ca7b5e315` pushed to verified origin/master.
+    Factual receipt: `evidence/T44/clipboard-images-20261017.md`.
 
 ### Constraints
 
@@ -105,16 +107,13 @@ every required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R5.
-- Smallest next action: commit/push the reviewed implementation and close the goal
-  with a factual report and progress checkpoint.
-- Expected evidence: existing successful gate plus Git delivery; captures are done.
-- Stop or replan if: a required boundary cannot be preserved without material
-  scope expansion, or a required external reference is unavailable.
+- Closed: R1–R5. No further feature implementation or qualification is pending.
+- Existing successful gate, paired captures and implementation push are recorded
+  in the factual receipt; whole T44 and the unrelated soak objective stay open.
 
 ## Current State
 
-- Resolved: R1–R4; all new focused scenarios pass, including exact RAW recovery.
+- Resolved: R1–R5; all new scenarios pass, including exact RAW recovery and delivery.
 - Last relevant evidence: final `scripts/test.sh` exits 0, 399s whole / 362.924s
   nextest, run `218c6aa3-df14-487a-b3a6-b378af88ee8f`, 2062 PASS/0 FAIL/12 original
   ignores; fmt/strict Clippy/doctests/debug build/help/version pass. Seven new
@@ -126,8 +125,8 @@ every required outcome is resolved and affected constraints remain satisfied.
   timeouts and production guards are unchanged. Soak is still over budget
   (33.580s); UI07's 32.471s fits its existing owner-approved 40s exception.
 - Blocker: none established for implementation.
-- Next: reviewed implementation commit/push and factual closeout. T44 parity and
-  the unrelated soak-budget objective remain separate and incomplete.
+- Next: stop this objective. T44 parity and the unrelated soak-budget objective
+  remain separate and incomplete.
 
 ## Material Decisions
 
@@ -141,4 +140,10 @@ every required outcome is resolved and affected constraints remain satisfied.
 
 ## Completion
 
-Pending. Whole T44 and unrelated soak-budget qualification remain incomplete.
+- R1–R5 verified: current-source functional gate succeeds and the reviewed
+  implementation is pushed. Debug executable built by the same gate is ready.
+- Scope/constraints reviewed: no new schema/store/dependency or user data/config
+  mutation; source/RAW/security limits remain. Later closeout edits are factual
+  documentation/progress only and do not invalidate runtime evidence.
+- Final status: complete for clipboard PNG input only. Full-frame parity,
+  whole T44 and unrelated soak-budget qualification remain incomplete.
