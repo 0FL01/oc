@@ -1,6 +1,6 @@
 # Goal: устранить причины 14 медленных тестов
 
-Status: active
+Status: unmet
 Source: «Что это за медленные тесты? нужно подумать как ускорить, время = деньги»;
 последующий RECON/план и «длеай копию плана в цель и итеративно реализовать и коммит пуш».
 Base: `07a277d35c4e8f57910d7e15a43df1e1f9ee6560`.
@@ -62,7 +62,7 @@ evidence and smallest unlock.
     cases, 120 normal soak turns и оба настоящих 20 MiB producers. По замеру выбрать
     минимальную правку владельца; не начинать с общего Runtime-clock рефакторинга.
   - Primary evidence: четыре соответствующих существующих case, фазовые замеры.
-  - Status: verified.
+  - Status: in_progress; acceptance remains unmet, see final disposition below.
   - Evidence: retry-11 PASS12.423s, все6 scenarios/11 HTTP attempts и десять emitted
     attempts2..11 сохранены. После фазового RECON matrix PASS20.420s вместо42.917s:
     все24 data roots независимы, копируется только закрытая пустая owner-DB.
@@ -79,6 +79,10 @@ evidence and smallest unlock.
     с1275/1276 ingress chunks вместо641. Readiness-wait correction затем дал
     PASS21.530s и641 chunks на каждом producer; все9 capture/conversion cases PASS
     (`R6-pipe-readiness.log`/JUnit). Полная текущая квалификация остаётся R6.
+    Исправленный полный gate функционально PASS2055/0/12, но soak30.210s
+     превысил30s: временная квалификация R4 снова открыта, не округляется до PASS.
+    Последний полный эксперимент: все функциональные assertions PASS, но soak
+    33.763s>30s. Retry/matrix/shell ниже30s; весь R4 не выполнен.
 - R5 — сохранить настоящий UI07 discovery deadline и решить оставшийся бюджет явно.
   - Source: пункт плана о единственном очевидном 30s временном контракте; AGENTS.md.
   - Acceptance: production deadline 30000ms и реальная проверка не сокращаются;
@@ -96,7 +100,12 @@ evidence and smallest unlock.
     `bash scripts/test.sh` PASS, опубликованы текущие individual/full timings,
     reviewed commits pushed. Новый процент ускорения заранее не обещан.
   - Primary evidence: targeted logs, nextest inventory/JUnit, полный gate, Git HEAD/origin.
-  - Status: pending. Evidence: pending.
+  - Status: pending; final budget qualification not achieved.
+  - Evidence: `R6-last-exclusive-full-gate.{log,json}` / JUnit:2055 PASS/0 FAIL/
+    12 original opt-in ignored, nextest360.859s, whole404.412s; fmt/strict Clippy/
+    doctests/debug build/help/version PASS. Budget wrapper correctly returned1
+    because soak33.763s>30s. Failed priority experiment was reverted; no claim of
+    a newly qualified complete run after that rollback. Reviewed delivery is below.
 
 ### Ограничения и границы
 
@@ -129,26 +138,28 @@ CARGO_TARGET_DIR override, реального API и запуска `oc2-dev`.
 
 ## Исходные 14 случаев
 
-Время — из завершённого зелёного `fast-gate-7`, с конкуренцией десяти slots, без
-компиляции/очереди. Это не изолированные фазовые замеры и не обещание экономии wall time.
-Все пути ниже относительно `crates/`.
+Исходное время — из зелёного `fast-gate-7`; последнее — из функционально зелёного,
+но не прошедшего временную квалификацию `R6-last-exclusive-junit.xml`. Оба полных
+прогона используют десять slots; последняя priority-проба затем отменена. Время
+без компиляции/очереди, не изолированные фазовые замеры и не обещание экономии
+wall time. Все пути ниже относительно `crates/`.
 
-| Case | s | Owner | Этап / сохранённая нагрузка |
-|---|---:|---|---|
-| `foreground_children::batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancellation` | 99.333 | `oc-adapters/tests/fixtures/foreground_children.rs` | R4: 6 scenarios, requests 2/1/2/3/3/11 |
-| `lifecycle::aud31_pty_bounded_backing_state` | 95.298 | `oc/tests/pty_t39/lifecycle.rs` | R2 seed: 21 sessions, 4200 messages, 260 intents/outcomes |
-| `storage::tool_output::tests::tool21_registered_stream_cap_redaction_leases_and_shared_quota` | 89.601 | `oc-adapters/src/storage_tool_output/tests.rs` | R3: exact filler/redaction/cap/quota/leases |
-| `turns::fresh_provider_failure_after_accept_retains_root_and_reports_failed_turn` | 88.260 | `oc-adapters/tests/runtime/turns.rs` | R1: acceptance/root/Failed/history |
-| `lifecycle::s07_pty_equal_view_archive_resource_samples` | 86.204 | `oc/tests/pty_t39/lifecycle.rs` | R2 seed: 0/3000 archive + 200 shared each, actual UI/read |
-| `lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples` | 83.409 | `oc/tests/pty_t39/lifecycle.rs` | R2 seed: 3000×16KiB, 47 prunes, genuine manual compression |
-| `dcp::renewal_tests::addressed_legacy_coverage_does_not_transfer_4096_historical_members` | 82.583 | `oc-adapters/src/dcp/renewal_tests.rs` | R2 seed: 4100 archived IDs, same legacy block/snapshot |
-| `soak_two_epochs_bounded_growth` | 66.824 | `oc-adapters/tests/soak.rs` | R4: 2×6×10 turns, real tools/DB/RSS/context |
-| `pty_long_history_starts_and_pages` | 60.525 | `oc/tests/pty.rs` | R2 seed: 3000 distinct messages, real paging/restoration |
-| `approval_structural_invalid_child_never_asks_saves_or_starts` | 51.495 | `oc-adapters/tests/subagent.rs` | R4: 8×3 isolated cases, 48 requests |
-| `shell::jobs::output_tests::tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot_state` | 48.460 | `oc-adapters/src/shell/jobs/output_tests.rs` | R4: 2×20971520 actual bytes, cap/quota/effect/final flush |
-| `aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression` | 42.289 | `oc/tests/dcp_runtime.rs` | R2 seed: 1825 messages, 32 ranges, actual durability barrier/kill/reopen |
-| `explicit_foreign_and_unbound_rows_are_refused_without_claiming_or_listing` | 35.005 | `oc/tests/pty_t42.rs` | R2 seed: 1502 roots, 3 actual launches, final 1503 |
-| `provider_readiness::ui07_native_discovery_deadline_is_local_and_explicit_known_model_works` | 32.822 | `oc/tests/pty_t39/provider_readiness.rs` | R5: real 30000ms, 2 discovery requests, repair/model on wire |
+| Case | Было, s | Последний full, s | Owner | Этап / сохранённая нагрузка |
+|---|---:|---:|---|---|
+| `foreground_children::batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancellation` | 99.333 | 12.459 | `oc-adapters/tests/fixtures/foreground_children.rs` | R4: 6 scenarios, requests 2/1/2/3/3/11 |
+| `lifecycle::aud31_pty_bounded_backing_state` | 95.298 | 8.119 | `oc/tests/pty_t39/lifecycle.rs` | R2 seed: 21 sessions, 4200 messages, 260 intents/outcomes |
+| `storage::tool_output::tests::tool21_registered_stream_cap_redaction_leases_and_shared_quota` | 89.601 | 23.301 | `oc-adapters/src/storage_tool_output/tests.rs` | R3: exact filler/redaction/cap/quota/leases |
+| `turns::fresh_provider_failure_after_accept_retains_root_and_reports_failed_turn` | 88.260 | 1.574 | `oc-adapters/tests/runtime/turns.rs` | R1: acceptance/root/Failed/history |
+| `lifecycle::s07_pty_equal_view_archive_resource_samples` | 86.204 | 7.879 | `oc/tests/pty_t39/lifecycle.rs` | R2 seed: 0/3000 archive + 200 shared each, actual UI/read |
+| `lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples` | 83.409 | 9.826 | `oc/tests/pty_t39/lifecycle.rs` | R2 seed: 3000×16KiB, 47 prunes, genuine manual compression |
+| `dcp::renewal_tests::addressed_legacy_coverage_does_not_transfer_4096_historical_members` | 82.583 | 2.070 | `oc-adapters/src/dcp/renewal_tests.rs` | R2 seed: 4100 archived IDs, same legacy block/snapshot |
+| `soak_two_epochs_bounded_growth` | 66.824 | **33.763 — unmet** | `oc-adapters/tests/soak.rs` | R4: 2×6×10 turns, real tools/DB/RSS/context |
+| `pty_long_history_starts_and_pages` | 60.525 | 2.905 | `oc/tests/pty.rs` | R2 seed: 3000 distinct messages, real paging/restoration |
+| `approval_structural_invalid_child_never_asks_saves_or_starts` | 51.495 | 20.685 | `oc-adapters/tests/subagent.rs` | R4: 8×3 isolated cases, 48 requests |
+| `shell::jobs::output_tests::tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot_state` | 48.460 | 20.610 | `oc-adapters/src/shell/jobs/output_tests.rs` | R4: 2×20971520 actual bytes, cap/quota/effect/final flush |
+| `aud21_binary_sigkill_never_publishes_a_partial_multi_range_compression` | 42.289 | 4.265 | `oc/tests/dcp_runtime.rs` | R2 seed: 1825 messages, 32 ranges, actual durability barrier/kill/reopen |
+| `explicit_foreign_and_unbound_rows_are_refused_without_claiming_or_listing` | 35.005 | 3.095 | `oc/tests/pty_t42.rs` | R2 seed: 1502 roots, 3 actual launches, final 1503 |
+| `provider_readiness::ui07_native_discovery_deadline_is_local_and_explicit_known_model_works` | 32.822 | 32.884 — approved≤40 | `oc/tests/pty_t39/provider_readiness.rs` | R5: real 30000ms, 2 discovery requests, repair/model on wire |
 
 ## Baseline / change envelope
 
@@ -191,22 +202,13 @@ or permit a new storage/schema/clock API.
 
 R4 owner decision: continue soak to<=30s, rather than grant75s. Correct wall-time
 profiling identifies21.029s in2324 fsync plus substantial CPU work, not an artificial
-sleep. The current backend dev/test code is compiled at Cargo's default opt-level0.
-The backend-only opt-level1 experiment passed43.839s. Adding bundled SQLite/JSON
-at1 passed35.244s and cut measured turn CPU further, but still did not reach30s.
-Optimizing all third-party dependencies plus the backend passed31.486s, still
-above30s. The remaining workspace units still compile unoptimized. Use one Cargo
-`profile.dev` opt-level1 rather than more package exceptions, preserving debug
-assertions, overflow checks, SQLite API armor, release and every durable effect.
-Remove temporary profiling callbacks/CPU clocks and restore the exact original
-soak body; nextest still measures the whole case. Keep only measured benefit;
-do not waive30s or add a new profile/runner/dependency/cache.
-
-The original soak body passed29.904s with the single dev override; profiling
-callbacks and process clocks are removed. Its measured2324 durable syncs dominate
-host I/O and leave little room under30s. Reserve the existing nextest pool for
-this one case, as for existing timing measurements, rather than benchmark other
-cases' I/O contention. No test is omitted, retried or given a longer deadline.
+sleep. The retained single Cargo `profile.dev` opt-level1 cut the unchanged case
+from the original66.824s to29.904s targeted, but later full30.210s reopened its
+budget. Debug assertions, overflow checks, SQLite API armor and release remain
+unchanged. Temporary CPU clocks/event callbacks were removed. The existing nextest
+pool is reserved for this fixed workload, not competing tests' I/O. No workload,
+sync, test or timeout is removed. Logs retain backend-only43.839s,
+SQLite/JSON+backend35.244s and dependencies+backend31.486s experiments.
 
 R6 first full qualification kept all2055 runnable cases and twelve original
 ignores. It exposed two fixture phase races: Go's draft label was treated as a
@@ -222,6 +224,32 @@ the entire2ms coalescing window on `WouldBlock`, so the next read publishes a
 partial buffer instead of collecting an already-ready burst. Replace that wait
 with bounded native pipe readiness polling only while bytes are pending. Keep
 the32KiB/2ms limits, original idle sleep, stop/EOF flush and durable publication.
+
+The corrected full gate passed every functional check, with shell19.609s and
+UI07's approved32.392s, but soak still measured30.210s. Its remaining two300ms
+cancellation sleeps are guesses after acceptance, not contractual observation
+windows. Replace only those waits with observed receipt of the real stalled
+response's headers/first heartbeat. Preserve both genuine cancellations, all120
+normal turns, thirty-second stalled peer, and every resource/durability assertion.
+The shared crash fixture keeps its original500ms watchdog and recovery checks.
+Both consumers passed after readiness correction (31.484s/1.333s), but this is not
+a budget PASS. Higher dev levels2/3 still took30.767s/30.645s and were discarded;
+dev1 is restored. Three prepared-read reuse changes passed functional checks but
+soak31.391s provided no useful improvement; they too were discarded. Paired-root
+overlap on the same Runtime failed with `TurnActive` and was rolled back, without
+bypassing the guard or creating extra runtime owners. No storage/PGID redesign,
+new cache, schema, public API, reduced load or relaxed durability was selected.
+
+The kernel probe confirmed that both signal0 and SIGTERM still report an unreaped
+zombie group as existing; no cleanup shortcut was taken. A narrow paired
+cadence/request transaction passed all7 atomicity/cadence/restart/retry/failure
+checks but soak34.643s showed no useful time improvement. That production
+experiment and its new private method/test were discarded in full.
+
+Final bounded environment experiment kept the120-turn measurement exclusive and
+scheduled it last. The complete gate still measured33.763s. This did not establish
+a compiler-writeback fix; the priority change was discarded. The original707
+scheduler is restored byte-for-byte, with no sleep/retry/filter/deadline change.
 
 ### R2 targeted evidence
 
@@ -243,18 +271,39 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 
 ## Current checkpoint / state
 
-- Closes: R6. R1–R5 подтверждены ближайшими checks; первый полный gate FAILED по
-  двум fixture phase races и shell budget. Их коррекции проверены: account/MCP
-  cases PASS2.721s/2.089s, capture/conversion9 PASS и shell21.530s с прежними байтами.
-  Commit/push связной коррекции, затем один полный gate:2055 runnable/12 original
-  ignores, все budgets<=30s кроме UI07<=40s, fmt/Clippy/doctests/debug build.
-  Не повторять уже завершённые focused checks. T44 не закрывать.
+- Stopped with an unmet finish line, not completion: R1–R3/R5 verified; R4's
+  soak<=30s and final R6 time qualification remain unfulfilled. The latest complete
+  experiment has2055 PASS/0 FAIL/12 original ignores, nextest360.859s, whole404.412s,
+  but soak33.763s. UI07's32.884s fits its sole explicitly approved40s exception.
+  No other case exceeded30s. This is not a guarantee for other runs/hosts.
+- Actual stream readiness replaces only incidental300ms cancellation guesses;
+  the120-turn workload, real tools, FULL durability and resource assertions remain.
+  Higher compiler levels, prepared-read reuse, paired-root overlap, paired-cadence
+  transaction and last-priority experiments were discarded. Runtime/storage and
+  the scheduler match delivered707 after those rollbacks. The latest full run
+  used the discarded ordering; the restored configuration was not blindly rerun.
+- The move query takes58.282ms/1000 executions;0/584 checkpoints are unchanged.
+  Those measurements do not justify an index/cache or omitted journals. The kernel
+  probe did not provide a safe zombie-group cleanup shortcut. No unproven broader
+  storage/process rewrite was retained merely to cross the numeric threshold.
+- Remaining engineering boundary: a new, causally justified execution/persistence
+  optimization must preserve the same120 serial turns and durable effect ordering,
+  then prove<=30s and pass the current full gate. No external credential/service
+  blocker is asserted, and the rejected75s exception is not silently granted.
 - R1 delivered in `f493f191e523150752a93a7766aaa887f9a9c112`, pushed.
 - R2 delivered in `9c87af602e93bf61efcdd2a797be51dbc34b225d`, pushed.
 - R3 delivered in `a2867f2423231d23bf2bf338b00219f547e6b263`, pushed.
 - R4 guarded retry delivered in `c329d206641f2a75661e38fdcc6a6b530e833c02`, pushed.
 - R4 production/compiler/matrix batch delivered in
   `746f09951de096bf8f6d07cc5c4ba1c998356d0f`, pushed.
+- R6 corrective batch delivered in `707b5aa358e3a698743d017a13fcf5770233865e`, pushed.
+  The complete functional run passed; the saved budget check correctly rejected
+  soak30.210s rather than rounding it down. Logs
+   `R6-corrected-{inventory.json,full-gate.log,full-gate.json,junit.xml}` remain intact.
+- Actual-stream cancellation fixture delivered in
+  `c0f26ee00ad7124c3c9cf27b3d201165771a91f2`, pushed. The code passed its two
+  consumer cases and the recorded complete experiment; this is not a claim that
+  it solved soak's30s budget. Runtime and scheduling remain those of707.
 - Active repository task remains T44; this is its
   owner-requested qualification-performance slice, not a new general backlog.
 - Stop/replan on a proven contract mismatch or required public/storage/clock redesign;
@@ -285,8 +334,23 @@ VIS38 commits по64 сообщения перед прежними prune calls.
   Clippy compilation. No test omitted; UI07 PASS32.451s, soak29.821s. Two explicit
   commit/idle preconditions now pass unchanged outcome checks. Native pipe-ready
   polling restores full bounded chunks: shell21.530s, all9 nearest cases PASS.
-  Failed receipt remains; the corrected complete gate is pending.
+  Failed receipt remains; the later complete functional gate passed, but its
+  soak30.210s still failed the30s qualification.
+- 2026-10-17 R6 final experiment:2055 PASS/0 FAIL/12 original ignores,404.412s;
+  soak33.763s still fails. Last-priority scheduling was reverted. No successful
+  whole-goal claim, weaker workload or durability/cleanup shortcut replaces it.
 
 ## Completion
 
-Pending implementation, measurements, final qualification and reviewed Git delivery.
+**UNMET, partial delivery.** R1–R3 and R5 are verified. Retry/matrix/shell parts of
+R4 are below30s in the latest full experiment; its soak remains33.763s>30s.
+R6's final time qualification is not satisfied. Functional tests, fmt, strict
+Clippy, doctests and the optimized debug binary passed in the recorded experiment;
+that does not waive the unmet time budget or qualify a different ordering.
+
+Original inventory retained:2055 runnable/12 unchanged opt-in ignored, including
+one added owner-seed parity case; no test retries or suppressed failures. All
+speculative production changes and unsuccessful ordering/profile experiments
+were rolled back. The smallest remaining unlock is a separately justified safe
+runtime/persistence optimization, not another unchanged long run. Delivery is
+recorded in Git and the task handoff; full T44 remains active and incomplete.

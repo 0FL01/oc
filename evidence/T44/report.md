@@ -8,6 +8,23 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current slow-test root-cause work — partial / UNMET (2026-10-17)
+
+[Copied plan, workload table, delivery and measurements](../../docs/goals/2026-10-17-slow-test-acceleration.md).
+Iterative source delivery ends at `c0f26ee00ad7124c3c9cf27b3d201165771a91f2`,
+pushed to master. Of the original14 slow cases,12 are below30s in the latest
+complete experiment; only UI07 has owner-approved40s because its actual discovery
+deadline is30000ms (measured32.884s). Soak remains **33.763s>30s**: its rejected75s
+exception was not granted, so this goal and final budget qualification are unmet.
+
+Recorded complete experiment:2055 PASS/0 FAIL/12 original opt-in ignored, zero
+retries; fmt/strict all-target Clippy/Cargo doctests/debug build/help/version PASS.
+Whole404.412s, nextest360.859s; no warmed/cold-build universal speedup claim. The
+unsuccessful last-priority experiment was then reverted; the restored ordering
+was not blindly rerun or relabelled as newly qualified. No assertions, real
+120-turn workload, resource limits, fsync/security or process-group guards were
+weakened. Speculative production edits were discarded. Full T44 remains open.
+
 ## Current prompt/chrome selection and test acceleration (2026-10-17)
 
 [Completed slice receipt](text-selection-20261017.md), source

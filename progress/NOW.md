@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-17T13:06:58+00:00
+State updated: 2026-10-17T17:27:28+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,37 +12,36 @@ Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Prompt/chrome copy and full-gate acceleration
+# Slow-test acceleration — partial delivery, unmet finish line
 
 ## Result
 
-Completed owner-requested slice, not whole-task T44 PASS. Source-owned selection
-for Home/session drafts, footer Location and sidebar title/Context/MCP/Location.
-Existing Editor/OSC52/modes/caps remain owners. Source
-75c664379ab048a3c98372db7d268af6a753e7df is committed and pushed to master.
+Goal: docs/goals/2026-10-17-slow-test-acceleration.md, status unmet, not complete.
+Iterative source commits through c0f26ee00ad7124c3c9cf27b3d201165771a91f2 are pushed.
+R1-R3/R5 verified; retry/matrix/shell improved, but R4 soak<=30 and final R6 budget
+qualification remain unmet. T44 stays active/incomplete; no parity/READY claim.
 
 ## Checks
 
-Native UI/OSC52/routing and complete normal gate pass. Exact evidence is in
-evidence/T44/text-selection-20261017.md; logs under
-/home/stfu/.cache/opencode-tmp/opencode/text-selection-bHd1g1/.
-`bash scripts/test.sh`:2054 PASS/0 FAIL/12 original opt-in ignored; all original
-tests retained, two extra regressions, zero retries. Fmt/strict Clippy/rustdoc/
-debug build/help/version PASS. Total454.464s, reduction>=80.055% versus the stopped
-incomplete serial lower bound2278.65s; not a successful old baseline or cold-build
-guarantee. Final receipts fast-gate-7.log/json; earlier failures remain historical.
-Debug target/debug/oc2 is ready; version0.2.0.
+Latest complete experiment:2055 PASS/0 FAIL/12 original opt-in ignored, zero
+retries. Fmt/strict Clippy/doctests/debug build/help/version pass; whole404.412s,
+nextest360.859s. Twelve original slow cases are below30s; UI07's32.884s fits its
+sole owner-approved40s exception. Soak33.763s>30s does not pass its budget.
+Logs: /home/stfu/.cache/opencode-tmp/opencode/slow-tests-bWYisv/.
 
 ## Risks
 
-No assertion/timeout/durability/security weakening. Actual desktop clipboard
-acceptance NOT_RUN; OSC52 transport qualified separately. No production storage
-or schema changes. Full frozen T44 remains open; do not mark T44 finished.
+The last-priority experiment was reverted; no new complete qualification of the
+restored ordering is claimed. All120 serial turns, real tools/resource assertions,
+FULL durability and process-group guards remain. Failed native/cache/profile/
+concurrency experiments were discarded, not shipped. No external blocker asserted.
 
 ## Next
 
-Deliver this receipt/checkpoint metadata and stop the completed requested slice.
-Do not start another audit, full test rerun or unrelated T44 implementation.
+Do not blindly repeat the suite or round the unmet budget to PASS. Continuation
+requires a new causally justified safe execution/persistence optimization, with
+unchanged workload/durability, then <=30s and current full qualification. The user
+rejected soak<=75s; do not regrant it or finish whole T44.
 
 
 Ready (до 5): нет
