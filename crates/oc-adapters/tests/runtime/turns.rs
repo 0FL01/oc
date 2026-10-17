@@ -460,6 +460,10 @@ async fn post_accept_failure_still_delivers_fresh_root_and_turn_receipt() {
 async fn fresh_provider_failure_after_accept_retains_root_and_reports_failed_turn() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
+    // This case owns post-accept failure/retention, not retry exhaustion. A
+    // terminal provider rejection exercises that path without ten real backoffs.
+    let rejection = serde_json::json!({"type":"response.failed","response":{"error":{"code":"insufficient_quota"}}});
+    let (base, hits) = Fake::start(vec![format!("data: {rejection}\n\n")], Duration::ZERO);
     let mut accepted = None;
     let report = runtime
         .run_fresh_turn_with_tool_events(
@@ -467,7 +471,7 @@ async fn fresh_provider_failure_after_accept_retains_root_and_reports_failed_tur
                 "provider-fresh",
                 "input",
                 &harness,
-                provider_of("http://127.0.0.1:9/v1"),
+                provider_of(&base),
                 &NO_CANCEL,
             ),
             None,
@@ -484,6 +488,11 @@ async fn fresh_provider_failure_after_accept_retains_root_and_reports_failed_tur
     assert_eq!(
         harness.db.read_history("provider-fresh").unwrap(),
         [("user".into(), "input".into())]
+    );
+    assert_eq!(
+        *hits.lock().unwrap(),
+        1,
+        "terminal rejection must not retry"
     );
 }
 
