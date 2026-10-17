@@ -8,6 +8,16 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current fixture temp-root portability (2026-10-17)
+
+[Fixture correction receipt](fixture-temp-portability-20261017.md): the seven
+old-account path failures pass in a space/Unicode temp root, plus one feature-gated
+fake OAuth case. Only harness temp-root forwarding, first-paint readiness and
+Unicode fixture-key encoding change. Final standard workspace:2041 passed/0 failed/
+12 unchanged opt-in ignored across46 targets, with one independent case at a time
+and all16 CPUs available. Fmt/strict Clippy/normal debug build/help pass. The earlier
+long-root/two-case run remains failed in the receipt; no whole visual T44 claim.
+
 ## Current owner-requested session MCP sidebar (2026-10-17)
 
 [Bounded feature receipt](mcp-sidebar-20261017.md): the existing live inventory is

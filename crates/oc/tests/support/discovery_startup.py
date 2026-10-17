@@ -17,20 +17,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 binary = str(Path(sys.argv[1]).resolve())
-base = '/home/opencode/.cache/opencode-tmp/opencode'
+base = tempfile.gettempdir()
 assert Path(base).is_dir()
 key = 'DUMMY-DISCOVERY-CREDENTIAL'
 body_marker = 'DUMMY-DISCOVERY-PRIVATE-BODY'
 chosen = 'fixture/new'
 
 
-def drain(fd, seconds=.65):
+def drain(fd, seconds=.65, until=()):
     end = time.monotonic() + seconds
     chunks = []
     while time.monotonic() < end:
         if select.select([fd], [], [], .04)[0]:
             try:
                 chunks.append(os.read(fd, 65536))
+                if until and all(text in b''.join(chunks).decode('utf-8', 'replace') for text in until):
+                    break
             except OSError as error:
                 if error.errno == errno.EIO:
                     break
@@ -119,7 +121,8 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
                                      cwd=project, env=child_env, stdin=slave, stdout=slave,
                                      stderr=slave)
             try:
-                screen = drain(master)
+                # Keep the original observation window after actual first-paint readiness.
+                screen = drain(master, 5, until=('█▀▀█',)) + drain(master)
                 assert child.poll() is None, (label, 'premature exit')
                 assert 'Native startup error' not in screen and '█▀▀█' in screen, (label, 'local home unavailable')
                 if detailed:

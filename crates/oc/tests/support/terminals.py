@@ -26,7 +26,7 @@ import unicodedata
 from pathlib import Path
 
 BINARY = str(Path(sys.argv[1]).resolve())
-BASE = Path('/home/opencode/.cache/opencode-tmp/opencode')
+BASE = Path(tempfile.gettempdir())
 assert BASE.is_dir()
 # Adopt only this fixture's orphaned children, enabling independent reap checks.
 assert ctypes.CDLL(None).prctl(36, 1, 0, 0, 0) == 0

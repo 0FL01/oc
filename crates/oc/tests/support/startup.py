@@ -22,17 +22,19 @@ import unicodedata
 from pathlib import Path
 
 binary = str(Path(sys.argv[1]).resolve())
-base = '/home/opencode/.cache/opencode-tmp/opencode'
+base = tempfile.gettempdir()
 assert Path(base).is_dir()
 
 
-def drain(fd, seconds=.55):
+def drain(fd, seconds=.55, until=()):
     chunks = []
     end = time.monotonic() + seconds
     while time.monotonic() < end:
         if select.select([fd], [], [], .05)[0]:
             try:
                 chunks.append(os.read(fd, 65536))
+                if until and all(text in b''.join(chunks).decode('utf-8', errors='replace') for text in until):
+                    break
             except OSError as error:
                 if error.errno == errno.EIO:
                     break
@@ -137,7 +139,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     def check(label, expected, data_dir=None, forbidden=(), session=None, detail=None):
         child, master, slave, original = launch(data_dir, session)
         try:
-            output = drain(master)
+            # First paint is readiness, not a fixed sleep; retain the observation window.
+            output = drain(master, 5, until=expected) + drain(master)
             assert child.poll() is None, (label, 'premature exit', child.returncode)
             for text in expected:
                 assert text in output, (label, text, output)
@@ -164,7 +167,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     # Hold the actual data-root lock with a live owner, then verify release.
     owner, master, slave, original = launch()
     try:
-        assert '█▀▀█' in drain(master)
+        assert '█▀▀█' in drain(master, 5, until=('█▀▀█',))
         check('busy', ['Native startup error', 'Data root busy', 'Close the other oc process'])
     finally:
         os.write(master, b'\x03')
@@ -222,7 +225,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     check('query', ['Native startup error', 'Session / catalog query failed'],
           forbidden=('Configuration load failed',), session='foreign')
     epoch_key = 'tui.selection.legacy_epoch:' + json.dumps(
-        [str(project), 'fixture'], separators=(',', ':'))
+        [str(project), 'fixture'], separators=(',', ':'), ensure_ascii=False)
     with sqlite3.connect(data / 'oc.sqlite') as db:
         db.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?,?,?)",
                    (epoch_key, 'CORRUPT-PREF-SECRET', 'fixture'))
@@ -251,7 +254,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     with sqlite3.connect(data / 'oc.sqlite') as db:
         db.execute('INSERT INTO prefs(key,value,updated_at) VALUES (?,?,?)',
                    ('tui.selection.legacy_epoch:' + json.dumps(
-                       [str(damaged), 'fixture'], separators=(',', ':')),
+                       [str(damaged), 'fixture'], separators=(',', ':'), ensure_ascii=False),
                     'LEAKME-SELECTION-SECRET', 'fixture'))
     for name, destination, marker, reason in [
         ('malformed mandatory policy', target, 'LEAKME-MODEL-SECRET', 'Location configuration failed'),
@@ -260,7 +263,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     ]:
         child, master, slave, original = launch()
         try:
-            initial = drain(master)
+            initial = drain(master, 5, until=('█▀▀█',)) + drain(master)
             assert '█▀▀█' in initial
             os.write(master, f'/location {destination}\r'.encode())
             screen = drain(master, .8)

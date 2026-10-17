@@ -9,6 +9,7 @@ fn term01_actual_binary_session_terminals() {
             env!("CARGO_BIN_EXE_oc2"),
         ])
         .env_clear()
+        .env("TMPDIR", std::env::temp_dir())
         .output()
         .expect("isolated native terminal fixture");
     assert!(

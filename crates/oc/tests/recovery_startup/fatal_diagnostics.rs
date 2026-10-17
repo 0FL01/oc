@@ -6,7 +6,7 @@ const CANARY: &str = "CFG10-PRIVATE-SOURCE-SECRET";
 fn cfg10_native_malformed_document_has_safe_cause_and_empty_json_stdout() {
     let root = tempfile::Builder::new()
         .prefix("oc-cfg10-")
-        .tempdir_in("/home/opencode/.cache/opencode-tmp/opencode")
+        .tempdir()
         .unwrap();
     let project = root.path().join(format!("{CANARY}\u{1b}[31m"));
     let home = root.path().join("home");

@@ -12,7 +12,7 @@ async fn location_switch_carries_safe_category_and_keeps_detailed_api_error() {
 
     let root = tempfile::Builder::new()
         .prefix("oc-startup-switch-")
-        .tempdir_in("/home/opencode/.cache/opencode-tmp/opencode")
+        .tempdir()
         .unwrap();
     let home = root.path().join("home");
     let original = root.path().join("original");
@@ -89,6 +89,7 @@ fn isolated_binary_startup_routes() {
             env!("CARGO_BIN_EXE_oc2"),
         ])
         .env_clear()
+        .env("TMPDIR", std::env::temp_dir())
         .output()
         .expect("python PTY harness");
     assert!(
@@ -109,6 +110,7 @@ fn isolated_discovery_startup_routes() {
             env!("CARGO_BIN_EXE_oc2"),
         ])
         .env_clear()
+        .env("TMPDIR", std::env::temp_dir())
         .output()
         .expect("python PTY harness");
     assert!(

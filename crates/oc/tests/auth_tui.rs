@@ -4,7 +4,7 @@ fn auth05_actual_binary_tui_accounts_picker_and_owned_authorization() {
     let output = std::process::Command::new("python3")
         .env_clear()
         .env("PATH", "/usr/bin:/bin")
-        .env("TMPDIR", "/home/opencode/.cache/opencode-tmp/opencode")
+        .env("TMPDIR", std::env::temp_dir())
         .arg("-B")
         .arg("-c")
         .arg(include_str!("support/auth_tui.py"))
