@@ -62,7 +62,12 @@ evidence and smallest unlock.
     cases, 120 normal soak turns и оба настоящих 20 MiB producers. По замеру выбрать
     минимальную правку владельца; не начинать с общего Runtime-clock рефакторинга.
   - Primary evidence: четыре соответствующих существующих case, фазовые замеры.
-  - Status: pending. Evidence: pending.
+  - Status: in_progress.
+  - Evidence: `R4-retry-and-phase-profile.log` / `R4-junit.xml`: все4 cases PASS;
+    retry-11 теперь12.423s, все6 scenarios/11 HTTP attempts и десять emitted
+    attempts2..11 сохранены. Остальные ещё выше бюджета: matrix42.917s
+    (setup24×1.24–1.58s), shell50.221s (capture28.40s+19.37s), soak61.678s
+    (normal turns/compression31.59s+26.74s). Это не завершение R4.
 - R5 — сохранить настоящий UI07 discovery deadline и решить оставшийся бюджет явно.
   - Source: пункт плана о единственном очевидном 30s временном контракте; AGENTS.md.
   - Acceptance: production deadline 30000ms и реальная проверка не сокращаются;
@@ -147,6 +152,13 @@ test-local SQL within those targets. Production changes require a measured R1–
 blocker at the actual owner and a recorded minimal envelope expansion first.
 Test names and acceptance assertions remain discoverable; no unrelated cleanup.
 
+R4 retry seam: enable only the existing Tokio dependency's dev `test-util`
+feature. The unclosed fixture owns/polls its turn locally, observes the ten
+durably published jittered retry deadlines, advances only their registered sleeps,
+and resumes time before any next HTTP poll. No new package, production clock/API
+or retry-policy change; other five scenarios keep real time. Profile matrix,
+soak and shell setup/run phases before choosing any further edit.
+
 ### R2 targeted evidence
 
 | Case (сокращённо) | Исходный full gate, s | Текущий targeted, s |
@@ -167,11 +179,12 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 
 ## Current checkpoint / state
 
-- Closes: R4. Drive only the unclosed fixture's emitted retry waits with guarded
-  Tokio time advancement; first profile current isolated matrix/soak/shell phases.
+- Closes: R4. Retry waits исправлены; устранить повторный empty-DB setup, сохранив
+  24 изолированных matrix states. Для shell получить CPU/I/O/chunk evidence;
+  для soak разделить normal-turn costs по kind, не сокращая120 turns.
 - R1 delivered in `f493f191e523150752a93a7766aaa887f9a9c112`, pushed.
 - R2 delivered in `9c87af602e93bf61efcdd2a797be51dbc34b225d`, pushed.
-- R3 targeted PASS and diff reviewed; deliver this checked batch, then continue.
+- R3 delivered in `a2867f2423231d23bf2bf338b00219f547e6b263`, pushed.
 - Active repository task remains T44; this is its
   owner-requested qualification-performance slice, not a new general backlog.
 - Stop/replan on a proven contract mismatch or required public/storage/clock redesign;
@@ -187,6 +200,9 @@ VIS38 commits по64 сообщения перед прежними prune calls.
 - 2026-10-17 R5: owner explicitly approved only UI07's40s real-deadline budget.
 - 2026-10-17 R3: exact filler/redaction/cap/quota/lease assertions PASS12.717s;
   each actual caller append still uses the unchanged durable publication path.
+- 2026-10-17 R4 retry: guarded dev-only virtual waits PASS12.423s; no production
+  clock/retry-policy change. Phase evidence identifies the next three edits;
+  matrix/soak/shell are not silently accepted above30s.
 
 ## Completion
 

@@ -45,6 +45,7 @@ notify = { version = "=8.2.0", default-features = false }
 
 [dev-dependencies]
 tempfile.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 
 [lints]
 workspace = true

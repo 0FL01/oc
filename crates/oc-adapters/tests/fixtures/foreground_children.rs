@@ -659,15 +659,45 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
             }
         });
         let cancel = AtomicBool::new(false);
-        let result = runtime
-            .run_turn(params(
-                "parent",
-                "guards",
-                &harness,
-                provider_of(&peer.base),
-                &cancel,
-            ))
-            .await;
+        let (events, mut retries) = tokio::sync::broadcast::channel(64);
+        if case == "unclosed" {
+            runtime.set_approval_events(&events);
+        }
+        let turn = runtime.run_turn(params(
+            "parent",
+            "guards",
+            &harness,
+            provider_of(&peer.base),
+            &cancel,
+        ));
+        let result = if case == "unclosed" {
+            tokio::pin!(turn);
+            let mut attempts = Vec::new();
+            let result = loop {
+                tokio::select! {
+                    biased;
+                    result = &mut turn => break result,
+                    event = retries.recv() => {
+                        if let oc_core::core_app::CoreEvent::RetryScheduled { session, retry, .. } = event.unwrap() {
+                            assert_eq!(session.0, "parent");
+                            attempts.push(retry.attempt);
+                            let now = std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
+                            // Turn-first polling registered the relative retry sleep.
+                            // This future is not spawned: no next HTTP request can
+                            // start during advance; resume before polling it again.
+                            tokio::time::pause();
+                            tokio::time::advance(Duration::from_millis(retry.at.saturating_sub(now) + 1)).await;
+                            tokio::time::resume();
+                        }
+                    }
+                }
+            };
+            assert_eq!(attempts, (2..=11).collect::<Vec<_>>());
+            result
+        } else {
+            turn.await
+        };
         if case == "ask" {
             assert!(result.is_err(), "{case}");
             assert!(
