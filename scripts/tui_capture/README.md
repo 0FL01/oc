@@ -57,6 +57,36 @@ records it; otherwise the association of an existing Rust binary with the source
 commit is **not attested**. CLI exit `1` retains mismatches/failed predicates;
 exit `2` denotes a runner blocker. Neither is parity success.
 
+## Supplementary MCP sidebar (2.0.31, not frozen T44 qualification)
+
+`--mcp-sidebar true` is an exclusive `160×48`, short-answer, sidebar-auto profile.
+It uses the official npm `@opencode/cli-linux-x64@2.0.31` executable and its own
+explicit digest. The four sidebar/dialog sources in release `22728d67461260d56bb9796b9b8f36e1de47202e`
+are byte-identical to the supplied checkout `bc5ebf00a4c169ece10f276e6ce02eaf18c326e6`;
+the runner checks that checkout and records both versions separately. The frozen
+2.0.12 reference guard and all existing profiles are unchanged.
+
+```sh
+CARGO_BUILD_JOBS=2 taskset -c 0,1 node scripts/tui_capture/capture.mjs \
+  --mcp-sidebar true --geometry true --sample short --sidebar auto \
+  --columns 160 --rows 48 --build-oc true \
+  --tools /ABSOLUTE/OWNED/TOOLS \
+  --reference /ABSOLUTE/OWNED/opencode-2.0.31 \
+  --supplementary-reference-sha256 2df936a20cf74af5706020342164628f9a31978c50c2b0ad306b42b614fe245d \
+  --oc /ABSOLUTE/WORKTREE/target/debug/oc2 \
+  --output /ABSOLUTE/WORKTREE/evidence/tui/mcp-sidebar/supplementary-attempt-001
+```
+
+Use the external tooling prerequisites above. If the font is installed only in
+an owned task directory, an explicit process-local `FONTCONFIG_FILE` is forwarded
+only in this supplementary mode; no host/user font configuration is changed.
+The fixture's `codex_web` is a local Python peer, not the real remote service.
+The probe captures complete expanded/folded styled grids, PNGs and cursors,
+checks one actual initialized client, disabled zero-spawn, zero MCP calls,
+no extra provider exchange from folding, and natural process exit. One short
+local fake-provider prompt/title exchange establishes a real session. Full-frame
+differences are retained; successful sidebar checks do not mean parity PASS.
+
 ## What is captured
 
 ### Current prompt/paste diagnostic (VIS07), serial fresh builds

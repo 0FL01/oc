@@ -16,3 +16,9 @@ Additional bundled source/data retains its original licenses and attribution:
   manifest.json, license-* files and license/COPYING files inside source archives.
 
 These notices do not replace original notices.
+
+The MCP sidebar presentation follows the behavior of OpenCode 2.0.31's
+`packages/tui/src/feature-plugins/sidebar/mcp.tsx` and session sidebar at supplied
+commit `bc5ebf00a4c169ece10f276e6ce02eaf18c326e6` (MIT, Copyright (c) 2025 opencode).
+The MIT permission notice in LICENSE also applies to that upstream copyright.
+No upstream TypeScript runtime or plugin host is bundled.

@@ -11,6 +11,7 @@ use oc_core::session::Role;
 use ratatui::{Terminal, backend::TestBackend, style::Color};
 
 mod home_mcp;
+mod sidebar_mcp;
 
 fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
     HistoryMessage {
@@ -2741,7 +2742,12 @@ async fn hard_wrapped_unicode_sidebar_title_has_no_separator_cell() {
                 Block::default().style(Style::default().fg(white).bg(theme.background())),
                 frame.area(),
             );
-            render_sidebar(frame, &state, theme, frame.area());
+            render_sidebar(
+                frame,
+                &state,
+                theme,
+                &sidebar_layout_for_pane(&state, frame.area()),
+            );
         })
         .unwrap();
     let buffer = terminal.backend().buffer();

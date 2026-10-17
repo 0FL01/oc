@@ -84,6 +84,59 @@ impl Fixture {
 }
 
 #[tokio::test]
+async fn sidebar_mcp_preference_is_bounded_global_and_survives_restart() {
+    const KEY: &str = "tui.sidebar.mcp.open";
+    let mut fixture = Fixture::new();
+    fixture.config(json!({"servers":{}}));
+    let (app, guard) = fixture.spawn().await;
+    assert!(app.sidebar_mcp_open(None).await.unwrap());
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_eq!(
+        Db::open(&fixture.data).unwrap().get_pref(KEY).unwrap(),
+        None
+    );
+
+    let (app, guard) = fixture.spawn().await;
+    for open in [false, true, false] {
+        assert_eq!(app.sidebar_mcp_open(Some(open)).await.unwrap(), open);
+        assert_eq!(app.sidebar_mcp_open(None).await.unwrap(), open);
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    fixture.project = fixture._root.path().join("another-location");
+    fs::create_dir_all(&fixture.project).unwrap();
+    let (app, guard) = fixture.spawn().await;
+    assert!(!app.sidebar_mcp_open(None).await.unwrap());
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    for raw in [
+        "null".into(),
+        "0".into(),
+        "TRUE".into(),
+        "false".repeat(65_536),
+    ] {
+        Db::open(&fixture.data)
+            .unwrap()
+            .set_pref(KEY, &raw)
+            .unwrap();
+        let (app, guard) = fixture.spawn().await;
+        assert!(app.sidebar_mcp_open(None).await.unwrap());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        assert_eq!(
+            Db::open(&fixture.data)
+                .unwrap()
+                .get_pref(KEY)
+                .unwrap()
+                .as_deref(),
+            Some(raw.as_str())
+        );
+    }
+}
+
+#[tokio::test]
 async fn mcp08_partial_substitution_refusal_protects_resolved_token_without_spawning() {
     for value in [
         "Bearer refusal-secret\n",

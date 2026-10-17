@@ -10,14 +10,16 @@
 //! modal dialogs composite last, without reserving any transcript/prompt rows.
 //! Composition and golden-frame regressions live in `shell/tests.rs`.
 
-use oc_core::queries::TabIndicators;
+use oc_core::queries::{McpStatus, TabIndicators};
 use ratatui::{
     Frame,
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
     symbols::border,
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Padding, Paragraph},
+    widgets::{
+        Block, Borders, Clear, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    },
 };
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -230,6 +232,7 @@ pub fn render_background(frame: &mut Frame<'_>) {
 /// devtools bar, then the toast overlay.
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     state.clear_prompt_paint();
+    state.clear_sidebar_paint();
     state.shells.footer_hit.set(None);
     let theme = Theme::dark();
     let area = frame.area();
@@ -241,18 +244,8 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     }
     let (route, terminal_pane) = crate::terminal_view::split(state, regions.session);
     let main = session_main(state, route);
-    if main.width < route.width {
-        render_sidebar(
-            frame,
-            state,
-            theme,
-            Rect::new(
-                main.right(),
-                main.y,
-                layout::SESSION_SIDEBAR_WIDTH,
-                main.height,
-            ),
-        );
+    if let Some(sidebar) = sidebar_layout(state, area) {
+        render_sidebar(frame, state, theme, &sidebar);
     }
     render_session(frame, state, theme, main);
     crate::approval_view::render(frame, state, main);
@@ -1233,29 +1226,124 @@ fn prompt_lines(state: &TuiState, width: u16) -> Vec<crate::styled::Line> {
         .collect()
 }
 
-fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rect) {
-    frame.render_widget(
-        Block::default().style(Style::default().bg(theme.background_panel())),
-        area,
+/// One bounded projection for painting and mouse ownership, after rail/terminal splits.
+pub(crate) struct SidebarLayout {
+    pub pane: Rect,
+    title: Rect,
+    pub body: Rect,
+    footer: Rect,
+    title_rows: Vec<(String, bool)>,
+    pub content_height: usize,
+    pub offset: usize,
+    pub header: Option<Rect>,
+    pub rows: Vec<(Rect, usize)>,
+}
+
+pub(crate) fn sidebar_layout(state: &TuiState, frame: Rect) -> Option<SidebarLayout> {
+    let route = crate::terminal_view::split(state, shell_regions(state, frame).session).0;
+    let main = session_main(state, route);
+    if main.width == route.width {
+        return None;
+    }
+    let pane = Rect::new(
+        main.right(),
+        main.y,
+        layout::SESSION_SIDEBAR_WIDTH,
+        main.height,
     );
+    Some(sidebar_layout_for_pane(state, pane))
+}
+
+fn sidebar_layout_for_pane(state: &TuiState, pane: Rect) -> SidebarLayout {
     let inner = Rect::new(
-        area.x + 2,
-        area.y + 1,
-        area.width.saturating_sub(4),
-        area.height.saturating_sub(2),
+        pane.x.saturating_add(2.min(pane.width)),
+        pane.y.saturating_add(1.min(pane.height)),
+        pane.width.saturating_sub(4),
+        pane.height.saturating_sub(2),
     );
-    let title = wrap_sidebar_title(
+    let title_rows = wrap_sidebar_title(
         state.session_title.as_deref().unwrap_or(UNTITLED_SESSION),
         inner.width.saturating_sub(2) as usize,
+    );
+    let footer = Rect::new(
+        inner.x,
+        inner.bottom().saturating_sub(u16::from(inner.height > 0)),
+        inner.width,
+        inner.height.min(1),
+    );
+    let title = Rect::new(
+        inner.x,
+        inner.y,
+        inner.width.saturating_sub(2),
+        (title_rows
+            .len()
+            .min(inner.height.saturating_sub(2) as usize)) as u16,
+    );
+    let body_end = footer.y.saturating_sub(1).max(inner.y);
+    let body_y = title.bottom().saturating_add(1).min(body_end);
+    let body = Rect::new(
+        inner.x,
+        body_y,
+        inner.width.saturating_sub(1),
+        body_end.saturating_sub(body_y),
+    );
+    let context_height = if state.context_usage().is_some() {
+        3
+    } else {
+        2
+    };
+    let servers = state.sidebar_mcp_servers();
+    let expanded = servers.len() <= 2 || state.sidebar_mcp_open();
+    let content_height = context_height
+        + if servers.is_empty() {
+            0
+        } else {
+            2 + if expanded { servers.len() } else { 0 }
+        };
+    let offset = state
+        .sidebar_scroll()
+        .min(content_height.saturating_sub(body.height as usize));
+    let row_rect = |row: usize| {
+        (body.width > 0 && row >= offset && row < offset + body.height as usize)
+            .then(|| Rect::new(body.x, body.y + (row - offset) as u16, body.width, 1))
+    };
+    let header = (!servers.is_empty())
+        .then(|| row_rect(context_height + 1))
+        .flatten();
+    let rows = if expanded {
+        (0..servers.len())
+            .filter_map(|index| row_rect(context_height + 2 + index).map(|rect| (rect, index)))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    SidebarLayout {
+        pane,
+        title,
+        body,
+        footer,
+        title_rows,
+        content_height,
+        offset,
+        header,
+        rows,
+    }
+}
+
+fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, layout: &SidebarLayout) {
+    frame.render_widget(
+        Block::default().style(Style::default().bg(theme.background_panel())),
+        layout.pane,
     );
     let title_style = Style::default()
         .fg(theme.text())
         .add_modifier(Modifier::BOLD);
-    let mut lines: Vec<Line<'static>> = title
-        .into_iter()
+    let title: Vec<Line<'static>> = layout
+        .title_rows
+        .iter()
         .map(|(t, wrapped_at_space)| {
-            let mut line = Line::styled(t, title_style);
-            if wrapped_at_space {
+            let mut line = Line::styled(t.clone(), title_style);
+            if *wrapped_at_space {
                 // The title_shimmer renders one bold text node: the original
                 // separator before the next word remains on the preceding row.
                 line.spans.push(Span::styled(" ", title_style));
@@ -1263,7 +1351,8 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
             line
         })
         .collect();
-    lines.push(Line::default());
+    frame.render_widget(Paragraph::new(title), layout.title);
+    let mut lines = Vec::new();
     lines.push(Line::styled(
         "Context",
         Style::default()
@@ -1294,8 +1383,101 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
             Style::default().fg(theme.text_muted()),
         )),
     }
-    frame.render_widget(Paragraph::new(lines), inner);
-    if inner.height > 0 {
+    let servers = state.sidebar_mcp_servers();
+    if !servers.is_empty() {
+        lines.push(Line::default());
+        let mut header = Vec::new();
+        if servers.len() > 2 {
+            header.push(Span::styled(
+                if state.sidebar_mcp_open() {
+                    "▼"
+                } else {
+                    "▶"
+                },
+                Style::default().fg(theme.text()),
+            ));
+            header.push(Span::raw(" "));
+        }
+        header.push(Span::styled("MCP", title_style));
+        if !state.sidebar_mcp_open() {
+            let active = servers
+                .iter()
+                .filter(|server| server.status == McpStatus::Connected)
+                .count();
+            let errors = servers
+                .iter()
+                .filter(|server| matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth))
+                .count();
+            let errors = match errors {
+                0 => String::new(),
+                1 => ", 1 error".into(),
+                n => format!(", {n} errors"),
+            };
+            header.push(Span::styled(
+                format!(" ({active} active{errors})"),
+                Style::default().fg(theme.text_muted()),
+            ));
+        }
+        lines.push(Line::from(header));
+        if servers.len() <= 2 || state.sidebar_mcp_open() {
+            for server in servers {
+                let (label, color) = match server.status {
+                    McpStatus::Connected => ("Connected", theme.success()),
+                    McpStatus::Pending => ("Connecting", theme.text_muted()),
+                    McpStatus::Disabled => ("Disabled", theme.text_muted()),
+                    McpStatus::Failed => ("Error", theme.error()),
+                    McpStatus::NeedsAuth => ("Sign in", theme.warning()),
+                };
+                let name_width = (layout.body.width as usize).saturating_sub(3 + label.len());
+                let mut used = 0;
+                let name: String = server
+                    .name
+                    .graphemes(true)
+                    .take_while(|grapheme| {
+                        let width = UnicodeWidthStr::width(*grapheme);
+                        if used + width > name_width {
+                            return false;
+                        }
+                        used += width;
+                        true
+                    })
+                    .collect();
+                lines.push(Line::from(vec![
+                    Span::styled("•", Style::default().fg(color)),
+                    Span::raw(" "),
+                    Span::styled(name, title_style),
+                    Span::raw(" ".repeat(name_width - used + 1)),
+                    Span::styled(
+                        label,
+                        Style::default().fg(if server.status == McpStatus::Failed {
+                            theme.error()
+                        } else {
+                            theme.text_muted()
+                        }),
+                    ),
+                ]));
+            }
+        }
+    }
+    frame.render_widget(
+        Paragraph::new(lines).scroll((layout.offset as u16, 0)),
+        layout.body,
+    );
+    if layout.body.height > 0 && layout.content_height > layout.body.height as usize {
+        let mut scroll = ScrollbarState::new(layout.content_height)
+            .position(layout.offset)
+            .viewport_content_length(layout.body.height as usize);
+        frame.render_stateful_widget(
+            Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(None)
+                .end_symbol(None)
+                .track_symbol(None)
+                .thumb_style(Style::default().fg(theme.scrollbar())),
+            Rect::new(layout.body.right(), layout.body.y, 1, layout.body.height),
+            &mut scroll,
+        );
+    }
+    if layout.footer.height > 0 {
         frame.render_widget(
             Paragraph::new(Line::styled(
                 compact_path(
@@ -1304,17 +1486,14 @@ fn render_sidebar(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
                         .location
                         .as_deref()
                         .unwrap_or("Location unknown"),
-                    inner.width as usize,
+                    layout.footer.width as usize,
                 ),
                 Style::default().fg(theme.text_muted()),
             )),
-            Rect {
-                y: inner.bottom() - 1,
-                height: 1,
-                ..inner
-            },
+            layout.footer,
         );
     }
+    state.remember_sidebar_paint(frame.area(), layout);
 }
 
 fn thousands(n: u64) -> String {

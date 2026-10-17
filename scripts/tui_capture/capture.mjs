@@ -34,10 +34,18 @@ import {frameArtifacts} from './frame_artifacts.mjs';
 import {probeSyntax} from './syntax_preview.mjs';
 import {probeMiddleTabs} from './middle_tabs.mjs';
 import {probeQuestionForms} from './question_forms.mjs';
+import {probeMcpSidebar, mcpSidebarReference} from './mcp_sidebar.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
 const args = Object.fromEntries(process.argv.slice(2).map((v, i, a) => v.startsWith('--') ? [v.slice(2), a[i+1]] : null).filter(Boolean));
+const mcpSidebar = args['mcp-sidebar'] === 'true';
+if (args['mcp-sidebar'] !== undefined && (!mcpSidebar || args.geometry !== 'true' || args.sample !== 'short' ||
+    args.sidebar !== 'auto' || Number(args.columns) !== 160 || Number(args.rows) !== 48 || !args.reference || !args.oc ||
+    args['supplementary-reference-sha256'] !== mcpSidebarReference.binary_sha256 ||
+    Object.keys(args).some(key => !['mcp-sidebar','reference','oc','build-oc','tools','geometry','sample','sidebar','columns','rows','output','supplementary-reference-sha256'].includes(key))))
+  throw Error('--mcp-sidebar requires the exclusive supplementary 2.0.31 paired 160x48 short/sidebar-auto profile and its explicit reference digest');
+if (!mcpSidebar && args['supplementary-reference-sha256'] !== undefined) throw Error('Supplementary digest is restricted to --mcp-sidebar');
 const boundedMode = args['bounded-mode'];
 const sessionsInteraction = args['sessions-interaction'] === 'true';
 const revertRedo = args['revert-redo'] === 'true';
@@ -398,6 +406,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(mcpSidebar?{mcp_sidebar:true,probe:sha(fs.readFileSync(path.join(here,'mcp_sidebar.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'mcp_sidebar_fixture.py')))}:{}),
     ...(questionForms?{question_forms:true,probe:sha(fs.readFileSync(path.join(here,'question_forms.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'question_fixture.py')))}:{}),
     ...(toolPreviewSmall?{tool_preview_small:true,small_probe:sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs'))),real_response_barrier_ms:5500}:{}),
     ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort,probe:sha(fs.readFileSync(path.join(here,'execute_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'execute_fixture.py')))}:{}),
@@ -441,6 +450,15 @@ const lock = {schema_version: 1, started: new Date().toISOString(), runner_versi
   fixture_sha256: fixtureSha, fixture_files: fixtureFiles, oc: {commit, tree, dirty_diff_sha256: sha(diff),
     source_manifest_sha256: sha(canonical(sourceManifest))},
   sources: {upstream_commit: '2670273ff17da96f85c5826ced57aa1b368754fa'}, attempts: [], captures: []};
+if (mcpSidebar) {
+  const donor = path.join(repo, '.local/opencode');
+  if (execute(['git','-C',donor,'rev-parse','HEAD']).stdout.trim() !== mcpSidebarReference.donor_commit)
+    throw Error('Supplementary donor checkout changed');
+  for (const [name, hash] of Object.entries(mcpSidebarReference.source_hashes))
+    if (sha(fs.readFileSync(path.join(donor, name))) !== hash) throw Error('Supplementary sidebar source changed: ' + name);
+  lock.sources.supplementary_mcp_sidebar = mcpSidebarReference;
+  for (const name of ['mcp_sidebar.mjs','mcp_sidebar_fixture.py','tool_preview_mcp.py']) lock.runner_hashes[name] = sha(fs.readFileSync(path.join(here,name)));
+}
 if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prompt_paste.mjs']:[])])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
@@ -479,11 +497,13 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // These stateful probes must be new even when fresh output trees share a
 // basename. Reusing a home mixes prior operations/cache/history into proof.
-const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret || questionForms;
+const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
-  LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers')};
+  LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers'),
+  ...(mcpSidebar && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
+if (mcpSidebar && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
 fs.mkdirSync(cleanEnv.HOME, {recursive: true});
 process.env.PLAYWRIGHT_BROWSERS_PATH = cleanEnv.PLAYWRIGHT_BROWSERS_PATH;
 let browser;
@@ -548,7 +568,7 @@ try {
     if (!binary) { lock.attempts.push({origin, status: 'SKIPPED', reason: 'No explicit binary supplied'}); continue; }
     if (!path.isAbsolute(binary)) throw Error('Binary must be an explicit absolute path');
     const hash = sha(fs.readFileSync(binary));
-    if (origin === 'upstream' && hash !== '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a') throw Error('Reference binary SHA mismatch');
+    if (origin === 'upstream' && hash !== (mcpSidebar ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
     const dir = path.join(output, origin);
     fs.mkdirSync(dir);
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
@@ -564,7 +584,7 @@ try {
                    tool_preview:toolPreview, tab_middle_close:tabMiddleClose, middle_case:middleCase,
                     tool_preview_small:toolPreviewSmall,
                     execute_preview:executePreview,execute_fixture_port:executeFixturePort,
-                  mcp_status:mcpStatus,
+                   mcp_status:mcpStatus, ...(mcpSidebar ? {mcp_sidebar:true} : {}),
                    mcp_footer:mcpFooter||null,
                    prompt_caret:promptCaret,
                      prompt_history:promptHistory||null,
@@ -714,7 +734,7 @@ try {
       const cellsFile=name+'.cells.json'+(compressCells?'.gz':'');
       const cellsBytes=Buffer.from(JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
-        producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));
+         producer_commit: origin==='upstream' ? (mcpSidebar ? mcpSidebarReference.release_commit : lock.sources.upstream_commit) : commit, ...grid}));
       fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
       const pngSeal=writeFrame(scenario,'.png',png);
       const textSeal=writeFrame(scenario,'.txt',text+'\n');
@@ -782,6 +802,13 @@ try {
       }
        const initial = await waitFor(f => /Build|Untitled session|MiMo-V2.6-Flash Free/.test(f.text) ||
          (sessionsInteraction && f.text.includes('Ask anything')), 'initial prompt');
+        if (mcpSidebar) {
+          lock.mcp_sidebar ??= {};
+          lock.mcp_sidebar[origin] = await probeMcpSidebar({origin,dir,send,waitFor,capture,visibleMatches,logs,
+            prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim(),
+            control:command=>child.stdin.write(JSON.stringify(command)+'\n')});
+          json('capture.lock.json',lock); continue;
+        }
         if(leaderPending) {
            const checks=await (pasteNavigation?probePasteNavigation:probeLeaderPending)({origin,dir,send,frame,capture,waitFor,visibleMatches,logs,config:leaderConfig,suffixSpace:pasteSuffixSpace,extra:args['leader-extra']==='true',enterOnly:args['leader-enter-only']==='true',outputTimeline,
            sampleColor:p=>page.evaluate(p=>readTerminal().cells[p.y][p.x].fg,p)});
@@ -3186,7 +3213,10 @@ try {
      if(cursorTemporal)lock.qualification={status:'DIAGNOSTIC_CURSOR_TEMPORAL_ONLY',mode:cursorTemporal,renderer:cursorRenderer,synchronized_output:cursorSync,card_case:cursorCase,observation:'Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting',unresolved:['Temporal frames are timestamped observations, not settled-frame claims','Behavior qualification is separate from unmasked whole-grid/PNG parity','DOM hover blink suppression is not qualified as PASS']};
       if(tabMiddleClose)lock.qualification={status:'DIAGNOSTIC_MIDDLE_TABS_ONLY',middle_case:middleCase,rail_persistence:railPersistence,rail_controls:railControls,actual_requests:'Three or four real fresh Roots with completed local fake Responses and title requests; zero tool calls',observation:'Actual Middle Down on painted tab bodies; read-only history/deck/project snapshots; natural exit/restart/history reopening; compact uses real rail drag; optional real search click/cancel and Add hover',unresolved:['Full grids/PNGs/cursors remain unmasked','Native busy/read-only/CAS refusal and owner tests are separate gates',railPersistence?'Native Location-scoped width differs from Original global layout scope':'Native manual rail width is process-local, not a durable preference claim','Other frozen T44 outcomes and final R6 remain mandatory']};
      if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?(pasteSuffixSpace?'repeat-paste-real-suffix-space':'repeat-paste-visual-navigation'):args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};
-   for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
+    if (mcpSidebar) lock.qualification = {status:'SUPPLEMENTARY_MCP_SIDEBAR_ONLY', reference:mcpSidebarReference,
+      actual_requests:'One local fake-provider user exchange and auxiliary title per side; one stdio client; disabled zero-spawn and zero MCP calls',
+      unresolved:['Not frozen 2.0.12/T44 qualification','Full grids, PNGs and cursors remain unmasked and are compared independently','Native restart/persistence is separately checked by the actual-binary PTY test']};
+    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
       const ext=mode==='grid'?'cells.json'+(compressCells?'.gz':''):'png';

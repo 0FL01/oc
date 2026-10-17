@@ -637,6 +637,7 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        self.invalidate_sidebar_pointer();
         let dialog_changed = self.chrome.dialog_shortcuts != snapshot.chrome.dialog_shortcuts;
         let mut previous_issues = self.service_issues();
         self.invalidate_transcript();
@@ -659,6 +660,7 @@ impl TuiState {
             Some(snapshot.chrome.conversation_shortcuts.redo.clone()),
         );
         if self.chrome.location != snapshot.chrome.location {
+            self.reset_sidebar_scroll();
             previous_issues.clear();
             self.mcp_snapshot = None;
             if self

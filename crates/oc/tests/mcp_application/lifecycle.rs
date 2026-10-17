@@ -85,6 +85,178 @@ pub(super) fn close_mcps(tui: &mut PtyProcess) {
 }
 
 #[test]
+fn sidebar_mcp_live_status_wheel_fold_and_restart_without_generation() {
+    let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
+    let fixture = Fixture::new();
+    let gate = fixture.project.join("sidebar-connect-gate");
+    fixture.write_config(
+        &responses,
+        json!({"servers": {
+            "chrome-devtools": lifecycle_entry(&fixture, "chrome", false, "-", "-"),
+            "codex_web": lifecycle_entry(&fixture, "web", true, gate.to_str().unwrap(), "-"),
+            "crw": lifecycle_entry(&fixture, "crw", false, "-", "-")
+        }}),
+        json!([]),
+    );
+    let session = "sidebar-mcp-live";
+    let data = fixture.home.join("data/oc");
+    {
+        let db = oc_adapters::storage::Db::open(&data).unwrap();
+        db.create_session(session).unwrap();
+        db.set_pref(
+            &format!("{}{session}", oc_adapters::runtime::SESSION_LOCATION_PREFIX),
+            &fixture.project.canonicalize().unwrap().to_string_lossy(),
+        )
+        .unwrap();
+        for index in 0..80 {
+            db.append_message(
+                session,
+                if index % 2 == 0 { "user" } else { "assistant" },
+                &format!("sidebar history {index:05}"),
+            )
+            .unwrap();
+        }
+    }
+    // A durable fixture title prevents unrelated automatic-title generation and
+    // supplies a genuinely short body after vertical resize, with only three MCPs.
+    rusqlite::Connection::open(data.join("oc.sqlite"))
+        .unwrap()
+        .execute(
+            "UPDATE sessions SET title = ?2 WHERE id = ?1",
+            rusqlite::params![session, "Pinned sidebar title ".repeat(12)],
+        )
+        .unwrap();
+    let markers = |tui: &PtyProcess| -> Vec<String> {
+        tui.screen()
+            .iter()
+            .map(|row| row.chars().take(118).collect::<String>())
+            .filter(|row| row.contains("sidebar history"))
+            .collect()
+    };
+    let wheel = |tui: &mut PtyProcess, code: u8, x: usize, y: usize| {
+        tui.raw(format!("\x1b[<{code};{};{}M", x + 1, y + 1).as_bytes());
+    };
+    let mut tui = PtyProcess::spawn(&fixture, session);
+    tui.resize(160, 48);
+    wait_row(&tui, "codex_web", "Connecting");
+    wait_row(&tui, "chrome-devtools", "Disabled");
+    assert!(!tui.screen().iter().any(|row| row.contains("MCP servers")));
+    fs::write(&gate, "release").unwrap();
+    wait_row(&tui, "codex_web", "Connected");
+    assert!(responses.requests().is_empty());
+    assert_eq!(event_count(&fixture, "chrome", "spawn"), 0);
+    assert_eq!(event_count(&fixture, "crw", "spawn"), 0);
+
+    tui.resize(160, 18);
+    tui.raw(b"wheel-before");
+    tui.wait_screen("wheel-before", TIMEOUT);
+    let before = markers(&tui);
+    assert!(
+        !before.is_empty(),
+        "visible seeded transcript is the wheel control"
+    );
+    wheel(&mut tui, 64, 12, 4);
+    let deadline = Instant::now() + TIMEOUT;
+    while markers(&tui) == before {
+        assert!(
+            Instant::now() < deadline,
+            "transcript positive-control wheel did not move"
+        );
+        std::thread::sleep(POLL);
+    }
+    // Existing wheel presentation is 16.7 ms. Wait for a real stable transcript,
+    // rather than comparing during the preceding animation.
+    let mut stable = markers(&tui);
+    let mut stable_since = Instant::now();
+    loop {
+        std::thread::sleep(POLL);
+        let current = markers(&tui);
+        if current != stable {
+            stable = current;
+            stable_since = Instant::now();
+        }
+        if stable_since.elapsed() >= Duration::from_millis(100) {
+            break;
+        }
+        assert!(Instant::now() < deadline, "transcript wheel did not settle");
+    }
+    let sidebar_before: Vec<_> = tui
+        .screen()
+        .iter()
+        .map(|row| row.chars().skip(118).collect::<String>())
+        .collect();
+    let body_y = sidebar_before
+        .iter()
+        .position(|row| row.contains("Context"))
+        .unwrap();
+    wheel(&mut tui, 65, 125, body_y);
+    tui.raw(b"-sidebar-ack");
+    tui.wait_screen("wheel-before-sidebar-ack", TIMEOUT);
+    assert_eq!(
+        markers(&tui),
+        stable,
+        "sidebar wheel must not reach the binary transcript branch"
+    );
+    let sidebar_after: Vec<_> = tui
+        .screen()
+        .iter()
+        .map(|row| row.chars().skip(118).collect::<String>())
+        .collect();
+    assert_ne!(
+        sidebar_before, sidebar_after,
+        "the sidebar body must actually overflow and scroll"
+    );
+    assert!(!sidebar_after.iter().any(|row| row.contains("Context")));
+    assert!(sidebar_after.iter().any(|row| row.contains("codex_web")));
+    wheel(&mut tui, 64, 120, 1); // pinned title is not a transcript-wheel target
+    tui.raw(b"-pinned-ack");
+    tui.wait_screen("sidebar-ack-pinned-ack", TIMEOUT);
+    assert_eq!(markers(&tui), stable);
+
+    let header_y = sidebar_after
+        .iter()
+        .position(|row| row.contains("▼ MCP"))
+        .unwrap();
+    tui.raw(format!("\x1b[<0;123;{}M\x1b[<0;123;{}m", header_y + 1, header_y + 1).as_bytes());
+    tui.wait_screen("MCP (1 active)", TIMEOUT);
+    assert!(!tui.screen().iter().any(|row| row.contains("codex_web")));
+    assert!(responses.requests().is_empty());
+    tui.raw(b"\x03"); // clear the unsent wheel acknowledgement, not a submission
+    tui.send_line("/quit");
+    assert!(tui.wait_exit().success());
+    wait_counter(&fixture, "web", "closed", 1);
+    {
+        let db = oc_adapters::storage::Db::open(&data).unwrap();
+        assert_eq!(
+            db.get_pref("tui.sidebar.mcp.open").unwrap().as_deref(),
+            Some("false")
+        );
+        assert!(db.list_tool_ops(session).unwrap().is_empty());
+    }
+    let mut restored = PtyProcess::spawn(&fixture, session);
+    restored.resize(160, 48);
+    restored.wait_screen("MCP (1 active)", TIMEOUT);
+    assert!(
+        !restored
+            .screen()
+            .iter()
+            .any(|row| row.contains("codex_web"))
+    );
+    restored.send_line("/quit");
+    assert!(restored.wait_exit().success());
+    wait_counter(&fixture, "web", "closed", 1);
+    assert_eq!(event_count(&fixture, "web", "spawn"), 2);
+    assert_eq!(event_count(&fixture, "web", "closed"), 2);
+    assert_eq!(event_count(&fixture, "web", "call"), 0);
+    assert_eq!(event_count(&fixture, "chrome", "spawn"), 0);
+    assert_eq!(event_count(&fixture, "crw", "spawn"), 0);
+    assert!(
+        responses.requests().is_empty(),
+        "fold/status/wheel/restart never generate user or title requests"
+    );
+}
+
+#[test]
 fn mcp10_initial_connections_run_before_any_prompt_and_slow_neighbor_does_not_block() {
     let responses = FakeResponses::start(ResponsesScript::ToolNamed("healthy__ping".into()));
     let healthy = FakeMcp::start("healthy", "", &["ping"]);

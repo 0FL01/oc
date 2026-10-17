@@ -25,6 +25,7 @@ import permission_fixture
 import services_fixture
 import tool_preview_fixture
 import syntax_cache
+import mcp_sidebar_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -221,6 +222,8 @@ class Provider(BaseHTTPRequestHandler):
                 for message in body.get('input', []) if message.get('role') == 'user'
                 for part in message.get('content', []) if part.get('type') == 'input_text']
         valid = valid and (is_title or prompt_present)
+        if spec.get('mcp_sidebar'):
+            valid = valid and not tool_results and title_round <= 1 and transcript_round <= 1
         profile_prompt_present = profile_prompt is not None and profile_prompt in system
         if profile_id and not is_title:
             valid = valid and profile_prompt_present
@@ -567,6 +570,8 @@ if spec.get('clean_services'):
     services_fixture.configure(spec, home, project, config, cli_config)
 if spec.get('tool_preview'):
     tool_preview_fixture.configure(spec, home, project, config, cli_config)
+if spec.get('mcp_sidebar'):
+    mcp_sidebar_fixture.configure(spec, home, project, config, cli_config)
 if spec.get('compaction'):
     automatic = spec.get('compaction_trigger','manual') != 'manual'
     config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
@@ -624,6 +629,9 @@ env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HO
        'OPENCODE_TEST_HOME': str(home), 'OPENCODE_DISABLE_AUTOUPDATE': '1',
        'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
         'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+if spec.get('mcp_sidebar'):
+    (home / 'tmp').mkdir(exist_ok=True)
+    env['TMPDIR'] = str(home / 'tmp')
 if spec.get('execute_preview') and spec['origin'] == 'oc':
     # Provider endpoint and webfetch admission have distinct test-only guards.
     env['OC_TEST_WEBFETCH_ALLOW_LOOPBACK'] = '1'
@@ -701,7 +709,9 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
+                        if command['kind'] == 'mcp_sidebar_snapshot' and spec.get('mcp_sidebar'):
+                            emit({'kind': 'mcp_sidebar_snapshot', 'request_id': command['request_id'], **mcp_sidebar_fixture.snapshot(home)})
+                        elif command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
                             emit({'kind':'tool_preview_snapshot','request_id':command['request_id'], **tool_preview_fixture.snapshot(home, project, spec)})
                         elif command['kind'] == 'middle_snapshot' and spec.get('tab_middle_close'):
                             emit({'kind': 'middle_snapshot', 'request_id': command['request_id'], **middle_snapshot()})

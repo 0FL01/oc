@@ -1586,6 +1586,7 @@ impl TuiState {
 
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
+        self.invalidate_sidebar_pointer();
         self.clear_accounts();
         self.questions.cancel_pointer();
         let was_open = self.panel != TuiPanel::None;
@@ -1620,6 +1621,19 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if !matches!(
+            event.kind,
+            MouseEventKind::Up(MouseButton::Left) | MouseEventKind::Moved
+        ) || !event.modifiers.is_empty()
+            || self.panel != TuiPanel::None
+            || self.approvals.active().is_some()
+            || self.questions.active().is_some()
+            || self.composer_open()
+            || self.shell_viewer().is_some()
+            || self.transcript_overpainted(area, event.column, event.row)
+        {
+            self.cancel_sidebar_press();
+        }
         if self.panel == TuiPanel::Execute && self.approvals.active().is_none() {
             self.child_notice_down = None;
             self.cancel_shell_footer_pointer();
@@ -1830,6 +1844,9 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel == TuiPanel::None {
+            if let Some(outcome) = self.sidebar_mouse(event, area) {
+                return outcome;
+            }
             let home_mcp = crate::shell::home_mcp_rect(self, area);
             if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
                 && event.modifiers.is_empty()
@@ -2403,6 +2420,7 @@ impl TuiState {
 
     /// Handle a bracketed paste as one bounded event (never per-char).
     pub fn handle_paste(&mut self, text: &str) -> KeyOutcome {
+        self.cancel_sidebar_press();
         if self.panel == TuiPanel::Accounts {
             if self.approvals.active().is_some() || self.questions.active().is_some() {
                 self.close_panel();
@@ -2651,6 +2669,7 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        self.cancel_sidebar_press();
         self.child_notice_down = None;
         self.cancel_shell_footer_pointer();
         let terminal_command = match action {
@@ -3478,6 +3497,7 @@ impl TuiState {
     }
 
     pub(super) fn run_command(&mut self, action: CommandAction) -> KeyOutcome {
+        self.invalidate_sidebar_pointer();
         if let Some(reason) = self.command_unavailable(&action) {
             return KeyOutcome {
                 note: Some(reason.into()),

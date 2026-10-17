@@ -1,6 +1,99 @@
 use super::*;
 
 #[tokio::test]
+async fn sidebar_mcp_preference_ack_preserves_drafts_and_projects_on_activation() {
+    use oc_core::queries::{McpBinding, McpServerSnapshot, McpSnapshot, McpStatus};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let inventory = McpSnapshot {
+        binding: McpBinding {
+            location: "/fold-location".into(),
+            generation: 1,
+            instance: 1,
+        },
+        revision: 1,
+        servers: (0..3)
+            .map(|index| McpServerSnapshot {
+                id: index.to_string(),
+                name: format!("server-{index}"),
+                configured_enabled: false,
+                status: McpStatus::Disabled,
+                pending_action: None,
+                tools: 0,
+                diagnostic: None,
+                actions: Vec::new(),
+            })
+            .collect(),
+    };
+    let mut state = TuiState::new(app.clone(), SessionId("sidebar-fold-root".into()));
+    state.chrome.location = Some("/fold-location".into());
+    state.apply_mcp_snapshot(inventory.clone());
+    state.restore_prompt("preserved fold draft Ω界".into());
+    let caret = state.prompt_layout(100).1;
+    let mut deck = LoopState {
+        sidebar_mcp_open: Some(true),
+        ..Default::default()
+    };
+    let paint = |view: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(160, 32)).unwrap();
+        terminal
+            .draw(|frame| oc_tui::shell::render(frame, view))
+            .unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>()
+    };
+    for success in [false, true] {
+        let owner = async {
+            let Some(InboxMsg::SidebarMcpOpen { open, ack }) = inbox.recv().await else {
+                panic!("one explicit fold save")
+            };
+            assert_eq!(open, Some(false));
+            ack.send(if success {
+                Ok(false)
+            } else {
+                Err(CoreError::Application("safe storage failure".into()))
+            })
+            .unwrap();
+        };
+        let (result, ()) = tokio::join!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::SetSidebarMcpOpen { open: false }
+            ),
+            owner
+        );
+        assert_eq!(result.is_ok(), success);
+        assert_eq!(deck.sidebar_mcp_open, Some(!success));
+        assert!(paint(&state).contains(if success { "▶ MCP" } else { "▼ MCP" }));
+        assert_eq!(state.input(), "preserved fold draft Ω界");
+        assert_eq!(state.prompt_layout(100).1, caret);
+        assert!(!state.has_pending_submission());
+        assert!(inbox.try_recv().is_err());
+    }
+    // No eager fanout is needed: the same confirmed bit is projected on activation,
+    // including a child/history view and a freshly constructed view after reload.
+    for child in [false, true] {
+        let mut activated = TuiState::new(app.clone(), SessionId("sidebar-fold-restored".into()));
+        activated.chrome.location = Some("/fold-location".into());
+        activated.apply_mcp_snapshot(inventory.clone());
+        activated.restore_prompt("parked draft".into());
+        deck.child_parent =
+            child.then(|| Box::new(TuiState::new(app.clone(), SessionId("parent".into()))));
+        deck.sync_tabs(&mut activated);
+        assert!(paint(&activated).contains("▶ MCP"));
+        assert_eq!(activated.input(), "parked draft");
+        assert!(inbox.try_recv().is_err());
+    }
+}
+
+#[tokio::test]
 async fn parked_root_events_keep_exact_view_and_restore_it_after_read_failure() {
     use oc_core::tool_output::Presentation;
     let (app, mut inbox, _) = CoreApp::channel(8);

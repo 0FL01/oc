@@ -491,6 +491,11 @@ pub enum InboxMsg {
         action: Option<crate::queries::ModelPreferenceAction>,
         ack: oneshot::Sender<Result<crate::queries::ModelPreference, CoreError>>,
     },
+    /// Read or explicitly save the data-root-wide MCP sidebar fold preference.
+    SidebarMcpOpen {
+        open: Option<bool>,
+        ack: oneshot::Sender<Result<bool, CoreError>>,
+    },
     CustomProvider {
         action: crate::queries::CustomProviderAction,
         ack: oneshot::Sender<Result<crate::queries::CustomProviderReply, CoreError>>,
@@ -1922,6 +1927,16 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Read (`None`) or save the shared MCP sidebar presentation preference.
+    pub async fn sidebar_mcp_open(&self, open: Option<bool>) -> Result<bool, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SidebarMcpOpen { open, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Probe, confirm or refresh one custom connection without frontend persistence.
     pub async fn custom_provider(
         &self,
@@ -2562,6 +2577,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ModelPreference { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::SidebarMcpOpen { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {

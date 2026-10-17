@@ -8,6 +8,18 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current owner-requested session MCP sidebar (2026-10-17)
+
+[Bounded feature receipt](mcp-sidebar-20261017.md): the existing live inventory is
+shown after Context with typed statuses, original fold semantics, ACK-confirmed
+global preference, safe row navigation and independent sidebar scrolling.
+Targeted UI/preference/routing/actual-PTY checks pass. Supplementary 2.0.31 capture
+passes six scenario checks per origin, including literal disabled zero-spawn and
+natural cleanup; all four full-frame comparisons remain DIFFERENT. Current
+workspace result is2031 passed/10 failed/12 ignored; fmt/strict Clippy/debug pass.
+Failure assertions and qualification limits are recorded in the receipt. No frozen
+2.0.12, whole VIS/T44 or product READY claim.
+
 ## Current owner-requested direct Tab profile cycle (2026-10-16)
 
 [Bounded correction receipt](tab-cycle-20261016.md): root Tab directly cycles the

@@ -279,6 +279,7 @@ struct LoopState {
     questions: oc_tui::question_view::QuestionView,
     cli_auto: bool,
     permission_auto: Option<bool>,
+    sidebar_mcp_open: Option<bool>,
     approvals_checked: Option<(Option<SessionId>, Instant)>,
     compaction_job: Option<CompactionAdmission>,
     /// Bounded prompt drafts for picker Location round trips. Views and
@@ -599,6 +600,9 @@ impl LoopState {
     }
 
     fn sync_tabs(&mut self, state: &mut TuiState) {
+        if let Some(open) = self.sidebar_mcp_open {
+            state.apply_sidebar_mcp_open(open);
+        }
         state.set_service_feedback_visible(true);
         for parked in self.tabs.iter_mut().flatten() {
             parked.set_service_feedback_visible(false);
@@ -1121,6 +1125,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     loop_state.cli_auto = cli_auto;
+    loop_state.sidebar_mcp_open = Some(match app.sidebar_mcp_open(None).await {
+        Ok(open) => open,
+        Err(error) => return startup_failure(&mut terminal, startup_query(error)).map(|_| 1),
+    });
     app.register_question_consumer()
         .await
         .map_err(|e| e.to_string())?;
@@ -2157,6 +2165,7 @@ async fn handle_event_ticks(
                     MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
                 )
                 && !state.tab_wheel_hit(area, mouse.column, mouse.row)
+                && !state.sidebar_wheel_hit(area, mouse.column, mouse.row)
                 && !oc_tui::terminal_view::pane_hit(state, area, mouse.column, mouse.row)
             {
                 // A wheel event also moves the pointer. Keep transcript
@@ -2385,6 +2394,14 @@ async fn apply_owned_intent(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::SetSidebarMcpOpen { open } => {
+            let open = app
+                .sidebar_mcp_open(Some(open))
+                .await
+                .map_err(|error| error.to_string())?;
+            loop_state.sidebar_mcp_open = Some(open);
+            state.apply_sidebar_mcp_open(open);
+        }
         PanelIntent::SetTabRailWidth { width } => {
             if !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
                 .contains(&width)

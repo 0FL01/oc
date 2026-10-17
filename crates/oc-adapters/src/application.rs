@@ -3553,6 +3553,22 @@ async fn query(
         InboxMsg::ModelPreference { action, ack } => {
             let _ = ack.send(model_picker::preference(db, action));
         }
+        InboxMsg::SidebarMcpOpen { open, ack } => {
+            let result = (|| {
+                const KEY: &str = "tui.sidebar.mcp.open";
+                if let Some(open) = open {
+                    db.set_pref(KEY, if open { "true" } else { "false" })
+                        .map_err(|error| query_storage_error(db, error))?;
+                    return Ok(open);
+                }
+                // This optional scalar tolerates bad content, not a failed DB query.
+                let raw = db
+                    .get_pref_bounded(KEY, 5)
+                    .map_err(|error| query_storage_error(db, error))?;
+                Ok(!matches!(raw, crate::storage::BoundedPref::Value(raw) if raw == "false"))
+            })();
+            let _ = ack.send(result);
+        }
         InboxMsg::CustomProvider { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }

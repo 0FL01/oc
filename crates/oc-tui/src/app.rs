@@ -185,6 +185,9 @@ pub enum PanelIntent {
     SetPermissionMode {
         auto_once: bool,
     },
+    SetSidebarMcpOpen {
+        open: bool,
+    },
     ReplyApproval(oc_core::approval::ApprovalReply),
     ReplyQuestion(oc_core::question::QuestionReply),
     LoadShells,
@@ -808,6 +811,7 @@ pub struct TuiState {
     mcp_detail: Option<mcp::McpDetail>,
     mcp_focused: Option<String>,
     mcp_action_down: Option<(Rect, Rect, oc_core::queries::McpControl)>,
+    sidebar_mcp: mcp::SidebarMcp,
     /// DCP panel state: snapshot in, request out, transient outcome (UI04).
     pub(crate) dcp: DcpPanelState,
     /// Command ids known to the application (templates stay there).
@@ -1013,6 +1017,7 @@ impl TuiState {
             mcp_detail: None,
             mcp_focused: None,
             mcp_action_down: None,
+            sidebar_mcp: mcp::SidebarMcp::default(),
             dcp: DcpPanelState::default(),
             commands: Vec::new(),
             command_descriptions: BTreeMap::new(),

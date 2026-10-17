@@ -3,6 +3,207 @@ use crate::commands::CommandAction;
 use oc_core::queries::{McpAction, McpBinding, McpServerSnapshot, McpSnapshot, McpStatus};
 use ratatui::{Terminal, backend::TestBackend, style::Modifier, text::Line};
 
+fn sidebar_inventory() -> McpSnapshot {
+    use oc_core::queries::{
+        ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage,
+    };
+    McpSnapshot {
+        binding: McpBinding {
+            location: "/sidebar-input".into(),
+            generation: 1,
+            instance: 1,
+        },
+        revision: 1,
+        servers: [
+            McpStatus::Connected,
+            McpStatus::Failed,
+            McpStatus::NeedsAuth,
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, status)| {
+            let id = format!("sidebar-opaque-{index}");
+            McpServerSnapshot {
+                id: id.clone(),
+                name: "duplicate display name".into(),
+                configured_enabled: true,
+                status,
+                pending_action: None,
+                tools: 0,
+                actions: Vec::new(),
+                diagnostic: (status != McpStatus::Connected).then(|| ServiceDiagnostic {
+                    kind: ServiceKind::Mcp,
+                    service: id,
+                    source: "source-safe/config".into(),
+                    field: vec!["mcp".into()],
+                    stage: ServiceStage::Initialize,
+                    code: ServiceCode::ConnectionFailed,
+                    action: ServiceAction::RetryConnection,
+                    details: None,
+                }),
+            }
+        })
+        .collect(),
+    }
+}
+
+#[tokio::test]
+async fn sidebar_mcp_mouse_opens_the_opaque_id_and_retains_the_load_intent() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    let mut state = fresh_state("sidebar-id").await;
+    state.chrome.location = Some("/sidebar-input".into());
+    state.set_service_feedback_visible(false);
+    let mut inventory = sidebar_inventory();
+    state.apply_mcp_snapshot(inventory.clone());
+    state.handle_paste("preserved Ω界 sidebar draft");
+    state.editor.move_to(5, false);
+    let caret = state.editor.cursor;
+    let area = ratatui::layout::Rect::new(0, 0, 160, 32);
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    for (id, details) in [
+        ("sidebar-opaque-1", true),
+        ("sidebar-opaque-2", false),
+        ("sidebar-opaque-0", false),
+    ] {
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let layout = crate::shell::sidebar_layout(&state, area).unwrap();
+        let rect = layout
+            .rows
+            .iter()
+            .find(|(_, index)| state.sidebar_mcp_servers()[*index].id == id)
+            .unwrap()
+            .0;
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: rect.x + 2,
+            row: rect.y,
+            modifiers: KeyModifiers::NONE,
+        };
+        assert!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area)
+                .intent
+                .is_none()
+        );
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area)
+                .intent,
+            Some(PanelIntent::LoadMcps)
+        );
+        assert_eq!(state.mcp_focused.as_deref(), Some(id));
+        assert_eq!(state.mcp_detail_server().is_some(), details);
+        if details {
+            assert_eq!(state.mcp_detail_server().unwrap().id, id);
+            inventory.revision += 1;
+            inventory.servers.swap(0, 1);
+            state.apply_mcp_snapshot(inventory.clone());
+            assert_eq!(state.mcp_detail_server().unwrap().id, id);
+            assert_eq!(state.modal_options()[state.select.cursor].value, id);
+        }
+        assert_eq!(state.input(), "preserved Ω界 sidebar draft");
+        assert_eq!(state.editor.cursor, caret);
+        assert!(!state.has_pending_submission());
+        state.close_panel();
+    }
+}
+
+#[tokio::test]
+async fn sidebar_mcp_pointer_invalidation_never_retargets_a_release() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    let mut state = fresh_state("sidebar-gestures").await;
+    state.chrome.location = Some("/sidebar-input".into());
+    state.set_service_feedback_visible(false);
+    let area = ratatui::layout::Rect::new(0, 0, 160, 32);
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    for (revision, action) in [
+        "wheel", "drag", "modified", "resize", "key", "paste", "modal", "park", "accepted",
+        "rejected",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut snapshot = sidebar_inventory();
+        snapshot.revision = revision as u64 * 2 + 1;
+        state.apply_mcp_snapshot(snapshot.clone());
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let rect = crate::shell::sidebar_layout(&state, area).unwrap().rows[0].0;
+        let mouse = |kind, modifiers| MouseEvent {
+            kind,
+            column: rect.x + 2,
+            row: rect.y,
+            modifiers,
+        };
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), KeyModifiers::NONE),
+            area,
+        );
+        match action {
+            "wheel" => {
+                state.handle_mouse(mouse(MouseEventKind::ScrollDown, KeyModifiers::NONE), area);
+            }
+            "drag" => {
+                state.handle_mouse(
+                    mouse(MouseEventKind::Drag(MouseButton::Left), KeyModifiers::NONE),
+                    area,
+                );
+            }
+            "modified" => {
+                state.handle_mouse(
+                    mouse(MouseEventKind::Up(MouseButton::Left), KeyModifiers::CONTROL),
+                    area,
+                );
+            }
+            "resize" => {
+                state.resize_mouse_position(ratatui::layout::Rect::new(0, 0, 120, 24));
+                state.resize_mouse_position(area);
+            }
+            "modal" => {
+                state.run_command(CommandAction::OpenMcps);
+                state.close_panel();
+            }
+            "park" => state.clear_mouse_position(),
+            "key" => {
+                state.handle_key(KeyAction::Char('x')).await;
+            }
+            "paste" => {
+                state.handle_paste("x");
+            }
+            "accepted" => {
+                snapshot.revision += 1;
+                snapshot.servers.swap(0, 1);
+                state.apply_mcp_snapshot(snapshot);
+                // An inventory that has not painted yet cannot own a fresh press either.
+                state.handle_mouse(
+                    mouse(MouseEventKind::Down(MouseButton::Left), KeyModifiers::NONE),
+                    area,
+                );
+            }
+            "rejected" => {
+                snapshot.binding.location = "/foreign".into();
+                state.apply_mcp_snapshot(snapshot);
+            }
+            _ => unreachable!(),
+        }
+        let outcome = state.handle_mouse(
+            mouse(MouseEventKind::Up(MouseButton::Left), KeyModifiers::NONE),
+            area,
+        );
+        if action == "rejected" {
+            assert_eq!(outcome.intent, Some(PanelIntent::LoadMcps));
+            assert_eq!(state.mcp_focused.as_deref(), Some("sidebar-opaque-0"));
+            state.close_panel();
+        } else {
+            assert!(outcome.intent.is_none(), "{action}");
+            assert_eq!(*state.panel(), TuiPanel::None, "{action}");
+        }
+    }
+}
+
 #[tokio::test]
 async fn mcp_error_details_are_read_only_preserve_list_and_own_copy_investigation() {
     use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};

@@ -14,7 +14,202 @@ pub(super) struct McpDetail {
     pub(super) pressed: Option<(Rect, crate::dialog::DialogHit)>,
 }
 
+pub(super) struct SidebarMcp {
+    open: bool,
+    scroll: std::cell::Cell<usize>,
+    painted: std::cell::RefCell<Option<SidebarPaint>>,
+    pressed: Option<(SidebarPaint, Rect, String)>,
+}
+
+impl Default for SidebarMcp {
+    fn default() -> Self {
+        Self {
+            open: true,
+            scroll: Default::default(),
+            painted: Default::default(),
+            pressed: None,
+        }
+    }
+}
+
+/// A small paint receipt, not a second inventory. Unpainted replacements cannot own clicks.
+#[derive(Clone, PartialEq, Eq)]
+struct SidebarPaint {
+    frame: Rect,
+    pane: Rect,
+    body: Rect,
+    offset: usize,
+    content_height: usize,
+    inventory: Option<(McpBinding, u64)>,
+    open: bool,
+}
+
 impl TuiState {
+    pub(crate) fn sidebar_mcp_servers(&self) -> &[McpServerSnapshot] {
+        self.mcp_snapshot
+            .as_ref()
+            .map_or(&[], |snapshot| snapshot.servers.as_slice())
+    }
+
+    pub(crate) fn sidebar_mcp_open(&self) -> bool {
+        self.sidebar_mcp.open
+    }
+
+    pub(crate) fn sidebar_scroll(&self) -> usize {
+        self.sidebar_mcp.scroll.get()
+    }
+
+    /// Apply only the application's acknowledged global presentation preference.
+    pub fn apply_sidebar_mcp_open(&mut self, open: bool) {
+        if self.sidebar_mcp.open != open {
+            self.sidebar_mcp.open = open;
+            self.invalidate_sidebar_pointer();
+        }
+    }
+
+    pub(crate) fn clear_sidebar_paint(&self) {
+        self.sidebar_mcp.painted.borrow_mut().take();
+    }
+
+    pub(super) fn invalidate_sidebar_pointer(&mut self) {
+        self.sidebar_mcp.pressed = None;
+        self.clear_sidebar_paint();
+    }
+
+    pub(super) fn cancel_sidebar_press(&mut self) {
+        self.sidebar_mcp.pressed = None;
+    }
+
+    pub(super) fn reset_sidebar_scroll(&mut self) {
+        self.sidebar_mcp.scroll.set(0);
+        self.invalidate_sidebar_pointer();
+    }
+
+    fn sidebar_paint(&self, frame: Rect, layout: &crate::shell::SidebarLayout) -> SidebarPaint {
+        SidebarPaint {
+            frame,
+            pane: layout.pane,
+            body: layout.body,
+            offset: layout.offset,
+            content_height: layout.content_height,
+            inventory: self
+                .mcp_snapshot
+                .as_ref()
+                .map(|snapshot| (snapshot.binding.clone(), snapshot.revision)),
+            open: self.sidebar_mcp.open,
+        }
+    }
+
+    pub(crate) fn remember_sidebar_paint(&self, frame: Rect, layout: &crate::shell::SidebarLayout) {
+        // A folded/shrunken viewport commits its clamp; expanding must not revive an old offset.
+        self.sidebar_mcp.scroll.set(layout.offset);
+        self.sidebar_mcp
+            .painted
+            .replace(Some(self.sidebar_paint(frame, layout)));
+    }
+
+    /// Entire painted pane owns wheel events, including pinned/padding cells.
+    pub fn sidebar_wheel_hit(&self, frame: Rect, x: u16, y: u16) -> bool {
+        crate::shell::sidebar_layout(self, frame)
+            .is_some_and(|layout| layout.pane.contains((x, y).into()))
+    }
+
+    pub(super) fn sidebar_mouse(&mut self, event: MouseEvent, frame: Rect) -> Option<KeyOutcome> {
+        let Some(layout) = crate::shell::sidebar_layout(self, frame) else {
+            self.cancel_sidebar_press();
+            return None;
+        };
+        if !layout.pane.contains((event.column, event.row).into()) {
+            self.sidebar_mcp.pressed = None;
+            return None;
+        }
+        if self.transcript_overpainted(frame, event.column, event.row) {
+            self.invalidate_sidebar_pointer();
+            return Some(KeyOutcome::default());
+        }
+        let paint = self.sidebar_paint(frame, &layout);
+        let painted = self.sidebar_mcp.painted.borrow().as_ref() == Some(&paint);
+        let mut outcome = KeyOutcome::default();
+        match event.kind {
+            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
+                // The reserved scrollbar column belongs to the same viewport.
+                let body = Rect {
+                    width: layout.body.width.saturating_add(1),
+                    ..layout.body
+                };
+                if body.contains((event.column, event.row).into()) {
+                    let end = layout
+                        .content_height
+                        .saturating_sub(layout.body.height as usize);
+                    self.sidebar_mcp
+                        .scroll
+                        .set(if event.kind == MouseEventKind::ScrollUp {
+                            layout.offset.saturating_sub(3)
+                        } else {
+                            layout.offset.saturating_add(3).min(end)
+                        });
+                }
+                self.invalidate_sidebar_pointer();
+            }
+            MouseEventKind::Down(MouseButton::Left) if painted && event.modifiers.is_empty() => {
+                self.tab_down = None;
+                self.reasoning_down = None;
+                self.exploration_down = None;
+                self.selection_gesture = false;
+                self.click = None;
+                if layout
+                    .header
+                    .is_some_and(|rect| rect.contains((event.column, event.row).into()))
+                    && self.sidebar_mcp_servers().len() > 2
+                {
+                    outcome.intent = Some(PanelIntent::SetSidebarMcpOpen {
+                        open: !self.sidebar_mcp.open,
+                    });
+                } else if let Some((rect, index)) = layout
+                    .rows
+                    .iter()
+                    .find(|(rect, _)| rect.contains((event.column, event.row).into()))
+                {
+                    self.sidebar_mcp.pressed =
+                        Some((paint, *rect, self.sidebar_mcp_servers()[*index].id.clone()));
+                }
+            }
+            MouseEventKind::Up(MouseButton::Left) if painted && event.modifiers.is_empty() => {
+                if let Some((pressed, rect, id)) = self.sidebar_mcp.pressed.take()
+                    && pressed == paint
+                    && rect.contains((event.column, event.row).into())
+                    && layout.rows.iter().any(|(current, index)| {
+                        *current == rect && self.sidebar_mcp_servers()[*index].id == id
+                    })
+                {
+                    outcome = self.run_command(crate::commands::CommandAction::OpenMcps);
+                    if self.panel == TuiPanel::Mcps
+                        && outcome.intent == Some(PanelIntent::LoadMcps)
+                        && let Some(index) = self
+                            .modal_options()
+                            .iter()
+                            .position(|option| option.value == id)
+                    {
+                        self.select.cursor = index;
+                        self.sync_modal_cursor();
+                        self.select.follow_selection();
+                        if self
+                            .sidebar_mcp_servers()
+                            .iter()
+                            .any(|server| server.id == id && server.status == McpStatus::Failed)
+                        {
+                            self.mcp_enter();
+                        }
+                    }
+                }
+            }
+            _ => {
+                self.sidebar_mcp.pressed = None;
+            }
+        }
+        Some(outcome)
+    }
+
     pub(crate) fn mcp_list_servers(&self) -> Option<&[McpServerSnapshot]> {
         if self.panel != TuiPanel::Mcps || self.mcp_detail.is_some() {
             return None;
@@ -89,6 +284,7 @@ impl TuiState {
         }
         self.mcp_snapshot = Some(snapshot);
         self.mcp_action_down = None;
+        self.invalidate_sidebar_pointer();
         if self.mcp_detail.is_some() && self.mcp_detail_server().is_none() {
             // A replacement generation/recovery must not leave a stale detail
             // (or its copy/investigate actions) attached to another owner.
