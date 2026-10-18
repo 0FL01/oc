@@ -1147,3 +1147,20 @@ gate PASS: 2089 tests / 12 существующих opt-in skips; прогрет
 timing budgets квалифицированы, debug build/help/version PASS. Reviewed implementation
 `df2358176` committed/pushed в origin/master; factual closeout — [T69 report](evidence/T69/report.md).
 Это не whole-product READY и не изменение historical evidence других задач.
+
+## Owner amendment (2026-10-18 — exploration group parity в TUI)
+
+По баг-репорту владельца со скриншотами («эти все блоки должны быть автоматически
+спрятаны под спойлер … гляди на цвета и расстояние между строк») сохранён
+[план T70](docs/goals/2026-10-18-tui-exploration-group.md). Это bounded UI correction
+в рамках A08, разработка на ветке `fix/tui-exploration-group`.
+
+- Смежные Read/Glob/Grep/WebFetch сворачиваются под одну muted-строку
+  `→ Explored: …`, как в `.local/opencode` group-view. Владелец выбрал upstream parity:
+  truncated/failed/denied/cancelled входят в группу; вне группы остаются только `unknown`,
+  permission-pending и argument-stream.
+- Раскрытые члены идут без пустых строк, с OC2-иконками и muted-цветом; отдельные
+  named inline tools используют тот же стиль.
+- Storage schema/migrations, config и provider не меняются.
+
+Execution status: план сохранён; реализация и проверки ещё не выполнены.

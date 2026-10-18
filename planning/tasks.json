@@ -1038,6 +1038,16 @@
       "work": "Owner-approved 2026-10-18 audited bounded correction: subagent sessionID/model exactly empty strings mean omission, no trim/null repair or model/ownership fallback. Reuse one validated parser for preflight/spawn and scheduler; only admitted nonempty continuations join/update the predecessor map, so refused duplicate foreign IDs cannot wait/cancel another child. Preserve fresh concurrency, actual same-child/FG-to-BG join, background lifecycle, permissions/depth/context guards, RAW/durable/replayed original args and output/model contracts. Both Responses function maps explicitly strict:false with unchanged parameters/required; WS shares body, Chat/Messages unchanged. Compact parser/fresh/foreign regressions plus existing overlap/continuation/BG/HTTP/WS fixtures, full scripts/test.sh and normal debug build, reviewed commit/push. Reuse SUB01/SUB02 without moving ownership or closing T45/live; T44/T61 paused. No new wrapper/repair/serializer framework, Jobs/store/schema migration, config edits, CLI fixture, release/paid campaign or whole-product READY.",
       "evidence": "evidence/T69/report.md",
       "spec": "docs/goals/2026-10-18-subagent-call-compatibility.md"
+    },
+    {
+      "id": "T70",
+      "phase": "M8",
+      "title": "OC2 exploration group parity in TUI transcript",
+      "depends_on": ["T69"],
+      "tests": ["A08"],
+      "work": "Owner-approved 2026-10-18 bug fix: adjacent Read/Glob/Grep/WebFetch rows collapse under one muted 'Explored: …' header like OC2 group-view; truncated/failed/denied/cancelled members join (only unknown/permission/argument-stream stay outside). Expanded members have no blank lines and use OC2 icons/muted color; standalone named inline tools adopt the OC2 icon and muted style. Update nearest TUI unit/golden tests, full scripts/test.sh, debug build, branch commit/push. No storage schema/migration change.",
+      "evidence": "evidence/T70/report.md",
+      "spec": "docs/goals/2026-10-18-tui-exploration-group.md"
     }
   ]
 }

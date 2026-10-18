@@ -26,3 +26,4 @@ Plan: ../../roadmap/M8.md
 - [T67](T67/INDEX.md) [done] — Owner live dev launcher oc2-dev; latest: 0001.md.
 - [T68](T68/INDEX.md) [done] — Portless shared runtime, mirrored TUI and global client lifetime; latest: 0001.md.
 - [T69](T69/INDEX.md) [done] — Subagent empty optional arguments and admitted continuation scheduling; latest: 0001.md.
+- [T70](T70/INDEX.md) [active] — OC2 exploration group parity in TUI transcript; latest: нет.

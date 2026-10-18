@@ -371,6 +371,11 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
   IDs returning without joining/cancelling the held child. Reuse the existing fixtures
   and HTTP/WS captures for `strict: false` with unchanged optional schema; nearest
   red→green checks, full offline gate and debug build, no new live/CLI/release campaign.
+- T70 is the bounded [exploration group parity fix](goals/2026-10-18-tui-exploration-group.md) under A08:
+  adjacent Read/Glob/Grep/WebFetch collapse under `Explored:` including truncated/failed/
+  denied members, `unknown`/permission rows stay outside, expanded members have no blank
+  rows and keep full/visible/position parity. Update nearest oc-tui unit/golden tests,
+  full offline gate and debug build; no live/paid campaign.
 - CTX01 captures exact selected parent text/roles/provenance and immutable pack on
   background/restart/continuation. Invalid/foreign/reverted/future/unsupported/over-
   budget selection creates no child/input; compressed raw text is not a reverted branch.
