@@ -134,7 +134,7 @@ async fn composer_chip_cursor_and_permission_priority_are_preserved() {
 }
 
 #[test]
-fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
+fn answered_question_metadata_is_charged_without_turn_preview_loss() {
     use crate::history::{HistoryWindow, WINDOW_BYTES};
     use oc_core::{
         queries::*,
@@ -200,11 +200,16 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
     };
     let mut window = HistoryWindow::new();
     window.reset(&page);
-    assert!(
-        window.rows().len() < 20,
-        "question metadata must trigger existing byte eviction"
+    assert_eq!(
+        window.rows().len(),
+        40,
+        "all question parts and footers fit"
     );
-    assert!(window.has_older());
+    assert!(!window.has_older());
+    assert!(
+        window.retained_bytes() >= 20 * 4 * 4096 * 2,
+        "question and answer metadata must both be charged, not ignored"
+    );
     assert!(window.retained_bytes() <= WINDOW_BYTES);
 }
 

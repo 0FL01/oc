@@ -1714,7 +1714,7 @@ impl TuiState {
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
             || self.questions.active().is_some()
-            || self.composer_open()
+            || self.composer_contains(area, (event.column, event.row))
             || self.shell_viewer().is_some()
         {
             self.child_notice_down = None;

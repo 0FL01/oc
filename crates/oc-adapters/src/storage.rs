@@ -71,6 +71,13 @@ pub struct HistoryPageRow {
 
 // Bound newly projected identity allocations even for malformed/legacy stores.
 const HISTORY_PAGE_ID_BYTES: usize = 256 * 1024;
+/// Whole-part/page target, never a budget spent by fields inside a turn.
+/// A larger single producer-admitted part is served alone with continuation.
+pub(crate) const TRANSCRIPT_PAGE_BYTES: usize = 8 * 1024 * 1024;
+// Wire arguments are parsed before persistence. Canonical JSON can grow (e.g.
+// scientific numbers become decimal floats); do not apply the raw wire-string
+// allowance to that different representation. Keep a bounded encoding envelope.
+const TOOL_INPUT_JSON_BYTES: usize = 6 * crate::provider::ARGUMENT_BYTE_CAP;
 
 fn page_message_id(
     row: &rusqlite::Row<'_>,
@@ -2955,17 +2962,19 @@ impl Db {
     /// Public projection, selecting only whitelisted JSON fields in SQL. The
     /// opaque wire journal never crosses the application/UI boundary. A legacy
     /// row remains text-only; interrupted turns attach to their accepted user row.
-    pub(crate) fn history_turn(
+    pub(crate) fn history_turn_window(
         &self,
         session: &str,
         seq: i64,
+        cursor: Option<&oc_core::queries::HistoryPartCursor>,
+        from_start: bool,
     ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
         let id = {
             let conn = self.conn.lock().expect("db mutex");
             conn.query_row("SELECT t.id FROM turns t JOIN messages m ON m.session_id=t.session_id WHERE json_valid(t.result) AND t.session_id=?1 AND m.seq=?2 AND m.id=COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message')) LIMIT 1", params![session,seq], |r|r.get::<_,String>(0)).optional()?
         };
         match id {
-            Some(id) => self.turn_presentation(session, &id),
+            Some(id) => self.turn_presentation_range(session, &id, cursor, from_start),
             None => Ok(None),
         }
     }
@@ -2975,6 +2984,25 @@ impl Db {
         &self,
         session: &str,
         id: &str,
+    ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
+        self.turn_presentation_window(session, id, None)
+    }
+
+    pub(crate) fn turn_presentation_window(
+        &self,
+        session: &str,
+        id: &str,
+        cursor: Option<&oc_core::queries::HistoryPartCursor>,
+    ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
+        self.turn_presentation_range(session, id, cursor, false)
+    }
+
+    fn turn_presentation_range(
+        &self,
+        session: &str,
+        id: &str,
+        cursor: Option<&oc_core::queries::HistoryPartCursor>,
+        from_start: bool,
     ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
         use oc_core::queries::{HistoryTurn, PartState, ToolOpView, TranscriptPart};
         let conn = self.conn.lock().expect("db mutex");
@@ -3014,18 +3042,36 @@ impl Db {
             |r| r.get(0),
         )?;
         turn.legacy_text_only = total.is_none();
-        // Per-turn part and byte serving budgets, independent of archive size.
-        let refs = self.latest_turn_parts(&conn, &id)?;
-        // Reserve settled metadata before admitting any text or tool input.
-        // Each effect is indivisible: replay uses the canonical producer DTO.
-        let mut reserved = 0i64;
-        for (_, _, part) in &refs {
-            if let Some(op) = part["tool"].as_str() {
-                reserved+=conn.query_row("SELECT COALESCE(SUM(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id=?1",[op],|r| r.get::<_,i64>(0))?;
-            }
+        // Read a bounded reference window. Canonical parts do not compete for a
+        // disposable turn preview allowance: each result keeps its own producer
+        // bounds, independently of preceding text, effects or other operations.
+        let total_parts = total.unwrap_or(0).max(0) as usize;
+        let newer = cursor.map_or(from_start, |cursor| cursor.newer);
+        let end = if newer {
+            total_parts
+        } else {
+            cursor.map_or(total_parts, |c| c.sequence.min(total_parts))
+        };
+        let start = if newer {
+            cursor.map_or(0, |c| c.sequence.saturating_add(1).min(total_parts))
+        } else {
+            end.saturating_sub(240)
+        };
+        let end = if newer {
+            end.min(start.saturating_add(240))
+        } else {
+            end
+        };
+        let mut refs = if cursor.is_none() && !from_start {
+            self.latest_turn_parts(&conn, &id)?
+        } else {
+            self.turn_part_refs(&conn, &id, start, end, newer)?
+        };
+        if !newer {
+            refs.reverse();
         }
-        let mut effects_budget = oc_core::patch::EFFECT_PREVIEW_BYTES_CAP;
-        let mut budget = effects_budget.saturating_sub(reserved as usize);
+        let mut covered: Option<(usize, usize)> = None;
+        let mut served_bytes = 0usize;
         let mut pending_text = 0usize;
         for (sequence, ordinal, part) in refs {
             // A served active-stream identity has no committed text yet. It is
@@ -3039,6 +3085,9 @@ impl Db {
                     .all(|key| part.get(key).is_none())
             {
                 pending_text += 1;
+                covered = Some(covered.map_or((sequence, sequence + 1), |(a, b)| {
+                    (a.min(sequence), b.max(sequence + 1))
+                }));
                 continue;
             }
             let mut state = PartState {
@@ -3076,12 +3125,8 @@ impl Db {
             }
             let before = turn.parts.len();
             if let Some(text) = part["reasoning"].as_str() {
-                state.truncated |= text.len() > budget.min(16 * 1024);
-                let text = text[..text.floor_char_boundary(budget.min(16 * 1024).min(text.len()))]
-                    .to_string();
-                budget = budget.saturating_sub(text.len());
                 turn.parts.push(TranscriptPart::Reasoning {
-                    text,
+                    text: text.to_string(),
                     duration_ms: part["duration_ms"].as_u64(),
                 });
             } else if let Some(index) = part["message"].as_u64() {
@@ -3089,25 +3134,31 @@ impl Db {
                     "$.{}input[{index}].content",
                     if ordinal.is_some() { "journal." } else { "" }
                 );
-                let bytes: i64 = conn.query_row("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT payload FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?3) SELECT COALESCE(SUM(length(CAST(c.value ->> '$.text' AS BLOB))),0) FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'",params![id,path,ordinal],|r|r.get(0))?;
-                state.truncated |= bytes as usize > budget;
-                let mut texts=conn.prepare_cached("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?4 IS NULL UNION ALL SELECT payload FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?4) SELECT substr(c.value ->> '$.text',1,?3) FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'")?;
+                let mut texts=conn.prepare_cached("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?4 IS NULL UNION ALL SELECT payload FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?4) SELECT CASE WHEN length(CAST(c.value ->> '$.text' AS BLOB))<=?3 THEN c.value ->> '$.text' END FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'")?;
                 let mut text = String::new();
-                for item in texts.query_map(params![id, path, budget as i64, ordinal], |r| {
-                    r.get::<_, String>(0)
-                })? {
-                    let item = item?;
-                    let kept =
-                        item.floor_char_boundary(budget.saturating_sub(text.len()).min(item.len()));
-                    text.push_str(&item[..kept]);
+                for item in texts.query_map(
+                    params![
+                        id,
+                        path,
+                        crate::provider::GENERATION_BYTE_CAP as i64,
+                        ordinal
+                    ],
+                    |r| r.get::<_, Option<String>>(0),
+                )? {
+                    let item = item?.ok_or(StorageError::CompressionConflict)?;
+                    if text.len().saturating_add(item.len()) > crate::provider::GENERATION_BYTE_CAP
+                    {
+                        return Err(StorageError::CompressionConflict);
+                    }
+                    text.push_str(&item);
                 }
-                budget = budget.saturating_sub(text.len());
                 turn.parts.push(TranscriptPart::Text(text));
             } else if let Some(op) = part["tool"].as_str() {
                 // Input is structured JSON: cutting it at the output-preview
-                // boundary destroys patch/path metadata. Serve complete admitted
-                // input within the turn budget, otherwise honestly omit it.
-                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,budget.saturating_sub(TOOL_OP_PREVIEW_BYTES) as i64],|r| {
+                // boundary destroys patch/path metadata. Preserve complete input
+                // within its producer-derived canonical encoding bound, not what an
+                // unrelated operation left in a shared turn budget.
+                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,TOOL_INPUT_JSON_BYTES as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
                     let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
@@ -3121,77 +3172,48 @@ impl Db {
                     let child_job=if name=="subagent" { Self::child_tool_job_in(&conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?.map(Box::new) } else { None };
                     Ok(ToolOpView{child_job,output_presentation,question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
-                if let Some(mut view) = view {
-                    if let Some(question) = &view.question {
-                        let bytes = serde_json::to_vec(question)
-                            .expect("question metadata")
-                            .len();
-                        if bytes > effects_budget {
-                            continue;
-                        }
-                        effects_budget -= bytes;
-                    }
+                if let Some(view) = view {
                     if let Some(effects) = &view.patch_effects {
-                        let bytes = serde_json::to_vec(effects).expect("effects").len();
-                        if bytes > effects_budget {
-                            continue;
-                        }
-                        effects_budget -= bytes;
                         state.truncated |= effects.truncated;
-                    }
-                    // Output is admitted after metadata and structured input;
-                    // never let the independent SQL preview exceed the turn cap.
-                    let mut remaining =
-                        budget.saturating_sub(view.input.as_ref().map_or(0, String::len));
-                    let child_bytes = view
-                        .child_job
-                        .as_ref()
-                        .map_or(0, |job| job.retained_bytes());
-                    let child_bytes = if child_bytes > remaining {
-                        view.child_job = None;
-                        state.truncated = true;
-                        0
-                    } else {
-                        remaining -= child_bytes;
-                        child_bytes
-                    };
-                    let presentation_bytes = view
-                        .output_presentation
-                        .as_ref()
-                        .map_or(0, |presentation| presentation.retained_bytes());
-                    let presentation_bytes = if presentation_bytes > remaining {
-                        view.output_presentation = None;
-                        state.truncated = true;
-                        0
-                    } else {
-                        remaining -= presentation_bytes;
-                        presentation_bytes
-                    };
-                    if let Some(output) = &mut view.output
-                        && output.len() > remaining
-                    {
-                        output.truncate(output.floor_char_boundary(remaining));
-                        view.output_truncated = true;
                     }
                     state.status = view.state.clone();
                     state.input_omitted = view.input.is_none();
                     state.truncated |= state.input_omitted || view.output_truncated;
-                    budget = budget.saturating_sub(
-                        view.input.as_ref().map_or(0, String::len)
-                            + view.output.as_ref().map_or(0, String::len)
-                            + presentation_bytes
-                            + child_bytes,
-                    );
                     turn.parts.push(TranscriptPart::Tool(view));
                 }
             }
             if turn.parts.len() > before {
+                let bytes = serde_json::to_vec(turn.parts.last().expect("projected part"))
+                    .expect("public transcript part")
+                    .len();
+                // Whole-part serving boundary, not content loss. The next
+                // window resumes at this exact durable sequence. One admitted
+                // part can exceed the page target and still makes progress.
+                if before > 0 && served_bytes.saturating_add(bytes) > TRANSCRIPT_PAGE_BYTES {
+                    turn.parts.pop();
+                    break;
+                }
+                served_bytes = served_bytes.saturating_add(bytes);
                 turn.truncated |= state.truncated;
                 turn.part_states.push(state);
             }
+            covered = Some(covered.map_or((sequence, sequence + 1), |(a, b)| {
+                (a.min(sequence), b.max(sequence + 1))
+            }));
         }
-        turn.omitted_parts =
-            (total.unwrap_or(0) as usize).saturating_sub(turn.parts.len() + pending_text);
+        if !newer {
+            turn.parts.reverse();
+            turn.part_states.reverse();
+        }
+        if !turn.legacy_text_only {
+            let (start, end) = covered.unwrap_or((start, start));
+            turn.window = Some(oc_core::queries::HistoryPartWindow {
+                start,
+                end,
+                total: total_parts,
+            });
+            turn.omitted_parts = (end - start).saturating_sub(turn.parts.len() + pending_text);
+        }
         turn.truncated |= turn.omitted_parts > 0;
         Ok(Some(turn))
     }
@@ -4380,3 +4402,6 @@ fn apply_turn_acceptance_schema(conn: &Connection) -> Result<(), StorageError> {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "storage/transcript_tests.rs"]
+mod transcript_tests;

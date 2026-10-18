@@ -41,7 +41,7 @@ pub(super) async fn refresh(app: &CoreApp, state: &mut TuiState) -> Result<(), S
                 && state.active_turn().is_some()
             {
                 let page = app
-                    .read_child(current.parent.clone(), current.clone())
+                    .read_child_transcript(current.parent.clone(), current.clone())
                     .await
                     .map_err(|e| e.to_string())?;
                 state.reconcile_linked_terminal(&current, &page);
@@ -83,7 +83,7 @@ async fn view(
         page
     } else {
         loaded = app
-            .read_child(selected.parent.clone(), selected.clone())
+            .read_child_transcript(selected.parent.clone(), selected.clone())
             .await
             .map_err(|e| e.to_string())?;
         &loaded
@@ -145,7 +145,7 @@ pub(super) async fn open(
         .into_iter()
         .find(|j| same_launch(j, &selected));
     let page = app
-        .read_child(selected.parent.clone(), selected.clone())
+        .read_child_transcript(selected.parent.clone(), selected.clone())
         .await
         .map_err(|e| e.to_string())?;
     // The exact read owner returns current original-launch facts even when the

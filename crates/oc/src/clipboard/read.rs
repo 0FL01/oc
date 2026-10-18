@@ -71,6 +71,11 @@ async fn command(
     deadline: Instant,
     cancel: &mut oneshot::Receiver<()>,
 ) -> Result<Option<Vec<u8>>, String> {
+    // An already-expired shared budget must not race an immediate helper EOF
+    // against registration of Tokio's deadline timer (or start another helper).
+    if Instant::now() >= deadline {
+        return Err("clipboard read timed out".into());
+    }
     let mut command = Command::new(program);
     command
         .args(args)
@@ -111,7 +116,13 @@ async fn command(
         let _ = child.kill().await;
     }
     let _ = child.wait().await;
-    outcome.map(|status| status.success().then_some(bytes))
+    outcome.and_then(|status| {
+        if Instant::now() >= deadline {
+            Err("clipboard read timed out".into())
+        } else {
+            Ok(status.success().then_some(bytes))
+        }
+    })
 }
 
 #[cfg(all(test, target_os = "linux"))]

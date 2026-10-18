@@ -17,15 +17,19 @@ use crate::tools::ToolRender;
 /// Max rows retained by the window.
 pub const WINDOW_ROWS: usize = 240;
 /// Max retained payload bytes (including durable identity and presentation metadata).
-pub const WINDOW_BYTES: usize = 256 * 1024;
+// A producer-admitted generation may contain a 32 MiB public part. Keep that
+// indivisible part plus neighboring rows; older content remains cursor-pageable.
+pub const WINDOW_BYTES: usize = 64 * 1024 * 1024;
 /// Max preview chars per card field.
 pub const CARD_PREVIEW: usize = 512;
 /// Max files listed on a patch card.
 pub const CARD_FILES: usize = 5;
 
 /// One history row with its durable sequence number.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HistoryRow {
+    /// Canonical component and exclusive paging boundaries inside one message.
+    pub position: Option<HistoryPosition>,
     /// Storage-owned identity shared by derived rows; absent for live/synthetic rows.
     pub message_id: Option<std::sync::Arc<oc_core::session::MessageId>>,
     /// Message sequence (ordering key for paging); `i64::MAX` for synthetic
@@ -57,6 +61,32 @@ pub struct HistoryRow {
     pub child_notice: Option<Box<oc_core::queries::ChildJob>>,
     /// Exact background Shell data notice; intentionally not a navigation link.
     pub shell_notice: Option<oc_core::queries::ShellHistoryNotice>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum HistoryComponent {
+    Part(usize),
+    Retry(String),
+    Footer,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryPosition {
+    turn: String,
+    pub(crate) component: HistoryComponent,
+    before: usize,
+    after: usize,
+    total: usize,
+}
+
+impl HistoryPosition {
+    pub(crate) fn belongs_to(&self, turn: &str) -> bool {
+        self.turn == turn
+    }
+
+    pub(crate) fn same_turn_component(&self, other: &Self) -> bool {
+        !self.turn.is_empty() && self.turn == other.turn && self.component == other.component
+    }
 }
 
 /// Which end of the deque is dropped when a cap is exceeded.
@@ -102,12 +132,40 @@ impl HistoryWindow {
     /// keep the reader's window and let normal newer paging reach the tail.
     pub(crate) fn refresh_completed(&mut self, page: &HistoryPage, detached: bool) {
         self.revision = self.revision.wrapping_add(1);
+        // Completion attaches the turn to its assistant message instead of the
+        // accepted user row. Reanchor resident parts, including detached pages.
+        for row in &mut self.rows {
+            if let Some(position) = &row.position
+                && !position.turn.is_empty()
+                && let Some(message) = page.rows.iter().find(|message| {
+                    message
+                        .turn
+                        .as_ref()
+                        .is_some_and(|turn| turn.id == position.turn)
+                })
+            {
+                row.message_id = Some(std::sync::Arc::new(message.id.clone()));
+                row.seq = message.seq;
+                if let Some(reasoning) = &mut row.reasoning {
+                    reasoning.running = false;
+                    if let HistoryComponent::Part(sequence) = &position.component {
+                        reasoning.identity =
+                            Some(ReasoningIdentity::Durable(message.seq, *sequence));
+                    }
+                }
+            }
+        }
         let first = page.rows.first().map(|row| row.seq);
-        let overlaps = page.rows.iter().any(|message| {
-            self.rows
-                .iter()
-                .any(|row| row.message_id.as_deref() == Some(&message.id))
-        });
+        let first_part = page
+            .rows
+            .first()
+            .and_then(|row| row.turn.as_ref())
+            .and_then(|turn| turn.window.as_ref())
+            .map(|window| window.start);
+        let mut refreshed: Vec<_> = page.rows.iter().flat_map(rows_from_page).collect();
+        let overlaps = refreshed
+            .iter()
+            .any(|new| self.rows.iter().any(|old| same_component(old, new)));
         if detached && !overlaps && self.rows.iter().any(|row| row.message_id.is_some()) {
             self.rows.retain(|row| row.message_id.is_some());
             self.total = page.total;
@@ -117,20 +175,42 @@ impl HistoryWindow {
         let older = detached.then(|| {
             self.rows
                 .iter()
-                .filter(|row| row.message_id.is_some() && first.is_some_and(|seq| row.seq < seq))
+                .filter(|row| {
+                    row.message_id.is_some()
+                        && first.is_some_and(|seq| {
+                            row.seq < seq
+                                || (row.seq == seq
+                                    && first_part.is_some_and(|start| {
+                                        row.position.as_ref().is_some_and(|position|
+                            matches!(position.component,HistoryComponent::Part(part) if part<start))
+                        || (row.role=="user" && start>0)
+                                    }))
+                        })
+                })
                 .cloned()
                 .collect::<Vec<_>>()
         });
         let has_older = self.has_older;
-        self.reset(page);
+        self.total = page.total;
+        self.has_older = page.has_older;
+        self.has_newer = page.has_newer;
         if let Some(mut older) = older
             && !older.is_empty()
         {
-            older.append(&mut self.rows);
-            self.rows = older;
-            self.reconcile_shell_inputs();
+            older.append(&mut refreshed);
+            refreshed = older;
             self.has_older = has_older;
-            if self.enforce(Evict::Oldest) {
+        }
+        self.rows = refreshed;
+        self.reconcile_shell_inputs();
+        if self.enforce(if detached {
+            Evict::Newest
+        } else {
+            Evict::Oldest
+        }) {
+            if detached {
+                self.has_newer = true;
+            } else {
                 self.has_older = true;
             }
         }
@@ -142,6 +222,8 @@ impl HistoryWindow {
         self.revision = self.revision.wrapping_add(1);
         let mut combined: Vec<HistoryRow> = page.rows.iter().flat_map(rows_from_page).collect();
         let added = combined.len();
+        self.rows
+            .retain(|old| !combined.iter().any(|new| same_component(old, new)));
         combined.append(&mut self.rows);
         self.rows = combined;
         self.reconcile_shell_inputs();
@@ -158,9 +240,12 @@ impl HistoryWindow {
     pub fn append_newer(&mut self, page: &HistoryPage) -> usize {
         self.revision = self.revision.wrapping_add(1);
         let before = self.rows.len();
-        self.rows.extend(page.rows.iter().flat_map(rows_from_page));
+        let added: Vec<_> = page.rows.iter().flat_map(rows_from_page).collect();
+        self.rows
+            .retain(|old| !added.iter().any(|new| same_component(old, new)));
+        self.rows.extend(added);
         self.reconcile_shell_inputs();
-        let added = self.rows.len() - before;
+        let added = self.rows.len().saturating_sub(before);
         self.total = page.total;
         self.has_newer = page.has_newer;
         if self.enforce(Evict::Oldest) {
@@ -243,6 +328,13 @@ impl HistoryWindow {
             .map(|row| {
                 row.role.len()
                     + row.message_id.as_ref().map_or(0, |id| id.0.len())
+                    + row.position.as_ref().map_or(0, |position| {
+                        position.turn.len()
+                            + match &position.component {
+                                HistoryComponent::Retry(span) => span.len(),
+                                _ => 0,
+                            }
+                    })
                     + row.text.len()
                     + row.agent.as_ref().map_or(0, String::len)
                     + row.reasoning.as_ref().map_or(0, |r| r.text.len())
@@ -267,12 +359,36 @@ impl HistoryWindow {
 
     /// Older committed rows exist before the window.
     pub fn has_older(&self) -> bool {
-        self.has_older
+        self.has_older || self.older_part_cursor().is_some()
     }
 
     /// Newer committed rows exist after the window.
     pub fn has_newer(&self) -> bool {
-        self.has_newer
+        self.has_newer || self.newer_part_cursor().is_some()
+    }
+
+    pub fn older_part_cursor(&self) -> Option<oc_core::queries::HistoryPartCursor> {
+        let row = self.rows.first()?;
+        let position = row.position.as_ref()?;
+        let message = row.message_id.as_deref()?.clone();
+        (position.before > 0).then_some(oc_core::queries::HistoryPartCursor {
+            message,
+            sequence: position.before,
+            newer: false,
+        })
+    }
+
+    pub fn newer_part_cursor(&self) -> Option<oc_core::queries::HistoryPartCursor> {
+        let row = self.rows.last()?;
+        let position = row.position.as_ref()?;
+        let message = row.message_id.as_deref()?.clone();
+        (position.after.saturating_add(1) < position.total).then_some(
+            oc_core::queries::HistoryPartCursor {
+                message,
+                sequence: position.after,
+                newer: true,
+            },
+        )
     }
 
     /// Append one locally produced row (prompt echo, live answer, notice):
@@ -287,6 +403,7 @@ impl HistoryWindow {
     ) {
         self.revision = self.revision.wrapping_add(1);
         self.rows.push(HistoryRow {
+            position: None,
             message_id: None,
             seq: i64::MAX,
             role: role.to_string(),
@@ -346,6 +463,7 @@ impl HistoryWindow {
             diagnostic: None,
         });
         self.push_row(HistoryRow {
+            position: None,
             message_id: None,
             seq: i64::MAX,
             role: "shell_input".into(),
@@ -652,6 +770,7 @@ impl HistoryWindow {
             self.rows.insert(
                 index,
                 HistoryRow {
+                    position: None,
                     message_id: None,
                     seq: i64::MAX,
                     role: "model_switch".into(),
@@ -696,6 +815,7 @@ fn row_from_page(
     message_id: &std::sync::Arc<oc_core::session::MessageId>,
 ) -> HistoryRow {
     HistoryRow {
+        position: None,
         message_id: Some(message_id.clone()),
         seq: row.seq,
         role: if row.model_switch.is_some() {
@@ -773,6 +893,22 @@ pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) ->
     text.chars().filter(|c| !c.is_control()).take(512).collect()
 }
 
+fn same_component(a: &HistoryRow, b: &HistoryRow) -> bool {
+    a.message_id.is_some()
+        && a.message_id == b.message_id
+        && match (&a.position, &b.position) {
+            (Some(a), Some(b)) => a.component == b.component,
+            (None, None) => {
+                a.role == b.role
+                    && a.text == b.text
+                    && a.reasoning == b.reasoning
+                    && a.tool.as_ref().map(|tool| &tool.op) == b.tool.as_ref().map(|tool| &tool.op)
+                    && a.meta.is_some() == b.meta.is_some()
+            }
+            _ => false,
+        }
+}
+
 fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     use oc_core::queries::TranscriptPart;
     let message_id = std::sync::Arc::new(row.id.clone());
@@ -817,11 +953,12 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         rows.push(notice);
         return rows;
     }
-    if row.role == Role::User {
+    if row.role == Role::User && turn.window.as_ref().is_none_or(|window| window.start == 0) {
         rows.push(row_from_page(row, &message_id));
     }
     // Avoid cloning the aggregate message once per projected part.
     let empty_row = || HistoryRow {
+        position: None,
         message_id: Some(message_id.clone()),
         seq: row.seq,
         role: "assistant".to_string(),
@@ -849,6 +986,23 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     let part_start = rows.len();
     for (index, part) in turn.parts.iter().enumerate() {
         let mut part_row = empty_row();
+        let sequence = turn
+            .part_states
+            .get(index)
+            .map_or(index, |state| state.sequence);
+        if let Some(window) = &turn.window {
+            part_row.position = Some(HistoryPosition {
+                turn: turn.id.clone(),
+                component: HistoryComponent::Part(sequence),
+                before: if index == 0 { window.start } else { sequence },
+                after: if index + 1 == turn.parts.len() {
+                    window.end.saturating_sub(1)
+                } else {
+                    sequence
+                },
+                total: window.total,
+            });
+        }
         match part {
             TranscriptPart::Text(text) => part_row.text = text.clone(),
             TranscriptPart::Reasoning { text, duration_ms } => {
@@ -858,7 +1012,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                     running: turn.status == "started" && duration_ms.is_none(),
                     expanded: false,
                     toggleable: true,
-                    identity: Some(ReasoningIdentity::Durable(row.seq, index)),
+                    identity: Some(ReasoningIdentity::Durable(row.seq, sequence)),
                 })
             }
             TranscriptPart::Tool(op) => {
@@ -896,9 +1050,28 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                 .model = Some(model);
         }
     }
+    // A middle part window must not duplicate a terminal footer/retry block.
+    if turn
+        .window
+        .as_ref()
+        .is_some_and(|window| window.end < window.total)
+    {
+        return rows;
+    }
     for span in &turn.spans {
         if let Some(retry) = &span.retry {
             let mut notice = empty_row();
+            notice.position = turn.window.as_ref().map(|window| HistoryPosition {
+                turn: turn.id.clone(),
+                component: HistoryComponent::Retry(span.id.clone()),
+                before: if turn.parts.is_empty() {
+                    window.start
+                } else {
+                    window.total
+                },
+                after: window.total,
+                total: window.total,
+            });
             notice.text = format!(
                 "[Historical retry · {} · attempt {} · at {} · {}]",
                 span.status,
@@ -915,6 +1088,17 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         }
     }
     let mut footer = empty_row();
+    footer.position = turn.window.as_ref().map(|window| HistoryPosition {
+        turn: turn.id.clone(),
+        component: HistoryComponent::Footer,
+        before: if turn.parts.is_empty() {
+            window.start
+        } else {
+            window.total
+        },
+        after: window.total,
+        total: window.total,
+    });
     footer.meta = Some(AssistantMeta {
         model: Some(
             turn.spans
@@ -1521,6 +1705,10 @@ fn preview(value: Option<&str>) -> String {
 }
 
 #[cfg(test)]
+#[path = "history/transcript_tests.rs"]
+mod transcript_tests;
+
+#[cfg(test)]
 mod user_shell_tests;
 
 #[cfg(test)]
@@ -1854,8 +2042,14 @@ mod tests {
                     truncated: true,
                     ..Default::default()
                 },
-                PartState::default(),
-                PartState::default(),
+                PartState {
+                    sequence: 1,
+                    ..Default::default()
+                },
+                PartState {
+                    sequence: 2,
+                    ..Default::default()
+                },
             ],
             ..Default::default()
         });
@@ -2039,27 +2233,33 @@ mod tests {
             ],
             part_states: vec![
                 PartState {
+                    sequence: 0,
                     truncated: true,
                     ..Default::default()
                 },
                 PartState {
+                    sequence: 1,
                     truncated: true,
                     ..Default::default()
                 },
                 PartState {
+                    sequence: 2,
                     truncated: true,
                     input_omitted: true,
                     ..Default::default()
                 },
                 PartState {
+                    sequence: 3,
                     truncated: true,
                     ..Default::default()
                 },
                 PartState {
+                    sequence: 4,
                     truncated: true,
                     ..Default::default()
                 },
                 PartState {
+                    sequence: 5,
                     truncated: true,
                     ..Default::default()
                 },
@@ -2243,7 +2443,9 @@ mod tests {
 
     #[test]
     fn byte_cap_is_enforced_on_every_insertion() {
-        let blob = "y".repeat(4096);
+        // Exercise the byte bound before the independent row bound, at the
+        // current production capacity without reducing the insertion workload.
+        let blob = "y".repeat(WINDOW_BYTES / (WINDOW_ROWS / 2) + 1);
         let mut window = HistoryWindow::new();
         for round in 0..40 {
             let rows: Vec<HistoryMessage> = (0..8)
@@ -2258,6 +2460,10 @@ mod tests {
             assert!(window.len() <= WINDOW_ROWS);
         }
         assert!(window.has_older());
+        assert!(
+            window.len() < WINDOW_ROWS,
+            "byte eviction, not merely row eviction"
+        );
     }
 
     #[test]

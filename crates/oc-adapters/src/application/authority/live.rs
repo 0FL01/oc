@@ -9,7 +9,9 @@ use std::{collections::BTreeMap, sync::Mutex};
 use tokio::sync::broadcast;
 
 const TEXT_BYTES: usize = 256 * 1024;
-const TURN_BYTES: usize = 3 * TEXT_BYTES;
+// Retain a canonical whole-part page alongside its bounded live deltas. Larger
+// single parts are still read through canonical history when attaching.
+const TURN_BYTES: usize = 2 * crate::storage::TRANSCRIPT_PAGE_BYTES;
 const PARTS: usize = 256; // 64 rendered parts plus start/end and pending tool metadata.
 
 #[derive(Clone)]
@@ -18,6 +20,9 @@ pub(crate) struct Publication {
     pub(crate) origin: Option<u64>,
     pub(crate) event: CoreEvent,
 }
+
+#[cfg(test)]
+mod tests;
 struct Turn {
     location: String,
     view: LiveTurnSnapshot,

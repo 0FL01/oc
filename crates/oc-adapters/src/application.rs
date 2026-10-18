@@ -2765,6 +2765,7 @@ async fn prepare_picker_open(
             before_seq: None,
             after_seq: None,
             limit: HISTORY_PAGE_LIMIT,
+            window: Some(Default::default()),
             ack,
         },
     )
@@ -3307,6 +3308,7 @@ async fn query(
             before_seq,
             after_seq,
             limit,
+            window,
             ack,
         } => {
             let result = (|| -> Result<HistoryPage, CoreError> {
@@ -3320,7 +3322,22 @@ async fn query(
                     .history_len(&session.0)
                     .map_err(|error| query_storage_error(db, error))?;
                 let limit = limit.min(HISTORY_PAGE_LIMIT);
-                let (mut page, ascending) = if let Some(message) = message {
+                if let Some(window) = &window
+                    && (window.before_seq != before_seq
+                        || window.after_seq != after_seq
+                        || (before_seq.is_some() && after_seq.is_some())
+                        || (window.part.is_some() && (before_seq.is_some() || after_seq.is_some()))
+                        || window.part.as_ref().map(|part| &part.message) != message.as_ref())
+                {
+                    return Err(CoreError::Application("invalid history window".into()));
+                }
+                let (page, ascending) = if let Some(window) = &window {
+                    (
+                        db.read_transcript_rows(&session.0, window, limit)
+                            .map_err(|error| query_storage_error(db, error))?,
+                        after_seq.is_some(),
+                    )
+                } else if let Some(message) = message {
                     (
                         db.read_history_message_typed(&session.0, &message)
                             .map_err(|error| query_storage_error(db, error))?
@@ -3342,85 +3359,109 @@ async fn query(
                         ),
                     }
                 };
-                let has_newer = if ascending {
-                    matches!((page.last(), max), (Some(row), Some(max)) if row.seq < max)
-                } else {
-                    matches!((page.first(), max), (Some(row), Some(max)) if row.seq < max)
-                };
-                let has_older = if ascending {
-                    matches!((page.first(), min), (Some(row), Some(min)) if row.seq > min)
-                } else {
-                    matches!((page.last(), min), (Some(row), Some(min)) if row.seq > min)
-                };
-                if !ascending {
-                    page.reverse();
-                }
-                let rows = page
-                    .into_iter()
-                    .map(
-                        |crate::storage::HistoryPageRow {
-                             id,
-                             seq,
-                             role,
-                             text,
-                         }| {
-                            let model_switch = if role == "model_switch" {
-                                let notice = serde_json::from_str(&text).map_err(|_| {
-                                    CoreError::Diagnostic(
-                                        saved_selection_issue(db, &["history", "model"]).diagnostic,
-                                    )
-                                })?;
-                                Some(project_model_switch(notice, &composition.catalog))
-                            } else {
-                                None
-                            };
-                            let user_shell = db
-                                .user_shell_result(&session.0, &id)
-                                .map_err(|error| query_storage_error(db, error))?;
-                            let child = db
-                                .child_history(&session.0, &id)
-                                .map_err(|error| query_storage_error(db, error))?;
-                            let shell_notice = db
-                                .model_shell_notice(&session.0, &id)
-                                .map_err(|error| query_storage_error(db, error))?;
-                            Ok(HistoryMessage {
-                                images: db
-                                    .user_images(&session.0, &id.0, &text)
-                                    .map_err(|error| query_storage_error(db, error))?,
-                                id,
-                                user_shell,
-                                child,
-                                shell_notice,
-                                turn: if model_switch.is_some() {
-                                    None
-                                } else {
-                                    db.history_turn(&session.0, seq)
-                                        .map_err(|error| query_storage_error(db, error))?
-                                        .or_else(|| {
-                                            (role == "assistant").then(|| {
-                                                oc_core::queries::HistoryTurn {
-                                                    legacy_text_only: true,
-                                                    ..Default::default()
-                                                }
-                                            })
-                                        })
-                                },
-                                model_switch,
+                let mut rows = Vec::new();
+                let mut served_bytes = 0usize;
+                for crate::storage::HistoryPageRow {
+                    id,
+                    seq,
+                    role,
+                    text,
+                } in page
+                {
+                    let model_switch = if role == "model_switch" {
+                        let notice = serde_json::from_str(&text).map_err(|_| {
+                            CoreError::Diagnostic(
+                                saved_selection_issue(db, &["history", "model"]).diagnostic,
+                            )
+                        })?;
+                        Some(project_model_switch(notice, &composition.catalog))
+                    } else {
+                        None
+                    };
+                    let user_shell = db
+                        .user_shell_result(&session.0, &id)
+                        .map_err(|error| query_storage_error(db, error))?;
+                    let child = db
+                        .child_history(&session.0, &id)
+                        .map_err(|error| query_storage_error(db, error))?;
+                    let shell_notice = db
+                        .model_shell_notice(&session.0, &id)
+                        .map_err(|error| query_storage_error(db, error))?;
+                    let row = HistoryMessage {
+                        images: db
+                            .user_images(&session.0, &id.0, &text)
+                            .map_err(|error| query_storage_error(db, error))?,
+                        id,
+                        user_shell,
+                        child,
+                        shell_notice,
+                        turn: if model_switch.is_some() {
+                            None
+                        } else {
+                            db.history_turn_window(
+                                &session.0,
                                 seq,
-                                role: if role == "user" {
-                                    Role::User
-                                } else {
-                                    Role::Assistant
-                                },
-                                text: if role == "model_switch" {
-                                    String::new()
-                                } else {
-                                    text
-                                },
+                                window.as_ref().and_then(|w| w.part.as_ref()),
+                                window.is_some() && ascending,
+                            )
+                            .map_err(|error| query_storage_error(db, error))?
+                            .or_else(|| {
+                                (role == "assistant").then(|| oc_core::queries::HistoryTurn {
+                                    legacy_text_only: true,
+                                    ..Default::default()
+                                })
                             })
                         },
-                    )
-                    .collect::<Result<Vec<_>, CoreError>>()?;
+                        model_switch,
+                        seq,
+                        role: if role == "user" {
+                            Role::User
+                        } else {
+                            Role::Assistant
+                        },
+                        text: if role == "model_switch" {
+                            String::new()
+                        } else {
+                            text
+                        },
+                    };
+                    if window.is_some() {
+                        let bytes = serde_json::to_vec(&row).expect("history message").len();
+                        if !rows.is_empty()
+                            && served_bytes.saturating_add(bytes)
+                                > crate::storage::TRANSCRIPT_PAGE_BYTES
+                        {
+                            break;
+                        }
+                        served_bytes = served_bytes.saturating_add(bytes);
+                    }
+                    // Edge cursors cannot recover a gap inside the message page.
+                    // Finish this turn before crossing its message boundary.
+                    let partial = window.is_some()
+                        && row
+                            .turn
+                            .as_ref()
+                            .and_then(|t| t.window.as_ref())
+                            .is_some_and(|w| {
+                                if ascending {
+                                    w.end < w.total
+                                } else {
+                                    w.start > 0
+                                }
+                            });
+                    rows.push(row);
+                    if partial
+                        || (window.is_some()
+                            && served_bytes >= crate::storage::TRANSCRIPT_PAGE_BYTES)
+                    {
+                        break;
+                    }
+                }
+                if !ascending {
+                    rows.reverse();
+                }
+                let has_older = matches!((rows.first(),min),(Some(row),Some(min)) if row.seq>min);
+                let has_newer = matches!((rows.last(),max),(Some(row),Some(max)) if row.seq<max);
                 Ok(HistoryPage {
                     child_job: None,
                     reverted: db
@@ -4021,6 +4062,7 @@ async fn query(
         InboxMsg::ReadChild {
             session,
             selected,
+            window,
             ack,
         } => {
             let result = (|| {
@@ -4041,41 +4083,93 @@ async fn query(
                 let total = db
                     .history_len(child)
                     .map_err(|e| query_storage_error(db, e))?;
-                let mut rows = db
-                    .read_history_page_typed(child, HISTORY_PAGE_LIMIT, None)
+                if window.as_ref().is_some_and(|w| {
+                    (w.before_seq.is_some() && w.after_seq.is_some())
+                        || (w.part.is_some() && (w.before_seq.is_some() || w.after_seq.is_some()))
+                }) {
+                    return Err(CoreError::Application(
+                        "invalid child history window".into(),
+                    ));
+                }
+                let ascending = window.as_ref().is_some_and(|w| w.after_seq.is_some());
+                let page = if let Some(window) = &window {
+                    db.read_transcript_rows(child, window, HISTORY_PAGE_LIMIT)
+                } else {
+                    db.read_history_page_typed(child, HISTORY_PAGE_LIMIT, None)
+                }
+                .map_err(|e| query_storage_error(db, e))?;
+                let mut rows = Vec::new();
+                let mut served_bytes = 0usize;
+                for row in page {
+                    let child_history = db
+                        .child_history(child, &row.id)
+                        .map_err(|error| query_storage_error(db, error))?;
+                    let shell_notice = db
+                        .model_shell_notice(child, &row.id)
+                        .map_err(|error| query_storage_error(db, error))?;
+                    let message = HistoryMessage {
+                        images: db
+                            .user_images(child, &row.id.0, &row.text)
+                            .map_err(|e| query_storage_error(db, e))?,
+                        id: row.id,
+                        child: child_history,
+                        shell_notice,
+                        seq: row.seq,
+                        role: if row.role == "user" {
+                            Role::User
+                        } else {
+                            Role::Assistant
+                        },
+                        text: row.text,
+                        user_shell: None,
+                        model_switch: None,
+                        turn: db
+                            .history_turn_window(
+                                child,
+                                row.seq,
+                                window.as_ref().and_then(|w| w.part.as_ref()),
+                                window.is_some() && ascending,
+                            )
+                            .map_err(|e| query_storage_error(db, e))?,
+                    };
+                    if window.is_some() {
+                        let bytes = serde_json::to_vec(&message)
+                            .expect("child history message")
+                            .len();
+                        if !rows.is_empty()
+                            && served_bytes.saturating_add(bytes)
+                                > crate::storage::TRANSCRIPT_PAGE_BYTES
+                        {
+                            break;
+                        }
+                        served_bytes = served_bytes.saturating_add(bytes);
+                    }
+                    let partial = window.is_some()
+                        && message
+                            .turn
+                            .as_ref()
+                            .and_then(|t| t.window.as_ref())
+                            .is_some_and(|w| {
+                                if ascending {
+                                    w.end < w.total
+                                } else {
+                                    w.start > 0
+                                }
+                            });
+                    rows.push(message);
+                    if partial
+                        || (window.is_some()
+                            && served_bytes >= crate::storage::TRANSCRIPT_PAGE_BYTES)
+                    {
+                        break;
+                    }
+                }
+                if !ascending {
+                    rows.reverse();
+                }
+                let (min, max) = db
+                    .history_bounds(child)
                     .map_err(|e| query_storage_error(db, e))?;
-                rows.reverse();
-                let rows = rows
-                    .into_iter()
-                    .map(|row| {
-                        let child_history = db
-                            .child_history(child, &row.id)
-                            .map_err(|error| query_storage_error(db, error))?;
-                        let shell_notice = db
-                            .model_shell_notice(child, &row.id)
-                            .map_err(|error| query_storage_error(db, error))?;
-                        Ok(HistoryMessage {
-                            images: db
-                                .user_images(child, &row.id.0, &row.text)
-                                .map_err(|e| query_storage_error(db, e))?,
-                            id: row.id,
-                            child: child_history,
-                            shell_notice,
-                            seq: row.seq,
-                            role: if row.role == "user" {
-                                Role::User
-                            } else {
-                                Role::Assistant
-                            },
-                            text: row.text,
-                            user_shell: None,
-                            model_switch: None,
-                            turn: db
-                                .history_turn(child, row.seq)
-                                .map_err(|e| query_storage_error(db, e))?,
-                        })
-                    })
-                    .collect::<Result<Vec<_>, CoreError>>()?;
                 let reverted = db
                     .reverted_conversation(child)
                     .map_err(|e| query_storage_error(db, e))?;
@@ -4091,8 +4185,8 @@ async fn query(
                     parent_id: Some(job.parent.0.clone()),
                     title: Some(title),
                     child_job,
-                    has_older: total > rows.len(),
-                    has_newer: false,
+                    has_older: matches!((rows.first(),min),(Some(row),Some(min)) if row.seq>min),
+                    has_newer: matches!((rows.last(),max),(Some(row),Some(max)) if row.seq<max),
                     total,
                     rows,
                     reverted,
@@ -5649,6 +5743,10 @@ fn resolve_submission(
 mod profile_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "application/transcript_tests.rs"]
+mod transcript_tests;
 
 #[cfg(test)]
 #[path = "application/command_tests.rs"]

@@ -102,6 +102,8 @@ const combinedComposer=args['combined-composer']==='true';
 const modelShell=args['model-shell']==='true';
 const subagentCards=args['subagent-cards']==='true';
 const rootHandoff=args['root-handoff']==='true';
+const historyCompletion=args['history-completion']==='true';
+if(args['history-completion']!==undefined&&(!combinedComposer||modelShell||subagentCards||rootHandoff||!['true','false'].includes(args['history-completion'])))throw Error('--history-completion requires exclusive ordinary combined-composer and true|false');
 const syntaxInventory=args['syntax-inventory']==='true';
 if(args['syntax-inventory']!==undefined&&(!toolPreview||!syntaxCache||combinedComposer||userShell||promptHistory||promptCaret||mcpStatus||args['cursor-temporal']||!['true','false'].includes(args['syntax-inventory'])))throw Error('--syntax-inventory requires exclusive tool-preview, frozen syntax cache and true|false');
 if(args['root-handoff']!==undefined&&(!combinedComposer||modelShell||subagentCards||!['true','false'].includes(args['root-handoff'])))throw Error('--root-handoff requires exclusive child combined-composer and true|false');
@@ -125,7 +127,7 @@ const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal||combinedComposer||questionForms?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','tool-preview-small','execute-preview','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','tool-preview-small','execute-preview','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','history-completion','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -419,7 +421,7 @@ const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 't
     ...(toolPreviewSmall?{tool_preview_small:true,small_probe:sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs'))),real_response_barrier_ms:5500}:{}),
     ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort,probe:sha(fs.readFileSync(path.join(here,'execute_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'execute_fixture.py')))}:{}),
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
-    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
+    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,history_completion:historyCompletion,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(syntaxCache?{syntax_cache:true,syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json'))),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
     ...(syntaxInventory?{syntax_inventory:true}:{}),
     ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,mcp_footer:mcpFooter||null,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{}),...(mcpFooter?{footer_probe:sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')))}:{})} : {}),
@@ -495,6 +497,7 @@ if(promptHistory)for(const n of ['prompt_history.mjs','prompt_history_fixture.py
 if(questionForms)for(const n of ['question_forms.mjs','question_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(userShell)for(const n of ['user_shell.mjs','user_shell_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(combinedComposer)for(const n of ['composer.mjs','composer_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(historyCompletion)for(const n of ['history_completion.mjs','history_completion_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(cursorTemporal)for(const n of ['cursor_temporal.mjs','cursor_frontend.js'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(cursorRenderer==='webgl') {
   const packageFile=path.join(cursorRendererRoot,'node_modules/@xterm/addon-webgl/package.json');
@@ -570,7 +573,7 @@ try {
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
      cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
-        ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,syntax_cache:syntaxCache,syntax_inventory:syntaxInventory,cells_encoding:compressCells?'gzip':'json',frame_sidecars_encoding:compressFrames?'gzip':'plain',same_side_identical_png_links:compressFrames,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
+         ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,history_completion:historyCompletion,syntax_cache:syntaxCache,syntax_inventory:syntaxInventory,cells_encoding:compressCells?'gzip':'json',frame_sidecars_encoding:compressFrames?'gzip':'plain',same_side_identical_png_links:compressFrames,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
      unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
       ...(questionForms?{question_forms:true}:{}),
        ...(toolPreviewSmall?{tool_preview_small:true,real_response_barrier_ms:5500}:{}),
@@ -616,6 +619,7 @@ try {
                        model_shell:modelShell,
                         subagent_cards:subagentCards,
                         root_handoff:rootHandoff,
+                        history_completion:historyCompletion,
                         syntax_cache:syntaxCache,
                         syntax_inventory:syntaxInventory,
                 cursor_temporal:cursorTemporal||null,
@@ -871,7 +875,7 @@ try {
                  questionProbe:questionForms?probeQuestionForms:null,
                  historyProbe:promptHistory?args=>probePromptHistory({...args,mode:promptHistory}):null,
                   userShellProbe:userShell?probeUserShell:null,
-                     composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,rootHandoff}):null,
+                      composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,rootHandoff,historyCompletion}):null,
                mcpProbe:mcpStatus?args=>(mcpFooter?probeMcpFooter({...args,mode:mcpFooter}):probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')})):null,
                cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,writeFrame,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),

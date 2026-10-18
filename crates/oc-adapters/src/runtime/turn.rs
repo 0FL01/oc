@@ -2809,15 +2809,10 @@ impl<'a> Runtime<'a> {
                                         && !reasoning_closed
                                     {
                                         let mut text = text.to_string();
-                                        if text.len() + delta.len() > 16 * 1024 {
-                                            last["truncated"] = true.into();
-                                        }
-                                        if text.len() < 16 * 1024 {
-                                            text.push_str(delta);
-                                        }
-                                        last["reasoning"] = truncate(&text, 16 * 1024).into();
+                                        text.push_str(delta);
+                                        last["reasoning"] = text.into();
                                     } else {
-                                        turn_log.display_parts.push(serde_json::json!({"reasoning":truncate(delta, 16 * 1024), "truncated":delta.len()>16*1024,"span":turn_log.spans.last().expect("active span").id}));
+                                        turn_log.display_parts.push(serde_json::json!({"reasoning":delta,"span":turn_log.spans.last().expect("active span").id}));
                                     }
                                     reasoning_closed = false;
                                     reasoning_delta(&turn_id, delta);

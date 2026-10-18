@@ -1038,6 +1038,16 @@
       "work": "Owner-approved 2026-10-18 audited bounded correction: subagent sessionID/model exactly empty strings mean omission, no trim/null repair or model/ownership fallback. Reuse one validated parser for preflight/spawn and scheduler; only admitted nonempty continuations join/update the predecessor map, so refused duplicate foreign IDs cannot wait/cancel another child. Preserve fresh concurrency, actual same-child/FG-to-BG join, background lifecycle, permissions/depth/context guards, RAW/durable/replayed original args and output/model contracts. Both Responses function maps explicitly strict:false with unchanged parameters/required; WS shares body, Chat/Messages unchanged. Compact parser/fresh/foreign regressions plus existing overlap/continuation/BG/HTTP/WS fixtures, full scripts/test.sh and normal debug build, reviewed commit/push. Reuse SUB01/SUB02 without moving ownership or closing T45/live; T44/T61 paused. No new wrapper/repair/serializer framework, Jobs/store/schema migration, config edits, CLI fixture, release/paid campaign or whole-product READY.",
       "evidence": "evidence/T69/report.md",
       "spec": "docs/goals/2026-10-18-subagent-call-compatibility.md"
+    },
+    {
+      "id": "T70",
+      "phase": "M8",
+      "title": "Canonical completed transcript without aggregate turn preview loss",
+      "depends_on": ["T69"],
+      "tests": ["A01", "A02", "A08", "A10"],
+      "work": "Owner-approved 2026-10-18 correction: remove the aggregate turn-history preview policy, not merely reprioritize omissions or mask missing arguments. Preserve canonical tool identity/arguments, ordered text and producer metadata across root/linked-child completion, navigation and reopen with bounded recoverable history windows. Qualify the affected visual transition against pinned TS 2.0.12 using the existing actual-binary capture pipeline. Preserve genuine per-result/output/security/transport guards, immutable RAW, sole native Db owner, no tool replay or automatic cold-output loading. Minimal core/query/consumer paging changes are allowed where existing message-only paging cannot recover evicted parts. T44/T61 remain paused; no unrelated parity backlog, schema migration, new store/framework, owner restart, live/paid campaign or whole-product READY claim. Iterate targeted regressions and checks, full offline gate, normal debug build and reviewed commit/push.",
+      "evidence": "evidence/T70/report.md",
+      "spec": "docs/goals/2026-10-18-completed-transcript.md"
     }
   ]
 }

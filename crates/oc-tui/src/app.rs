@@ -445,6 +445,7 @@ impl LivePart {
         match self {
             LivePart::Vacant => unreachable!("vacant parts are never projected"),
             LivePart::Text(text) => HistoryRow {
+                position: None,
                 message_id: None,
                 seq: i64::MAX,
                 role: "assistant".to_string(),
@@ -459,6 +460,7 @@ impl LivePart {
                 shell_notice: None,
             },
             LivePart::Reasoning { text, duration_ms } => HistoryRow {
+                position: None,
                 message_id: None,
                 seq: i64::MAX,
                 role: "assistant".to_string(),
@@ -480,6 +482,7 @@ impl LivePart {
                 shell_notice: None,
             },
             LivePart::Tool { card, .. } => HistoryRow {
+                position: None,
                 message_id: None,
                 seq: i64::MAX,
                 role: "tool".to_string(),
@@ -594,6 +597,7 @@ struct PaintedPrompt {
 struct CompletionAnchor {
     message: std::sync::Arc<oc_core::session::MessageId>,
     part: usize,
+    component: Option<crate::history::HistoryComponent>,
     row: usize,
     requested_scroll: usize,
     pending: bool,
@@ -681,6 +685,7 @@ pub struct TuiState {
     can_add_tab: bool,
     /// Only operation IDs whose exploration headers were explicitly opened.
     exploration_expanded: BTreeSet<String>,
+    inline_errors_expanded: BTreeSet<String>,
     execute_calls_expanded: BTreeMap<String, BTreeSet<usize>>,
     pub(crate) execute_detail: Option<execute::Detail>,
     exploration_down: Option<(String, u16, u16)>,
@@ -701,6 +706,9 @@ pub struct TuiState {
     reasoning_epoch: u64,
     /// Number of evicted frozen parts in this turn; ordinals never shift.
     live_part_offset: usize,
+    /// Bounded live-slot to canonical part identity at the last checkpoint.
+    live_part_sources: BTreeMap<usize, usize>,
+    live_checkpoint_end: Option<usize>,
     leader: Option<Instant>,
     input: String,
     editor: crate::editor::Editor,
@@ -925,6 +933,7 @@ impl TuiState {
             active_tab: 0,
             can_add_tab: false,
             exploration_expanded: BTreeSet::new(),
+            inline_errors_expanded: BTreeSet::new(),
             execute_calls_expanded: BTreeMap::new(),
             execute_detail: None,
             exploration_down: None,
@@ -934,6 +943,8 @@ impl TuiState {
             reasoning_pointer_down: false,
             reasoning_epoch: 0,
             live_part_offset: 0,
+            live_part_sources: BTreeMap::new(),
+            live_checkpoint_end: None,
             leader: None,
             input: String::new(),
             editor: Default::default(),
@@ -1072,6 +1083,7 @@ impl TuiState {
         self.can_add_tab = false;
         self.exploration_expanded.clear();
         self.execute_calls_expanded.clear();
+        self.inline_errors_expanded.clear();
         self.reasoning_expanded.clear();
         self.reasoning_down = None;
         self.chrome = Default::default();
@@ -1126,6 +1138,7 @@ impl TuiState {
         self.clear_mentions();
         self.exploration_expanded.clear();
         self.execute_calls_expanded.clear();
+        self.inline_errors_expanded.clear();
         self.reasoning_expanded.clear();
         self.reasoning_down = None;
         self.cards.clear();
@@ -1154,6 +1167,8 @@ impl TuiState {
         self.pending_tool_seen.clear();
         self.pending_tool_round = 0;
         self.live_part_offset = 0;
+        self.live_part_sources.clear();
+        self.live_checkpoint_end = None;
         self.reasoning_down = None;
         self.reasoning_started = None;
         self.reasoning_finished = None;

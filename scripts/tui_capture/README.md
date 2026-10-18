@@ -1249,6 +1249,39 @@ resource gates. Separate ordinary27-stage and default144-opaque temporal audits
 qualify behavior only. Diagnostic`child-history-001` predates the description-color
 fix and is not current qualification. No changed probe budget or production timer.
 
+### T70 completed canonical history
+
+Add `--history-completion true` to the ordinary combined-composer invocation,
+using the frozen 2.0.12 reference and a fresh output directory. Do not combine it
+with model-Shell, root handoff or Subagent-card campaigns. Use `--build-oc true`
+for current-source qualification; old-ELF baseline captures explicitly remain
+unattested rather than being represented as a current build.
+
+`history_completion_fixture.py` drives real root and selected-helper Read, Grep,
+Glob and one failing Read per source, following five public reasoning items whose
+combined text exceeds 64 KiB. It holds only the final `response.completed`, so
+the runner captures actual live and durable-completed views of the same calls.
+It then resizes the selected child to 80×24, returns to the parent, opens the
+saved root, exits naturally, relaunches and opens the same captured child.
+The fixture owns all project/data/config files and a loopback fake provider;
+it neither inserts transcript rows nor executes a paid/live request.
+
+The witness records exact structured call IDs, nine real calls (eight file tools
+and the original delegation), unchanged counts during reopen, source bytes and
+read-only durable hashes. It compares every stored public-reasoning hash to the
+issued text, not just the fixture's requested length, and checks settled RAW after
+cold reopening. Two additional real captures expand and recollapse the failed Read;
+another opens public reasoning and reaches its unique tail beyond the old 16 KiB
+display preview through real scrolling. Root reopening also revisits the first
+turn's actual file-tool parameters, not just the later delegation card.
+Affected visible tool cells are checked for the pinned labels, glyphs, semantic
+colors/modifiers, contiguous member rows, final-text margin and prompt/composer cursor
+visibility (including the actual root caret coordinates).
+This is separate from whole-frame qualification: every
+stage still produces its full styled grid, PNG, cursor and unmasked comparison.
+`PASS_BEHAVIOR_ONLY` by itself never establishes parity, and legitimate footer,
+composer or actual error data must not be mistaken for a process crash.
+
 ### VIS39 Root model-Shell live capture and actual background conversion
 
 Add `--model-shell true` to the combined-composer command above, with a fresh

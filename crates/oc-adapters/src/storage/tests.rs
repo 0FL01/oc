@@ -429,25 +429,47 @@ fn v02_bounded_projection_exposes_loss_and_legacy_availability() {
         .unwrap();
     let projection = db.turn_presentation("s", "t").unwrap().unwrap();
     assert_eq!(projection.parts.len(), 240);
-    assert_eq!(projection.omitted_parts, 10);
-    assert!(projection.truncated);
+    assert_eq!(projection.omitted_parts, 0);
+    assert!(!projection.truncated);
+    assert_eq!(projection.window.as_ref().unwrap().start, 10);
+    assert_eq!(projection.window.as_ref().unwrap().total, 250);
     assert_eq!(projection.part_states[0].sequence, 10);
     assert_eq!(projection.part_states[239].sequence, 249);
     db.record_tool_intent("op", "s", Some("t"), "apply_patch", &"x".repeat(70 * 1024))
         .unwrap();
     db.checkpoint_turn("t",&json!({"display_parts":[{"tool":"op"},{"message":0}],"input":[{"content":[{"type":"output_text","text":"é".repeat(70*1024)}]}]}).to_string()).unwrap();
     let projection = db.turn_presentation("s", "t").unwrap().unwrap();
-    assert!(projection.part_states[0].input_omitted);
-    assert!(projection.part_states[1].truncated);
+    assert!(!projection.part_states[0].input_omitted);
+    assert!(!projection.part_states[1].truncated);
+    assert!(
+        matches!(&projection.parts[1],oc_core::queries::TranscriptPart::Text(text) if text==&"é".repeat(70*1024))
+    );
     assert!(
         matches!(&projection.parts[0],oc_core::queries::TranscriptPart::Tool(op) if op.op=="op")
+    );
+    // Keep the independent producer admission guard for oversized legacy data;
+    // it cannot consume any later part's capacity.
+    db.record_tool_intent(
+        "oversized",
+        "s",
+        Some("t"),
+        "fixture",
+        &"x".repeat(super::TOOL_INPUT_JSON_BYTES + 1),
+    )
+    .unwrap();
+    db.checkpoint_turn("t",&json!({"display_parts":[{"tool":"oversized"},{"message":0}],"input":[{"content":[{"type":"output_text","text":"still present"}]}]}).to_string()).unwrap();
+    let overflow = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert!(overflow.part_states[0].input_omitted);
+    assert_eq!(
+        overflow.parts[1],
+        oc_core::queries::TranscriptPart::Text("still present".into())
     );
     db.checkpoint_turn("t", "{}").unwrap();
     let legacy = db.turn_presentation("s", "t").unwrap().unwrap();
     assert!(legacy.legacy_text_only);
     assert!(legacy.parts.is_empty());
-    // Additive presentation strings share the unchanged per-turn serving cap.
-    // Missing metadata after that cap means unavailable/unknown, not complete.
+    // Independent result bounds remain; previous results cannot delete another
+    // result's canonical metadata by spending a shared turn allowance.
     let body = "b".repeat(oc_core::tool_output::PREVIEW_BYTES);
     let mut presentation = oc_core::tool_output::Presentation::new(&body, 64 * 1024, true);
     let stream = "s".repeat((oc_core::tool_output::PREVIEW_BYTES - 128) / 2);
@@ -501,9 +523,9 @@ fn v02_bounded_projection_exposes_loss_and_legacy_availability() {
                     .map_or(0, |value| value.retained_bytes())
         })
         .sum::<usize>();
-    assert!(served <= oc_core::patch::EFFECT_PREVIEW_BYTES_CAP);
-    assert!(tools.iter().any(|tool| tool.output_presentation.is_some()));
-    assert!(tools.iter().any(|tool| tool.output_presentation.is_none()));
+    assert!(served > oc_core::patch::EFFECT_PREVIEW_BYTES_CAP);
+    assert!(served <= super::TRANSCRIPT_PAGE_BYTES);
+    assert!(tools.iter().all(|tool| tool.output_presentation.is_some()));
     assert!(projection.part_states.iter().all(|state| state.truncated));
     drop(db);
     let db = Db::open(&tmp.path().join("data")).unwrap();

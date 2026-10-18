@@ -628,6 +628,7 @@ async fn exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_l
             dcp_topic: None,
         });
         state.window.push_row(crate::history::HistoryRow {
+            position: None,
             message_id: None,
             seq: i as i64 + 1,
             role: "tool".into(),
@@ -1698,6 +1699,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         dcp_topic: None,
     });
     state.window.push_row(crate::history::HistoryRow {
+        position: None,
         message_id: None,
         seq: 1,
         role: "tool".into(),
@@ -1789,8 +1791,8 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         "selection owns the release"
     );
 
-    // A standalone Read with a recorded truncated result is not expandable;
-    // neither hover nor clicks invent recoverable full-file contents.
+    // A limited Read still belongs to an exploration group. Opening that group
+    // reveals the real label, never a fabricated full-file output expansion.
     state.attach_page(&page(vec![], 0, false, false));
     let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
         child_job: None,
@@ -1809,6 +1811,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         dcp_topic: None,
     });
     state.window.push_row(crate::history::HistoryRow {
+        position: None,
         message_id: None,
         seq: 2,
         role: "tool".into(),
@@ -1822,6 +1825,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         meta: None,
         tool: Some(card),
     });
+    state.exploration_expanded.insert("read-op".into());
     let (rows, total, scroll) =
         state.visible_transcript_at_viewport(area.width, frame.width, area.height);
     let row = rows
@@ -1840,7 +1844,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
     ] {
         state.handle_mouse(selection_mouse(kind, x, y), frame);
     }
-    assert!(state.exploration_expanded.is_empty());
+    assert!(state.exploration_expanded.contains("read-op"));
     assert!(
         !state
             .transcript_lines(80, 80)
@@ -1872,6 +1876,7 @@ async fn exploration_toggle_anchors_long_result_and_attach_page_discards_expansi
             dcp_topic: None,
         });
         state.window.push_row(crate::history::HistoryRow {
+            position: None,
             message_id: None,
             seq: i + 1,
             role: "tool".into(),
@@ -2211,6 +2216,234 @@ async fn vis32_completion_preserves_cached_part_expansion_paging_and_resize() {
     state.set_session(oc_core::domain::SessionId("other-route".into()));
     assert_eq!(state.scroll(), 0);
     assert!(state.completion_anchor.borrow().is_none());
+}
+
+#[tokio::test]
+async fn checkpointed_active_prefix_and_live_parts_are_painted_once() {
+    use oc_core::queries::{HistoryPartWindow, HistoryTurn, PartState, ToolOpView, TranscriptPart};
+    let mut state = fresh_state("checkpoint-overlap").await;
+    let turn = WorkerTurnId("checkpoint-turn".into());
+    let mut accepted = msg(1, Role::User, "request");
+    accepted.turn = Some(HistoryTurn {
+        id: turn.0.clone(),
+        status: "started".into(),
+        agent: Some("build".into()),
+        model_label: "fixture-model".into(),
+        window: Some(HistoryPartWindow {
+            start: 0,
+            end: 3,
+            total: 3,
+        }),
+        parts: vec![
+            TranscriptPart::Reasoning {
+                text: "canonical prefix outside the live tail".into(),
+                duration_ms: Some(10),
+            },
+            TranscriptPart::Reasoning {
+                text: "checkpointed thought".into(),
+                duration_ms: None,
+            },
+            TranscriptPart::Tool(ToolOpView {
+                op: "overlap-read".into(),
+                name: "read".into(),
+                state: "started".into(),
+                input: Some(r#"{"path":"note.txt"}"#.into()),
+                child_job: None,
+                output_presentation: None,
+                question: None,
+                dcp_topic: None,
+                dcp: None,
+                patch_effects: None,
+                rowid: 1,
+                output: None,
+                output_bytes: 0,
+                output_truncated: false,
+            }),
+        ],
+        part_states: (0..3)
+            .map(|sequence| PartState {
+                sequence,
+                ..Default::default()
+            })
+            .collect(),
+        ..Default::default()
+    });
+    let mut future = accepted.clone();
+    state.attach_page(&page(vec![accepted], 1, false, false));
+    let canonical_rows = state.window.len();
+    state.begin_linked_turn(turn.clone());
+    state.live_part_offset = 1;
+    state.apply_reasoning_delta(&turn, "checkpointed thought");
+    state.apply_reasoning_item_ended(&turn);
+    state.apply_tool_started(&turn, "overlap-read", "read", r#"{"path":"note.txt"}"#);
+    // The producer publishes the frozen generation immediately after Started,
+    // before the next generation's public suffix.
+    state.apply_presentation(&turn, future.turn.as_ref().unwrap());
+    state.apply_delta(&turn, "new stream suffix");
+    let rows = state.transcript_rows();
+    assert_eq!(
+        state.window.len(),
+        canonical_rows,
+        "painting does not erase recoverable canonical rows"
+    );
+    assert_eq!(
+        rows.iter()
+            .filter_map(|row| row.reasoning.as_ref())
+            .filter(|reasoning| reasoning.text == "checkpointed thought")
+            .count(),
+        1
+    );
+    assert!(rows.iter().any(|row| {
+        row.reasoning
+            .as_ref()
+            .is_some_and(|reasoning| reasoning.text == "canonical prefix outside the live tail")
+    }));
+    assert_eq!(
+        rows.iter()
+            .filter_map(|row| row.tool.as_ref())
+            .filter(|card| card.op == "overlap-read")
+            .count(),
+        1
+    );
+    assert!(rows.iter().any(|row| row.text == "new stream suffix"));
+    assert!(
+        !rows.iter().any(|row| row.meta.is_some()),
+        "a checkpoint is not a terminal footer between live parts"
+    );
+
+    // A later canonical read can be ahead of queued stream events. Repeated
+    // public text is not a reason to move an older live tool behind a future one.
+    let parts = &mut future.turn.as_mut().unwrap().parts;
+    let TranscriptPart::Tool(mut later) = parts[2].clone() else {
+        unreachable!()
+    };
+    later.op = "future-read".into();
+    later.state = "completed".into();
+    parts.extend([
+        TranscriptPart::Text("new stream suffix".into()),
+        TranscriptPart::Reasoning {
+            text: "checkpointed thought".into(),
+            duration_ms: Some(20),
+        },
+        TranscriptPart::Tool(later),
+    ]);
+    let projected = future.turn.as_mut().unwrap();
+    projected.window = Some(HistoryPartWindow {
+        start: 0,
+        end: 6,
+        total: 6,
+    });
+    projected.part_states = (0..6)
+        .map(|sequence| PartState {
+            sequence,
+            ..Default::default()
+        })
+        .collect();
+    state.window.reset(&page(vec![future], 1, false, false));
+    let rows = state.transcript_rows();
+    assert_eq!(
+        rows.iter()
+            .filter_map(|row| row.tool.as_ref())
+            .map(|card| card.op.as_str())
+            .collect::<Vec<_>>(),
+        ["overlap-read", "future-read"]
+    );
+    assert_eq!(
+        rows.iter()
+            .filter_map(|row| row.reasoning.as_ref())
+            .filter(|part| part.text == "checkpointed thought")
+            .count(),
+        2
+    );
+    assert_eq!(
+        rows.iter()
+            .filter(|row| row.text == "new stream suffix")
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn exploration_and_its_failure_are_clickable_above_an_open_child_composer() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend};
+    let mut state = fresh_state("composer-group-hit").await;
+    state.parent_id = Some("parent".into());
+    state.input = "preserved draft".into();
+    state.open_composer(crate::composer::Tab::Subagents);
+    state.begin_linked_turn(WorkerTurnId("child-active".into()));
+    state.window.push_row(crate::history::HistoryRow {
+        role: "tool".into(),
+        tool: Some(crate::history::card_from_row(
+            &oc_core::queries::ToolOpView {
+                child_job: None,
+                output_presentation: None,
+                question: None,
+                rowid: 1,
+                op: "composer-read".into(),
+                name: "read".into(),
+                state: "failed".into(),
+                input: Some(r#"{"path":"note.txt"}"#.into()),
+                output: Some("actual file error".into()),
+                output_bytes: 17,
+                output_truncated: false,
+                patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
+            },
+        )),
+        ..Default::default()
+    });
+    let area = ratatui::layout::Rect::new(0, 0, 120, 40);
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let (x, y) = (0..area.height)
+        .find_map(|y| {
+            let line = (0..area.width)
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>();
+            line.contains("Explored").then(|| {
+                (
+                    (0..area.width)
+                        .find(|x| buffer[(*x, y)].symbol() == "E")
+                        .unwrap(),
+                    y,
+                )
+            })
+        })
+        .unwrap();
+    assert_eq!(
+        state.exploration_hit(area, x, y).as_deref(),
+        Some("composer-read")
+    );
+    for kind in [
+        MouseEventKind::Down(MouseButton::Left),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        state.handle_mouse(selection_mouse(kind, x, y), area);
+    }
+    assert!(state.exploration_expanded.contains("composer-read"));
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    assert!(!state.viewport().join("\n").contains("actual file error"));
+    for kind in [
+        MouseEventKind::Down(MouseButton::Left),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        state.handle_mouse(selection_mouse(kind, x, y + 1), area);
+    }
+    assert!(state.inline_errors_expanded.contains("composer-read"));
+    assert!(
+        state.exploration_expanded.contains("composer-read"),
+        "error and group have distinct keys"
+    );
+    assert!(state.viewport().join("\n").contains("actual file error"));
+    assert_eq!(state.input, "preserved draft");
+    assert!(state.composer_open());
 }
 
 #[tokio::test]

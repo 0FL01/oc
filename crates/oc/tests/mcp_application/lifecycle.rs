@@ -533,8 +533,18 @@ fn mcp08_disabled_activation_controls_held_request_snapshots_reopen_and_restart(
 
 fn assert_child_reaped(fixture: &Fixture, label: &str) {
     let counts = wait_counter(fixture, label, "closed", 1);
+    let pid = counts["pid"].as_i64().unwrap() as libc::pid_t;
+    // The fixture writes `closed` before Python exits. Scope publication also
+    // acknowledges asynchronous retirement, not waitpid completion. Observe the
+    // actual reap within the existing readiness deadline, as the owner test does.
+    let deadline = Instant::now() + TIMEOUT;
     // SAFETY: signal zero only probes this fixture's recorded owned child.
-    let alive = unsafe { libc::kill(counts["pid"].as_i64().unwrap() as libc::pid_t, 0) };
+    while unsafe { libc::kill(pid, 0) } == 0 {
+        assert!(Instant::now() < deadline, "{label} child was not reaped");
+        std::thread::sleep(POLL);
+    }
+    // SAFETY: the same fixture-owned child must remain reaped after readiness.
+    let alive = unsafe { libc::kill(pid, 0) };
     assert_ne!(alive, 0, "owned child survived scope retirement");
     assert_eq!(
         event_count(fixture, label, "closed"),

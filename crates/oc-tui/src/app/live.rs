@@ -1045,6 +1045,8 @@ impl TuiState {
         self.live_reasoning.clear();
         self.live_parts.clear();
         self.live_part_offset = 0;
+        self.live_part_sources.clear();
+        self.live_checkpoint_end = None;
         self.reasoning_down = None;
         self.reasoning_started = None;
         self.reasoning_finished = None;
@@ -1223,6 +1225,8 @@ impl TuiState {
                 self.pending_tool_seen.clear();
                 self.pending_tool_round = 0;
                 self.live_part_offset = 0;
+                self.live_part_sources.clear();
+                self.live_checkpoint_end = None;
                 self.reasoning_down = None;
                 self.reasoning_started = None;
                 self.reasoning_finished = None;
@@ -1266,6 +1270,8 @@ impl TuiState {
         if self.active_turn.as_ref() == Some(&turn) {
             return;
         }
+        self.live_part_sources.clear();
+        self.live_checkpoint_end = None;
         self.active_turn = Some(turn);
         self.status = TuiStatus::Streaming;
         self.turn_usage = None;
@@ -1399,6 +1405,9 @@ impl TuiState {
             );
         }
         self.live_part_states = projection.part_states.clone();
+        if projection.window.is_some() && !projection.legacy_text_only {
+            self.adopt_checkpoint_parts(projection);
+        }
         let first = projection
             .spans
             .iter()
@@ -1433,6 +1442,73 @@ impl TuiState {
             .or_else(|| {
                 (!projection.model_label.is_empty()).then(|| projection.model_label.clone())
             });
+    }
+
+    fn adopt_checkpoint_parts(&mut self, projection: &oc_core::queries::HistoryTurn) {
+        use oc_core::queries::TranscriptPart;
+        // Checkpoints are published after a generation is frozen, before the
+        // next generation's deltas. Replace the covered hints with their ordered
+        // canonical parts, including messages that never had a text delta.
+        let previous = std::mem::take(&mut self.live_parts);
+        let old_sources = std::mem::take(&mut self.live_part_sources);
+        self.live_part_offset = projection.window.as_ref().map_or(0, |window| window.start);
+        self.live_checkpoint_end = projection.window.as_ref().map(|window| window.end);
+        self.live_text.clear();
+        self.live_reasoning.clear();
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        for (index, part) in projection.parts.iter().enumerate() {
+            let Some(state) = projection.part_states.get(index) else {
+                continue;
+            };
+            let slot = self.live_part_offset + self.live_parts.len();
+            self.live_part_sources.insert(slot, state.sequence);
+            self.live_parts.push(match part {
+                TranscriptPart::Text(text) => LivePart::Text(text.clone()),
+                TranscriptPart::Reasoning { text, duration_ms } => LivePart::Reasoning {
+                    text: text.clone(),
+                    duration_ms: *duration_ms,
+                },
+                TranscriptPart::Tool(row) => {
+                    let mut card = card_from_row(row);
+                    if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
+                        view.color_index = projection.agent_color_index;
+                    }
+                    LivePart::Tool {
+                        card: Box::new(card),
+                        input: row.input.clone().unwrap_or_default(),
+                    }
+                }
+            });
+        }
+        // Unadmitted argument streams are not part of this checkpoint yet.
+        for part in previous {
+            if let LivePart::Tool { card, .. } = &part
+                && card.state == "argument_stream"
+            {
+                self.live_parts.push(part);
+            }
+        }
+        let remapped: Vec<_> = old_sources
+            .iter()
+            .filter(|(slot, _)| {
+                self.reasoning_expanded
+                    .contains(&crate::messages::ReasoningIdentity::Live(
+                        self.reasoning_epoch,
+                        **slot,
+                    ))
+            })
+            .filter_map(|(_, sequence)| {
+                self.live_part_sources.iter().find_map(|(slot, source)| {
+                    (source == sequence).then_some(crate::messages::ReasoningIdentity::Live(
+                        self.reasoning_epoch,
+                        *slot,
+                    ))
+                })
+            })
+            .collect();
+        self.reasoning_expanded.extend(remapped);
+        self.enforce_parts();
     }
 
     /// Apply one completed generation's measured context to its active owner.
@@ -1493,6 +1569,7 @@ impl TuiState {
             self.reasoning_finished = None;
             self.turn_usage = None;
             self.window.push_row(HistoryRow {
+                position: None,
                 seq: i64::MAX,
                 message_id: None,
                 role: "assistant".to_string(),
@@ -1536,6 +1613,7 @@ impl TuiState {
             self.reasoning_finished = None;
             self.turn_usage = None;
             self.window.push_row(HistoryRow {
+                position: None,
                 seq: i64::MAX,
                 message_id: None,
                 role: "assistant".to_string(),
@@ -1627,7 +1705,14 @@ impl TuiState {
                 && let Some(model) = self
                     .live_part_states
                     .iter()
-                    .find(|state| state.sequence == self.live_part_offset + ordinal)
+                    .find(|state| {
+                        state.sequence
+                            == self
+                                .live_part_sources
+                                .get(&(self.live_part_offset + ordinal))
+                                .copied()
+                                .unwrap_or(self.live_part_offset + ordinal)
+                    })
                     .and_then(|state| state.model_label.clone())
             {
                 row.meta = Some(AssistantMeta {
@@ -1876,12 +1961,14 @@ impl TuiState {
                 ApprovalPreview::Search { pattern, .. } if card.name == "glob" => {
                     crate::tools::ToolRender::Inline(crate::tools::InlineRender::Glob {
                         pattern: pattern.clone(),
+                        path: String::new(),
                         matches: None,
                     })
                 }
                 ApprovalPreview::Search { pattern, .. } => {
                     crate::tools::ToolRender::Inline(crate::tools::InlineRender::Grep {
                         pattern: pattern.clone(),
+                        path: String::new(),
                         matches: None,
                     })
                 }
@@ -2287,6 +2374,7 @@ impl TuiState {
                 > WINDOW_BYTES
         {
             self.live_parts.remove(0);
+            self.live_part_sources.remove(&self.live_part_offset);
             self.live_part_offset += 1;
             self.live_preview_truncated = true;
         }

@@ -170,6 +170,20 @@ remains paused; T68 does not restore HOT03 or qualify the remaining T61 settings
 
 Ratatui+Crossterm; bounded viewport и lazy paging session list/history. Input buffer ограничен. Rendering не парсит весь transcript на каждый token. UI получает snapshots + live hints; при отставании перечитывает snapshot с cursor, а не держит бесконечный backlog.
 
+T70: canonical transcript serving использует окна целых durable parts с исходным
+`PartState.sequence`, а не общий расходуемый preview-бюджет turn. Конец окна
+останавливается перед целой частью; ранее допущенные input/text/effects не
+обнуляются из-за соседних previews. Продолжения проходят через тот же History
+или launch-fenced ReadChild, включая части внутри одного сообщения. Обычный
+message read сохраняет aggregate text; transcript read не дублирует его поверх
+канонических parts. Page target 8 MiB допускает один более крупный
+producer-admitted part отдельно; TUI retention 240 rows / 64 MiB вмещает part
+до generation guard 32 MiB и footer, вытесненные части восстанавливаются cursor.
+Незавершённое окно parts остаётся на краю message page; переход вперёд к новому
+сообщению начинает с первой части, а не с его tail. Так edge-cursors не пропускают
+внутренний разрыв и не вставляют ответ перед его user message.
+Это не увеличение producer output/effect guards и не загрузка cold tool artifacts.
+
 Основные экраны: chat, sessions/Locations, model/variant/primary-agent picker, slash command completion, skill catalog/tool card, approvals, DCP context/stats. UI получает только redacted projection текущей generation и dispatches typed operations с expected generation; второго parser/catalog state нет. Минимальный markdown/diff/tool cards, paste/resize/Unicode и terminal restoration. Не строить собственный renderer/editor framework. При non-TTY без подкоманды — usage error; headless `run --json` выдаёт NDJSON, diagnostics отдельно stderr.
 
 T39 wiring: `oc-tui` — чистый view-model без storage handle. Панели открываются командами, а данные приходят bounded-запросами application owner (`catalog`, `skills`, `history_page`, `tool_ops_page`, `dcp_snapshot`); выборы уходят как typed intents (`ChooseModel`/`SelectAgent`/`SwitchSession`/`Compress`) и применяются только после acceptance — effective model/variant/agent меняются для следующих turns, смена session во время turn явно отклоняется. История живёт в bounded окне (`WINDOW_ROWS`/`WINDOW_BYTES`): старые страницы выгружаются, новые запрашиваются курсором; tool cards читаются newest-first страницами, а не первыми 200 старейшими записями. Bracketed paste приходит одним событием, resize/stream не блокируют loop, а ошибка output handle завершает процесс с восстановлением терминала. `oc2` бинарник владеет event loop, terminal guard и opt-in `OC_TUI_TEST_METRICS` (только для PTY-квалификации).

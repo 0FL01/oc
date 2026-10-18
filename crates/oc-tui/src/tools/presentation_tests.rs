@@ -6,6 +6,22 @@ use oc_core::{
 };
 
 #[test]
+fn exploration_search_uses_captured_root_and_omits_zero_count() {
+    for (name, label) in [("glob", "Glob"), ("grep", "Grep")] {
+        let mut row = operation(name, r#"{"items":[],"matches":[]}"#, None);
+        row.input = Some(r#"{"pattern":"λ*.rs","path":"src"}"#.into());
+        let before = row.clone();
+        let card = card_from_row(&row);
+        let lines = exploration_member(&card, Theme::dark(), 80, false);
+        assert_eq!(
+            lines[0].plain_text(),
+            format!("   ✱ {label} \"λ*.rs\" in src")
+        );
+        assert_eq!(row, before);
+    }
+}
+
+#[test]
 fn mcp_label_only_keeps_wire_raw_error_limits_and_legacy_truth() {
     use oc_core::tool_output::McpLabel;
     let facts = Presentation::label(McpLabel {
@@ -150,6 +166,7 @@ fn vis35_failed_patch_detail_uses_child_gap_muted_text_and_unstyled_padding() {
             }
         }
         let rows = [HistoryRow {
+            position: None,
             seq: 1,
             message_id: None,
             role: "tool".into(),
@@ -322,6 +339,7 @@ fn vis37_answered_question_full_and_cached_transcripts_bypass_generic_expansion(
     let before = operation.clone();
     let card = card_from_row(&operation);
     let rows = [HistoryRow {
+        position: None,
         message_id: None,
         seq: 1,
         role: "tool".into(),
@@ -440,6 +458,7 @@ fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_re
     assert!(card.question.is_none(), "pending is not an invented result");
     assert!(!generic_expandable(&card));
     let rows = [HistoryRow {
+        position: None,
         message_id: None,
         seq: 1,
         role: "tool".into(),
@@ -557,6 +576,7 @@ fn vis37_cancelled_question_uses_muted_struck_inline_and_preserves_raw_other_err
     assert!(!generic_expandable(&card));
 
     let rows = [HistoryRow {
+        position: None,
         message_id: None,
         seq: 1,
         role: "tool".into(),
@@ -1046,6 +1066,7 @@ fn generic_summary_paints_only_fitting_source_wrap_separators() {
         assert_eq!(paint(block, width), paint(expected.clone(), width));
 
         let rows = [HistoryRow {
+            position: None,
             message_id: None,
             seq: 1,
             role: "tool".into(),
@@ -1163,6 +1184,7 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
         "presentation preserves the admitted RAW input"
     );
     let rows = [HistoryRow {
+        position: None,
         message_id: None,
         seq: 1,
         role: "tool".into(),

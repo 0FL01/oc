@@ -130,7 +130,7 @@ rpc! {
     TabDeck {} -> TabDeckSnapshot;
     SaveTabDeck { deck: TabDeckSnapshot } -> TabDeckSnapshot;
     Read { session: SessionId } -> Vec<Message>;
-    History { session: SessionId, message: Option<MessageId>, before_seq: Option<i64>, after_seq: Option<i64>, limit: usize } -> HistoryPage;
+    History { session: SessionId, message: Option<MessageId>, before_seq: Option<i64>, after_seq: Option<i64>, limit: usize, window: Option<HistoryReadWindow> } -> HistoryPage;
     ToolOps { session: SessionId, before_rowid: Option<i64>, limit: usize } -> ToolOpPage;
     ToolOutput { session: SessionId, op: String, offset: usize, limit: usize } -> ToolOutputPage;
     ShellOutput { session: SessionId, shell_id: String, offset: usize, limit: usize } -> Option<ToolOutputPage>;
@@ -139,7 +139,7 @@ rpc! {
     ChildJobs { session: SessionId } -> Vec<ChildJob>;
     InterruptChild { session: SessionId, selected: ChildJob } -> ();
     BackgroundChild { session: SessionId, selected: ChildJob } -> ();
-    ReadChild { session: SessionId, selected: ChildJob } -> HistoryPage;
+    ReadChild { session: SessionId, selected: ChildJob, window: Option<HistoryReadWindow> } -> HistoryPage;
     ShellSnapshot { session: SessionId, shell_id: String } -> ShellSnapshot;
     BackgroundShell { session: SessionId, shell_id: String } -> ();
     DcpSummary { session: SessionId, op: String, block_index: usize, offset: i64, limit: usize } -> Option<oc_core::dcp_view::DcpSummaryPage>;

@@ -130,10 +130,13 @@ impl TuiState {
     }
 
     fn text_controls_available(&self) -> bool {
+        self.transcript_controls_available() && !self.composer_open()
+    }
+
+    fn transcript_controls_available(&self) -> bool {
         self.panel == TuiPanel::None
             && self.approvals.active().is_none()
             && self.questions.active().is_none()
-            && !self.composer_open()
             && self.shell_viewer().is_none()
             && !self.terminal_focused()
             && self.status != TuiStatus::Quit
@@ -395,7 +398,7 @@ impl TuiState {
         }
         if self.text_selection.transcript
             && self.selection_gesture
-            && self.text_controls_available()
+            && self.transcript_controls_available()
         {
             let dragged = self
                 .selection

@@ -116,6 +116,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
     // Diff first: a long operation id must never push the diff off a narrow
     // panel row.
     HistoryRow {
+        position: None,
         message_id: None,
         seq: i64::MAX,
         role: String::new(),
@@ -141,6 +142,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
 /// (`routes/session/index.tsx:1934-1985`).
 pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryRow {
     HistoryRow {
+        position: None,
         message_id: None,
         seq: i64::MAX,
         role: "assistant".to_string(),
@@ -218,6 +220,7 @@ impl TuiState {
         self.clear_transcript_selection();
         self.exploration_down = None;
         self.exploration_expanded.clear();
+        self.inline_errors_expanded.clear();
         self.reasoning_down = None;
         self.reasoning_expanded.clear();
         self.viewport.set(None);
@@ -401,6 +404,10 @@ impl TuiState {
                 *self.completion_anchor.get_mut() = Some(CompletionAnchor {
                     message,
                     part,
+                    component: rows[index]
+                        .position
+                        .as_ref()
+                        .map(|position| position.component.clone()),
                     row: row_offset,
                     requested_scroll: self.scroll,
                     pending: true,
@@ -414,6 +421,15 @@ impl TuiState {
     fn refreshed_part(old_rows: &[HistoryRow], rows: &[HistoryRow], index: usize) -> Option<usize> {
         let old = &old_rows[index];
         if let Some(id) = &old.message_id {
+            if let Some(position) = &old.position {
+                return rows.iter().position(|row| {
+                    row.position.as_ref().is_some_and(|new| {
+                        new.same_turn_component(position)
+                            || (row.message_id.as_ref() == Some(id)
+                                && new.component == position.component)
+                    })
+                });
+            }
             let ordinal = old_rows[..index]
                 .iter()
                 .filter(|row| row.message_id.as_ref() == Some(id))
@@ -648,7 +664,8 @@ impl TuiState {
                             crate::messages::CapturedChildTarget::Navigate(job) => {
                                 crate::messages::hover_child_notice(line, theme, job)
                             }
-                            crate::messages::CapturedChildTarget::ErrorDetails(_) => line.clone(),
+                            crate::messages::CapturedChildTarget::ErrorDetails(_)
+                            | crate::messages::CapturedChildTarget::InlineError(_) => line.clone(),
                             crate::messages::CapturedChildTarget::Execute { .. } => {
                                 crate::tools::execute::hover(line, theme)
                             }
@@ -1312,15 +1329,15 @@ impl TuiState {
                 || row
                     .tool
                     .as_ref()
-                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)))
+                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)) || crate::tools::inline_error_expandable(card))
         }) && !self
             .live_parts
             .iter()
-            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute))))
+            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)) || crate::tools::inline_error_expandable(card)))
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
             || self.questions.active().is_some()
-            || self.composer_open()
+            || self.composer_contains(frame, (x, y))
             || self.shell_viewer().is_some()
             || self.transcript_overpainted(frame, x, y)
         {
@@ -1365,6 +1382,7 @@ impl TuiState {
                 self.attached_session() == Some(&job.parent)
             }
             crate::messages::CapturedChildTarget::ErrorDetails(_) => true,
+            crate::messages::CapturedChildTarget::InlineError(_) => true,
             crate::messages::CapturedChildTarget::Execute { .. } => true,
         })
     }
@@ -1410,6 +1428,10 @@ impl TuiState {
                         self.toggle_tool_expansion_at(&operation, frame);
                         KeyOutcome::default()
                     }
+                    crate::messages::CapturedChildTarget::InlineError(operation) => {
+                        self.toggle_inline_error_at(&operation, frame);
+                        KeyOutcome::default()
+                    }
                     crate::messages::CapturedChildTarget::Execute { operation, call } => {
                         self.activate_execute(&operation, call, frame);
                         KeyOutcome::default()
@@ -1424,11 +1446,41 @@ impl TuiState {
     pub(super) fn tool_expanded(&self, target: crate::messages::ToolExpansion<'_>) -> bool {
         match target {
             crate::messages::ToolExpansion::Operation(op) => self.exploration_expanded.contains(op),
+            crate::messages::ToolExpansion::InlineError(op) => {
+                self.inline_errors_expanded.contains(op)
+            }
             crate::messages::ToolExpansion::ExecuteCall(op, index) => self
                 .execute_calls_expanded
                 .get(op)
                 .is_some_and(|calls| calls.contains(&index)),
         }
+    }
+
+    fn toggle_inline_error_at(&mut self, operation: &str, frame: Rect) {
+        let rect = crate::shell::transcript_area(self, frame);
+        let (_, before, displayed) =
+            self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let first = before
+            .saturating_sub(usize::from(rect.height))
+            .saturating_sub(displayed);
+        let rows = self.transcript_rows();
+        self.inline_errors_expanded.retain(|id| {
+            rows.iter()
+                .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
+        });
+        if !self.inline_errors_expanded.insert(operation.to_owned()) {
+            self.inline_errors_expanded.remove(operation);
+        }
+        self.invalidate_transcript();
+        let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
+        self.scroll = if displayed == 0 && !self.window.has_newer() {
+            0
+        } else {
+            after
+                .saturating_sub(usize::from(rect.height))
+                .saturating_sub(first)
+        };
+        self.observe_transcript_viewport(rect.width, frame.width, rect.height, after, self.scroll);
     }
 
     pub(super) fn toggle_tool_expansion_at(&mut self, operation: &str, frame: Rect) {
@@ -1508,8 +1560,40 @@ impl TuiState {
         self.transcript_row_copies
             .set(self.transcript_row_copies.get() + self.window.len());
         let mut rows = self.window.rows().to_vec();
+        let canonical_ahead = self.active_turn.as_ref().is_some_and(|turn| {
+            rows.iter().any(|row| {
+                row.position.as_ref().is_some_and(|position| {
+                    position.belongs_to(&turn.0)
+                        && matches!(position.component, crate::history::HistoryComponent::Part(sequence)
+                            if self.live_checkpoint_end.is_none_or(|end| sequence >= end))
+                })
+            })
+        });
+        if let Some(turn) = &self.active_turn {
+            rows.retain(|row| {
+                !row.position.as_ref().is_some_and(|position| {
+                    position.belongs_to(&turn.0)
+                        && position.component == crate::history::HistoryComponent::Footer
+                })
+            });
+        }
         for (ordinal, part) in self.live_parts.iter().enumerate() {
             if matches!(part, LivePart::Vacant) {
+                continue;
+            }
+            let slot = self.live_part_offset + ordinal;
+            let source = self.live_part_sources.get(&slot).copied();
+            let canonical = rows.iter().position(|row| {
+                row.position.as_ref().is_some_and(|position| {
+                    self.active_turn.as_ref().is_some_and(|turn| position.belongs_to(&turn.0))
+                        && matches!(position.component, crate::history::HistoryComponent::Part(sequence)
+                            if Some(sequence) == source)
+                })
+            });
+            // A history read can overtake queued hints. Its canonical identities
+            // win until the ordered checkpoint arrives; never compare payloads
+            // to guess which repeated text a hint belongs to.
+            if canonical_ahead {
                 continue;
             }
             let mut row = part.to_row(
@@ -1524,7 +1608,7 @@ impl TuiState {
                 && let Some(model) = self
                     .live_part_states
                     .iter()
-                    .find(|state| state.sequence == self.live_part_offset + ordinal)
+                    .find(|state| state.sequence == source.unwrap_or(slot))
                     .and_then(|state| state.model_label.clone())
             {
                 row.meta = Some(AssistantMeta {
@@ -1532,11 +1616,22 @@ impl TuiState {
                     ..Default::default()
                 });
             }
-            rows.push(row);
+            if let Some(index) = canonical {
+                row.position.clone_from(&rows[index].position);
+                row.message_id.clone_from(&rows[index].message_id);
+                row.seq = rows[index].seq;
+                row.agent.clone_from(&rows[index].agent);
+                row.agent_color_index = rows[index].agent_color_index;
+                rows[index] = row;
+            } else {
+                rows.push(row);
+            }
         }
-        let live = !self.live_text.is_empty() || !self.live_reasoning.is_empty();
+        let live =
+            !canonical_ahead && (!self.live_text.is_empty() || !self.live_reasoning.is_empty());
         if live {
             rows.push(HistoryRow {
+                position: None,
                 seq: i64::MAX,
                 message_id: None,
                 role: "assistant".to_string(),
@@ -1584,6 +1679,7 @@ impl TuiState {
             && !self.window.has_newer()
         {
             rows.push(HistoryRow {
+                position: None,
                 message_id: Some(std::sync::Arc::new(reverted.message.clone())),
                 seq: i64::MAX,
                 role: "reverted".into(),
@@ -1601,6 +1697,7 @@ impl TuiState {
         self.interleave_compactions(&mut rows);
         if let Some(key) = self.background_hint_key() {
             rows.push(HistoryRow {
+                position: None,
                 message_id: None,
                 seq: i64::MAX,
                 role: "background_hint".into(),
@@ -1845,12 +1942,21 @@ impl TuiState {
                     && (anchor.pending || resized)
             })
             .and_then(|anchor| {
-                let index = rows
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, row)| row.message_id.as_ref() == Some(&anchor.message))
-                    .nth(anchor.part)
-                    .map(|(index, _)| index)?;
+                let index = if let Some(component) = &anchor.component {
+                    rows.iter().position(|row| {
+                        row.message_id.as_ref() == Some(&anchor.message)
+                            && row
+                                .position
+                                .as_ref()
+                                .is_some_and(|position| &position.component == component)
+                    })
+                } else {
+                    rows.iter()
+                        .enumerate()
+                        .filter(|(_, row)| row.message_id.as_ref() == Some(&anchor.message))
+                        .nth(anchor.part)
+                        .map(|(index, _)| index)
+                }?;
                 let mut top = None;
                 let total = self.transcript_part_positions(
                     &rows,

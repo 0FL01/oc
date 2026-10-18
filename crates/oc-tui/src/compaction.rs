@@ -62,6 +62,7 @@ pub(crate) fn row(snapshot: &CompactionSnapshot, frame: usize, animations: bool)
         }
     }
     HistoryRow {
+        position: None,
         message_id: Some(std::sync::Arc::new(oc_core::session::MessageId(
             snapshot.id.clone(),
         ))),

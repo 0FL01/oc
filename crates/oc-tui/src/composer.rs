@@ -298,6 +298,18 @@ impl TuiState {
         }
         None
     }
+    pub(crate) fn composer_contains(&self, frame: Rect, point: (u16, u16)) -> bool {
+        self.composer
+            .painted
+            .borrow()
+            .as_ref()
+            .is_some_and(|paint| {
+                paint.frame == frame
+                    && Some(paint.tab) == self.composer.active
+                    && paint.area.contains(point.into())
+            })
+    }
+
     pub(crate) fn composer_mouse(&mut self, event: MouseEvent, frame: Rect) -> Option<KeyOutcome> {
         if !self.composer_open() || self.shell_viewer().is_some() {
             return None;

@@ -429,6 +429,7 @@ mod tests {
             dcp_topic: Some("actual typed pending topic".into()),
         };
         let mut row = HistoryRow {
+            position: None,
             seq: 1,
             message_id: None,
             role: "tool".into(),

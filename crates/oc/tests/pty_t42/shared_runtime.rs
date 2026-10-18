@@ -477,7 +477,7 @@ fn projectless_owner(fixture: &Fixture) -> (OwnedProcess, std::os::unix::net::Un
     drop(inherited);
     // This fixture exercises the same projectless cold-owner admission as auth.
     let intent =
-        serde_json::to_vec(&serde_json::json!({"version":2,"lease":"Auth","project":null}))
+        serde_json::to_vec(&serde_json::json!({"version":3,"lease":"Auth","project":null}))
             .unwrap();
     startup
         .write_all(&(intent.len() as u32).to_be_bytes())

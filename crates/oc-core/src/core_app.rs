@@ -706,6 +706,8 @@ pub enum InboxMsg {
         after_seq: Option<i64>,
         /// Requested rows (clamped by the owner).
         limit: usize,
+        /// Bounded canonical transcript serving; None preserves message reads.
+        window: Option<crate::queries::HistoryReadWindow>,
         /// Query result.
         ack: oneshot::Sender<Result<HistoryPage, CoreError>>,
     },
@@ -764,6 +766,7 @@ pub enum InboxMsg {
     ReadChild {
         session: SessionId,
         selected: crate::queries::ChildJob,
+        window: Option<crate::queries::HistoryReadWindow>,
         ack: oneshot::Sender<Result<HistoryPage, CoreError>>,
     },
     /// Current/final recent output with the original source identity and cursors.
@@ -1824,11 +1827,41 @@ impl CoreApp {
             .send(InboxMsg::ReadChild {
                 session,
                 selected,
+                window: None,
                 ack,
             })
             .await
             .map_err(|_| CoreError::Shutdown)?;
         receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Canonical linked history; every continuation retains the original fence.
+    pub async fn read_child_transcript(
+        &self,
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+    ) -> Result<HistoryPage, CoreError> {
+        self.read_child_window(session, selected, Default::default())
+            .await
+    }
+
+    pub async fn read_child_window(
+        &self,
+        session: SessionId,
+        selected: crate::queries::ChildJob,
+        window: crate::queries::HistoryReadWindow,
+    ) -> Result<HistoryPage, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ReadChild {
+                session,
+                selected,
+                window: Some(window),
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Current admitted methods, without initiating authorization or reading secrets.
@@ -2025,11 +2058,54 @@ impl CoreApp {
                 before_seq,
                 after_seq,
                 limit,
+                window: None,
                 ack: ack_tx,
             })
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Bounded canonical transcript, with intra-message continuation when needed.
+    pub async fn history_window(
+        &self,
+        session: SessionId,
+        window: crate::queries::HistoryReadWindow,
+        limit: usize,
+    ) -> Result<HistoryPage, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::History {
+                session,
+                message: window.part.as_ref().map(|part| part.message.clone()),
+                before_seq: window.before_seq,
+                after_seq: window.after_seq,
+                limit,
+                window: Some(window),
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    pub async fn transcript_page(
+        &self,
+        session: SessionId,
+        before_seq: Option<i64>,
+        after_seq: Option<i64>,
+        limit: usize,
+    ) -> Result<HistoryPage, CoreError> {
+        self.history_window(
+            session,
+            crate::queries::HistoryReadWindow {
+                before_seq,
+                after_seq,
+                part: None,
+            },
+            limit,
+        )
+        .await
     }
 
     /// Resolve one exact committed message on the current conversation branch.
@@ -2047,6 +2123,7 @@ impl CoreApp {
                 before_seq: None,
                 after_seq: None,
                 limit: 1,
+                window: None,
                 ack,
             })
             .await

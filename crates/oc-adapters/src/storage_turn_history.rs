@@ -34,6 +34,63 @@ fn call_window(log: &TurnLog) -> Result<Vec<(DcpCallKey, usize)>, StorageError> 
 }
 
 impl Db {
+    /// Canonical transcript reads do not copy the potentially archive-sized
+    /// aggregate assistant answer in addition to its ordered, pageable parts.
+    /// Ordinary message readers retain their existing complete-text contract.
+    pub(crate) fn read_transcript_rows(
+        &self,
+        session: &str,
+        window: &oc_core::queries::HistoryReadWindow,
+        limit: usize,
+    ) -> Result<Vec<super::HistoryPageRow>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let order = if window.after_seq.is_some() {
+            "ASC"
+        } else {
+            "DESC"
+        };
+        let mut statement = conn.prepare(&format!(
+            "WITH projected AS (
+              SELECT m.seq,m.role,m.id,
+                CASE WHEN m.role='assistant' AND EXISTS (
+                  SELECT 1 FROM turns t WHERE t.session_id=m.session_id AND json_valid(t.result)
+                  AND json_extract(t.result,'$.assistant_message')=m.id
+                  AND json_type(t.result,'$.display_parts')='array') THEN ''
+                WHEN length(CAST(m.text AS BLOB))<=?6 THEN m.text END AS text
+              FROM conversation_messages m WHERE m.session_id=?1
+                AND (?2 IS NULL OR m.seq<?2) AND (?3 IS NULL OR m.seq>?3)
+                AND (?4 IS NULL OR m.id=?4) ORDER BY m.seq {order} LIMIT ?5
+            ), bounded AS (
+              SELECT *,SUM(COALESCE(length(CAST(text AS BLOB)),0)) OVER (ORDER BY seq {order}) AS bytes,
+                ROW_NUMBER() OVER (ORDER BY seq {order}) AS position FROM projected
+            ) SELECT seq,role,text,id FROM bounded WHERE bytes<=?7 OR position=1 ORDER BY seq {order}"
+        ))?;
+        let mut identities = super::HISTORY_PAGE_ID_BYTES;
+        statement
+            .query_map(
+                params![
+                    session,
+                    window.before_seq,
+                    window.after_seq,
+                    window.part.as_ref().map(|p| &p.message.0),
+                    limit.min(super::HISTORY_PAGE_MAX) as i64,
+                    crate::provider::GENERATION_BYTE_CAP as i64,
+                    super::TRANSCRIPT_PAGE_BYTES as i64
+                ],
+                |row| {
+                    Ok(super::HistoryPageRow {
+                        id: super::page_message_id(row, &mut identities)?,
+                        seq: row.get(0)?,
+                        role: row.get(1)?,
+                        text: row.get(2)?,
+                    })
+                },
+            )?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(Into::into)
+    }
+
     pub(super) fn count_history_read(&self, kind: usize, bytes: usize) {
         use std::sync::atomic::Ordering::Relaxed;
         self.history_reads[kind].fetch_add(1, Relaxed);
@@ -688,13 +745,47 @@ impl Db {
         turn: &str,
     ) -> Result<Vec<(usize, Option<i64>, serde_json::Value)>, StorageError> {
         let total: i64=conn.query_row("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+COALESCE(json_array_length(result,'$.display_parts'),0) FROM turns WHERE id=?1",[turn],|r| r.get(0))?;
-        let floor = (total - 240).max(0);
-        let mut stmt=conn.prepare("WITH recent AS (SELECT ordinal,payload FROM turn_raw_segments WHERE turn_id=?1 AND part_end>?2 ORDER BY ordinal DESC LIMIT 240), parts AS (
-          SELECT json_extract(r.payload,'$.base.ends[4]')+p.key AS seq,r.ordinal,p.value FROM recent r,json_each(r.payload,'$.journal.display_parts') p WHERE json_extract(r.payload,'$.base.ends[4]')+p.key>=?2
+        self.turn_part_refs(
+            conn,
+            turn,
+            (total - 240).max(0) as usize,
+            total as usize,
+            false,
+        )
+    }
+
+    pub(super) fn turn_part_refs(
+        &self,
+        conn: &Connection,
+        turn: &str,
+        start: usize,
+        end: usize,
+        newer: bool,
+    ) -> Result<Vec<(usize, Option<i64>, serde_json::Value)>, StorageError> {
+        // part_end is indexed. The first segment for a distinct end owns that
+        // reference range; subsequent segments with the same end have no parts.
+        // Seek the requested interval, not the latest archive and not all RAW.
+        let order = if newer { "ASC" } else { "DESC" };
+        let mut stmt=conn.prepare(&format!("WITH owners AS (
+          SELECT MIN(ordinal) AS ordinal FROM turn_raw_segments
+          WHERE turn_id=?1 AND part_end>?2 GROUP BY part_end ORDER BY part_end LIMIT 240
+          ), recent AS (SELECT r.ordinal,r.payload FROM turn_raw_segments r JOIN owners o ON o.ordinal=r.ordinal
+          WHERE r.turn_id=?1 AND json_extract(r.payload,'$.base.ends[4]')<?3), parts AS (
+          SELECT json_extract(r.payload,'$.base.ends[4]')+p.key AS seq,r.ordinal,p.value FROM recent r,json_each(r.payload,'$.journal.display_parts') p
           UNION ALL SELECT COALESCE(json_extract(t.result,'$.raw_prefix.ends[4]'),0)+p.key,NULL,p.value FROM turns t,json_each(t.result,'$.display_parts') p WHERE t.id=?1)
-          SELECT seq,ordinal,CASE WHEN SUM(length(CAST(value AS BLOB))) OVER (ORDER BY seq)<=?3 THEN value END FROM (SELECT * FROM parts ORDER BY seq DESC LIMIT 240) ORDER BY seq")?;
+          , bounded AS (SELECT seq,ordinal,value,SUM(length(CAST(value AS BLOB))) OVER (ORDER BY seq {order}) AS bytes,
+            ROW_NUMBER() OVER (ORDER BY seq {order}) AS position FROM parts WHERE seq>=?2 AND seq<?3)
+          SELECT seq,ordinal,CASE WHEN bytes<=?4 OR (position=1 AND length(CAST(value AS BLOB))<=?5) THEN value END FROM bounded WHERE bytes<=?4 OR position=1 ORDER BY seq"))?;
         stmt.query_map(
-            params![turn, floor, crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],
+            params![
+                turn,
+                start as i64,
+                end as i64,
+                crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64,
+                // One producer-admitted public part may exceed the page target.
+                // Include worst-case JSON escaping plus its small reference envelope.
+                (crate::provider::GENERATION_BYTE_CAP * 6 + 16 * 1024) as i64
+            ],
             |r| {
                 Ok((
                     r.get::<_, i64>(0)?,

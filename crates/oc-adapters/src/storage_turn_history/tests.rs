@@ -92,7 +92,7 @@ fn working(log: &TurnLog) -> serde_json::Value {
 }
 
 #[test]
-fn active_pending_text_is_not_bounded_loss_but_settled_and_window_loss_remain_visible() {
+fn active_pending_text_has_recoverable_windows_and_explicit_loss_remains_visible() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();
     let settled = closed(&db);
@@ -127,7 +127,10 @@ fn active_pending_text_is_not_bounded_loss_but_settled_and_window_loss_remain_vi
         .push(json!({"reasoning":"x".repeat(16*1024+1),"span":"span"}));
     db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
     let bounded = db.turn_presentation("s", "t").unwrap().unwrap();
-    assert!(bounded.truncated && bounded.part_states[2].truncated);
+    assert!(!bounded.truncated && !bounded.part_states[2].truncated);
+    assert!(
+        matches!(&bounded.parts[2],oc_core::queries::TranscriptPart::Reasoning {text,..} if text.len()==16*1024+1)
+    );
     assert_eq!(bounded.omitted_parts, 0);
 
     let mut window = settled.clone();
@@ -141,8 +144,10 @@ fn active_pending_text_is_not_bounded_loss_but_settled_and_window_loss_remain_vi
         .unwrap();
     let bounded = db.turn_presentation("s", "t").unwrap().unwrap();
     assert_eq!(bounded.parts.len(), 239); // Existing 240-reference window is unchanged.
-    assert_eq!(bounded.omitted_parts, 62);
-    assert!(bounded.truncated);
+    assert_eq!(bounded.omitted_parts, 0);
+    assert!(!bounded.truncated);
+    assert_eq!(bounded.window.as_ref().unwrap().start, 62);
+    assert_eq!(bounded.window.as_ref().unwrap().total, 302);
 
     // Explicit loss and anomalous terminal placeholders are not cleared.
     let mut lost = settled.clone();
@@ -960,7 +965,38 @@ fn latest_windows_do_not_stop_execution_and_each_part_keeps_its_actual_span() {
         view.part_states.last().unwrap().model_label.as_deref(),
         Some("actual-300")
     );
-    assert_eq!(view.omitted_parts, 61);
+    assert_eq!(view.omitted_parts, 0);
+    let older = db
+        .turn_presentation_window(
+            "s",
+            "t",
+            Some(&oc_core::queries::HistoryPartCursor {
+                message: oc_core::session::MessageId("canonical".into()),
+                sequence: 61,
+                newer: false,
+            }),
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(older.parts.len(), 61);
+    assert_eq!(older.part_states.first().unwrap().sequence, 0);
+    assert_eq!(
+        older.part_states.last().unwrap().model_label.as_deref(),
+        Some("actual-60")
+    );
+    let newer = db
+        .turn_presentation_window(
+            "s",
+            "t",
+            Some(&oc_core::queries::HistoryPartCursor {
+                message: oc_core::session::MessageId("canonical".into()),
+                sequence: 60,
+                newer: true,
+            }),
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(newer, view);
     assert_eq!(hot.raw_prefix.as_ref().unwrap().ordinal, 301);
     assert!(hot.to_json().to_string().len() < 4096);
     assert_eq!(db.next_call_occurrence("t", "reused").unwrap(), 301);

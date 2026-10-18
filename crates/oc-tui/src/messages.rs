@@ -550,6 +550,7 @@ pub(crate) fn transcript_with_cache(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ToolExpansion<'a> {
     Operation(&'a str),
+    InlineError(&'a str),
     ExecuteCall(&'a str, usize),
 }
 
@@ -586,7 +587,7 @@ pub(crate) fn transcript_with_expansion(
                     .iter()
                     .take_while(|row| exploration_kind(row).is_some())
                 {
-                    out.push(exploration_member(member, theme));
+                    out.extend(exploration_member(member, theme, width, expanded));
                 }
             }
         } else if let Some(lines) = expandable_tool_entry(
@@ -843,8 +844,14 @@ fn visit_reasoning_group(
                 0
             };
             let mut render = || reasoning_group_body(part, theme, width);
-            if cache.is_some() {
-                emit(height, &mut render);
+            if let Some(cache) = cache {
+                if reasoning_content(part).len() > LIVE_MARKDOWN_BYTES
+                    || height >= MAX_MARKDOWN_ROWS
+                {
+                    visit_reasoning_body_indexed(part, key, theme, width, cache, &mut emit);
+                } else {
+                    emit(height, &mut render);
+                }
             } else {
                 let body = render();
                 emit(body.len(), &mut || body.clone());
@@ -860,6 +867,65 @@ fn reasoning_group_body(part: &ReasoningBlock, theme: &Theme, width: u16) -> Vec
         .into_iter()
         .skip(2)
         .collect()
+}
+
+type ReasoningBodyEmitter<'a> = dyn FnMut(usize, &mut dyn FnMut() -> Vec<Line>) + 'a;
+
+/// Use the existing Markdown source-page index for a large public body. The
+/// bounded full-snapshot helper is not the interactive transcript's data limit.
+fn visit_reasoning_body_indexed(
+    part: &ReasoningBlock,
+    key: (i64, usize),
+    theme: &Theme,
+    width: u16,
+    cache: &RefCell<MarkdownCache>,
+    emit: &mut ReasoningBodyEmitter<'_>,
+) {
+    let source = HistoryRow {
+        seq: key.0,
+        role: "assistant".into(),
+        text: reasoning_content(part).into_owned(),
+        ..Default::default()
+    };
+    let body_width = width.saturating_sub(2).max(1);
+    let border = Style::default().fg(theme.decrease(if part.toggleable {
+        theme.background_raised()
+    } else {
+        theme.background()
+    }));
+    let mut separator = true;
+    visit_assistant_indexed(
+        &source,
+        (key.1, false, false),
+        theme,
+        (body_width, body_width),
+        &|_| Color::Reset,
+        cache,
+        |height, _, render| {
+            if std::mem::take(&mut separator) {
+                emit(height, render);
+            } else {
+                emit(height, &mut || {
+                    render()
+                        .into_iter()
+                        .map(|line| {
+                            // Markdown already supplied paddingLeft=3. Keep it
+                            // and insert the thinking border/padding before text.
+                            let mut spans = vec![
+                                Span::plain(" ".repeat(MESSAGE_PADDING)),
+                                Span::styled("┃", border),
+                                Span::plain(" "),
+                            ];
+                            spans.extend(line.spans().iter().skip(1).map(|span| {
+                                Span::styled(span.content(), span.style().fg(theme.text_muted()))
+                            }));
+                            clipped_line(sanitize_line(Line::new(spans)), width)
+                        })
+                        .collect()
+                });
+            }
+        },
+    );
 }
 
 impl ReasoningGroup<'_> {
@@ -899,14 +965,15 @@ fn reasoning_group_header(group: &ReasoningGroup<'_>, theme: &Theme, width: u16)
 }
 
 /// Upstream groups adjacent read/glob/grep parts in their first-seen order
-/// (`grouping/session.ts:67-71`, `index.tsx:1865-1929`). Only running or
-/// confirmed, untruncated results can be collapsed; uncertain outcomes never
-/// enter a group and their detail rows remain visible.
+/// (`grouping/session.ts`, `index.tsx:1865-1929`). Terminal errors and bounded
+/// output previews remain real members. Unknown recovery outcomes stay explicit.
 fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
     let card = row.tool.as_ref()?;
     if row.role != "tool"
-        || !matches!(card.state.as_str(), "completed" | "started" | "running")
-        || card.preview_limited()
+        || !matches!(
+            card.state.as_str(),
+            "completed" | "started" | "running" | "failed" | "denied" | "cancelled"
+        )
     {
         return None;
     }
@@ -917,14 +984,25 @@ fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
         ) => Some("search"),
         _ => None,
     }?;
-    Some((name, card.state == "completed"))
+    Some((name, !crate::tools::is_running(&card.state)))
 }
 
-fn exploration_member(row: &HistoryRow, theme: &Theme) -> Line {
-    sanitize_line(crate::tools::exploration_member(
-        row.tool.as_ref().expect("group has tool"),
+fn exploration_member(
+    row: &HistoryRow,
+    theme: &Theme,
+    width: u16,
+    expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
+) -> Vec<Line> {
+    let card = row.tool.as_ref().expect("group has tool");
+    crate::tools::exploration_member(
+        card,
         theme,
-    ))
+        width,
+        expanded(ToolExpansion::InlineError(&card.op)),
+    )
+    .into_iter()
+    .map(sanitize_line)
+    .collect()
 }
 
 fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option<Vec<Line>> {
@@ -1196,8 +1274,32 @@ fn visit_assistant_indexed(
         &row.text
     };
     if let Some(reasoning) = &row.reasoning {
-        let lines = reasoning_lines(reasoning, theme, width);
-        emit(lines.len(), false, &mut || lines.clone());
+        if reasoning.expanded
+            && !reasoning_content(reasoning).is_empty()
+            && (reasoning_content(reasoning).len() > LIVE_MARKDOWN_BYTES
+                || cache
+                    .borrow_mut()
+                    .reasoning_height((row.seq, index), reasoning, theme, width)
+                    >= MAX_MARKDOWN_ROWS)
+        {
+            emit(2, false, &mut || {
+                vec![
+                    Line::plain(""),
+                    clipped_reasoning_header(reasoning, theme, width),
+                ]
+            });
+            visit_reasoning_body_indexed(
+                reasoning,
+                (row.seq, index),
+                theme,
+                width,
+                cache,
+                &mut |height, render| emit(height, false, render),
+            );
+        } else {
+            let lines = reasoning_lines(reasoning, theme, width);
+            emit(lines.len(), false, &mut || lines.clone());
+        }
     }
     if !text.trim().is_empty() {
         emit(1, false, &mut || vec![Line::plain("")]);
@@ -2193,6 +2295,7 @@ struct ExplorationOptions<'a> {
 pub(crate) enum CapturedChildTarget {
     Navigate(Box<oc_core::queries::ChildJob>),
     ErrorDetails(String),
+    InlineError(String),
     Execute {
         operation: String,
         call: Option<usize>,
@@ -2341,8 +2444,36 @@ fn visible_transcript_indexed(
                     .iter()
                     .take_while(|row| exploration_kind(row).is_some())
                 {
+                    let card = member.tool.as_ref().expect("group has tool");
+                    if crate::tools::inline_error_expandable(card)
+                        && let Some((x, y)) = options.point
+                    {
+                        let header: Vec<_> = exploration_member(member, theme, width, &|_| false)
+                            .iter()
+                            .flat_map(|line| {
+                                styled::wrap_line_limited(line, width as usize, MAX_MARKDOWN_ROWS)
+                            })
+                            .collect();
+                        for (offset, line) in header.iter().enumerate() {
+                            if position + offset == start + y && position + offset < end {
+                                let text = line.plain_text();
+                                let leading = UnicodeWidthStr::width(text.as_str())
+                                    - UnicodeWidthStr::width(text.trim_start());
+                                if x >= leading && x < UnicodeWidthStr::width(text.trim_end()) {
+                                    hit = Some(TranscriptHit::ChildNotice(
+                                        CapturedChildTarget::InlineError(card.op.clone()),
+                                        position.saturating_sub(start)
+                                            ..(position + header.len())
+                                                .min(end)
+                                                .saturating_sub(start),
+                                        false,
+                                    ));
+                                }
+                            }
+                        }
+                    }
                     add_visible_lines(
-                        vec![exploration_member(member, theme)],
+                        exploration_member(member, theme, width, options.expanded),
                         Some(width),
                         (start, end),
                         &mut position,
@@ -2620,12 +2751,11 @@ pub(crate) fn transcript_part_positions(
                     .iter()
                     .take_while(|row| exploration_kind(row).is_some())
                 {
-                    total += styled::wrap_line_limited(
-                        &exploration_member(member, theme),
-                        width as usize,
-                        MAX_MARKDOWN_ROWS,
-                    )
-                    .len();
+                    for line in exploration_member(member, theme, width, expanded) {
+                        total +=
+                            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                                .len();
+                    }
                 }
             }
         } else if let Some(lines) = expandable_tool_entry(

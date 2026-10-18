@@ -100,7 +100,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     }
     if(composerProbe) {
       result.differences=['Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity.'];
-      result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control,resize});
+      result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control,resize,relaunch,slash,visibleMatches});
       result.status='PASS_BEHAVIOR_ONLY';save();return result;
     }
     if(userShellProbe) {

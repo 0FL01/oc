@@ -155,6 +155,8 @@ pub enum InlineRender {
     Glob {
         /// Recorded pattern.
         pattern: String,
+        /// Explicit search root, if supplied in the recorded call.
+        path: String,
         /// Returned match count from the recorded pagination.
         matches: Option<usize>,
     },
@@ -162,6 +164,8 @@ pub enum InlineRender {
     Grep {
         /// Recorded pattern.
         pattern: String,
+        /// Explicit search root, if supplied in the recorded call.
+        path: String,
         /// Returned match count from the recorded pagination.
         matches: Option<usize>,
     },
@@ -237,8 +241,8 @@ impl ToolRender {
             }
             Self::Inline(InlineRender::Read { path }) => path.len(),
             Self::Inline(
-                InlineRender::Glob { pattern, .. } | InlineRender::Grep { pattern, .. },
-            ) => pattern.len(),
+                InlineRender::Glob { pattern, path, .. } | InlineRender::Grep { pattern, path, .. },
+            ) => pattern.len() + path.len(),
             Self::Inline(InlineRender::WebFetch { url }) => url.len(),
             Self::Inline(InlineRender::Skill { id }) => id.len(),
             Self::Inline(InlineRender::Question { .. } | InlineRender::Execute) => 0,
@@ -278,10 +282,12 @@ impl ToolRender {
             }),
             "glob" => ToolRender::Inline(InlineRender::Glob {
                 pattern: string_arg(value.as_ref(), "pattern"),
+                path: string_arg(value.as_ref(), "path"),
                 matches: returned_count(output),
             }),
             "grep" => ToolRender::Inline(InlineRender::Grep {
                 pattern: string_arg(value.as_ref(), "pattern"),
+                path: string_arg(value.as_ref(), "path"),
                 matches: returned_count(output),
             }),
             "webfetch" => ToolRender::Inline(InlineRender::WebFetch {
@@ -1426,6 +1432,16 @@ pub(crate) fn subagent_block_expanded(
 }
 
 fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Line> {
+    inline_rows_expanded(inline, card, theme, 0, false)
+}
+
+fn inline_rows_expanded(
+    inline: &InlineRender,
+    card: &ToolCard,
+    theme: &Theme,
+    width: u16,
+    expanded: bool,
+) -> Vec<Line> {
     if matches!(inline, InlineRender::Execute) {
         return execute::block(card, theme, 0, &|_| false)
             .into_iter()
@@ -1441,22 +1457,26 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     let question = matches!(inline, InlineRender::Question { .. });
     let cancelled_question =
         card.state == "cancelled" && matches!(inline, InlineRender::Question { count: Some(_) });
+    let exploration = matches!(
+        inline,
+        InlineRender::Read { .. } | InlineRender::Glob { .. } | InlineRender::Grep { .. }
+    );
     // Pinned TUI treats a cancelled question as a denied inline row, not a
     // web "Questions dismissed" notice. Use the validated input/state, never
     // words in output; turn cancellation shares this outcome with form dismissal.
-    let failed = is_error_state(&card.state) && !cancelled_question;
+    let denied = exploration && card.state == "denied" || cancelled_question;
+    let failed = is_error_state(&card.state) && !denied;
     let style = if waiting {
         ratatui::style::Style::default().fg(theme.warning())
     } else if failed {
         ratatui::style::Style::default().fg(theme.error())
-    } else if question {
+    } else if question || denied || exploration {
         ratatui::style::Style::default().fg(theme.text_muted())
     } else {
         ratatui::style::Style::default().fg(theme.text())
     };
     let generic = matches!(inline, InlineRender::Generic { .. });
-    // Generic tools use the cited `✓/✗` markers (`index.tsx:2620-2669`); the
-    // named inline tools keep an empty 2-cell icon column once terminal.
+    // Named file tools retain their actual glyph in terminal/error states.
     let icon = if question {
         "→".to_string()
     } else if waiting {
@@ -1469,6 +1489,13 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
         .to_string()
     } else if running {
         SPINNER.to_string()
+    } else if exploration {
+        if matches!(inline, InlineRender::Read { .. }) {
+            "→"
+        } else {
+            "✱"
+        }
+        .to_string()
     } else if generic {
         if failed {
             "✗".to_string()
@@ -1510,7 +1537,7 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
         label
     };
     let mut spans = vec![pad.clone()];
-    if question {
+    if question || exploration {
         // The pinned Question's one-cell arrow lives in a two-cell icon box.
         // Its remaining layout blank does not inherit the glyph's FG/strike.
         spans.push(Span::styled(icon, style));
@@ -1522,22 +1549,34 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     let mut out = vec![Line::new(spans)];
     // Read's Loaded rows require upstream metadata.loaded (:3097–3121).
     // Our recorded operation has no such metadata; a path is not evidence of it.
-    if failed {
+    if failed && (!exploration || expanded || card.state == "unknown") {
         for line in card.output_preview.lines().take(TOOL_OUTPUT_LINES) {
             if line.is_empty() {
                 continue;
             }
-            out.push(Line::new(vec![
-                pad.clone(),
-                Span::styled(
-                    format!("{:<TOOL_ICON_WIDTH$}", ""),
-                    ratatui::style::Style::default().fg(theme.error()),
-                ),
-                Span::styled(
-                    line.to_string(),
-                    ratatui::style::Style::default().fg(theme.error()),
-                ),
-            ]));
+            let body = Line::new(vec![Span::styled(
+                line.to_string(),
+                ratatui::style::Style::default().fg(theme.error()),
+            )]);
+            let lines = if width == 0 {
+                vec![body]
+            } else {
+                styled::wrap_line(
+                    &body,
+                    usize::from(width)
+                        .saturating_sub(crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH)
+                        .max(1),
+                )
+            };
+            for body in lines {
+                out.push(Line::new(
+                    std::iter::once(Span::plain(
+                        " ".repeat(crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH),
+                    ))
+                    .chain(body.spans().iter().cloned())
+                    .collect(),
+                ));
+            }
         }
     }
     if card.state == "unknown" {
@@ -1555,47 +1594,63 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
 /// Expanded exploration groups show the original inline part immediately
 /// below their header, without the standalone card's result summary or gap.
 /// Group eligibility is enforced by the transcript before calling this.
-pub(crate) fn exploration_member(card: &ToolCard, theme: &Theme) -> Line {
+pub(crate) fn exploration_member(
+    card: &ToolCard,
+    theme: &Theme,
+    width: u16,
+    expanded: bool,
+) -> Vec<Line> {
     let ToolRender::Inline(inline) = &card.render else {
         unreachable!("only inline exploration parts are grouped");
     };
-    let running = is_running(&card.state);
-    let style = ratatui::style::Style::default().fg(theme.text());
-    Line::new(vec![
-        Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
-        Span::styled(if running { SPINNER } else { "→" }, style),
-        Span::plain(" "),
-        Span::styled(
-            if running {
-                inline.pending_label().to_string()
-            } else {
-                inline_label(inline)
-            },
-            style,
-        ),
-    ])
+    inline_rows_expanded(inline, card, theme, width, expanded)
+}
+
+pub(crate) fn inline_error_expandable(card: &ToolCard) -> bool {
+    matches!(
+        card.render,
+        ToolRender::Inline(
+            InlineRender::Read { .. } | InlineRender::Glob { .. } | InlineRender::Grep { .. }
+        )
+    ) && matches!(card.state.as_str(), "failed" | "cancelled")
+        && !card.output_preview.is_empty()
 }
 
 /// Terminal label for an inline tool (`index.tsx:3084-3168,3548,2620-2669`).
 fn inline_label(inline: &InlineRender) -> String {
     match inline {
         InlineRender::Read { path } => format!("Read {path}"),
-        // Our glob/grep take no path argument, so the upstream ` in <path>`
-        // clause is omitted instead of being invented.
-        InlineRender::Glob { pattern, matches } => match matches {
-            Some(count) => format!(
-                "Glob \"{pattern}\" ({count} {})",
-                if *count == 1 { "match" } else { "matches" }
-            ),
-            None => format!("Glob \"{pattern}\""),
-        },
-        InlineRender::Grep { pattern, matches } => match matches {
-            Some(count) => format!(
-                "Grep \"{pattern}\" ({count} {})",
-                if *count == 1 { "match" } else { "matches" }
-            ),
-            None => format!("Grep \"{pattern}\""),
-        },
+        InlineRender::Glob {
+            pattern,
+            path,
+            matches,
+        }
+        | InlineRender::Grep {
+            pattern,
+            path,
+            matches,
+        } => {
+            let name = if matches!(inline, InlineRender::Glob { .. }) {
+                "Glob"
+            } else {
+                "Grep"
+            };
+            let path = if path.is_empty() {
+                String::new()
+            } else {
+                format!(" in {path}")
+            };
+            let count = matches
+                .filter(|count| *count > 0)
+                .map(|count| {
+                    format!(
+                        " ({count} {})",
+                        if count == 1 { "match" } else { "matches" }
+                    )
+                })
+                .unwrap_or_default();
+            format!("{name} \"{pattern}\"{path}{count}")
+        }
         InlineRender::WebFetch { url } => format!("WebFetch {url}"),
         InlineRender::Skill { id } => format!("Skill \"{id}\""),
         InlineRender::Question { count: Some(count) } => format!(
@@ -1830,6 +1885,7 @@ mod tests {
 
     fn tool_row(card: &ToolCard) -> HistoryRow {
         HistoryRow {
+            position: None,
             message_id: None,
             seq: i64::MAX,
             role: "tool".to_string(),
@@ -2195,7 +2251,7 @@ mod tests {
                     .collect::<String>()
             })
             .collect::<Vec<_>>();
-        assert_eq!(individual, ["     Read src/main.rs"]);
+        assert_eq!(individual, ["   → Read src/main.rs"]);
 
         let glob = make_card(
             "glob",
@@ -2280,13 +2336,16 @@ mod tests {
             serde_json::json!({"path": "src/main.rs"}),
             Some("error: cancelled"),
         );
-        let (rows, buffer) = render(&cancelled, 60, 3);
-        assert_eq!(rows[1], "     Read src/main.rs");
-        assert_eq!(rows[2], "     error: cancelled");
-        assert_eq!(buffer[(3, 1)].fg, theme.error());
+        let (rows, _) = render(&cancelled, 60, 3);
+        assert_eq!(rows[1], "   → Explored — 1 read");
+        let member = exploration_member(&cancelled, theme, 60, true);
+        assert_eq!(member[0].plain_text(), "   → Read src/main.rs");
+        assert_eq!(member[1].plain_text(), "     error: cancelled");
+        assert_eq!(member[0].spans()[1].style().fg, Some(theme.error()));
         assert!(
-            !buffer[(3, 1)]
-                .modifier
+            !member[0].spans()[1]
+                .style()
+                .add_modifier
                 .contains(ratatui::style::Modifier::CROSSED_OUT)
         );
     }
@@ -2507,6 +2566,7 @@ mod tests {
         assert_eq!(
             InlineRender::Glob {
                 pattern: String::new(),
+                path: String::new(),
                 matches: None
             }
             .pending_label(),
@@ -2515,6 +2575,7 @@ mod tests {
         assert_eq!(
             InlineRender::Grep {
                 pattern: String::new(),
+                path: String::new(),
                 matches: None
             }
             .pending_label(),
@@ -2542,7 +2603,7 @@ mod tests {
             None,
         );
         let (rows, buffer) = render(&card, 60, 2);
-        assert_eq!(rows[1], "     Read src/main.rs");
+        assert_eq!(rows[1], "   → Read src/main.rs");
         assert_eq!(buffer[(3, 1)].fg, theme.error());
         assert!(!is_running("unknown"));
         assert!(is_error_state("unknown"));

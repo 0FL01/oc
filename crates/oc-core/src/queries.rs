@@ -312,6 +312,32 @@ pub struct ModelSwitchNotice {
     pub display_name: Option<String>,
 }
 
+/// Exclusive durable continuation, scoped by the owning history query/session.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HistoryPartCursor {
+    pub message: crate::session::MessageId,
+    pub sequence: usize,
+    pub newer: bool,
+}
+
+/// Read-only transcript window. Unlike aggregate message reads, canonical typed
+/// rows need not duplicate all assistant text alongside their ordered parts.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HistoryReadWindow {
+    pub before_seq: Option<i64>,
+    pub after_seq: Option<i64>,
+    pub part: Option<HistoryPartCursor>,
+}
+
+/// Covered reference interval, including pending identities: [start, end).
+/// Parts outside this window are pageable, not truncated/deleted content.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HistoryPartWindow {
+    pub start: usize,
+    pub end: usize,
+    pub total: usize,
+}
+
 /// Safe turn metadata and ordered bounded parts, projected from durable records.
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HistoryTurn {
@@ -347,7 +373,10 @@ pub struct HistoryTurn {
     pub parts: Vec<TranscriptPart>,
     /// Identity `(id, sequence)`, original order and status for each served part.
     pub part_states: Vec<PartState>,
-    /// Parts outside the bounded projection (not deleted from the archive).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window: Option<HistoryPartWindow>,
+    /// Unprojectable references inside the covered window. Pageable references
+    /// outside that window are not loss and are not counted here.
     pub omitted_parts: usize,
     /// At least one served field is a preview or was omitted.
     pub truncated: bool,
@@ -464,7 +493,8 @@ pub struct PartState {
     pub status: String,
     /// This part is a bounded preview.
     pub truncated: bool,
-    /// Structured tool input exceeded the serving budget; op id remains usable.
+    /// Legacy input exceeds the producer-derived canonical JSON bound; never loss
+    /// because unrelated content spent a shared turn allowance.
     pub input_omitted: bool,
 }
 

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sqlite3
 import threading
+import history_completion_fixture
 
 ROOT_TASK = 'VIS39_ROOT_TASK'
 HANDOFF_TASK = 'VIS39_ROOT_HANDOFF_TASK'
@@ -22,6 +23,8 @@ continuation_release = threading.Event()
 
 
 def configure(spec, home, project, config, cli):
+    if spec.get('history_completion'):
+        return history_completion_fixture.configure(spec, home, project, config, cli)
     config['mcp'] = {'servers': {}}
     config['tool_output'] = {'max_lines': 1000, 'max_bytes': 65536}
     cli['keybinds'] = {'session.child.first': 'ctrl+g'}
@@ -70,6 +73,8 @@ with (root / ('composer-' + origin + '-completed.effects')).open('a') as f:
 
 
 def control(project, action, spec):
+    if spec.get('history_completion'):
+        return history_completion_fixture.control(action)
     global continuation_child
     if spec.get('subagent_cards') and action == 'capture-continuation':
         # Capture an actual relational child ID, never original RAW/tool prose.
@@ -92,6 +97,8 @@ def control(project, action, spec):
 
 
 def snapshot(home, project, spec):
+    if spec.get('history_completion'):
+        return history_completion_fixture.snapshot(home)
     effects = {}
     for name in ('started', 'completed', 'terminal'):
         file = project / ('composer-' + spec['origin'] + '-' + name + '.effects')
@@ -136,6 +143,8 @@ def snapshot(home, project, spec):
 
 
 def respond(handler, body, spec, emit):
+    if spec.get('history_completion'):
+        return history_completion_fixture.respond(handler, body, emit)
     global requests, parent_call_issued, continuation_call_issued
     with lock:
         requests += 1

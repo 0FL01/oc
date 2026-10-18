@@ -830,6 +830,7 @@ pub(crate) mod tests {
             let content = layout::session_regions(root.session, 0).transcript;
             assert_eq!(content.width, root.session.width - 4);
             let rows = [HistoryRow {
+                position: None,
                 seq: 1,
                 message_id: None,
                 role: "tool".into(),
@@ -964,6 +965,7 @@ pub(crate) mod tests {
             let mut card = card.clone();
             card.diff_settings.view = view;
             let rows = [HistoryRow {
+                position: None,
                 seq: 1,
                 message_id: None,
                 role: "tool".into(),
@@ -1031,6 +1033,7 @@ pub(crate) mod tests {
             effects.files[0].path = "漢🙂.txt".into();
             let card = card_from_row(&row(Some(effects.clone()), "completed"));
             let rows = [HistoryRow {
+                position: None,
                 seq: 1,
                 message_id: None,
                 role: "tool".into(),
@@ -1161,6 +1164,7 @@ pub(crate) mod tests {
         assert_eq!(card.files, ["approval.txt"]);
         assert!(card.patch_effects.as_ref().unwrap().files.is_empty());
         let rows = [HistoryRow {
+            position: None,
             seq: 1,
             message_id: None,
             role: "tool".into(),
@@ -1269,6 +1273,7 @@ pub(crate) mod tests {
     fn vis35_full_indexed_replay_and_hover_keep_actual_effects() {
         let card = card_from_row(&row(Some(effects()), "completed"));
         let history = HistoryRow {
+            position: None,
             seq: 1,
             message_id: None,
             role: "tool".into(),

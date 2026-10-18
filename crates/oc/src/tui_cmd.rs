@@ -364,7 +364,7 @@ type ConversationRefresh = tokio::task::JoinHandle<(
 fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh {
     tokio::spawn(async move {
         let page = app
-            .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+            .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
             .await
             .map_err(|e| e.to_string());
         let catalog = app
@@ -1047,7 +1047,7 @@ async fn refresh_approvals_in_views(
                 break;
             }
             let page = app
-                .history_page(current.clone(), None, None, 1)
+                .transcript_page(current.clone(), None, None, 1)
                 .await
                 .map_err(|e| e.to_string())?;
             if current.0 == request.binding.session {
@@ -1088,7 +1088,7 @@ async fn refresh_approvals_in_views(
                 belongs = true;
             }
             let page = app
-                .history_page(current.clone(), None, None, 1)
+                .transcript_page(current.clone(), None, None, 1)
                 .await
                 .map_err(|e| e.to_string())?;
             let Some(parent) = page.parent_id else {
@@ -1844,7 +1844,7 @@ async fn initial_state(
         .await
         .map_err(startup_query)?;
     let page = app
-        .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+        .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
         .await
         .map_err(startup_query)?;
     let mut state = TuiState::new(app.clone(), session);
@@ -2119,7 +2119,7 @@ async fn restore_initial(
 
 async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
     let page = app
-        .history_page(id.clone(), None, None, HISTORY_PAGE_LIMIT)
+        .transcript_page(id.clone(), None, None, HISTORY_PAGE_LIMIT)
         .await?;
     let catalog = app
         .session_selection(id.clone(), false, SelectionAction::Current)
@@ -3372,10 +3372,20 @@ async fn apply_owned_intent(
                 .find(|row| row.seq != i64::MAX)
                 .map(|row| row.seq);
             if let Some(before) = before {
-                let page = app
-                    .history_page(session, Some(before), None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let part = state.history().older_part_cursor();
+                let window = oc_core::queries::HistoryReadWindow {
+                    before_seq: part.is_none().then_some(before),
+                    after_seq: None,
+                    part,
+                };
+                let page = if let Some(selected) = state.linked_child().cloned() {
+                    app.read_child_window(selected.parent.clone(), selected, window)
+                        .await
+                } else {
+                    app.history_window(session, window, HISTORY_PAGE_LIMIT)
+                        .await
+                }
+                .map_err(|e| e.to_string())?;
                 state.prepend_page(&page);
                 refresh_dcp_summaries(app, state).await;
             }
@@ -3390,10 +3400,20 @@ async fn apply_owned_intent(
                 .find(|row| row.seq != i64::MAX)
                 .map(|row| row.seq);
             if let Some(after) = after {
-                let page = app
-                    .history_page(session, None, Some(after), HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let part = state.history().newer_part_cursor();
+                let window = oc_core::queries::HistoryReadWindow {
+                    after_seq: part.is_none().then_some(after),
+                    before_seq: None,
+                    part,
+                };
+                let page = if let Some(selected) = state.linked_child().cloned() {
+                    app.read_child_window(selected.parent.clone(), selected, window)
+                        .await
+                } else {
+                    app.history_window(session, window, HISTORY_PAGE_LIMIT)
+                        .await
+                }
+                .map_err(|e| e.to_string())?;
                 state.append_page(&page);
                 refresh_dcp_summaries(app, state).await;
             }
@@ -3677,7 +3697,7 @@ async fn adopt_picker_open(
                 view.restore_composer_draft(draft.clone());
             }
             let page = app
-                .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
                 .await;
             let catalog = app
                 .session_selection(session.clone(), false, SelectionAction::Current)
@@ -4042,16 +4062,17 @@ async fn handle_worker_event(
             }
             if state.is_busy() {
                 let recent = app
-                    .history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
+                    .transcript_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
                     .await
                     .map_err(|error| error.to_string())?;
                 state.refresh_child_notice_page(&recent);
                 state.refresh_child_notice_page(&exact);
             } else {
                 let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child(selected.parent.clone(), selected).await
+                    app.read_child_transcript(selected.parent.clone(), selected)
+                        .await
                 } else {
-                    app.history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
+                    app.transcript_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
                         .await
                 }
                 .map_err(|error| error.to_string())?;
@@ -4077,7 +4098,7 @@ async fn handle_worker_event(
                         state.refresh_user_shell_page(&page);
                     } else {
                         let page = app
-                            .history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                            .transcript_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
                             .await
                             .map_err(|error| error.to_string())?;
                         state.refresh_completed_page(&page);
@@ -4107,7 +4128,7 @@ async fn handle_worker_event(
                 }
                 if state.is_busy() {
                     let recent = app
-                        .history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                        .transcript_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
                         .await
                         .map_err(|error| error.to_string())?;
                     state.refresh_child_notice_page(&recent);
@@ -4115,9 +4136,10 @@ async fn handle_worker_event(
                     return Ok(());
                 }
                 let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child(selected.parent.clone(), selected).await
+                    app.read_child_transcript(selected.parent.clone(), selected)
+                        .await
                 } else {
-                    app.history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                    app.transcript_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
                         .await
                 }
                 .map_err(|error| error.to_string())?;
@@ -4147,7 +4169,7 @@ async fn handle_worker_event(
             {
                 if app.shares_workspace() && state.active_turn() != Some(&turn) {
                     let page = app
-                        .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                        .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
                         .await;
                     match page {
                         Ok(page) => state.refresh_completed_page(&page),
@@ -4271,9 +4293,10 @@ async fn handle_worker_event(
             state.apply_finished(&turn, &text, duration_ms);
             if current {
                 let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child(selected.parent.clone(), selected).await
+                    app.read_child_transcript(selected.parent.clone(), selected)
+                        .await
                 } else {
-                    app.history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                    app.transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
                         .await
                 };
                 let page = match page {

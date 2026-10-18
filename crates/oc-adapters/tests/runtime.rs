@@ -943,11 +943,8 @@ async fn check_application_patch_replay(line: &str, count: usize) {
                 _ => None,
             })
             .unwrap();
-        assert!(
-            tool.input.is_none(),
-            "large structured input is omitted after reserving canonical effects"
-        );
-        assert!(replay.part_states.iter().any(|state| state.input_omitted));
+        assert_eq!(tool.input.as_deref(), Some(started_input.as_str()));
+        assert!(!replay.part_states.iter().any(|state| state.input_omitted));
     }
     let served: usize = replay
         .parts
@@ -965,10 +962,12 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | oc_core::queries::TranscriptPart::Reasoning { text, .. } => text.len(),
         })
         .sum();
-    assert!(
-        served <= oc_core::patch::EFFECT_PREVIEW_BYTES_CAP,
-        "joint serving bytes {served}"
-    );
+    if count == 120 {
+        assert!(
+            served > oc_core::patch::EFFECT_PREVIEW_BYTES_CAP,
+            "independent admitted input and canonical effects survive together: {served}"
+        );
+    }
     assert_eq!(started_name, "apply_patch");
     assert_eq!(finished_name, "apply_patch");
     assert_eq!(

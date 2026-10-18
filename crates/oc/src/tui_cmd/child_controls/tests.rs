@@ -231,6 +231,7 @@ async fn stale_running_child_capture_outside_inventory_reads_current_original_ow
         let Some(InboxMsg::ReadChild {
             session,
             selected: requested,
+            window,
             ack,
         }) = inbox.recv().await
         else {
@@ -238,6 +239,7 @@ async fn stale_running_child_capture_outside_inventory_reads_current_original_ow
         };
         assert_eq!(session, selected.parent);
         assert_eq!(requested, selected);
+        assert_eq!(window, Some(Default::default()));
         ack.send(Ok(HistoryPage {
             parent_id: Some(selected.parent.0.clone()),
             child_job: Some(Box::new(frozen)),
@@ -340,6 +342,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
         let Some(InboxMsg::ReadChild {
             session,
             selected,
+            window,
             ack,
         }) = inbox.recv().await
         else {
@@ -347,7 +350,34 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
         };
         assert_eq!(session, expected.parent);
         assert_eq!(selected, expected);
-        ack.send(Ok(HistoryPage::default())).unwrap();
+        assert_eq!(window, Some(Default::default()));
+        ack.send(Ok(HistoryPage {
+            rows: vec![oc_core::queries::HistoryMessage {
+                id: oc_core::session::MessageId("child-answer".into()),
+                seq: 42,
+                role: oc_core::session::Role::Assistant,
+                text: "aggregate must not be replayed".into(),
+                images: Vec::new(),
+                model_switch: None,
+                user_shell: None,
+                child: None,
+                shell_notice: None,
+                turn: Some(oc_core::queries::HistoryTurn {
+                    parts: vec![oc_core::queries::TranscriptPart::Text(
+                        "actual completed child".into(),
+                    )],
+                    window: Some(oc_core::queries::HistoryPartWindow {
+                        start: 0,
+                        end: 1,
+                        total: 1,
+                    }),
+                    ..Default::default()
+                }),
+            }],
+            total: 1,
+            ..Default::default()
+        }))
+        .unwrap();
         let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
             panic!("terminal child status while composer stays closed")
         };
@@ -449,6 +479,17 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
     .await
     .unwrap();
     worker.await.unwrap();
+    let child_rows = deck.child_views.get(&job.child).unwrap().transcript_rows();
+    assert!(
+        child_rows
+            .iter()
+            .any(|row| row.text == "actual completed child")
+    );
+    assert!(
+        !child_rows
+            .iter()
+            .any(|row| row.text.contains("aggregate must not be replayed"))
+    );
     let rows = state.transcript_rows();
     assert_eq!(rows.len(), 2, "no extra model parts during child refresh");
     assert_eq!(rows[0].text, "one actual text part");
@@ -619,6 +660,7 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
         let Some(InboxMsg::ReadChild {
             session,
             selected,
+            window,
             ack,
         }) = inbox.recv().await
         else {
@@ -628,6 +670,7 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
         };
         assert_eq!(session, exact.parent);
         assert_eq!(selected, exact);
+        assert_eq!(window, Some(Default::default()));
         ack.send(Ok(HistoryPage::default())).unwrap();
         assert!(inbox.try_recv().is_err());
     });

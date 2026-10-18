@@ -40,6 +40,7 @@ fn retained_cache_index_counter_tracks_replacement_and_eviction() {
 
 fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
     HistoryRow {
+        position: None,
         message_id: None,
         seq: 1,
         role: "user".to_string(),
@@ -145,6 +146,7 @@ fn vis10_indexed_user_targets_track_wrapped_pages_and_exclude_margins() {
 
 fn assistant(text: &str) -> HistoryRow {
     HistoryRow {
+        position: None,
         message_id: None,
         seq: 2,
         role: "assistant".to_string(),
@@ -381,14 +383,14 @@ fn adjacent_reasoning_group_matches_full_indexed_and_click_bounds() {
 }
 
 #[test]
-fn expanded_adjacent_reasoning_caps_each_body_without_losing_the_following_text() {
+fn expanded_adjacent_reasoning_has_bounded_snapshots_and_pageable_complete_bodies() {
     let theme = Theme::dark();
     let cache = RefCell::new(MarkdownCache::default());
     let make = |seq, marker: &str| {
         let mut row = assistant("");
         row.seq = seq;
         row.reasoning = Some(ReasoningBlock {
-            text: format!("{marker}\n{}", "word ".repeat(5000)),
+            text: format!("{marker}\n{}\n{marker} END", "word ".repeat(5000)),
             duration_ms: None,
             running: false,
             expanded: true,
@@ -431,10 +433,75 @@ fn expanded_adjacent_reasoning_caps_each_body_without_losing_the_following_text(
         &cache,
         &|_| false,
     );
-    assert_eq!(total, full.len() + 1);
+    assert!(
+        total > full.len() + 1,
+        "interactive history includes the full bodies"
+    );
     assert!(
         tail.iter()
             .any(|line| line.plain_text().contains("answer sentinel"))
+    );
+    for marker in ["first sentinel END", "second sentinel END"] {
+        let mut seen = false;
+        for top in (0..total).step_by(30) {
+            let (page, same_total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (40, 40),
+                (30, total.saturating_sub(top + 30), None),
+                |_| Color::Reset,
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(same_total, total);
+            assert!(
+                !page
+                    .iter()
+                    .any(|line| line.plain_text().contains("preview limited"))
+            );
+            seen |= page.iter().any(|line| line.plain_text().contains(marker));
+        }
+        assert!(seen, "canonical reasoning tail is reachable: {marker}");
+    }
+    assert!(cache.borrow().retained_bytes() <= MAX_CACHED_BYTES + MAX_INDEX_BYTES);
+}
+
+#[test]
+fn a_single_reasoning_body_scrolls_past_the_row_preview_boundary() {
+    let theme = Theme::dark();
+    let cache = RefCell::new(MarkdownCache::default());
+    let mut row = assistant("");
+    row.reasoning = Some(ReasoningBlock {
+        text: format!("{}\nROW_TAIL_617", "public\n".repeat(700)),
+        duration_ms: Some(1),
+        running: false,
+        expanded: true,
+        toggleable: false,
+        identity: Some(ReasoningIdentity::Durable(1, 0)),
+    });
+    let rows = [row, assistant("FINAL_AFTER_PUBLIC_BODY")];
+    let (tail, total) = visible_transcript_expanded(
+        &rows,
+        theme,
+        (80, 80),
+        (12, 0, None),
+        |_| Color::Reset,
+        &cache,
+        &|_| false,
+    );
+    assert!(total > 700);
+    assert!(
+        tail.iter()
+            .any(|line| line.plain_text().contains("ROW_TAIL_617"))
+    );
+    assert!(
+        tail.iter()
+            .any(|line| line.plain_text().contains("FINAL_AFTER_PUBLIC_BODY"))
+    );
+    assert!(
+        !tail
+            .iter()
+            .any(|line| line.plain_text().contains("preview limited"))
     );
     assert!(cache.borrow().retained_bytes() <= MAX_CACHED_BYTES + MAX_INDEX_BYTES);
 }
@@ -972,6 +1039,7 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
         dcp_topic: None,
     });
     HistoryRow {
+        position: None,
         message_id: None,
         seq: 3,
         role: "tool".to_string(),
@@ -1040,7 +1108,7 @@ fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
 #[test]
 fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
     let theme = Theme::dark();
-    let rows = [
+    let mut rows = [
         exploration_tool("read", "completed", false),
         exploration_tool("glob", "completed", false),
         exploration_tool("grep", "completed", false),
@@ -1048,6 +1116,8 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
         exploration_tool("read", "failed", false),
         exploration_tool("read", "completed", true),
     ];
+    rows[4].tool.as_mut().unwrap().op = "failed-read".into();
+    rows[5].tool.as_mut().unwrap().op = "limited-read".into();
     let cache = RefCell::new(MarkdownCache::default());
     for width in [16, 80] {
         let full = transcript_with_expansion(
@@ -1090,7 +1160,7 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
             assert_eq!(
                 text.matches("→ Read fixture-note.txt").count(),
                 1,
-                "expanded group shows its read once; later failed/truncated rows stay separate"
+                "expanded group shows its read once; the later terminal group is collapsed"
             );
             assert!(!text.contains("[output preview truncated; full result retained]"));
             assert!(
@@ -1102,7 +1172,7 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
 }
 
 #[test]
-fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
+fn exploration_keeps_unknown_explicit_and_groups_real_terminal_results() {
     let rows = [
         exploration_tool("read", "completed", false),
         exploration_tool("read", "unknown", false),
@@ -1116,9 +1186,10 @@ fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
     assert!(text.contains("[outcome unknown]"));
     assert_eq!(
         text.matches("fixture result").count(),
-        3,
-        "failed, denied and unknown detail rows"
+        1,
+        "unknown stays explicit; actual failed details are available on expansion"
     );
+    assert!(text.contains("Explored — 3 reads"));
     assert!(text.contains("fixture result"));
     assert!(!text.contains("[output preview truncated; full result retained]"));
     assert!(
@@ -1129,6 +1200,114 @@ fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
             .unwrap()
             .preview_limited()
     );
+}
+
+#[test]
+fn failed_exploration_preserves_styles_error_click_and_indexed_geometry() {
+    let theme = Theme::dark();
+    let mut failed = exploration_tool("read", "failed", false);
+    failed.tool.as_mut().unwrap().op = "actual-failure".into();
+    let rows = [
+        failed,
+        exploration_tool("grep", "completed", true),
+        assistant("answer"),
+    ];
+    for width in [16, 80] {
+        let cache = RefCell::new(MarkdownCache::default());
+        for error_open in [false, true] {
+            let expanded = |target: ToolExpansion<'_>| {
+                target == ToolExpansion::Operation("actual-failure")
+                    || error_open && target == ToolExpansion::InlineError("actual-failure")
+            };
+            let full = transcript_with_expansion(
+                &rows,
+                theme,
+                width,
+                width,
+                |_| theme.text(),
+                Some(&cache),
+                &expanded,
+            );
+            let wrapped = styled::wrap_lines(&full, usize::from(width));
+            let (visible, total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (width, width),
+                (100, 0, None),
+                |_| theme.text(),
+                &cache,
+                &expanded,
+            );
+            assert_eq!(
+                visible,
+                std::iter::once(Line::plain(""))
+                    .chain(wrapped)
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(total, visible.len());
+            let mut positions = Vec::new();
+            assert_eq!(
+                transcript_part_positions(
+                    &rows,
+                    theme,
+                    (width, width, None),
+                    &|_| theme.text(),
+                    &cache,
+                    &expanded,
+                    |index, start, end| positions.push((index, start, end))
+                ),
+                total
+            );
+            let text = visible
+                .iter()
+                .map(Line::plain_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert_eq!(text.contains("result"), error_open);
+            if width == 80 && error_open {
+                assert!(text.contains("fixture result"));
+            }
+            let header = visible
+                .iter()
+                .position(|line| line.plain_text().contains("→ Read"))
+                .unwrap();
+            let (target, _, hover) = captured_child_at_with_range(
+                &rows,
+                theme,
+                (width, width),
+                (100, 0, None),
+                |_| theme.text(),
+                &cache,
+                (&expanded, (MESSAGE_PADDING + 2, header)),
+            )
+            .unwrap();
+            assert_eq!(
+                target,
+                CapturedChildTarget::InlineError("actual-failure".into())
+            );
+            assert!(!hover, "real failed rows do not acquire a hover color");
+            if width == 80 {
+                assert_eq!(visible[header].plain_text(), "   → Read fixture-note.txt");
+                assert_eq!(
+                    visible[header + usize::from(error_open) + 1].plain_text(),
+                    "   ✱ Grep \"*.rs\""
+                );
+                let mut buffer =
+                    Buffer::empty(ratatui::layout::Rect::new(0, 0, width, total as u16));
+                for (y, line) in visible.iter().enumerate() {
+                    buffer.set_line(0, y as u16, &line.clone().into_ratatui(), width);
+                }
+                assert_eq!(
+                    buffer[(MESSAGE_PADDING as u16, header as u16)].fg,
+                    theme.error()
+                );
+                assert_eq!(
+                    buffer[(MESSAGE_PADDING as u16 + 1, header as u16)].fg,
+                    Color::Reset
+                );
+            }
+        }
+    }
 }
 
 #[test]
