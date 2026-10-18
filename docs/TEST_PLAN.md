@@ -58,17 +58,19 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
-## Shared native runtime — T68/SRV01–SRV05 (approved 2026-10-18; pending)
+## Shared native runtime — T68/SRV01–SRV05 (qualified 2026-10-18)
 
 Contract: [T68](goals/2026-10-17-shared-tui-runtime.md). One task owner, no HOT03 revival.
 SRV01 single authority/startup, SRV02 mirrored workspace/normal-quit handoff, SRV03
 global A/B/C lifetime plus finite CLI leases, SRV04 session concurrency/scoped controls,
-SRV05 private peer boundary and preserved bounded contracts. Specifications are not PASS.
+SRV05 private peer boundary and preserved bounded contracts. Current qualification:
+[T68 report](../evidence/T68/report.md), full offline 2085/2085 PASS with 12 existing
+opt-in skips, rebuilt release actual-ELF 12/12 PASS. Specifications alone are not PASS.
 Use existing owner modules/Cargo targets; same-directory provider barrier, paired PTY
 mirror and three-Location actual-binary lifecycle are distinct evidence surfaces.
 Preserve archive-memory workload/limits while measuring owner+client+owned processes;
-no guessed128/8 load gate, new retry ledger or paid campaign. Default cutover waits for
-all affected consumers; startup.py second ordinary client becomes attach, low-level
+no guessed128/8 load gate, new retry ledger or paid campaign. All affected consumers
+now share the authority; startup.py second ordinary client attaches, low-level
 STORE02 second storage-owner refusal remains. Targeted checks then full offline gate;
 no requirement to close whole T44/T61 or repeat unrelated visual/live campaigns.
 

@@ -1117,8 +1117,8 @@ security/permissions, RAW/HOT, DCP, finite retries, no unknown replay и cleanup
 не ослабляются. T61 R3/HOT03 не возвращаются автоматически, D27/D28 не меняются;
 HTTP/remote parity, privileged broker и вечный daemon не входят в эту цель.
 
-Контракт **active/frozen**, R1–R5 pending. T44 временно приостановлена для T68 без
-completion; T61 остаётся paused. Удалены обязательные новые retry receipts/index/
-tombstones и произвольный load128/8; ambiguous mutations автоматически не пересылаются.
-Activation нового owner только после цельного cutover TUI/headless/auth/sessions.
-Implementation NOT_STARTED на момент фиксации плана; runtime gates NOT_RUN.
+Контракт **complete**, R1–R5 verified: [T68 qualification](evidence/T68/report.md).
+Цельный cutover TUI/headless/auth/sessions подтверждён полным offline gate и rebuilt
+debug/release actual-binary E2E. T44 временно приостановлена без completion; T61 paused.
+Новых retry receipts/index/tombstones, schema migrations и произвольного load128/8 нет;
+ambiguous mutations автоматически не пересылаются. Это завершение T68, не whole READY.

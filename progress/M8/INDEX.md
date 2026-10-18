@@ -24,4 +24,4 @@ Plan: ../../roadmap/M8.md
 - [T65](T65/INDEX.md) [done] — Native V2 provider/cache/transport and ordered permission semantics; latest: 0003.md.
 - [T66](T66/INDEX.md) [done] — Strict OpenCode 2 key allowlist replaces the OpenCode 1 detector; latest: 0001.md.
 - [T67](T67/INDEX.md) [done] — Owner live dev launcher oc2-dev; latest: 0001.md.
-- [T68](T68/INDEX.md) [active] — Portless shared runtime, mirrored TUI and global client lifetime; latest: нет.
+- [T68](T68/INDEX.md) [done] — Portless shared runtime, mirrored TUI and global client lifetime; latest: 0001.md.

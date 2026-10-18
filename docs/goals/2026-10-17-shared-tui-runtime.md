@@ -1,6 +1,6 @@
 # Goal: общий portless runtime и зеркальные TUI проекта
 
-Status: active
+Status: complete
 Source: RECON и уточнения владельца 2026-10-17; аудит, поручение реализации/commit/push и утверждение границ 2026-10-18.
 Last updated: 2026-10-18
 Base: `fed671c6960c1c50b9b05471f646177bfcbad35d`, исходный worktree clean.
@@ -374,13 +374,10 @@ socket не обещает отсутствия иных явно нужных l
 
 ## Current Checkpoint
 
-- Closes: required reviewed delivery и factual closeout R1–R5, не whole T44/T61.
-- Smallest next action: source commit/push проверенного diff, затем factual
-  `evidence/T68/report.md`, T68-only journal closeout и closeout commit/push.
-- Expected evidence: source SHA и remote ACK, report/current goal/progress без pending
-  implementation claims; все runtime gates уже зелёные, нового audit/scope нет.
-- Stop or replan if: решение противоречит зеркальному workspace, Esc/Interrupted на
-  последнем TUI, единственному resource owner или существующим security/durability guards.
+- Closed: R1–R5, только T68; [factual qualification report](../../evidence/T68/report.md).
+- Source: `4af8c3ad646d283c5d7c79f269594931b4bb685c`, ordinary push в verified origin/master ACK.
+- Primary evidence: full offline/debug и rebuilt release actual-ELF PASS, numeric
+  resource receipts и RECON в report. Дальнейших implementation/audit действий нет.
 
 ## Current State
 
@@ -449,8 +446,8 @@ socket не обещает отсутствия иных явно нужных l
   подтвердил весь affected `mcp_stdio`: 21/21 PASS, 1 прежний opt-in skip, 1.953s.
   Production teardown/security, assertions и deadlines не менялись. Следующий full
   gate использует новый log path; предыдущий RED не объявлен qualification.
-- Next: reviewed source commit/push → factual
-  T68 closeout. T44 temporarily paused/incomplete, T61 paused; historical evidence неизменны.
+- Next: нет новой implementation работы. T44 temporarily paused/incomplete, T61 paused;
+  historical evidence неизменны. Closeout фиксирует только T68.
 - Full gate `9179f01a-6711-4888-bb25-e35c0453a865`: 2085/2085 PASS, 12 прежних opt-in
   skips, 381.170s test phase, 430s wall; fmt, strict all-target Clippy, doctests и
   locked debug build/help/version PASS. Numeric owner/client/descendant receipts captured.
@@ -470,5 +467,11 @@ socket не обещает отсутствия иных явно нужных l
 ## Completion
 
 - R1–R5 verified; debug full offline и rebuilt release qualification PASS.
-- Required commit/push и factual report/journal delivery pending; ещё не task DONE.
-- Сохранение/commit плана не завершает эту продуктовую цель и не меняет readiness.
+- Source implementation `4af8c3ad646d283c5d7c79f269594931b4bb685c` committed/pushed;
+  factual report: [evidence/T68/report.md](../../evidence/T68/report.md), T68-only journal closeout.
+- Commands: full `scripts/test.sh` 2085 PASS/12 existing opt-in skips; rebuilt release
+  12/12 PASS; ordinary/locked debug builds и debug/release help/version PASS.
+- Constraint/diff check: один retained Db/flock, FULL durability, UID/private UDS,
+  bounded resources/captured requests/no unknown replay сохранены; нет schema/migration,
+  user data/config/env edits, paid campaign, нового retry ledger или remote API.
+- Final status: complete. T44/T61 не завершены и не resumed; whole READY не заявлен.
