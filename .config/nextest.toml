@@ -19,7 +19,9 @@ archives = { max-threads = 1 }
 # These transport/drain deadlines and CPU/input/I/O measurements need the
 # otherwise idle host used by the original serial gate. Preserve their bounds
 # and event rates; do not measure contention from unrelated test processes.
-filter = 'test(=discovery::tests::reqwest_http_error_status_precedes_oversized_or_slow_body) | test(=shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal) | test(=shell::jobs::output_tests::tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot_state) | (binary(=pty_t39) & (test(=lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints) | test(=lifecycle::vis31_high_rate_input_during_provider_burst))) | (binary(=soak) & test(=soak_two_epochs_bounded_growth))'
+# The 19-fixture WAL/FULL recovery matrix is likewise fsync-bound (1361 calls);
+# retain the complete matrix without measuring neighboring durable-write load.
+filter = 'test(=discovery::tests::reqwest_http_error_status_precedes_oversized_or_slow_body) | test(=shell::jobs::tests::tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal) | test(=shell::jobs::output_tests::tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot_state) | test(=storage::children::tests::typed_effect_uncertainty_and_unanswered_calls_never_claim) | (binary(=pty_t39) & (test(=lifecycle::vis31_demand_driven_idle_and_high_rate_input_paints) | test(=lifecycle::vis31_high_rate_input_during_provider_burst))) | (binary(=soak) & test(=soak_two_epochs_bounded_growth))'
 threads-required = 'num-test-threads'
 priority = 100
 

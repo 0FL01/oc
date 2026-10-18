@@ -936,6 +936,75 @@ async fn spawn_returns_child_text_and_persists_fresh_child_row() {
         serde_json::json!(["agent", "description", "prompt"])
     );
     assert_eq!(definition["parameters"]["additionalProperties"], false);
+    assert_eq!(definition["strict"], false);
+}
+
+#[tokio::test]
+async fn empty_optional_placeholders_spawn_with_parent_model_and_preserve_original_arguments() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(1, vec![agent("explore", false, None)])))
+        .unwrap();
+    runtime.create_session("parent").unwrap();
+    let arguments = serde_json::json!({
+        "agent":"explore", "description":"Empty optional placeholders", "prompt":"OWN_CHILD_TASK",
+        "background":false, "context_message_ids":[], "model":"", "sessionID":""
+    });
+    let original = arguments.to_string();
+    let (base, requests) = Fake::start(vec![
+        subagent_call("empty-optionals", arguments) + &sse_completed(),
+        sse_delta("own child answer") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "PARENT_PRIVATE_TRANSCRIPT",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls.len(), 1);
+    assert_eq!(report.calls[0].state, "completed", "{:?}", report.calls);
+    assert_eq!(report.text, "parent final");
+    let children = harness.db.children_of("parent").unwrap();
+    assert_eq!(children.len(), 1);
+    let child = &children[0];
+    assert!(!child.is_empty());
+    assert_eq!(
+        harness.db.session_meta(child).unwrap().model.as_deref(),
+        Some("test/m")
+    );
+    assert_eq!(messages(&harness.db, child).len(), 2);
+    let captured = child_requests(&requests);
+    assert_eq!(captured.len(), 3);
+    assert_eq!(captured[1]["model"], "m");
+    assert!(
+        !captured[1]
+            .to_string()
+            .contains("PARENT_PRIVATE_TRANSCRIPT")
+    );
+    assert!(
+        function_output(&captured[2], "empty-optionals")
+            .unwrap()
+            .starts_with(&format!(
+                "<subagent sessionID=\"{child}\" state=\"completed\">"
+            ))
+    );
+    let replayed = captured[2]["input"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["type"] == "function_call" && item["call_id"] == "empty-optionals")
+        .unwrap();
+    assert_eq!(replayed["arguments"], original);
+    let operations = harness.db.list_tool_ops("parent").unwrap();
+    assert_eq!(operations.len(), 1);
+    assert_eq!(operations[0].input.as_deref(), Some(original.as_str()));
 }
 
 #[tokio::test]

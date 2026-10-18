@@ -299,6 +299,16 @@ async fn auth04_runtime_channels_settle_read_followup_fork_and_partition_opaque_
                 .iter()
                 .any(|tool| tool["name"] == "read")
         );
+        for frame in &frames {
+            let functions: Vec<_> = frame["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|tool| tool["type"] == "function")
+                .collect();
+            assert!(!functions.is_empty());
+            assert!(functions.iter().all(|tool| tool["strict"] == false));
+        }
         assert!(frames[1].to_string().contains("SETTLED_NOTE"));
         assert!(!frames[1].to_string().contains("COMPLETION_ROTATED_CANARY"));
         let raw = f.db.turn_result(&report.turn_id).unwrap().1.unwrap();

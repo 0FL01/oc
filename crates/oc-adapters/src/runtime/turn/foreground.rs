@@ -150,7 +150,14 @@ impl Runtime<'_> {
         let mut previous: BTreeMap<String, Shared<BoxFuture<'_, String>>> = BTreeMap::new();
         let mut work = Vec::new();
         for (call, _, permitted, refusal) in &admitted {
-            let key = call.arguments["sessionID"].as_str().map(str::to_owned);
+            // Refused leaves must not join or replace an admitted predecessor.
+            let key = if refusal.is_none() {
+                crate::tools::subagent_request(call)
+                    .ok()
+                    .and_then(|request| request.session_id)
+            } else {
+                None
+            };
             let predecessor = key.as_ref().and_then(|key| previous.get(key)).cloned();
             let continuation = key.clone();
             let future = async move {

@@ -302,10 +302,10 @@ async fn distinct_children_overlap_reverse_completion_preserves_order_and_one_du
             if outputs(&request).is_empty() {
                 subagent_call(
                     "original-a",
-                    serde_json::json!({"agent":"custom","description":"A","prompt":"TASK_A"}),
+                    serde_json::json!({"agent":"custom","description":"A","prompt":"TASK_A","model":"","sessionID":""}),
                 ) + &subagent_call(
                     "original-b",
-                    serde_json::json!({"agent":"custom","description":"B","prompt":"TASK_B"}),
+                    serde_json::json!({"agent":"custom","description":"B","prompt":"TASK_B","model":"","sessionID":""}),
                 ) + &sse_completed()
             } else {
                 tx.send(("parent-followup".into(), request)).unwrap();
@@ -436,10 +436,10 @@ async fn duplicate_continuations_serialize_without_losing_child_history_or_model
             if outputs(&request).is_empty() {
                 subagent_call(
                     "cont-a",
-                    serde_json::json!({"agent":"helper","description":"A","prompt":"FIRST_CONT","sessionID":"existing"}),
+                    serde_json::json!({"agent":"helper","description":"A","prompt":"FIRST_CONT","sessionID":"existing","model":""}),
                 ) + &subagent_call(
                     "cont-b",
-                    serde_json::json!({"agent":"helper","description":"B","prompt":"SECOND_CONT","sessionID":"existing"}),
+                    serde_json::json!({"agent":"helper","description":"B","prompt":"SECOND_CONT","sessionID":"existing","model":""}),
                 ) + &sse_completed()
             } else {
                 sse_delta("parent") + &sse_completed()

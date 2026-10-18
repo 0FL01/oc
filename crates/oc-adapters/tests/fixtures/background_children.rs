@@ -654,6 +654,123 @@ async fn core_jobs_busy_continuation_selected_fences_and_source_survive_location
 }
 
 #[tokio::test]
+async fn refused_foreign_continuations_do_not_join_or_cancel_another_parents_child() {
+    use oc_core::{domain::SessionId, queries::ChildState};
+    let child_gate = Arc::new(Gate::default());
+    let foreign_gate = Arc::new(Gate::default());
+    let held_child = child_gate.clone();
+    let held_foreign = foreign_gate.clone();
+    let selected = Arc::new(Mutex::new(String::new()));
+    let target = selected.clone();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let peer = Peer::start(move |request| {
+        if request["model"] == "agent-model" {
+            tx.send(("owned-child".into(), request)).unwrap();
+            held_child.wait();
+            sse_delta("CHILD_UNTOUCHED") + &sse_completed()
+        } else if request["input"].to_string().contains("FOREIGN_ATTEMPT") {
+            if outputs(&request).is_empty() {
+                let child = target.lock().unwrap().clone();
+                ["foreign-one", "foreign-two"]
+                    .into_iter()
+                    .map(|id| {
+                        subagent_call(
+                            id,
+                            serde_json::json!({"agent":"helper","description":"Refused continuation","prompt":"FOREIGN_CHILD_TASK","sessionID":child}),
+                        )
+                    })
+                    .collect::<String>()
+                    + &sse_completed()
+            } else {
+                tx.send(("refused-followup".into(), request)).unwrap();
+                held_foreign.wait();
+                sse_delta("cancelled foreign parent") + &sse_completed()
+            }
+        } else if outputs(&request).is_empty() {
+            subagent_call(
+                "owned-launch",
+                serde_json::json!({"agent":"helper","description":"Owned work","prompt":"OWN_CHILD_TASK","background":true}),
+            ) + &sse_completed()
+        } else {
+            sse_delta("own parent finished") + &sse_completed()
+        }
+    });
+    let (_root, app, guard) = app_fixture(
+        &peer,
+        serde_json::json!([{"action":"subagent","resource":"*","effect":"allow"}]),
+    )
+    .await;
+    let parent = SessionId("parent".into());
+    let foreign = SessionId("foreign-parent".into());
+    app.create_session(foreign.clone()).await.unwrap();
+    let mut events = app.subscribe();
+    let own_turn = app
+        .submit(parent.clone(), "OWN_PARENT".into())
+        .await
+        .unwrap();
+    parent_finished(&mut events, &own_turn).await;
+    assert_eq!(received(&mut rx).await.0, "owned-child");
+    let jobs = jobs_when(&app, |jobs| {
+        jobs.len() == 1 && jobs[0].state == ChildState::Running
+    })
+    .await;
+    *selected.lock().unwrap() = jobs[0].child.0.clone();
+    let attempt = app
+        .submit(foreign.clone(), "FOREIGN_ATTEMPT".into())
+        .await
+        .unwrap();
+    // Capture failure before releasing either peer, but still clean up the red
+    // reproduction: cancelling the foreign parent must not cancel this child.
+    let refused = tokio::time::timeout(Duration::from_secs(3), rx.recv())
+        .await
+        .ok()
+        .flatten();
+    app.cancel_turn(foreign.clone(), attempt.clone())
+        .await
+        .unwrap();
+    foreign_gate.release();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let event = events.recv().await.unwrap();
+            if matches!(event,
+                CoreEvent::TurnInterrupted { turn, .. }
+                | CoreEvent::TurnFinished { turn, .. }
+                | CoreEvent::TurnFailed { turn, .. } if turn == attempt
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    let after_cancel = app.child_jobs(parent).await.unwrap();
+    child_gate.release();
+    let terminal = jobs_when(&app, |jobs| jobs.len() == 1 && jobs[0].message_id.is_some()).await;
+    let foreign_jobs = app.child_jobs(foreign.clone()).await.unwrap();
+    let operations = app.tool_ops_page(foreign, None, 10).await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let (kind, request) = refused.expect("refused calls must return while the owned child is held");
+    assert_eq!(kind, "refused-followup");
+    let results = outputs(&request);
+    assert_eq!(results.len(), 2);
+    assert!(
+        results
+            .iter()
+            .all(|(_, output)| { output.contains("is not a child of the current session") })
+    );
+    assert!(foreign_jobs.is_empty());
+    assert_eq!(operations.total, 2);
+    assert!(operations.rows.iter().all(|row| row.state == "failed"));
+    assert_eq!(after_cancel.len(), 1);
+    assert_eq!(after_cancel[0].state, ChildState::Running);
+    assert_eq!(terminal[0].child, jobs[0].child);
+    assert_eq!(terminal[0].state, ChildState::Completed);
+    assert_eq!(terminal[0].result.as_deref(), Some("CHILD_UNTOUCHED"));
+}
+
+#[tokio::test]
 async fn background_child_posts_effects_and_completes_before_parent_response() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation);
@@ -673,7 +790,7 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
             if outputs(&request).is_empty() {
                 subagent_call(
                     "bg-launch",
-                    serde_json::json!({"agent":"helper","description":"Independent work","prompt":"BACKGROUND_TASK","background":true}),
+                    serde_json::json!({"agent":"helper","description":"Independent work","prompt":"BACKGROUND_TASK","background":true,"model":"","sessionID":""}),
                 ) + &sse_completed()
             } else if outputs(&request).len() == 1 {
                 tx.send(("parent-active".into(), request)).unwrap();
@@ -717,6 +834,7 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
             .unwrap();
         assert!(!first.1.to_string().contains("PARENT_PRIVATE"));
         assert!(first.1.to_string().contains("BACKGROUND_OWN_SYSTEM"));
+        assert_eq!(first.1["model"], "agent-model");
         let active = arrivals
             .iter()
             .find(|(kind, _)| kind == "parent-active")

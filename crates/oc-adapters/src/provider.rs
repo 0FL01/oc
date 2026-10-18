@@ -805,6 +805,7 @@ pub fn request_body(
             "name": t.name,
             "description": t.description,
             "parameters": t.parameters,
+            "strict": false,
         })).collect::<Vec<_>>(),
         "prompt_cache_key": prompt_cache_key(prompt, tools),
     });
@@ -1872,6 +1873,7 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         "tools": tools.iter().map(|tool| serde_json::json!({
             "type": "function", "name": tool.name,
             "description": tool.description, "parameters": tool.parameters,
+            "strict": false,
         })).collect::<Vec<_>>(),
     });
     if let Some(effort) = variant.and_then(|v| v.reasoning_effort.as_deref()) {
@@ -3412,6 +3414,7 @@ mod tests {
         assert_eq!(body["store"], false);
         assert_eq!(body["input"][0]["content"], "hi");
         assert_eq!(body["tools"][0]["name"], "read");
+        assert_eq!(body["tools"][0]["strict"], false);
         let key1 = body["prompt_cache_key"].as_str().expect("key").to_string();
         // Stable key: identical logical request reproduces it byte-for-byte.
         let server2 = TestServer::spawn(Arc::new(|_| Action {

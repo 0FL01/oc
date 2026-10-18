@@ -1421,7 +1421,12 @@ pub(crate) fn preflight_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> Resu
     runner.preflight(&subagent_request(call)?)
 }
 
-fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
+// Normalize compatibility placeholders only in the request, never in raw input.
+pub(crate) fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
+    validate_subagent_args(&call.arguments).map_err(|reason| ToolError::InvalidArgs {
+        tool: call.name.clone(),
+        reason,
+    })?;
     let string = |key: &str| {
         call.arguments
             .get(key)
@@ -1439,11 +1444,13 @@ fn subagent_request(call: &ToolCall) -> Result<SubagentRequest, ToolError> {
             .arguments
             .get("model")
             .and_then(|value| value.as_str())
+            .filter(|value| !value.is_empty())
             .map(str::to_string),
         session_id: call
             .arguments
             .get("sessionID")
             .and_then(|value| value.as_str())
+            .filter(|value| !value.is_empty())
             .map(str::to_string),
         context_message_ids: call.arguments["context_message_ids"]
             .as_array()
@@ -1784,6 +1791,7 @@ mod tests {
     mod foreground;
     #[path = "search.rs"]
     mod search;
+    mod subagent;
     #[path = "webfetch.rs"]
     mod webfetch;
     use super::{
