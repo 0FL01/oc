@@ -54,6 +54,6 @@
 - Не публикуй env целиком, ключи, auth headers, raw live responses и конфигурацию authoring-agent с секретами. Перед push производного DCP-кода сохраняй AGPL provenance и уведомления.
 - Внешний blocker фиксируй с фактическим результатом и следующим инженерным шагом; продолжай независимую ready-задачу. Не повторяй неизвестный внешний side effect после crash и не запрашивай повторно Q01–Q07.
 
-# Donor:
+## Исходники оригинала
 
-`./opencode` — upstream `https://github.com/anomalyco/opencode/tree/v2.0.12`, pinned at `2670273ff17da96f85c5826ced57aa1b368754fa`.
+- `.local/opencode/*` — TypeScript-исходники OpenCode 2.
