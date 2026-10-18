@@ -1,6 +1,6 @@
 # Goal: OC2 exploration group parity in the TUI transcript
 
-Status: active
+Status: complete
 Source: owner bug report with screenshots and approved plan, 2026-10-18
 («Эти все блоки должны быть автоматически спрятаны под спойлер … гляди на цвета и
 расстояние между строк»; owner chose upstream parity for failed/denied/truncated

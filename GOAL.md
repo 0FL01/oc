@@ -1163,4 +1163,7 @@ timing budgets квалифицированы, debug build/help/version PASS. Re
   named inline tools используют тот же стиль.
 - Storage schema/migrations, config и provider не меняются.
 
-Execution status: план сохранён; реализация и проверки ещё не выполнены.
+Execution status: T70 complete, R1–R3 verified; oc-tui 579/579, full offline gate
+2089/2090 с runbook TMPDIR. Единственное падение — существующий flaky `mcp08_actual_retry…`
+(воспроизводится и без T70), зафиксирован по решению владельца вне T70. Реализация
+`645784cc9` запушена в ветку `fix/tui-exploration-group`; [T70 report](evidence/T70/report.md).
