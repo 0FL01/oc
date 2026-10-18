@@ -26,4 +26,4 @@ Plan: ../../roadmap/M8.md
 - [T67](T67/INDEX.md) [done] — Owner live dev launcher oc2-dev; latest: 0001.md.
 - [T68](T68/INDEX.md) [done] — Portless shared runtime, mirrored TUI and global client lifetime; latest: 0001.md.
 - [T69](T69/INDEX.md) [done] — Subagent empty optional arguments and admitted continuation scheduling; latest: 0001.md.
-- [T70](T70/INDEX.md) [active] — Canonical completed transcript without aggregate turn preview loss; latest: нет.
+- [T70](T70/INDEX.md) [done] — Canonical completed transcript without aggregate turn preview loss; latest: 0001.md.

@@ -1,6 +1,6 @@
 # Goal: canonical completed transcript
 
-Status: active
+Status: complete
 Source: owner instructions of 2026-10-18; GOAL.md A01/A02/A08/A10
 Last updated: 2026-10-19
 
@@ -58,12 +58,13 @@ required outcome is resolved and affected constraints remain satisfied.
     commits reach verified origin/master, target/debug/oc2 is built normally.
   - Primary evidence: targeted checks, bash scripts/test.sh, Git commit/delivery
     facts and cargo build -p oc2 --bin oc2 --locked.
-  - Status: in_progress
+  - Status: verified
   - Evidence: full offline gate 04 passes fmt, strict Clippy, 2,105 tests (12 existing
     skips), doctests, normal debug build/help/version. Test execution 371.977 s;
     total 689.98 s includes 265 s test compilation and 42.61 s Clippy build.
-    Verified origin authentication works with the execution-only owner-provided
-    identity. Reviewed commit and ordinary origin/master delivery are next.
+    Implementation b1c2b529729fdc370c97cf1e225fd1e49ad86219 is pushed to verified
+    origin/master and independently confirmed by ls-remote. Post-commit normal
+    debug build passes in 0.34 s; target/debug/oc2 contains debug_info, not stripped.
 
 ### Constraints
 
@@ -98,14 +99,13 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: commit and push the verified source, then record closeout.
-- Expected evidence: current full gate, verified commits/push and target/debug/oc2.
-- Stop or replan if: a necessary change crosses the envelope; record evidence first.
+- Closed: R1/R2/R3. No implementation checkpoint remains.
+- Evidence: evidence/T70/report.md, final-source canonical-05, offline gate 04 and
+  verified implementation delivery b1c2b529729fdc370c97cf1e225fd1e49ad86219.
 
 ## Current State
 
-- Resolved: read-only diagnosis/provenance and plan audit; implementation authorized.
+- Resolved: R1/R2/R3, affected invariants and reviewed diff scope.
 - Last relevant evidence: full offline gate 04 passes all 2,105 tests, fmt, strict
   Clippy, doctests and debug build/help/version. Canonical-05 completes all ten
   stages in both binaries: 86,565 public bytes per
@@ -117,7 +117,9 @@ required outcome is resolved and affected constraints remain satisfied.
 - Gate checkpoint: 371.977 s test execution / 689.98 s total, not a warmed gate:
   test compilation takes 265 s and Clippy 42.61 s. Only UI07 exceeds 30 s (32.500 s),
   within its already approved 40 s measurement contract. No thresholds changed.
-- Next: verified implementation delivery and factual task closeout.
+- Delivery: implementation b1c2b529729fdc370c97cf1e225fd1e49ad86219 is on origin/master;
+  separate ls-remote matches. Debug ELF is ready; no running owner was manipulated.
+- Next: none for T70. T44/T61 and whole-product readiness remain independent.
 
 ## Material Decisions
 
@@ -185,4 +187,12 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Completion
 
-- R1/R2 and the final source/checks are verified. Pending R3 Git delivery/closeout.
+- Resolved outcomes: R1/R2/R3, evidence/T70/report.md.
+- Checks: final offline gate 2,105 passed / 12 existing skips; actual pinned pair
+  completes ten stages per origin and all 3,360 compared member cells agree.
+- Delivery: b1c2b529729fdc370c97cf1e225fd1e49ad86219 pushed and remote-verified;
+  normal post-commit debug build succeeds.
+- Constraint/diff check: RAW and per-result/security/resource guards preserved,
+  no migration/new store/owner restart/live campaign, no broadened paused scope.
+  Unmasked full-frame differences are explicitly retained, not called global parity.
+- Final status: complete.
