@@ -4,6 +4,18 @@ use oc_core::core_app::InboxMsg;
 use ratatui::{Terminal, backend::TestBackend};
 
 #[tokio::test]
+async fn srv03_disconnected_owner_does_not_block_local_quit_on_prompt_history() {
+    let (app, inbox, _) = CoreApp::channel(2);
+    drop(inbox);
+    let mut state = TuiState::new_home(app);
+    state.restore_prompt("/quit".into());
+    let outcome = state.handle_key(KeyAction::Enter).await;
+    assert!(outcome.note.is_none(), "{:?}", outcome.note);
+    assert_eq!(*state.status(), TuiStatus::Quit);
+    assert!(state.input().is_empty());
+}
+
+#[tokio::test]
 async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_session_rows() {
     let (app, guard) = CoreApp::spawn(MockProvider::echo());
     app.create_session(sid("shared-a")).await.unwrap();

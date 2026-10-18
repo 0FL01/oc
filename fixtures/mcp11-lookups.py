@@ -113,5 +113,12 @@ event("spawn")
 for line in sys.stdin:
     request = json.loads(line)
     # Bounded test caller concurrency; main remains able to receive cancellation.
-    threading.Thread(target=handle, args=(request,), daemon=True).start()
+    # Workers inherit a blocked TERM mask. Otherwise a worker can receive TERM
+    # while close_once masks only main, scheduling Python's handler on main
+    # between setting `closed` and appending its receipt.
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM})
+    try:
+        threading.Thread(target=handle, args=(request,), daemon=True).start()
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
 close_once()

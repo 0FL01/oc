@@ -663,6 +663,7 @@ async fn tool12_exact_commit_scope_noop_retired_variant_and_atomic_storage_refus
         .await
         .unwrap();
     let mut commit = oc_core::queries::ModelCommit {
+        attachment: 0,
         caller: 0,
         binding: oc_core::queries::SelectionBinding {
             location: current.chrome.location,

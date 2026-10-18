@@ -7,6 +7,7 @@ use std::os::unix::fs::MetadataExt as _;
 use std::path::{Component, PathBuf};
 
 pub(crate) struct Prepared {
+    pub(crate) destination: Option<Arc<authority::Location>>,
     pub(crate) record: crate::storage::MoveRecord,
     pub(crate) composition: Composition,
     pub(super) effective: Effective,
@@ -68,31 +69,61 @@ fn pin(path: &str, data: &Path) -> Result<File, String> {
     .map_err(|_| "move directory unavailable".into())
 }
 
+#[cfg(test)]
 pub(crate) async fn prepare(
+    db: &Db,
+    record: crate::storage::MoveRecord,
+    env: BTreeMap<String, String>,
+) -> Result<Prepared, String> {
+    prepare_owned(db, record, env, None).await
+}
+
+pub(crate) async fn prepare_owned(
     db: &Db,
     mut record: crate::storage::MoveRecord,
     env: BTreeMap<String, String>,
+    owner: Option<Arc<authority::Owner>>,
 ) -> Result<Prepared, String> {
     let directory = pin(&record.directory, db.root())?;
     let metadata = directory
         .metadata()
         .map_err(|_| "move directory unavailable")?;
-    let mut composition = composition::load_local_with_env(Path::new(&record.directory), env)
-        .await
-        .map_err(|_| "move destination admission failed")?;
-    composition
-        .attach_custom_connections(db)
-        .map_err(|_| "move destination connection admission failed")?;
-    composition
-        .resolve_credentials(db)
-        .await
-        .map_err(|_| "move destination auth admission failed")?;
-    composition.attach_public_catalog(db).await;
-    composition.refresh_public_catalog(db, false).await;
-    composition
-        .refresh_provider()
-        .await
-        .map_err(|_| "move destination catalog admission failed")?;
+    let destination = if let Some(owner) = owner {
+        Some(
+            owner
+                .location(Path::new(&record.directory), false)
+                .await
+                .map_err(|_| "move destination admission failed")?,
+        )
+    } else {
+        None
+    };
+    let mut composition = if let Some(destination) = &destination {
+        destination
+            .primary(record.session.clone())
+            .await
+            .map_err(|_| "move destination session admission failed")?
+            .composition
+    } else {
+        composition::load_local_with_env(Path::new(&record.directory), env)
+            .await
+            .map_err(|_| "move destination admission failed")?
+    };
+    if destination.is_none() {
+        composition
+            .attach_custom_connections(db)
+            .map_err(|_| "move destination connection admission failed")?;
+        composition
+            .resolve_credentials(db)
+            .await
+            .map_err(|_| "move destination auth admission failed")?;
+        composition.attach_public_catalog(db).await;
+        composition.refresh_public_catalog(db, false).await;
+        composition
+            .refresh_provider()
+            .await
+            .map_err(|_| "move destination catalog admission failed")?;
+    }
     let runtime =
         build_runtime(db, &composition).map_err(|_| "move destination runtime admission failed")?;
     let mut effective = Effective::from_composition(&composition);
@@ -181,6 +212,7 @@ pub(crate) async fn prepare(
     }
     record.fingerprint = fingerprint;
     let prepared = Prepared {
+        destination,
         record,
         composition,
         effective,

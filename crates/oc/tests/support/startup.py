@@ -151,7 +151,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             os.write(master, b'\x03')
             drain(master, .2)
             code = child.wait(timeout=5)
-            assert (code == 0) == (label in ('success', 'lock released', 'warning',
+            assert (code == 0) == (label in ('success', 'shared attach', 'lock released', 'warning',
                                             'credential present', 'credential missing',
                                             'credential empty env', 'credential empty literal', 'missing config')), (label, code)
             assert termios.tcgetattr(slave) == original, (label, 'terminal not restored')
@@ -164,11 +164,12 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             os.close(slave)
 
     check('success', ['█▀▀█'], forbidden=('Native startup error',))
-    # Hold the actual data-root lock with a live owner, then verify release.
+    # A healthy native owner retains the actual Db lock; another normal client
+    # attaches without opening a second Db. The final lease releases the owner.
     owner, master, slave, original = launch()
     try:
         assert '█▀▀█' in drain(master, 5, until=('█▀▀█',))
-        check('busy', ['Native startup error', 'Data root busy', 'Close the other oc process'])
+        check('shared attach', ['█▀▀█'], forbidden=('Native startup error', 'Data root busy'))
     finally:
         os.write(master, b'\x03')
         drain(master, .2)

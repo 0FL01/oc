@@ -175,7 +175,7 @@ async fn hot01_child_recovery_uses_saved_provenance_not_the_current_counter() {
             restored_provider.api_key = "different admitted key".into();
         }
         runtime
-            .recover_background_children(&catalog, &restored_provider)
+            .recover_background_children(&catalog, &restored_provider, false)
             .await
             .unwrap();
         if refusal.is_none() {

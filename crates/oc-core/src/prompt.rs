@@ -22,9 +22,10 @@ impl ImageMark {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PromptImage {
     pub mark: ImageMark,
+    #[serde(with = "crate::wire_bytes::png")]
     pub png: Arc<[u8]>,
 }
 
@@ -37,7 +38,7 @@ impl std::fmt::Debug for PromptImage {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PromptInput {
     pub text: String,
     pub images: Vec<PromptImage>,

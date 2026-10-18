@@ -898,8 +898,10 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     pty.wait_visible(READY, DEADLINE);
     choose_model(&mut pty, "T39 alt");
     choose_variant(&mut pty, "none");
-    let off = submit(&mut pty, "A named none");
-    pty.wait_visible_after(off, "echo: A named none", DEADLINE);
+    // Assert the painted cells, not a contiguous phrase in terminal deltas:
+    // a new row may reuse unchanged cells from the previous rendered frame.
+    submit(&mut pty, "A named none");
+    wait_screen_row(&pty, "echo: A named none", DEADLINE);
     wait_idle(&pty);
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
     pty.send(b"/rename Scoped alpha root\r");
@@ -911,8 +913,8 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     pty.send(b"\x1b[B\r");
     dismissed(&pty, "Sessions");
     wait_screen_row(&pty, "T39 model fixture", DEADLINE);
-    let off = submit(&mut pty, "B different model");
-    pty.wait_visible_after(off, "echo: B different model", DEADLINE);
+    submit(&mut pty, "B different model");
+    wait_screen_row(&pty, "echo: B different model", DEADLINE);
     wait_idle(&pty);
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
     pty.send(b"/rename Scoped beta root\r");
@@ -924,8 +926,8 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     wait_screen_row(&pty, "● none", DEADLINE);
     pty.send(b"\r"); // current focus, not merely a displayed dot
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "A restored");
-    pty.wait_visible_after(off, "echo: A restored", DEADLINE);
+    submit(&mut pty, "A restored");
+    wait_screen_row(&pty, "echo: A restored", DEADLINE);
     choose_model(&mut pty, "T39 model");
     choose_model(&mut pty, "T39 alt"); // preferred none restores; no variant dialog
     assert!(
@@ -934,21 +936,21 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
             .iter()
             .any(|r| r.contains("Select variant"))
     );
-    let off = submit(&mut pty, "A per model preference");
-    pty.wait_visible_after(off, "echo: A per model preference", DEADLINE);
+    submit(&mut pty, "A per model preference");
+    wait_screen_row(&pty, "echo: A per model preference", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/agents\rt39agent\r");
     wait_screen_row(&pty, "T39agent ·", DEADLINE);
     dismissed(&pty, "Select agent");
     choose_model(&mut pty, "T39 model"); // agent-specific override
-    let off = submit(&mut pty, "A second agent override");
-    pty.wait_visible_after(off, "echo: A second agent override", DEADLINE);
+    submit(&mut pty, "A second agent override");
+    wait_screen_row(&pty, "echo: A second agent override", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/agents\rplain\r");
     wait_screen_row(&pty, "Plain ·", DEADLINE);
     dismissed(&pty, "Select agent");
-    let off = submit(&mut pty, "A first agent restored");
-    pty.wait_visible_after(off, "echo: A first agent restored", DEADLINE);
+    submit(&mut pty, "A first agent restored");
+    wait_screen_row(&pty, "echo: A first agent restored", DEADLINE);
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
 
@@ -958,8 +960,8 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     wait_screen_row(&pty, "● none", DEADLINE);
     pty.send(b"\r");
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "A restart current");
-    pty.wait_visible_after(off, "echo: A restart current", DEADLINE);
+    submit(&mut pty, "A restart current");
+    wait_screen_row(&pty, "echo: A restart current", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/effort\r");
     choose_variant(&mut pty, "Default");
@@ -968,20 +970,20 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     wait_screen_row(&pty, "● Default", DEADLINE);
     pty.send(b"\r");
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "A cleared preference");
-    pty.wait_visible_after(off, "echo: A cleared preference", DEADLINE);
+    submit(&mut pty, "A cleared preference");
+    wait_screen_row(&pty, "echo: A cleared preference", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/agents\rt39agent\r");
     wait_screen_row(&pty, "T39agent ·", DEADLINE);
     dismissed(&pty, "Select agent");
-    let off = submit(&mut pty, "A second agent restart");
-    pty.wait_visible_after(off, "echo: A second agent restart", DEADLINE);
+    submit(&mut pty, "A second agent restart");
+    wait_screen_row(&pty, "echo: A second agent restart", DEADLINE);
     wait_idle(&pty);
     pty.send(b"/continue\rScoped beta root\r");
     dismissed(&pty, "Sessions");
     wait_screen_row(&pty, "echo: B different model", DEADLINE);
-    let off = submit(&mut pty, "B restart unchanged");
-    pty.wait_visible_after(off, "echo: B restart unchanged", DEADLINE);
+    submit(&mut pty, "B restart unchanged");
+    wait_screen_row(&pty, "echo: B restart unchanged", DEADLINE);
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
     let requests = fixture.wait_requests(10);
@@ -1313,7 +1315,7 @@ fn s07_pty_equal_view_archive_resource_samples() {
         );
         assert!(frames > 0 && sum >= max && max > 0);
         println!(
-            "S07 {label}: archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} worker_event_queue_peak={} worker_event_queue_lagged={} live_text_bytes_current={} live_text_bytes_peak={} live_reasoning_bytes_current={} live_reasoning_bytes_peak={} live_part_count_current={} live_part_count_peak={} markdown_cache_retained_bytes_current={} markdown_cache_retained_bytes_peak={} markdown_cache_bound={} elapsed_ms={}",
+            "S07 {label}: native_application_processes=2 archive={} rss_kb={} pss_kb={} hwm_kb={} cpu_ticks={} unexpected_child_max={} retained_bytes={} window_rows={} frames={} draw_sum_ns={} draw_max_ns={} worker_event_queue_peak={} worker_event_queue_lagged={} live_text_bytes_current={} live_text_bytes_peak={} live_reasoning_bytes_current={} live_reasoning_bytes_peak={} live_part_count_current={} live_part_count_peak={} markdown_cache_retained_bytes_current={} markdown_cache_retained_bytes_peak={} markdown_cache_bound={} elapsed_ms={}",
             run.archive,
             run.peak_rss_kb,
             run.peak_pss_kb,
@@ -1466,11 +1468,11 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     wait_screen_row(&pty, "Compression #1", DEADLINE);
     wait_screen_row(&pty, "summary preview limited", DEADLINE);
     let pid = pty.child.id();
-    let mut peak = s07_proc_sample(pid);
+    let mut peak = s07_proc_sample(pid, &fixture.data_dir());
     let baseline_cpu = peak.cpu_ticks;
     let began = Instant::now();
     let mut sample = |pty: &PtySession| {
-        let now = s07_proc_sample(pty.child.id());
+        let now = s07_proc_sample(pty.child.id(), &fixture.data_dir());
         peak.rss_kb = peak.rss_kb.max(now.rss_kb);
         peak.pss_kb = peak.pss_kb.max(now.pss_kb);
         peak.hwm_kb = peak.hwm_kb.max(now.hwm_kb);
@@ -1506,7 +1508,10 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         !Path::new(&format!("/proc/{pid}")).exists(),
         "measured child and OS tasks reaped"
     );
-    assert_eq!(peak.children, 0);
+    assert_eq!(
+        peak.children, 0,
+        "no processes beyond the measured client + native owner"
+    );
     assert_eq!(
         fixture.requests.lock().unwrap().len(),
         request_count,
@@ -1537,7 +1542,7 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         Some(run.clone())
     );
     println!(
-        "VIS38 S07 DCP archive={archive} archive_source_bytes={} rss_kb={} pss_kb={} hwm_kb={} os_tasks_threads={} children={} cpu_ticks={} elapsed_ms={} retained_bytes={} window_rows={} queue_peak={} queue_lagged={} markdown_cache_peak={} frames={} draw_max_ns={} replay_requests=0 actual_runs=1 summary_page_limit={}",
+        "VIS38 S07 DCP native_application_processes=2 archive={archive} archive_source_bytes={} rss_kb={} pss_kb={} hwm_kb={} os_tasks_threads={} unexpected_children={} cpu_ticks={} elapsed_ms={} retained_bytes={} window_rows={} queue_peak={} queue_lagged={} markdown_cache_peak={} frames={} draw_max_ns={} replay_requests=0 actual_runs=1 summary_page_limit={}",
         archive * 16 * 1024,
         peak.rss_kb,
         peak.pss_kb,

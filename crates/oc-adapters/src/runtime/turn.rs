@@ -983,8 +983,15 @@ impl<'a> Runtime<'a> {
         let prepared = match cached {
             Some(prepared) => prepared,
             None => {
-                crate::application::session_move::prepare(&self.db, record, self.parent_env.clone())
-                    .await?
+                crate::application::session_move::prepare_owned(
+                    &self.db,
+                    record,
+                    self.parent_env.clone(),
+                    self.native_owner
+                        .as_ref()
+                        .and_then(std::sync::Weak::upgrade),
+                )
+                .await?
             }
         };
         prepared.recheck(&self.db)?;
@@ -1158,7 +1165,17 @@ impl<'a> Runtime<'a> {
                 save_patterns: crate::approval::save_patterns(&call.name, &grant_resources),
                 preview,
             };
-            let waiting = self.approvals.wait(request, &events);
+            let waiting = self.approvals.wait_scoped(
+                request,
+                &events,
+                self.native_origin
+                    .as_ref()
+                    .map(|origin| oc_core::approval::ApprovalScope {
+                        operation: origin.id,
+                        consumer: origin.approval_consumer.load(Ordering::Acquire),
+                        auto_once: origin.auto_once.load(Ordering::Acquire),
+                    }),
+            );
             tokio::pin!(waiting);
             let decision = loop {
                 tokio::select! {
@@ -3377,13 +3394,16 @@ impl<'a> Runtime<'a> {
                     .expect("event publisher")
                     .as_ref()
             {
-                let _ = events.send(oc_core::core_app::CoreEvent::TurnContextUsage {
-                    session: oc_core::domain::SessionId(params.session.clone()),
-                    turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
-                    input_tokens: reported.0,
-                    output_tokens: reported.1,
-                    context_limit: budget.context,
-                });
+                self.emit(
+                    events,
+                    oc_core::core_app::CoreEvent::TurnContextUsage {
+                        session: oc_core::domain::SessionId(params.session.clone()),
+                        turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
+                        input_tokens: reported.0,
+                        output_tokens: reported.1,
+                        context_limit: budget.context,
+                    },
+                );
             }
             tool_event(
                 &turn_id,
@@ -3511,6 +3531,7 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         // The parent request's clone is not a whole-child physical lease. Fresh
         // child admission uses latest source metadata intersected with launch authority.
+        let operation = self.mcp_owner().operation();
         drop(attached);
         let (published, attached) = self.fresh_request_view()?;
         let lane = if let Some(launch) = &self.child_launch {
@@ -3548,18 +3569,27 @@ impl<'a> Runtime<'a> {
             provider,
             cancel,
         };
-        self.run_child_lane(
-            published.clone(),
-            agent,
-            owning_operation,
-            &lane,
-            params,
-            model,
-            attached,
-            launch_started,
-            resume,
-        )
-        .await
+        let result = self
+            .run_child_lane(
+                published.clone(),
+                agent,
+                owning_operation,
+                &lane,
+                params,
+                model,
+                attached,
+                launch_started,
+                resume,
+            )
+            .await;
+        let poisoned = self.mcp_owner().poisoned();
+        self.retire_poisoned_mcp().await?;
+        if !poisoned
+            && (cancel.load(Ordering::SeqCst) || matches!(result, Err(RuntimeError::Cancelled)))
+        {
+            operation.cancel().await?;
+        }
+        result
     }
 
     pub(super) fn child_lane(
@@ -3673,7 +3703,7 @@ impl<'a> Runtime<'a> {
         let events = self.compaction_events.lock().expect("events lock").clone();
         let send = |event| {
             if let Some(events) = &events {
-                let _ = events.send(event);
+                self.emit(events, event);
             }
         };
         let resuming = resume.is_some();
@@ -3716,6 +3746,7 @@ impl<'a> Runtime<'a> {
             if let Some(events) = &events {
                 crate::application::publish_tool_event(
                     &self.db,
+                    self,
                     events,
                     &SessionId(session.into()),
                     id,
@@ -3835,6 +3866,18 @@ impl<'a> Runtime<'a> {
         _published: &PublishedGeneration,
     ) -> Result<TurnReport, RuntimeError> {
         self.check_issued_turn(turn_log, session)?;
+        // An explicit Esc is still Cancelled. Losing the last interactive
+        // application lease uses the same draining path, but is a durable
+        // Interrupted boundary: reopening must never revive that execution.
+        let status = if status == TurnStatus::Cancelled
+            && self.native_origin.as_ref().is_some_and(|origin| {
+                origin.kind == super::origin::Kind::Interactive
+                    && origin.flag.load(Ordering::Acquire)
+            }) {
+            TurnStatus::Interrupted
+        } else {
+            status
+        };
         let assistant =
             (status == TurnStatus::Completed && !text.is_empty()).then_some(text.as_str());
         let mut turn_log = turn_log.clone();
@@ -4097,10 +4140,13 @@ impl<'a> Runtime<'a> {
                         directory,
                         fingerprint: String::new(),
                     };
-                    crate::application::session_move::prepare(
+                    crate::application::session_move::prepare_owned(
                         &self.db,
                         record,
                         self.parent_env.clone(),
+                        self.native_owner
+                            .as_ref()
+                            .and_then(std::sync::Weak::upgrade),
                     )
                     .await
                 }
@@ -4303,10 +4349,13 @@ impl<'a> Runtime<'a> {
             }
             if admission.is_ok()
                 && let Some(prepared) = &prepared_move
-                && let Err(error) = crate::application::session_move::prepare(
+                && let Err(error) = crate::application::session_move::prepare_owned(
                     &self.db,
                     prepared.record.clone(),
                     self.parent_env.clone(),
+                    self.native_owner
+                        .as_ref()
+                        .and_then(std::sync::Weak::upgrade),
                 )
                 .await
             {
@@ -4919,7 +4968,16 @@ impl<'a> Runtime<'a> {
                         use sha2::{Digest as _, Sha256};
                         let input =
                             QuestionInput::parse(&call.arguments).expect("validated question");
-                        let events = self.compaction_events.lock().expect("events lock").clone();
+                        let events = self
+                            .compaction_events
+                            .lock()
+                            .expect("events lock")
+                            .clone()
+                            .filter(|_| {
+                                self.native_origin.as_ref().is_none_or(|origin| {
+                                    origin.question_consumer.load(Ordering::Acquire)
+                                })
+                            });
                         let decision = if let Some(events) = events {
                             let request = QuestionRequest {
                                 id: 0,
@@ -4939,7 +4997,11 @@ impl<'a> Runtime<'a> {
                                 },
                                 input: input.clone(),
                             };
-                            let waiting = self.questions.wait(request, &events);
+                            let waiting = self.questions.wait_scoped(
+                                request,
+                                &events,
+                                self.native_origin.as_ref().map(|origin| origin.id),
+                            );
                             tokio::pin!(waiting);
                             loop {
                                 tokio::select! {

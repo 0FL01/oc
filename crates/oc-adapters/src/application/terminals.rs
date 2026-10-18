@@ -22,6 +22,23 @@ pub(super) fn action(
     action: TerminalAction,
 ) -> Result<TerminalReceipt, CoreError> {
     let mut guard = owner.lock().expect("terminal owner mutex");
+    // Serialize terminal creation against last-TUI settlement using this same
+    // resource lock. An accepted but not yet dispatched request cannot create
+    // a new interactive process after the zero-viewer shutdown boundary.
+    if !matches!(
+        action,
+        TerminalAction::List
+            | TerminalAction::Snapshot(_)
+            | TerminalAction::Replay { .. }
+            | TerminalAction::Remove(_)
+    ) && runtime
+        .native_owner
+        .as_ref()
+        .and_then(std::sync::Weak::upgrade)
+        .is_some_and(|owner| !owner.resources.tui_present.load(Ordering::Acquire))
+    {
+        return Err(CoreError::Shutdown);
+    }
     let owner = guard.as_mut().map_err(|error| error.clone())?;
     match action {
         TerminalAction::List => owner.inventory(&session).map(TerminalReceipt::Inventory),

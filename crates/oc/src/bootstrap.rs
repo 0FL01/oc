@@ -11,6 +11,26 @@ pub async fn run(args: Args) -> ExitCode {
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
+    if let Some(Command::NativeOwner { bootstrap_fd }) = args.command {
+        use std::os::fd::FromRawFd as _;
+        if bootstrap_fd < 3 {
+            return ExitCode::from(2);
+        }
+        let data = args
+            .data_dir
+            .map(Ok)
+            .unwrap_or_else(headless::default_data_dir);
+        let Ok(data) = data else {
+            return ExitCode::from(1);
+        };
+        // SAFETY: this internal role takes ownership of the explicitly inherited
+        // descriptor. serve admits its actual socket peer before any Db open.
+        let startup = unsafe { std::os::unix::net::UnixStream::from_raw_fd(bootstrap_fd) };
+        return match oc_adapters::native::serve(&data, startup).await {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(_) => ExitCode::from(1),
+        };
+    }
     // Authentication uses the credential/attempt owner directly: no selected
     // model, configuration generation, MCP connection or session is required.
     if let Some(Command::Auth { action }) = args.command {
@@ -28,9 +48,6 @@ pub async fn run(args: Args) -> ExitCode {
     }
     // The catalog command is read-only even under a fresh HOME. The ordinary
     // startup trace creates/truncates files and belongs to application startup.
-    if !matches!(args.command, Some(Command::Models)) {
-        oc_adapters::trace::init_default();
-    }
     oc_adapters::trace::log(
         "startup.begin",
         &format!(
@@ -87,6 +104,9 @@ pub async fn run(args: Args) -> ExitCode {
         }
     };
     match args.command {
+        Some(Command::NativeOwner { .. }) => {
+            unreachable!("internal owner dispatch precedes runtime")
+        }
         Some(Command::Auth { .. }) => unreachable!("auth-only dispatch precedes runtime"),
         Some(Command::Models) => unreachable!("catalog-only dispatch precedes storage"),
         None => crate::tui_cmd::run_tui(&data_dir, None, args.auto).await,
@@ -114,7 +134,7 @@ pub async fn run(args: Args) -> ExitCode {
             SessionsAction::List => {
                 let mut out = stdout().lock();
                 let mut err = stderr().lock();
-                headless::list_to_writers(&data_dir, &mut out, &mut err)
+                headless::list_to_writers(&data_dir, &mut out, &mut err).await
             }
         },
         Some(Command::Tui { session }) => {
@@ -125,6 +145,7 @@ pub async fn run(args: Args) -> ExitCode {
 
 fn subcommand_kind(command: &Option<Command>) -> &'static str {
     match command {
+        Some(Command::NativeOwner { .. }) => "native-owner",
         None => "none",
         Some(Command::Run { .. }) => "run",
         Some(Command::Sessions { .. }) => "sessions",

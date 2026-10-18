@@ -12,13 +12,15 @@ class DocumentationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name) / "kit"
-        # Copy documentation inputs, never build trees or local credential/config
+        # Copy documentation/schema inputs, never build trees or local credential/config
         # directories. Production validation reads exactly these repo surfaces.
         self.root.mkdir()
         for name in ("planning", "progress", "examples", "prompts", "docs", "roadmap", "audit", "references", "evidence"):
             shutil.copytree(ROOT / name, self.root / name,
                             ignore=shutil.ignore_patterns("__pycache__", ".lock", "tui"))
-        for name in ("GOAL.md", "README.md", "AGENTS.md", "OPENCODE_RUST_MASTER_PLAN.md"):
+        for name in ("GOAL.md", "README.md", "AGENTS.md", "OPENCODE_RUST_MASTER_PLAN.md",
+                     "crates/oc-adapters/src/config/admission.rs"):
+            (self.root / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, self.root / name)
 
     def tearDown(self):

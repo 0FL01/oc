@@ -1,6 +1,89 @@
 use super::*;
 
 #[test]
+fn srv02_shared_projection_keeps_local_draft_receipt_and_distinct_attachment_callers() {
+    use oc_core::{core_app::InboxMsg, queries::ModelEntry};
+    let (app, mut inbox, _, _, _) = CoreApp::native_channel(8, 11);
+    let (other, _other_inbox, _, _, _) = CoreApp::native_channel(8, 12);
+    let session = SessionId("shared".into());
+    let catalog = CatalogSnapshot {
+        chrome: Default::default(),
+        auto_accept: Default::default(),
+        provider: "fixture".into(),
+        models: ["committed", "draft"]
+            .into_iter()
+            .map(|id| ModelEntry {
+                id: id.into(),
+                ..Default::default()
+            })
+            .collect(),
+        model_id: "committed".into(),
+        variant: None,
+        agents: Vec::new(),
+        agent_id: None,
+        commands: Vec::new(),
+        command_descriptions: Default::default(),
+    };
+    let mut local = TuiState::new(app.clone(), session.clone());
+    let mut foreign = TuiState::new(other, session.clone());
+    for view in [&mut local, &mut foreign] {
+        view.apply_catalog(catalog.clone());
+        // Separate real processes can have identical local composer counters.
+        view.model_selection.caller = 1;
+        view.draft_model("draft").unwrap();
+        view.commit_composer_model().unwrap();
+    }
+    local.handle_paste("CLIENT-LOCAL-DRAFT");
+    let own = local.captured_model_commit().unwrap();
+    let other = foreign.captured_model_commit().unwrap();
+    assert_ne!(own, other);
+    local.apply_session_model_selected(&session, &other);
+    assert_eq!(
+        local.model_selection.committed.as_ref().unwrap().id,
+        "committed"
+    );
+
+    let mut fresh = TuiState::new(app, session);
+    fresh.apply_catalog(catalog.clone());
+    fresh.preserve_shared_composer(local);
+    assert_eq!(fresh.input(), "CLIENT-LOCAL-DRAFT");
+    assert_eq!(fresh.captured_model_commit(), Some(own));
+    assert_eq!(fresh.model_selection.pending.len(), 1);
+    assert!(fresh.has_pending_model_commit());
+    assert_eq!(
+        fresh.model_selection.committed.as_ref().unwrap().id,
+        "committed"
+    );
+    let InboxMsg::SessionSelection { ack, .. } = inbox.try_recv().unwrap() else {
+        panic!("model receipt");
+    };
+    let mut accepted = catalog.clone();
+    accepted.model_id = "draft".into();
+    ack.send(Ok(accepted)).unwrap();
+    fresh.poll_model_commits();
+    assert!(fresh.model_selection.pending.is_empty());
+    assert!(!fresh.has_pending_model_commit());
+    assert_eq!(
+        fresh.model_selection.committed.as_ref().unwrap().id,
+        "draft"
+    );
+    // After the matching local receipt has settled, a later shared canonical
+    // choice must replace the old picker, without touching this client's text.
+    let mut canonical = TuiState::new(fresh.app.clone(), fresh.session.clone().unwrap());
+    canonical.apply_catalog(catalog);
+    canonical.preserve_shared_composer(fresh);
+    assert_eq!(canonical.input(), "CLIENT-LOCAL-DRAFT");
+    assert_eq!(
+        canonical.captured_model_commit().unwrap().model_id,
+        "committed"
+    );
+    assert_eq!(
+        canonical.model_selection.committed.as_ref().unwrap().id,
+        "committed"
+    );
+}
+
+#[test]
 fn conn03_snapshot_reconstruction_and_picker_keep_unknown_empty_false_and_exact_efforts() {
     use oc_core::queries::{ModelCapabilities, ModelEntry, PartialModelCapabilities, VariantEntry};
     let (app, _, _) = CoreApp::channel(8);

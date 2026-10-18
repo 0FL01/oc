@@ -84,31 +84,32 @@ impl QuestionInput {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct QuestionRequest {
     pub id: u64,
     pub binding: ApprovalBinding,
     pub input: QuestionInput,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum QuestionDecision {
     Answers(Vec<Vec<String>>),
     /// The owning Location explicitly published a replacement source view.
     Reloaded,
     Cancelled,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct QuestionReply {
     pub id: u64,
     pub binding: ApprovalBinding,
     pub decision: QuestionDecision,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum QuestionReplyError {
     Stale,
     BindingMismatch,
     InvalidAnswers,
     Unavailable,
+    OutcomeUnknown,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QuestionWaitError {
@@ -124,6 +125,7 @@ impl std::fmt::Display for QuestionReplyError {
             Self::BindingMismatch => "question reply binding mismatch",
             Self::InvalidAnswers => "invalid question answer count or size",
             Self::Unavailable => "question owner unavailable",
+            Self::OutcomeUnknown => "question reply outcome unknown; reload before retrying",
         })
     }
 }
@@ -158,6 +160,8 @@ impl QuestionResult {
 struct Pending {
     request: QuestionRequest,
     reply: oneshot::Sender<QuestionDecision>,
+    operation: Option<u64>,
+    _capacity: tokio::sync::OwnedSemaphorePermit,
 }
 #[derive(Default)]
 struct State {
@@ -165,11 +169,39 @@ struct State {
     consumer: bool,
     pending: BTreeMap<u64, Pending>,
 }
-#[derive(Default)]
-pub struct QuestionQueue(Mutex<State>);
+pub struct QuestionQueue(Mutex<State>, Arc<tokio::sync::Semaphore>);
+impl Default for QuestionQueue {
+    fn default() -> Self {
+        Self(Mutex::default(), Arc::new(tokio::sync::Semaphore::new(64)))
+    }
+}
 impl QuestionQueue {
+    pub fn new_scope(&self) -> Self {
+        Self(Mutex::default(), self.1.clone())
+    }
     pub fn register_consumer(&self) {
         self.0.lock().expect("question lock").consumer = true;
+    }
+    pub fn cancel_operation(&self, operation: u64, events: &broadcast::Sender<CoreEvent>) {
+        let requests: Vec<_> = self
+            .0
+            .lock()
+            .expect("question lock")
+            .pending
+            .values()
+            .filter(|pending| pending.operation == Some(operation))
+            .map(|pending| pending.request.clone())
+            .collect();
+        for request in requests {
+            let _ = self.resolve(
+                QuestionReply {
+                    id: request.id,
+                    binding: request.binding,
+                    decision: QuestionDecision::Cancelled,
+                },
+                events,
+            );
+        }
     }
     pub fn pending(&self) -> Vec<QuestionRequest> {
         self.0
@@ -239,8 +271,16 @@ impl QuestionQueue {
     }
     pub async fn wait(
         self: &Arc<Self>,
+        request: QuestionRequest,
+        events: &broadcast::Sender<CoreEvent>,
+    ) -> Result<QuestionDecision, QuestionWaitError> {
+        self.wait_scoped(request, events, None).await
+    }
+    pub async fn wait_scoped(
+        self: &Arc<Self>,
         mut request: QuestionRequest,
         events: &broadcast::Sender<CoreEvent>,
+        operation: Option<u64>,
     ) -> Result<QuestionDecision, QuestionWaitError> {
         request
             .input
@@ -272,6 +312,11 @@ impl QuestionQueue {
             if state.pending.len() >= 64 {
                 return Err(QuestionWaitError::Capacity);
             }
+            let capacity = self
+                .1
+                .clone()
+                .try_acquire_owned()
+                .map_err(|_| QuestionWaitError::Capacity)?;
             state.sequence = state
                 .sequence
                 .checked_add(1)
@@ -282,6 +327,8 @@ impl QuestionQueue {
                 Pending {
                     request: request.clone(),
                     reply: tx,
+                    operation,
+                    _capacity: capacity,
                 },
             );
         }

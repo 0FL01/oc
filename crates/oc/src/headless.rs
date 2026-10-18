@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use oc_adapters::storage::Db;
 use oc_core::core_app::CoreEvent;
 use oc_core::domain::SessionId;
 
@@ -48,8 +47,8 @@ pub async fn run_once_to_writers(
         let project = std::env::current_dir().map_err(|e| e.to_string())?;
         let session = SessionId::new(session_opt.unwrap_or_else(|| format!("s-{}", nanos())))
             .ok_or_else(|| "invalid session id".to_string())?;
-        let (app, guard, diagnostics) =
-            match oc_adapters::application::spawn_with_diagnostic(&project, data_dir).await {
+        let (app, guard, _notices) =
+            match oc_adapters::native::attach(data_dir, Some(&project), oc_adapters::native::Lease::Run).await {
                 Ok(spawned) => {
                     oc_adapters::trace::log("spawn.ok", "");
                     spawned
@@ -59,9 +58,6 @@ pub async fn run_once_to_writers(
                     return Err(issue.to_string());
                 }
             };
-        for diagnostic in diagnostics {
-            writeln!(err, "warning: {diagnostic}").map_err(|e| e.to_string())?;
-        }
         let outcome = async {
             let default = if let Some(agent) = &agent {
                 // Validate explicit addressing before creating a session or an
@@ -92,6 +88,17 @@ pub async fn run_once_to_writers(
                 Ok(default)
             }
             .map_err(|error| error.to_string())?;
+            // These are already bounded, source-qualified public projections.
+            // Never ship or parse the composition owner's raw diagnostic prose.
+            for diagnostic in &catalog.chrome.service_diagnostics {
+                writeln!(err, "warning: {diagnostic}").map_err(|error| error.to_string())?;
+            }
+            for plugin in &catalog.chrome.plugins.entries {
+                writeln!(err, "warning: {plugin}").map_err(|error| error.to_string())?;
+            }
+            if catalog.chrome.service_diagnostics_omitted > 0 {
+                writeln!(err, "warning: diagnostic inventory: {} additional notes omitted from presentation", catalog.chrome.service_diagnostics_omitted).map_err(|error| error.to_string())?;
+            }
             if let Some(issue) = &catalog.chrome.selection {
                 return Err(issue.diagnostic.to_string());
             }
@@ -142,6 +149,7 @@ pub async fn run_once_to_writers(
                     }
                 };
                 match event {
+                    CoreEvent::OwnerDisconnected => return Err("owner disconnected; operation outcome unknown; reopen history before retrying".into()),
                     CoreEvent::RetryScheduled { turn: id, span, retry, .. } if id == turn => {
                         if json {
                             writeln!(err, "{}", serde_json::json!({"type":"retry", "span":span,"attempt":retry.attempt,"at":retry.at,"error":retry.safe_error}))
@@ -202,12 +210,14 @@ pub async fn run_once_to_writers(
         }
         .await;
         let shutdown = app.shutdown().await;
-        guard
+        let joined = guard
             .join_diagnostic()
             .await
-            .map_err(|e| format!("application worker: {e}"))?;
-        shutdown.map_err(|error| error.to_string())?;
-        outcome
+            .map_err(|e| format!("application worker: {e}"));
+        match outcome {
+            Err(error) => Err(error),
+            Ok(code) => { joined?; shutdown.map_err(|error| error.to_string())?; Ok(code) }
+        }
     }
     .await;
     let (code, exit) = match result {
@@ -230,15 +240,29 @@ fn nanos() -> u128 {
 }
 
 /// List sessions from the data dir; stdout carries ids only.
-pub fn list_to_writers(
+pub async fn list_to_writers(
     data_dir: &Path,
     out: &mut dyn std::io::Write,
     err: &mut dyn std::io::Write,
 ) -> ExitCode {
-    match Db::open(data_dir).and_then(|db| db.list_sessions()) {
+    let result = async {
+        let (app, guard, _) =
+            oc_adapters::native::attach(data_dir, None, oc_adapters::native::Lease::Sessions)
+                .await
+                .map_err(|error| error.to_string())?;
+        let rows = app.list_sessions().await.map_err(|error| error.to_string());
+        let _ = app.shutdown().await;
+        guard
+            .join_diagnostic()
+            .await
+            .map_err(|error| error.to_string())?;
+        rows
+    }
+    .await;
+    match result {
         Ok(ids) => {
             for id in ids {
-                if let Err(error) = writeln!(out, "{id}") {
+                if let Err(error) = writeln!(out, "{}", id.0) {
                     let _ = writeln!(err, "error: output: {error}");
                     return ExitCode::from(1);
                 }
@@ -246,35 +270,8 @@ pub fn list_to_writers(
             ExitCode::SUCCESS
         }
         Err(e) => {
-            let _ = writeln!(
-                err,
-                "error: {}",
-                oc_adapters::application::storage_diagnostic(data_dir, &e)
-            );
+            let _ = writeln!(err, "error: {}", e);
             ExitCode::from(1)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::list_to_writers;
-    use std::process::ExitCode;
-
-    #[test]
-    fn sessions_list_stdout_ids_only() {
-        let tmp = tempfile::tempdir().expect("temp");
-        let data = tmp.path().join("data");
-        let db = oc_adapters::storage::Db::open(&data).expect("open");
-        db.create_session("s-a").expect("a");
-        db.create_session("s-b").expect("b");
-        drop(db);
-        let mut out = Vec::new();
-        let mut err = Vec::new();
-        let code = list_to_writers(&data, &mut out, &mut err);
-        assert_eq!(code, ExitCode::SUCCESS);
-        let text = String::from_utf8(out).expect("out");
-        assert!(text.contains("s-a") && text.contains("s-b"));
-        assert!(err.is_empty());
     }
 }

@@ -196,7 +196,17 @@ impl Scope {
             {
                 continue;
             }
-            if entry.kind == "remote" && self.generation.remote_unknown.load(Ordering::SeqCst) {
+            if entry.kind == "remote"
+                && (self.generation.remote_unknown.load(Ordering::SeqCst)
+                    || self
+                        .shared
+                        .safety
+                        .read()
+                        .expect("MCP safety")
+                        .remote
+                        .load(Ordering::SeqCst))
+            {
+                node.suspended = false;
                 node.row.status = McpStatus::Failed;
                 node.row.pending_action = None;
                 node.row.diagnostic = Some(connection_diagnostic(
@@ -239,6 +249,7 @@ pub(super) fn configured_node(
     use sha2::{Digest, Sha256};
     let digest = Sha256::digest(server.as_bytes());
     Node {
+        suspended: false,
         incarnation: Arc::new(()),
         row: McpServerSnapshot {
             id: format!(

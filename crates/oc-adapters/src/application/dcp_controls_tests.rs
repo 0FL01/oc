@@ -3,7 +3,7 @@ use super::*;
 use oc_core::dcp_view::DcpUnavailable;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-fn config(base: &str) -> serde_json::Value {
+pub(super) fn config(base: &str) -> serde_json::Value {
     serde_json::json!({"model":"fixture/m", "compaction":{"auto":false},
         "agents":{"title":{"disabled":true}},
         "providers":{"fixture":{"settings":{"baseURL":base,"apiKey":"synthetic"},
@@ -12,7 +12,7 @@ fn config(base: &str) -> serde_json::Value {
     })
 }
 
-fn env(root: &std::path::Path) -> BTreeMap<String, String> {
+pub(super) fn env(root: &std::path::Path) -> BTreeMap<String, String> {
     BTreeMap::from([
         (
             "HOME".into(),
@@ -34,7 +34,7 @@ async fn settled(events: &mut tokio::sync::broadcast::Receiver<CoreEvent>) {
     .unwrap();
 }
 
-async fn request(stream: &mut tokio::net::TcpStream) -> serde_json::Value {
+pub(super) async fn request(stream: &mut tokio::net::TcpStream) -> serde_json::Value {
     let mut bytes = Vec::new();
     let mut buf = [0; 4096];
     let boundary = loop {
@@ -63,7 +63,7 @@ async fn request(stream: &mut tokio::net::TcpStream) -> serde_json::Value {
     serde_json::from_slice(&bytes[boundary..boundary + length]).unwrap()
 }
 
-async fn respond(stream: &mut tokio::net::TcpStream, output: serde_json::Value) {
+pub(super) async fn respond(stream: &mut tokio::net::TcpStream, output: serde_json::Value) {
     let body = format!(
         "data: {}\n\n",
         serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output}})

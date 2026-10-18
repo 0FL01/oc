@@ -64,6 +64,15 @@ impl Fixture {
     }
 
     fn no_provider(&self) {
+        if let Ok((mut stream, _)) = self.listener.accept() {
+            use std::io::BufRead as _;
+            stream
+                .set_read_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            let mut line = String::new();
+            let _ = std::io::BufReader::new(&mut stream).read_line(&mut line);
+            panic!("unexpected provider request line: {}", line.trim());
+        }
         assert_eq!(
             self.listener.accept().unwrap_err().kind(),
             std::io::ErrorKind::WouldBlock

@@ -157,7 +157,14 @@ impl Scope {
                 .source;
         if remote
             && !query.operation.is_catalog()
-            && self.generation.remote_unknown.load(Ordering::SeqCst)
+            && (self.generation.remote_unknown.load(Ordering::SeqCst)
+                || self
+                    .shared
+                    .safety
+                    .read()
+                    .expect("MCP safety")
+                    .remote
+                    .load(Ordering::SeqCst))
         {
             let _ = ack.send(Err(McpLookupError::UnsafeRetry));
             return;

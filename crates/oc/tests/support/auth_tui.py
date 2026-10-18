@@ -46,6 +46,7 @@ def rows(stream, cols=120, height=40):
 
 class View:
     def __init__(self, root, env):
+        self.data = root/'data'
         self.master, self.slave = pty.openpty()
         fcntl.ioctl(self.slave, termios.TIOCSWINSZ, struct.pack('HHHH',40,120,0,0))
         self.original = copy.deepcopy(termios.tcgetattr(self.slave))
@@ -113,7 +114,7 @@ class View:
     def browser(self):
         mark = len(self.output)
         self.methods(); self.send(b'\r'); self.see('Waiting for authorization')
-        self.see('o open'); wait(lambda: bool(owned_ports(self.proc.pid)), 'owned browser listener')
+        self.see('o open'); wait(lambda: bool(self.owned_ports()), 'owned browser listener')
         assert b'\x1b]52;' not in self.output[mark:], 'auth clipboard must be explicit'
 
     def quit(self):
@@ -135,16 +136,34 @@ class View:
         if self.proc.poll() is None: self.proc.kill(); self.proc.wait(timeout=5)
         os.close(self.master); os.close(self.slave)
 
+    def owned_ports(self):
+        return owned_ports(self.proc.pid, self.data)
 
-def owned_ports(pid):
-    """Inspect only this fixture oc's socket identities; never probe foreign listeners."""
+
+def owned_ports(client, data):
+    """Inspect the fixture's client, admitted native owner and owned descendants."""
+    registration = (data/'native-owner.json').read_bytes()
+    assert len(registration) <= 4096, 'bounded fixture registration'
+    owner = json.loads(registration)['pid']
+    assert pathlib.Path(f'/proc/{owner}/exe').resolve() == pathlib.Path(BINARY).resolve(), 'fixture owner ELF'
+    pending, pids = [client, owner], set()
+    while pending:
+        pid = pending.pop()
+        if pid in pids: continue
+        pids.add(pid)
+        try:
+            for task in pathlib.Path(f'/proc/{pid}/task').iterdir():
+                try: pending.extend(map(int, (task/'children').read_text().split()))
+                except FileNotFoundError: pass
+        except FileNotFoundError: pass
     inodes = set()
-    try:
-        for fd in pathlib.Path(f'/proc/{pid}/fd').iterdir():
-            try: target = os.readlink(fd)
-            except FileNotFoundError: continue
-            if target.startswith('socket:['): inodes.add(target[8:-1])
-    except FileNotFoundError: return []
+    for pid in pids:
+        try:
+            for fd in pathlib.Path(f'/proc/{pid}/fd').iterdir():
+                try: target = os.readlink(fd)
+                except FileNotFoundError: continue
+                if target.startswith('socket:['): inodes.add(target[8:-1])
+        except FileNotFoundError: pass
     result = []
     for row in pathlib.Path('/proc/net/tcp').read_text().splitlines()[1:]:
         fields = row.split()
@@ -234,14 +253,14 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
             assert url.scheme=='https' and url.hostname=='auth.openai.com' and url.path=='/oauth/authorize', 'typed authorization authority'
             assert query['code_challenge_method']==['S256'] and len(query['state'][0])==43, 'native PKCE presentation'
             port = urllib.parse.urlsplit(query['redirect_uri'][0]).port
-            assert port in owned_ports(view.proc.pid), 'copy targets only the owned listener'
+            assert port in view.owned_ports(), 'copy targets only the owned listener'
             view.send(b'o'); view.see('Could not open the browser'); view.see('Waiting for authorization')
-            assert port in owned_ports(view.proc.pid), 'manual-copy opening failure keeps the same attempt'
-            view.send(b'\x1b'); wait(lambda: not owned_ports(view.proc.pid), 'owned Esc cleanup')
+            assert port in view.owned_ports(), 'manual-copy opening failure keeps the same attempt'
+            view.send(b'\x1b'); wait(lambda: not view.owned_ports(), 'owned Esc cleanup')
             assert len(accounts())==1, 'cancel is not account success'
             view.see('second-draft-界')
             # The same native listener can be mounted again; wrong state fails before issuer exchange.
-            view.browser(); port = owned_ports(view.proc.pid)[0]
+            view.browser(); port = view.owned_ports()[0]
             with socket.create_connection(('127.0.0.1',port),timeout=2) as callback:
                 callback.sendall(b'GET /auth/callback?state=wrong&code=CODE_CANARY HTTP/1.1\r\nHost: localhost\r\n\r\n')
                 response = b''
@@ -250,9 +269,9 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
                     if not block: break
                     response += block
             assert response.startswith(b'HTTP/1.1 400') and b'CODE_CANARY' not in response, 'safe callback refusal'
-            view.see('Authorization state mismatch'); wait(lambda: not owned_ports(view.proc.pid), 'failed attempt cleanup')
+            view.see('Authorization state mismatch'); wait(lambda: not view.owned_ports(), 'failed attempt cleanup')
             assert len(accounts())==1, 'callback refusal cannot fabricate an account'
-            view.browser(); assert owned_ports(view.proc.pid)
+            view.browser(); assert view.owned_ports()
             view.quit(); view = None
         finally:
             if view is not None: view.close()

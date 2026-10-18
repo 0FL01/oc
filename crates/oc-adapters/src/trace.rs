@@ -9,6 +9,7 @@
 
 use std::fs::{File, OpenOptions};
 use std::io::Write as _;
+use std::os::unix::fs::FileExt as _;
 use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, OnceLock};
@@ -28,7 +29,6 @@ const FINGERPRINT_ENV: &str = "OC_STARTUP_TRACE_FINGERPRINT";
 struct Sink {
     writer: Option<File>,
     started: Instant,
-    bytes: usize,
     truncated: bool,
 }
 
@@ -39,7 +39,6 @@ fn lock_sink() -> MutexGuard<'static, Sink> {
         Mutex::new(Sink {
             writer: None,
             started: Instant::now(),
-            bytes: 0,
             truncated: false,
         })
     })
@@ -56,6 +55,14 @@ pub fn init_default() -> Option<PathBuf> {
     let path = default_path()?;
     init_at(&path).ok()?;
     Some(path)
+}
+
+/// A viewer may append its local lifecycle facts, but must never truncate the
+/// trace belonging to a still-running native owner or another attached viewer.
+pub(crate) fn attach_default() {
+    if let Some(path) = default_path() {
+        let _ = init_file(&path, false);
+    }
 }
 
 fn default_path() -> Option<PathBuf> {
@@ -81,6 +88,10 @@ fn default_path() -> Option<PathBuf> {
 /// If tracing is already initialized this does nothing and returns `Ok(())`.
 /// The file is truncated per launch and created with mode 0600.
 pub fn init_at(path: &Path) -> std::io::Result<()> {
+    init_file(path, true)
+}
+
+fn init_file(path: &Path, truncate: bool) -> std::io::Result<()> {
     let mut sink = lock_sink();
     if sink.writer.is_some() {
         return Ok(());
@@ -92,11 +103,18 @@ pub fn init_at(path: &Path) -> std::io::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     let mut options = OpenOptions::new();
-    options.write(true).create(true).truncate(true).mode(0o600);
+    options.read(true).append(true).create(true).mode(0o600);
     let writer = options.open(path)?;
+    if truncate {
+        // O_APPEND remains set for every writer. Rust rejects append+truncate
+        // in OpenOptions, so the new owner resets its file under the same lock.
+        fs2::FileExt::lock_exclusive(&writer)?;
+        let result = writer.set_len(0);
+        let unlocked = fs2::FileExt::unlock(&writer);
+        result.and(unlocked)?;
+    }
     sink.writer = Some(writer);
     sink.started = Instant::now();
-    sink.bytes = 0;
     sink.truncated = false;
     emit(&mut sink, "trace", "started");
     Ok(())
@@ -163,25 +181,41 @@ fn emit(sink: &mut Sink, stage: &str, message: &str) {
         sink.started.elapsed().as_millis(),
         std::process::id()
     );
-    if sink.bytes + line.len() + TRUNCATED.len() > CAP_BYTES {
-        let _ = writer.write_all(TRUNCATED);
-        let _ = writer.flush();
-        sink.bytes += TRUNCATED.len();
+    // Admission is for the actual shared file, not each process's private
+    // counter. The short lock prevents multiple clients exceeding its byte cap
+    // or appending more than one final truncation marker.
+    if fs2::FileExt::lock_exclusive(writer).is_err() {
         sink.truncated = true;
         return;
     }
-    if writer.write_all(line.as_bytes()).is_ok() && writer.flush().is_ok() {
-        sink.bytes += line.len();
-    } else {
-        sink.truncated = true;
-    }
+    let result = (|| -> std::io::Result<bool> {
+        let size = writer.metadata()?.len() as usize;
+        let mut tail = [0_u8; TRUNCATED.len()];
+        if size >= TRUNCATED.len()
+            && writer.read_at(&mut tail, (size - TRUNCATED.len()) as u64)? == TRUNCATED.len()
+            && tail == TRUNCATED
+        {
+            return Ok(true);
+        }
+        if size + line.len() + TRUNCATED.len() > CAP_BYTES {
+            if size + TRUNCATED.len() <= CAP_BYTES {
+                writer.write_all(TRUNCATED)?;
+                writer.flush()?;
+            }
+            return Ok(true);
+        }
+        writer.write_all(line.as_bytes())?;
+        writer.flush()?;
+        Ok(false)
+    })();
+    let _ = fs2::FileExt::unlock(writer);
+    sink.truncated = result.unwrap_or(true);
 }
 
 #[cfg(test)]
 pub(crate) fn reset_for_tests() {
     let mut sink = lock_sink();
     sink.writer = None;
-    sink.bytes = 0;
     sink.truncated = false;
     sink.started = Instant::now();
 }
@@ -253,6 +287,11 @@ mod tests {
         assert_eq!(text.matches("trace: truncated").count(), 1);
         log("cap", "after truncation");
         assert_eq!(std::fs::metadata(&path).expect("meta").len() as usize, len);
+        // A new attached process cannot truncate or extend a capped owner trace.
+        reset_for_tests();
+        init_file(&path, false).unwrap();
+        log("viewer", "attached");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), text);
     }
 
     #[test]

@@ -7,11 +7,18 @@ use std::{
 };
 
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
+#[cfg(test)]
+use oc_adapters::storage::{CredentialMaterial, Db};
 use oc_adapters::{
-    auth::{AuthScope, OPENAI_BASE_URL, OpenAiAttempts},
-    storage::{AccountSummary, CredentialKind, CredentialMaterial, Db},
+    auth::{AuthScope, OPENAI_BASE_URL},
+    storage::{AccountSummary, CredentialKind},
 };
-use oc_core::queries::{AuthAttemptState, AuthMethod, OAuthMethod};
+use oc_core::{
+    core_app::CoreApp,
+    queries::{
+        AccountAction, AccountKind, AuthAction, AuthAttemptState, AuthMethod, KeyInput, OAuthMethod,
+    },
+};
 
 use crate::cli::{AuthCommand, AuthFormat};
 
@@ -82,8 +89,49 @@ fn method(raw: Option<&str>, interactive: bool, methods: &[AuthMethod]) -> Resul
     Ok(methods[select("OpenAI authentication method", &choices)?])
 }
 
-async fn execute(action: AuthCommand, data: &Path, interactive: bool) -> Result<()> {
+async fn execute(mut action: AuthCommand, data: &Path, interactive: bool) -> Result<()> {
     let scope = scope()?;
+    match &mut action {
+        AuthCommand::Login(args) => {
+            target(args.target.as_deref(), interactive)?;
+            label(&args.answers)?;
+            let selected = method(args.method.as_deref(), interactive, &scope.methods())?;
+            args.target = Some("openai".into());
+            args.method = Some(selected.id().into());
+            if selected == AuthMethod::Key && !interactive {
+                return Err(
+                    "API key entry requires stdin and stdout TTYs; use admitted OPENAI_API_KEY/config for headless generation",
+                );
+            }
+        }
+        AuthCommand::Logout {
+            target: selected, ..
+        }
+        | AuthCommand::Switch {
+            target: selected, ..
+        } => {
+            target(selected.as_deref(), interactive)?;
+            *selected = Some("openai".into());
+        }
+        AuthCommand::List { .. } => {}
+    }
+    let (app, guard, _) = oc_adapters::native::attach(data, None, oc_adapters::native::Lease::Auth)
+        .await
+        .map_err(|_| "credential owner unavailable")?;
+    let result = execute_attached(action, &app, &scope, interactive).await;
+    let released = app.shutdown().await;
+    let cleanup = guard.join_diagnostic().await;
+    cleanup.map_err(|_| "authorization cleanup failed")?;
+    released.map_err(|_| "authorization cleanup failed")?;
+    result
+}
+
+async fn execute_attached(
+    action: AuthCommand,
+    app: &CoreApp,
+    scope: &AuthScope,
+    interactive: bool,
+) -> Result<()> {
     match action {
         AuthCommand::Login(args) => {
             target(args.target.as_deref(), interactive)?;
@@ -94,34 +142,32 @@ async fn execute(action: AuthCommand, data: &Path, interactive: bool) -> Result<
                     "API key entry requires stdin and stdout TTYs; use admitted OPENAI_API_KEY/config for headless generation",
                 );
             }
-            let db = Db::open(data).map_err(|_| "credential storage unavailable")?;
             match method {
                 AuthMethod::Key => {
                     let key = password()?;
-                    let row = db
-                        .add_credential(scope.namespace(), &label, CredentialMaterial::Key { key })
+                    let row = app
+                        .provider_accounts(
+                            "openai".into(),
+                            Some(AccountAction::AddKey {
+                                label,
+                                key: KeyInput::new(key),
+                            }),
+                        )
+                        .await
                         .map_err(|_| "credential storage unavailable or invalid key")?;
+                    let id = row
+                        .created
+                        .ok_or("credential acknowledgement unavailable")?;
                     output(&format!(
                         "Stored OpenAI API key ({})\nServer authorization has not been validated.\n",
-                        row.id
+                        id
                     ))
                 }
-                AuthMethod::OAuth(method) => {
-                    let owner =
-                        OpenAiAttempts::new(&db).map_err(|_| "authorization unavailable")?;
-                    let result = login(&owner, &db, &scope, method, label, interactive).await;
-                    let cleanup = owner
-                        .shutdown()
-                        .await
-                        .map_err(|_| "authorization cleanup failed");
-                    cleanup?;
-                    result
-                }
+                AuthMethod::OAuth(method) => login(app, scope, method, label, interactive).await,
             }
         }
         AuthCommand::List { format } => {
-            let db = Db::open(data).map_err(|_| "credential storage unavailable")?;
-            let rows = accounts(&db, &scope)?;
+            let rows = remote_accounts(app, scope).await?;
             list_to(&mut std::io::stdout().lock(), &rows, format)
         }
         AuthCommand::Logout {
@@ -129,11 +175,17 @@ async fn execute(action: AuthCommand, data: &Path, interactive: bool) -> Result<
             credential,
         } => {
             target(selected.as_deref(), interactive)?;
-            let db = Db::open(data).map_err(|_| "credential storage unavailable")?;
-            let rows = accounts(&db, &scope)?;
+            let rows = remote_accounts(app, scope).await?;
             let row = account(&rows, credential.as_deref(), interactive)?;
-            db.remove_credential(scope.namespace(), &row.id)
-                .map_err(|_| "account removal failed")?;
+            app.provider_accounts(
+                "openai".into(),
+                Some(AccountAction::Remove {
+                    id: row.id.clone(),
+                    confirmed: true,
+                }),
+            )
+            .await
+            .map_err(|_| "account removal failed")?;
             output("OpenAI account removed\n")
         }
         AuthCommand::Switch {
@@ -141,20 +193,49 @@ async fn execute(action: AuthCommand, data: &Path, interactive: bool) -> Result<
             credential,
         } => {
             target(selected.as_deref(), interactive)?;
-            let db = Db::open(data).map_err(|_| "credential storage unavailable")?;
-            let rows = accounts(&db, &scope)?;
+            let rows = remote_accounts(app, scope).await?;
             let row = account(&rows, credential.as_deref(), interactive)?;
-            db.activate_credential(scope.namespace(), &row.id)
-                .map_err(|_| "account activation failed")?;
+            app.provider_accounts(
+                "openai".into(),
+                Some(AccountAction::Activate { id: row.id.clone() }),
+            )
+            .await
+            .map_err(|_| "account activation failed")?;
             output("OpenAI account activated\n")
         }
     }
 }
 
+#[cfg(test)]
 fn accounts(db: &Db, scope: &AuthScope) -> Result<Vec<AccountSummary>> {
     let mut rows = db
         .credential_accounts(scope.namespace())
         .map_err(|_| "credential storage unavailable")?;
+    rows.sort_by(|a, b| a.label.cmp(&b.label).then(a.id.cmp(&b.id)));
+    Ok(rows)
+}
+
+async fn remote_accounts(app: &CoreApp, scope: &AuthScope) -> Result<Vec<AccountSummary>> {
+    let view = app
+        .provider_accounts("openai".into(), None)
+        .await
+        .map_err(|_| "credential storage unavailable")?;
+    let mut rows: Vec<_> = view
+        .accounts
+        .into_iter()
+        .map(|row| AccountSummary {
+            id: row.id,
+            provider_namespace: scope.namespace().into(),
+            label: row.label,
+            kind: match row.kind {
+                AccountKind::Key => CredentialKind::Key,
+                AccountKind::OAuth => CredentialKind::OAuth,
+            },
+            method_id: row.method_id,
+            active: row.active,
+            created_at: row.created_at,
+        })
+        .collect();
     rows.sort_by(|a, b| a.label.cmp(&b.label).then(a.id.cmp(&b.id)));
     Ok(rows)
 }
@@ -243,8 +324,7 @@ fn output(text: &str) -> Result<()> {
 }
 
 async fn login(
-    owner: &OpenAiAttempts,
-    db: &Db,
+    app: &CoreApp,
     scope: &AuthScope,
     method: OAuthMethod,
     label: String,
@@ -256,19 +336,29 @@ async fn login(
     let attempt = tokio::select! {
         biased;
         result = &mut interrupt => { result.map_err(|_| "interrupt handler unavailable")?; return Err(CANCELLED); }
-        result = owner.begin(method, label) => result.map_err(|_| "authorization unavailable")?,
+        result = app.authenticate("openai".into(), AuthAction::Begin { method, label }) => result.map_err(|_| "authorization unavailable")?,
     };
     let mut presented = false;
     loop {
-        let view = owner
-            .status(&attempt.id)
+        let view = app
+            .authenticate(
+                "openai".into(),
+                AuthAction::Status {
+                    attempt: attempt.id.clone(),
+                },
+            )
+            .await
             .map_err(|_| "authorization unavailable")?;
         match view.state {
             AuthAttemptState::Complete => {
                 let id = view
                     .account_id
                     .ok_or("authorization acknowledgement unavailable")?;
-                if !accounts(db, scope)?.iter().any(|row| row.id == id) {
+                if !remote_accounts(app, scope)
+                    .await?
+                    .iter()
+                    .any(|row| row.id == id)
+                {
                     return Err("authorization acknowledgement unavailable");
                 }
                 return output(&format!("Connected to OpenAI ({id})\n"));
@@ -291,7 +381,7 @@ async fn login(
                     biased;
                     result = &mut interrupt => {
                         result.map_err(|_| "interrupt handler unavailable")?;
-                        owner.cancel(&attempt.id).await.map_err(|_| "authorization cleanup failed")?;
+                        app.authenticate("openai".into(), AuthAction::Cancel { attempt: attempt.id.clone() }).await.map_err(|_| "authorization cleanup failed")?;
                         return Err(CANCELLED);
                     }
                     result = open_authorization(url) => result,
@@ -308,7 +398,7 @@ async fn login(
             biased;
             result = &mut interrupt => {
                 result.map_err(|_| "interrupt handler unavailable")?;
-                owner.cancel(&attempt.id).await.map_err(|_| "authorization cleanup failed")?;
+                app.authenticate("openai".into(), AuthAction::Cancel { attempt: attempt.id.clone() }).await.map_err(|_| "authorization cleanup failed")?;
                 return Err(CANCELLED);
             }
             () = tokio::time::sleep(Duration::from_millis(500)) => {}

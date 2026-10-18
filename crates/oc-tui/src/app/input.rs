@@ -3293,7 +3293,11 @@ impl TuiState {
                             return KeyOutcome::default();
                         }
                     }
-                    match self.app.cancel(session).await {
+                    match if let Some(turn) = self.active_turn.clone() {
+                        self.app.cancel_turn(session, turn).await
+                    } else {
+                        self.app.cancel(session).await
+                    } {
                         Ok(()) => KeyOutcome::default(),
                         Err(error) => KeyOutcome {
                             note: Some(format!("cancel: {error}")),
@@ -3575,11 +3579,14 @@ impl TuiState {
                 ));
             }
         }
-        self.app
-            .prompt_history(Some(self.input.clone()))
-            .await
-            .map(|_| ())
-            .map_err(|error| format!("prompt history: {error}"))
+        match self.app.prompt_history(Some(self.input.clone())).await {
+            // Quit is a local terminal/lifetime action. A dead owner cannot
+            // persist this last command, but must not trap its disconnected UI.
+            Err(oc_core::session::CoreError::Shutdown) if *action == CommandAction::Quit => Ok(()),
+            result => result
+                .map(|_| ())
+                .map_err(|error| format!("prompt history: {error}")),
+        }
     }
 
     pub(super) fn run_command(&mut self, action: CommandAction) -> KeyOutcome {

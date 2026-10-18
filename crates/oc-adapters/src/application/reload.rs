@@ -286,11 +286,21 @@ pub(super) async fn publish(
         request_provider: next.request_provider(&next.catalog.provider),
         mcp_activation: Some(next.mcp_activation.clone()),
     };
+    let profiles = runtime
+        .primary_source_views()
+        .into_iter()
+        .map(|view| {
+            let selected =
+                selection::for_reload(db, &next, &next_effective, &view.session, &view.profile)?;
+            let workspace = workspace_publication(&next, &selected);
+            Ok((view, workspace))
+        })
+        .collect::<Result<Vec<_>, CoreError>>()?;
     // Retire old GET outcomes only after every candidate check has succeeded.
     // Those read-only jobs must not publish an old binding after this commit.
     provider_work.stop().await.map_err(CoreError::Diagnostic)?;
     runtime
-        .publish_source(input, force)
+        .publish_source(input, force, profiles)
         .await
         .map_err(runtime_error)?;
     let epoch = location_epoch.fetch_add(1, Ordering::SeqCst) + 1;

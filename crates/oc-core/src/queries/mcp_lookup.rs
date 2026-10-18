@@ -3,7 +3,7 @@ use super::{McpBinding, SessionId};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum McpLookupOp {
     ListPrompts,
     ListResources,
@@ -48,7 +48,7 @@ impl std::fmt::Debug for McpLookupOp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct McpLookup {
     pub binding: McpBinding,
     pub server: String,
@@ -58,7 +58,7 @@ pub struct McpLookup {
     pub refresh: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum McpLookupError {
     Unavailable,
     StaleBinding,
@@ -179,7 +179,7 @@ pub struct McpPromptMessage {
     pub content: McpPromptContent,
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum McpLookupData {
     Prompts {
@@ -229,7 +229,7 @@ impl McpLookupData {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct McpLookupReply {
     pub binding: McpBinding,
     pub server: String,

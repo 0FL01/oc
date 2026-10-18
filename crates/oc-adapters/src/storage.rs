@@ -520,17 +520,7 @@ impl Db {
 
     /// Open with explicit blob quota (tests use small quotas).
     pub fn open_with_quota(root: &Path, quota_bytes: u64) -> Result<Self, StorageError> {
-        let root = validate_root(root)?;
-        fs::create_dir_all(&root)?;
-        // Ownership first (refuse foreign dirs); then enforce 0700 on both
-        // fresh and existing roots so a normal 0755 --data-dir is secured
-        // rather than refused. Symlink/owner failures stay hard errors.
-        check_owner(&root)?;
-        #[cfg(unix)]
-        {
-            fs::set_permissions(&root, fs::Permissions::from_mode(0o700))?;
-        }
-        check_restrictive(&root)?;
+        let root = prepare_root(root)?;
         let blob_dir = root.join("blobs");
         fs::create_dir_all(&blob_dir)?;
         #[cfg(unix)]
@@ -4150,7 +4140,19 @@ fn secure_sqlite_file(path: &Path, create: bool) -> Result<(), StorageError> {
     Ok(())
 }
 
-fn validate_root(root: &Path) -> Result<PathBuf, StorageError> {
+/// Shared admission for storage and its private native endpoint. This does not
+/// acquire a lock, open SQLite, migrate state, or run recovery.
+pub(crate) fn prepare_root(root: &Path) -> Result<PathBuf, StorageError> {
+    let root = validate_root(root)?;
+    fs::create_dir_all(&root)?;
+    check_owner(&root)?;
+    #[cfg(unix)]
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o700))?;
+    check_restrictive(&root)?;
+    Ok(root)
+}
+
+pub(crate) fn validate_root(root: &Path) -> Result<PathBuf, StorageError> {
     if !root.is_absolute() {
         return Err(StorageError::UnsafeRoot("relative data root".to_string()));
     }

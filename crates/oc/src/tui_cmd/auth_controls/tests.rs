@@ -18,6 +18,7 @@ async fn starting(app: CoreApp) -> (TuiState, AuthRequest) {
     }]));
     state.handle_key(KeyAction::Enter).await;
     state.apply_provider_accounts(Ok(ProviderAccounts {
+        created: None,
         provider: "openai".into(),
         name: String::from("openai"),
         accounts: vec![],
@@ -169,6 +170,7 @@ async fn auth05_completed_auth_requires_account_ack_then_browses_exact_provider_
         };
         assert_eq!(provider, "openai");
         ack.send(Ok(ProviderAccounts {
+            created: None,
             provider: "openai".into(),
             name: "OpenAI".into(),
             effective: oc_core::queries::AccountAuthSource::Stored,

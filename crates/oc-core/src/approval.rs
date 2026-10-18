@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::{broadcast, oneshot};
 
 /// Owner-prepared display data; consumers never inspect the filesystem.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ApprovalPreview {
     /// Generic invocation; display the already-bounded request action, not policy resources.
     Tool,
@@ -29,7 +29,7 @@ pub enum ApprovalPreview {
 }
 
 /// Exact identity echoed by a reply, including immutable invocation digest.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ApprovalBinding {
     pub session: String,
     pub turn: String,
@@ -42,7 +42,7 @@ pub struct ApprovalBinding {
     pub agent_digest: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ApprovalRequest {
     pub id: u64,
     pub binding: ApprovalBinding,
@@ -53,7 +53,7 @@ pub struct ApprovalRequest {
     pub preview: ApprovalPreview,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ApprovalDecision {
     Once,
     Always,
@@ -65,7 +65,7 @@ pub enum ApprovalDecision {
     Cancelled,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ApprovalReply {
     pub id: u64,
     pub binding: ApprovalBinding,
@@ -75,6 +75,16 @@ pub struct ApprovalReply {
 struct Pending {
     request: ApprovalRequest,
     reply: oneshot::Sender<ApprovalDecision>,
+    operation: Option<u64>,
+    _capacity: tokio::sync::OwnedSemaphorePermit,
+}
+
+/// Ephemeral issuing-operation consumer policy, shared by its descendants but
+/// never by another operation that happens to reuse the same root queue.
+pub struct ApprovalScope {
+    pub operation: u64,
+    pub consumer: bool,
+    pub auto_once: bool,
 }
 #[derive(Default)]
 struct State {
@@ -85,10 +95,19 @@ struct State {
 }
 
 /// One owner queue, bounded independently of provider streams/history.
-#[derive(Default)]
-pub struct ApprovalQueue(Mutex<State>);
+pub struct ApprovalQueue(Mutex<State>, Arc<tokio::sync::Semaphore>);
+impl Default for ApprovalQueue {
+    fn default() -> Self {
+        Self(Mutex::default(), Arc::new(tokio::sync::Semaphore::new(64)))
+    }
+}
 
 impl ApprovalQueue {
+    /// Independent control state, retaining the application's existing aggregate
+    /// pending cap rather than multiplying it for each concurrent root.
+    pub fn new_scope(&self) -> Self {
+        Self(Mutex::default(), self.1.clone())
+    }
     pub fn has_consumer(&self) -> bool {
         self.0.lock().expect("approval lock").consumer
     }
@@ -105,6 +124,28 @@ impl ApprovalQueue {
             .values()
             .map(|p| p.request.clone())
             .collect()
+    }
+    pub fn pending_operation(&self, operation: u64) -> Vec<ApprovalRequest> {
+        self.0
+            .lock()
+            .expect("approval lock")
+            .pending
+            .values()
+            .filter(|pending| pending.operation == Some(operation))
+            .map(|pending| pending.request.clone())
+            .collect()
+    }
+    pub fn cancel_operation(&self, operation: u64, events: &broadcast::Sender<CoreEvent>) {
+        for request in self.pending_operation(operation) {
+            let _ = self.resolve(
+                ApprovalReply {
+                    id: request.id,
+                    binding: request.binding,
+                    decision: ApprovalDecision::Cancelled,
+                },
+                events,
+            );
+        }
     }
     /// Called only by the owner; persist Always before invoking this method.
     pub fn resolve(
@@ -170,8 +211,16 @@ impl ApprovalQueue {
     }
     pub async fn wait(
         self: &Arc<Self>,
+        request: ApprovalRequest,
+        events: &broadcast::Sender<CoreEvent>,
+    ) -> Result<ApprovalDecision, &'static str> {
+        self.wait_scoped(request, events, None).await
+    }
+    pub async fn wait_scoped(
+        self: &Arc<Self>,
         mut request: ApprovalRequest,
         events: &broadcast::Sender<CoreEvent>,
+        scope: Option<ApprovalScope>,
     ) -> Result<ApprovalDecision, &'static str> {
         let strings = request.resources.iter().chain(&request.save_patterns);
         let preview_bytes = match &request.preview {
@@ -211,18 +260,29 @@ impl ApprovalQueue {
         let (tx, rx) = oneshot::channel();
         {
             let mut state = self.0.lock().expect("approval lock");
-            if !state.consumer {
+            if !scope
+                .as_ref()
+                .map_or(state.consumer, |scope| scope.consumer)
+            {
                 return Err("approval required: no consumer");
             }
             if state.pending.len() >= 64 {
                 return Err("approval queue full");
             }
+            let capacity = self
+                .1
+                .clone()
+                .try_acquire_owned()
+                .map_err(|_| "approval queue full")?;
             state.sequence = state
                 .sequence
                 .checked_add(1)
                 .ok_or("approval identity exhausted")?;
             request.id = state.sequence;
-            if state.auto_once {
+            if scope
+                .as_ref()
+                .map_or(state.auto_once, |scope| scope.auto_once)
+            {
                 let _ = events.send(CoreEvent::PermissionAsked(request.clone()));
                 let _ = events.send(CoreEvent::PermissionResolved {
                     request,
@@ -235,6 +295,8 @@ impl ApprovalQueue {
                 Pending {
                     request: request.clone(),
                     reply: tx,
+                    operation: scope.map(|scope| scope.operation),
+                    _capacity: capacity,
                 },
             );
         }

@@ -893,7 +893,12 @@ async fn check_application_patch_replay(line: &str, count: usize) {
                 panic!("unexpected execute in patch-only fixture")
             }
             CoreEvent::PermissionAsked(_) | CoreEvent::PermissionResolved { .. } => {}
-            CoreEvent::QuestionAsked(_) | CoreEvent::QuestionResolved { .. } => {}
+            CoreEvent::QuestionAsked(_)
+            | CoreEvent::QuestionResolved { .. }
+            | CoreEvent::Projection { .. }
+            | CoreEvent::WorkspaceChanged { .. }
+            | CoreEvent::ProjectionGap
+            | CoreEvent::OwnerDisconnected => {}
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");

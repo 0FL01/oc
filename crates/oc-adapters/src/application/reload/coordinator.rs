@@ -7,11 +7,14 @@ use tokio::time::Instant;
 
 type Waiter = oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>;
 
-pub(in crate::application) struct Ready {
-    result: Result<Candidate, CoreError>,
-    force: bool,
-    stamp: crate::runtime::SourceStamp,
-    waiters: Vec<Waiter>,
+pub(in crate::application) enum Ready {
+    Build {
+        result: Result<Candidate, CoreError>,
+        force: bool,
+        stamp: crate::runtime::SourceStamp,
+        waiters: Vec<Waiter>,
+    },
+    Follow(Arc<authority::Snapshot>),
 }
 
 struct Build {
@@ -41,6 +44,7 @@ impl Receipt {
 
 #[derive(Default)]
 pub(in crate::application) struct Coordinator {
+    follower: Option<tokio::sync::watch::Receiver<Option<Arc<authority::Snapshot>>>>,
     location: Option<PathBuf>,
     watch: Option<composition::SourceWatch>,
     build: Option<Build>,
@@ -53,6 +57,13 @@ pub(in crate::application) struct Coordinator {
 }
 
 impl Coordinator {
+    pub(in crate::application) fn follow(
+        source: tokio::sync::watch::Receiver<Option<Arc<authority::Snapshot>>>,
+    ) -> Self {
+        let mut coordinator = Self::default();
+        coordinator.follower = Some(source);
+        coordinator
+    }
     /// A new root cannot overtake an already accepted explicit source change.
     pub(in crate::application) fn forced(&self) -> bool {
         self.force || self.build.as_ref().is_some_and(|build| build.force)
@@ -62,6 +73,9 @@ impl Coordinator {
         &mut self,
         composition: &Composition,
     ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
+        if self.follower.is_some() {
+            return Ok(());
+        }
         if self.location.as_ref() == Some(&composition.project) {
             return Ok(());
         }
@@ -124,6 +138,18 @@ impl Coordinator {
     pub(in crate::application) async fn wait(
         &mut self,
     ) -> Result<Option<Ready>, oc_core::queries::ServiceDiagnostic> {
+        if let Some(follower) = &mut self.follower {
+            follower.changed().await.map_err(|_| {
+                crate::config::diagnostic::failure(
+                    "native source follower",
+                    &["owner"],
+                    oc_core::queries::ServiceStage::Admission,
+                    oc_core::queries::ServiceCode::SourceUnavailable,
+                    oc_core::queries::ServiceAction::ReviewConfiguration,
+                )
+            })?;
+            return Ok(follower.borrow_and_update().clone().map(Ready::Follow));
+        }
         let Some(watch) = &self.watch else {
             return std::future::pending().await;
         };
@@ -139,7 +165,7 @@ impl Coordinator {
             result = async { (&mut self.build.as_mut().expect("guarded build").task).await }, if self.build.is_some() => {
                 let build = self.build.take().expect("completed build");
                 let result = result.map_err(|_| crate::config::diagnostic::failure("native source build", &["join"], oc_core::queries::ServiceStage::Admission, oc_core::queries::ServiceCode::SourceUnavailable, oc_core::queries::ServiceAction::ReviewConfiguration))?;
-                Ok(Some(Ready { result, force: build.force, stamp: build.stamp, waiters: build.waiters }))
+                Ok(Some(Ready::Build { result, force: build.force, stamp: build.stamp, waiters: build.waiters }))
             },
             () = async { tokio::time::sleep_until(self.due.expect("guarded deadline")).await }, if self.pending && self.build.is_none() && self.due.is_some() => Ok(None),
         }
@@ -160,13 +186,69 @@ impl Coordinator {
         events: &broadcast::Sender<CoreEvent>,
         active: Option<(&str, &Effective)>,
     ) -> Result<Option<Receipt>, oc_core::queries::ServiceDiagnostic> {
-        let Ready {
+        let ready = match ready {
+            Ready::Follow(snapshot) => {
+                let next = snapshot.composition.primary_snapshot().map_err(|_| {
+                    runtime_issue(
+                        runtime.location(),
+                        &["source", "snapshot"],
+                        &RuntimeError::Storage,
+                    )
+                    .diagnostic
+                })?;
+                next.approval_consumer_mode.store(
+                    composition.approval_consumer_mode.load(Ordering::SeqCst),
+                    Ordering::SeqCst,
+                );
+                next.question_consumer.store(
+                    composition.question_consumer.load(Ordering::SeqCst),
+                    Ordering::SeqCst,
+                );
+                let accepted = active
+                    .map(|(_, selected)| selected.clone())
+                    .or_else(|| runtime.primary_profile())
+                    .unwrap_or_else(|| effective.clone());
+                let selected = if let Some(session) = active
+                    .map(|(session, _)| session)
+                    .or_else(|| sessions.get(runtime.location()).map(String::as_str))
+                {
+                    selection::for_reload(db, &next, &snapshot.effective, session, &accepted)
+                        .map_err(|_| {
+                            runtime_issue(
+                                runtime.location(),
+                                &["selection"],
+                                &RuntimeError::Storage,
+                            )
+                            .diagnostic
+                        })?
+                } else {
+                    accepted
+                };
+                *registry = WorkspaceRegistry::bind(
+                    snapshot.source_id,
+                    runtime.location(),
+                    &next.generation,
+                    workspace_agents(&next),
+                    skill_metas(&next),
+                );
+                *composition = next;
+                *effective = selected;
+                runtime.follow_primary_source(snapshot.source_id);
+                return Ok(None);
+            }
+            ready => ready,
+        };
+        let Ready::Build {
             mut result,
             force,
             stamp,
             waiters,
-        } = ready;
-        let settle_interactions = force && active.is_some();
+        } = ready
+        else {
+            unreachable!("handled follower")
+        };
+        let settle_interactions =
+            force && (active.is_some() || !runtime.primary_source_views().is_empty());
         if !runtime.source_is_current(&stamp) {
             self.pending = true;
             self.due = Some(Instant::now());
@@ -215,6 +297,7 @@ impl Coordinator {
         &mut self,
     ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
         let mut failure = None;
+        self.follower = None;
         if let Some(build) = self.build.take() {
             build.task.abort();
             let result = build.task.await;

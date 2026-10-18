@@ -41,6 +41,7 @@ mod child_controls;
 mod clipboard;
 use clipboard::{ClipboardJob, start_clipboard, sync_clipboard};
 mod connect_controls;
+mod shared;
 mod terminal_controls;
 
 /// Qualification probe (T26): when set, panic right after entering the
@@ -208,22 +209,26 @@ async fn run_stages(
     let session = session_opt
         .map(|raw| SessionId::new(raw).ok_or_else(|| "invalid session id".to_string()))
         .transpose()?;
-    let (app, guard, _notices) =
-        match oc_adapters::application::spawn_with_startup_diagnostic(&project, data_dir).await {
-            Ok(runtime) => {
-                oc_adapters::trace::log("spawn.ok", "");
-                runtime
-            }
-            Err(issue) => {
-                oc_adapters::trace::log("spawn.fail", &issue.to_string());
-                eprintln!("error: {issue}");
-                let _term = enter()?;
-                let mut terminal = Terminal::new(FrameBackend::new(std::io::stdout()))
-                    .map_err(|e| format!("terminal: {e}"))?;
-                return startup_failure(&mut terminal, StartupFailure::Diagnostic(issue))
-                    .map(|_| 1);
-            }
-        };
+    let (app, guard, _notices) = match oc_adapters::native::attach(
+        data_dir,
+        Some(&project),
+        oc_adapters::native::Lease::Tui,
+    )
+    .await
+    {
+        Ok(runtime) => {
+            oc_adapters::trace::log("spawn.ok", "");
+            runtime
+        }
+        Err(issue) => {
+            oc_adapters::trace::log("spawn.fail", &issue.to_string());
+            eprintln!("error: {issue}");
+            let _term = enter()?;
+            let mut terminal = Terminal::new(FrameBackend::new(std::io::stdout()))
+                .map_err(|e| format!("terminal: {e}"))?;
+            return startup_failure(&mut terminal, StartupFailure::Diagnostic(issue)).map(|_| 1);
+        }
+    };
     let result = async {
         let catalog = match app.catalog().await {
             Ok(catalog) => catalog,
@@ -277,6 +282,9 @@ type CompactionAdmission = tokio::task::JoinHandle<
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    projection_revision: u64,
+    shared_refresh: bool,
+    shared_gap: bool,
     authentication: auth_controls::Controls,
     questions: oc_tui::question_view::QuestionView,
     cli_auto: bool,
@@ -593,7 +601,12 @@ impl LoopState {
                 Ok(())
             }
             Ok(_) => Err(CoreError::TabDeckStorage),
-            Err(error) => Err(error),
+            Err(error) => {
+                if app.shares_workspace() && error == CoreError::TabDeckConflict {
+                    self.shared_refresh = true;
+                }
+                Err(error)
+            }
         }
     }
 
@@ -1137,6 +1150,11 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         Err(failure) => return startup_failure(&mut terminal, failure).map(|_| 1),
     };
     loop_state.cli_auto = cli_auto;
+    if app.shares_workspace() {
+        loop_state.shared_refresh = true;
+        loop_state.shared_gap = true;
+        shared::sync(app, &mut state, &mut loop_state).await?;
+    }
     loop_state.sidebar_mcp_open = Some(match app.sidebar_mcp_open(None).await {
         Ok(open) => open,
         Err(error) => return startup_failure(&mut terminal, startup_query(error)).map(|_| 1),
@@ -1170,6 +1188,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         loop_state.retire_parked_auth();
         dirty |= loop_state.authentication.sync(app, &mut state).await;
         poll_and_sync(app, &mut state, &mut loop_state).await;
+        if app.shares_workspace() && loop_state.shared_refresh {
+            dirty |= shared::sync(app, &mut state, &mut loop_state).await?;
+        }
         if state.terminals_need_refresh() {
             terminal_controls::refresh_or_report(app, &mut state).await;
             dirty = true;
@@ -1396,8 +1417,56 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 .unwrap_or_else(|| try_worker_event(&mut rx, frame_metrics.as_mut()))
             {
                 Ok(event) => event,
+                Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {
+                    if app.shares_workspace() {
+                        loop_state.shared_refresh = true;
+                        loop_state.shared_gap = true;
+                        dirty = true;
+                    }
+                    break;
+                }
                 Err(_) => break,
             };
+            let event = match event {
+                CoreEvent::Projection { revision, event } => {
+                    if revision <= loop_state.projection_revision {
+                        continue;
+                    }
+                    if loop_state.projection_revision != 0
+                        && revision != loop_state.projection_revision + 1
+                    {
+                        loop_state.shared_gap = true;
+                        loop_state.shared_refresh = true;
+                    }
+                    loop_state.projection_revision = revision;
+                    *event
+                }
+                event => event,
+            };
+            match &event {
+                CoreEvent::WorkspaceChanged { location } => {
+                    if loop_state.location.as_ref() == Some(location) {
+                        loop_state.shared_refresh = true;
+                    }
+                    continue;
+                }
+                CoreEvent::ProjectionGap => {
+                    loop_state.shared_gap = true;
+                    loop_state.shared_refresh = true;
+                    continue;
+                }
+                CoreEvent::SessionModelSelected { .. } if app.shares_workspace() => {
+                    // The committed choice is common; only an unmatched local
+                    // picker draft is private. Reconcile its receipt first.
+                    loop_state.shared_refresh = true;
+                }
+                CoreEvent::OwnerDisconnected => {
+                    state.push_note("Runtime connection lost; operation outcome unknown. Reopen to read current state; input was not resent.");
+                    dirty = true;
+                    continue;
+                }
+                _ => {}
+            }
             dirty = true;
             if let Some(metrics) = &mut frame_metrics {
                 metrics.worker_events += 1;
@@ -1485,6 +1554,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 match result {
                     Ok(event) => worker_ready = Some(event),
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        loop_state.shared_refresh = true;
+                        loop_state.shared_gap = true;
                         if let Some(metrics) = &mut frame_metrics {
                             metrics.worker_event_queue_lagged += skipped;
                         }
@@ -1511,8 +1582,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         job.cancel().await;
     }
     if let Some((session, job)) = loop_state.title_job.take() {
-        let _ = app.cancel_title(session).await;
-        let _ = job.await;
+        if app.shares_workspace() {
+            job.abort();
+        } else {
+            let _ = app.cancel_title(session).await;
+            let _ = job.await;
+        }
     }
     if let Some((_, job)) = loop_state.mention_job.take() {
         job.abort();
@@ -1627,7 +1702,11 @@ async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState
     let fresh = deck.active_tab.is_none() && state.attached_session().is_some();
     deck.sync_tabs(state);
     if fresh {
-        deck.save(app, state).await;
+        if app.shares_workspace() {
+            deck.shared_refresh = true;
+        } else {
+            deck.save(app, state).await;
+        }
         if let Err(error) = refresh_shells(app, state).await {
             state.push_note(&error);
         }
@@ -1643,6 +1722,9 @@ async fn reconcile_exit(
         .reconcile_fresh_quit()
         .await
         .map_err(|error| format!("quit cancellation: {error}"))?;
+    if app.shares_workspace() {
+        return Ok(());
+    }
     // `handle_key` can consume an acceptance just before setting Quit, after
     // the frame's final poll_and_sync. Only a newly attached Home needs a
     // save; an already-durable tab never waits or writes again.
@@ -1823,64 +1905,80 @@ async fn restore_views(
     // Parked view restoration carries large owned states across awaits. Heap
     // pin this bounded future instead of multiplying inline caller poll frames.
     Box::pin(async move {
-    let mut views = Vec::with_capacity(ids.len());
-    let mut unavailable = Vec::new();
-    for (id, new_session_tab) in ids {
-        match load_tab(app, id.clone()).await {
-            Ok(mut view) => {
-                view.new_session_tab = new_session_tab;
-                views.push((id, view));
-            }
-            Err(error)
-                if explicit == Some(&id)
-                    || (matches!(&error, CoreError::Diagnostic(_) | CoreError::TabDeckStorage)
-                        && !(active.as_ref() != Some(&id)
-                            && matches!(&error, CoreError::Diagnostic(diagnostic)
-                                if diagnostic.code == oc_core::queries::ServiceCode::InvalidStoredState
-                                    && diagnostic.field == ["selection"]))) =>
-            {
-                return Err(startup_query(error));
-            }
-            Err(error) => {
-                // A parked selection preference is optional view metadata.
-                // Query/storage failures and the selected root still fail closed.
-                if let CoreError::Diagnostic(diagnostic) = error {
-                    unavailable.push(diagnostic);
+        let mut views = Vec::with_capacity(ids.len());
+        let mut unavailable = Vec::new();
+        for (id, new_session_tab) in ids {
+            match load_tab(app, id.clone()).await {
+                Ok(mut view) => {
+                    view.new_session_tab = new_session_tab;
+                    views.push((id, view));
                 }
-                deck.save_disabled = true;
+                Err(error)
+                    if restore_error_is_fatal(
+                        &error,
+                        explicit == Some(&id),
+                        active.as_ref() == Some(&id),
+                    ) =>
+                {
+                    return Err(startup_query(error));
+                }
+                Err(error) => {
+                    // A parked selection preference is optional view metadata.
+                    // Query/storage failures and the selected root still fail closed.
+                    if let CoreError::Diagnostic(diagnostic) = error {
+                        unavailable.push(diagnostic);
+                    }
+                    deck.save_disabled = true;
+                }
             }
         }
-    }
-    let active_index = if prefer_home_when_space && views.len() < MAX_TABS {
-        None
-    } else {
-        active
-            .as_ref()
-            .and_then(|id| views.iter().position(|(candidate, _)| candidate == id))
-    };
-    let mut state = if let Some(index) = active_index {
-        deck.active_tab = Some(index);
-        views.remove(index).1
-    } else if views.len() == MAX_TABS {
-        deck.active_tab = Some(0);
-        views.remove(0).1
-    } else if let Some(home) = home {
-        home
-    } else {
-        initial_state(app, None).await?
-    };
-    deck.tabs = views.into_iter().map(|(_, view)| Some(view)).collect();
-    if let Some(index) = deck.active_tab {
-        deck.tabs.insert(index, None);
-    }
-    deck.tab_cards_before.resize(deck.tabs.len(), None);
-    if deck.save_disabled {
-        state.chrome.service_diagnostics.extend(unavailable);
-        state.push_note("saved tabs partially unavailable; review saved tabs");
-    }
-    Ok(state)
+        let active_index = if prefer_home_when_space && views.len() < MAX_TABS {
+            None
+        } else {
+            active
+                .as_ref()
+                .and_then(|id| views.iter().position(|(candidate, _)| candidate == id))
+        };
+        let mut state = if let Some(index) = active_index {
+            deck.active_tab = Some(index);
+            views.remove(index).1
+        } else if views.len() == MAX_TABS {
+            deck.active_tab = Some(0);
+            views.remove(0).1
+        } else if let Some(home) = home {
+            home
+        } else {
+            initial_state(app, None).await?
+        };
+        deck.tabs = views.into_iter().map(|(_, view)| Some(view)).collect();
+        if let Some(index) = deck.active_tab {
+            deck.tabs.insert(index, None);
+        }
+        deck.tab_cards_before.resize(deck.tabs.len(), None);
+        if deck.save_disabled {
+            state.chrome.service_diagnostics.extend(unavailable);
+            state.push_note("saved tabs partially unavailable; review saved tabs");
+        }
+        Ok(state)
     })
     .await
+}
+
+fn restore_error_is_fatal(error: &CoreError, explicit: bool, active: bool) -> bool {
+    if explicit {
+        return true;
+    }
+    match error {
+        CoreError::Diagnostic(diagnostic)
+            if !active
+                && diagnostic.code == oc_core::queries::ServiceCode::InvalidStoredState
+                && diagnostic.field == ["selection"] =>
+        {
+            false
+        }
+        CoreError::Diagnostic(_) | CoreError::TabDeckStorage => true,
+        _ => false,
+    }
 }
 
 /// Load the complete Location-scoped route before the first frame. Parked
@@ -1981,7 +2079,7 @@ async fn restore_initial(
     // A full usable deck has no slot for synthetic Home, so retain its saved
     // active route. Decide after loading: an unreadable parked tab frees a
     // slot, but must never cause the hidden saved preference to be rewritten.
-    let prefer_home_when_space = explicit.is_none();
+    let prefer_home_when_space = explicit.is_none() && !app.shares_workspace();
     let mut state = restore_views(
         app,
         &mut deck,
@@ -2990,10 +3088,17 @@ async fn apply_owned_intent(
             if loop_state.tabs.len() >= MAX_TABS && state.attached_session().is_some() {
                 return Err("tab limit reached".into());
             }
+            // A shared tab Add navigates to the existing Home selection, just
+            // like restoring a parked Home. Merely viewing a blocked saved
+            // choice must not re-admit it or overwrite it with this chat's agent.
+            // The explicit /new action retains its reset/admission semantics.
+            let action = if app.shares_workspace() && intent == PanelIntent::AddSessionTab {
+                SelectionAction::Current
+            } else {
+                SelectionAction::New(state.active_agent().map(str::to_string))
+            };
             let snapshot = app
-                .home_selection(SelectionAction::New(
-                    state.active_agent().map(str::to_string),
-                ))
+                .home_selection(action)
                 .await
                 .map_err(|e| e.to_string())?;
             let mut home = TuiState::new_home(app.clone());
@@ -3803,6 +3908,11 @@ async fn handle_worker_event(
     } = &event
     {
         if let Some(snapshot) = location {
+            if app.shares_workspace() && state.attached_session() == Some(moved) {
+                app.switch_location_home(snapshot.location.clone())
+                    .await
+                    .map_err(|error| error.to_string())?;
+            }
             if app.catalog().await.is_ok_and(|catalog| {
                 catalog.chrome.location.as_deref() == Some(snapshot.location.as_str())
             }) {
@@ -3869,6 +3979,10 @@ async fn handle_worker_event(
         return Ok(());
     }
     let owner = match &event {
+        CoreEvent::Projection { .. }
+        | CoreEvent::WorkspaceChanged { .. }
+        | CoreEvent::ProjectionGap
+        | CoreEvent::OwnerDisconnected => return Ok(()),
         CoreEvent::ChildNotice(notice) => &notice.job.parent,
         CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::ShellChanged { session }
@@ -4020,11 +4134,30 @@ async fn handle_worker_event(
             unreachable!("handled above")
         }
         CoreEvent::SessionMoved { .. } => unreachable!("handled above"),
+        CoreEvent::Projection { .. }
+        | CoreEvent::WorkspaceChanged { .. }
+        | CoreEvent::ProjectionGap
+        | CoreEvent::OwnerDisconnected => unreachable!("handled before session routing"),
         CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
         CoreEvent::TurnStarted {
             turn, model_switch, ..
         } => {
-            if state.linked_child().is_some() {
+            if state.linked_child().is_some()
+                || app.shares_workspace() && !state.has_pending_submission()
+            {
+                if app.shares_workspace() && state.active_turn() != Some(&turn) {
+                    let page = app
+                        .history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                        .await;
+                    match page {
+                        Ok(page) => state.refresh_completed_page(&page),
+                        // Move committed after emission of this live hint. Its
+                        // queued SessionMoved event rebinds the view; keep the
+                        // editor and do not read through the retired Location.
+                        Err(CoreError::LocationChanged) if app.shares_workspace() => {}
+                        Err(error) => return Err(error.to_string()),
+                    }
+                }
                 state.begin_linked_turn(turn.clone());
             }
             if let Some(notice) = model_switch {
@@ -4142,8 +4275,15 @@ async fn handle_worker_event(
                 } else {
                     app.history_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
                         .await
-                }
-                .map_err(|e| e.to_string())?;
+                };
+                let page = match page {
+                    Ok(page) => page,
+                    Err(CoreError::LocationChanged) if app.shares_workspace() => {
+                        state.apply_turn_warnings(warnings, service_warning_range);
+                        return Ok(());
+                    }
+                    Err(error) => return Err(error.to_string()),
+                };
                 state.refresh_completed_page(&page);
                 refresh_dcp_summaries(app, state).await;
                 if compress {

@@ -14,6 +14,8 @@ mod seed;
 #[path = "support/screen.rs"]
 mod tui_screen;
 use tui_screen::render_screen;
+#[path = "support/process_tree.rs"]
+mod process_tree;
 #[path = "support/terminal.rs"]
 mod terminal;
 #[path = "support/title.rs"]
@@ -947,11 +949,12 @@ impl PtySession {
                 let last = requests.last().and_then(last_user_text).unwrap_or_default();
                 panic!(
                     "timeout waiting for visible-after {needle:?}; {} fresh bytes; head: {:?}; \
-                     requests={} last_prompt={:?}",
+                     requests={} last_prompt={:?}; screen={:?}",
                     tail.len(),
                     String::from_utf8_lossy(&norm_visible(&tail[..tail.len().min(600)])),
                     requests.len(),
-                    last
+                    last,
+                    render_screen(&buf).rows()
                 );
             }
             std::thread::sleep(POLL);
@@ -1803,7 +1806,32 @@ struct ProcSample {
     threads: u64,
 }
 
-fn s07_proc_sample(pid: u32) -> ProcSample {
+fn s07_proc_sample(pid: u32, data: &Path) -> ProcSample {
+    let tree = process_tree::capture(pid, data);
+    assert!(
+        tree.owner.is_some(),
+        "resource probe includes the native owner"
+    );
+    let mut total = ProcSample {
+        rss_kb: 0,
+        pss_kb: 0,
+        hwm_kb: 0,
+        cpu_ticks: 0,
+        children: tree.pids.len().saturating_sub(2),
+        threads: 0,
+    };
+    for &pid in &tree.pids {
+        let sample = s07_one_process(pid);
+        total.rss_kb += sample.rss_kb;
+        total.pss_kb += sample.pss_kb;
+        total.hwm_kb += sample.hwm_kb;
+        total.cpu_ticks += sample.cpu_ticks;
+        total.threads += sample.threads;
+    }
+    total
+}
+
+fn s07_one_process(pid: u32) -> ProcSample {
     let status = std::fs::read_to_string(format!("/proc/{pid}/status")).expect("child status");
     let kb = |name: &str| -> u64 {
         status
@@ -1834,14 +1862,12 @@ fn s07_proc_sample(pid: u32) -> ProcSample {
     let fields: Vec<&str> = fields.split_whitespace().collect();
     let cpu_ticks =
         fields[11].parse::<u64>().expect("utime") + fields[12].parse::<u64>().expect("stime");
-    let children =
-        std::fs::read_to_string(format!("/proc/{pid}/task/{pid}/children")).expect("child list");
     ProcSample {
         rss_kb: kb("VmRSS:"),
         hwm_kb: kb("VmHWM:"),
         pss_kb,
         cpu_ticks,
-        children: children.split_whitespace().count(),
+        children: 0,
         threads: kb("Threads:"),
     }
 }
@@ -1987,13 +2013,13 @@ fn measure_s07(archive: usize) -> S07Run {
     let viewport = s07_stable_tail(&pty, 8);
     let pid = pty.child.id();
     let start = Instant::now();
-    let baseline = s07_proc_sample(pid);
+    let baseline = s07_proc_sample(pid, &fixture.data_dir());
     let mut peak_rss_kb = baseline.rss_kb;
     let mut peak_pss_kb = baseline.pss_kb;
     let mut peak_hwm_kb = baseline.hwm_kb;
     let mut max_children = baseline.children;
     let mut sample = || {
-        let now = s07_proc_sample(pid);
+        let now = s07_proc_sample(pid, &fixture.data_dir());
         peak_rss_kb = peak_rss_kb.max(now.rss_kb);
         peak_pss_kb = peak_pss_kb.max(now.pss_kb);
         peak_hwm_kb = peak_hwm_kb.max(now.hwm_kb);
@@ -2168,7 +2194,10 @@ fn measure_s07(archive: usize) -> S07Run {
         !Path::new(&format!("/proc/{pid}")).exists(),
         "child not reaped"
     );
-    assert_eq!(max_children, 0, "unexpected child processes");
+    assert_eq!(
+        max_children, 0,
+        "unexpected processes beyond client + native owner; both are included in resource totals"
+    );
     let metrics: serde_json::Value =
         serde_json::from_slice(&std::fs::read(path).expect("metrics file")).expect("metrics JSON");
     let tool_db = oc_adapters::storage::Db::open(pty.data_dir()).expect("tool db");

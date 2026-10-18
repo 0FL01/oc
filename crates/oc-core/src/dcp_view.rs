@@ -61,7 +61,7 @@ impl Default for DcpDisplayConfig {
 }
 
 /// Safe availability facts shared by runtime admission and current queries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DcpUnavailable {
     GlobalOff,
     CompressOff,
@@ -86,7 +86,7 @@ impl DcpUnavailable {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DcpAvailability {
     pub ordinary_refusal: Option<DcpUnavailable>,
     pub manual_refusal: Option<DcpUnavailable>,
@@ -131,7 +131,7 @@ pub struct DcpRunSnapshot {
 /// A bounded window of one real stored range summary. Request the next offset
 /// and then the next block index in `DcpRunSnapshot::block_ids`. Multi-range
 /// headings are presentation; topic and block identity are supplied separately.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DcpSummaryPage {
     pub block_id: String,
     pub topic: String,

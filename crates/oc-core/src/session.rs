@@ -61,7 +61,7 @@ pub struct Message {
 
 /// Safe stage of a refused Location switch; details belong to the application
 /// owner, never to a TUI rendering path.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum LocationSwitchFailure {
     /// Target Location/config/model could not be loaded or validated.
     Configuration,
@@ -72,7 +72,7 @@ pub enum LocationSwitchFailure {
 }
 
 /// Typed core errors for the T03 slice.
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
+#[derive(Debug, Error, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreError {
     /// Session id is unknown.
     #[error("session not found")]
@@ -119,6 +119,10 @@ pub enum CoreError {
     /// Location changed or another writer changed the tab preference.
     #[error("tab deck changed; reload before saving")]
     TabDeckConflict,
+    /// A disposable live hint predates a committed session move. No read was
+    /// admitted in the old Location; follow the authoritative workspace event.
+    #[error("session Location changed; refresh its workspace")]
+    LocationChanged,
     /// Application-owned Location refusal. Native producers share a safe cause;
     /// the legacy detail remains for callers without structured diagnostics.
     #[error("application: {detail}")]

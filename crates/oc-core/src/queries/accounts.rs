@@ -1,7 +1,7 @@
 //! Account commands are typed owner mutations, never composer input.
 
 /// Admitted connection identity only; never endpoint, headers or credentials.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProviderConnection {
     pub provider: String,
     pub name: String,
@@ -29,14 +29,14 @@ impl std::fmt::Debug for KeyInput {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AccountKind {
     Key,
     OAuth,
 }
 
 /// No token preview, length, endpoint, or secret-bearing namespace.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProviderAccount {
     pub id: String,
     pub label: String,
@@ -46,15 +46,17 @@ pub struct ProviderAccount {
     pub active: bool,
     pub created_at: i64,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProviderAccounts {
     pub provider: String,
     /// Admitted display name (dialog title), falling back to the ID.
     pub name: String,
     pub accounts: Vec<ProviderAccount>,
     pub effective: AccountAuthSource,
+    /// Exact ephemeral AddKey receipt; absent on reads and other mutations.
+    pub created: Option<String>,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AccountAuthSource {
     Stored,
     Environment,
@@ -117,7 +119,7 @@ pub enum CustomProviderAction {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CustomProviderReply {
     Probed {
         revision: u64,

@@ -8,8 +8,8 @@
 
 use std::collections::HashMap;
 use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 use std::time::Duration;
 
@@ -92,14 +92,14 @@ pub fn normalized_session_title(title: &str) -> Option<&str> {
 }
 
 /// Opaque turn id for the worker (monotonic `t0001`, …).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct WorkerTurnId(pub String);
 
 /// Explicit first-turn choice for a new root. `None` at the API boundary uses
 /// the application's current Home choice; `Some` pins these exact values to
 /// the new session and turn. The owner validates the model, variant and agent
 /// against its current Location before creating anything.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FreshSelection {
     /// Optional composer scope; explicit programmatic callers retain admission.
     pub binding: Option<crate::queries::SelectionBinding>,
@@ -112,7 +112,7 @@ pub struct FreshSelection {
 }
 
 /// Captured placement/selection for an explicit user command, not a model turn.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum UserShellSelection {
     Existing(Option<crate::queries::ModelCommit>),
     Fresh(Option<FreshSelection>),
@@ -179,8 +179,22 @@ impl SubmissionReceipt {
 }
 
 /// Typed application events (live hints + durable outcomes for T03).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreEvent {
+    /// Native TUI projection cursor. Frontends discard hints already covered by
+    /// an authoritative snapshot, without dropping newer queued deltas.
+    Projection {
+        revision: u64,
+        event: Box<CoreEvent>,
+    },
+    /// A committed shared deck changed. Read its current bounded snapshot.
+    WorkspaceChanged {
+        location: String,
+    },
+    /// A disposable live hint was lost; replace the bounded projection.
+    ProjectionGap,
+    /// The owner disappeared. This is not evidence that a mutation failed.
+    OwnerDisconnected,
     /// Durable scoped choice changed; this is not a request/assistant identity.
     SessionModelSelected {
         session: SessionId,
@@ -454,6 +468,10 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    Workspace {
+        selected: Option<SessionId>,
+        ack: oneshot::Sender<Result<crate::queries::WorkspaceSnapshot, CoreError>>,
+    },
     UserShell {
         session: SessionId,
         command: String,
@@ -904,8 +922,122 @@ struct ActiveTurn {
 /// Cloneable application handle over a bounded worker inbox.
 #[derive(Debug, Clone)]
 pub struct CoreApp {
-    inbox: mpsc::Sender<InboxMsg>,
+    attachment: u64,
+    inbox: InboxSender,
+    control: Option<mpsc::Sender<NativeControl>>,
     events: broadcast::Sender<CoreEvent>,
+}
+
+/// Client-local cancellation identity exists before a native request is sent.
+/// This is neither a durable receipt nor permission to retry a lost operation.
+#[derive(Debug)]
+pub struct NativeAdmission {
+    session: SessionId,
+    claimed: AtomicBool,
+    pub cancelled: AtomicBool,
+    pub request: AtomicU64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct NativeAdmissions(Arc<Mutex<HashMap<SessionId, Vec<Arc<NativeAdmission>>>>>);
+
+impl NativeAdmissions {
+    pub fn claim(&self, session: &SessionId) -> Option<Arc<NativeAdmission>> {
+        self.0
+            .lock()
+            .expect("native admissions")
+            .get(session)?
+            .iter()
+            .find(|entry| !entry.claimed.swap(true, Ordering::AcqRel))
+            .cloned()
+    }
+    pub fn complete(&self, entry: &Arc<NativeAdmission>) {
+        let mut entries = self.0.lock().expect("native admissions");
+        if let Some(pending) = entries.get_mut(&entry.session) {
+            pending.retain(|item| !Arc::ptr_eq(item, entry));
+            if pending.is_empty() {
+                entries.remove(&entry.session);
+            }
+        }
+    }
+    fn cancel(&self, session: &SessionId) -> Option<Arc<NativeAdmission>> {
+        let entries = self.0.lock().expect("native admissions");
+        let entry = entries.get(session)?.first()?.clone();
+        entry.cancelled.store(true, Ordering::Release);
+        Some(entry)
+    }
+}
+
+pub enum NativeControl {
+    Cancel {
+        session: SessionId,
+        turn: Option<WorkerTurnId>,
+        admission: Option<Arc<NativeAdmission>>,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
+    Shutdown,
+}
+
+/// The existing bounded inbox records only native execution cancellation
+/// metadata at enqueue, closing the cancel-before-bridge-poll race.
+#[derive(Debug, Clone)]
+struct InboxSender {
+    sender: mpsc::Sender<InboxMsg>,
+    admissions: Option<NativeAdmissions>,
+}
+impl InboxSender {
+    fn enqueue(&self, permit: mpsc::Permit<'_, InboxMsg>, message: InboxMsg) {
+        let entries = self
+            .admissions
+            .as_ref()
+            .map(|entries| entries.0.lock().expect("native admissions"));
+        if let Some(mut entries) = entries {
+            let session = match &message {
+                InboxMsg::Submit { session, .. }
+                | InboxMsg::SubmitFresh { session, .. }
+                | InboxMsg::UserShell { session, .. }
+                | InboxMsg::Compress { session, .. }
+                | InboxMsg::CompactSession { session, .. }
+                | InboxMsg::RegenerateTitle { session, .. } => Some(session),
+                _ => None,
+            };
+            if let Some(session) = session {
+                entries
+                    .entry(session.clone())
+                    .or_default()
+                    .push(Arc::new(NativeAdmission {
+                        session: session.clone(),
+                        claimed: AtomicBool::new(false),
+                        cancelled: AtomicBool::new(false),
+                        request: AtomicU64::new(0),
+                    }));
+            }
+            permit.send(message);
+        } else {
+            permit.send(message);
+        }
+    }
+    async fn send(&self, message: InboxMsg) -> Result<(), mpsc::error::SendError<InboxMsg>> {
+        match self.sender.reserve().await {
+            Ok(permit) => {
+                self.enqueue(permit, message);
+                Ok(())
+            }
+            Err(_) => Err(mpsc::error::SendError(message)),
+        }
+    }
+    fn try_send(&self, message: InboxMsg) -> Result<(), mpsc::error::TrySendError<()>> {
+        match self.sender.try_reserve() {
+            Ok(permit) => {
+                self.enqueue(permit, message);
+                Ok(())
+            }
+            Err(mpsc::error::TrySendError::Full(())) => Err(mpsc::error::TrySendError::Full(())),
+            Err(mpsc::error::TrySendError::Closed(())) => {
+                Err(mpsc::error::TrySendError::Closed(()))
+            }
+        }
+    }
 }
 
 /// Worker join guard; await after [`CoreApp::shutdown`].
@@ -923,6 +1055,17 @@ enum WorkerTask {
 }
 
 impl CoreApp {
+    pub async fn workspace(
+        &self,
+        selected: Option<SessionId>,
+    ) -> Result<crate::queries::WorkspaceSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Workspace { selected, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
     pub async fn mcp_status(&self) -> Result<crate::queries::McpSnapshot, CoreError> {
         let (ack, reply) = oneshot::channel();
         self.inbox
@@ -1142,16 +1285,90 @@ impl CoreApp {
     pub fn channel(
         capacity: usize,
     ) -> (Self, mpsc::Receiver<InboxMsg>, broadcast::Sender<CoreEvent>) {
-        let (inbox, receiver) = mpsc::channel(capacity);
         let (events, _) = broadcast::channel(256);
+        let (app, receiver) = Self::channel_with_events(capacity, events.clone());
+        (app, receiver, events)
+    }
+
+    /// Adapter-owned session runners publish onto their authority's common bus.
+    pub fn channel_with_events(
+        capacity: usize,
+        events: broadcast::Sender<CoreEvent>,
+    ) -> (Self, mpsc::Receiver<InboxMsg>) {
+        let (inbox, receiver) = mpsc::channel(capacity);
         (
             Self {
-                inbox,
-                events: events.clone(),
+                attachment: 0,
+                inbox: InboxSender {
+                    sender: inbox,
+                    admissions: None,
+                },
+                control: None,
+                events,
             },
             receiver,
-            events,
         )
+    }
+
+    /// Native clients keep cancellation/release independent of a full work inbox.
+    pub fn native_channel(
+        capacity: usize,
+        attachment: u64,
+    ) -> (
+        Self,
+        mpsc::Receiver<InboxMsg>,
+        mpsc::Receiver<NativeControl>,
+        broadcast::Sender<CoreEvent>,
+        NativeAdmissions,
+    ) {
+        let (mut app, inbox, events) = Self::channel(capacity);
+        let (control, receiver) = mpsc::channel(16);
+        let admissions = NativeAdmissions::default();
+        app.inbox.admissions = Some(admissions.clone());
+        app.control = Some(control);
+        app.attachment = attachment;
+        (app, inbox, receiver, events, admissions)
+    }
+
+    /// Native frontends mirror the authority's workspace, not a private deck.
+    pub fn shares_workspace(&self) -> bool {
+        self.control.is_some()
+    }
+
+    pub fn attachment(&self) -> u64 {
+        self.attachment
+    }
+
+    /// Forward an already typed command across the native authority's bounded
+    /// routing boundary. Acknowledgements retain their original caller owner.
+    pub async fn dispatch(&self, message: InboxMsg) -> Result<(), CoreError> {
+        if let Some(control) = &self.control {
+            let message = match message {
+                InboxMsg::Cancel { session, ack } => NativeControl::Cancel {
+                    admission: self
+                        .inbox
+                        .admissions
+                        .as_ref()
+                        .and_then(|entries| entries.cancel(&session)),
+                    session,
+                    turn: None,
+                    ack,
+                },
+                InboxMsg::Shutdown => NativeControl::Shutdown,
+                other => {
+                    return self
+                        .inbox
+                        .send(other)
+                        .await
+                        .map_err(|_| CoreError::Shutdown);
+                }
+            };
+            return control.send(message).await.map_err(|_| CoreError::Shutdown);
+        }
+        self.inbox
+            .send(message)
+            .await
+            .map_err(|_| CoreError::Shutdown)
     }
 
     /// Spawn a worker with default bounded capacity.
@@ -1487,14 +1704,34 @@ impl CoreApp {
     /// Cancel the active turn and owned background work for this session.
     pub async fn cancel(&self, session: SessionId) -> Result<(), CoreError> {
         let (ack_tx, ack_rx) = oneshot::channel();
-        self.inbox
-            .send(InboxMsg::Cancel {
+        self.dispatch(InboxMsg::Cancel {
+            session,
+            ack: ack_tx,
+        })
+        .await?;
+        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// A painted T1 control must never be reinterpreted as cancellation of T2.
+    pub async fn cancel_turn(
+        &self,
+        session: SessionId,
+        turn: WorkerTurnId,
+    ) -> Result<(), CoreError> {
+        let Some(control) = &self.control else {
+            return self.cancel(session).await;
+        };
+        let (ack, result) = oneshot::channel();
+        control
+            .send(NativeControl::Cancel {
                 session,
-                ack: ack_tx,
+                turn: Some(turn),
+                admission: None,
+                ack,
             })
             .await
             .map_err(|_| CoreError::Shutdown)?;
-        ack_rx.await.map_err(|_| CoreError::Shutdown)?
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Cancel one owned background shell; a foreign session/job pairing is refused.
@@ -2162,11 +2399,7 @@ impl CoreApp {
 
     /// Request clean shutdown; worker finishes without orphan tasks.
     pub async fn shutdown(&self) -> Result<(), CoreError> {
-        self.inbox
-            .send(InboxMsg::Shutdown)
-            .await
-            .map_err(|_| CoreError::Shutdown)?;
-        Ok(())
+        self.dispatch(InboxMsg::Shutdown).await
     }
 }
 
@@ -2490,6 +2723,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::Workspace { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::UserShell { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -2697,6 +2933,10 @@ mod diagnostic_tests;
 mod prompt_history_tests;
 
 #[cfg(test)]
+#[path = "core_app/native_tests.rs"]
+mod native_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{
         CoreApp, CoreEvent, FreshSelection, InboxMsg, MAX_SESSION_TITLE_BYTES, MockProvider,
@@ -2721,7 +2961,12 @@ mod tests {
                 .expect("event timeout")
                 .expect("event channel");
             match ev {
-                CoreEvent::SessionModelSelected { .. } | CoreEvent::RetryScheduled { .. } => {}
+                CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::RetryScheduled { .. }
+                | CoreEvent::WorkspaceChanged { .. }
+                | CoreEvent::ProjectionGap
+                | CoreEvent::OwnerDisconnected
+                | CoreEvent::Projection { .. } => {}
                 CoreEvent::TextDelta { delta, .. } => deltas.push(delta),
                 CoreEvent::TurnFinished { text, .. } => return (deltas, text),
                 CoreEvent::TurnInterrupted { partial, .. } => {
@@ -3037,7 +3282,12 @@ mod tests {
                 .expect("timeout")
                 .expect("event");
             match ev {
-                CoreEvent::SessionModelSelected { .. } | CoreEvent::RetryScheduled { .. } => {}
+                CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::RetryScheduled { .. }
+                | CoreEvent::WorkspaceChanged { .. }
+                | CoreEvent::ProjectionGap
+                | CoreEvent::OwnerDisconnected
+                | CoreEvent::Projection { .. } => {}
                 CoreEvent::TurnInterrupted { partial, .. } => {
                     assert!(partial.contains("c0 "), "partial={partial}");
                     assert!(

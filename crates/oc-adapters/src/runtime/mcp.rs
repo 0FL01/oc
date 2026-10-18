@@ -121,6 +121,7 @@ impl Drop for McpGeneration {
 struct AttachedMcp {
     server_id: String,
     client: Arc<AttachedServer>,
+    poisoned: Arc<AtomicBool>,
     registry: Vec<mcp_remote::RegistryEntry>,
     /// Tools are reached through `execute` unless the server sets `codemode: false`.
     code_mode: bool,
@@ -132,15 +133,20 @@ struct McpCallLease<'a> {
     op: &'a str,
     turn: &'a str,
     remote: bool,
+    server_poisoned: &'a AtomicBool,
+    unsafe_retry: &'a AtomicBool,
+    cleanup_failed: &'a AtomicBool,
     armed: bool,
 }
 
 impl Drop for McpCallLease<'_> {
     fn drop(&mut self) {
         if self.armed {
+            self.server_poisoned.store(true, Ordering::SeqCst);
             self.generation.poisoned.store(true, Ordering::SeqCst);
             if self.remote {
                 self.generation.remote_unknown.store(true, Ordering::SeqCst);
+                self.unsafe_retry.store(true, Ordering::SeqCst);
             }
             if self
                 .db
@@ -148,7 +154,9 @@ impl Drop for McpCallLease<'_> {
                 .is_err()
             {
                 self.generation.cleanup_error.store(true, Ordering::SeqCst);
+                self.cleanup_failed.store(true, Ordering::SeqCst);
             }
+            self.generation.wake.notify_one();
         }
     }
 }
@@ -394,11 +402,17 @@ impl Runtime<'_> {
             );
         };
         if matches!(server.client.as_ref(), AttachedServer::Remote(_))
-            && attached.remote_unknown.load(Ordering::SeqCst)
+            && (attached.remote_unknown.load(Ordering::SeqCst) || self.remote_retry_quarantined())
         {
             return (
                 "failed",
                 "error: mcp outcome unknown; remote retry unsafe".into(),
+            );
+        }
+        if server.poisoned.load(Ordering::SeqCst) {
+            return (
+                "failed",
+                "error: mcp outcome unknown; issued client retired".into(),
             );
         }
         let mut lease = McpCallLease {
@@ -407,6 +421,9 @@ impl Runtime<'_> {
             op,
             turn,
             remote: matches!(server.client.as_ref(), AttachedServer::Remote(_)),
+            server_poisoned: &server.poisoned,
+            unsafe_retry: &self.mcp_unsafe_retry,
+            cleanup_failed: &self.mcp_cleanup_failed,
             armed: true,
         };
         let result = match server.client.as_ref() {
@@ -426,9 +443,12 @@ impl Runtime<'_> {
                         ) || cancel.load(Ordering::Relaxed)
                         {
                             attached.poisoned.store(true, Ordering::SeqCst);
+                            server.poisoned.store(true, Ordering::SeqCst);
                             attached.remote_unknown.store(true, Ordering::SeqCst);
+                            self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
                             if error == McpError::CleanupFailed {
                                 attached.cleanup_error.store(true, Ordering::SeqCst);
+                                self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
                             }
                             return (
                                 "unknown",
@@ -460,8 +480,10 @@ impl Runtime<'_> {
                         ) || cancel.load(Ordering::Relaxed)
                         {
                             attached.poisoned.store(true, Ordering::SeqCst);
+                            server.poisoned.store(true, Ordering::SeqCst);
                             if error == StdioError::CleanupFailed {
                                 attached.cleanup_error.store(true, Ordering::SeqCst);
+                                self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
                             }
                             return (
                                 "unknown",

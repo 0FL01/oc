@@ -534,7 +534,9 @@ impl Jobs {
         }));
         let owned_control = control.clone();
         let output_provenance = provenance.clone();
+        let origin_work = shell.native_origin.as_ref().map(|origin| origin.work());
         let task = tokio::task::spawn_blocking(move || {
+            let _origin_work = origin_work;
             owned_capture
                 .stream
                 .lock()

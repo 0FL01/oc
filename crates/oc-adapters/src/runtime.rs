@@ -1123,6 +1123,11 @@ struct ActiveContext {
 /// Single-flight: one active turn at a time (mirrors the single-turn
 /// worker); reload and DCP config changes only land between turns.
 pub struct Runtime<'a> {
+    primary_sources: Arc<Mutex<publication::PrimarySources>>,
+    primary: Option<Arc<publication::PrimaryState>>,
+    pub(crate) native_origin: Option<Arc<origin::Origin>>,
+    pub(crate) native_live: Option<Arc<crate::application::authority::live::Live>>,
+    pub(crate) native_owner: Option<std::sync::Weak<crate::application::authority::Owner>>,
     prepared_moves: Mutex<BTreeMap<String, crate::application::session_move::Prepared>>,
     pub(crate) shell_jobs: Arc<crate::shell::jobs::Jobs>,
     pub(crate) child_jobs: Arc<children::Jobs>,
@@ -1154,8 +1159,8 @@ pub struct Runtime<'a> {
     compression_commit: Arc<Mutex<()>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
     mcp_generation: RwLock<Arc<mcp::McpOwner>>,
-    mcp_unsafe_retry: AtomicBool,
-    mcp_cleanup_failed: AtomicBool,
+    mcp_unsafe_retry: Arc<AtomicBool>,
+    mcp_cleanup_failed: Arc<AtomicBool>,
     subagent_seq: AtomicU64,
 }
 
@@ -1230,6 +1235,7 @@ mod user_images_tests;
 #[cfg(test)]
 mod media_tests;
 
+pub(crate) mod origin;
 mod publication;
 pub(crate) use publication::{SourcePublication, SourceStamp, WorkspacePublication};
 
@@ -1257,6 +1263,11 @@ impl<'a> Runtime<'a> {
         crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
         db.grants_schema()?;
         Ok(Self {
+            primary_sources: Arc::new(Mutex::new(publication::PrimarySources::default())),
+            primary: None,
+            native_origin: None,
+            native_live: None,
+            native_owner: None,
             prepared_moves: Mutex::new(BTreeMap::new()),
             shell_jobs: crate::shell::jobs::Jobs::new(db),
             child_jobs: children::Jobs::new(db),
@@ -1294,8 +1305,8 @@ impl<'a> Runtime<'a> {
             compression_commit: Arc::new(Mutex::new(())),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(Arc::new(mcp::McpOwner::new(location, 1))),
-            mcp_unsafe_retry: AtomicBool::new(false),
-            mcp_cleanup_failed: AtomicBool::new(false),
+            mcp_unsafe_retry: Arc::new(AtomicBool::new(false)),
+            mcp_cleanup_failed: Arc::new(AtomicBool::new(false)),
             subagent_seq: AtomicU64::new(0),
         })
     }
@@ -1305,10 +1316,56 @@ impl<'a> Runtime<'a> {
         self.current.read().expect("generation lock").id
     }
 
+    pub(crate) fn emit(
+        &self,
+        events: &tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>,
+        event: oc_core::core_app::CoreEvent,
+    ) {
+        if let Some(live) = &self.native_live {
+            live.emit(
+                &self.location,
+                self.native_origin.as_ref().map(|origin| origin.id),
+                event.clone(),
+            );
+        }
+        let _ = events.send(event);
+    }
+
+    pub(crate) fn has_pending_session_move(&self) -> bool {
+        !self
+            .prepared_moves
+            .lock()
+            .expect("prepared moves")
+            .is_empty()
+    }
+
     fn update_execution(&self, update: impl FnOnce(&mut ExecutionGeneration)) {
         let _commit = self.publication_commit.lock().expect("publication commit");
-        let mut current = self.current.write().expect("generation lock");
-        update(Arc::make_mut(&mut current));
+        let published = {
+            let mut current = self.current.write().expect("generation lock");
+            update(Arc::make_mut(&mut current));
+            current.clone()
+        };
+        // Source-only updates (catalog/credential readiness) are common, but a
+        // primary's profile is never copied from the Source's Home selection.
+        for view in self
+            .primary_sources
+            .lock()
+            .expect("primary sources")
+            .views
+            .values()
+        {
+            if let Some(primary) = view.upgrade() {
+                let mut next = (*published).clone();
+                next.workspace = primary
+                    .current
+                    .read()
+                    .expect("generation lock")
+                    .workspace
+                    .clone();
+                *primary.current.write().expect("generation lock") = Arc::new(next);
+            }
+        }
     }
 
     pub(crate) fn publish_provider_state(
@@ -1462,11 +1519,19 @@ impl<'a> Runtime<'a> {
     }
 
     pub fn register_approval_consumer(&self, auto_once: bool) {
-        self.approvals.register_consumer(auto_once);
+        self.approvals
+            .register_consumer(auto_once && self.native_origin.is_none());
+        if let Some(origin) = &self.native_origin {
+            origin.approval_consumer.store(true, Ordering::Release);
+            origin.auto_once.store(auto_once, Ordering::Release);
+        }
         if auto_once
             && let Some(events) = self.compaction_events.lock().expect("events lock").clone()
         {
-            for request in self.approvals.pending() {
+            for request in match &self.native_origin {
+                Some(origin) => self.approvals.pending_operation(origin.id),
+                None => self.approvals.pending(),
+            } {
                 let _ = self.approvals.resolve(
                     oc_core::approval::ApprovalReply {
                         id: request.id,
@@ -1479,18 +1544,50 @@ impl<'a> Runtime<'a> {
         }
     }
     pub fn pending_approvals(&self) -> Vec<oc_core::approval::ApprovalRequest> {
-        self.approvals.pending()
+        let mut requests = self.approvals.pending();
+        if self.primary.is_none() {
+            for state in self
+                .primary_sources
+                .lock()
+                .expect("primary sources")
+                .views
+                .values()
+                .filter_map(std::sync::Weak::upgrade)
+            {
+                requests.extend(state.approvals.pending());
+            }
+        }
+        requests
     }
     pub fn register_question_consumer(&self) {
+        if let Some(origin) = &self.native_origin {
+            origin.question_consumer.store(true, Ordering::Release);
+        }
         self.questions.register_consumer();
     }
     pub fn pending_questions(&self) -> Vec<oc_core::question::QuestionRequest> {
-        self.questions.pending()
+        let mut requests = self.questions.pending();
+        if self.primary.is_none() {
+            for state in self
+                .primary_sources
+                .lock()
+                .expect("primary sources")
+                .views
+                .values()
+                .filter_map(std::sync::Weak::upgrade)
+            {
+                requests.extend(state.questions.pending());
+            }
+        }
+        requests
     }
     pub fn reply_question(
         &self,
         reply: oc_core::question::QuestionReply,
     ) -> Result<(), oc_core::question::QuestionReplyError> {
+        if let Some(primary) = self.primary_controls(&reply.binding.session) {
+            return primary.reply_question(reply);
+        }
         use oc_core::question::{QuestionDecision, QuestionReplyError};
         if matches!(reply.decision, QuestionDecision::Reloaded) {
             return Err(QuestionReplyError::Unavailable);
@@ -1511,9 +1608,19 @@ impl<'a> Runtime<'a> {
     }
     pub(crate) fn cancel_pending_approvals(&self) {
         if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
-            self.approvals.cancel(None, events);
-            self.questions.cancel(None, events);
+            if let Some(origin) = &self.native_origin {
+                self.approvals.cancel_operation(origin.id, events);
+                self.questions.cancel_operation(origin.id, events);
+            } else {
+                self.approvals.cancel(None, events);
+                self.questions.cancel(None, events);
+            }
         }
+    }
+
+    pub(crate) fn bind_native_origin(&mut self, origin: Arc<origin::Origin>) {
+        self.shell.native_origin = Some(origin.clone());
+        self.native_origin = Some(origin);
     }
     pub(crate) fn reload_pending_interactions(&self) {
         self.explicit_reload_generation
@@ -1521,6 +1628,17 @@ impl<'a> Runtime<'a> {
         if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
             self.approvals.reload(None, events);
             self.questions.reload(None, events);
+            for state in self
+                .primary_sources
+                .lock()
+                .expect("primary sources")
+                .views
+                .values()
+                .filter_map(std::sync::Weak::upgrade)
+            {
+                state.approvals.reload(None, events);
+                state.questions.reload(None, events);
+            }
         }
     }
     /// Bind live hints to the same owner event bus used by application queries.
@@ -1536,6 +1654,9 @@ impl<'a> Runtime<'a> {
         reply: oc_core::approval::ApprovalReply,
     ) -> Result<(), RuntimeError> {
         use oc_core::approval::ApprovalDecision;
+        if let Some(primary) = self.primary_controls(&reply.binding.session) {
+            return primary.reply_approval(reply);
+        }
         let request = self
             .approvals
             .pending()
@@ -1840,14 +1961,6 @@ impl<'a> Runtime<'a> {
         self.mcp_generation.read().expect("MCP owner").clone()
     }
 
-    fn replace_mcp_owner(&self) {
-        let owner = Arc::new(mcp::McpOwner::new(&self.location, self.generation_id()));
-        if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
-            owner.bind_events(events);
-        }
-        *self.mcp_generation.write().expect("MCP owner") = owner;
-    }
-
     /// Launch independent admitted initial connections before application ready.
     /// Target Location runtimes call this only after quarantine is transferred.
     pub fn start_mcp(&self) -> Result<(), RuntimeError> {
@@ -1856,7 +1969,12 @@ impl<'a> Runtime<'a> {
         }
         let published = self.current.read().expect("generation lock").clone();
         let config = self.quarantined_mcp_config(published.config.clone());
-        self.mcp_owner().start(
+        let owner = self.mcp_owner();
+        owner.bind_safety(
+            self.mcp_unsafe_retry.clone(),
+            self.mcp_cleanup_failed.clone(),
+        );
+        owner.start(
             config,
             self.roots.project.clone(),
             self.parent_env.clone(),
@@ -1948,13 +2066,21 @@ impl<'a> Runtime<'a> {
     }
 
     async fn retire_poisoned_mcp(&self) -> Result<(), RuntimeError> {
-        if let Some(error) = self.mcp_owner().fatal() {
+        let owner = self.mcp_owner();
+        if let Some(error) = owner.fatal() {
             return Err(error);
         }
-        if self.mcp_owner().poisoned() {
-            self.shutdown_mcp().await?;
-            self.replace_mcp_owner();
-            self.start_mcp()?;
+        if owner.remote_unknown() {
+            self.mcp_unsafe_retry.store(true, Ordering::SeqCst);
+        }
+        if owner.cleanup_failed() {
+            self.mcp_cleanup_failed.store(true, Ordering::SeqCst);
+        }
+        if owner.poisoned() {
+            owner.retire(true).await?;
+        }
+        if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
+            return Err(RuntimeError::McpShutdown);
         }
         Ok(())
     }
@@ -1988,7 +2114,7 @@ impl<'a> Runtime<'a> {
                 retryable: false,
             });
         }
-        self.mcp_owner().request(cancel).await?;
+        self.mcp_owner().request(cancel, true).await?;
         let (_, attached) = self.fresh_request_view()?;
         Ok(attached)
     }
@@ -2009,7 +2135,7 @@ impl<'a> Runtime<'a> {
         let owner = self.mcp_owner();
         // Refuse fatal/unknown state before starting any new metadata work.
         owner.request_view()?;
-        owner.request(cancel).await?;
+        owner.request(cancel, true).await?;
         Ok(())
     }
 
@@ -2304,7 +2430,14 @@ impl<'a> Runtime<'a> {
             params.variant.as_deref(),
             &params.provider,
         )?;
-        let (published, attached) = self.initial_request_view(params.cancel).await?;
+        let operation = self.mcp_owner().operation();
+        let (published, attached) = match self.initial_request_view(params.cancel).await {
+            Err(RuntimeError::Cancelled) => {
+                operation.cancel().await?;
+                return Err(RuntimeError::Cancelled);
+            }
+            result => result?,
+        };
         let mut lane = self.primary_lane(&published);
         if let Some(trigger) = manual {
             if trigger.session != params.session || trigger.generation != published.id {
@@ -2320,8 +2453,8 @@ impl<'a> Runtime<'a> {
             }
             lane.manual_compression = true;
         }
-        // request_mcp may replace a poisoned owner. Bind diagnostics only after
-        // it has returned the exact initial request lease. Diagnostics retain no clients.
+        // Bind diagnostics to the exact Source owner after initial preparation.
+        // It retires physical incarnations, never a sibling root's owner slot.
         let mcp_owner = self.mcp_owner();
         let mcp_binding = mcp_owner.snapshot().binding;
         let initial_degradation = attached.degraded.clone();
@@ -2348,7 +2481,13 @@ impl<'a> Runtime<'a> {
             )
             .await;
         let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &initial_degradation);
+        let poisoned = mcp_owner.poisoned();
         self.retire_poisoned_mcp().await?;
+        if !poisoned
+            && (cancel.load(Ordering::SeqCst) || matches!(result, Err(RuntimeError::Cancelled)))
+        {
+            operation.cancel().await?;
+        }
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
@@ -2438,7 +2577,14 @@ impl<'a> Runtime<'a> {
             params.variant.as_deref(),
             &params.provider,
         )?;
-        let (published, attached) = self.initial_request_view(params.cancel).await?;
+        let operation = self.mcp_owner().operation();
+        let (published, attached) = match self.initial_request_view(params.cancel).await {
+            Err(RuntimeError::Cancelled) => {
+                operation.cancel().await?;
+                return Err(RuntimeError::Cancelled);
+            }
+            result => result?,
+        };
         let lane = self.primary_lane(&published);
         let mcp_owner = self.mcp_owner();
         let mcp_binding = mcp_owner.snapshot().binding;
@@ -2468,8 +2614,14 @@ impl<'a> Runtime<'a> {
         let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &initial_degradation);
         // A committed fresh root must remain observable through the acceptance
         // callback even if cleanup or display-metadata writes later fail.
+        let poisoned = mcp_owner.poisoned();
         let cleanup = self.retire_poisoned_mcp().await;
         cleanup?;
+        if !poisoned
+            && (cancel.load(Ordering::SeqCst) || matches!(result, Err(RuntimeError::Cancelled)))
+        {
+            operation.cancel().await?;
+        }
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;

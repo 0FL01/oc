@@ -19,9 +19,11 @@ mod terminals;
 pub use terminals::*;
 mod model_preference;
 pub use model_preference::*;
+mod workspace;
+pub use workspace::*;
 
 /// Bounded root-session picker projection; IDs remain routing keys.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SessionListEntry {
     pub id: SessionId,
     pub title: String,
@@ -34,7 +36,7 @@ pub struct SessionListEntry {
     pub worktree: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SessionPickerContext {
     pub all_projects: bool,
     pub project_name: Option<String>,
@@ -42,13 +44,13 @@ pub struct SessionPickerContext {
     pub canonical: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionPickerAction {
     Rename(String),
     Delete,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionPickerResult {
     Renamed,
     Deleted(TabDeckSnapshot),
@@ -56,7 +58,7 @@ pub enum SessionPickerResult {
 
 /// Published picker route. The selected root's bounded projection is prepared
 /// before acceptance, so frontend refresh failures cannot undo the route.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SessionPickerOpen {
     pub session: SessionId,
     pub location: String,
@@ -67,7 +69,7 @@ pub struct SessionPickerOpen {
 }
 
 /// Move only the durable conversation and saved provider context.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ConversationAction {
     Undo,
     Redo,
@@ -75,7 +77,7 @@ pub enum ConversationAction {
 }
 
 /// Result after the owner has stopped execution and committed the new point.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ConversationSnapshot {
     pub session: SessionId,
     pub draft: Option<String>,
@@ -86,7 +88,7 @@ pub struct ConversationSnapshot {
 }
 
 /// Durable staged boundary, independent of the requested history window.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RevertedConversation {
     /// First hidden user message at the actual owner boundary.
     pub message: crate::session::MessageId,
@@ -95,7 +97,7 @@ pub struct RevertedConversation {
 }
 
 /// Durable independent root plus the selected user text, still unsent.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ForkSessionSnapshot {
     pub session: SessionId,
     pub prompt: String,
@@ -103,7 +105,7 @@ pub struct ForkSessionSnapshot {
 }
 
 /// One Location-verified session ID, without enumerating the archive.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionProbe {
     /// No row and no Location binding exist for this ID.
     Absent,
@@ -119,7 +121,7 @@ pub const TAB_RAIL_MAX_WIDTH: u16 = 72;
 
 /// Ordered root tabs in the current Location. `None` leaves Home sessionless,
 /// even when other tabs are open; this is not a session creation request.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TabDeckSnapshot {
     /// Canonical Location served by the application at load/save time.
     pub location: String,
@@ -189,7 +191,7 @@ pub fn append_prompt_history(
 /// Scoped frontend selection action. Selecting a model restores its preference;
 /// selecting `Variant(None)` explicitly clears the overlay. Legacy headless
 /// `select_model` remains an exact model/variant action.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionSelectionAction {
     /// Commit one exact captured composer choice, with its owner scope.
     Commit(ModelCommit),
@@ -215,6 +217,10 @@ pub struct SelectionBinding {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelCommit {
+    /// Ephemeral native attachment correlation. Zero is the in-process API;
+    /// caller counters from two different processes are not the same composer.
+    #[serde(default)]
+    pub attachment: u64,
     /// Frontend instance correlation, not authority. Zero is the direct API.
     #[serde(default)]
     pub caller: u64,
@@ -226,7 +232,7 @@ pub struct ModelCommit {
 }
 
 /// One committed history row with its durable sequence number.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HistoryMessage {
     /// Exact storage-owned message identity, independent of paging sequence.
     pub id: crate::session::MessageId,
@@ -252,7 +258,7 @@ pub struct HistoryMessage {
     pub shell_notice: Option<ShellHistoryNotice>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ShellHistoryNotice {
     pub operation: String,
     pub state: String,
@@ -260,7 +266,7 @@ pub struct ShellHistoryNotice {
     pub command: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ChildHistory {
     /// Original structured subagent task, without native host/quoted context.
     Task { text: String, limited: bool },
@@ -270,7 +276,7 @@ pub enum ChildHistory {
 
 /// Bounded display facts from a supervised direct-user command. RAW notice text
 /// remains unchanged; missing projection means ordinary text, not guessed Shell.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UserShellResult {
     /// Exact admission input, as opposed to the later result notice.
     pub input: bool,
@@ -307,7 +313,7 @@ pub struct ModelSwitchNotice {
 }
 
 /// Safe turn metadata and ordered bounded parts, projected from durable records.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HistoryTurn {
     /// Ordered owner event watermark for snapshot/live reconciliation.
     pub revision: u64,
@@ -448,7 +454,7 @@ impl WireProvenance {
 
 /// Metadata parallel to `HistoryTurn.parts`, shared by live checkpoint events
 /// and replay. Sequence never changes when an earlier part is omitted.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PartState {
     /// Actual owning request label, never the later composer choice.
     pub model_label: Option<String>,
@@ -469,6 +475,7 @@ pub struct PartState {
 // bound the number of parts and transferred metadata rather than splitting it
 // into a second event/message identity.
 #[allow(clippy::large_enum_variant)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum TranscriptPart {
     /// Bounded text projected from an existing wire message.
     Text(String),
@@ -484,7 +491,7 @@ pub enum TranscriptPart {
 }
 
 /// One contiguous, bounded history page (oldest-first for rendering).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HistoryPage {
     pub reverted: Option<RevertedConversation>,
     /// Exact current original-launch facts returned only by fenced ReadChild.
@@ -505,7 +512,7 @@ pub struct HistoryPage {
 }
 
 /// Bounded byte window of an existing durable tool result.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ToolOutputPage {
     /// Complete UTF-8 characters in this window.
     pub text: String,
@@ -516,7 +523,7 @@ pub struct ToolOutputPage {
 }
 
 /// One selectable model with its bounded variant list and limits.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelEntry {
     /// Exact model id (no provider prefix).
     pub id: String,
@@ -551,7 +558,7 @@ pub struct ModelEntry {
 }
 
 /// Full modality axes stay separate from partial server capability flags.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelCapabilities {
     /// None is unknown; Some([]) is an explicitly empty axis.
     pub input: Option<Vec<String>>,
@@ -563,7 +570,7 @@ pub struct ModelCapabilities {
 }
 
 /// Partial declarations do not synthesize full input/output modality lists.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PartialModelCapabilities {
     pub image_input: Option<bool>,
     pub pdf_input: Option<bool>,
@@ -582,7 +589,7 @@ impl ModelCapabilities {
 }
 
 /// Decimal tariffs per million tokens (strings preserve configured precision).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelPrice {
     /// Input tariff.
     pub input: String,
@@ -598,7 +605,7 @@ impl ModelPrice {
 }
 
 /// One declared model variant.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct VariantEntry {
     /// Variant name.
     pub name: String,
@@ -609,7 +616,7 @@ pub struct VariantEntry {
 }
 
 /// One selectable agent profile.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentEntry {
     /// Generation categorical slot over all admitted profiles, including children.
     pub color_index: usize,
@@ -625,7 +632,7 @@ pub struct AgentEntry {
 
 /// Catalog plus the effective selection for the next turn.
 /// Session autoaccept is independent of agent tool allow/deny rules.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AutoAcceptState {
     /// Backend has no interactive permission-request/reply capability.
     #[default]
@@ -637,7 +644,7 @@ pub enum AutoAcceptState {
 }
 
 /// Catalog plus effective next-turn and session capability state.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CatalogSnapshot {
     /// Safe presentation settings and canonical admitted Location.
     pub chrome: TuiChrome,
@@ -664,7 +671,7 @@ pub struct CatalogSnapshot {
 
 /// Every admitted, already-loaded provider view for the model dialog. Each
 /// snapshot keeps its own single-provider identity and selection stamp.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelCatalogs {
     /// Pinned `useConnected`: some admitted integration has a usable credential
     /// source (stored, environment, configured or explicit anonymous).
@@ -686,7 +693,7 @@ impl CatalogSnapshot {
 }
 
 /// Presentation-only settings; no runtime policy or credentials.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TuiChrome {
     /// Resolved platform capability, not a configurable opt-in or spawn request.
     pub session_terminal: bool,
@@ -756,19 +763,19 @@ pub struct TuiChrome {
     pub background_shortcut: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DiffSettings {
     pub view: DiffView,
     pub wrap: DiffWrap,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PermissionShortcuts {
     pub fullscreen: String,
     pub exit: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PromptHistoryShortcuts {
     pub previous: String,
     pub next: String,
@@ -789,14 +796,14 @@ impl Default for PermissionShortcuts {
         }
     }
 }
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DiffView {
     #[default]
     Auto,
     Unified,
     Split,
 }
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DiffWrap {
     #[default]
     Word,
@@ -1112,7 +1119,7 @@ impl ServiceDiagnostic {
 
 /// Opaque presentation identity for an exact owner-held but unavailable choice.
 /// The raw saved value remains in the application/store, never in this view.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SelectionReadiness {
     pub requested: String,
     pub diagnostic: ServiceDiagnostic,
@@ -1130,7 +1137,7 @@ impl std::fmt::Display for SelectionReadiness {
 
 /// Transient provider/catalog facts, owned by the existing application generation.
 /// No endpoint, credential, raw exception or untrusted identity crosses this DTO.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProviderReadiness {
     pub service: String,
     /// Opaque exact model identity; raw unavailable IDs may be URLs or secrets.
@@ -1140,7 +1147,7 @@ pub struct ProviderReadiness {
     pub diagnostic: Option<ServiceDiagnostic>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ProviderStatus {
     /// Credential and exact model metadata are admitted; no network health claim.
     Ready,
@@ -1188,7 +1195,7 @@ impl std::fmt::Display for ProviderReadiness {
 
 /// A bounded presentation window, not an admission/activation limit. The owner
 /// classifies every request and counts omitted rows without retaining raw text.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PluginInventory {
     pub entries: Vec<PluginEntry>,
     pub omitted: usize,
@@ -1197,7 +1204,9 @@ pub struct PluginInventory {
     pub active_modules: Vec<NativePlugin>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub enum NativePlugin {
     Dcp,
     OpenProxyModels,
@@ -1212,7 +1221,7 @@ impl NativePlugin {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum PluginStatus {
     Active,
     Failed,
@@ -1231,7 +1240,7 @@ impl PluginStatus {
 
 /// One exact requested identity maps to a compiled identity only on successful
 /// admission. Requested ids are opaque hashes, never package/URL/path fragments.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PluginEntry {
     pub requested: String,
     pub current: Option<String>,
@@ -1280,14 +1289,14 @@ impl std::fmt::Display for PluginEntry {
 
 /// Exact ephemeral resource scope. An instance changes even on a return to the
 /// same Location; neither connected labels nor controls are restored from disk.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct McpBinding {
     pub location: String,
     pub generation: u64,
     pub instance: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum McpStatus {
     Pending,
     Connected,
@@ -1296,14 +1305,14 @@ pub enum McpStatus {
     NeedsAuth,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum McpAction {
     Connect,
     Disconnect,
     Retry,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct McpControl {
     pub binding: McpBinding,
     /// Opaque entry identity from the snapshot, never an endpoint/command.
@@ -1311,7 +1320,7 @@ pub struct McpControl {
     pub action: McpAction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct McpServerSnapshot {
     pub id: String,
     pub name: String,
@@ -1324,7 +1333,7 @@ pub struct McpServerSnapshot {
 }
 
 /// Bounded by admitted inventory (64); tool/resource payloads never enter UI.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct McpSnapshot {
     pub binding: McpBinding,
     pub revision: u64,
@@ -1332,7 +1341,7 @@ pub struct McpSnapshot {
 }
 
 /// Presentation-only key strings, ready for the UI's existing key parser.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ConversationShortcuts {
     /// Effective leader; an empty string disables it.
     pub leader: String,
@@ -1353,7 +1362,7 @@ impl Default for ConversationShortcuts {
 }
 
 /// The existing Select command set; empty bindings disable a command.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DialogShortcuts {
     pub previous: String,
     pub next: String,
@@ -1371,7 +1380,7 @@ pub struct DialogShortcuts {
 
 /// The pinned composer's existing row commands. Empty bindings disable a row
 /// command; common tab/close keys remain scoped to the visible composer.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ComposerShortcuts {
     pub bindings: [String; 11],
 }
@@ -1420,7 +1429,7 @@ impl Default for DialogShortcuts {
 }
 
 /// Mouse text selection/copy behavior from the effective Location config.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TerminalCopyMode {
     /// Copy selected text on a dragging mouse-up.
     Select,
@@ -1429,7 +1438,7 @@ pub enum TerminalCopyMode {
 }
 
 /// Selected session tab indicator presentation (upstream `tabs.indicators`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TabIndicators {
     /// Blank while idle; busy state displays the first spinner frame.
     #[default]
@@ -1474,7 +1483,7 @@ mod chrome_tests {
 ///
 /// The target generation was built completely before this value is produced:
 /// the frontend adopts the returned session and catalog together.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LocationSnapshot {
     /// Canonical Location id (project path) now served.
     pub location: String,
@@ -1493,7 +1502,7 @@ pub struct LocationSnapshot {
 
 /// Published Location generation for a sessionless Home composer.
 /// No root session is created by this switch.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HomeLocationSnapshot {
     /// Canonical Location id now served.
     pub location: String,
@@ -1509,7 +1518,7 @@ pub struct HomeLocationSnapshot {
 
 /// Rebuilt configuration for the current canonical Location. Existing roots,
 /// selected tab and stored deck are untouched; the catalog is for the next turn.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReloadLocationSnapshot {
     /// Canonical Location still served by the application.
     pub location: String,
@@ -1526,7 +1535,7 @@ pub struct ReloadLocationSnapshot {
 /// Bounded file candidates from the application owner's current Location.
 /// Consumers must compare both `location` and `generation` with their current
 /// route before showing an asynchronously delivered response (including A→B→A).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FileSuggestionsSnapshot {
     /// Canonical Location that owned the file walk.
     pub location: String,
@@ -1540,7 +1549,7 @@ pub struct FileSuggestionsSnapshot {
 
 /// Source of non-fatal composition/persisted-selection diagnostics. Never
 /// contains user input or text from the underlying error.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StartupNotice {
     /// Unsupported, invalid, or conflicting compaction settings were normalized.
     CompactionConfig,
@@ -1559,7 +1568,7 @@ pub enum StartupNotice {
 }
 
 /// Skill catalog card: metadata only, never bodies.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SkillCard {
     /// Directory id.
     pub id: String,
@@ -1570,7 +1579,7 @@ pub struct SkillCard {
 }
 
 /// Resolved DCP reminders, distinct from model/input admission capacity.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DcpReminderFacts {
     /// Exact provider/model override key.
     pub model_key: String,
@@ -1589,7 +1598,7 @@ pub struct DcpReminderFacts {
 }
 
 /// DCP context/stats snapshot (counts only, no transcript).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DcpSnapshot {
     pub availability: crate::dcp_view::DcpAvailability,
     /// False if the bounded active projection cannot be hydrated. Numeric zero
@@ -1617,7 +1626,7 @@ pub struct DcpSnapshot {
 }
 
 /// One tool operation as recorded durably.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ToolOpView {
     /// Exact owned Subagent generation for display/read-only navigation. None
     /// for legacy/forked operations without their own positive launch identity.
@@ -1652,7 +1661,7 @@ pub struct ToolOpView {
 }
 
 /// One bounded, newest-first tool operation page.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ToolOpPage {
     /// Rows newest-first.
     pub rows: Vec<ToolOpView>,
@@ -1662,7 +1671,7 @@ pub struct ToolOpPage {
     pub has_older: bool,
 }
 /// Committed automatic result, addressed to its immutable source session.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ShellNotice {
     /// Owning session, independent of the current UI Location/tab.
     pub session: crate::domain::SessionId,
@@ -1736,14 +1745,14 @@ fn child_background_default() -> bool {
 }
 
 /// Durable owner-authored completion, never user-authored instructions.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChildNotice {
     pub job: ChildJob,
     pub text: String,
 }
 
 /// Current supervisor-owned running job, independent of immutable tool results.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ShellJob {
     /// Exact source session, including child-origin work.
     pub session: crate::domain::SessionId,
@@ -1772,7 +1781,7 @@ pub struct ShellJob {
 }
 
 /// Bounded recent snapshot from actual drains or the frozen terminal capture.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ShellSnapshot {
     /// Original source/operation/execution identity, even after list removal.
     pub job: ShellJob,

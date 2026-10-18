@@ -9,7 +9,7 @@ use std::io::Read as _;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use crate::{admitted_fs, config, dcp_auto, defs, discovery, models, provider, trace};
@@ -106,6 +106,59 @@ pub struct Composition {
     pub dcp_config: dcp_auto::DcpConfig,
     /// Context-preservation policy; independent of filesystem permissions.
     pub dcp_protected: oc_core::context_plan::ProtectedSpec,
+}
+
+impl Composition {
+    /// An independent primary's view of the SAME admitted Location inputs.
+    /// Clone the directory capability, never re-admit paths or refresh credentials.
+    pub(crate) fn primary_snapshot(&self) -> Result<Self, std::io::Error> {
+        Ok(Self {
+            local_inputs: self.local_inputs.clone(),
+            watch_inputs: self.watch_inputs.clone(),
+            approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),
+            question_consumer: AtomicBool::new(false),
+            permission_preference: AtomicBool::new(
+                self.permission_preference.load(Ordering::SeqCst),
+            ),
+            permission_mode_source: self.permission_mode_source.clone(),
+            permission_mode_root: AdmittedRoot {
+                path: self.permission_mode_root.path.clone(),
+                dir: self.permission_mode_root.dir.try_clone()?,
+            },
+            mcp_activation: self.mcp_activation.clone(),
+            tui_chrome: self.tui_chrome.clone(),
+            generation: self.generation.clone(),
+            catalog: self.catalog.clone(),
+            model_id: self.model_id.clone(),
+            provider: self.provider.clone(),
+            provider_state: self.provider_state.clone(),
+            go_catalog: self.go_catalog.clone(),
+            provider_views: self.provider_views.clone(),
+            custom_revisions: self.custom_revisions.clone(),
+            project: self.project.clone(),
+            parent_env: self.parent_env.clone(),
+            instructions: self.instructions.clone(),
+            instruction_roots: self.instruction_roots.clone(),
+            agent_prompt: self.agent_prompt.clone(),
+            agent_digest: self.agent_digest.clone(),
+            variant: self.variant.clone(),
+            agents: self.agents.clone(),
+            agent_order: self.agent_order.clone(),
+            default_agent: self.default_agent.clone(),
+            subagent_depth: self.subagent_depth,
+            skills: self.skills.clone(),
+            skill_errors: self.skill_errors.clone(),
+            commands: self.commands.clone(),
+            command_defs: self.command_defs.clone(),
+            command_descriptions: self.command_descriptions.clone(),
+            builtin_review: self.builtin_review,
+            native_modules: self.native_modules.clone(),
+            diagnostics: self.diagnostics.clone(),
+            startup_notices: self.startup_notices.clone(),
+            dcp_config: self.dcp_config.clone(),
+            dcp_protected: self.dcp_protected.clone(),
+        })
+    }
 }
 
 /// Payload-free admission cause, shared by the loader and frontend consumers.

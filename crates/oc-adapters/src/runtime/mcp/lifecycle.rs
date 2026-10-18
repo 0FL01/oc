@@ -17,6 +17,38 @@ use reconcile::configured_node;
 type StatusAck = oneshot::Sender<Result<McpSnapshot, oc_core::session::CoreError>>;
 type RequestAck = oneshot::Sender<Result<Arc<McpGeneration>, RuntimeError>>;
 type ReconcileAck = oneshot::Sender<Result<McpSnapshot, RuntimeError>>;
+type RetireAck = oneshot::Sender<Result<(), RuntimeError>>;
+type Retirement = (Vec<(String, Arc<()>)>, RetireAck);
+
+/// An executing root/child retains preparation interest across its issued IO.
+/// A disposable metadata reply is deliberately not such an execution owner.
+pub(in crate::runtime) struct Operation {
+    owner: Arc<McpOwner>,
+    active: bool,
+}
+impl Operation {
+    pub(in crate::runtime) async fn cancel(mut self) -> Result<(), RuntimeError> {
+        self.release();
+        self.owner.retire(false).await
+    }
+    fn release(&mut self) {
+        if self.active {
+            self.active = false;
+            *self.owner.shared.operations.lock().expect("MCP operations") -= 1;
+        }
+    }
+}
+impl Drop for Operation {
+    fn drop(&mut self) {
+        self.release();
+    }
+}
+
+#[derive(Default)]
+struct Safety {
+    remote: Arc<AtomicBool>,
+    cleanup: Arc<AtomicBool>,
+}
 
 /// Application-owned supervisor handle. Only the resource task mutates clients;
 /// short read locks expose bounded immutable snapshots, never a turn-held mutex.
@@ -27,6 +59,8 @@ pub(in crate::runtime) struct McpOwner {
 }
 
 struct Shared {
+    operations: Mutex<usize>,
+    safety: RwLock<Safety>,
     publication: RwLock<Publication>,
     events: Mutex<Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>>,
     stop: AtomicBool,
@@ -53,7 +87,14 @@ enum Command {
         control: McpControl,
         ack: StatusAck,
     },
-    Request(RequestAck),
+    Request {
+        ack: RequestAck,
+        operation: bool,
+    },
+    Retire {
+        poisoned: bool,
+        ack: RetireAck,
+    },
     Lookup {
         query: oc_core::queries::McpLookup,
         cancel: Arc<AtomicBool>,
@@ -62,6 +103,7 @@ enum Command {
 }
 
 struct Node {
+    suspended: bool,
     /// Retained by every worker for this exact physical connection attempt.
     /// An old result keeps its allocation alive, so an address cannot be reused
     /// as a later incarnation while that result can still be delivered.
@@ -104,18 +146,74 @@ struct Scope {
     /// Every connecting/live/retiring physical incarnation occupies one slot
     /// until its connect failure or successful close has actually been joined.
     instances: Vec<(String, Arc<()>)>,
-    requests: Vec<RequestAck>,
+    requests: Vec<(RequestAck, bool)>,
+    retirements: Vec<Retirement>,
     lookups: Vec<LookupActive>,
     fatal: Option<RuntimeError>,
     stopping: bool,
 }
 
 impl McpOwner {
+    pub(in crate::runtime) fn operation(self: &Arc<Self>) -> Operation {
+        *self.shared.operations.lock().expect("MCP operations") += 1;
+        Operation {
+            owner: self.clone(),
+            active: true,
+        }
+    }
+
+    pub(in crate::runtime) fn bind_safety(
+        &self,
+        remote: Arc<AtomicBool>,
+        cleanup: Arc<AtomicBool>,
+    ) {
+        *self.shared.safety.write().expect("MCP safety") = Safety { remote, cleanup };
+    }
+
+    pub(in crate::runtime) async fn retire(&self, poisoned: bool) -> Result<(), RuntimeError> {
+        if let Some(error) = self.fatal() {
+            return Err(error);
+        }
+        let Some(sender) = self.control.lock().expect("MCP control").clone() else {
+            return Ok(());
+        };
+        let (ack, reply) = oneshot::channel();
+        let result = async {
+            sender
+                .send(Command::Retire { poisoned, ack })
+                .await
+                .map_err(|_| RuntimeError::McpShutdown)?;
+            tokio::time::timeout(MCP_CLOSE_BUDGET, reply)
+                .await
+                .map_err(|_| RuntimeError::McpShutdown)?
+                .map_err(|_| RuntimeError::McpShutdown)?
+        }
+        .await;
+        if matches!(
+            result,
+            Err(RuntimeError::McpShutdown
+                | RuntimeError::McpAttach {
+                    stage: "cleanup",
+                    ..
+                })
+        ) {
+            self.shared
+                .safety
+                .read()
+                .expect("MCP safety")
+                .cleanup
+                .store(true, Ordering::SeqCst);
+        }
+        result
+    }
+
     pub(in crate::runtime) fn new(location: &str, generation: u64) -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(1);
         let wake = Arc::new(Notify::new());
         Self {
             shared: Arc::new(Shared {
+                operations: Mutex::new(0),
+                safety: RwLock::new(Safety::default()),
                 publication: RwLock::new(Publication {
                     status: McpSnapshot {
                         binding: McpBinding {
@@ -309,6 +407,7 @@ impl McpOwner {
             retiring: Vec::new(),
             instances: Vec::new(),
             requests: Vec::new(),
+            retirements: Vec::new(),
             lookups: Vec::new(),
             fatal: None,
             stopping: false,
@@ -425,6 +524,7 @@ impl McpOwner {
     pub(in crate::runtime) async fn request(
         &self,
         cancel: &AtomicBool,
+        operation: bool,
     ) -> Result<Arc<McpGeneration>, RuntimeError> {
         if let Some(error) = self.fatal() {
             return Err(error);
@@ -453,7 +553,7 @@ impl McpOwner {
         // its reply, never the lifetime of another turn's admitted clients.
         let (ack, mut reply) = oneshot::channel();
         sender
-            .send(Command::Request(ack))
+            .send(Command::Request { ack, operation })
             .await
             .map_err(|_| RuntimeError::McpShutdown)?;
         loop {
@@ -562,6 +662,26 @@ impl Scope {
     }
 
     fn publish(&mut self) -> Result<(), RuntimeError> {
+        {
+            let safety = self.shared.safety.read().expect("MCP safety");
+            if self.generation.remote_unknown.load(Ordering::SeqCst) {
+                safety.remote.store(true, Ordering::SeqCst);
+            }
+            if self.generation.cleanup_error.load(Ordering::SeqCst)
+                || matches!(
+                    self.fatal,
+                    Some(
+                        RuntimeError::McpShutdown
+                            | RuntimeError::McpAttach {
+                                stage: "cleanup",
+                                ..
+                            }
+                    )
+                )
+            {
+                safety.cleanup.store(true, Ordering::SeqCst);
+            }
+        }
         self.generation.entries = mcp_remote::merge_registries(
             self.generation
                 .servers
@@ -709,7 +829,7 @@ impl Scope {
         for server in names {
             self.stop_server(&server);
         }
-        for ack in self.requests.drain(..) {
+        for (ack, _) in self.requests.drain(..) {
             let _ = ack.send(Err(RuntimeError::Cancelled));
         }
         // Empty inventory has no service state to retire. In particular a
@@ -807,6 +927,7 @@ impl Scope {
                 }
                 node.catalogs = [None, None, None];
                 node.catalog_pending = [false; 3];
+                node.suspended = false;
                 node.row.status = McpStatus::Connected;
                 node.row.pending_action = None;
                 node.row.diagnostic = None;
@@ -850,6 +971,7 @@ impl Scope {
                 }
             }
             Err(error) => {
+                node.suspended = false;
                 if matches!(error, RuntimeError::McpShutdown | RuntimeError::Cancelled)
                     || matches!(
                         error,
@@ -898,14 +1020,32 @@ impl Scope {
         self.drain_retiring();
     }
 
-    fn request(&mut self, ack: RequestAck) {
-        self.requests.retain(|reply| !reply.is_closed());
+    fn request(&mut self, ack: RequestAck, operation: bool) {
+        self.requests.retain(|(reply, _)| !reply.is_closed());
         if ack.is_closed() {
             return;
         }
         if self.requests.len() >= MAX_MCP_SERVERS {
             let _ = ack.send(Err(RuntimeError::TurnActive));
             return;
+        }
+        if operation {
+            for (name, node) in &mut self.nodes {
+                if node.suspended
+                    && !node.desired
+                    && self
+                        .config
+                        .mcp
+                        .get(name)
+                        .is_some_and(|entry| entry.enabled && entry.failure.is_none())
+                {
+                    node.desired = true;
+                    node.replacing = true;
+                    node.row.status = McpStatus::Pending;
+                }
+            }
+            self.pump_replacements();
+            self.release_retirements();
         }
         for server in &self.generation.servers {
             let node = self
@@ -941,26 +1081,111 @@ impl Scope {
                 }
             });
         }
-        self.requests.push(ack);
+        self.requests.push((ack, operation));
         self.release_requests();
     }
 
     fn release_requests(&mut self) {
-        if self
-            .nodes
-            .values()
-            .any(|node| node.cancel.is_some() && node.row.status == McpStatus::Connected)
-        {
+        if self.nodes.values().any(|node| {
+            node.cancel.is_some() && node.row.status == McpStatus::Connected
+                || node.suspended && node.desired
+        }) {
             return;
         }
         let publication = self.shared.publication.read().expect("MCP publication");
-        for ack in self.requests.drain(..) {
+        for (ack, _) in self.requests.drain(..) {
             let result = self
                 .fatal
                 .clone()
                 .map_or_else(|| Ok(publication.request.clone()), Err);
             let _ = ack.send(result);
         }
+    }
+
+    fn retire(&mut self, poisoned: bool, ack: RetireAck) {
+        if self.retirements.len() >= MAX_MCP_SERVERS {
+            let _ = ack.send(Err(RuntimeError::TurnActive));
+            return;
+        }
+        // Execution interest is synchronized with the actual retirement decision.
+        // Metadata request cancellation alone never retires a shared incarnation.
+        let shared = self.shared.clone();
+        let interests = shared.operations.lock().expect("MCP operations");
+        if !poisoned
+            && (*interests != 0
+                || self
+                    .requests
+                    .iter()
+                    .any(|(reply, operation)| !operation && !reply.is_closed())
+                || !self.lookups.is_empty())
+        {
+            let _ = ack.send(Ok(()));
+            return;
+        }
+        let names: Vec<_> = if poisoned {
+            self.generation
+                .servers
+                .iter()
+                .filter(|server| server.poisoned.load(Ordering::SeqCst))
+                .map(|server| server.server_id.clone())
+                .collect()
+        } else {
+            self.nodes
+                .iter()
+                .filter(|(_, node)| {
+                    node.cancel.is_some() && node.row.pending_action != Some(McpAction::Disconnect)
+                })
+                .map(|(name, _)| name.clone())
+                .collect()
+        };
+        let mut incarnations = Vec::new();
+        for name in names {
+            incarnations.push((name.clone(), self.nodes[&name].incarnation.clone()));
+            self.retire_server(&name, true);
+            let node = self.nodes.get_mut(&name).expect("retiring MCP node");
+            node.suspended = true;
+            node.replacing = true;
+            // Retire the uncertain incarnation, not the configured connection.
+            // A replacement may restore its catalog after confirmed close; it
+            // never retries the tool effect or dispatches a provider request.
+            // Remote replacements still pass the owner-lifetime quarantine.
+            node.desired = poisoned;
+        }
+        // Never wait for another root's legitimate captured client lease.
+        let wait = *interests <= usize::from(poisoned);
+        drop(interests);
+        if poisoned {
+            self.generation.poisoned = Arc::new(AtomicBool::new(false));
+        }
+        if let Err(error) = self.publish() {
+            let _ = ack.send(Err(error));
+            return;
+        }
+        self.drain_retiring();
+        if wait {
+            self.retirements.push((incarnations, ack));
+            self.release_retirements();
+        } else {
+            let _ = ack.send(Ok(()));
+        }
+    }
+
+    fn release_retirements(&mut self) {
+        let mut pending = Vec::new();
+        for (incarnations, ack) in self.retirements.drain(..) {
+            if let Some(error) = &self.fatal {
+                let _ = ack.send(Err(error.clone()));
+            } else if incarnations.iter().any(|(_, incarnation)| {
+                self.instances
+                    .iter()
+                    .any(|(_, actual)| Arc::ptr_eq(actual, incarnation))
+            }) {
+                pending.push((incarnations, ack));
+            } else {
+                let _ = ack.send(Ok(()));
+            }
+        }
+        self.retirements = pending;
     }
 
     fn control(&mut self, control: McpControl, ack: StatusAck) {
@@ -1048,6 +1273,7 @@ impl Scope {
                 self.begin_stop();
             }
             self.pump_replacements();
+            self.release_retirements();
             if self.stopping && self.work.is_empty() && self.retiring.is_empty() {
                 break;
             }
@@ -1060,6 +1286,7 @@ impl Scope {
                         None => {},
                     }
                     self.release_requests();
+                    self.release_retirements();
                 },
                 command = controls.recv(), if !self.stopping => match command {
                     Some(Command::Reconcile { config, publication, activation, force, commit, ack }) => {
@@ -1067,7 +1294,8 @@ impl Scope {
                         let _ = ack.send(result);
                     },
                     Some(Command::Control { control, ack }) => self.control(control, ack),
-                    Some(Command::Request(ack)) => self.request(ack),
+                    Some(Command::Request { ack, operation }) => self.request(ack, operation),
+                    Some(Command::Retire { poisoned, ack }) => self.retire(poisoned, ack),
                     Some(Command::Lookup { query, cancel, ack }) => self.lookup(query, cancel, ack),
                     None => self.begin_stop(),
                 },
@@ -1239,6 +1467,7 @@ async fn connect_one(
     };
     Ok(AttachedMcp {
         server_id: server.into(),
+        poisoned: Arc::new(AtomicBool::new(false)),
         client: Arc::new(client),
         registry,
         code_mode: entry.codemode != Some(false),

@@ -255,6 +255,13 @@ tokens or cross-client recovery. Deliberate divergence from OC2's managed local
 service. T61 R3/HOT03 descoped; R1/R2/R4 run per process; D01 daemon exclusion restored.
 Per-process data-root lock (`DataRootBusy`), SQLite safety and OAuth loopback remain.
 
+2026-10-18: [T68](goals/2026-10-17-shared-tui-runtime.md) narrowly supersedes the
+independent-process/no-IPC boundary: one native UID/data-root owner, private UDS,
+mirrored Location workspace and last-global-TUI Interrupted cancellation, with
+independent finite CLI leases and immutable startup env. Second Db owner still
+refuses; no public service manager/TCP/privileged broker or automatic mutation replay.
+T61 R3/HOT03 is not restored and whole T61/T44 remains incomplete.
+
 ### D27 — canonical OpenCode 2 config only (owner 2026-10-15)
 
 No OpenCode 1 config compatibility. Only the canonical v2.0.12 schema

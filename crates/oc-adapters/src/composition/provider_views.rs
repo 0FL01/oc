@@ -2,6 +2,7 @@
 //! This is not a second policy/Location owner or a provider SDK registry.
 use super::*;
 
+#[derive(Clone)]
 pub(crate) struct ProviderView {
     pub(crate) entry: config::ProviderEntry,
     pub(crate) catalog: models::ModelCatalog,

@@ -116,6 +116,7 @@ impl Default for ShellLimits {
 #[derive(Debug, Clone)]
 pub struct Shell {
     root: PathBuf,
+    pub(crate) native_origin: Option<Arc<crate::runtime::origin::Origin>>,
 }
 
 /// Open authority retained from admission through exec. Neither directory is
@@ -180,6 +181,7 @@ impl Shell {
         }
         // Canonical root: symlink containment compares real paths.
         Ok(Self {
+            native_origin: None,
             root: project_root
                 .canonicalize()
                 .map_err(|_| ShellError::BadCwd)?,
@@ -358,7 +360,12 @@ impl Shell {
 
         let mut outcome_kind = OutcomeKind::Exited;
         loop {
-            if cancel.load(Ordering::Relaxed) {
+            if cancel.load(Ordering::Relaxed)
+                || self
+                    .native_origin
+                    .as_ref()
+                    .is_some_and(|origin| origin.flag.load(Ordering::Acquire))
+            {
                 outcome_kind = OutcomeKind::Cancelled;
                 break;
             }
@@ -785,7 +792,7 @@ fn kill_group(pid: i32, grace: Duration) {
         libc::killpg(pid, libc::SIGTERM);
     }
     let deadline = Instant::now() + grace;
-    while group_alive(pid) && Instant::now() < deadline {
+    while group_alive(pid) && group_running(pid) && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(10));
     }
     if group_alive(pid) {
@@ -800,6 +807,51 @@ fn group_alive(pid: i32) -> bool {
     // SAFETY: signal 0 only probes the child's own process group.
     unsafe { libc::killpg(pid, 0) == 0 }
 }
+
+/// An unreaped zombie still makes killpg(0) succeed. It pins the PGID safely,
+/// but cannot handle TERM or spawn more work, so it must not consume the entire
+/// graceful shutdown window. Proc facts only shorten that wait, NEVER authorize
+/// a signal: the final KILL and the leader's WNOWAIT identity guard stay intact.
+/// An unavailable/ambiguous observation conservatively keeps the full grace.
+fn group_running(pid: i32) -> bool {
+    let Ok(processes) = std::fs::read_dir("/proc") else {
+        return true;
+    };
+    for process in processes {
+        let Ok(process) = process else {
+            return true;
+        };
+        if !process
+            .file_name()
+            .as_encoded_bytes()
+            .iter()
+            .all(u8::is_ascii_digit)
+        {
+            continue;
+        }
+        let stat = match std::fs::read_to_string(process.path().join("stat")) {
+            Ok(stat) => stat,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(_) => return true,
+        };
+        let Some((_, fields)) = stat.rsplit_once(") ") else {
+            return true;
+        };
+        let mut fields = fields.split_whitespace();
+        let state = fields.next();
+        let Some(group) = fields.nth(1).and_then(|group| group.parse::<i32>().ok()) else {
+            return true;
+        };
+        if group == pid && !matches!(state, Some("Z" | "X")) {
+            return true;
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+#[path = "shell/group_tests.rs"]
+mod group_tests;
 
 /// Strict child-environment allowlist: names that cannot carry provider,
 /// MCP or runner credentials and that ordinary dev toolchains need.

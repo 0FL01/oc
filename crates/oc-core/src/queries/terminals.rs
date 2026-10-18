@@ -52,21 +52,21 @@ pub struct TerminalEntry {
     pub exit: Option<i32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TerminalInventory {
     pub enabled: bool,
     pub entries: Vec<TerminalEntry>,
     pub selected: Option<TerminalRef>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TerminalColor {
     Default,
     Indexed(u8),
     Rgb(u8, u8, u8),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TerminalCell {
     pub text: String,
     pub wide_continuation: bool,
@@ -80,7 +80,7 @@ pub struct TerminalCell {
 }
 
 /// A single atomic, emulator-authored screen and actual-output checkpoint.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TerminalSnapshot {
     pub entry: TerminalEntry,
     pub size: TerminalSize,
@@ -97,10 +97,11 @@ pub struct TerminalSnapshot {
 
 /// Actual byte replay, never escape output to the host terminal. A gap supplies
 /// an atomic current screen instead of pretending discarded bytes were received.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TerminalReplay {
     pub from: u64,
     pub next: u64,
+    #[serde(with = "crate::wire_bytes")]
     pub bytes: Vec<u8>,
     pub reset: Option<TerminalSnapshot>,
     /// Owner-emulated checkpoint at exactly `next`. Consumers never interpret
@@ -108,7 +109,7 @@ pub struct TerminalReplay {
     pub screen: Box<TerminalSnapshot>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TerminalShortcuts {
     /// pane.focus.left/right, terminal.select/toggle/close, in that order.
     pub bindings: [String; 5],
@@ -128,7 +129,7 @@ impl Default for TerminalShortcuts {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TerminalAction {
     List,
     Create {
@@ -146,6 +147,7 @@ pub enum TerminalAction {
     Select(Option<TerminalRef>),
     Input {
         target: TerminalRef,
+        #[serde(with = "crate::wire_bytes")]
         bytes: Vec<u8>,
     },
     Resize {
@@ -164,7 +166,7 @@ pub enum TerminalAction {
     Remove(TerminalRef),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TerminalReceipt {
     Inventory(TerminalInventory),
     Created(TerminalEntry),

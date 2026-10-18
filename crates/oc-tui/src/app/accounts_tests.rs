@@ -3,6 +3,7 @@ use oc_core::queries::{AccountAuthSource, AccountKind, ProviderAccount};
 
 fn snapshot() -> ProviderAccounts {
     ProviderAccounts {
+        created: None,
         provider: "opencode-go".into(),
         name: String::from("opencode-go"),
         effective: AccountAuthSource::Stored,
@@ -30,6 +31,7 @@ async fn choose_go(state: &mut TuiState) {
         if provider == "opencode-go")
     );
     state.apply_provider_accounts(Ok(ProviderAccounts {
+        created: None,
         provider: "opencode-go".into(),
         name: String::from("opencode-go"),
         effective: AccountAuthSource::Missing,
@@ -367,6 +369,7 @@ async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
     );
     assert_eq!(state.input(), "DRAFT");
     state.apply_provider_accounts(Ok(ProviderAccounts {
+        created: None,
         provider: "custom".into(),
         name: String::from("custom"),
         effective: AccountAuthSource::Missing,
@@ -383,6 +386,7 @@ async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
 
 fn openai_snapshot(accounts: Vec<ProviderAccount>) -> ProviderAccounts {
     ProviderAccounts {
+        created: None,
         provider: "openai".into(),
         name: "OpenAI".into(),
         effective: AccountAuthSource::Missing,

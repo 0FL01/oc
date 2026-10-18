@@ -172,6 +172,16 @@ def selected(root, session='root'):
         return value[0] if value else None
 
 
+def saved_size(path):
+    # Shell redirection truncates before stty writes. An empty file is not a
+    # completed independent geometry observation, even though it changed.
+    try:
+        fields = path.read_text().split()
+        return tuple(map(int, fields)) if len(fields) == 2 else None
+    except FileNotFoundError:
+        return None
+
+
 def proc_sample(pid):
     path = Path(f'/proc/{pid}')
     fields = (path/'stat').read_text().rsplit(') ', 1)[1].split()
@@ -185,6 +195,29 @@ def dead(pid):
     try: os.waitpid(pid, os.WNOHANG)
     except ChildProcessError: pass
     return not Path(f'/proc/{pid}').exists()
+
+
+def crash_fixture_owner(root):
+    # The storage/resource owner, not a disposable TUI client, must crash for
+    # recovery to inspect retained real PTY leaders. Pin only this fixture's ELF.
+    with (root/'data/native-owner.json').open('rb') as registration:
+        raw = registration.read(4097)
+    assert len(raw) <= 4096
+    pid = json.loads(raw)['pid']
+    assert pid > 1 and Path(f'/proc/{pid}/exe').resolve() == Path(BINARY)
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.pidfd_open.argtypes = [ctypes.c_int, ctypes.c_uint]
+    libc.pidfd_open.restype = ctypes.c_int
+    libc.pidfd_send_signal.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint]
+    libc.pidfd_send_signal.restype = ctypes.c_int
+    descriptor = libc.pidfd_open(pid, 0)
+    assert descriptor >= 0, 'pin verified fixture owner'
+    try:
+        assert libc.pidfd_send_signal(descriptor, signal.SIGKILL, None, 0) == 0
+        wait(lambda: bool(select.select([descriptor], [], [], 0)[0]), 'actual owner crash')
+    finally:
+        os.close(descriptor)
+    wait(lambda: dead(pid), 'fixture owner reap')
 
 
 def foreground(pid):
@@ -350,20 +383,19 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         wait(lambda: selected(root) == second['target']['id'], 'toggle last')
         assert len(entries(root)) == 2
         view.command('stty size > size')
-        wait(lambda: (root/'project/size').exists(), 'child size')
-        old_size = (root/'project/size').read_text()
+        old_size = wait(lambda: saved_size(root/'project/size'), 'child size')
         view.resize(80, 24)
         time.sleep(.15)
         view.command('stty size > size')
-        wait(lambda: (root/'project/size').read_text() != old_size, '80x24 real child resize')
-        compact = tuple(map(int, (root/'project/size').read_text().split()))
+        compact = wait(lambda: size if (size := saved_size(root/'project/size')) and size != old_size else None,
+                       '80x24 real child resize')
         assert compact == (23, 38), ('full-height 80x24 pane with one-cell horizontal insets', compact)
-        old_size = (root/'project/size').read_text()
+        old_size = compact
         view.resize(160, 48)
         time.sleep(.15)
         view.command('stty size > size')
-        wait(lambda: (root/'project/size').read_text() != old_size, 'real child resized')
-        actual = tuple(map(int, (root/'project/size').read_text().split()))
+        actual = wait(lambda: size if (size := saved_size(root/'project/size')) and size != old_size else None,
+                      'real child resized')
         assert actual == (47, 78), ('full-height 160x48 pane with one-cell horizontal insets', actual)
         view.leader(b'\x1b[D')
         (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'vertical'}, 'debug': {'devtools': False}, 'keybinds': {'terminal.close': 'ctrl+c'}}))
@@ -371,8 +403,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         time.sleep(.2)
         view.leader(b'\x1b[C')
         view.command('stty size > vertical-size')
-        wait(lambda: (root/'project/vertical-size').exists(), 'vertical child resize')
-        vertical = tuple(map(int, (root/'project/vertical-size').read_text().split()))
+        vertical = wait(lambda: saved_size(root/'project/vertical-size'), 'vertical child resize')
         assert vertical != actual and vertical[1] < actual[1]
         view.leader(b'\x1b[D')
         (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}, 'keybinds': {'leader': 'ctrl+g', 'terminal.close': 'ctrl+c'}}))
@@ -509,9 +540,18 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         remember(fourth)
         view.command("trap '' HUP; printf 'effect-two\\n' >> effect-two; sleep 30")
         wait(lambda: (root/'project/effect-two').exists(), 'second real pre-crash effect')
-        time.sleep(.05)
-        view.child.kill()
-        view.child.wait(timeout=5)
+        crash_fixture_owner(root)
+        # A disconnected viewer retains its local UI/draft until explicit quit;
+        # killing the owner must not masquerade as a clean interactive cancel.
+        view.see('Runtime connection lost')
+        view.leader(b'\x1b[D')
+        view.send(b'\x01\x1b[1;2F\x7f')
+        view.command('/quit')
+        try:
+            view.child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            raise AssertionError(('owner-lost viewer did not quit', view.screen())) from None
+        assert view.child.returncode != 0, 'owner loss is not clean interactive cancellation'
         view.close()
         assert all(Path(f'/proc/{pid}').exists() for pid in (third['pid'], fourth['pid'])), 'real retained orphan leaders'
         view = View(root)

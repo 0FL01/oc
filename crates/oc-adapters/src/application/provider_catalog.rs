@@ -28,6 +28,15 @@ pub(super) enum CatalogOutcome {
 }
 
 impl ProviderWork {
+    pub(super) fn idle() -> Self {
+        Self {
+            task: None,
+            public_task: None,
+            public_provider: crate::models_dev::PROVIDER,
+            view_task: None,
+            custom: super::provider_connections::Work::default(),
+        }
+    }
     pub(super) fn start(composition: &Composition, db: &Db) -> Self {
         Self::start_requested(composition, db, None)
     }

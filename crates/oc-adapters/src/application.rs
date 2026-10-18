@@ -36,6 +36,7 @@ mod accounts;
 mod authentication;
 #[cfg(test)]
 mod authentication_tests;
+pub(crate) mod authority;
 #[path = "application/commands.rs"]
 mod commands;
 #[cfg(test)]
@@ -75,78 +76,85 @@ mod tab_deck;
 /// One event projection for root and child runtime callbacks.
 pub(crate) fn publish_tool_event(
     db: &Db,
+    runtime: &Runtime<'_>,
     events: &broadcast::Sender<CoreEvent>,
     session: &SessionId,
     id: &str,
     event: &ToolCallEvent,
 ) {
     let turn = WorkerTurnId(id.into());
-    let _ = events.send(match event {
-        ToolCallEvent::ArgumentStream(event) => CoreEvent::ToolArgumentStream {
-            session: session.clone(),
-            turn,
-            event: event.clone(),
+    runtime.emit(
+        events,
+        match event {
+            ToolCallEvent::ArgumentStream(event) => CoreEvent::ToolArgumentStream {
+                session: session.clone(),
+                turn,
+                event: event.clone(),
+            },
+            ToolCallEvent::Progress {
+                op,
+                output_presentation,
+            } => CoreEvent::ToolCallProgress {
+                session: session.clone(),
+                turn,
+                op: op.clone(),
+                output_presentation: output_presentation.clone(),
+            },
+            ToolCallEvent::Started {
+                output_presentation,
+                dcp_topic,
+                op,
+                name,
+                input,
+            } => CoreEvent::ToolCallStarted {
+                output_presentation: output_presentation.clone(),
+                dcp_topic: dcp_topic.clone(),
+                session: session.clone(),
+                turn,
+                op: op.clone(),
+                name: name.clone(),
+                input: input.clone(),
+            },
+            ToolCallEvent::Finished {
+                output_presentation,
+                question,
+                dcp,
+                patch_effects,
+                op,
+                name,
+                state,
+                output,
+                output_bytes,
+                output_truncated,
+            } => CoreEvent::ToolCallFinished {
+                output_presentation: output_presentation.clone(),
+                question: question.clone(),
+                dcp: dcp.clone(),
+                patch_effects: patch_effects.clone(),
+                session: session.clone(),
+                turn,
+                op: op.clone(),
+                name: name.clone(),
+                state: state.clone(),
+                output: output.clone(),
+                output_bytes: *output_bytes,
+                output_truncated: *output_truncated,
+            },
         },
-        ToolCallEvent::Progress {
-            op,
-            output_presentation,
-        } => CoreEvent::ToolCallProgress {
-            session: session.clone(),
-            turn,
-            op: op.clone(),
-            output_presentation: output_presentation.clone(),
-        },
-        ToolCallEvent::Started {
-            output_presentation,
-            dcp_topic,
-            op,
-            name,
-            input,
-        } => CoreEvent::ToolCallStarted {
-            output_presentation: output_presentation.clone(),
-            dcp_topic: dcp_topic.clone(),
-            session: session.clone(),
-            turn,
-            op: op.clone(),
-            name: name.clone(),
-            input: input.clone(),
-        },
-        ToolCallEvent::Finished {
-            output_presentation,
-            question,
-            dcp,
-            patch_effects,
-            op,
-            name,
-            state,
-            output,
-            output_bytes,
-            output_truncated,
-        } => CoreEvent::ToolCallFinished {
-            output_presentation: output_presentation.clone(),
-            question: question.clone(),
-            dcp: dcp.clone(),
-            patch_effects: patch_effects.clone(),
-            session: session.clone(),
-            turn,
-            op: op.clone(),
-            name: name.clone(),
-            state: state.clone(),
-            output: output.clone(),
-            output_bytes: *output_bytes,
-            output_truncated: *output_truncated,
-        },
-    });
+    );
     if !matches!(
         event,
         ToolCallEvent::ArgumentStream(_) | ToolCallEvent::Progress { .. }
     ) && let Ok(Some(projection)) = db.turn_presentation(&session.0, id)
     {
-        let _ = events.send(CoreEvent::TurnPresentation {
-            session: session.clone(),
-            turn: WorkerTurnId(id.into()),
-            projection,
-        });
+        runtime.emit(
+            events,
+            CoreEvent::TurnPresentation {
+                session: session.clone(),
+                turn: WorkerTurnId(id.into()),
+                projection,
+            },
+        );
     }
 }
 
@@ -307,7 +315,7 @@ async fn drain_automatic_titles(
 
 /// Allowlisted stage/category for an interactive startup failure. No paths,
 /// config values, provider responses or underlying error text cross this API.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SpawnFailure {
     /// Loading or validating the configured generation failed.
     Configuration,
@@ -344,7 +352,7 @@ pub enum SpawnFailure {
 }
 
 /// Safe native startup cause. Category is retained for compatible coarse callers.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SpawnDiagnostic {
     pub category: SpawnFailure,
     pub diagnostic: oc_core::queries::ServiceDiagnostic,
@@ -359,7 +367,7 @@ impl std::fmt::Display for SpawnDiagnostic {
 }
 
 impl SpawnIssue {
-    fn configuration(failure: composition::LoadFailure) -> Self {
+    pub(crate) fn configuration(failure: composition::LoadFailure) -> Self {
         match failure {
             composition::LoadFailure::Configuration(diagnostic) => Self {
                 category: SpawnFailure::Configuration,
@@ -368,7 +376,7 @@ impl SpawnIssue {
         }
     }
 
-    fn new(
+    pub(crate) fn new(
         category: SpawnFailure,
         source: &str,
         field: &[&str],
@@ -733,7 +741,7 @@ async fn spawn_stages(
 
 /// Effective model/variant/agent selection for the next turn.
 #[derive(Clone)]
-struct Effective {
+pub(crate) struct Effective {
     provider_id: String,
     model_id: String,
     variant: Option<String>,
@@ -1487,6 +1495,7 @@ async fn start_worker(
         children.clone(),
         &authentication,
         &mut reload_work,
+        None,
     ));
     let result = operation.await;
     let reload_stop = reload_work.shutdown().await;
@@ -1530,6 +1539,7 @@ async fn start_worker_inner(
     children: Arc<crate::runtime::children::Jobs>,
     authentication: &authentication::Owner,
     reload_work: &mut reload::Coordinator,
+    mut authority: Option<authority::Source>,
 ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let (mut inbox, events, ready) = channels;
     let mut runtime = match build_runtime(&db, &composition) {
@@ -1540,6 +1550,10 @@ async fn start_worker_inner(
         }
     };
     runtime.child_jobs = children;
+    if let Some(source) = &authority {
+        runtime.inherit_native_resources(&source.resources);
+        runtime.native_owner = Some(source.owner.clone());
+    }
     let mut effective = Effective::from_composition(&composition);
     effective.legacy_epoch = match selection::legacy_epoch(&db, &composition) {
         Ok(epoch) => epoch,
@@ -1588,7 +1602,11 @@ async fn start_worker_inner(
     }
     runtime.set_approval_events(&events);
     runtime
-        .recover_background_children(&composition.catalog, &composition.provider)
+        .recover_background_children(
+            &composition.catalog,
+            &composition.provider,
+            authority.is_some(),
+        )
         .await
         .map_err(|error| {
             runtime_issue(runtime.location(), &["child_recovery"], &error).diagnostic
@@ -1617,10 +1635,17 @@ async fn start_worker_inner(
     let mut provider_work = provider_catalog::ProviderWork::start(&composition, &db);
     // Failed terminal recovery keeps local UI/controls available, but refuses
     // every terminal action and is never reported as successful cleanup.
-    let terminals = Mutex::new(crate::terminals::Terminals::new(&db).map(|mut owner| {
-        owner.set_events(&events);
-        owner
-    }));
+    let terminals = authority
+        .as_ref()
+        .map(|source| source.resources.terminals.clone())
+        .unwrap_or_else(|| {
+            Arc::new(Mutex::new(crate::terminals::Terminals::new(&db).map(
+                |mut owner| {
+                    owner.set_events(&events);
+                    owner
+                },
+            )))
+        });
     if ready.send(Ok(diagnostics)).is_err() {
         let provider_stop = provider_work.stop().await;
         runtime
@@ -1640,7 +1665,10 @@ async fn start_worker_inner(
     // Title work belongs to the application owner, not a single invocation of
     // the command loop: a rejected switch resumes that same Location.
     let (title_tx, mut title_rx) = mpsc::channel::<AutomaticTitleResult>(32);
-    let title_work = Mutex::new(AutomaticTitles::default());
+    let title_work = Arc::new(Mutex::new(AutomaticTitles::default()));
+    if let Some(source) = &mut authority {
+        source.bind_titles(title_tx.clone(), title_work.clone());
+    }
     loop {
         let outcome = worker(
             &runtime,
@@ -1661,11 +1689,25 @@ async fn start_worker_inner(
             &terminals,
             authentication,
             reload_work,
+            authority.as_mut(),
+            None,
         )
         .await;
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
+                if authority.is_some() {
+                    let provider_stop = provider_work.stop().await;
+                    let title_stop = stop_automatic_titles(&title_work).await;
+                    let mcp_stop = runtime
+                        .shutdown_mcp()
+                        .await
+                        .map_err(|e| runtime_issue(runtime.location(), &["mcp"], &e).diagnostic);
+                    provider_stop?;
+                    title_stop?;
+                    mcp_stop?;
+                    return Err(error);
+                }
                 let terminal_stop = terminals::shutdown(&terminals).map_err(|_| {
                     runtime_issue(
                         runtime.location(),
@@ -2068,6 +2110,19 @@ async fn start_worker_inner(
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
+                if authority.is_some() {
+                    let provider_stop = provider_work.stop().await;
+                    let title_stop =
+                        drain_automatic_titles(&db, &events, &title_work, &mut title_rx).await;
+                    let mcp_stop = runtime
+                        .shutdown_mcp()
+                        .await
+                        .map_err(|e| runtime_issue(runtime.location(), &["mcp"], &e).diagnostic);
+                    provider_stop?;
+                    title_stop?;
+                    mcp_stop?;
+                    break;
+                }
                 let terminal_stop = terminals::shutdown(&terminals).map_err(|_| {
                     runtime_issue(
                         runtime.location(),
@@ -2363,7 +2418,10 @@ fn publish_workspace(
     composition: &Composition,
     effective: &Effective,
 ) -> Result<(), RuntimeError> {
-    runtime.publish_native_workspace(workspace_publication(composition, effective))
+    runtime.publish_effective_workspace(
+        workspace_publication(composition, effective),
+        Some(effective.clone()),
+    )
 }
 
 fn command_digest(composition: &Composition) -> String {
@@ -2805,6 +2863,11 @@ async fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::Workspace { ack, .. } => {
+            let _ = ack.send(Err(CoreError::Application(
+                "shared workspace requires native attachment".into(),
+            )));
+        }
         InboxMsg::UserShell { ack, .. } => {
             // Active operations keep one admission owner. Ask must be pumped
             // by the idle worker, never awaited inside this query handler.
@@ -2904,7 +2967,7 @@ async fn query(
             composition
                 .approval_consumer_mode
                 .store(if auto_once { 2 } else { 1 }, Ordering::SeqCst);
-            if auto_once {
+            if auto_once && runtime.native_origin.is_none() {
                 for request in runtime.pending_approvals() {
                     if let Err(error) = runtime.reply_approval(oc_core::approval::ApprovalReply {
                         id: request.id,
@@ -4144,11 +4207,17 @@ async fn worker(
     terminals: &terminals::Owner,
     authentication: &authentication::Owner,
     reload_work: &mut reload::Coordinator,
+    mut authority: Option<&mut authority::Source>,
+    mut primary: Option<&mut authority::Operation>,
 ) -> Result<WorkerOutcome, oc_core::queries::ServiceDiagnostic> {
     reload_work.ensure(composition).await?;
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
+    let mut primary_started = false;
     'worker: loop {
+        if let Some(source) = authority.as_mut() {
+            source.publish(runtime, composition, effective, location_epoch)?;
+        }
         reload_work.start(db, runtime, composition);
         if let Some(prepared) = runtime.ready_session_move().await.map_err(|error| {
             runtime_issue(
@@ -4160,23 +4229,33 @@ async fn worker(
         })? {
             return Ok(WorkerOutcome::Move(Box::new(prepared)));
         }
-        runtime.shell_jobs.deliver(events).map_err(|_| {
-            runtime_issue(
-                runtime.location(),
-                &["shell", "delivery"],
-                &RuntimeError::Storage,
-            )
-            .diagnostic
-        })?;
-        runtime
-            .child_jobs
-            .reap()
-            .await
-            .map_err(|e| storage_diagnostic(db.root(), &e))?;
-        runtime
-            .child_jobs
-            .deliver(Some(events))
-            .map_err(|e| storage_diagnostic(db.root(), &e))?;
+        if primary.is_some()
+            && primary_started
+            && pending_inputs.is_empty()
+            && runtime.pending_compaction().is_none()
+            && !runtime.has_pending_session_move()
+        {
+            return Ok(WorkerOutcome::Stop);
+        }
+        if authority.is_none() && primary.is_none() {
+            runtime.shell_jobs.deliver(events).map_err(|_| {
+                runtime_issue(
+                    runtime.location(),
+                    &["shell", "delivery"],
+                    &RuntimeError::Storage,
+                )
+                .diagnostic
+            })?;
+            runtime
+                .child_jobs
+                .reap()
+                .await
+                .map_err(|e| storage_diagnostic(db.root(), &e))?;
+            runtime
+                .child_jobs
+                .deliver(Some(events))
+                .map_err(|e| storage_diagnostic(db.root(), &e))?;
+        }
         if let Some(session) = runtime.pending_compaction() {
             let selected = match selection::for_turn(db, composition, effective, &session) {
                 Ok(selected) => selected,
@@ -4271,13 +4350,30 @@ async fn worker(
             tokio::select! {
                 biased;
                 error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
-                () = runtime.shell_jobs.changed() => { continue; }
-                () = runtime.child_jobs.changed() => { continue; }
+                () = runtime.shell_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
+                () = runtime.child_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
+                () = async {
+                    match primary.as_mut() {
+                        Some(primary) => { let _ = primary.advance.changed().await; }
+                        None => std::future::pending().await,
+                    }
+                } => { continue; }
                 Some(result) = title_rx.recv() => {
                     commit_automatic_title(db, events, title_work, result);
                     continue;
                 }
                 result = provider_work.wait(), if provider_work.pending() => return Ok(WorkerOutcome::ProviderCatalog(result)),
+                request = async {
+                    match authority.as_mut() {
+                        Some(source) => source.requests.recv().await,
+                        None => std::future::pending().await,
+                    }
+                } => {
+                    if let (Some(source), Some(request)) = (authority.as_mut(), request) {
+                        source.primary(request, db, runtime, composition, effective, location_epoch);
+                    }
+                    continue;
+                }
                 ready = reload_work.wait() => {
                     if let Some(ready) = ready?
                         && let Some(receipt) = reload_work.finish(ready, db, runtime, composition, effective, registry, sessions, location_epoch, provider_work, events, None).await? {
@@ -4338,6 +4434,15 @@ async fn worker(
         }
         // Only this typed command creates an explicit bounded manual trigger.
         // Refusal precedes Submit, turn acceptance and provider dispatch.
+        primary_started |= matches!(
+            message,
+            InboxMsg::Submit { .. }
+                | InboxMsg::SubmitFresh { .. }
+                | InboxMsg::UserShell { .. }
+                | InboxMsg::Compress { .. }
+                | InboxMsg::CompactSession { .. }
+                | InboxMsg::RegenerateTitle { .. }
+        );
         let mut manual_trigger = None;
         let message = match message {
             InboxMsg::Compress {
@@ -4552,7 +4657,10 @@ async fn worker(
                         .unwrap_or_default()
                         .as_millis() as u64,
                 );
-                let cancel = AtomicBool::new(false);
+                let cancel = primary
+                    .as_ref()
+                    .map(|primary| primary.cancel.clone())
+                    .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
                 let provider = match crate::provider::context::RequestContext::capture(
                     db,
                     &composition.project,
@@ -4789,7 +4897,10 @@ async fn worker(
                     }
                 };
                 let command_def = commands::definition(composition, invocation.as_deref());
-                let cancel = AtomicBool::new(false);
+                let cancel = primary
+                    .as_ref()
+                    .map(|primary| primary.cancel.clone())
+                    .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
                 let is_fresh = fresh.is_some();
                 // Resolve from the owning session, never whichever TUI tab was
                 // most recently viewed. Title and inherited child requests use
@@ -5023,13 +5134,16 @@ async fn worker(
                             if let Some(ack) = ack.take() {
                                 let _ = ack.send(Ok(id.clone()));
                             }
-                            let _ = events.send(CoreEvent::TurnStarted {
-                                session: session.clone(),
-                                turn: id.clone(),
-                                model_switch: model_switch
-                                    .cloned()
-                                    .map(|notice| project_model_switch(notice, &accepted_catalog)),
-                            });
+                            runtime.emit(
+                                events,
+                                CoreEvent::TurnStarted {
+                                    session: session.clone(),
+                                    turn: id.clone(),
+                                    model_switch: model_switch.cloned().map(|notice| {
+                                        project_model_switch(notice, &accepted_catalog)
+                                    }),
+                                },
+                            );
                             // Acceptance is durable here. Do not launch a title
                             // request for a rejected prompt, an already titled
                             // root, or one with an in-flight title request.
@@ -5090,10 +5204,14 @@ async fn worker(
                                         let title_db = db.shared_handle();
                                         let title_env = title_env.clone();
                                         let provider_id = title_provider_id.clone();
+                                        let origin = runtime.native_origin.clone();
+                                        let origin_work =
+                                            origin.as_ref().map(|origin| origin.work());
                                         work.tasks.push((
                                             session.0.clone(),
                                             tokio::spawn(async move {
-                                                let title = async {
+                                                let _origin_work = origin_work;
+                                                let title_work = async {
                                                     let provider = provider.ok()?;
                                                     let cancel = AtomicBool::new(false);
                                                     let generation = tokio::time::timeout(
@@ -5172,8 +5290,10 @@ async fn worker(
                                                         .collect();
                                                     normalized_session_title(&title)
                                                         .map(str::to_string)
-                                                }
-                                                .await;
+                                                };
+                                                let title = if let Some(origin) = origin {
+                                                    tokio::select! { biased; () = origin.cancelled() => None, title = title_work => title }
+                                                } else { title_work.await };
                                                 let _ = sender
                                                     .send(AutomaticTitleResult {
                                                         dispatch: None,
@@ -5189,27 +5309,36 @@ async fn worker(
                             }
                         };
                         let on_text = |id: &str, delta: &str| {
-                            let _ = events.send(CoreEvent::TextDelta {
-                                session: session.clone(),
-                                turn: WorkerTurnId(id.to_string()),
-                                delta: delta.to_string(),
-                            });
+                            runtime.emit(
+                                events,
+                                CoreEvent::TextDelta {
+                                    session: session.clone(),
+                                    turn: WorkerTurnId(id.to_string()),
+                                    delta: delta.to_string(),
+                                },
+                            );
                         };
                         let on_reasoning = |id: &str, delta: &str| {
-                            let _ = events.send(CoreEvent::ReasoningDelta {
-                                session: session.clone(),
-                                turn: WorkerTurnId(id.to_string()),
-                                delta: delta.to_string(),
-                            });
+                            runtime.emit(
+                                events,
+                                CoreEvent::ReasoningDelta {
+                                    session: session.clone(),
+                                    turn: WorkerTurnId(id.to_string()),
+                                    delta: delta.to_string(),
+                                },
+                            );
                         };
                         let on_reasoning_end = |id: &str| {
-                            let _ = events.send(CoreEvent::ReasoningItemEnded {
-                                session: session.clone(),
-                                turn: WorkerTurnId(id.to_string()),
-                            });
+                            runtime.emit(
+                                events,
+                                CoreEvent::ReasoningItemEnded {
+                                    session: session.clone(),
+                                    turn: WorkerTurnId(id.to_string()),
+                                },
+                            );
                         };
                         let on_tool = |id: &str, event: &ToolCallEvent| {
-                            publish_tool_event(db, events, &session, id, event);
+                            publish_tool_event(db, runtime, events, &session, id, event);
                         };
                         let mut report = if is_fresh {
                             runtime
@@ -5243,11 +5372,14 @@ async fn worker(
                         if let Some(projection) =
                             db.turn_presentation(&session.0, &report.turn_id)?
                         {
-                            let _ = events.send(CoreEvent::TurnPresentation {
-                                session: session.clone(),
-                                turn: WorkerTurnId(report.turn_id.clone()),
-                                projection,
-                            });
+                            runtime.emit(
+                                events,
+                                CoreEvent::TurnPresentation {
+                                    session: session.clone(),
+                                    turn: WorkerTurnId(report.turn_id.clone()),
+                                    projection,
+                                },
+                            );
                         }
                         report.warnings.extend(title_warnings);
                         Ok::<_, RuntimeError>(report)
@@ -5262,10 +5394,10 @@ async fn worker(
                                 ).await? { receipt.reply(); }
                             }
                             result = &mut operation => break result,
-                            () = runtime.shell_jobs.changed() => {
+                            () = runtime.shell_jobs.changed(), if runtime.native_owner.is_none() => {
                                 runtime.shell_jobs.deliver(events).map_err(|_| runtime_issue(runtime.location(), &["shell", "delivery"], &RuntimeError::Storage).diagnostic)?;
                             }
-                            () = runtime.child_jobs.changed() => {
+                            () = runtime.child_jobs.changed(), if runtime.native_owner.is_none() => {
                                 runtime.child_jobs.reap().await.map_err(|e| storage_diagnostic(db.root(), &e))?;
                                 runtime.child_jobs.deliver(Some(events)).map_err(|e| storage_diagnostic(db.root(), &e))?;
                             }
@@ -5345,13 +5477,16 @@ async fn worker(
                     if let Ok(report) = &result
                         && let Some((input_tokens, output_tokens)) = report.usage
                     {
-                        let _ = events.send(CoreEvent::TurnUsage {
-                            session: session.clone(),
-                            turn: turn.clone(),
-                            input_tokens,
-                            output_tokens,
-                            streamed_ms: report.streamed_ms,
-                        });
+                        runtime.emit(
+                            events,
+                            CoreEvent::TurnUsage {
+                                session: session.clone(),
+                                turn: turn.clone(),
+                                input_tokens,
+                                output_tokens,
+                                streamed_ms: report.streamed_ms,
+                            },
+                        );
                     }
                     let duration_ms = match &result {
                         Ok(report) => report.duration_ms,
@@ -5385,7 +5520,12 @@ async fn worker(
                                     service_warning_range,
                                 }
                             }
-                            Ok(report) if report.status == TurnStatus::Cancelled => {
+                            Ok(report)
+                                if matches!(
+                                    report.status,
+                                    TurnStatus::Cancelled | TurnStatus::Interrupted
+                                ) =>
+                            {
                                 CoreEvent::TurnInterrupted {
                                     session: session.clone(),
                                     turn,
@@ -5421,7 +5561,7 @@ async fn worker(
                                 service_warning_range,
                             },
                         };
-                    let _ = events.send(event);
+                    runtime.emit(events, event);
                 }
                 if let Some(command) = conversation_change {
                     query(

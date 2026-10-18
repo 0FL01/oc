@@ -160,6 +160,7 @@ fn commit(
     provider: &str,
 ) -> oc_core::queries::SessionSelectionAction {
     oc_core::queries::SessionSelectionAction::Commit(oc_core::queries::ModelCommit {
+        attachment: 0,
         caller: 7,
         binding: oc_core::queries::SelectionBinding {
             location: snapshot.chrome.location.clone(),

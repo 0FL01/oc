@@ -719,6 +719,13 @@ fn vis27_copy_painted(
 fn vis27_home_chrome_copy(fixture: Arc<Fixture>, manual: bool) {
     let before = fixture.requests.lock().unwrap().clone();
     let mut pty = PtySession::spawn_connection(fixture.clone(), None, None, 160, 40, true);
+    if manual {
+        // The previous viewer left a selected root in the shared workspace.
+        // Home copy is an explicit route, not an implicit restart override.
+        wait_screen_row(&pty, "Fixture session title", DEADLINE);
+        wait_idle(&pty);
+        pty.send(b"/new\r");
+    }
     pty.wait_visible("█▀▀█ █▀▀█", DEADLINE);
     pty.send(b"\x1b[200~draft cobalt untouched\x1b[201~");
     vis27_copy_painted(&mut pty, manual, 1, "cobalt", false, true);
@@ -1926,7 +1933,9 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     dismissed(&pty, "Select variant");
     wait_screen_row(&pty, "draft-kept", DEADLINE);
     pty.send(b"\r");
-    pty.wait_visible("echo: draft-kept", DEADLINE);
+    // Replies are unique in this scenario. Observe painted cells: a terminal
+    // delta may reuse unchanged text instead of writing the complete reply.
+    wait_screen_row(&pty, "echo: draft-kept", DEADLINE);
     let first = fixture.wait_requests(1);
     assert_eq!(first[0]["model"], "modal-29");
     assert_eq!(first[0]["reasoning"]["effort"], "high");
@@ -1944,8 +1953,8 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     wait_screen_row(&pty, "● fast", DEADLINE);
     pty.send(b"none\r");
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "named none variant");
-    pty.wait_visible_after(off, "echo: named none variant", DEADLINE);
+    submit(&mut pty, "named none variant");
+    wait_screen_row(&pty, "echo: named none variant", DEADLINE);
     assert_eq!(fixture.wait_requests(2)[1]["reasoning"]["effort"], "low");
     pty.send(b"/quit\r");
     let (status, out) = pty.wait_exit(DEADLINE);
@@ -1967,16 +1976,16 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     // Focus-current means Enter re-applies none, not the first Default row.
     pty.send(b"\r");
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "none after restart");
-    pty.wait_visible_after(off, "echo: none after restart", DEADLINE);
+    submit(&mut pty, "none after restart");
+    wait_screen_row(&pty, "echo: none after restart", DEADLINE);
     assert_eq!(fixture.wait_requests(3)[2]["reasoning"]["effort"], "low");
     wait_idle(&pty);
     pty.send(b"/effort\r");
     wait_screen_row(&pty, "Select variant", DEADLINE);
     pty.send(b"Default\r");
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "default variant");
-    pty.wait_visible_after(off, "echo: default variant", DEADLINE);
+    submit(&mut pty, "default variant");
+    wait_screen_row(&pty, "echo: default variant", DEADLINE);
     let requests = fixture.wait_requests(4);
     assert_eq!(requests[3]["model"], "modal-29");
     assert!(
@@ -1985,7 +1994,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
         requests[3]["reasoning"]["effort"],
         last_user_text(&requests[3])
     );
-    let off = submit(&mut pty, "slow stream");
+    submit(&mut pty, "slow stream");
     fixture.wait_requests(5);
     let started = Instant::now();
     pty.send(b"\x10");
@@ -1996,7 +2005,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     );
     pty.send(b"\x1b");
     dismissed(&pty, "Commands");
-    pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
+    wait_screen_row(&pty, "answer:slow stream", DEADLINE);
     pty.send(b"\x03");
     let (status, out) = pty.wait_exit(DEADLINE);
     assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
@@ -2018,8 +2027,8 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
     wait_screen_row(&pty, "● Default", DEADLINE);
     pty.send(b"\r");
     dismissed(&pty, "Select variant");
-    let off = submit(&mut pty, "default after restart");
-    pty.wait_visible_after(off, "echo: default after restart", DEADLINE);
+    submit(&mut pty, "default after restart");
+    wait_screen_row(&pty, "echo: default after restart", DEADLINE);
     assert!(fixture.wait_requests(6)[5]["reasoning"]["effort"].is_null());
     pty.send(b"/quit\r");
     let (status, out) = pty.wait_exit(DEADLINE);

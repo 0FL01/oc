@@ -11,13 +11,15 @@
 //!   context in both runs;
 //! * active pairs: `ACTIVE_PAIRS` x `ACTIVE_BYTES`, identical in both runs.
 //!
-//! Measured on the actual `oc run` process: baseline/peak/post-idle RSS,
-//! peak PSS, child processes and the archive size on disk. The bound below
+//! Measured on the actual client + native owner + owned process tree:
+//! baseline/peak/post-idle RSS, peak PSS, children and archive size on disk. The bound below
 //! was chosen before the first measurement and is not adjusted afterwards.
 
 use std::io::{BufRead, BufReader, Read, Write};
 #[path = "support/context_ids.rs"]
 mod context_ids;
+#[path = "support/process_tree.rs"]
+mod process_tree;
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -152,7 +154,7 @@ impl Drop for Peer {
     }
 }
 
-/// One process sample.
+/// One aggregate process-tree sample (individual samples use the same fields).
 #[derive(Debug, Clone, Copy, Default)]
 struct Sample {
     rss_kb: u64,
@@ -362,9 +364,11 @@ impl Fixture {
             .expect("measured run");
         let pid = child.id();
         let mut run = RunSample::default();
+        let mut owner_observed = false;
         let start = Instant::now();
         loop {
-            let sample = sample_process(pid);
+            let (sample, owner_present) = sample_process(pid, &self.data_dir());
+            owner_observed |= owner_present;
             if sample.rss_kb > 0 {
                 if run.baseline.rss_kb == 0 {
                     run.baseline = sample;
@@ -384,6 +388,10 @@ impl Fixture {
             assert!(start.elapsed() < DEADLINE, "measured run timed out");
             std::thread::sleep(POLL);
         }
+        assert!(
+            owner_observed,
+            "measured the actual registered native owner"
+        );
         let mut stderr = String::new();
         if let Some(mut pipe) = child.stderr.take() {
             let _ = pipe.read_to_string(&mut stderr);
@@ -416,8 +424,28 @@ struct RunSample {
     wal_bytes: u64,
 }
 
-/// Read one `/proc` sample of a process and its direct children.
-fn sample_process(pid: u32) -> Sample {
+/// Sum the client, registered owner and every owned descendant, including
+/// children launched by Tokio's non-leader threads. PSS counts shared mappings
+/// proportionally; the sum of per-process VmHWM is a conservative peak bound.
+fn sample_process(pid: u32, data: &std::path::Path) -> (Sample, bool) {
+    let tree = process_tree::capture(pid, data);
+    let mut sample = Sample::default();
+    for &pid in &tree.pids {
+        let process = sample_one_process(pid);
+        sample.rss_kb += process.rss_kb;
+        sample.hwm_kb += process.hwm_kb;
+        sample.pss_kb += process.pss_kb;
+        sample.anon_kb += process.anon_kb;
+        sample.file_kb += process.file_kb;
+        sample.threads += process.threads;
+    }
+    sample.children = tree.pids.len().saturating_sub(1);
+    // Startup precedes registration and final owner exit precedes client exit.
+    // Keep both phases' complete samples; never move the baseline past startup.
+    (sample, tree.owner.is_some())
+}
+
+fn sample_one_process(pid: u32) -> Sample {
     let mut sample = Sample::default();
     if let Ok(status) = std::fs::read_to_string(format!("/proc/{pid}/status")) {
         for line in status.lines() {
@@ -438,9 +466,6 @@ fn sample_process(pid: u32) -> Sample {
         && let Some(line) = rollup.lines().find(|line| line.starts_with("Pss:"))
     {
         sample.pss_kb = parse_kb(&line[4..]);
-    }
-    if let Ok(children) = std::fs::read_to_string(format!("/proc/{pid}/task/{pid}/children")) {
-        sample.children = children.split_whitespace().count();
     }
     sample
 }

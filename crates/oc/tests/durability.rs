@@ -7,8 +7,10 @@
 use std::io::{Read, Write};
 #[path = "support/context_ids.rs"]
 mod context_ids;
+#[path = "support/native_owner.rs"]
+mod native_owner;
+use native_owner::NativeOwner;
 use std::net::{TcpListener, TcpStream};
-use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
@@ -78,6 +80,12 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     let mut interrupted_title = None;
     let mut first = spawn(&home, &project, FIRST_PROMPT, "first");
     let (mut socket, request) = accept_first_main(&listener, &mut interrupted_title);
+    let owner = NativeOwner::of_fixture(&data);
+    assert_ne!(
+        owner.pid,
+        first.child.id(),
+        "the frontend is not the storage/resource owner"
+    );
     assert_eq!(request["input"], json!([user_message(FIRST_PROMPT)]));
     assert!(
         request["tools"]
@@ -111,7 +119,7 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
 
     let deadline = Instant::now() + TIMEOUT;
     loop {
-        let status = std::fs::read_to_string(format!("/proc/{}/status", first.id()))
+        let status = std::fs::read_to_string(format!("/proc/{}/status", owner.pid))
             .expect("oc must remain alive until stopped");
         if status.lines().any(|line| line.starts_with("State:\tT")) {
             break;
@@ -134,11 +142,16 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         .expect("numeric shell pid");
     assert!(shell_pid > 1);
 
-    first.child.kill().expect("SIGKILL stopped oc");
+    owner.kill().expect("SIGKILL stopped actual native owner");
     assert_eq!(
-        first.wait().signal(),
-        Some(libc::SIGKILL),
-        "actual process kill"
+        first.wait().code(),
+        Some(1),
+        "the client must report owner loss, not manufacture an Interrupted result"
+    );
+    assert!(
+        first.diagnostics().contains("outcome unknown"),
+        "{}",
+        first.diagnostics()
     );
     while let Ok((socket, _)) = listener.accept() {
         if let Some((socket, request)) = read_request(socket) {
@@ -154,11 +167,24 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     }
     drop(interrupted_title);
     let adopted = reaper.reap().expect("reap orphaned shell after oc kill");
-    assert_eq!(adopted.len(), 1, "exactly the fixture shell was orphaned");
-    assert_eq!(adopted[0].0, shell_pid);
-    assert!(libc::WIFEXITED(adopted[0].1));
+    let shells: Vec<_> = adopted
+        .iter()
+        .filter(|entry| entry.0 == shell_pid)
+        .collect();
+    assert_eq!(shells.len(), 1, "exactly the fixture shell was orphaned");
+    assert!(
+        adopted
+            .iter()
+            .all(|entry| entry.0 == shell_pid || entry.0 == owner.pid as i32),
+        "no unrelated child may be adopted"
+    );
+    if let Some((_, status)) = adopted.iter().find(|entry| entry.0 == owner.pid as i32) {
+        assert!(libc::WIFSIGNALED(*status));
+        assert_eq!(libc::WTERMSIG(*status), libc::SIGKILL);
+    }
+    assert!(libc::WIFEXITED(shells[0].1));
     assert_eq!(
-        libc::WEXITSTATUS(adopted[0].1),
+        libc::WEXITSTATUS(shells[0].1),
         0,
         "shell side effect finished normally"
     );
@@ -426,10 +452,6 @@ fn spawn(home: &Path, project: &Path, prompt: &str, label: &str) -> Process {
 }
 
 impl Process {
-    fn id(&self) -> u32 {
-        self.child.id()
-    }
-
     fn diagnostics(&self) -> String {
         std::fs::read_to_string(&self.stderr).unwrap_or_default()
     }

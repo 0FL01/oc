@@ -19,7 +19,7 @@ pub struct ModelPreferenceModel {
 }
 
 /// Ordered favorites and recents; stale identities are kept and hidden by views.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelPreference {
     pub recent: Vec<ModelPreferenceModel>,
     pub favorite: Vec<ModelPreferenceModel>,
@@ -29,7 +29,7 @@ pub struct ModelPreference {
 }
 
 /// Owner-side read-modify-write mutation, so parked tabs never save stale lists.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ModelPreferenceAction {
     /// A model chosen from the dialog becomes the newest recent entry.
     Recent(ModelPreferenceModel),

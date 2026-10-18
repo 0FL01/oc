@@ -48,6 +48,94 @@ impl Default for ComposerSelection {
 }
 
 impl TuiState {
+    /// Carry only client-owned composer state across a freshly loaded native
+    /// projection. Keep the owner's new committed choice and configuration.
+    pub fn preserve_shared_composer(&mut self, mut previous: Self) {
+        self.restore_composer_draft(previous.composer_draft());
+        if self.chrome.location == previous.chrome.location && self.session == previous.session {
+            // A canonical refresh updates facts, not this client's interaction
+            // owner. Preserve complete modal state, not just its panel enum.
+            self.inherit_terminal_view(&mut previous);
+            self.inherit_shell_view(&mut previous);
+            self.panel = previous.panel.clone();
+            self.select = previous.select;
+            self.rename_input = previous.rename_input;
+            self.rename_editor = previous.rename_editor;
+            self.rename_pending = previous.rename_pending;
+            self.rename_selected = previous.rename_selected;
+            self.rename_direct_pending = previous.rename_direct_pending;
+            self.regenerate_pending = previous.regenerate_pending;
+            self.session_delete_confirm = previous.session_delete_confirm;
+            self.session_project_name = previous.session_project_name;
+            self.session_scope_pending = previous.session_scope_pending;
+            self.sessions = previous.sessions;
+            self.session_entries = previous.session_entries;
+            self.sessions_all_projects = previous.sessions_all_projects;
+            self.sessions_cursor = previous.sessions_cursor;
+            self.sessions_loaded = previous.sessions_loaded;
+            self.agents_cursor = previous
+                .agents_cursor
+                .min(self.agents.len().saturating_sub(1));
+            self.skills_cursor = previous
+                .skills_cursor
+                .min(self.skills.len().saturating_sub(1));
+            self.exploration_expanded = previous.exploration_expanded;
+            self.execute_calls_expanded = previous.execute_calls_expanded;
+            self.execute_detail = previous.execute_detail;
+            self.reasoning_expanded = previous.reasoning_expanded;
+            self.thinking_expanded = previous.thinking_expanded;
+            self.scroll = previous.scroll.min(self.max_scroll());
+            self.leader = previous.leader;
+            self.slash_selected = previous.slash_selected;
+            self.slash_dismissed = previous.slash_dismissed;
+            self.request_id = previous.request_id;
+            self.generation = previous.generation;
+            self.view_id = previous.view_id;
+            self.input_revision = previous.input_revision;
+            self.mention_selected = previous.mention_selected;
+            self.mention_dismissed = previous.mention_dismissed;
+            self.mention_result = previous.mention_result;
+            self.mention_owner_epoch = previous.mention_owner_epoch;
+            self.interrupt_armed_until = previous.interrupt_armed_until;
+            if self.note.is_none() {
+                self.note = previous.note;
+                self.toast_expiry = previous.toast_expiry;
+                self.service_note = previous.service_note;
+            }
+            if self.model_selection.binding == previous.model_selection.binding {
+                self.accounts = previous.accounts;
+                self.mcp_detail = previous.mcp_detail;
+                self.mcp_focused = previous.mcp_focused;
+            } else if matches!(
+                self.panel,
+                TuiPanel::Accounts | TuiPanel::Mcps | TuiPanel::Model | TuiPanel::Variant
+            ) {
+                self.panel = TuiPanel::None;
+            }
+        }
+        if self.model_selection.binding == previous.model_selection.binding {
+            let preserve_picker = !previous.model_selection.drafts.is_empty()
+                || matches!(previous.panel, TuiPanel::Model | TuiPanel::Variant);
+            let committed = self.model_selection.committed.take();
+            self.model_selection = previous.model_selection;
+            self.model_selection.committed = committed;
+            if preserve_picker {
+                self.picker = previous.picker.take();
+                self.model_scope = previous.model_scope.take();
+                self.model_directory = previous.model_directory.take();
+            }
+            if matches!(previous.panel, TuiPanel::Model | TuiPanel::Variant) {
+                self.panel = previous.panel;
+            }
+        }
+    }
+
+    /// A shared canonical refresh follows these finite receipts, so a late ACK
+    /// cannot overwrite a newer choice already read from the authority.
+    pub fn has_pending_model_commit(&self) -> bool {
+        !self.model_selection.pending.is_empty()
+    }
+
     pub(super) fn account_provider(&self) -> String {
         self.model_selection
             .binding
@@ -387,6 +475,7 @@ impl TuiState {
         let choice: ModelRef =
             serde_json::from_str(&self.picker.as_ref()?.persisted_record()?).ok()?;
         Some(ModelCommit {
+            attachment: self.app.attachment(),
             caller: self.model_selection.caller,
             binding: self
                 .model_selection
@@ -561,6 +650,7 @@ impl TuiState {
 
     fn acknowledge_model(&mut self, session: &SessionId, commit: &ModelCommit) {
         if self.session.as_ref() != Some(session)
+            || self.app.attachment() != commit.attachment
             || self.model_selection.caller != commit.caller
             || !self
                 .model_selection

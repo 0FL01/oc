@@ -213,7 +213,9 @@ fn seed(f: &Fixture) {
             }
             app.save_tab_deck(oc_core::queries::TabDeckSnapshot {
                 sessions: vec![active.clone(), retired.clone(), variant.clone()],
-                active: Some(active.clone()),
+                // Home is an explicit shared route, not an implicit override
+                // of an existing root whenever another native viewer starts.
+                active: None,
                 ..app.tab_deck().await.unwrap()
             })
             .await
@@ -655,6 +657,12 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     wait_screen_row(&active, "r4a blocked pin retained draft", DEADLINE);
     active.send(b"\x03");
     wait_idle(&active);
+    // Restore the original Home route without submitting a command or changing
+    // any independently saved Home/session selection or input-history entry.
+    let screen = render_screen(&active.snapshot());
+    let plus = screen.rows()[0].chars().position(|ch| ch == '+').unwrap();
+    mouse_click(&mut active, plus as u16 + 1, 1);
+    wait_screen_row(&active, "Ask anything", DEADLINE);
     let output = quit(&mut active);
     assert_private(&fixture, &output);
     for scope in [None, Some(ACTIVE), Some(RETIRED)] {

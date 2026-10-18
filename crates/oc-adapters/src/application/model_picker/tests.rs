@@ -206,6 +206,7 @@ async fn selection_and_effort_survive_a_restart_with_another_default_provider() 
     let home = app.home_selection(Action::Current).await.unwrap();
     let commit = |snapshot: &oc_core::queries::CatalogSnapshot| {
         Action::Commit(ModelCommit {
+            attachment: 0,
             caller: 1,
             binding: SelectionBinding {
                 location: snapshot.chrome.location.clone(),

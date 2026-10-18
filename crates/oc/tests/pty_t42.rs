@@ -21,6 +21,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const BIN: &str = env!("CARGO_BIN_EXE_oc2");
+#[path = "pty_t42/shared_runtime.rs"]
+mod shared_runtime;
 const POLL: Duration = Duration::from_millis(25);
 const DEADLINE: Duration = Duration::from_secs(20);
 
@@ -47,6 +49,8 @@ const PATCH: &str = "*** Begin Patch\n*** Update File: src/lib.rs\n@@\n pub fn a
 struct Fixture {
     root: tempfile::TempDir,
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
+    progress: Arc<Mutex<std::collections::BTreeMap<String, usize>>>,
+    title_ready: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     server: Option<std::thread::JoinHandle<()>>,
     mcp: Mcp,
@@ -127,9 +131,14 @@ impl Fixture {
         write_skill(&project_b, "bskill", "T42 B skill");
         let requests = Arc::new(Mutex::new(Vec::new()));
         let captured = requests.clone();
+        let progress = Arc::new(Mutex::new(std::collections::BTreeMap::new()));
+        let progressing = progress.clone();
+        let title_ready = Arc::new(AtomicBool::new(true));
+        let title_released = title_ready.clone();
         let stop = Arc::new(AtomicBool::new(false));
         let stopping = stop.clone();
         let server = std::thread::spawn(move || {
+            let mut calls = Vec::new();
             while !stopping.load(Ordering::Relaxed) {
                 match listener.accept() {
                     Ok((mut socket, _)) => {
@@ -143,11 +152,34 @@ impl Fixture {
                             continue;
                         };
                         captured.lock().expect("requests").push(body.clone());
-                        if title::respond(&mut socket, &body) {
+                        if title::is_title(&body) {
+                            let ready = title_released.clone();
+                            let stopping = stopping.clone();
+                            calls.push(std::thread::spawn(move || {
+                                while !ready.load(Ordering::Acquire)
+                                    && !stopping.load(Ordering::Relaxed)
+                                {
+                                    std::thread::sleep(POLL);
+                                }
+                                title::respond(&mut socket, &body);
+                            }));
                             continue;
                         }
                         let scripted = script(&body);
-                        let _ = respond(&mut socket, &scripted, &stopping);
+                        let stopping = stopping.clone();
+                        let progress = progressing.clone();
+                        calls.push(std::thread::spawn(move || {
+                            if let Script::Progress(label) = &scripted {
+                                let _ = shared_runtime::stream(
+                                    &mut socket,
+                                    label,
+                                    &stopping,
+                                    &progress,
+                                );
+                            } else {
+                                let _ = respond(&mut socket, &scripted, &stopping);
+                            }
+                        }));
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(POLL);
@@ -155,10 +187,15 @@ impl Fixture {
                     Err(error) => panic!("accept: {error}"),
                 }
             }
+            for call in calls {
+                call.join().expect("fixture request worker");
+            }
         });
         Arc::new(Self {
             root,
             requests,
+            progress,
+            title_ready,
             stop,
             server: Some(server),
             mcp,
@@ -231,9 +268,11 @@ impl Drop for Fixture {
 
 /// One scripted peer answer: text, or a `compress` function call.
 enum Script {
+    Progress(String),
     Text(String),
     Slow(String),
     Patch(String),
+    Move(String),
 }
 
 fn script(body: &serde_json::Value) -> Script {
@@ -241,6 +280,15 @@ fn script(body: &serde_json::Value) -> Script {
         return Script::Text("answer:patched".to_string());
     }
     let prompt = last_user_text(body).unwrap_or_default();
+    if let Some(arguments) = prompt.strip_prefix("srv-move ") {
+        let value: serde_json::Value =
+            serde_json::from_str(arguments).expect("structured fixture move");
+        assert!(value["sessionID"].is_string() && value["directory"].is_string());
+        return Script::Move(value.to_string());
+    }
+    if let Some(label) = prompt.strip_prefix("srv-progress ") {
+        return Script::Progress(label.into());
+    }
     if prompt.starts_with("patch ") {
         let arguments = serde_json::json!({"patchText": PATCH}).to_string();
         return Script::Patch(arguments);
@@ -339,7 +387,9 @@ fn respond(socket: &mut TcpStream, script: &Script, stop: &AtomicBool) -> std::i
     match script {
         Script::Text(answer) => finish_text(socket, answer),
         Script::Patch(arguments) => finish_call(socket, "apply_patch", arguments),
+        Script::Move(arguments) => finish_call(socket, "opencode_session_move", arguments),
         Script::Slow(_) => unreachable!("handled above"),
+        Script::Progress(_) => unreachable!("streamed by concurrent fixture"),
     }
 }
 
@@ -530,8 +580,9 @@ impl PtySession {
                         let tail = &buf[buf.len().saturating_sub(1200)..];
                         let _ = self.child.kill();
                         panic!(
-                            "child did not exit in time; tail: {:?}",
-                            String::from_utf8_lossy(&visible_text(tail))
+                            "child did not exit in time; tail: {:?}; screen: {:?}",
+                            String::from_utf8_lossy(&visible_text(tail)),
+                            render_screen(&buf).rows()
                         );
                     }
                     std::thread::sleep(POLL);
@@ -1047,7 +1098,14 @@ fn metrics(path: &Path) -> serde_json::Value {
 fn quit(pty: &mut PtySession) {
     pty.send(b"/quit\r");
     let (status, output) = pty.wait_exit(DEADLINE);
-    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert!(
+        status.success() && pty.restored() && contains(&output, ALT_LEAVE),
+        "normal quit: status={status}, restored={}, alternate-screen-left={}; screen={:?}; tail={}",
+        pty.restored(),
+        contains(&output, ALT_LEAVE),
+        render_screen(&output).rows(),
+        String::from_utf8_lossy(&output[output.len().saturating_sub(300)..])
+    );
 }
 
 fn wait_idle(pty: &PtySession) {
@@ -1751,14 +1809,7 @@ fn immediate_ctrl_c_after_first_home_submit_restores_committed_root_on_restart()
     );
 
     let mut reopened = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
-    wait_screen_row(&reopened, "Ask anything", DEADLINE);
-    assert!(
-        !render_screen(&reopened.snapshot())
-            .rows()
-            .join("\n")
-            .contains("quit first turn")
-    );
-    click(&mut reopened, 10, 1);
+    // Native restart mirrors the durable active root, not a private Home.
     wait_screen_row(&reopened, "quit first turn", DEADLINE);
     quit(&mut reopened);
     assert_eq!(metrics(&path)["session"], root);
@@ -1819,8 +1870,6 @@ fn corrupt_parked_selection_keeps_good_tabs_and_original_preference() {
 
     let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
     wait_screen_row(&restored, "saved tabs partially unavailable", DEADLINE);
-    wait_screen_row(&restored, "Ask anything", DEADLINE);
-    click(&mut restored, 10, 1);
     wait_screen_row(&restored, "good retained prompt", DEADLINE);
     restored.send(b"/new\r");
     wait_screen_row(&restored, "tab deck could not be saved", DEADLINE);
@@ -2069,18 +2118,18 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     let requests = fixture.requests.lock().unwrap().len();
 
     let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
-    wait_screen_row(&restart, "Ask anything", DEADLINE);
+    wait_screen_row(&restart, "first deck prompt", DEADLINE);
     assert!(
         !render_screen(&restart.snapshot())
             .rows()
             .join("\n")
-            .contains("first deck prompt")
+            .contains("second deck prompt")
     );
     assert_eq!(live_deck_record(&fixture, &project), saved_raw);
     assert_eq!(
         journal_counts(&fixture),
         counts,
-        "Home did not create a root"
+        "restoring the shared active root did not create a root"
     );
     assert_eq!(fixture.requests.lock().unwrap().len(), requests);
     click(&mut restart, 45, 1);
@@ -2141,8 +2190,6 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     drop(db);
 
     let mut home = PtySession::spawn(fixture.clone(), &project, &[], None);
-    wait_screen_row(&home, "Ask anything", DEADLINE);
-    click(&mut home, 10, 1);
     wait_screen_row(&home, "first deck prompt", DEADLINE);
     home.send(b"/new\r");
     wait_screen_row(&home, "New session", DEADLINE);
@@ -2178,8 +2225,6 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     assert_eq!(metrics(&path)["session"], second);
 
     let mut close = PtySession::spawn(fixture.clone(), &project, &[], None);
-    wait_screen_row(&close, "Ask anything", DEADLINE);
-    click(&mut close, 45, 1);
     wait_screen_row(&close, "second deck prompt", DEADLINE);
     close.send(b"\x1b[<35;63;1M");
     wait_screen_row(&close, "✕", DEADLINE);
@@ -2204,8 +2249,6 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
         "closed root remains durable"
     );
     let mut after_close = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
-    wait_screen_row(&after_close, "Ask anything", DEADLINE);
-    click(&mut after_close, 10, 1);
     wait_screen_row(&after_close, "first deck prompt", DEADLINE);
     quit(&mut after_close);
     assert_eq!(
@@ -2268,8 +2311,14 @@ fn full_sixteen_real_tabs_restart_keeps_selected_route_and_all_ids() {
     let counts = journal_counts(&fixture);
     let requests = fixture.requests.lock().unwrap().len();
     let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restart, READY, DEADLINE);
+    restart.send(b"/new\r");
     wait_screen_row(&restart, "tab limit reached", DEADLINE);
     assert!(render_screen(&restart.snapshot()).rows()[0].contains("Untitled session"));
+    // A refused command retains its composer input; dismiss its candidates and
+    // clear only that input before issuing the independent quit command.
+    restart.send(b"\x03");
+    wait_screen_row(&restart, READY, DEADLINE);
     quit(&mut restart);
     let result = metrics(&path);
     assert_eq!(result["session"], "capacity-12");
@@ -2285,7 +2334,7 @@ fn full_sixteen_real_tabs_restart_keeps_selected_route_and_all_ids() {
 }
 
 #[test]
-fn full_saved_deck_with_unreadable_parked_tab_opens_home_without_rewriting_preference() {
+fn full_saved_deck_with_unreadable_parked_tab_keeps_active_without_rewriting_preference() {
     let fixture = Fixture::new();
     let project = fixture.project_a();
     let path = fixture.root.path().join("projected-full-deck-metrics.json");
@@ -2318,7 +2367,7 @@ fn full_saved_deck_with_unreadable_parked_tab_opens_home_without_rewriting_prefe
 
     let mut restart = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
     wait_screen_row(&restart, "saved tabs partially unavailable", DEADLINE);
-    wait_screen_row(&restart, "Ask anything", DEADLINE);
+    wait_screen_row(&restart, READY, DEADLINE);
     assert!(
         !render_screen(&restart.snapshot())
             .rows()
@@ -2398,16 +2447,9 @@ fn concurrent_sqlite_deck_edit_cannot_be_overwritten_by_restored_tui() {
     restored.send(b"/new\r");
     wait_screen_row(&restored, "tab deck could not be saved", DEADLINE);
     wait_screen_row(&restored, "New session", DEADLINE);
-    // The stale owner token must also block closing the parked real tab.
-    // The close hit-test is the first tab's hover glyph at column 31.
-    restored.send(b"\x1b[<35;31;1M");
-    wait_screen_row(&restored, "✕", DEADLINE);
-    click(&mut restored, 31, 1);
-    wait_screen_row(
-        &restored,
-        "tab close refused; saved tabs unavailable",
-        DEADLINE,
-    );
+    // The refusal may now adopt the authoritative Home through a bounded read,
+    // but it must never resend the stale mutation or alter the external value.
+    assert_eq!(live_deck_record(&fixture, &project), replacement);
     quit(&mut restored);
     assert!(
         metrics(&path)["session"].is_null(),
@@ -2466,8 +2508,6 @@ fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
     let requests = fixture.requests.lock().unwrap().len();
 
     let mut beta_restart = PtySession::spawn(fixture.clone(), &beta, &[], Some(&path));
-    wait_screen_row(&beta_restart, "Ask anything", DEADLINE);
-    click(&mut beta_restart, 10, 1);
     wait_screen_row(&beta_restart, "beta location prompt", DEADLINE);
     assert!(
         !render_screen(&beta_restart.snapshot())
@@ -2484,8 +2524,6 @@ fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
     // A saved Home on B remains selected even when the switch originates
     // from A's real tab; B's parked tab must remain available in order.
     let mut roaming = PtySession::spawn(fixture.clone(), &beta, &[], None);
-    wait_screen_row(&roaming, "Ask anything", DEADLINE);
-    click(&mut roaming, 10, 1);
     wait_screen_row(&roaming, "beta location prompt", DEADLINE);
     roaming.send(b"/new\r");
     wait_screen_row(&roaming, "New session", DEADLINE);
@@ -2535,6 +2573,7 @@ fn retained_tab_mouse_add_restores_draft_and_home_submit_binds_one_new_root() {
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "first tab");
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    wait_idle(&pty); // Rename is an idle-only conversation mutation, not title readiness.
     pty.send(b"/rename Original root\r");
     wait_screen_row(&pty, "Original root", DEADLINE);
     pty.send(b"saved draft");
@@ -3389,6 +3428,9 @@ fn vis26_bare_oc_mention_tab_submits_durable_location_relative_prompt() {
 #[test]
 fn bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn() {
     let fixture = Fixture::new();
+    // Title completion is independent of the main stream. Hold its actual
+    // response until the pre-title acceptance projection has been observed.
+    fixture.title_ready.store(false, Ordering::Release);
     let mut pty = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
     pty.wait_visible("█▀▀█", DEADLINE);
     assert!(!render_screen(&pty.snapshot()).rows()[0].contains(READY));
@@ -3403,6 +3445,7 @@ fn bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn() {
     let (roots, events, turns, messages, bindings) = journal_counts(&fixture);
     assert_eq!((roots, turns, messages, bindings), (1, 1, 1, 1));
     assert!(events >= 2, "root and turn journaled at acceptance");
+    fixture.title_ready.store(true, Ordering::Release);
     pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
     // Synchronize on the accepted turn's durable page rather than the first
     // streaming delta before quitting.

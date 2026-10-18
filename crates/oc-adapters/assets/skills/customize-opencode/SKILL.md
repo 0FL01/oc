@@ -68,7 +68,10 @@ complete generation, not a mixture of old clients and new policy.
    external MCP dependency. Prefer the existing admitted entries and exact IDs.
 3. Make the smallest authorized edit. Keep secrets as references. Check the diff
    for unintended permission, endpoint, argv, default-agent or selection changes.
-4. Apply `/reload` at an idle boundary, or restart the **owned idle** application.
+4. Apply `/reload` to the intended Location. Native clients share one UID/data-root
+   owner and its frozen startup environment. A new ELF or startup environment is
+   used only after all of that owner's clients finish normally; closing one idle
+   screen does not restart it while other clients or jobs remain.
    Do not kill active jobs or replay unknown effects to apply a preference.
    Prepared requests keep their captured generation and model; picker drafts,
    committed selections and edited config defaults are not interchangeable.

@@ -84,7 +84,7 @@ be an image. Search/conversion engines stay bounded and pinned; PDF remains excl
 
 Persist messages/operations и небольшое durable событие в одной транзакции. События имеют monotonic seq на сессию; UI notifications после commit. Это transactional event journal, не система восстановления всей DB проигрыванием event stream. UI делtas могут coalesce; единственная durable копия terminal outcome не теряется из-за медленного потребителя.
 
-SQLite data root отделён от upstream; advisory OS lock на время владения. Lockfile inode не удалять по PID. Второй write/root-lock owner — `DataRootBusy`, не опасный «repair». Каждый `oc2` — независимый процесс без shared host/attach (owner 2026-10-15); existing guarded read-only catalog/cache connection допустим без writes/recovery/другого root owner. DB на локальном ext4; network filesystem не квалифицирован.
+SQLite data root отделён от upstream; advisory OS lock на время владения. Lockfile inode не удалять по PID. Второй write/root-lock owner — `DataRootBusy`, не опасный «repair». По T68 обычные TUI/run/auth/sessions подключаются через private same-UID UDS к одному native owner, который удерживает единственный Db и recovery; existing guarded read-only catalog/cache connection допустим без writes/recovery/другого root owner. DB на локальном ext4; network filesystem не квалифицирован.
 
 Full outputs и attachments — content-addressed files в own blob dir, atomic temp/write/fsync/rename. Сначала durable blob, затем DB reference. Unreferenced files после crash безопасно собираются только собственным GC с grace period; referenced blobs не удаляются. DB errors/disc full прекращают mutations. Логи не дублируют blobs.
 
@@ -110,7 +110,7 @@ Linux host facts are collected natively with ordinary user permissions, without 
 
 ## Lifecycle
 
-Process владеет DB/config/logger; `LocationGeneration` задаёт canonical Location,
+Native owner владеет DB/config/logger; `LocationGeneration` задаёт canonical Location,
 permission ceiling, prompt fragments/native capabilities, snapshotted agent/command/
 skill catalogs и safe diagnostics. Текущий baseline публикует config между turns.
 T61 target: source snapshot fully validated и atomically published, fresh preparation
@@ -143,24 +143,28 @@ at-least-once, not exactly-once; native started/unknown mutation/shell/MCP effec
 remain blocked from automatic replay. Successful parent completion is not child
 cancellation. Shutdown still joins all owned work; no orphan background tasks.
 
-### T61 per-process reload target — shared service descoped 2026-10-15
+### T68 shared owner; T61 reload qualification остаётся отдельной
 
-Contract: [T61](goals/2026-10-14-hot-reload-shared-service.md). Each independent `oc2`
-process owns its Db and process-wide resources, Location runtimes/publications/MCP
-supervisors; there is no shared host, IPC or client attach. Tab persistence remains
-existing Location/CAS. Children share
+Contract: [T68](goals/2026-10-17-shared-tui-runtime.md), narrowly superseding D26.
+One UID/data-root authority owns Db/resources and canonical Location sources/MCP;
+session-scoped root runners execute concurrently without another Db or recovery.
+Clients mirror the Location deck/order/active route and bounded live projection;
+unsent text/PNG editors remain local. Tab persistence remains existing Location/CAS.
+Children share
 source publication only, not mutable execution state. Finite watch topology comes from
 admitted loading; one debounced watcher/manual pipeline, one latest desired MCP config,
 per-instance retirement/quarantine, no generation-owned supervisor chains.
 
-CoreApp remains the in-process typed facade. Shutdown joins all resources before
-root-lock release. Config-dependent child recovery routes by durable source Location;
-no root auto-replay.
+CoreApp remains the concrete typed facade, backed by local channels or bounded native
+wire, without an application/transport trait. Last global TUI disconnect cancels
+interactive lineage as Interrupted; finite run/auth/sessions leases are independent.
+Final shutdown joins all resources before root-lock release. Config-dependent child
+recovery routes by durable source Location; no root auto-replay or ambiguous mutation resend.
 
 Client settings parsing/watch belongs to adapter orchestration, not raw TUI code. Narrow
 UI settings merge overlays each runtime catalog snapshot, retains runtime facets/live
-state and invalidates palette-dependent caches. These are T61 obligations, not current
-support claims.
+state and invalidates palette-dependent caches. Full [T61](goals/2026-10-14-hot-reload-shared-service.md)
+remains paused; T68 does not restore HOT03 or qualify the remaining T61 settings surface.
 
 ## TUI без второй модели мира
 

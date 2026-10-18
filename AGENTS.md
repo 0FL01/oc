@@ -15,7 +15,7 @@
 - Rust 2024, небольшой workspace, KISS/YAGNI. Ядро не зависит от UI; в production нет Node/Bun/JS-host. Внешний MCP через npx — только явная пользовательская зависимость.
 - [Long Horizon](docs/LONG_HORIZON.md) — явная дивергенция форка: без искусственных round/step stops; finite failure retries и resource/security guards сохраняются. DCP Compress встроен, отключаем через config; решение не означает implementation PASS.
 - OpenProxy подключается нативным Responses adapter. `providers.<id>.package: "@ai-sdk/openai"` — alias конфигурации, не npm dependency. Не зашивать model IDs, reasoning allowlists по именам и vendor-specific маршруты; discovery сверять с владельческим кодом в `references/`.
-- Бинарник `oc2`; каждый процесс независим — без shared service/IPC/`oc service` (D26). Config — только канонический schema OpenCode 2; ключи вне OC2 allowlist отказывают fail-closed (D27/T62, D28/T66).
+- Бинарник `oc2`; TUI/run/auth/sessions подключаются к одному native UID/data-root owner через private UDS (T68, supersedes D26). `native/` — attach/leases/wire; `application/authority.rs` — одна Db/recovery, Location sources и session runners. Второй сырой `Db` всё ещё запрещён; `oc service`/TCP/privileged broker нет. Config — только OC2 allowlist, fail-closed (D27/T62, D28/T66).
 - Файловые tools выбираются по OC2 predicate: `apply_patch` либо `edit`/`write`; T50/R1/R9 в `GOAL.md` требует live switch перед следующим request той же задачи, не только новым user turn. Prepared request и его tools сохраняют captured model/view; picker draft отличается от committed selection. Это узкое model-name exception, не provider/reasoning routing. Shell не sandbox; raw history неизменна, DCP меняет provider projection.
 
 ## Файлы, слайсы и контекст
@@ -42,7 +42,7 @@
 
 ## Live dev-сборка владельца (`oc2-dev`)
 
-- `oc2-dev` — alias в `~/.zshrc` владельца (T67): грузит `secrets.env` как `oc2` и запускает `~/ai/oc/target/debug/oc2` из текущего каталога, ничего не собирая. Config (`~/.config/opencode`) и хранилище (`~/.local/share/oc`) общие с release `oc2`, поэтому одновременно они не работают (`DataRootBusy`).
+- `oc2-dev` — alias в `~/.zshrc` владельца (T67): грузит `secrets.env` как `oc2` и запускает `~/ai/oc/target/debug/oc2` из текущего каталога, ничего не собирая. Config/data общие с release `oc2`; клиенты используют первый native owner и его startup env. Старый in-process owner требует обычного quit; lock не удалять, чужой процесс не kill/restart-ить. Новый ELF подхватывается owner после завершения всех его leases.
 - Мягкое правило: если изменение стоит посмотреть вживую, в конце задачи собери `cargo build -p oc2 --bin oc2 --locked` (debug, `<worktree>/target`) и сообщи, что `oc2-dev` готов; подходит и бинарник, уже собранный тестами. Это не gate и не замена обязательных проверок. Новая сборка подхватывается при следующем запуске `oc2-dev`.
 - Не делай `cargo clean`, не удаляй `target/debug` и не переопределяй `CARGO_TARGET_DIR`: на этот путь опирается `oc2-dev`.
 - Сам `oc2-dev` не запускай: это интерактивный запуск владельца с его секретами. Live-проверки агента — только по `docs/AGENT_RUNBOOK.md`.

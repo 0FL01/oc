@@ -85,38 +85,13 @@ pub(super) async fn apply(
     action: Option<AccountAction>,
 ) -> Result<ProviderAccounts, CoreError> {
     let scope = scope(c, &provider)?;
+    let mut created = None;
     if let Some(action) = action {
         // Account management never mutates an already prepared request or active child.
         if runtime.turn_active() {
             return Err(CoreError::TurnBusy);
         }
-        let result = match action {
-            AccountAction::AddKey { label, key } => db
-                .add_credential(
-                    scope.namespace(),
-                    &label,
-                    crate::storage::CredentialMaterial::Key {
-                        key: key.into_secret(),
-                    },
-                )
-                .map(|_| ()),
-            AccountAction::Activate { id } => db.activate_credential(scope.namespace(), &id),
-            AccountAction::Rename { id, label } => {
-                db.rename_credential(scope.namespace(), &id, &label)
-            }
-            AccountAction::Remove {
-                id,
-                confirmed: true,
-            } => db.remove_credential(scope.namespace(), &id),
-            AccountAction::Remove {
-                confirmed: false, ..
-            } => {
-                return Err(CoreError::Application(
-                    "account removal requires confirmation".into(),
-                ));
-            }
-        };
-        result.map_err(|error| query_storage_error(db, error))?;
+        created = mutate(db, &scope, action)?;
         c.attach_custom_connections(db)
             .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
         c.refresh_credentials(db)
@@ -147,7 +122,47 @@ pub(super) async fn apply(
             )
             .map_err(runtime_error)?;
     }
-    read(db, c, provider)
+    let mut accounts = read(db, c, provider)?;
+    // Native callers need the exact AddKey receipt. The in-process API keeps
+    // its canonical account snapshot identical to a subsequent read.
+    accounts.created = created.filter(|_| runtime.native_owner.is_some());
+    Ok(accounts)
+}
+
+pub(super) fn mutate(
+    db: &Db,
+    scope: &crate::auth::AuthScope,
+    action: AccountAction,
+) -> Result<Option<String>, CoreError> {
+    let result = match action {
+        AccountAction::AddKey { label, key } => db
+            .add_credential(
+                scope.namespace(),
+                &label,
+                crate::storage::CredentialMaterial::Key {
+                    key: key.into_secret(),
+                },
+            )
+            .map(|row| Some(row.id)),
+        AccountAction::Activate { id } => db
+            .activate_credential(scope.namespace(), &id)
+            .map(|()| None),
+        AccountAction::Rename { id, label } => db
+            .rename_credential(scope.namespace(), &id, &label)
+            .map(|()| None),
+        AccountAction::Remove {
+            id,
+            confirmed: true,
+        } => db.remove_credential(scope.namespace(), &id).map(|()| None),
+        AccountAction::Remove {
+            confirmed: false, ..
+        } => {
+            return Err(CoreError::Application(
+                "account removal requires confirmation".into(),
+            ));
+        }
+    };
+    result.map_err(|error| query_storage_error(db, error))
 }
 
 pub(super) fn read(
@@ -195,24 +210,32 @@ pub(super) fn read(
         crate::auth::AuthSource::Missing => AccountAuthSource::Missing,
     };
     Ok(ProviderAccounts {
+        created: None,
         name: super::model_picker::provider_name(c, &provider),
         provider,
         effective,
-        accounts: db
-            .credential_accounts(scope.namespace())
-            .map_err(|error| query_storage_error(db, error))?
-            .into_iter()
-            .map(|a| ProviderAccount {
-                id: a.id,
-                label: a.label,
-                kind: match a.kind {
-                    crate::storage::CredentialKind::Key => AccountKind::Key,
-                    crate::storage::CredentialKind::OAuth => AccountKind::OAuth,
-                },
-                method_id: a.method_id,
-                active: a.active,
-                created_at: a.created_at,
-            })
-            .collect(),
+        accounts: stored(db, &scope)?,
     })
+}
+
+pub(super) fn stored(
+    db: &Db,
+    scope: &crate::auth::AuthScope,
+) -> Result<Vec<ProviderAccount>, CoreError> {
+    Ok(db
+        .credential_accounts(scope.namespace())
+        .map_err(|error| query_storage_error(db, error))?
+        .into_iter()
+        .map(|a| ProviderAccount {
+            id: a.id,
+            label: a.label,
+            kind: match a.kind {
+                crate::storage::CredentialKind::Key => AccountKind::Key,
+                crate::storage::CredentialKind::OAuth => AccountKind::OAuth,
+            },
+            method_id: a.method_id,
+            active: a.active,
+            created_at: a.created_at,
+        })
+        .collect())
 }

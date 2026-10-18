@@ -7,7 +7,6 @@ use std::fs;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::process::ExitStatusExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Child, Command, ExitStatus, Stdio};
@@ -18,6 +17,8 @@ use oc_adapters::storage::Db;
 use serde_json::{Value, json};
 #[path = "support/context_ids.rs"]
 mod context_ids;
+#[path = "support/native_owner.rs"]
+mod native_owner;
 #[path = "support/seed.rs"]
 mod seed;
 
@@ -1115,6 +1116,12 @@ fn run_crash_atomicity_at_sqlite_sync() {
     let (mut socket, request) = fixture.accept(&mut process);
     assert_visible_anchor(&request, &ranges[0].start);
     assert_visible_anchor(&request, &ranges.last().expect("last range").end);
+    let owner = native_owner::NativeOwner::of_fixture(&fixture.data());
+    assert_ne!(
+        owner.pid,
+        process.child.id(),
+        "the client is not the SQLite owner"
+    );
 
     // This connection deliberately ignores oc.lock. It is read-only and is
     // opened before dispatch while the actual application process owns root.
@@ -1152,15 +1159,15 @@ fn run_crash_atomicity_at_sqlite_sync() {
     // actual oc process inside its next database/WAL durability sync.
     barrier.arm();
     barrier.wait_until_reached(&mut process);
-    // SAFETY: process.child.id() names this test's live child; SIGKILL has no
-    // handler and the child is synchronously reaped immediately below.
-    let killed = unsafe { libc::kill(process.child.id() as libc::pid_t, libc::SIGKILL) };
-    assert_eq!(killed, 0, "SIGKILL actual oc");
+    owner
+        .kill()
+        .expect("SIGKILL the sync-blocked native database owner");
     assert_eq!(
-        process.wait().signal(),
-        Some(libc::SIGKILL),
-        "actual oc terminated by SIGKILL"
+        process.wait().code(),
+        Some(1),
+        "client must report loss of the actual owner, not a clean cancellation"
     );
+    assert!(process.diagnostics().contains("outcome unknown"));
 
     // Drop the observer that was open before the interrupted WAL commit. The
     // fresh Db below is the authoritative crash-recovery image.

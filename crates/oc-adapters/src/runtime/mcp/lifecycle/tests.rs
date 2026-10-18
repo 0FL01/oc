@@ -72,7 +72,7 @@ async fn connected(owner: &McpOwner, names: &[&str]) {
 #[tokio::test]
 async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_running() {
     let project = tempfile::tempdir().unwrap();
-    let owner = McpOwner::new("shared-location", 1);
+    let owner = Arc::new(McpOwner::new("shared-location", 1));
     let config = Generation {
         mcp: BTreeMap::from([("peer".into(), reconcile_entry(project.path(), "waiters"))]),
         ..Default::default()
@@ -94,9 +94,9 @@ async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_runn
     drop(initial);
     let cancel = AtomicBool::new(false);
     let keep_running = AtomicBool::new(false);
-    let mut cancelled = Box::pin(owner.request(&cancel));
-    let mut survivor = Box::pin(owner.request(&keep_running));
-    let mut dropped = Box::pin(owner.request(&keep_running));
+    let mut cancelled = Box::pin(owner.request(&cancel, false));
+    let mut survivor = Box::pin(owner.request(&keep_running, false));
+    let mut dropped = Box::pin(owner.request(&keep_running, false));
     let initially_pending = [
         futures_util::poll!(cancelled.as_mut()).is_pending(),
         futures_util::poll!(survivor.as_mut()).is_pending(),
@@ -116,11 +116,11 @@ async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_runn
     // Closed replies must not exhaust the existing waiter cap while relisting.
     let mut dropped_pending = true;
     for _ in 0..MAX_MCP_SERVERS {
-        let mut abandoned = Box::pin(owner.request(&keep_running));
+        let mut abandoned = Box::pin(owner.request(&keep_running, false));
         dropped_pending &= futures_util::poll!(abandoned.as_mut()).is_pending();
     }
     let replies = tokio::time::timeout(Duration::from_secs(3), async {
-        tokio::join!(survivor, owner.request(&keep_running), async {
+        tokio::join!(survivor, owner.request(&keep_running, false), async {
             // The no-change ACK fences the preceding waiter commands without
             // changing the physical client or releasing the held list reply.
             let fence = owner.reconcile(config, 1, None, false, None).await;
@@ -143,6 +143,49 @@ async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_runn
     });
     // Only actual issued work pins a physical client through owner shutdown.
     drop(replies);
+    // Execution preparation has a different lifetime from metadata replies.
+    // Cancelling one root must retain the same physical client while a second
+    // root still needs its held catalog refresh.
+    std::fs::remove_file(project.path().join("list-release")).unwrap();
+    std::fs::remove_file(project.path().join("list-entered")).unwrap();
+    let issued = owner.request_view().unwrap();
+    let AttachedServer::Stdio(client) = issued.servers[0].client.as_ref() else {
+        unreachable!("local fixture")
+    };
+    client
+        .call_tool("waiters", serde_json::json!({}), &keep_running)
+        .await
+        .unwrap();
+    drop(issued);
+    let cancelled_root = owner.operation();
+    let surviving_root = owner.operation();
+    let cancel_root = AtomicBool::new(false);
+    let mut preparation = Box::pin(owner.request(&cancel_root, true));
+    let mut surviving_preparation = Box::pin(owner.request(&keep_running, true));
+    assert!(futures_util::poll!(preparation.as_mut()).is_pending());
+    assert!(futures_util::poll!(surviving_preparation.as_mut()).is_pending());
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while !project.path().join("list-entered").exists() {
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .unwrap();
+    cancel_root.store(true, Ordering::Release);
+    let root_cancelled = matches!(preparation.await, Err(RuntimeError::Cancelled));
+    let released_root = cancelled_root.cancel().await;
+    let survivor_still_pending = futures_util::poll!(surviving_preparation.as_mut()).is_pending();
+    std::fs::write(project.path().join("list-release"), "ready").unwrap();
+    let survivor_view = tokio::time::timeout(Duration::from_secs(3), surviving_preparation).await;
+    let same_root_client = survivor_view.as_ref().is_ok_and(|result| {
+        result.as_ref().is_ok_and(|view| {
+            view.servers.first().is_some_and(|server| {
+                std::sync::Weak::ptr_eq(&original_client, &Arc::downgrade(&server.client))
+            })
+        })
+    });
+    drop(survivor_view);
+    drop(surviving_root);
     let stopped = owner.stop().await;
 
     assert!(entered.is_ok(), "fixture never entered relisting");
@@ -150,6 +193,8 @@ async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_runn
     assert!(cancelled_as_expected);
     assert!(dropped_pending);
     assert!(fenced);
+    assert!(root_cancelled && released_root.is_ok());
+    assert!(survivor_still_pending && same_root_client);
     assert!(!poisoned, "a metadata waiter poisoned the shared owner");
     assert!(
         preserved,
@@ -944,6 +989,7 @@ fn pending_scope(owner: &McpOwner) -> Scope {
                 cancel: Some(Arc::new(AtomicBool::new(false))),
                 closing: false,
                 replacing: false,
+                suspended: false,
                 catalogs: [None, None, None],
                 catalog_pending: [false; 3],
             },
@@ -953,6 +999,7 @@ fn pending_scope(owner: &McpOwner) -> Scope {
         retiring: Vec::new(),
         instances: Vec::new(),
         requests: Vec::new(),
+        retirements: Vec::new(),
         lookups: Vec::new(),
         fatal: None,
         stopping: false,

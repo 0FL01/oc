@@ -35,6 +35,12 @@ pub struct Args {
 /// Native runtime and read-only catalog commands.
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Private same-UID owner role, launched only with an inherited startup socket.
+    #[command(name = "__native-owner", hide = true)]
+    NativeOwner {
+        #[arg(long)]
+        bootstrap_fd: i32,
+    },
     /// Manage native OpenAI authentication without a model or session.
     Auth {
         #[command(subcommand)]

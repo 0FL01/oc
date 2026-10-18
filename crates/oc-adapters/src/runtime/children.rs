@@ -676,15 +676,17 @@ impl Jobs {
             let runtime = Arc::new(runtime);
             let mcp = runtime.mcp_owner();
             let child_runtime = runtime.clone();
+            let origin_work = runtime.native_origin.as_ref().map(|origin| origin.work());
             // The captured request future is large; transfer a heap-pinned
             // future rather than moving it through spawn's stack frames.
             let task = tokio::spawn(Box::pin(async move {
+                let _origin_work = origin_work;
                 let _reservation = reservation;
                 // Poll the actual child future before releasing the launch waiter.
                 // Its first physical request is fenced by the ordinary durable
                 // child acceptance callback, not an invented running callback.
-                let result = child_runtime
-                    .run_child_turn(
+                let result = {
+                    let run = child_runtime.run_child_turn(
                         &agent,
                         &parent_lane,
                         &id.operation,
@@ -698,8 +700,16 @@ impl Jobs {
                         &token,
                         Some(started),
                         resume,
-                    )
-                    .await;
+                    );
+                    tokio::pin!(run);
+                    tokio::select! {
+                        result = &mut run => result,
+                        () = async { match &child_runtime.native_origin { Some(origin) => origin.cancelled().await, None => std::future::pending().await } } => {
+                            token.store(true, Ordering::Release);
+                            run.await
+                        }
+                    }
+                };
                 let (state, result) = match result {
                     Ok(report) if report.status == TurnStatus::Completed => {
                         let text = if report.text.is_empty() {
@@ -714,7 +724,12 @@ impl Jobs {
                         };
                         (ChildState::Completed, text)
                     }
-                    Ok(report) if report.status == TurnStatus::Cancelled => {
+                    Ok(report)
+                        if matches!(
+                            report.status,
+                            TurnStatus::Cancelled | TurnStatus::Interrupted
+                        ) =>
+                    {
                         (ChildState::Cancelled, "Subagent cancelled".into())
                     }
                     Ok(report) => {
@@ -895,8 +910,12 @@ impl Runtime<'_> {
         &self,
         catalog: &ModelCatalog,
         provider: &ResponsesConfig,
+        only_location: bool,
     ) -> Result<(), RuntimeError> {
         for identity in self.db.child_recovery_candidates()? {
+            if only_location && identity.location != self.location {
+                continue;
+            }
             let recovered = async {
                 // A process-local publication counter can reset on restart.
                 // Exact launch/turn identity, persisted source/ancestor and wire
@@ -1065,8 +1084,13 @@ impl Runtime<'_> {
     }
     /// Retain the source publication handle and SAME storage/resource lineage.
     /// No new database, MCP connection, catalog discovery or authority grants.
-    pub(super) fn owned_child_snapshot(&self) -> Runtime<'static> {
+    pub(crate) fn owned_child_snapshot(&self) -> Runtime<'static> {
         Runtime {
+            primary_sources: self.primary_sources.clone(),
+            primary: self.primary.clone(),
+            native_origin: self.native_origin.clone(),
+            native_live: self.native_live.clone(),
+            native_owner: self.native_owner.clone(),
             prepared_moves: Mutex::default(),
             shell_jobs: self.shell_jobs.clone(),
             child_jobs: self.child_jobs.clone(),
@@ -1095,10 +1119,86 @@ impl Runtime<'_> {
             compression_commit: self.compression_commit.clone(),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(self.mcp_generation.read().expect("mcp").clone()),
-            mcp_unsafe_retry: AtomicBool::new(self.mcp_unsafe_retry.load(Ordering::Acquire)),
-            mcp_cleanup_failed: AtomicBool::new(self.mcp_cleanup_failed.load(Ordering::Acquire)),
+            mcp_unsafe_retry: self.mcp_unsafe_retry.clone(),
+            mcp_cleanup_failed: self.mcp_cleanup_failed.clone(),
             subagent_seq: AtomicU64::new(0),
         }
+    }
+
+    /// Independent primary execution, sharing only admitted source/resource owners.
+    /// Its children inherit this primary's publication and interaction queues.
+    pub(crate) fn owned_primary_snapshot(
+        &self,
+        session: &str,
+        profile: crate::application::Effective,
+    ) -> Runtime<'static> {
+        let _commit = self.publication_commit.lock().expect("publication commit");
+        let mut sources = self.primary_sources.lock().expect("primary sources");
+        sources.views.retain(|_, view| view.strong_count() > 0);
+        let state = sources
+            .views
+            .get(session)
+            .and_then(std::sync::Weak::upgrade)
+            .unwrap_or_else(|| {
+                sources.revision = sources.revision.wrapping_add(1);
+                let state = Arc::new(super::publication::PrimaryState {
+                    current: Arc::new(RwLock::new(
+                        self.current.read().expect("generation lock").clone(),
+                    )),
+                    approvals: Arc::new(self.approvals.new_scope()),
+                    questions: Arc::new(self.questions.new_scope()),
+                    profile: RwLock::new(profile),
+                    source_id: AtomicU64::new(self.generation_id()),
+                });
+                sources
+                    .views
+                    .insert(session.to_owned(), Arc::downgrade(&state));
+                state
+            });
+        state
+            .source_id
+            .store(self.generation_id(), Ordering::SeqCst);
+        let mut primary = self.owned_child_snapshot();
+        primary.primary_sources =
+            Arc::new(Mutex::new(super::publication::PrimarySources::default()));
+        primary.current = state.current.clone();
+        primary.approvals = state.approvals.clone();
+        primary.questions = state.questions.clone();
+        primary.primary = Some(state);
+        primary
+    }
+
+    pub(crate) fn inherit_native_resources(
+        &mut self,
+        resources: &crate::application::authority::Resources,
+    ) {
+        self.shell_jobs = resources.shell.clone();
+        self.child_jobs = resources.children.clone();
+        self.compression_commit = resources.compression.clone();
+        self.approvals = Arc::new(resources.approvals.new_scope());
+        self.questions = Arc::new(resources.questions.new_scope());
+        self.native_live = Some(resources.live.clone());
+        self.mcp_unsafe_retry = resources.mcp_unsafe_retry.clone();
+        self.mcp_cleanup_failed = resources.mcp_cleanup_failed.clone();
+    }
+
+    pub(super) fn primary_controls(&self, session: &str) -> Option<Runtime<'static>> {
+        if self.primary.is_some() {
+            return None;
+        }
+        let state = self
+            .primary_sources
+            .lock()
+            .expect("primary sources")
+            .views
+            .get(session)?
+            .upgrade()?;
+        let mut view = self.owned_child_snapshot();
+        view.current = state.current.clone();
+        view.approvals = state.approvals.clone();
+        view.questions = state.questions.clone();
+        view.primary = Some(state);
+        Some(view)
     }
 
     #[allow(clippy::too_many_arguments)]

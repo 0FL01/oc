@@ -6,7 +6,7 @@ pub const PENDING_TOOL_MAX: usize = 32;
 pub const ARGUMENT_PREVIEW_MAX: usize = 4096;
 
 /// Exact provider identity, scoped to a turn's one-based provider round.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ToolStreamIdentity {
     /// One-based provider round (call IDs may repeat across rounds).
     pub round: u32,
@@ -17,7 +17,7 @@ pub struct ToolStreamIdentity {
 }
 
 /// Bounded live-only presentation lifecycle.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ToolStreamEvent {
     /// Replacement snapshot, not a fragment to append or parse as arguments.
     Pending {

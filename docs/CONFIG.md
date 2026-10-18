@@ -139,23 +139,32 @@ deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
 startup/status/control and cleanup use the existing T46 resource owner. Native worker
 joins preserve typed cleanup/cap causes and discard unsafe legacy/panic payloads.
 
-## Hot reload — T61 per-process target (shared service descoped 2026-10-15)
+## Native owner и startup environment — T68
+
+TUI/run/auth/sessions одного UID/data root автоматически используют один native owner
+через private UDS, без `oc service` или control TCP listener. Его startup environment
+фиксировано первым запуском; последующие клиенты не подменяют env. Новый binary/env
+подхватывается после штатного завершения всех leases этого owner. Один закрытый TUI
+не перезапускает owner, пока остаётся другой TUI или конечная CLI-операция.
+Старый in-process `oc2` надо закрыть нормально; `oc.lock` не удалять.
+
+## Hot reload — T61 target, отдельная qualification
 
 Contract: [T61/R1–R5](goals/2026-10-14-hot-reload-shared-service.md); commands ниже —
-планируемый интерфейс, не claim текущей реализации. Существующий `/reload` пока idle-only.
+планируемая полная поверхность, не claim завершения T61. Затронутые T68 reload/captured
+request paths проверяются отдельно от полной settings/watch qualification.
 
 | Изменение | Применение после T61 |
 |---|---|
 | Admitted opencode.json(c), agents/commands/skills, instructions, DCP/native-module settings и admitted file substitutions | Automatic validated publication; следующая fresh preparation той же задачи, не mid-stream/tool batch |
 | MCP command/URL/headers/cwd/env/disabled | Reconcile affected instances, unchanged auto reuse; old leased batch finishes before cleanup/replacement, actual tools after handshake |
 | `/mcps` connect/disconnect/retry | Runtime control actual Location owner; сохранение намерения в config отдельно; auto no-op его не сбрасывает |
-| `/reload` | Force discovery/services для already-loaded Locations этого процесса, не boot cwd; config publication/pending/failure отдельны, per-Location atomicity |
+| `/reload` | Force discovery/services intended Location owner, не boot cwd; config publication/pending/failure отдельны, per-Location atomicity |
 | Native CLI settings/theme/keybinds | Independent client watch/last-good UI snapshot, no provider/MCP rebuild |
-| Новый binary/process env | Перезапуск этого процесса `oc2` |
+| Новый binary/process env | Штатное завершение всех leases native owner, затем новый запуск |
 
-Каждый процесс `oc2` независим: нет shared service, IPC, attach/detach и `oc service`
-(осознанная дивергенция с OC2 managed `127.0.0.1` service, owner 2026-10-15). Второй
-процесс на тот же data root получает `DataRootBusy`; разные data roots независимы.
+T68 узко supersedes per-process D26: второй обычный клиент подключается, второй сырой
+storage owner по-прежнему получает `DataRootBusy`; разные data roots независимы.
 
 Fatal config/security/mandatory definition/discovery failure сохраняет complete
 last-good; valid removal saved agent/model/variant сохраняет exact unavailable identity

@@ -144,8 +144,10 @@ impl TuiState {
         let Some(mut pending) = self.user_shell.pending.take() else {
             return Ok(());
         };
-        pending.receipt.cancel();
-        pending.cancelling = true;
+        if !self.app.shares_workspace() {
+            pending.receipt.cancel();
+            pending.cancelling = true;
+        }
         let result = pending.receipt.wait().await;
         if result == Err(CoreError::Shutdown) {
             return Err(CoreError::Shutdown);

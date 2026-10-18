@@ -90,6 +90,12 @@ impl ScriptDriver {
                 state.apply_child_jobs(jobs);
             }
             match event {
+                Ok(Ok(
+                    CoreEvent::Projection { .. }
+                    | CoreEvent::WorkspaceChanged { .. }
+                    | CoreEvent::ProjectionGap
+                    | CoreEvent::OwnerDisconnected,
+                )) => {}
                 Ok(Ok(CoreEvent::SessionModelSelected { session, commit })) => {
                     state.apply_session_model_selected(&session, &commit)
                 }
@@ -1131,6 +1137,12 @@ impl TuiState {
     /// then resolve the *same* receipt before the application shuts down.
     /// Existing-session turns already have a durable tab and need no wait.
     pub async fn reconcile_fresh_quit(&mut self) -> Result<(), CoreError> {
+        // Native acceptance/adoption is owned through ACK by the authority, even
+        // after this viewer leaves. Waiting here before releasing the TUI lease
+        // would deadlock a last-viewer quit on a pre-acceptance Ask.
+        if self.app.shares_workspace() {
+            return Ok(());
+        }
         self.reconcile_user_shell_quit().await?;
         let Some(pending) = self.pending.as_mut().filter(|p| p.fresh) else {
             return Ok(());
@@ -1139,7 +1151,11 @@ impl TuiState {
         let session = pending.session.clone();
         // Cancel follows SubmitFresh in the owner's inbox. A rejected or
         // already-finished turn has nothing left to cancel.
-        match self.app.cancel(session).await {
+        match if self.app.shares_workspace() {
+            Ok(())
+        } else {
+            self.app.cancel(session).await
+        } {
             Ok(()) | Err(CoreError::TurnNotActive) => {}
             Err(error) => return Err(error),
         }

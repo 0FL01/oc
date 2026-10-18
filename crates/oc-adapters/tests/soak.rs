@@ -404,6 +404,10 @@ struct EpochStats {
 /// One frozen epoch: round-robin turns, compress every 12 turns, one
 /// cancel, one loud MCP failure. Returns measured stats.
 async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> EpochStats {
+    let epoch_started = std::time::Instant::now();
+    let mut kind_millis = BTreeMap::<&str, u64>::new();
+    let mut kind_stream_millis = BTreeMap::<&str, u64>::new();
+    let mut compress_millis = 0;
     static CANCEL: AtomicBool = AtomicBool::new(false);
     let mut script = Vec::new();
     for session in 0..SESSIONS {
@@ -428,6 +432,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
             runtime.open_session(&name).expect("reopen");
         }
         for (i, kind) in KINDS.iter().enumerate() {
+            let turn_started = std::time::Instant::now();
             let report = runtime
                 .run_turn(params(
                     &name,
@@ -438,6 +443,8 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
                 ))
                 .await
                 .expect("turn");
+            *kind_millis.entry(kind).or_default() += turn_started.elapsed().as_millis() as u64;
+            *kind_stream_millis.entry(kind).or_default() += report.streamed_ms;
             assert_eq!(
                 report.status,
                 TurnStatus::Completed,
@@ -451,6 +458,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
             if global % 12 == 11 {
                 let ids = harness.db.read_history_full(&name).expect("ids");
                 if ids.len() >= 4 {
+                    let compress_started = std::time::Instant::now();
                     // Recompression starts at the effective projection anchor,
                     // not at a raw member already owned by an active block.
                     let start = harness
@@ -472,11 +480,13 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
                         .run_compress(&name, &args, &spec())
                         .expect("compress");
                     assert!(!compress.blocks.is_empty());
+                    compress_millis += compress_started.elapsed().as_millis() as u64;
                 }
             }
         }
     }
     // One cancel against a stalled stream.
+    let cancel_started = std::time::Instant::now();
     let (stalled, streaming) = Fake::start_stalled();
     let flag = AtomicBool::new(false);
     let (accepted, ready) = tokio::sync::oneshot::channel();
@@ -501,7 +511,12 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     );
     let cancelled = cancelled.expect("cancel lands");
     assert_eq!(cancelled.status, TurnStatus::Cancelled);
+    metric(
+        &format!("epoch{}_cancel_ms", epoch + 1),
+        cancel_started.elapsed().as_millis() as u64,
+    );
     // One degraded MCP server: visible warning, turn still completes.
+    let degraded_started = std::time::Instant::now();
     let bad = Generation {
         tool_output: Default::default(),
         compaction: Default::default(),
@@ -568,6 +583,22 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         .shutdown_mcp()
         .await
         .expect("owned failed scope joined");
+    for (kind, millis) in kind_millis {
+        metric(&format!("epoch{}_kind_{kind}_ms", epoch + 1), millis);
+        metric(
+            &format!("epoch{}_kind_{kind}_stream_ms", epoch + 1),
+            kind_stream_millis[kind],
+        );
+    }
+    metric(&format!("epoch{}_compress_ms", epoch + 1), compress_millis);
+    metric(
+        &format!("epoch{}_degraded_ms", epoch + 1),
+        degraded_started.elapsed().as_millis() as u64,
+    );
+    metric(
+        &format!("epoch{}_wall_ms", epoch + 1),
+        epoch_started.elapsed().as_millis() as u64,
+    );
     let rows_after: usize = (0..SESSIONS)
         .map(|s| harness.db.history_len(&format!("s{s}")).unwrap_or(0))
         .sum();

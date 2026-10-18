@@ -69,7 +69,7 @@ pub enum StartupFailure {
     QueryDiagnostic(oc_core::queries::ServiceDiagnostic),
 }
 
-/// Distinct native error route; upstream service attach is not a native capability.
+/// Distinct native error route; shared native attachment never opens a second Db.
 pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
     let theme = Theme::dark();
     let area = frame.area();
@@ -179,7 +179,10 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
         Line::from(reason),
         Line::from(action),
         Line::from(""),
-        Line::from("Native runtime is in-process; service attach is unsupported."),
+        Line::from(
+            "Native owner uses a private same-user socket; a second database owner is refused.",
+        ),
+        Line::from("Older in-process oc2 instances must be closed normally before attaching."),
         Line::from("Raw configuration and provider details are not displayed."),
         Line::from(""),
         Line::from("esc / q / ctrl+c  exit"),

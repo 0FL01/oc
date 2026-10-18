@@ -1,5 +1,5 @@
 //! Built-in OpenAI authorization projections. No tokens, PKCE verifier or sockets.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum OAuthMethod {
     Browser,
     Device,
@@ -20,7 +20,7 @@ impl OAuthMethod {
 }
 
 /// Selectable methods only: inherited environment credentials are not an action.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AuthMethod {
     OAuth(OAuthMethod),
     Key,
@@ -40,7 +40,7 @@ impl AuthMethod {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AuthAttemptFailure {
     Cancelled,
     Callback,
@@ -64,7 +64,7 @@ impl AuthAttemptFailure {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AuthAttemptState {
     Pending,
     Complete,
@@ -74,7 +74,7 @@ pub enum AuthAttemptState {
 
 /// URL/state and device instructions are presented only by explicit login UI.
 /// Debug is redacted even though these are not stored access/refresh tokens.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AuthAttempt {
     pub id: String,
     pub method: OAuthMethod,
@@ -99,7 +99,7 @@ impl std::fmt::Debug for AuthAttempt {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AuthAction {
     Begin { method: OAuthMethod, label: String },
     Status { attempt: String },

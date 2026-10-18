@@ -129,7 +129,7 @@ pub(super) async fn run(
                     ).await? { receipt.reply(); }
                 }
                 result = &mut operation => break result,
-                () = runtime.shell_jobs.changed() => {
+                () = runtime.shell_jobs.changed(), if runtime.native_owner.is_none() => {
                     runtime.shell_jobs.deliver(events).map_err(|error| storage_diagnostic(db.root(), &error))?;
                 }
                 Some(result) = title_rx.recv(), if !shutdown => {

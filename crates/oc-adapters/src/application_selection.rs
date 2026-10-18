@@ -1053,6 +1053,11 @@ pub(super) fn publication(
     action: &Action,
 ) -> oc_core::queries::ModelCommit {
     oc_core::queries::ModelCommit {
+        attachment: if let Action::Commit(commit) = action {
+            commit.attachment
+        } else {
+            0
+        },
         caller: if let Action::Commit(commit) = action {
             commit.caller
         } else {
