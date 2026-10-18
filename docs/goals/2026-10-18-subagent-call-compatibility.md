@@ -1,6 +1,6 @@
 # Goal: subagent empty optional arguments and admitted continuation scheduling
 
-Status: active
+Status: complete
 Source: owner bug report and audited plan, accepted 2026-10-18 by
 «делай копию плана в цель и итеративно реализовать и коммит пуш, билд дебаг».
 Last updated: 2026-10-18
@@ -34,8 +34,12 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: compact parser table and one fake-Responses runtime fresh
     regression with the complete reported argument shape, nonempty child ID,
     parent-model fallback and exact durable/replayed original arguments.
-  - Status: pending
-  - Evidence: not run.
+  - Status: verified
+  - Evidence: baseline reproduced `Some("")`, unvalidated null and the exact blank-ID
+    error. Both parser tests and the complete fresh runtime regression now pass;
+    actual durable/replayed arguments retain both empty fields. Logs under
+    `.local/evidence/T69/`: `parser-red.log`, `fresh-red.log`,
+    `tools__tests__subagent-green.log`, `subagent-green.log`.
 - R2: only admitted continuations participate in same-child scheduling.
   - Source: accepted plan B, including its explicit ownership correction.
   - Acceptance: normalized absent IDs do not share a queue; nonempty same-child
@@ -44,8 +48,13 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: existing foreground overlap/reverse-result/one-effect test
     with empty fields; saved-model continuation and background fixtures; one held
     foreign-child regression with two refused continuation leaves.
-  - Status: pending
-  - Evidence: not run.
+  - Status: verified
+  - Evidence: parser-only baseline still failed fresh overlap (5.97s) and foreign
+    refusal (4.38s). With admitted normalized keys, all 43 subagent tests pass
+    (25.734s suite; max 21.403s case), including existing concurrency/model/BG
+    guards and the held foreign child surviving the other parent's cancellation.
+    Actual FG→BG join unit also passes (0.65s). See `subagent-green.log` and
+    `foreground_conversion_releases_only_waiter_and_retains_actual_join_and_fences-green.log`.
 - R3: preserve optional schemas on the Responses wire.
   - Source: accepted plan C and newer donor `open-responses.ts::lowerTool`.
   - Acceptance: both Responses constructors emit `strict: false` on all ordinary
@@ -53,8 +62,13 @@ required outcome is resolved and affected constraints remain satisfied.
     `["agent", "description", "prompt"]`; the shared WS body preserves this policy.
   - Primary evidence: assertions in existing PROV01, runtime subagent-schema and
     nonempty Key/OAuth WS runtime captures.
-  - Status: pending
-  - Evidence: not run.
+  - Status: verified
+  - Evidence: missing wire policy reproduced in PROV01 and nonempty WS captures;
+    after both lowering edits, PROV01 passes (0.00s), Key/OAuth WS initial/follow-up
+    assertions pass (2.91s), and runtime schema still has exactly three required
+    fields. Logs: `provider__tests__prov01_exact_url_auth_store_cachekey-green.log`,
+    `provider__websocket__tests__auth04_runtime_channels_settle_read_followup_fork_and_partition_opaque_authority-green.log`
+    and `subagent-green.log` under `.local/evidence/T69/`.
 - R4: verified, committed/pushed delivery and debug build.
   - Source: latest owner instruction and accepted verification plan.
   - Acceptance: targeted checks and `bash scripts/test.sh` pass; normal
@@ -63,8 +77,14 @@ required outcome is resolved and affected constraints remain satisfied.
     `github.com/0FL01/oc` origin on the current branch.
   - Primary evidence: actual command exits, test counts, Git commits/upstream and
     `evidence/T69/report.md`.
-  - Status: pending
-  - Evidence: not run.
+  - Status: verified
+  - Evidence: targeted and settled full offline gates pass (2089/2089, 12 existing
+    skips). The warmed complete gate takes 399.34s, nextest 389.131s; the unchanged
+    storage matrix passes in 13.032s. Only UI07 exceeds 30s (32.669s), within its
+    existing approved 40s exception; all ordinary cases are <=27.920s. Default-path
+    debug build/help/version pass. Reviewed implementation `df2358176` is normally
+    pushed to verified origin/master; report and generated finish leaf record the
+    associated factual closeout. See `evidence/T69/report.md` and Git delivery.
 
 ### Constraints and non-goals
 
@@ -101,14 +121,19 @@ Allowed additional artifacts: this goal, the GOAL amendment, task registration,
 brief TEST_PLAN/roadmap pointers, generated progress and one factual evidence report.
 No new dependencies or production API beyond the actual crate-private parser seam.
 
+R4 evidence-driven envelope extension (2026-10-18): the existing 19-fixture storage
+safety matrix took 33.059s among concurrent tests, 13.01s alone. Owned-process syscall
+timing measured 1361 `fsync` calls taking 13.032s (96.38% of traced syscall time),
+confirming durable-I/O contention rather than an intentional measurement window.
+Allow only its exact filter in the existing full-pool `.config/nextest.toml` override;
+preserve every fixture, assertion, WAL/FULL setting and production storage path.
+
 ## Current Checkpoint
 
-- Closes: R1–R4.
-- Smallest next action: save/check the contract, start T69, then add the smallest
-  failing parser/runtime regressions before production changes.
-- Expected evidence: baseline red reproduces empty lookups/queue behavior; targeted
-  green proves the normalized contract without changing nonempty handling.
-- Replan only for a concrete in-envelope failing requirement or gate.
+- Closed: R1–R4; no remaining implementation checkpoint.
+- Evidence: targeted and full workspace gates, qualified timing, default-path debug
+  binary and reviewed Git delivery; factual receipt is `evidence/T69/report.md`.
+- No further work within this bounded correction.
 
 ## Current State and Material Decisions
 
@@ -120,8 +145,50 @@ No new dependencies or production API beyond the actual crate-private parser sea
   explicit non-strict policy is independently supported by donor and Responses docs.
 - T69 is a bounded correction: completed prerequisites are not reopened, and the
   broader blocked T45 live campaign is not resumed or re-authorized.
-- Blocker: none observed. Implementation/tests/build/delivery not yet performed.
+- Contract copied, registered and pushed in `5914d9458`; the associated T69 finish
+  leaf closes only this correction, without changing other task blockers.
+- Parser, admitted-only continuation scheduling and both Responses maps are fixed
+  in reviewed implementation `df2358176`, pushed to origin/master. Targeted
+  red→green evidence covers each owner; all 43 subagent integration tests pass.
+  Both full gates pass: 2089 executed / 12 existing skips. The debug binary is built.
+- Full wall time 772.08s includes 4m43s test rebuilding and 1m25s dev rebuilding;
+  it is not a warmed-gate measurement. Storage timing RECON is resolved: the matrix
+  passes in 13.032s in the warmed gate, versus 33.059s with neighbors and 13.01s
+  alone. UI07 takes 32.669s within its existing approved <=40s exception; the settled
+  warmed full gate completes in 399.34s. No unapproved timing violation remains.
+- Blocker: none observed.
+
+## Checkpoint History
+
+- 2026-10-18: R1 baseline reproduced with the exact user-facing blank-ID error
+  (0.88s runtime test, compilation excluded). Two parser regressions red; the next
+  change reuses existing validation and normalizes only exact empty strings.
+- 2026-10-18: R1–R3 targeted checks green after minimal edits to three production
+  files. Parser-only experiment exposed both scheduler defects and the two missing
+  Responses policies before their fixes. Full gate is the next R4 checkpoint.
+- 2026-10-18: R4 full gate functional PASS, debug build/help/version PASS. Mandatory
+  budget RECON narrowed storage matrix slowness from 33.059s with neighbors to
+  13.01s without them; no assertions, deadlines or durability settings changed.
+- 2026-10-18: R4 syscall timing confirms 1361 `fsync` calls dominate the unchanged
+  storage matrix. The minimal envelope extension is one existing scheduler filter,
+  not production storage initialization changes, fewer fixtures or weaker durability.
+- 2026-10-18: R4 unchanged storage matrix passes in 13.032s in the warmed gate with
+  the full-pool filter; all fixtures and guards remain intact. Whole-gate completion
+  and Git delivery are the remaining checkpoint.
+- 2026-10-18: R4 settled full gate PASS, 2089/2089 with 12 existing opt-in skips;
+  whole warmed gate 399.34s, budgets qualified, debug build/help/version PASS.
+  Reviewed implementation `df2358176` committed and normally pushed; factual
+  report and generated T69 finish leaf close the bounded contract.
 
 ## Completion
 
-Pending; fill only from actual verification and Git delivery.
+- Resolved outcomes: R1–R4 verified; no remaining required outcome or known blocker.
+- Commands/artifacts: targeted parser/provider/FG-to-BG checks, all 43 subagent
+  cases, both `bash scripts/test.sh` runs and `target/debug/oc2`; detailed command
+  receipts and timing RECON are in `evidence/T69/report.md`.
+- Git: plan `5914d9458`, reviewed implementation `df2358176`, associated factual
+  closeout; ordinary pushes to verified `github.com/0FL01/oc` origin/master.
+- Constraint/scope check: three production owners plus planned regressions and one
+  evidence-driven exact nextest scheduling filter; RAW, model/permission/ownership
+  and durability guards preserved. No live/user-data/migration/wrapper expansion.
+- Final status: complete for T69 only, not whole-product READY or T45 live PASS.

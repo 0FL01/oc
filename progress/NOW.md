@@ -1,14 +1,56 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-18T15:51:28+00:00
-Active: T69
+State updated: 2026-10-18T16:43:29+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T69 — Subagent empty optional arguments and admitted continuation scheduling
-Spec: docs/goals/2026-10-18-subagent-call-compatibility.md
-Evidence target: evidence/T69/report.md
 
-Owner-approved 2026-10-18 audited bounded correction: subagent sessionID/model exactly empty strings mean omission, no trim/null repair or model/ownership fallback. Reuse one validated parser for preflight/spawn and scheduler; only admitted nonempty continuations join/update the predecessor map, so refused duplicate foreign IDs cannot wait/cancel another child. Preserve fresh concurrency, actual same-child/FG-to-BG join, background lifecycle, permissions/depth/context guards, RAW/durable/replayed original args and output/model contracts. Both Responses function maps explicitly strict:false with unchanged parameters/required; WS shares body, Chat/Messages unchanged. Compact parser/fresh/foreign regressions plus existing overlap/continuation/BG/HTTP/WS fixtures, full scripts/test.sh and normal debug build, reviewed commit/push. Reuse SUB01/SUB02 without moving ownership or closing T45/live; T44/T61 paused. No new wrapper/repair/serializer framework, Jobs/store/schema migration, config edits, CLI fixture, release/paid campaign or whole-product READY.
+Последний срез: T69 [done]; сверить незакоммиченный diff.
+
+# T69 — subagent invocation compatibility
+
+## Result
+
+The shared validated parser treats only exactly empty model/sessionID strings as
+omission without changing RAW arguments. Foreground batching uses the canonical
+session ID only after admission, preserving fresh overlap and genuine continuation
+joins while preventing refused foreign calls from joining/cancelling another child.
+Both Responses function maps explicitly emit strict:false with unchanged schemas.
+The bounded contract and factual evidence are in
+docs/goals/2026-10-18-subagent-call-compatibility.md and evidence/T69/report.md.
+
+## Checks
+
+Observed red-to-green regressions reproduce the original blank-ID failure and the
+independent scheduler/wire defects. The two parser units, PROV01, nonempty Key/OAuth
+WS captures, actual FG-to-BG join unit and all 43 subagent integration cases pass.
+Exact durable/replayed arguments, unknown/foreign IDs, model precedence, context,
+permissions, cancellation and restart guards remain checked. The report records
+the full offline gate, debug artifact and Git delivery facts before task finish.
+The settled gate passed 2089/2089 with 12 existing skips in 399.34s; fmt, strict
+all-target Clippy, doctests and normal debug build/help/version also pass.
+Reviewed implementation df2358176 is committed and pushed to verified origin/master.
+Mandatory timing RECON diagnosed the unchanged 19-fixture storage safety matrix:
+13.01s alone versus 33.059s under neighboring durable-write load, with 1361 fsyncs.
+Its exact filter uses the existing full-pool scheduler and passes in 13.032s in the
+warmed gate; fixtures/assertions/FULL durability are unchanged. UI07 retains its
+prior owner-approved <=40s real deadline.
+
+## Risks
+
+The original incident's server-side optional-schema transformation is not proven
+without its wire capture. Native batching is verified, not an external parallel
+wrapper. No user-config/data/env changes, migration, live/paid campaign, owner restart
+or whole-product READY claim; T44/T45/T61 ownership and blockers stay unchanged.
+
+## Next
+
+No follow-up within this bounded correction after recorded gate and delivery.
+The owner can adopt target/debug/oc2 through the next ordinary oc2-dev launch once
+existing native owner leases finish normally; the agent does not launch it.
+
+
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
 Ready (до 5): нет
 Blocked: T27, T44, T45, T57, T61

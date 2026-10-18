@@ -1142,5 +1142,8 @@ ambiguous mutations автоматически не пересылаются. Э
   commit/обычный push в проверенный origin обязательны. Нет нового paid campaign,
   parallel-wrapper, storage migration, user-config edits или whole-product PASS.
 
-Execution status: план сохранён; реализация и проверки ещё не выполнены. Статусы
-T69 ведутся в его контракте и журнале; historical evidence других задач не меняется.
+Execution status: T69 complete, R1–R4 verified. Targeted red→green и полный offline
+gate PASS: 2089 tests / 12 существующих opt-in skips; прогретый gate 399.34s,
+timing budgets квалифицированы, debug build/help/version PASS. Reviewed implementation
+`df2358176` committed/pushed в origin/master; factual closeout — [T69 report](evidence/T69/report.md).
+Это не whole-product READY и не изменение historical evidence других задач.

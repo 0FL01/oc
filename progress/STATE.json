@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-18T15:51:28+00:00",
-  "current": "T69",
+  "updated_at": "2026-10-18T16:43:29+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -480,12 +480,12 @@
       "reopen_reason": null
     },
     "T69": {
-      "status": "active",
-      "last_seq": 0,
-      "latest": null,
-      "evidence": null,
+      "status": "done",
+      "last_seq": 1,
+      "latest": "progress/M8/T69/0001.md",
+      "evidence": "evidence/T69/report.md",
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T68"
+  "last_checkpoint_task": "T69"
 }

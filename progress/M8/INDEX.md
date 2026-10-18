@@ -25,4 +25,4 @@ Plan: ../../roadmap/M8.md
 - [T66](T66/INDEX.md) [done] — Strict OpenCode 2 key allowlist replaces the OpenCode 1 detector; latest: 0001.md.
 - [T67](T67/INDEX.md) [done] — Owner live dev launcher oc2-dev; latest: 0001.md.
 - [T68](T68/INDEX.md) [done] — Portless shared runtime, mirrored TUI and global client lifetime; latest: 0001.md.
-- [T69](T69/INDEX.md) [active] — Subagent empty optional arguments and admitted continuation scheduling; latest: нет.
+- [T69](T69/INDEX.md) [done] — Subagent empty optional arguments and admitted continuation scheduling; latest: 0001.md.
