@@ -586,7 +586,7 @@ pub(crate) fn transcript_with_expansion(
                     .iter()
                     .take_while(|row| exploration_kind(row).is_some())
                 {
-                    out.push(exploration_member(member, theme));
+                    out.extend(exploration_member(member, theme));
                 }
             }
         } else if let Some(lines) = expandable_tool_entry(
@@ -898,15 +898,18 @@ fn reasoning_group_header(group: &ReasoningGroup<'_>, theme: &Theme, width: u16)
     clipped_line(sanitize_line(Line::new(spans)), width)
 }
 
-/// Upstream groups adjacent read/glob/grep parts in their first-seen order
-/// (`grouping/session.ts:67-71`, `index.tsx:1865-1929`). Only running or
-/// confirmed, untruncated results can be collapsed; uncertain outcomes never
-/// enter a group and their detail rows remain visible.
+/// OC2 groups adjacent read/glob/grep/webfetch parts by tool name alone, in
+/// first-seen order; state and output size do not matter (`grouping/session.ts:77-90`,
+/// `group-view.tsx:109-156`). Permission-pending/argument-stream rows stay
+/// outside like upstream pending refs; Rust's crash-recovery `unknown` outcome
+/// is not an upstream state and keeps its standalone marker.
 fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
     let card = row.tool.as_ref()?;
     if row.role != "tool"
-        || !matches!(card.state.as_str(), "completed" | "started" | "running")
-        || card.preview_limited()
+        || !matches!(
+            card.state.as_str(),
+            "completed" | "started" | "running" | "failed" | "denied" | "cancelled" | "no_gain"
+        )
     {
         return None;
     }
@@ -915,16 +918,22 @@ fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
         crate::tools::ToolRender::Inline(
             crate::tools::InlineRender::Glob { .. } | crate::tools::InlineRender::Grep { .. },
         ) => Some("search"),
+        crate::tools::ToolRender::Inline(crate::tools::InlineRender::WebFetch { .. }) => {
+            Some("fetch")
+        }
         _ => None,
     }?;
-    Some((name, card.state == "completed"))
+    Some((
+        name,
+        !crate::tools::is_running(&card.state) && card.state != "running",
+    ))
 }
 
-fn exploration_member(row: &HistoryRow, theme: &Theme) -> Line {
-    sanitize_line(crate::tools::exploration_member(
-        row.tool.as_ref().expect("group has tool"),
-        theme,
-    ))
+fn exploration_member(row: &HistoryRow, theme: &Theme) -> Vec<Line> {
+    crate::tools::exploration_member(row.tool.as_ref().expect("group has tool"), theme)
+        .into_iter()
+        .map(sanitize_line)
+        .collect()
 }
 
 fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option<Vec<Line>> {
@@ -952,7 +961,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
                 "{count} {name}{}",
                 if count == 1 {
                     ""
-                } else if name == "search" {
+                } else if matches!(name, "search" | "fetch") {
                     "es"
                 } else {
                     "s"
@@ -970,7 +979,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
             Span::plain(" "),
             Span::styled(
                 format!(
-                    "{} — {label}",
+                    "{}: {label}",
                     if completed { "Explored" } else { "Exploring" }
                 ),
                 muted,
@@ -2342,7 +2351,7 @@ fn visible_transcript_indexed(
                     .take_while(|row| exploration_kind(row).is_some())
                 {
                     add_visible_lines(
-                        vec![exploration_member(member, theme)],
+                        exploration_member(member, theme),
                         Some(width),
                         (start, end),
                         &mut position,
@@ -2620,12 +2629,11 @@ pub(crate) fn transcript_part_positions(
                     .iter()
                     .take_while(|row| exploration_kind(row).is_some())
                 {
-                    total += styled::wrap_line_limited(
-                        &exploration_member(member, theme),
-                        width as usize,
-                        MAX_MARKDOWN_ROWS,
-                    )
-                    .len();
+                    for line in exploration_member(member, theme) {
+                        total +=
+                            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                                .len();
+                    }
                 }
             }
         } else if let Some(lines) = expandable_tool_entry(

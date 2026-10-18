@@ -1789,8 +1789,9 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         "selection owns the release"
     );
 
-    // A standalone Read with a recorded truncated result is not expandable;
-    // neither hover nor clicks invent recoverable full-file contents.
+    // A Read with a recorded truncated result folds into an Explored group
+    // (OC2 groups by tool name); expanding it lists the row, never invents
+    // recoverable full-file contents.
     state.attach_page(&page(vec![], 0, false, false));
     let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
         child_job: None,
@@ -1826,24 +1827,31 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         state.visible_transcript_at_viewport(area.width, frame.width, area.height);
     let row = rows
         .iter()
-        .position(|line| line.plain_text().contains("Read fixture.txt"))
+        .position(|line| line.plain_text().contains("Explored: 1 read"))
         .unwrap();
+    assert!(
+        !rows
+            .iter()
+            .any(|line| line.plain_text().contains("Read fixture.txt"))
+    );
     let y = area.y + row as u16;
     state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
-    assert_eq!(
-        state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]),
-        rows
-    );
+    state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]);
     for kind in [
         MouseEventKind::Down(MouseButton::Left),
         MouseEventKind::Up(MouseButton::Left),
     ] {
         state.handle_mouse(selection_mouse(kind, x, y), frame);
     }
-    assert!(state.exploration_expanded.is_empty());
+    assert!(state.exploration_expanded.contains("read-op"));
+    let lines = state.transcript_lines(80, 80);
     assert!(
-        !state
-            .transcript_lines(80, 80)
+        lines
+            .iter()
+            .any(|line| line.plain_text().contains("→ Read fixture.txt"))
+    );
+    assert!(
+        !lines
             .iter()
             .any(|line| line.plain_text().contains("private file body"))
     );

@@ -953,6 +953,7 @@ fn reasoning_index_hits_only_clipped_painted_cells_at_scroll() {
 fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
     let input = match name {
         "read" => serde_json::json!({"path": "fixture-note.txt"}),
+        "webfetch" => serde_json::json!({"url": "https://example.test/x"}),
         _ => serde_json::json!({"pattern": "*.rs"}),
     };
     let card = card_from_row(&ToolOpView {
@@ -989,8 +990,8 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
 
 #[test]
 fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
-    // The pinned original's completed read fixture shows exactly one
-    // collapsed `→ Explored — 1 read` row (index.tsx:1865-1929).
+    // OC2 shows exactly one collapsed `→ Explored: 1 read` row per adjacent
+    // run (group-view.tsx:109-156).
     let theme = Theme::dark();
     let rows = [
         exploration_tool("read", "completed", false),
@@ -1000,8 +1001,8 @@ fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
         exploration_tool("read", "completed", false),
     ];
     let (full, buffer) = render(&rows, 80, 12);
-    assert_eq!(full[1], "   → Explored — 1 read, 2 searches");
-    assert_eq!(full[5], "   → Explored — 1 read");
+    assert_eq!(full[1], "   → Explored: 1 read, 2 searches");
+    assert_eq!(full[5], "   → Explored: 1 read");
     assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
     assert!(!full.join("\n").contains("Loaded fixture-note.txt"));
 
@@ -1027,9 +1028,9 @@ fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
     assert!(
         visible
             .iter()
-            .any(|line| line == "   → Explored — 1 read, 2 searches")
+            .any(|line| line == "   → Explored: 1 read, 2 searches")
     );
-    assert!(visible.iter().any(|line| line == "   → Explored — 1 read"));
+    assert!(visible.iter().any(|line| line == "   → Explored: 1 read"));
     assert!(
         !visible
             .iter()
@@ -1083,16 +1084,34 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
                 .collect::<Vec<_>>()
         );
         assert_eq!(total, visible.len());
-        let text = visible.join("\n");
         if width == 80 {
-            assert!(text.contains("Explored — 1 read, 2 searches"));
-            assert!(text.contains("→ Read fixture-note.txt"));
+            // Members follow their header directly, without blank rows; the
+            // failed member keeps its error text inside the expanded group.
+            let first = visible
+                .iter()
+                .position(|line| line == "   → Explored: 1 read, 2 searches")
+                .unwrap();
             assert_eq!(
-                text.matches("→ Read fixture-note.txt").count(),
-                1,
-                "expanded group shows its read once; later failed/truncated rows stay separate"
+                visible[first + 1..first + 4],
+                [
+                    "   → Read fixture-note.txt",
+                    "   ✱ Glob \"*.rs\"",
+                    "   ✱ Grep \"*.rs\"",
+                ]
             );
-            assert!(!text.contains("[output preview truncated; full result retained]"));
+            let second = visible
+                .iter()
+                .position(|line| line == "   → Explored: 2 reads")
+                .unwrap();
+            assert_eq!(
+                visible[second + 1..],
+                [
+                    "   → Read fixture-note.txt",
+                    "     fixture result",
+                    "   → Read fixture-note.txt",
+                ]
+            );
+            assert!(!visible.join("\n").contains("[output preview truncated"));
             assert!(
                 rows.iter()
                     .any(|row| row.tool.as_ref().is_some_and(|card| card.preview_limited()))
@@ -1102,7 +1121,8 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
 }
 
 #[test]
-fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
+fn exploration_groups_failed_denied_truncated_but_not_unknown() {
+    let theme = Theme::dark();
     let rows = [
         exploration_tool("read", "completed", false),
         exploration_tool("read", "unknown", false),
@@ -1110,25 +1130,18 @@ fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
         exploration_tool("read", "denied", false),
         exploration_tool("read", "completed", true),
     ];
-    let (full, _) = render(&rows, 80, 20);
+    let (full, buffer) = render(&rows, 80, 20);
+    assert_eq!(full[1], "   → Explored: 1 read");
+    // Rust's crash-recovery outcome has no upstream state and stays visible.
+    assert_eq!(full[3], "   → Read fixture-note.txt");
+    assert_eq!(buffer[(3, 3)].fg, theme.error());
+    assert_eq!(full[4], "     fixture result");
+    assert_eq!(full[5], "   [outcome unknown]");
+    assert_eq!(full[7], "   → Explored: 3 reads");
+    assert_eq!(buffer[(3, 7)].fg, theme.text_muted());
     let text = full.join("\n");
-    assert!(text.contains("→ Explored — 1 read"));
-    assert!(text.contains("[outcome unknown]"));
-    assert_eq!(
-        text.matches("fixture result").count(),
-        3,
-        "failed, denied and unknown detail rows"
-    );
-    assert!(text.contains("fixture result"));
-    assert!(!text.contains("[output preview truncated; full result retained]"));
-    assert!(
-        rows.last()
-            .unwrap()
-            .tool
-            .as_ref()
-            .unwrap()
-            .preview_limited()
-    );
+    assert_eq!(text.matches("fixture result").count(), 1);
+    assert_eq!(text.matches("fixture-note.txt").count(), 1);
 }
 
 #[test]
@@ -1138,16 +1151,45 @@ fn exploration_remains_running_until_every_grouped_operation_finishes() {
         exploration_tool("glob", "started", false),
     ];
     let (live, _) = render(&rows, 80, 5);
-    assert_eq!(live[1], "   ⋯ Exploring — 1 read, 1 search");
+    assert_eq!(live[1], "   ⋯ Exploring: 1 read, 1 search");
     let (done, _) = render(
         &[
             exploration_tool("read", "completed", false),
-            exploration_tool("glob", "completed", false),
+            exploration_tool("glob", "failed", false),
         ],
         80,
         5,
     );
-    assert_eq!(done[1], "   → Explored — 1 read, 1 search");
+    assert_eq!(done[1], "   → Explored: 1 read, 1 search");
+}
+
+#[test]
+fn exploration_runs_split_on_reasoning_and_count_fetches() {
+    // Reported layout: reads, a Thought, then truncated/failed tools. Each run
+    // collapses to one header; nothing is left as a standalone tool row.
+    let thought = HistoryRow {
+        reasoning: Some(ReasoningBlock {
+            text: "**Considering skill setup**\n\nbody".to_string(),
+            duration_ms: Some(1_700),
+            running: false,
+            expanded: false,
+            toggleable: true,
+            identity: None,
+        }),
+        ..assistant("")
+    };
+    let rows = [
+        exploration_tool("read", "completed", false),
+        thought,
+        exploration_tool("grep", "completed", true),
+        exploration_tool("webfetch", "failed", false),
+        exploration_tool("webfetch", "completed", false),
+    ];
+    let (full, _) = render(&rows, 80, 8);
+    assert_eq!(full[1], "   → Explored: 1 read");
+    assert!(full[3].contains("Thought"), "{full:?}");
+    assert_eq!(full[5], "   → Explored: 1 search, 2 fetches");
+    assert!(full[6..].iter().all(String::is_empty), "{full:?}");
 }
 
 /// Render the transcript into a `width x height` buffer and return the

@@ -297,6 +297,18 @@ impl ToolRender {
 
 impl InlineRender {
     /// Upstream pending label (`index.tsx:3072,3083,3107,3130,3142,3191,3547`).
+    /// OC2 inline icon (`index.tsx:3025-3105,3491-3502`); running rows use SPINNER.
+    pub fn icon(&self) -> &'static str {
+        match self {
+            InlineRender::Glob { .. } | InlineRender::Grep { .. } => "✱",
+            InlineRender::WebFetch { .. } => "%",
+            InlineRender::Read { .. }
+            | InlineRender::Skill { .. }
+            | InlineRender::Question { .. } => "→",
+            InlineRender::Execute | InlineRender::Generic { .. } => SPINNER,
+        }
+    }
+
     pub fn pending_label(&self) -> &'static str {
         match self {
             InlineRender::Read { .. } => "Reading file…",
@@ -1449,25 +1461,15 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
         ratatui::style::Style::default().fg(theme.warning())
     } else if failed {
         ratatui::style::Style::default().fg(theme.error())
-    } else if question {
-        ratatui::style::Style::default().fg(theme.text_muted())
     } else {
-        ratatui::style::Style::default().fg(theme.text())
+        // OC2 InlineTool is muted unless warning/error (`index.tsx:2635-2680`).
+        ratatui::style::Style::default().fg(theme.text_muted())
     };
     let generic = matches!(inline, InlineRender::Generic { .. });
-    // Generic tools use the cited `✓/✗` markers (`index.tsx:2620-2669`); the
-    // named inline tools keep an empty 2-cell icon column once terminal.
-    let icon = if question {
-        "→".to_string()
-    } else if waiting {
-        match inline {
-            InlineRender::Read { .. } => "→",
-            InlineRender::Glob { .. } | InlineRender::Grep { .. } => "✱",
-            InlineRender::WebFetch { .. } => "⊙",
-            _ => SPINNER,
-        }
-        .to_string()
-    } else if running {
+    // Generic tools use the cited `✓/✗` markers (`index.tsx:2620-2669`); named
+    // inline tools keep their OC2 icon once terminal (`index.tsx:3025-3105`).
+    let spinning = running && !question;
+    let icon = if spinning {
         SPINNER.to_string()
     } else if generic {
         if failed {
@@ -1476,7 +1478,7 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
             "✓".to_string()
         }
     } else {
-        String::new()
+        inline.icon().to_string()
     };
     // Preserve other failures/cancellations; only the typed question cancellation
     // joins the denied strike-through (`index.tsx:2712-2737`, message-parts:176-253).
@@ -1510,9 +1512,9 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
         label
     };
     let mut spans = vec![pad.clone()];
-    if question {
-        // The pinned Question's one-cell arrow lives in a two-cell icon box.
-        // Its remaining layout blank does not inherit the glyph's FG/strike.
+    if !spinning {
+        // A one-cell OC2 icon lives in a two-cell icon box. Its remaining
+        // layout blank does not inherit the glyph's FG/strike.
         spans.push(Span::styled(icon, style));
         spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH - 1)));
     } else {
@@ -1552,28 +1554,14 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     out
 }
 
-/// Expanded exploration groups show the original inline part immediately
-/// below their header, without the standalone card's result summary or gap.
-/// Group eligibility is enforced by the transcript before calling this.
-pub(crate) fn exploration_member(card: &ToolCard, theme: &Theme) -> Line {
+/// Expanded exploration groups list each member's own inline rows directly
+/// below their header, without the standalone row's top margin
+/// (`group-view.tsx:133-156,335-344`). Eligibility is enforced by the transcript.
+pub(crate) fn exploration_member(card: &ToolCard, theme: &Theme) -> Vec<Line> {
     let ToolRender::Inline(inline) = &card.render else {
         unreachable!("only inline exploration parts are grouped");
     };
-    let running = is_running(&card.state);
-    let style = ratatui::style::Style::default().fg(theme.text());
-    Line::new(vec![
-        Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
-        Span::styled(if running { SPINNER } else { "→" }, style),
-        Span::plain(" "),
-        Span::styled(
-            if running {
-                inline.pending_label().to_string()
-            } else {
-                inline_label(inline)
-            },
-            style,
-        ),
-    ])
+    inline_rows(inline, card, theme)
 }
 
 /// Terminal label for an inline tool (`index.tsx:3084-3168,3548,2620-2669`).
@@ -2162,7 +2150,7 @@ mod tests {
             None,
         );
         let (rows, buffer) = render(&running, 60, 2);
-        assert_eq!(rows[1], "   ⋯ Exploring — 1 read");
+        assert_eq!(rows[1], "   ⋯ Exploring: 1 read");
         assert_eq!(buffer[(3, 1)].symbol(), "⋯");
         assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
         let individual = tool_block(&running, theme, 60)
@@ -2183,7 +2171,7 @@ mod tests {
             Some("fn main() {}\n"),
         );
         let (rows, _) = render(&completed, 60, 3);
-        assert_eq!(rows[1], "   → Explored — 1 read");
+        assert_eq!(rows[1], "   → Explored: 1 read");
         // The individual renderer is retained for non-collapsed/tool-detail
         // presentation; grouping changes only the transcript projection.
         let individual = tool_block(&completed, theme, 60)
@@ -2195,7 +2183,15 @@ mod tests {
                     .collect::<String>()
             })
             .collect::<Vec<_>>();
-        assert_eq!(individual, ["     Read src/main.rs"]);
+        assert_eq!(individual, ["   → Read src/main.rs"]);
+        let read = tool_block(&completed, theme, 60);
+        assert!(
+            read[0].spans()[1..]
+                .iter()
+                .all(|span| span.content().trim().is_empty()
+                    || span.style().fg == Some(theme.text_muted())),
+            "OC2 InlineTool is muted with its icon"
+        );
 
         let glob = make_card(
             "glob",
@@ -2204,7 +2200,7 @@ mod tests {
             Some(r#"{"items":["a.rs","b.rs"],"pagination":{"returned":2,"truncated":false}}"#),
         );
         let (rows, _) = render(&glob, 60, 2);
-        assert_eq!(rows[1], "   → Explored — 1 search");
+        assert_eq!(rows[1], "   → Explored: 1 search");
 
         let fetch = make_card(
             "webfetch",
@@ -2213,7 +2209,11 @@ mod tests {
             Some("body"),
         );
         let (rows, _) = render(&fetch, 60, 2);
-        assert_eq!(rows[1], "     WebFetch https://example.test/x");
+        assert_eq!(rows[1], "   → Explored: 1 fetch");
+        assert_eq!(
+            tool_block(&fetch, theme, 60)[0].plain_text(),
+            "   % WebFetch https://example.test/x"
+        );
 
         let skill = make_card(
             "skill",
@@ -2222,7 +2222,7 @@ mod tests {
             Some("body"),
         );
         let (rows, _) = render(&skill, 60, 2);
-        assert_eq!(rows[1], "     Skill \"review\"");
+        assert_eq!(rows[1], "   → Skill \"review\"");
 
         // Generic/MCP tool: `✗ <tool> <args>` plus the recorded error.
         let failed = make_card(
@@ -2280,13 +2280,16 @@ mod tests {
             serde_json::json!({"path": "src/main.rs"}),
             Some("error: cancelled"),
         );
-        let (rows, buffer) = render(&cancelled, 60, 3);
-        assert_eq!(rows[1], "     Read src/main.rs");
-        assert_eq!(rows[2], "     error: cancelled");
-        assert_eq!(buffer[(3, 1)].fg, theme.error());
+        // The transcript folds it into an Explored group; the row itself is
+        // what an expanded group or a standalone projection shows.
+        let rows = tool_block(&cancelled, theme, 60);
+        assert_eq!(rows[0].plain_text(), "   → Read src/main.rs");
+        assert_eq!(rows[1].plain_text(), "     error: cancelled");
+        let icon = rows[0].spans()[1].style();
+        assert_eq!(icon.fg, Some(theme.error()));
         assert!(
-            !buffer[(3, 1)]
-                .modifier
+            !icon
+                .add_modifier
                 .contains(ratatui::style::Modifier::CROSSED_OUT)
         );
     }
@@ -2542,7 +2545,7 @@ mod tests {
             None,
         );
         let (rows, buffer) = render(&card, 60, 2);
-        assert_eq!(rows[1], "     Read src/main.rs");
+        assert_eq!(rows[1], "   → Read src/main.rs");
         assert_eq!(buffer[(3, 1)].fg, theme.error());
         assert!(!is_running("unknown"));
         assert!(is_error_state("unknown"));
