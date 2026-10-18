@@ -365,6 +365,12 @@ owner assignment to earlier T24/T36/T40 or to T44 visual scenarios.
   children and background progress before parent completion, including command route.
   SUB02 injects crash/cancel at admission/completion/delivery; verify lineage, bounded
   cleanup, deduplicated notices and no unknown-effect replay, not exactly-once claims.
+- T69 is the bounded [empty-argument/admitted-continuation regression](goals/2026-10-18-subagent-call-compatibility.md), not a new SUB owner or T45 closure:
+  exact empty model/session→omission, unchanged RAW/replay, concurrent fresh children,
+  serialized saved-model continuation, independent BG, and duplicate refused foreign
+  IDs returning without joining/cancelling the held child. Reuse the existing fixtures
+  and HTTP/WS captures for `strict: false` with unchanged optional schema; nearest
+  red→green checks, full offline gate and debug build, no new live/CLI/release campaign.
 - CTX01 captures exact selected parent text/roles/provenance and immutable pack on
   background/restart/continuation. Invalid/foreign/reverted/future/unsupported/over-
   budget selection creates no child/input; compressed raw text is not a reverted branch.

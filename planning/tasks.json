@@ -1028,6 +1028,16 @@
       "work": "Owner-approved 2026-10-18 audited plan: one native UID/data-root Db/resource owner, private UDS and session-scoped parallel roots including same directory. Shared Location deck/order/active tab/live state; unsent text/PNG drafts client-local. Global TUI count across projects A/B/C: C keeps A/B work after their viewers close; last TUI ordinary Esc/Interrupted/settlement for interactive work, no auto-resume. Finite run/auth/sessions leases separate; headless run survives last-TUI close, auth startup needs no project/model/MCP; immutable startup env. One real Db election/recovery, scoped profile/MCP/control/auto, observer live projection and full normal-quit migration. Three dependent steps: shared application authority; bounded UDS/lifecycle; atomic consumer cutover plus focused/current offline qualification. No ambiguous mutation resend, new persistent retry ledger/schema/tombstones, arbitrary128/8 load gate, public daemon manager/remote API/JS host/paid campaign. T44 temporarily paused, T61 remains paused; preserve guards and existing memory workload while accounting owner+client+children. Commit/push reviewed plan first, then verified cohesive implementation slices; no whole T44/READY claim.",
       "evidence": "evidence/T68/report.md",
       "spec": "docs/goals/2026-10-17-shared-tui-runtime.md"
+    },
+    {
+      "id": "T69",
+      "phase": "M8",
+      "title": "Subagent empty optional arguments and admitted continuation scheduling",
+      "depends_on": ["T68"],
+      "tests": ["A01", "A02", "A04", "A05"],
+      "work": "Owner-approved 2026-10-18 audited bounded correction: subagent sessionID/model exactly empty strings mean omission, no trim/null repair or model/ownership fallback. Reuse one validated parser for preflight/spawn and scheduler; only admitted nonempty continuations join/update the predecessor map, so refused duplicate foreign IDs cannot wait/cancel another child. Preserve fresh concurrency, actual same-child/FG-to-BG join, background lifecycle, permissions/depth/context guards, RAW/durable/replayed original args and output/model contracts. Both Responses function maps explicitly strict:false with unchanged parameters/required; WS shares body, Chat/Messages unchanged. Compact parser/fresh/foreign regressions plus existing overlap/continuation/BG/HTTP/WS fixtures, full scripts/test.sh and normal debug build, reviewed commit/push. Reuse SUB01/SUB02 without moving ownership or closing T45/live; T44/T61 paused. No new wrapper/repair/serializer framework, Jobs/store/schema migration, config edits, CLI fixture, release/paid campaign or whole-product READY.",
+      "evidence": "evidence/T69/report.md",
+      "spec": "docs/goals/2026-10-18-subagent-call-compatibility.md"
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-18T14:12:40+00:00",
-  "current": null,
+  "updated_at": "2026-10-18T15:51:28+00:00",
+  "current": "T69",
   "tasks": {
     "T00": {
       "status": "done",
@@ -477,6 +477,13 @@
       "last_seq": 1,
       "latest": "progress/M8/T68/0001.md",
       "evidence": "evidence/T68/report.md",
+      "reopen_reason": null
+    },
+    "T69": {
+      "status": "active",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
       "reopen_reason": null
     }
   },

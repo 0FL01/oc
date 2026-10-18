@@ -1122,3 +1122,25 @@ HTTP/remote parity, privileged broker и вечный daemon не входят �
 debug/release actual-binary E2E. T44 временно приостановлена без completion; T61 paused.
 Новых retry receipts/index/tombstones, schema migrations и произвольного load128/8 нет;
 ambiguous mutations автоматически не пересылаются. Это завершение T68, не whole READY.
+
+## Owner amendment (2026-10-18 — subagent empty arguments и continuation admission)
+
+По запросу «делай копию плана в цель и итеративно реализовать и коммит пуш, билд дебаг»
+сохранён [проверенный минимальный план T69](docs/goals/2026-10-18-subagent-call-compatibility.md).
+Это отдельный bounded correction, не resume/finish T45, T44 или T61.
+
+- `subagent` трактует ровно пустые `sessionID`/`model` как omission, как новый donor
+  `.local/opencode`; непустые строки не trim/не переписываются. Unknown/foreign IDs,
+  model precedence, validation и permission/depth/context guards сохраняются.
+- Scheduler использует нормализованный ID только у admitted leaves: fresh children
+  независимы, same-child continuation последовательны, refused calls не ждут и не
+  отменяют чужие jobs. RAW/durable input/replay остаются исходными.
+- Оба Responses function-lowering явно передают `strict: false`, не меняя parameters
+  и optional `required`. Отдельных ToolDef/config/nullable abstractions нет; HTTP/WS
+  проверяются существующими fixtures, Chat/Messages не меняются.
+- Ближайшие red→green regressions, полный offline gate, debug build и reviewed
+  commit/обычный push в проверенный origin обязательны. Нет нового paid campaign,
+  parallel-wrapper, storage migration, user-config edits или whole-product PASS.
+
+Execution status: план сохранён; реализация и проверки ещё не выполнены. Статусы
+T69 ведутся в его контракте и журнале; historical evidence других задач не меняется.
