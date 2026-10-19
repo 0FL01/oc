@@ -116,6 +116,7 @@ impl ScriptDriver {
                             .map(|r| (r, state.parent_id.is_some()))
                             .collect();
                         state.approvals.reconcile(requests);
+                        state.cancel_execute_pointer();
                     }
                 }
                 Ok(Ok(CoreEvent::QuestionAsked(_)))
@@ -2365,6 +2366,7 @@ impl TuiState {
     /// Evict oldest live parts while the count or byte cap is exceeded; the
     /// parts are transient (a reload restores committed history).
     pub(super) fn enforce_parts(&mut self) {
+        let _ = self.execute_capture();
         self.invalidate_transcript();
         while self.live_parts.len() > LIVE_PARTS_MAX
             || self

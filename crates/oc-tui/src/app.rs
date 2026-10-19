@@ -1384,7 +1384,7 @@ impl TuiState {
             + self
                 .execute_detail
                 .as_ref()
-                .map_or(0, |detail| detail.operation.len())
+                .map_or(0, execute::Detail::retained_bytes)
             + self
                 .execute_calls_expanded
                 .iter()

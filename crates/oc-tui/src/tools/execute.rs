@@ -28,6 +28,26 @@ pub(crate) fn facts(card: &ToolCard) -> Option<&Execute> {
     card.output_presentation.as_ref()?.execute.as_ref()
 }
 
+pub(crate) fn failed(card: &ToolCard) -> bool {
+    facts(card).is_some_and(|facts| facts.error) || is_error_state(&card.state)
+}
+
+pub(crate) fn output_text(card: &ToolCard) -> Option<String> {
+    let facts = facts(card)?;
+    if facts.output.is_empty() {
+        (failed(card) && !card.output_preview.is_empty()).then(|| card.output_preview.clone())
+    } else {
+        Some(
+            facts
+                .output
+                .iter()
+                .map(|part| part.text.as_str())
+                .collect::<Vec<_>>()
+                .join("\n\n"),
+        )
+    }
+}
+
 pub(crate) fn hover(line: &Line, theme: &Theme) -> Line {
     Line::new(
         line.spans()
@@ -62,7 +82,7 @@ pub(crate) fn block(
     let Some(facts) = facts(card) else {
         return Vec::new();
     };
-    let failed = facts.error || is_error_state(&card.state);
+    let failed = failed(card);
     let muted = Style::default().fg(theme.text_muted());
     let error = Style::default().fg(theme.error());
     let available = if width == 0 {
@@ -210,36 +230,21 @@ pub(crate) fn block(
         });
     }
     if failed {
-        let text = if facts.output.is_empty() {
-            card.output_preview.clone()
-        } else {
-            facts
-                .output
-                .iter()
-                .map(|part| part.text.as_str())
-                .collect::<Vec<_>>()
-                .join("\n\n")
-        };
+        let text = output_text(card).unwrap_or_default();
         let text = text.trim();
-        let all = expanded(ToolExpansion::Operation(&card.op));
         let max_chars = 4 * if width == 0 {
             usize::MAX / 4
         } else {
             (width as usize).saturating_sub(6).max(20)
         };
-        let mut visible = text
-            .lines()
-            .take(if all { usize::MAX } else { 4 })
-            .map(str::to_owned)
-            .collect::<Vec<_>>();
-        if !all
-            && text.lines().count() > 4
+        let mut visible = text.lines().take(4).map(str::to_owned).collect::<Vec<_>>();
+        if text.lines().count() > 4
             && let Some(last) = visible.last_mut()
         {
             last.push('…');
         }
         let mut text = visible.join("\n");
-        if !all && text.chars().count() > max_chars {
+        if text.chars().count() > max_chars {
             text = text.chars().take(max_chars.saturating_sub(1)).collect();
             text.push('…');
         }

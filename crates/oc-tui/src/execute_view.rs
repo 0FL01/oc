@@ -5,7 +5,6 @@ use ratatui::{
     style::{Modifier, Style},
     widgets::Paragraph,
 };
-use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 use crate::{
@@ -24,7 +23,7 @@ fn action_text(key: char, copied: Option<char>) -> &'static str {
         'c' => "c copy code",
         'o' => "o copy output",
         'e' => "esc back",
-        _ => "↑/↓ ←/→ scroll",
+        _ => "↑/↓ scroll",
     }
 }
 
@@ -32,36 +31,9 @@ pub(crate) struct Layout {
     pub rect: Rect,
     pub body: Rect,
     pub rows: Vec<Line>,
-    pub max_pan: usize,
     pub actions: Vec<(char, Rect)>,
     status: String,
     failed: bool,
-    gutter: usize,
-    numbered: std::collections::BTreeSet<usize>,
-}
-
-// Pan cells, not bytes, retaining syntax colors and wide-grapheme boundaries.
-fn slice(line: &Line, start: usize, width: usize) -> Line {
-    let mut column = 0;
-    let mut spans = Vec::new();
-    for span in line.spans() {
-        for glyph in span.content().graphemes(true) {
-            let next = column + UnicodeWidthStr::width(glyph);
-            if next > start && column < start.saturating_add(width) {
-                let text = if column >= start && next <= start.saturating_add(width) {
-                    glyph.to_owned()
-                } else {
-                    " ".repeat(
-                        next.min(start.saturating_add(width))
-                            .saturating_sub(column.max(start)),
-                    )
-                };
-                spans.push(Span::styled(text, span.style()));
-            }
-            column = next;
-        }
-    }
-    Line::new(spans).with_style(line.style())
 }
 
 fn code_rows(source: &str, language: &str, theme: &Theme, base: Style) -> Vec<Line> {
@@ -94,15 +66,13 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
     let label = muted.add_modifier(Modifier::BOLD);
     let geometry = DialogFrame::rect(area, DialogSize::Xlarge, 0);
     let width = geometry.width.saturating_sub(4) as usize;
-    let card = state
-        .execute_detail
-        .as_ref()
-        .and_then(|detail| state.execute_card(&detail.operation));
-    let facts = card.and_then(crate::tools::execute::facts);
-    let running = card.is_some_and(crate::tools::execute::running);
-    let failed = facts.is_some_and(|facts| facts.error);
-    let status = if facts.is_none() {
-        "Unavailable".to_owned()
+    let captured = state.execute_capture();
+    let capture = captured.as_ref().map(|(capture, _)| &**capture);
+    let facts = capture.map(|capture| &capture.facts);
+    let running = capture.is_some_and(|capture| capture.running);
+    let failed = capture.is_some_and(|capture| capture.failed);
+    let status = if captured.as_ref().is_none_or(|(_, available)| !available) {
+        "Source unavailable".to_owned()
     } else if running {
         if facts.is_none_or(|facts| facts.code.is_none()) {
             "Receiving code…"
@@ -118,41 +88,39 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
         status
     };
     let code = facts.and_then(|facts| facts.code.as_deref());
-    let output = facts.and_then(|facts| facts.output.first());
+    let output = capture.and_then(|capture| capture.output().next());
     let json = output
         .filter(|part| part.kind == ExecuteOutputKind::Json)
-        .map(|part| {
-            serde_json::from_str::<serde_json::Value>(&part.text)
-                .and_then(|value| serde_json::to_string_pretty(&value))
-                .unwrap_or_else(|_| part.text.clone())
-        });
+        .map(|part| part.text.as_str());
     let count = code
         .map_or(0, |text| text.split('\n').count())
-        .max(json.as_ref().map_or(0, |text| text.split('\n').count()));
+        .max(json.map_or(0, |text| text.split('\n').count()));
     let gutter = count.max(1).to_string().len();
     let inner = width.saturating_sub(gutter + 1).max(1);
-    let mut max_pan = 0;
-    let mut numbered_rows = std::collections::BTreeSet::new();
     let mut rows = vec![Line::styled("Code", label)];
-    let mut numbered = |text: &str, language: &str, rows: &mut Vec<Line>| {
+    let numbered = |text: &str, language: &str, rows: &mut Vec<Line>| {
         for (index, line) in code_rows(text, language, theme, base)
             .into_iter()
             .enumerate()
         {
-            max_pan = max_pan.max(
-                line.spans()
-                    .iter()
-                    .map(styled::span_width)
-                    .sum::<usize>()
-                    .saturating_sub(inner),
-            );
-            let mut spans = vec![
-                Span::styled(format!("{:<gutter$}", index + 1), muted),
-                Span::plain(" "),
-            ];
-            spans.extend_from_slice(line.spans());
-            numbered_rows.insert(rows.len());
-            rows.push(Line::new(spans));
+            for (physical, line) in styled::wrap_char_line_limited(&line, inner, usize::MAX)
+                .into_iter()
+                .enumerate()
+            {
+                let mut spans = vec![
+                    Span::styled(
+                        if physical == 0 {
+                            format!("{:<gutter$}", index + 1)
+                        } else {
+                            " ".repeat(gutter)
+                        },
+                        muted,
+                    ),
+                    Span::plain(" "),
+                ];
+                spans.extend_from_slice(line.spans());
+                rows.push(Line::new(spans));
+            }
         }
     };
     if let Some(code) = code {
@@ -164,12 +132,12 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
         rows.push(Line::styled("… code preview limited", muted));
     }
     rows.extend([Line::plain(""), Line::styled("Output", label)]);
-    if let Some(json) = &json {
+    if let Some(json) = json {
         numbered(json, "json", &mut rows);
     }
     let color = if failed { theme.error() } else { theme.text() };
-    if let Some(facts) = facts {
-        for (index, part) in facts.output.iter().enumerate() {
+    if let Some(capture) = capture {
+        for (index, part) in capture.output().enumerate() {
             if index == 0 && json.is_some() {
                 continue;
             }
@@ -193,10 +161,10 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
                 }
             }
         }
-        if facts.output.iter().any(|part| part.limited) {
+        if capture.output().any(|part| part.limited) {
             rows.push(Line::styled("… output preview limited", muted));
         }
-        if facts.output.is_empty() {
+        if capture.output().next().is_none() {
             rows.push(Line::styled(
                 if running {
                     "Waiting for output…"
@@ -257,12 +225,9 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
         rect,
         body,
         rows,
-        max_pan,
         actions,
         status,
         failed,
-        gutter,
-        numbered: numbered_rows,
     }
 }
 
@@ -303,22 +268,20 @@ pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState) {
             1,
         ),
     );
-    let (scroll, pan) = state
+    let scroll = state
         .execute_detail
         .as_ref()
-        .map_or((0, 0), |detail| (detail.scroll.get(), detail.pan.get()));
+        .map_or(0, |detail| detail.scroll.get());
     let start = scroll.min(
         layout
             .rows
             .len()
             .saturating_sub(layout.body.height as usize),
     );
-    let pan = pan.min(layout.max_pan);
     // Persist the actually painted viewport, so a later narrower frame cannot
     // resurrect an offset already retired by a resize or live-content change.
     if let Some(detail) = &state.execute_detail {
         detail.scroll.set(start);
-        detail.pan.set(pan);
     }
     for (index, row) in layout
         .rows
@@ -327,23 +290,8 @@ pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState) {
         .take(layout.body.height as usize)
         .enumerate()
     {
-        let numbered = layout.numbered.contains(&(start + index));
-        let row = if numbered {
-            let mut spans = row.spans()[..2].to_vec();
-            spans.extend_from_slice(
-                slice(
-                    &Line::new(row.spans()[2..].to_vec()),
-                    pan,
-                    layout.body.width.saturating_sub(layout.gutter as u16 + 1) as usize,
-                )
-                .spans(),
-            );
-            Line::new(spans)
-        } else {
-            slice(row, 0, layout.body.width as usize)
-        };
         frame.render_widget(
-            Paragraph::new(row.into_ratatui()),
+            Paragraph::new(row.clone().into_ratatui()),
             Rect::new(
                 layout.body.x,
                 layout.body.y + index as u16,

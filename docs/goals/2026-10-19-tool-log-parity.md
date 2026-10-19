@@ -62,8 +62,12 @@ required outcome is resolved and affected constraints remain satisfied.
     invented completion or replay. Esc/backdrop restore the prior draft/panel.
   - Primary evidence: Execute render/input/lifecycle/clipboard regressions and
     actual paired receiving/running/terminal/disclosure/copy/resize observations.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: in_progress
+  - Evidence: 11 Execute regressions and all 597 oc-tui library tests pass,
+    including failed-parent mouse routing, Unicode/source-preserving wrapping,
+    exact copy, independent fetch/search disclosures, source eviction/resync,
+    visible approval ownership and read-only paste/backdrop containment. Strict
+    oc-tui/all-target Clippy passes. Paired actual-binary observations remain R4.
 - R4: reproducible scoped actual-binary evidence, honestly classified.
   - Source: corrected plan D/E and TEST_PLAN paired-qualification contract.
   - Acceptance: exclusive Execute profile uses official pinned 2.0.31, verified
@@ -182,21 +186,22 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R3 (R1 native checks and R2 complete; paired acceptance remains R4).
-- Smallest next action: character-wrapped Execute details for all parent states,
-  consistent bounded output/copy and narrow approval/source-loss/input ownership.
-- Expected evidence: existing and extended Execute render/input/lifecycle/copy
-  regressions, then full oc-tui tests and strict affected-crate Clippy.
+- Closes: R4 (R1/R3 native checks and R2 complete).
+- Smallest next action: establish the pinned JSON cache and exclusive 2.0.31
+  Execute fixture/profile, then capture the current-worktree binary in fresh roots.
+- Expected evidence: fixture/bootstrap regressions, exact effect/RAW assertions,
+  bounded actual paired observations and unmasked frame-comparison outcomes.
 
 ## Current State
 
 - Resolved: R1 native rendering/range/pointer checks pushed as 83343ecf6; R2
-  private bounded observations pass native checks. No schema/dependency change.
-- Last relevant evidence: 27 Code Mode unit + two runtime preview + nine runtime
-  integration tests; strict oc-adapters/all-target Clippy; diff check clean.
+  private bounded observations pushed as 2dd9ced95. R3 native UI/lifecycle checks
+  pass. No schema/dependency change.
+- Last relevant evidence: 11 Execute and 597 full oc-tui library tests; strict
+  oc-tui/all-target Clippy; earlier Code Mode unit/runtime integration checks.
 - Blocker: none established. R4 needs the exact pinned JSON WASM download and
   narrow cache bootstrap; existing browser/font/xterm and bundled TS are present.
-- Next: R3, then R4 against the same final binary.
+- Next: R4, then final full offline gate and delivery.
 
 ## Checkpoint History
 
@@ -210,6 +215,11 @@ required outcome is resolved and affected constraints remain satisfied.
   absent, then passed with its original result and exact new observation. A test
   fixture initially used reserved Function.call syntax; changing that fixture to
   fixture.echo preserved the interpreter contract. All relevant checks pass.
+- 2026-10-19: R3's actual failed-parent mouse regression failed before the fix.
+  All 11 Execute tests now pass; full oc-tui has 597 passing tests (8.33s) and
+  strict Clippy passes (32.47s). Clippy identified a complex pointer tuple and
+  test-only borrow/clone issues; a named local press record and scoped test
+  borrows fixed them without suppressions. No paired visual PASS claimed.
 
 ## Completion
 

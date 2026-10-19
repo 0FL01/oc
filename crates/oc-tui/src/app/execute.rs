@@ -1,15 +1,70 @@
 //! Execute interaction state stays on the owning TUI view and operation.
 use super::*;
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+use std::cell::{Cell, Ref, RefCell};
+
+pub(crate) struct Captured {
+    pub facts: oc_core::tool_output::Execute,
+    pub running: bool,
+    pub failed: bool,
+    pub fallback: Option<oc_core::tool_output::ExecuteOutput>,
+}
+
+impl Captured {
+    fn new(card: &crate::history::ToolCard) -> Option<Self> {
+        let mut facts = crate::tools::execute::facts(card)?.clone();
+        // Details need code/output, not another copy of child parameter disclosures.
+        facts.calls.clear();
+        let failed = crate::tools::execute::failed(card);
+        let fallback = if facts.output.is_empty() && failed {
+            crate::tools::execute::output_text(card).map(|text| {
+                oc_core::tool_output::ExecuteOutput {
+                    kind: oc_core::tool_output::ExecuteOutputKind::Text,
+                    text,
+                    limited: card.preview_limited(),
+                }
+            })
+        } else {
+            None
+        };
+        Some(Self {
+            facts,
+            running: crate::tools::execute::running(card),
+            failed,
+            fallback,
+        })
+    }
+
+    pub fn output(&self) -> impl Iterator<Item = &oc_core::tool_output::ExecuteOutput> {
+        self.facts.output.iter().chain(self.fallback.iter())
+    }
+}
 
 pub(crate) struct Detail {
     pub operation: String,
-    pub scroll: std::cell::Cell<usize>,
-    pub pan: std::cell::Cell<usize>,
+    pub scroll: Cell<usize>,
     pub copied: Option<char>,
     pub copy_pending: Option<char>,
     previous: TuiPanel,
-    pressed: Option<(char, Rect, Rect, (u16, u16))>,
+    captured: RefCell<Captured>,
+    pressed: Cell<Option<Press>>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct Press {
+    key: char,
+    area: Rect,
+    target: Rect,
+    point: (u16, u16),
+}
+
+impl Detail {
+    pub(super) fn retained_bytes(&self) -> usize {
+        let captured = self.captured.borrow();
+        self.operation.len()
+            + captured.facts.retained_bytes()
+            + captured.fallback.as_ref().map_or(0, |part| part.text.len())
+    }
 }
 
 impl TuiState {
@@ -27,6 +82,24 @@ impl TuiState {
                     .find_map(|row| row.tool.as_ref().filter(|card| card.op == operation))
             })
             .filter(|card| crate::tools::execute::facts(card).is_some())
+    }
+
+    /// One bounded, view-local capture survives replacement of the resident page.
+    /// Current admitted facts always win; missing source never implies completion.
+    pub(crate) fn execute_capture(&self) -> Option<(Ref<'_, Captured>, bool)> {
+        let detail = self.execute_detail.as_ref()?;
+        let current = self.execute_card(&detail.operation).and_then(Captured::new);
+        let available = current.is_some();
+        if let Some(current) = current {
+            *detail.captured.borrow_mut() = current;
+        }
+        Some((detail.captured.borrow(), available))
+    }
+
+    pub(crate) fn cancel_execute_pointer(&self) {
+        if let Some(detail) = &self.execute_detail {
+            detail.pressed.set(None);
+        }
     }
 
     pub(super) fn activate_execute(&mut self, operation: &str, call: Option<usize>, frame: Rect) {
@@ -73,17 +146,16 @@ impl TuiState {
                 after,
                 self.scroll,
             );
-        } else if facts.error || crate::tools::is_error_state(&card.state) {
-            self.toggle_tool_expansion_at(operation, frame);
         } else {
+            let captured = Captured::new(card).expect("validated execute card");
             self.execute_detail = Some(Detail {
                 operation: operation.to_owned(),
-                scroll: std::cell::Cell::new(0),
-                pan: std::cell::Cell::new(0),
+                scroll: Cell::new(0),
                 copied: None,
                 copy_pending: None,
                 previous: std::mem::replace(&mut self.panel, TuiPanel::Execute),
-                pressed: None,
+                captured: RefCell::new(captured),
+                pressed: Cell::new(None),
             });
             self.mouse_down = None;
         }
@@ -113,35 +185,24 @@ impl TuiState {
                 KeyAction::End => end,
                 _ => start,
             });
-            detail.pan.set(match action {
-                KeyAction::Left => detail.pan.get().saturating_sub(8),
-                KeyAction::Right => (detail.pan.get() + 8).min(layout.max_pan),
-                _ => detail.pan.get().min(layout.max_pan),
-            });
-            detail.pressed = None;
+            detail.pressed.set(None);
         }
         if let KeyAction::Char(key @ ('c' | 'o')) = action {
-            let text = self
-                .execute_detail
-                .as_ref()
-                .and_then(|detail| self.execute_card(&detail.operation))
-                .and_then(crate::tools::execute::facts)
-                .and_then(|facts| {
-                    if key == 'c' {
-                        facts.code.clone()
-                    } else if facts.output.is_empty() {
-                        None
-                    } else {
-                        Some(
-                            facts
-                                .output
-                                .iter()
-                                .map(|part| part.text.as_str())
-                                .collect::<Vec<_>>()
-                                .join("\n\n"),
-                        )
-                    }
-                });
+            let text = self.execute_capture().and_then(|(captured, _)| {
+                if key == 'c' {
+                    captured.facts.code.clone()
+                } else if captured.output().next().is_none() {
+                    None
+                } else {
+                    Some(
+                        captured
+                            .output()
+                            .map(|part| part.text.as_str())
+                            .collect::<Vec<_>>()
+                            .join("\n\n"),
+                    )
+                }
+            });
             if let Some(text) = text {
                 if let Err(error) = self.copy_message_text(text) {
                     self.push_transient_note(&error, NoteVariant::Error);
@@ -157,17 +218,29 @@ impl TuiState {
 
     pub(super) fn execute_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         let layout = crate::execute_view::layout(self, area);
-        let hit = layout.actions.iter().find_map(|(key, rect)| {
-            rect.contains((event.column, event.row).into())
-                .then_some((*key, *rect))
-        });
+        let hit = layout
+            .actions
+            .iter()
+            .find_map(|(key, rect)| {
+                rect.contains((event.column, event.row).into())
+                    .then_some((*key, *rect))
+            })
+            .or_else(|| {
+                (area.contains((event.column, event.row).into())
+                    && !layout.rect.contains((event.column, event.row).into()))
+                .then_some(('b', layout.rect))
+            });
         match event.kind {
             MouseEventKind::ScrollUp => return self.execute_key(KeyAction::Up),
             MouseEventKind::ScrollDown => return self.execute_key(KeyAction::Down),
             MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
                 if let Some(detail) = &mut self.execute_detail {
-                    detail.pressed =
-                        hit.map(|(key, rect)| (key, area, rect, (event.column, event.row)));
+                    detail.pressed.set(hit.map(|(key, target)| Press {
+                        key,
+                        area,
+                        target,
+                        point: (event.column, event.row),
+                    }));
                 }
             }
             MouseEventKind::Up(MouseButton::Left) => {
@@ -177,20 +250,23 @@ impl TuiState {
                     .and_then(|detail| detail.pressed.take());
                 if event.modifiers.is_empty()
                     && let Some((key, rect)) = hit
-                    && pressed == Some((key, area, rect, (event.column, event.row)))
+                    && pressed
+                        == Some(Press {
+                            key,
+                            area,
+                            target: rect,
+                            point: (event.column, event.row),
+                        })
                 {
-                    return self.execute_key(if key == 'e' {
+                    return self.execute_key(if matches!(key, 'e' | 'b') {
                         KeyAction::Cancel
                     } else {
                         KeyAction::Char(key)
                     });
                 }
             }
-            MouseEventKind::Moved => {}
             _ => {
-                if let Some(detail) = &mut self.execute_detail {
-                    detail.pressed = None;
-                }
+                self.cancel_execute_pointer();
             }
         }
         KeyOutcome::default()

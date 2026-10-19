@@ -667,6 +667,7 @@ impl TuiState {
             return Some(action);
         }
         if self.approvals.active().is_some() {
+            self.cancel_execute_pointer();
             return self
                 .approvals
                 .terminal_key(event, &self.chrome.permission_shortcuts);
@@ -1683,6 +1684,9 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.approvals.active().is_some() {
+            self.cancel_execute_pointer();
+        }
         if self.continue_text_mouse(event, area) {
             return KeyOutcome::default();
         }
@@ -2501,6 +2505,7 @@ impl TuiState {
             return self.paste_accounts(text);
         }
         if self.approvals.active().is_some() {
+            self.cancel_execute_pointer();
             self.approvals.paste(text);
             return KeyOutcome::default();
         }
@@ -2516,6 +2521,10 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel != TuiPanel::None {
+            if self.panel == TuiPanel::Execute {
+                self.cancel_execute_pointer();
+                return KeyOutcome::default();
+            }
             if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {
                 return KeyOutcome::default();
             }
@@ -2765,6 +2774,7 @@ impl TuiState {
             && !(self.terminal_focused()
                 && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
         {
+            self.cancel_execute_pointer();
             return self.approvals.key(action);
         }
         if self.panel == TuiPanel::None

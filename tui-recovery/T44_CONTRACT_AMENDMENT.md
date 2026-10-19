@@ -2589,6 +2589,26 @@ Sources U133–U137 plus shared U02/U49/U52. Method — `docs/TEST_PLAN.md` VIS4
 VIS46 is mandatory, execution_status NOT_RUN, evidence empty. T60 DONE/CM01–CM08 evidence,
 historical VIS01–VIS45 and active T59/PAUSED T44 statuses remain unchanged.
 
+### Narrow Execute supersession — 2026-10-19
+
+The owner's exploration/Execute screenshots and accepted audited plan supersede
+only these earlier UI clauses in the current
+[tool-log objective](../docs/goals/2026-10-19-tool-log-parity.md):
+
+- Every typed Execute parent, including failures, opens Code/Output. The failed
+  transcript preview stays static under four **logical** lines plus the existing
+  character budget; opening details does not expand that preview.
+- Code and typed JSON character-wrap with shared logical-line gutters and blank
+  continuation gutters. JSON preserves captured formatting. Navigation is vertical;
+  Execute-only horizontal pan is removed. Plain output/logs/warnings word-wrap.
+- Current captured facts, bounded copy, source-loss availability and visible
+  approval/input ownership follow that objective. Runtime states, redaction,
+  authority, capture limits and no-replay guarantees are not superseded.
+
+This is not a T44 backlog resume or a replacement of historical evidence. Native
+tests alone do not qualify paired visual parity; the objective records fresh
+actual-binary observations and comparison outcomes separately.
+
 ## Видимые upstream-функции вне native scope
 
 Полный визуальный контракт не даёт права тайком добавить OAuth вне явно approved

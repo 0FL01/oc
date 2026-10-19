@@ -208,6 +208,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        let _ = self.execute_capture();
         if let Some(job) = page.child_job.as_deref()
             && self.attached_session() == Some(&job.child)
         {
@@ -347,6 +348,7 @@ impl TuiState {
     /// resets use attach_page. Preserve a painted part, not a total-row delta:
     /// durable projection may replace synthetic parts and the paging window.
     pub fn refresh_completed_page(&mut self, page: &HistoryPage) {
+        let _ = self.execute_capture();
         if let Some(job) = page.child_job.as_deref()
             && self.attached_session() == Some(&job.child)
         {

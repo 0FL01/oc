@@ -53,6 +53,7 @@ impl TuiState {
     pub fn preserve_shared_composer(&mut self, mut previous: Self) {
         self.restore_composer_draft(previous.composer_draft());
         if self.chrome.location == previous.chrome.location && self.session == previous.session {
+            let _ = previous.execute_capture();
             // A canonical refresh updates facts, not this client's interaction
             // owner. Preserve complete modal state, not just its panel enum.
             self.inherit_terminal_view(&mut previous);

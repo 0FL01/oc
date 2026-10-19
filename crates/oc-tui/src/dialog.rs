@@ -929,7 +929,12 @@ impl SelectList {
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     if state.panel() == &TuiPanel::Execute {
-        crate::execute_view::render(frame, state);
+        if state.approvals.active().is_none() {
+            crate::execute_view::render(frame, state);
+        } else {
+            // The visible surface must agree with the approval's input ownership.
+            state.cancel_execute_pointer();
+        }
         return;
     }
     if state.panel() == &TuiPanel::Accounts {
