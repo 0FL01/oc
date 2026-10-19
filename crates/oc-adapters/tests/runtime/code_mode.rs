@@ -118,7 +118,7 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
     runtime.create_session("s").unwrap();
     wait_initial_mcp(&runtime).await;
     let code = format!(
-        "const values = await Promise.all([tools.fixture.add({{a:2,b:3}}), tools.fixture.add({{a:1,b:1}})]);\nconst response = await fetch({url:?});\nconsole.log('actual log');\nreturn {{values, status:response.status}};"
+        "const values = await Promise.all([tools.fixture.add({{a:2,b:3}}), tools.fixture.add({{a:1,b:1}})]);\nsearch({{query:'add',namespace:'fixture',limit:12}});\nconst response = await fetch({url:?});\nconsole.log('actual log');\nreturn {{values, status:response.status}};"
     );
     let (base, _, requests) = Fake::start_recording(
         vec![
@@ -224,7 +224,7 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
             .iter()
             .map(|c| c.tool.as_str())
             .collect::<Vec<_>>(),
-        ["fixture.add", "fixture.add", "fetch"]
+        ["fixture.add", "fixture.add", "search", "fetch"]
     );
     assert!(
         facts
@@ -233,11 +233,11 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
             .all(|c| c.status == ExecuteCallStatus::Completed)
     );
     assert_eq!(
-        facts.calls[2].input,
+        facts.calls[3].input,
         Some(serde_json::json!({"url":url,"method":"GET"}))
     );
     assert_eq!(
-        facts.calls[2]
+        facts.calls[3]
             .input
             .as_ref()
             .unwrap()
@@ -247,6 +247,10 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
             .map(String::as_str)
             .collect::<Vec<_>>(),
         ["method", "url"]
+    );
+    assert_eq!(
+        facts.calls[2].input,
+        Some(serde_json::json!({"query":"add","namespace":"fixture","limit":12}))
     );
     assert!(!facts.error && !facts.calls_limited && facts.elapsed_ms.is_some());
     assert_eq!(
@@ -485,7 +489,7 @@ async fn code_mode_keeps_literal_mcp_path_segments_distinct() {
             .iter()
             .map(|c| c.tool.as_str())
             .collect::<Vec<_>>(),
-        ["fixture[\"v1.add\"]", "[\"fixture.v1\"].add"]
+        ["fixture[\"v1.add\"]", "[\"fixture.v1\"].add", "search"]
     );
     let execute = requests[0]["tools"]
         .as_array()

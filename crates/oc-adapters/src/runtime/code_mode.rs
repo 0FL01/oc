@@ -17,6 +17,7 @@ use super::mcp::McpGeneration;
 use super::*;
 use crate::codemode::{
     self, Catalog, CodeModeTool, ExecuteLimits, FetchRequest, FetchResponse, HostRequest,
+    ObservedCall,
 };
 
 /// Model-facing name of the Code Mode tool.
@@ -123,7 +124,7 @@ struct ExecuteProgress<'a> {
 }
 
 impl ExecuteProgress<'_> {
-    fn start(&self, tool: &str, input: &Json) -> Option<usize> {
+    fn start(&self, tool: &str, input: &Json, producer_limited: bool) -> Option<usize> {
         let mut facts = self.facts.lock().expect("execute progress lock");
         if facts.calls.len() == EXECUTE_CALLS_CAP {
             if !facts.calls_limited {
@@ -140,7 +141,7 @@ impl ExecuteProgress<'_> {
             tool_limited,
             status: ExecuteCallStatus::Running,
             input: Some(input),
-            input_limited,
+            input_limited: producer_limited || input_limited,
         });
         self.changed.send_replace(());
         Some(index)
@@ -156,6 +157,14 @@ impl ExecuteProgress<'_> {
             ExecuteCallStatus::Completed
         };
         self.changed.send_replace(());
+    }
+
+    fn mark_calls_limited(&self) {
+        let mut facts = self.facts.lock().expect("execute progress lock");
+        if !facts.calls_limited {
+            facts.calls_limited = true;
+            self.changed.send_replace(());
+        }
     }
 
     fn emit(
@@ -454,40 +463,55 @@ impl Runtime<'_> {
         };
         let inv = &inv;
         let started = std::time::Instant::now();
-        let mut execution = Box::pin(codemode::run(
+        let mut execution = Box::pin(codemode::run_observed(
             code.to_string(),
             catalog.clone(),
             ExecuteLimits::default(),
             cancel,
-            |request| {
-                // Admission order is observable even when concurrent calls
-                // settle in a different order. Never reconstruct it from code.
-                let index = match &request {
-                    HostRequest::Tool { path, input, .. } => progress.start(
+            |observed| {
+                // Capture actual invocation order before external admission;
+                // completion updates the same slot even when requests settle
+                // concurrently. Local search has no external effect to admit.
+                match observed {
+                    ObservedCall::Tool { path, input } => progress.start(
                         catalog
                             .display_path_for_host(path)
                             .unwrap_or("[unavailable tool]"),
                         input,
+                        false,
                     ),
-                    HostRequest::Fetch { request, .. } => progress.start(
+                    ObservedCall::Fetch(request) => progress.start(
                         "fetch",
                         &serde_json::json!({
                             "method": request.method, "url": request.url,
                         }),
+                        false,
                     ),
-                };
-                async move {
-                    match request {
-                        HostRequest::Tool { path, input, reply } => {
-                            let result = self.code_mode_tool(inv, &path, input).await;
-                            progress.finish(index, result.is_err());
-                            let _ = reply.send(result);
-                        }
-                        HostRequest::Fetch { request, reply } => {
-                            let result = self.code_mode_fetch(inv, request).await;
-                            progress.finish(index, result.is_err());
-                            let _ = reply.send(result);
-                        }
+                    ObservedCall::LocalSearch {
+                        input,
+                        input_limited,
+                    } => {
+                        let index = progress.start("search", input, input_limited);
+                        progress.finish(index, false);
+                        index
+                    }
+                    ObservedCall::CallsLimited => {
+                        progress.mark_calls_limited();
+                        None
+                    }
+                }
+            },
+            |request, index| async move {
+                match request {
+                    HostRequest::Tool { path, input, reply } => {
+                        let result = self.code_mode_tool(inv, &path, input).await;
+                        progress.finish(index, result.is_err());
+                        let _ = reply.send(result);
+                    }
+                    HostRequest::Fetch { request, reply } => {
+                        let result = self.code_mode_fetch(inv, request).await;
+                        progress.finish(index, result.is_err());
+                        let _ = reply.send(result);
                     }
                 }
             },

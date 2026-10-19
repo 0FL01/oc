@@ -16,6 +16,7 @@ mod host;
 mod interp;
 mod json;
 mod lexer;
+mod observed;
 mod parser;
 mod promise;
 mod value;
@@ -36,6 +37,7 @@ use tokio::sync::{mpsc, oneshot};
 
 pub use catalog::{Catalog, CodeModeTool, schema_to_typescript, tool_expression};
 pub use host::{FetchRequest, FetchResponse, HostRequest};
+pub(crate) use observed::{ObservedCall, run_observed};
 
 use interp::{Abrupt, Cx, Fatal};
 use value::{PropKey, Slot, Value};
@@ -282,7 +284,7 @@ async fn execute_program(
     catalog: Arc<Catalog>,
     limits: ExecuteLimits,
     cancel: Arc<AtomicBool>,
-    sender: mpsc::UnboundedSender<HostRequest>,
+    transport: host::Transport,
 ) -> Outcome {
     if code.trim().is_empty() {
         return Outcome::failure(Diagnostic::new("ParseError", "Code cannot be empty."));
@@ -308,7 +310,7 @@ async fn execute_program(
     };
     let host = host::Host {
         catalog,
-        sender,
+        transport,
         max_tool_calls: limits.max_tool_calls,
         calls: std::cell::Cell::new(0),
     };
@@ -353,6 +355,11 @@ async fn execute_program(
 /// A running program. Host requests arrive on `requests`; the outcome follows.
 pub struct Execution {
     pub requests: mpsc::UnboundedReceiver<HostRequest>,
+    owner: ExecutionOwner,
+}
+
+/// Thread/outcome/cancellation ownership is shared, not request scheduling.
+struct ExecutionOwner {
     outcome: oneshot::Receiver<Outcome>,
     cancel: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
@@ -361,6 +368,30 @@ pub struct Execution {
 impl Execution {
     pub fn start(code: String, catalog: Arc<Catalog>, limits: ExecuteLimits) -> Execution {
         let (sender, requests) = mpsc::unbounded_channel();
+        Execution {
+            requests,
+            owner: ExecutionOwner::start(
+                code,
+                catalog,
+                limits,
+                host::Transport::RequestOnly(sender),
+            ),
+        }
+    }
+
+    /// Asks the interpreter to stop at its next step.
+    pub fn cancel(&self) {
+        self.owner.cancel();
+    }
+}
+
+impl ExecutionOwner {
+    fn start(
+        code: String,
+        catalog: Arc<Catalog>,
+        limits: ExecuteLimits,
+        transport: host::Transport,
+    ) -> Self {
         let (done, outcome) = oneshot::channel();
         let cancel = Arc::new(AtomicBool::new(false));
         let flag = cancel.clone();
@@ -374,7 +405,7 @@ impl Execution {
                     let local = tokio::task::LocalSet::new();
                     let outcome = local.block_on(
                         &runtime,
-                        execute_program(code, catalog, limits, flag, sender),
+                        execute_program(code, catalog, limits, flag, transport),
                     );
                     drop(local);
                     Ok::<Outcome, std::io::Error>(outcome)
@@ -394,16 +425,14 @@ impl Execution {
                 let _ = done.send(outcome);
             });
         let thread = spawned.ok();
-        Execution {
-            requests,
+        Self {
             outcome,
             cancel,
             thread,
         }
     }
 
-    /// Asks the interpreter to stop at its next step.
-    pub fn cancel(&self) {
+    fn cancel(&self) {
         self.cancel.store(true, Ordering::Relaxed);
     }
 
@@ -429,7 +458,7 @@ where
     F: Future<Output = ()>,
 {
     let mut execution = Execution::start(code, catalog, limits);
-    if execution.thread.is_none() {
+    if execution.owner.thread.is_none() {
         return Outcome::failure(Diagnostic::new(
             "ExecutionFailure",
             "Code Mode runtime could not start a thread.",
@@ -448,14 +477,14 @@ where
         }
         tokio::select! {
             biased;
-            outcome = &mut execution.outcome => {
+            outcome = &mut execution.owner.outcome => {
                 break outcome.unwrap_or_else(|_| Outcome::failure(Diagnostic::new(
                     "ExecutionFailure",
                     "Code Mode interpreter stopped unexpectedly.",
                 )));
             }
             Some(request) = execution.requests.recv() => {
-                if !execution.cancel.load(Ordering::Relaxed) {
+                if !execution.owner.cancel.load(Ordering::Relaxed) {
                     queued.push_back(request);
                 }
             }
@@ -471,6 +500,6 @@ where
         }
     };
     drop(pending);
-    execution.join().await;
+    execution.owner.join().await;
     outcome
 }

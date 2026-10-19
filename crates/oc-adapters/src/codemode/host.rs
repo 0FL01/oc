@@ -7,6 +7,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use oc_core::tool_output::{EXECUTE_CALLS_CAP, EXECUTE_INPUT_BYTES};
 use serde_json::Value as Json;
 use tokio::sync::{mpsc, oneshot};
 
@@ -49,9 +50,113 @@ pub enum HostRequest {
     },
 }
 
+pub(super) enum HostEvent {
+    Request {
+        request: HostRequest,
+        observed: bool,
+    },
+    LocalSearch {
+        input: Json,
+        input_limited: bool,
+    },
+    CallsLimited,
+}
+
+/// Public executions keep their request-only channel and scheduling. Only the
+/// native presentation path captures local, effect-free observations.
+pub(super) enum Transport {
+    RequestOnly(mpsc::UnboundedSender<HostRequest>),
+    Observed {
+        sender: mpsc::UnboundedSender<HostEvent>,
+        starts: Cell<usize>,
+    },
+}
+
+impl Transport {
+    fn reserve(&self) -> bool {
+        let Self::Observed { sender, starts } = self else {
+            return false;
+        };
+        let count = starts.get();
+        if count < EXECUTE_CALLS_CAP {
+            starts.set(count + 1);
+            true
+        } else {
+            if count == EXECUTE_CALLS_CAP {
+                starts.set(EXECUTE_CALLS_CAP + 1);
+                let _ = sender.send(HostEvent::CallsLimited);
+            }
+            false
+        }
+    }
+
+    fn send(&self, request: HostRequest) -> Result<(), ()> {
+        match self {
+            Self::RequestOnly(sender) => sender.send(request).map_err(|_| ()),
+            Self::Observed { sender, .. } => sender
+                .send(HostEvent::Request {
+                    request,
+                    observed: self.reserve(),
+                })
+                .map_err(|_| ()),
+        }
+    }
+
+    fn search(&self, input: &serde_json::Map<String, Json>) {
+        if let Self::Observed { sender, .. } = self
+            && self.reserve()
+        {
+            let (input, input_limited) = search_preview(input);
+            // Losing disposable presentation metadata must not fail a local read.
+            let _ = sender.send(HostEvent::LocalSearch {
+                input,
+                input_limited,
+            });
+        }
+    }
+}
+
+/// Bound new queued metadata before cloning values. Search's validated fields
+/// are scalars; admit whole values, never a possibly secret-bearing prefix.
+fn search_preview(input: &serde_json::Map<String, Json>) -> (Json, bool) {
+    let mut fields = serde_json::Map::new();
+    let mut remaining = EXECUTE_INPUT_BYTES - 2; // Object braces.
+    let mut limited = false;
+    for (key, value) in input {
+        if !matches!(key.as_str(), "query" | "namespace" | "limit" | "offset") {
+            limited = true;
+            continue;
+        }
+        let overhead = key.len() + 3 + usize::from(!fields.is_empty());
+        let budget = remaining.saturating_sub(overhead);
+        let size = match value {
+            Json::String(text) => text.chars().try_fold(2usize, |size, ch| {
+                let bytes = match ch {
+                    '"' | '\\' | '\u{8}' | '\t' | '\n' | '\u{c}' | '\r' => 2,
+                    '\0'..='\u{1f}' => 6,
+                    ch => ch.len_utf8(),
+                };
+                size.checked_add(bytes).filter(|size| *size <= budget)
+            }),
+            Json::Null => Some(4),
+            Json::Number(number) => Some(number.to_string().len()),
+            _ => None,
+        };
+        if let Some(size) = size
+            && overhead + size <= remaining
+        {
+            fields.insert(key.clone(), value.clone());
+            remaining -= overhead + size;
+        } else {
+            limited = true;
+        }
+    }
+    (Json::Object(fields), limited)
+}
+
 pub(super) struct Host {
     pub catalog: Arc<Catalog>,
-    pub sender: mpsc::UnboundedSender<HostRequest>,
+    pub transport: Transport,
     pub max_tool_calls: Option<u32>,
     pub calls: Cell<u32>,
 }
@@ -154,7 +259,9 @@ async fn search(cx: &Cx, args: &[Value]) -> R<Value> {
         .host
         .catalog
         .search(query.as_deref(), namespace.as_deref(), limit, offset);
-    Ok(json::from_json(cx, &result))
+    let result = json::from_json(cx, &result);
+    cx.host.transport.search(&input);
+    Ok(result)
 }
 
 /// Calls a host tool by path from the `tools` tree.
@@ -197,7 +304,7 @@ pub(super) async fn tool_call(cx: &Cx, path: &[JsStr], args: Vec<Value>) -> R<Va
     let (reply, response) = oneshot::channel();
     if cx
         .host
-        .sender
+        .transport
         .send(HostRequest::Tool {
             path: tool.path.clone(),
             input,
@@ -363,7 +470,7 @@ async fn fetch(cx: Cx, args: Vec<Value>) -> R<Value> {
     };
     if cx
         .host
-        .sender
+        .transport
         .send(HostRequest::Fetch { request, reply })
         .is_err()
     {

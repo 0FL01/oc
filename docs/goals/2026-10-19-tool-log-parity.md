@@ -46,8 +46,12 @@ required outcome is resolved and affected constraints remain satisfied.
     operations, execution cap, public API break or unbounded observation backlog.
   - Primary evidence: deterministic interpreter/runtime ordering, bounds,
     redaction, final-drain and durable-parent/reopen regressions.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: verified
+  - Evidence: all 27 Code Mode unit tests, two runtime preview/redaction tests and
+    nine Code Mode runtime integration tests pass, including one durable parent
+    and reopen without replay. Deterministic outcome-first, unscheduled-consumer
+    caps, eight-slot FIFO admission and exact search identity regressions pass.
+    Strict oc-adapters/all-target Clippy passes; public request-only API is intact.
 - R3: Execute details and input ownership match the corrected local contract.
   - Source: owner Execute screenshots and corrected plan C.
   - Acceptance: success/running/error parents open Code/Output; nested calls toggle
@@ -178,21 +182,21 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R2 (R1 native checks complete; paired acceptance depends on R2/R3).
-- Smallest next action: implement private bounded ordered local-search observation
-  without changing public request-only Execution/run or effect scheduling.
-- Expected evidence: deterministic outcome-first search, order/admission/caps,
-  redaction and durable one-parent/reopen regressions.
+- Closes: R3 (R1 native checks and R2 complete; paired acceptance remains R4).
+- Smallest next action: character-wrapped Execute details for all parent states,
+  consistent bounded output/copy and narrow approval/source-loss/input ownership.
+- Expected evidence: existing and extended Execute render/input/lifecycle/copy
+  regressions, then full oc-tui tests and strict affected-crate Clippy.
 
 ## Current State
 
-- Resolved: R1 native rendering, range and pointer checks; goal-plan commit
-  dffc8929b pushed to origin/master. No schema or dependency change.
-- Last relevant evidence: cargo test -p oc-tui --lib --locked (591 passed);
-  cargo clippy -p oc-tui --all-targets --locked -- -D warnings; diff check clean.
+- Resolved: R1 native rendering/range/pointer checks pushed as 83343ecf6; R2
+  private bounded observations pass native checks. No schema/dependency change.
+- Last relevant evidence: 27 Code Mode unit + two runtime preview + nine runtime
+  integration tests; strict oc-adapters/all-target Clippy; diff check clean.
 - Blocker: none established. R4 needs the exact pinned JSON WASM download and
   narrow cache bootstrap; existing browser/font/xterm and bundled TS are present.
-- Next: R2; then R3 and R4 against the same final binary.
+- Next: R3, then R4 against the same final binary.
 
 ## Checkpoint History
 
@@ -201,6 +205,11 @@ required outcome is resolved and affected constraints remain satisfied.
   PASS claimed. Initial full test compilation exceeded the 120s shell watchdog;
   no surviving Cargo process, completed with a 600s compilation allowance. Actual
   targeted tests took 0.01s and full crate 6.30s, no test deadline was changed.
+- 2026-10-19: R2 observed search closes the real missing nested row. The existing
+  literal-MCP-path integration failed before implementation because search was
+  absent, then passed with its original result and exact new observation. A test
+  fixture initially used reserved Function.call syntax; changing that fixture to
+  fixture.echo preserved the interpreter contract. All relevant checks pass.
 
 ## Completion
 
