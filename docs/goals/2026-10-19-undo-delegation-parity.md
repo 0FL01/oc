@@ -20,8 +20,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: исходный undo-баг и исправленный план, часть A.
   - Acceptance: pending/refused/stale receipt сохраняют boundary, draft и redo; accepted prompt/compress/Shell снимают marker; failure/interruption и завершившийся старый recovery не восстанавливают его. Whole-tail redo до нового admission не replay tools.
   - Primary evidence: receipt/controller regressions и actual-binary held-response PTY.
-  - Status: pending
-  - Evidence: —
+  - Status: verified
+  - Evidence: `cargo test -p oc-tui --lib --locked reverted_` — 4 PASS; `cargo test -p oc2 --bin oc2 --locked conversation_` — 3 PASS; new actual-binary `undo_replacement_hides_marker_while_response_is_held` — PASS (2.75s); existing `five_turn_reverted_tail_` — PASS; `cargo test -p oc-adapters --lib --locked conversation_` — 22 PASS. Все с `CARGO_INCREMENTAL=0` и approved TMPDIR.
 - R2: pending subagent имеет точное inline-представление TS, без premature execution facts.
   - Source: второй баг, явное требование visual parity и исправленный план, часть B.
   - Acceptance: `Delegating…`, отступ 3, правильные glyph/gap/semantic colors и hover без действия; opaque input; один slot через Linked/Started; никаких child/effects из preview.
@@ -100,17 +100,17 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: receipt regressions и controlled recovery interleaving, затем минимальная правка.
-- Expected evidence: targeted oc-tui и oc2 controller tests; held-response PTY.
+- Closes: R2/R3.
+- Smallest next action: typed pending Subagent regression, минимальная row-local анимация и hover через существующий indexed path.
+- Expected evidence: exact inline `Delegating…`, opaque input/one slot; deterministic frames/cache/Linked/config/cleanup и inert hover.
 - Stop or replan if: observed blocker требует выхода за envelope; не расширять scope из speculative audit findings.
 
 ## Current State
 
-- Resolved: frozen contract и plan copied.
-- Last relevant evidence: Rust HEAD `7c9298869e37e5885210dea7fa543f3bb10b6004`, clean worktree; branch master tracks origin/master; origin `git@github.com:0FL01/oc.git`; UID1000, available memory/disk выше TEST_PLAN minimum.
+- Resolved: plan commit `74162b02e` опубликован; R1 verified (31 targeted tests).
+- Last relevant evidence: actual binary снимает marker при принятом replacement с открытым response, контекст не содержит reverted tail; owner/storage redo и RAW/context checks PASS. После прерванной компиляции incremental linker дал undefined hidden symbols; без clean/удаления target проверки успешно выполнены с `CARGO_INCREMENTAL=0`.
 - Blocker: нет подтверждённого.
-- Next: R1.
+- Next: R2/R3, затем R4 visual evidence и R5 full gate.
 
 ## Material Decisions
 
@@ -119,7 +119,9 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Checkpoint History
 
-- 2026-10-19: preflight и freeze; реализация/проверки ещё не начаты.
+- 2026-10-19: preflight/freeze, goal commit `74162b02e` pushed в verified origin/master.
+- 2026-10-19: R1 receipt/controller checkpoint — 4 TUI + 3 binary tests PASS; минимальная recovery-only актуализация history, без schema/protocol изменений. Далее held-response PTY и existing conversation regressions.
+- 2026-10-19: R1 complete — held-response PTY, existing five-turn redo и 22 conversation tests PASS; далее pending component.
 
 ## Completion
 

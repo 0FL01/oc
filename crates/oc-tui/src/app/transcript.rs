@@ -880,6 +880,13 @@ impl TuiState {
         }
     }
 
+    pub(super) fn retire_reverted_boundary(&mut self) {
+        if self.reverted.take().is_some() {
+            self.clear_transcript_selection();
+            self.invalidate_transcript();
+        }
+    }
+
     pub(crate) fn clear_transcript_selection(&mut self) {
         self.cancel_transcript_capture();
         self.child_notice_down = None;

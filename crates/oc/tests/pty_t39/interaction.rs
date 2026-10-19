@@ -2,6 +2,41 @@
 
 use super::*;
 
+#[test]
+fn undo_replacement_hides_marker_while_response_is_held() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "undo-branch", None, 120, 40);
+    pty.wait_visible(READY, DEADLINE);
+    for prompt in ["retained anchor", "reverted second", "reverted third"] {
+        submit(&mut pty, prompt);
+        wait_screen_row(&pty, &format!("echo: {prompt}"), DEADLINE);
+        wait_idle(&pty);
+    }
+    for (count, draft) in [(1, "reverted third"), (2, "reverted second")] {
+        pty.send(b"/undo\r");
+        wait_screen_row(&pty, &format!("{count} message"), DEADLINE);
+        wait_screen_row(&pty, draft, DEADLINE);
+        pty.send(b"\x03"); // clear the nonempty restored draft, never empty Ctrl+C
+        wait_screen_absent(&pty, draft);
+    }
+    wait_screen_row(&pty, "2 messages reverted", DEADLINE);
+    submit(&mut pty, "vis28 held stream");
+    let requests = fixture.wait_requests(4);
+    assert_eq!(requests.len(), 4);
+    let context = requests[3]["input"].to_string();
+    assert!(context.contains("retained anchor") && context.contains("vis28 held stream"));
+    assert!(!context.contains("reverted second") && !context.contains("reverted third"));
+    wait_screen_row(&pty, "esc interrupt", DEADLINE);
+    wait_screen_row(&pty, "retained anchor", DEADLINE);
+    wait_screen_absent(&pty, "messages reverted");
+    fixture.vis28_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&pty, "answer:vis28 completed", DEADLINE);
+    wait_idle(&pty);
+    wait_screen_absent(&pty, "messages reverted");
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+}
+
 /// VAR01: the same effective order reaches the real picker and Ctrl+T,
 /// without a request until explicit submission. Both session and Home paths.
 #[test]

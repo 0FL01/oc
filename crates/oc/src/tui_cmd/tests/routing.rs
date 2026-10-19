@@ -1525,12 +1525,79 @@ async fn accepted_conversation_survives_refresh_failure_and_retries_queries_only
             while !deck.recovery_job.as_ref().unwrap().is_finished() {
                 tokio::task::yield_now().await;
             }
+            let current_history = tokio::spawn(async move {
+                let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                    panic!("current recovery history")
+                };
+                ack.send(Ok(HistoryPage::default())).unwrap();
+                inbox
+            });
             finish_conversation(&app, &mut state, &mut deck).await;
+            let mut inbox = current_history.await.unwrap();
             assert!(deck.conversation_recovery.is_none());
             assert_eq!(state.input(), "owner restored");
             assert!(inbox.try_recv().is_err());
         }
     }
+}
+
+#[tokio::test]
+async fn conversation_recovery_cannot_restore_reverted_page_after_new_admission() {
+    use oc_core::queries::{HistoryPage, RevertedConversation};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let session = SessionId::new("recovery-branch").unwrap();
+    let mut state = TuiState::new(app.clone(), session.clone());
+    let staged = HistoryPage {
+        reverted: Some(RevertedConversation {
+            message: oc_core::session::MessageId("hidden-user".into()),
+            user_messages: 2,
+        }),
+        ..Default::default()
+    };
+    state.attach_page(&staged);
+    let mut deck = LoopState {
+        conversation_recovery: Some((session, std::time::Instant::now())),
+        ..Default::default()
+    };
+    finish_conversation(&app, &mut state, &mut deck).await;
+    let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+        panic!("staged recovery history")
+    };
+    ack.send(Ok(staged)).unwrap();
+    let Some(InboxMsg::SessionSelection { ack: metadata, .. }) = inbox.recv().await else {
+        panic!("hold recovery metadata")
+    };
+    state.restore_prompt("replacement".into());
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("replacement admission")
+    };
+    let turn = oc_core::core_app::WorkerTurnId("accepted-replacement".into());
+    ack.send(Ok(turn.clone())).unwrap();
+    state.poll_submission();
+    state.restore_prompt("newer draft".into());
+    state.apply_failed(&turn, &CoreError::Application("after admission".into()));
+    metadata.send(Ok(catalog())).unwrap();
+    empty_compactions(&mut inbox).await;
+    while !deck.recovery_job.as_ref().unwrap().is_finished() {
+        tokio::task::yield_now().await;
+    }
+    let current_history = tokio::spawn(async move {
+        let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+            panic!("current branch history")
+        };
+        ack.send(Ok(HistoryPage::default())).unwrap();
+    });
+    finish_conversation(&app, &mut state, &mut deck).await;
+    assert!(
+        !state
+            .transcript_lines(120, 120)
+            .iter()
+            .any(|l| l.plain_text().contains("messages reverted"))
+    );
+    assert_eq!(state.input(), "newer draft");
+    assert!(deck.conversation_recovery.is_none());
+    current_history.await.unwrap();
 }
 
 #[tokio::test]

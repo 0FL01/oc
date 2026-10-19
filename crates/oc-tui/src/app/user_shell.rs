@@ -173,6 +173,7 @@ impl TuiState {
         }
         match result {
             Ok(operation) => {
+                self.retire_reverted_boundary();
                 if pending.fresh {
                     self.session = Some(pending.session.clone());
                     self.new_session_tab = true;

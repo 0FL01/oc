@@ -1194,6 +1194,7 @@ impl TuiState {
         match result {
             Ok(turn) => {
                 self.invalidate_transcript();
+                self.retire_reverted_boundary();
                 if pending.fresh {
                     self.session = Some(pending.session.clone());
                 }
@@ -1217,9 +1218,7 @@ impl TuiState {
                     self.prune_reasoning();
                 }
                 self.compress_turn = pending.compress.then(|| turn.clone());
-                if !pending.compress {
-                    self.conversation_available = Some((true, false));
-                }
+                self.conversation_available = Some((true, false));
                 self.live_text.clear();
                 self.live_reasoning.clear();
                 self.live_parts.clear();

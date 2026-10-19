@@ -5,6 +5,45 @@ use std::sync::atomic::Ordering;
 use unicode_width::UnicodeWidthStr;
 
 #[tokio::test]
+async fn reverted_shell_boundary_retires_after_admission_not_refusal() {
+    for accepted in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("shell-branch"));
+        let boundary = oc_core::queries::RevertedConversation {
+            message: oc_core::session::MessageId("hidden-shell-tail".into()),
+            user_messages: 2,
+        };
+        state.attach_page(&HistoryPage {
+            reverted: Some(boundary.clone()),
+            ..Default::default()
+        });
+        state.conversation_available = Some((false, true));
+        state.handle_key(KeyAction::Char('!')).await;
+        state.restore_prompt("echo replacement".into());
+        state.handle_key(KeyAction::Enter).await;
+        let InboxMsg::UserShell { ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("Shell admission")
+        };
+        assert_eq!(state.reverted, Some(boundary.clone()));
+        state.handle_key(KeyAction::Char('X')).await;
+        ack.send(if accepted {
+            Ok("user-shell:replacement".into())
+        } else {
+            Err(CoreError::TurnBusy)
+        })
+        .unwrap();
+        state.poll_submission();
+        assert_eq!(state.input(), "echo replacementX");
+        assert_eq!(state.reverted, (!accepted).then_some(boundary));
+        assert_eq!(
+            state.conversation_available,
+            (!accepted).then_some((false, true))
+        );
+        assert!(state.active_turn.is_none());
+    }
+}
+
+#[tokio::test]
 async fn vis12_user_shell_mode_captures_receipt_without_model_turn_and_preserves_newer_draft() {
     for home in [true, false] {
         let (app, mut inbox, _) = CoreApp::channel(4);

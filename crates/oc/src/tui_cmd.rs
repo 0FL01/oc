@@ -383,9 +383,18 @@ async fn apply_conversation_refresh(
     app: &CoreApp,
     state: &mut TuiState,
     refresh: ConversationRefresh,
+    recovery: bool,
 ) -> bool {
     match refresh.await {
-        Ok((page, catalog, compactions)) => {
+        Ok((mut page, catalog, compactions)) => {
+            // A recovery can outlive a new admission while metadata is read.
+            // Apply only history read inline against the current owner state.
+            if recovery && let Some(session) = state.attached_session().cloned() {
+                page = app
+                    .transcript_page(session, None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|e| e.to_string());
+            }
             let success = page.is_ok() && catalog.is_ok() && compactions.is_ok();
             match page {
                 Ok(page) => state.attach_page(&page),
@@ -930,7 +939,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
         .is_some_and(|job| job.is_finished())
     {
         let job = deck.recovery_job.take().expect("finished refresh");
-        if apply_conversation_refresh(app, state, job).await {
+        if apply_conversation_refresh(app, state, job, true).await {
             deck.conversation_recovery = None;
         } else if let Some((_, retry)) = &mut deck.conversation_recovery {
             *retry = std::time::Instant::now() + std::time::Duration::from_secs(1);
@@ -968,7 +977,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
                 return;
             }
             state.conversation_applied(&snapshot, &Default::default());
-            if !apply_conversation_refresh(app, state, refresh).await {
+            if !apply_conversation_refresh(app, state, refresh, false).await {
                 deck.conversation_recovery = Some((
                     snapshot.session,
                     std::time::Instant::now() + std::time::Duration::from_secs(1),
@@ -1000,7 +1009,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
             deck.dcp_seen = false;
             deck.sync_tabs(state);
             deck.save_if_changed(app, state, &before).await;
-            if !apply_conversation_refresh(app, state, refresh).await {
+            if !apply_conversation_refresh(app, state, refresh, false).await {
                 deck.conversation_recovery = Some((
                     snapshot.session,
                     std::time::Instant::now() + std::time::Duration::from_secs(1),

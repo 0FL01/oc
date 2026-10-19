@@ -1,6 +1,138 @@
 use super::*;
 
 #[tokio::test]
+async fn reverted_boundary_retires_only_on_matching_model_or_compress_acceptance() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use oc_core::core_app::InboxMsg;
+    for compress in [false, true] {
+        for (accepted, interrupted) in [(false, false), (true, false), (true, true)] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let mut state = TuiState::new(app, sid("reverted-acceptance"));
+            let boundary = oc_core::queries::RevertedConversation {
+                message: oc_core::session::MessageId("hidden-user".into()),
+                user_messages: 2,
+            };
+            state.attach_page(&HistoryPage {
+                reverted: Some(boundary.clone()),
+                ..Default::default()
+            });
+            state.conversation_available = Some((false, true));
+            state.restore_prompt("replacement".into());
+            // Warm the projection before enqueue and acceptance.
+            assert!(
+                state
+                    .visible_transcript(120, 120, 40)
+                    .0
+                    .iter()
+                    .any(|l| l.plain_text().contains("2 messages reverted"))
+            );
+            let frame = Rect::new(0, 0, 120, 40);
+            let area = crate::shell::transcript_area(&state, frame);
+            let (lines, total, scroll, targets) = state
+                .visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+            state.paint_transcript_at(area, &lines, total, scroll, Some(frame), &targets);
+            let row = targets
+                .iter()
+                .position(|target| target.as_ref().is_some_and(|target| target.reverted))
+                .unwrap();
+            let (x, y) = (area.x + 4, area.y + row as u16 + 1);
+            state.handle_mouse(
+                selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+                frame,
+            );
+            if compress {
+                state.request_compress(String::new()).unwrap();
+            } else {
+                state.handle_key(KeyAction::Enter).await;
+            }
+            let ack = match inbox.recv().await.unwrap() {
+                InboxMsg::Submit { ack, .. } if !compress => ack,
+                InboxMsg::Compress { ack, .. } if compress => ack,
+                _ => panic!("real submission receipt"),
+            };
+            assert_eq!(state.reverted, Some(boundary.clone()));
+            type_text(&mut state, " newer draft").await;
+            let turn = WorkerTurnId("replacement-turn".into());
+            ack.send(if accepted {
+                Ok(turn.clone())
+            } else {
+                Err(CoreError::TurnBusy)
+            })
+            .unwrap();
+            state.poll_submission();
+            assert_eq!(state.input(), "replacement newer draft");
+            if accepted {
+                assert!(state.reverted.is_none());
+                assert_eq!(state.conversation_available, Some((true, false)));
+                assert!(state.reverted_down.is_none());
+                assert!(
+                    state
+                        .handle_mouse(
+                            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+                            frame
+                        )
+                        .intent
+                        .is_none()
+                );
+                assert!(
+                    !state
+                        .visible_transcript(120, 120, 40)
+                        .0
+                        .iter()
+                        .any(|l| l.plain_text().contains("messages reverted"))
+                );
+                if interrupted {
+                    state.apply_interrupted(&turn, "partial", 0);
+                } else {
+                    state.apply_failed(&turn, &CoreError::Application("after admission".into()));
+                }
+                assert!(state.reverted.is_none());
+            } else {
+                assert_eq!(state.reverted, Some(boundary));
+                assert_eq!(state.conversation_available, Some((false, true)));
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn reverted_boundary_survives_a_stale_acceptance_from_an_old_generation() {
+    use oc_core::queries::{ConversationSnapshot, RevertedConversation};
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("old-boundary"));
+    state.restore_prompt("old submit".into());
+    state.handle_key(KeyAction::Enter).await;
+    let Some(oc_core::core_app::InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("old admission")
+    };
+    let old = state.pending.take().unwrap();
+    let boundary = RevertedConversation {
+        message: oc_core::session::MessageId("new-boundary".into()),
+        user_messages: 1,
+    };
+    state.conversation_applied(
+        &ConversationSnapshot {
+            session: sid("new-boundary"),
+            draft: Some("new draft".into()),
+            images: Vec::new(),
+            can_undo: false,
+            can_redo: true,
+            reverted: Some(boundary.clone()),
+        },
+        &HistoryPage {
+            reverted: Some(boundary.clone()),
+            ..Default::default()
+        },
+    );
+    ack.send(Ok(WorkerTurnId("old-turn".into()))).unwrap();
+    state.pending = Some(old);
+    state.poll_submission();
+    assert_eq!(state.reverted, Some(boundary));
+    assert_eq!(state.conversation_available, Some((false, true)));
+    assert_eq!(state.input(), "new draft");
+}
+
+#[tokio::test]
 async fn vis34_session_tps_is_current_presentation_for_finished_and_replayed_footers() {
     use oc_core::queries::HistoryTurn;
     let (app, _, _) = CoreApp::channel(8);
