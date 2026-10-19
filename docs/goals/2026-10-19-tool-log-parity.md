@@ -1,6 +1,6 @@
 # Goal: exploration and Execute tool-log parity
 
-Status: active
+Status: complete
 Source: owner screenshots, five independent plan audits and corrected plan accepted
 by «делай копию плана в цель и итеративно реализовать и коммит пуш».
 Last updated: 2026-10-19
@@ -99,12 +99,12 @@ required outcome is resolved and affected constraints remain satisfied.
     binary is target/debug/oc2; reviewed scoped commits reach verified origin.
     No uncommitted implementation or known diff-created blocker remains.
   - Primary evidence: actual command exits, clean diff/status and remote tip.
-  - Status: in_progress
+  - Status: verified
   - Evidence: final `bash scripts/test.sh` passes: strict workspace/all-target
     Clippy, 2132 nextest tests (12 pre-existing skips), doctests, debug build and
     help/version. Runtime test phase is 381.493s. Verified increments through
-    07c093a38 are pushed to git@github.com:0FL01/oc.git master; current R4 increment
-    delivery/clean-status closure remain. No force or history rewrite.
+    d07dc4ced are pushed to git@github.com:0FL01/oc.git master; clean status and
+    matching remote tip verified after that delivery. No force or history rewrite.
 
 ### Constraints and Non-goals
 
@@ -202,22 +202,22 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R5 (R1–R4 verified).
-- Smallest next action: commit/push the reviewed R4 increment, then record closure
-  and verify the final clean local/remote tip.
-- Expected evidence: ordinary verified-origin push and clean synchronized master.
+- Closed: R1–R5. No remaining implementation checkpoint.
+- Delivery: reviewed increments through d07dc4ced are pushed; this final closure
+  is documentation-only and follows the same ordinary commit/push policy.
 
 ## Current State
 
-- Resolved: R1–R4 behavior/style, native lifecycle and ordered bounded observations;
-  final full offline gate passes. No schema/dependency change.
+- Resolved: R1–R5 behavior/style, native lifecycle, ordered bounded observations,
+  full offline gate and committed/pushed implementation. No schema/dependency change.
 - Last relevant evidence: 12 Execute regressions, six Execute fixture/cache tests,
   four existing tool-preview fixture tests and 25 comparator tests pass. Paired
   a05 passes 30 behavior/style stages per side; full comparison outcomes are
   retained separately rather than advertised as pixel PASS.
 - Blocker: none established. The exact JSON WASM, narrow cache/source provenance
   and effective owned browser/font/temp setup are verified.
-- Next: final ordinary commit/push and closure.
+- Next: none; the frozen slice is complete. Other product qualifications remain
+  separate, not an automatically resumed backlog.
 
 ## Checkpoint History
 
@@ -252,7 +252,23 @@ required outcome is resolved and affected constraints remain satisfied.
   cause was not established; no automatic retries, deadlines, assertions, workload or test
   configuration were changed. The only >30s case is the documented discovery
   deadline exception (32.474s, below its owner-approved 40s bound).
+- 2026-10-19: final reviewed code/fixture increment d07dc4ced pushed normally;
+  clean worktree and exact origin/master tip verified. Frozen closure check passes.
 
 ## Completion
 
-- Pending R5 delivery only. No full-frame pixel or full-product PASS claimed.
+- Resolved outcomes: R1–R5 verified with the evidence above.
+- Commands: `bash scripts/test.sh` exits 0 (2132 nextest tests, doctests, strict
+  Clippy/fmt, debug build/help/version); six Execute fixture/cache and four
+  tool-preview fixture Python tests pass; 25 comparator tests pass; Node syntax,
+  docs source baselines and `git diff --check` pass.
+- Actual-binary artifacts: local immutable
+  `evidence/tui/tool-log-parity-20261019-a05`, source/build attestation and 30
+  stages per side. Comparison exit 1 and all 16 EQUAL/44 DIFFERENT outcomes are
+  retained, not converted into pixel PASS.
+- Constraints/scope: no schema, dependency, public API or execution-cap change;
+  no user owner restart, paid/live effects, secret/config exposure or force push.
+  All source/test changes are within the frozen envelope and pushed through
+  d07dc4ced. Final closure delivery is documentation-only.
+- Final status: complete for this frozen behavior/style slice; no full-frame
+  pixel, whole-T44, release-native or whole-product PASS claimed.

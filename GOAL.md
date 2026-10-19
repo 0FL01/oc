@@ -23,9 +23,10 @@ Scope текущей работы задаёт пользователь; workflo
 [paired verification](tui-recovery/VERIFICATION.md).
 Работа возобновляется по явному запросу, не автоматически после другого исправления.
 
-Текущий явно запрошенный срез: [tool-log parity](docs/goals/2026-10-19-tool-log-parity.md)
-— перенос exploration/Execute поведения на `master`, итеративные проверки,
-commits и обычный push. Он не возобновляет остальные TUI qualifications.
+Явно запрошенный срез [tool-log parity](docs/goals/2026-10-19-tool-log-parity.md)
+завершён: exploration/Execute поведение перенесено на `master`, проверено и
+отправлено обычными commits/push. Scoped behavior/style qualification не означает
+full-frame pixel PASS и не возобновляет остальные TUI qualifications.
 
 - Нужны pinned-original/native full styled-cell, PNG, cursor, temporal/effect/resource проверки; собственные goldens или fixture-only PASS не заменяют paired qualification.
 - **Idle Esc (T44/R5/V05/VIS11):** один или несколько Esc в обычном idle Home/session prompt не завершают приложение, не очищают draft и не создают submission/provider request, включая после completed/interrupted turn.
