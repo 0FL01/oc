@@ -1150,7 +1150,7 @@ fn recursive_fork_preserves_launch_and_notice_without_child_authority_or_foreign
         .push(notice.job.message_id.as_ref().unwrap().clone());
     log.input.push(InputItem::message(
         InputRole::User,
-        &child_notice_text(&db, &notice),
+        child_notice_text(&db, &notice),
     ));
     log.input
         .push(InputItem::message(InputRole::Assistant, "answer"));
