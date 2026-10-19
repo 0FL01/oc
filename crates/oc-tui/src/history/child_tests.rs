@@ -5,6 +5,141 @@ use oc_core::{
     session::MessageId,
 };
 
+#[test]
+fn notice_order_unknown_revision_survives_owner_eviction_and_stale_paging() {
+    use oc_core::queries::{HistoryNoticeOrder, HistoryNoticePlacement, NoticePlacement};
+    for rejected in [false, true] {
+        let mut window = HistoryWindow::new();
+        let mut prompt = message(ChildState::Completed);
+        prompt.child = None;
+        let mut stale = HistoryTurn {
+            id: "turn".into(),
+            revision: 10,
+            notice_order: Some(HistoryNoticeOrder {
+                accepted_prompt: prompt.id.clone(),
+                notices: vec![HistoryNoticePlacement {
+                    message: MessageId("notice".into()),
+                    placement: NoticePlacement::Tail,
+                }],
+            }),
+            ..Default::default()
+        };
+        prompt.turn = Some(stale.clone());
+        window.reset(&HistoryPage {
+            rows: vec![prompt.clone()],
+            ..Default::default()
+        });
+        let mut newer = stale.clone();
+        newer.revision = 11;
+        if rejected {
+            let notice = newer.notice_order.as_ref().unwrap().notices[0].clone();
+            newer
+                .notice_order
+                .as_mut()
+                .unwrap()
+                .notices
+                .resize(WINDOW_ROWS + 1, notice);
+        } else {
+            newer.notice_order = None;
+        }
+        window.apply_notice_order(&newer);
+        for _ in 0..WINDOW_ROWS {
+            window.push_synthetic("user", "later", None, None);
+        }
+        assert!(
+            window
+                .rows()
+                .iter()
+                .all(|row| row.message_id.as_deref() != Some(&prompt.id))
+        );
+        window.prepend_older(&HistoryPage {
+            rows: vec![prompt],
+            ..Default::default()
+        });
+        window.apply_notice_order(&stale);
+        assert_eq!(
+            window.notice_orders().count(),
+            0,
+            "a stale page resurrected {rejected:?} provenance"
+        );
+        stale.revision = 12;
+        window.apply_notice_order(&stale);
+        assert_eq!(
+            window.notice_orders().count(),
+            1,
+            "a genuinely newer qualified projection can recover"
+        );
+    }
+}
+
+#[test]
+fn notice_order_unknown_revision_and_live_sidecar_bytes_remain_bounded() {
+    use oc_core::queries::{HistoryNoticeOrder, HistoryNoticePlacement, NoticePlacement};
+    let mut window = HistoryWindow::new();
+    let mut prompt = message(ChildState::Completed);
+    prompt.child = None;
+    prompt.text = "prompt".into();
+    window.reset(&HistoryPage {
+        rows: vec![prompt.clone()],
+        ..Default::default()
+    });
+    let mut turn = HistoryTurn {
+        id: "turn".into(),
+        revision: 10,
+        notice_order: Some(HistoryNoticeOrder {
+            accepted_prompt: prompt.id.clone(),
+            notices: vec![HistoryNoticePlacement {
+                message: MessageId("notice".into()),
+                placement: NoticePlacement::Tail,
+            }],
+        }),
+        ..Default::default()
+    };
+    window.apply_notice_order(&turn);
+    assert_eq!(window.notice_orders().count(), 1);
+    let stale = turn.clone();
+    turn.revision = 11;
+    turn.notice_order = None;
+    window.apply_notice_order(&turn);
+    window.apply_notice_order(&stale);
+    assert_eq!(
+        window.notice_orders().count(),
+        0,
+        "unknown provenance must retain the newer revision fence"
+    );
+    turn = stale.clone();
+    turn.revision = 12;
+    let placement = turn.notice_order.as_ref().unwrap().notices[0].clone();
+    turn.notice_order
+        .as_mut()
+        .unwrap()
+        .notices
+        .resize(WINDOW_ROWS + 1, placement);
+    window.apply_notice_order(&turn);
+    window.apply_notice_order(&stale);
+    assert_eq!(
+        window.notice_orders().count(),
+        0,
+        "a rejected newer replacement must fail closed"
+    );
+    window.rows[0].text = "x".repeat(WINDOW_BYTES / 2);
+    window.push_synthetic(
+        "assistant",
+        &"y".repeat(WINDOW_BYTES / 2 - 4096),
+        None,
+        None,
+    );
+    assert!(window.retained_bytes() <= WINDOW_BYTES);
+    turn = stale;
+    turn.revision = 13;
+    turn.notice_order.as_mut().unwrap().notices[0].message.0 = "n".repeat(8192);
+    window.apply_notice_order(&turn);
+    assert!(
+        window.retained_bytes() <= WINDOW_BYTES,
+        "metadata-only update must enforce aggregate window budget"
+    );
+}
+
 fn job(state: ChildState) -> ChildJob {
     ChildJob {
         parent: SessionId("parent".into()),

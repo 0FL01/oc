@@ -375,6 +375,10 @@ pub struct HistoryTurn {
     pub part_states: Vec<PartState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: Option<HistoryPartWindow>,
+    /// Read-only original request chronology for separately delivered notices.
+    /// Absent provenance is unknown, not an instruction to move a notice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notice_order: Option<HistoryNoticeOrder>,
     /// Unprojectable references inside the covered window. Pageable references
     /// outside that window are not loss and are not counted here.
     pub omitted_parts: usize,
@@ -382,6 +386,29 @@ pub struct HistoryTurn {
     pub truncated: bool,
     /// Older journal has no trustworthy public part ordering/summary records.
     pub legacy_text_only: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HistoryNoticeOrder {
+    pub accepted_prompt: crate::session::MessageId,
+    pub notices: Vec<HistoryNoticePlacement>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HistoryNoticePlacement {
+    pub message: crate::session::MessageId,
+    pub placement: NoticePlacement,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum NoticePlacement {
+    /// Delivered, but not consumed before the current response frontier.
+    Tail,
+    /// Consumed by this exact physical request before its first display part.
+    BeforeRequest {
+        span: String,
+        before_part_sequence: usize,
+    },
 }
 
 /// Safe durable retry notice. `at` is an epoch deadline, never a dispatch command.
@@ -1497,6 +1524,35 @@ impl TuiChrome {
 #[cfg(test)]
 mod chrome_tests {
     use super::*;
+
+    #[test]
+    fn history_notice_order_is_additive_and_absence_is_unknown() {
+        let legacy = serde_json::to_value(HistoryTurn::default()).unwrap();
+        assert!(legacy.get("notice_order").is_none());
+        assert!(
+            serde_json::from_value::<HistoryTurn>(legacy)
+                .unwrap()
+                .notice_order
+                .is_none()
+        );
+        let turn = HistoryTurn {
+            notice_order: Some(HistoryNoticeOrder {
+                accepted_prompt: crate::session::MessageId("prompt".into()),
+                notices: vec![HistoryNoticePlacement {
+                    message: crate::session::MessageId("notice".into()),
+                    placement: NoticePlacement::BeforeRequest {
+                        span: "step".into(),
+                        before_part_sequence: 3,
+                    },
+                }],
+            }),
+            ..Default::default()
+        };
+        assert_eq!(
+            serde_json::from_str::<HistoryTurn>(&serde_json::to_string(&turn).unwrap()).unwrap(),
+            turn
+        );
+    }
 
     #[test]
     fn v03_devtools_hidden_by_default_and_explicit_override() {

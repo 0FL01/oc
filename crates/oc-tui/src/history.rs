@@ -68,6 +68,11 @@ pub(crate) enum HistoryComponent {
     Part(usize),
     Retry(String),
     Footer,
+    /// Client-owned fallback only, never a durable paging coordinate.
+    Local {
+        sequence: Option<usize>,
+        terminal: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +85,15 @@ pub struct HistoryPosition {
 }
 
 impl HistoryPosition {
+    pub(crate) fn local(turn: &str, sequence: Option<usize>, terminal: bool) -> Self {
+        Self {
+            turn: turn.into(),
+            component: HistoryComponent::Local { sequence, terminal },
+            before: 0,
+            after: 0,
+            total: 0,
+        }
+    }
     pub(crate) fn belongs_to(&self, turn: &str) -> bool {
         self.turn == turn
     }
@@ -102,10 +116,18 @@ enum Evict {
 #[derive(Debug, Clone, Default)]
 pub struct HistoryWindow {
     rows: Vec<HistoryRow>,
+    notice_orders: std::collections::BTreeMap<String, NoticeOrderState>,
     revision: u64,
     total: usize,
     has_older: bool,
     has_newer: bool,
+}
+
+#[derive(Debug, Clone)]
+struct NoticeOrderState {
+    revision: u64,
+    prompt: Option<oc_core::session::MessageId>,
+    order: Option<oc_core::queries::HistoryNoticeOrder>,
 }
 
 impl HistoryWindow {
@@ -116,8 +138,10 @@ impl HistoryWindow {
 
     /// Newest page becomes the whole window.
     pub fn reset(&mut self, page: &HistoryPage) {
+        self.notice_orders.clear();
         self.revision = self.revision.wrapping_add(1);
         self.rows = page.rows.iter().flat_map(rows_from_page).collect();
+        self.record_notice_orders(page);
         self.reconcile_shell_inputs();
         self.total = page.total;
         self.has_older = page.has_older;
@@ -131,12 +155,14 @@ impl HistoryWindow {
     /// older pages. A disjoint newest page must not fabricate a contiguous gap:
     /// keep the reader's window and let normal newer paging reach the tail.
     pub(crate) fn refresh_completed(&mut self, page: &HistoryPage, detached: bool) {
+        self.record_notice_orders(page);
         self.revision = self.revision.wrapping_add(1);
         // Completion attaches the turn to its assistant message instead of the
         // accepted user row. Reanchor resident parts, including detached pages.
         for row in &mut self.rows {
             if let Some(position) = &row.position
                 && !position.turn.is_empty()
+                && !matches!(position.component, HistoryComponent::Local { .. })
                 && let Some(message) = page.rows.iter().find(|message| {
                     message
                         .turn
@@ -170,6 +196,7 @@ impl HistoryWindow {
             self.rows.retain(|row| row.message_id.is_some());
             self.total = page.total;
             self.has_newer = true;
+            self.enforce(Evict::Newest);
             return;
         }
         let older = detached.then(|| {
@@ -219,6 +246,7 @@ impl HistoryWindow {
     /// Add an older page at the front; returns rows added. Evicts newest
     /// rows while over a cap and flags `has_newer` when it does.
     pub fn prepend_older(&mut self, page: &HistoryPage) -> usize {
+        self.record_notice_orders(page);
         self.revision = self.revision.wrapping_add(1);
         let mut combined: Vec<HistoryRow> = page.rows.iter().flat_map(rows_from_page).collect();
         let added = combined.len();
@@ -238,6 +266,7 @@ impl HistoryWindow {
     /// Add a newer page at the back; returns rows added. Evicts oldest rows
     /// while over a cap and flags `has_older` when it does.
     pub fn append_newer(&mut self, page: &HistoryPage) -> usize {
+        self.record_notice_orders(page);
         self.revision = self.revision.wrapping_add(1);
         let before = self.rows.len();
         let added: Vec<_> = page.rows.iter().flat_map(rows_from_page).collect();
@@ -257,6 +286,74 @@ impl HistoryWindow {
     /// Rows in render order (oldest first).
     pub fn rows(&self) -> &[HistoryRow] {
         &self.rows
+    }
+
+    pub(crate) fn notice_orders(
+        &self,
+    ) -> impl Iterator<Item = (&str, &oc_core::queries::HistoryNoticeOrder)> {
+        self.notice_orders
+            .iter()
+            .filter_map(|(turn, state)| state.order.as_ref().map(|order| (turn.as_str(), order)))
+    }
+
+    pub(crate) fn apply_notice_order(&mut self, turn: &oc_core::queries::HistoryTurn) {
+        self.record_notice_order(turn);
+        if self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
+    }
+
+    fn record_notice_order(&mut self, turn: &oc_core::queries::HistoryTurn) {
+        if self
+            .notice_orders
+            .get(&turn.id)
+            .is_some_and(|state| state.revision > turn.revision)
+        {
+            return;
+        }
+        let order = turn
+            .notice_order
+            .as_ref()
+            .filter(|order| {
+                order.notices.len() <= WINDOW_ROWS
+                    && notice_order_bytes(order) + turn.id.len() <= WINDOW_BYTES / WINDOW_ROWS
+            })
+            .cloned();
+        let prompt = order
+            .as_ref()
+            .map(|order| order.accepted_prompt.clone())
+            .or_else(|| {
+                self.notice_orders
+                    .get(&turn.id)
+                    .and_then(|state| state.prompt.clone())
+            });
+        // Unknown/rejected provenance still advances the bounded revision fence.
+        self.notice_orders.insert(
+            turn.id.clone(),
+            NoticeOrderState {
+                revision: turn.revision,
+                prompt,
+                order,
+            },
+        );
+        while self.notice_orders.len() > WINDOW_ROWS {
+            self.notice_orders.pop_first();
+        }
+        self.revision = self.revision.wrapping_add(1);
+    }
+
+    pub(crate) fn refresh_notice_orders(&mut self, page: &HistoryPage) {
+        self.record_notice_orders(page);
+        if self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
+    }
+
+    fn record_notice_orders(&mut self, page: &HistoryPage) {
+        for turn in page.rows.iter().filter_map(|row| row.turn.as_ref()) {
+            // Paging inserts the incoming rows before enforcing/pruning owners.
+            self.record_notice_order(turn);
+        }
     }
 
     /// Content/identity generation, without rescanning or copying row payloads.
@@ -370,7 +467,16 @@ impl HistoryWindow {
                         notice.operation.len() + notice.state.len() + notice.command.len()
                     })
             })
-            .sum()
+            .sum::<usize>()
+            + self
+                .notice_orders
+                .iter()
+                .map(|(turn, state)| {
+                    turn.len()
+                        + state.prompt.as_ref().map_or(0, |id| id.0.len())
+                        + state.order.as_ref().map_or(0, notice_order_bytes)
+                })
+                .sum::<usize>()
     }
 
     /// Total committed messages in the session (as reported by pages).
@@ -446,12 +552,63 @@ impl HistoryWindow {
 
     /// Append one fully rendered row (live assistant message with reasoning
     /// and footer metadata); replayed rows use the same safe presentation data.
+    /// Mark a just-committed local fallback without inventing a message id or
+    /// durable paging coordinate. Canonical refresh replaces this ownership.
+    pub(crate) fn set_latest_local_owner(
+        &mut self,
+        turn: &str,
+        sequence: Option<usize>,
+        terminal: bool,
+    ) {
+        if let Some(row) = self.rows.last_mut().filter(|row| row.message_id.is_none()) {
+            row.position = Some(HistoryPosition::local(turn, sequence, terminal));
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+    }
+
     pub(crate) fn push_row(&mut self, row: HistoryRow) {
         self.revision = self.revision.wrapping_add(1);
         self.rows.push(row);
         self.has_newer = false;
         if self.enforce(Evict::Oldest) {
             self.has_older = true;
+        }
+    }
+
+    /// Freeze the same exact source-mapped overlay used during streaming. A
+    /// represented part keeps its durable identity; only a new suffix is local.
+    pub(crate) fn commit_live_row(
+        &mut self,
+        mut row: HistoryRow,
+        turn: &str,
+        canonical: Option<HistoryComponent>,
+    ) {
+        let existing = canonical.as_ref().and_then(|component| {
+            self.rows.iter().position(|row| {
+                row.position
+                    .as_ref()
+                    .is_some_and(|p| p.belongs_to(turn) && p.component == *component)
+            })
+        });
+        if let Some(index) = existing {
+            row.message_id = self.rows[index].message_id.clone();
+            row.seq = self.rows[index].seq;
+            row.position = self.rows[index].position.clone();
+            if canonical == Some(HistoryComponent::Footer) {
+                self.rows.remove(index);
+                self.push_row(row); // The one footer follows any new local suffix.
+            } else {
+                self.rows[index] = row;
+                self.revision = self.revision.wrapping_add(1);
+                if self.enforce(Evict::Oldest) {
+                    self.has_older = true;
+                }
+            }
+        } else {
+            self.push_row(row);
         }
     }
 
@@ -815,8 +972,26 @@ impl HistoryWindow {
     /// Drop rows from `side` until both caps hold; returns true when any row
     /// was evicted.
     fn enforce(&mut self, side: Evict) -> bool {
+        self.notice_orders.retain(|turn, state| {
+            if state.order.is_none() {
+                return true;
+            }
+            self.rows.iter().any(|row| {
+                row.message_id
+                    .as_deref()
+                    .is_some_and(|id| Some(id) == state.prompt.as_ref())
+                    || row
+                        .position
+                        .as_ref()
+                        .is_some_and(|position| position.belongs_to(turn))
+            })
+        });
         let mut evicted = false;
         while self.rows.len() > WINDOW_ROWS || self.retained_bytes() > WINDOW_BYTES {
+            if self.rows.is_empty() {
+                self.notice_orders.pop_first();
+                continue;
+            }
             match side {
                 Evict::Oldest => {
                     self.rows.remove(0);
@@ -826,9 +1001,38 @@ impl HistoryWindow {
                 }
             }
             evicted = true;
+            self.notice_orders.retain(|turn, state| {
+                if state.order.is_none() {
+                    return true;
+                }
+                self.rows.iter().any(|row| {
+                    row.message_id
+                        .as_deref()
+                        .is_some_and(|id| Some(id) == state.prompt.as_ref())
+                        || row
+                            .position
+                            .as_ref()
+                            .is_some_and(|position| position.belongs_to(turn))
+                })
+            });
         }
         evicted
     }
+}
+
+fn notice_order_bytes(order: &oc_core::queries::HistoryNoticeOrder) -> usize {
+    order.accepted_prompt.0.len()
+        + order
+            .notices
+            .iter()
+            .map(|notice| {
+                notice.message.0.len()
+                    + match &notice.placement {
+                        oc_core::queries::NoticePlacement::Tail => 0,
+                        oc_core::queries::NoticePlacement::BeforeRequest { span, .. } => span.len(),
+                    }
+            })
+            .sum::<usize>()
 }
 
 fn row_from_page(

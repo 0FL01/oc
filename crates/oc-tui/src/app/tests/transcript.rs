@@ -1,6 +1,378 @@
 use super::*;
 
 #[tokio::test]
+async fn child_notice_order_metadata_only_refresh_paths_enforce_the_window_budget() {
+    use crate::history::WINDOW_BYTES;
+    use oc_core::queries::{
+        HistoryNoticeOrder, HistoryNoticePlacement, HistoryTurn, NoticePlacement,
+    };
+    for detached in [false, true] {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, sid("metadata-cap"));
+        let prompt = msg(1, Role::User, &"x".repeat(WINDOW_BYTES / 2));
+        let other = msg(2, Role::User, &"y".repeat(WINDOW_BYTES / 2 - 4096));
+        state.attach_page(&page(vec![prompt.clone(), other], 2, false, false));
+        assert!(state.window.retained_bytes() <= WINDOW_BYTES);
+        let mut update = if detached {
+            msg(10, Role::Assistant, "")
+        } else {
+            let mut small = prompt.clone();
+            small.text = "prompt".into();
+            small
+        };
+        update.turn = Some(HistoryTurn {
+            id: "metadata-turn".into(),
+            revision: 2,
+            notice_order: Some(HistoryNoticeOrder {
+                accepted_prompt: prompt.id.clone(),
+                notices: vec![HistoryNoticePlacement {
+                    message: oc_core::session::MessageId("n".repeat(8192)),
+                    placement: NoticePlacement::Tail,
+                }],
+            }),
+            ..Default::default()
+        });
+        if detached {
+            state
+                .window
+                .refresh_completed(&page(vec![update], 2, false, false), true);
+        } else {
+            state.refresh_child_notice_page(&page(vec![update], 2, false, false));
+        }
+        assert!(
+            state.window.retained_bytes() <= WINDOW_BYTES,
+            "sidecar-only refresh bypassed the cap: detached={detached}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn child_notice_order_tracks_the_consuming_step_live_final_and_reopen() {
+    use oc_core::queries::{
+        ChildHistory, ChildJob, ChildState, HistoryNoticeOrder, HistoryNoticePlacement,
+        HistoryPartWindow, HistoryTurn, NoticePlacement, PartState, TranscriptPart,
+    };
+    use oc_core::session::MessageId;
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app.clone(), sid("parent"));
+    let turn = WorkerTurnId("parent-turn".into());
+    let mut prompt = msg(8, Role::User, "ordinary prompt");
+    let mut notice = msg(9, Role::User, "raw notice stays immutable");
+    notice.id = MessageId("notice-B".into());
+    notice.child = Some(ChildHistory::Notice(Box::new(ChildJob {
+        parent: sid("parent"),
+        child: sid("child-B"),
+        operation: "B".into(),
+        generation: 1,
+        location: "/fixture".into(),
+        agent: "explore".into(),
+        model: "fixture/model".into(),
+        description: "Task B".into(),
+        delivery_id: "delivery-B".into(),
+        state: ChildState::Completed,
+        background: true,
+        turn: Some("child-turn".into()),
+        result: None,
+        message_id: Some("notice-B".into()),
+    })));
+    let prompt_id = prompt.id.clone();
+    let order = |placement| HistoryNoticeOrder {
+        accepted_prompt: prompt_id.clone(),
+        notices: vec![HistoryNoticePlacement {
+            message: notice.id.clone(),
+            placement,
+        }],
+    };
+    state.attach_page(&page(vec![prompt.clone()], 1, false, false));
+    state.begin_linked_turn(turn.clone());
+    state.apply_delta(&turn, "open answer\n\n");
+    prompt.turn = Some(HistoryTurn {
+        id: turn.0.clone(),
+        status: "started".into(),
+        notice_order: Some(order(NoticePlacement::Tail)),
+        ..Default::default()
+    });
+    state.refresh_child_notice_page(&page(vec![prompt.clone(), notice.clone()], 2, false, false));
+    let (rows, live) = state.compose_transcript();
+    assert_eq!(rows.last().unwrap().message_id.as_deref(), Some(&notice.id));
+    assert_eq!(rows[live.unwrap()].text, "open answer\n\n");
+    assert_ne!(live, Some(rows.len() - 1));
+    let projection = |placement| HistoryTurn {
+        id: turn.0.clone(),
+        status: "completed".into(),
+        notice_order: Some(order(placement)),
+        window: Some(HistoryPartWindow {
+            start: 0,
+            end: 2,
+            total: 2,
+        }),
+        parts: vec![
+            TranscriptPart::Text("step before notice".into()),
+            TranscriptPart::Text("step consuming notice".into()),
+        ],
+        part_states: (0..2)
+            .map(|sequence| PartState {
+                sequence,
+                status: "completed".into(),
+                ..Default::default()
+            })
+            .collect(),
+        ..Default::default()
+    };
+    state.apply_finished(&turn, "open answer\n\n", 1);
+    assert!(
+        state
+            .transcript_rows()
+            .last()
+            .unwrap()
+            .child_notice
+            .is_some(),
+        "local completed fallback keeps proven Tail before canonical refresh"
+    );
+    let mut answer = msg(10, Role::Assistant, "");
+    let mut later_notice = notice.clone();
+    later_notice.id = MessageId("notice-A".into());
+    later_notice.seq = 11;
+    if let Some(ChildHistory::Notice(job)) = &mut later_notice.child {
+        job.child = sid("child-A");
+        job.operation = "A".into();
+        job.description = "Task A".into();
+        job.delivery_id = "delivery-A".into();
+        job.message_id = Some(later_notice.id.0.clone());
+    }
+    for placement in [
+        NoticePlacement::Tail,
+        NoticePlacement::BeforeRequest {
+            span: "next-step".into(),
+            before_part_sequence: 1,
+        },
+    ] {
+        answer.turn = Some(projection(placement.clone()));
+        let mut ordinary = prompt.clone();
+        ordinary.turn = None;
+        let canonical = page(
+            vec![
+                ordinary.clone(),
+                notice.clone(),
+                answer.clone(),
+                later_notice.clone(),
+                msg(12, Role::User, "later prompt"),
+            ],
+            5,
+            false,
+            false,
+        );
+        state.refresh_completed_page(&canonical);
+        let mut reopened = TuiState::new(app.clone(), sid("parent"));
+        reopened.attach_page(&canonical);
+        for view in [&state, &reopened] {
+            let rows = view.transcript_rows();
+            let at = rows
+                .iter()
+                .position(|row| row.child_notice.is_some())
+                .unwrap();
+            let before = rows
+                .iter()
+                .position(|row| row.text == "step before notice")
+                .unwrap();
+            let after = rows
+                .iter()
+                .position(|row| row.text == "step consuming notice")
+                .unwrap();
+            assert!(before < at);
+            assert_eq!(
+                at < after,
+                matches!(placement, NoticePlacement::BeforeRequest { .. })
+            );
+            assert!(
+                at < rows
+                    .iter()
+                    .position(|row| row.text == "later prompt")
+                    .unwrap()
+            );
+            assert_eq!(
+                rows.iter().filter(|row| row.child_notice.is_some()).count(),
+                2
+            );
+            let later = rows
+                .iter()
+                .position(|row| row.message_id.as_deref() == Some(&later_notice.id))
+                .unwrap();
+            assert!(
+                at < later && after < later,
+                "an earlier Tail must not rotate past a later post-response notice"
+            );
+            assert_eq!(view.compose_transcript().1, None);
+        }
+    }
+    // Partial/unqualified history must not guess a placement.
+    answer.turn.as_mut().unwrap().notice_order = None;
+    prompt.turn = None; // The settled turn belongs to its assistant message.
+    state.attach_page(&page(
+        vec![prompt.clone(), notice.clone(), answer],
+        3,
+        false,
+        false,
+    ));
+    assert_eq!(
+        state.transcript_rows()[1].message_id.as_deref(),
+        Some(&notice.id)
+    );
+}
+
+#[tokio::test]
+async fn child_notice_order_keeps_empty_request_frontier_and_local_terminal_ownership() {
+    use oc_core::queries::{
+        AssistantSpan, HistoryNoticeOrder, HistoryNoticePlacement, HistoryPartWindow, HistoryTurn,
+        NoticePlacement, PartState, ToolOpView, TranscriptPart,
+    };
+    for terminal in ["completed", "interrupted", "failed"] {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), sid("parent"));
+        let turn = WorkerTurnId("frontier".into());
+        let mut prompt = msg(1, Role::User, "request");
+        let mut notice = msg(2, Role::User, "notice");
+        notice.child = Some(oc_core::queries::ChildHistory::Notice(Box::new(
+            oc_core::queries::ChildJob {
+                parent: sid("parent"),
+                child: sid("child"),
+                operation: "launch".into(),
+                generation: 1,
+                location: "/fixture".into(),
+                agent: "explore".into(),
+                model: "fixture/model".into(),
+                description: "task".into(),
+                delivery_id: "delivery".into(),
+                state: oc_core::queries::ChildState::Completed,
+                background: true,
+                turn: None,
+                result: None,
+                message_id: Some(notice.id.0.clone()),
+            },
+        )));
+        let mut projection = HistoryTurn {
+            id: turn.0.clone(),
+            status: "started".into(),
+            revision: 1,
+            parts: vec![TranscriptPart::Tool(ToolOpView {
+                op:"overlap-launch".into(),name:"subagent".into(),state:"started".into(),
+                input:Some(r#"{"agent":"explore","description":"Retained launch","prompt":"controlled"}"#.into()),
+                child_job:None,question:None,rowid:1,output:None,output_bytes:0,output_truncated:false,output_presentation:None,patch_effects:None,dcp:None,dcp_topic:None,
+            }),TranscriptPart::Text("previous step".into())],
+            part_states: (0..2).map(|sequence| PartState {sequence,..Default::default()}).collect(),
+            window: Some(HistoryPartWindow {
+                start: 0,
+                end: 2,
+                total: 2,
+            }),
+            notice_order: Some(HistoryNoticeOrder {
+                accepted_prompt: prompt.id.clone(),
+                notices: vec![HistoryNoticePlacement {
+                    message: notice.id.clone(),
+                    placement: NoticePlacement::BeforeRequest {
+                        span: "next".into(),
+                        before_part_sequence: 2,
+                    },
+                }],
+            }),
+            spans: vec![AssistantSpan {
+                id: "next".into(),
+                status: "started".into(),
+                step: 2,
+                started: 1,
+                completed: None,
+                request: None,
+                retry: None,
+                error: None,
+                finish: None,
+            }],
+            ..Default::default()
+        };
+        prompt.turn = Some(projection.clone());
+        state.attach_page(&page(vec![prompt.clone(), notice.clone()], 2, false, false));
+        state.begin_linked_turn(turn.clone());
+        state.apply_presentation(&turn, &projection);
+        let (rows, live) = state.compose_transcript();
+        assert!(
+            rows.last().unwrap().child_notice.is_some(),
+            "exact empty request frontier follows the previous step"
+        );
+        assert_eq!(live, None);
+        state.apply_delta(&turn, "next step");
+        let (rows, live) = state.compose_transcript();
+        assert!(
+            rows[live.unwrap() - 1].child_notice.is_some(),
+            "notice precedes the first delta of its consuming span"
+        );
+        // A delivered but unconsumed notice is also stable through each local
+        // terminal fallback, which may be painted without a canonical refresh.
+        projection.revision = 2;
+        projection.notice_order.as_mut().unwrap().notices[0].placement = NoticePlacement::Tail;
+        prompt.turn = Some(projection.clone());
+        let mut state = TuiState::new(app, sid("parent"));
+        state.attach_page(&page(vec![prompt, notice], 2, false, false));
+        state.begin_linked_turn(turn.clone());
+        state.apply_presentation(&turn, &projection);
+        state.apply_delta(&turn, "next step");
+        state.apply_tool_finished(
+            &turn,
+            "overlap-launch",
+            "subagent",
+            "completed",
+            "latest result",
+            13,
+            false,
+        );
+        match terminal {
+            "completed" => state.apply_finished(&turn, "next step", 1),
+            "interrupted" => state.apply_interrupted(&turn, "next step", 1),
+            "failed" => state.apply_failed(
+                &turn,
+                &oc_core::session::CoreError::Application("fixture failure".into()),
+            ),
+            _ => unreachable!(),
+        }
+        assert!(
+            state
+                .transcript_rows()
+                .last()
+                .unwrap()
+                .child_notice
+                .is_some(),
+            "local {terminal} fallback lost its response ownership"
+        );
+        assert_eq!(state.compose_transcript().1, None);
+        let rows = state.transcript_rows();
+        assert_eq!(
+            rows.iter()
+                .filter(|row| row.text == "previous step")
+                .count(),
+            1,
+            "canonical prefix duplicated on {terminal}"
+        );
+        let cards: Vec<_> = rows.iter().filter_map(|row| row.tool.as_ref()).collect();
+        assert_eq!(
+            cards.len(),
+            1,
+            "source-mapped launch duplicated on {terminal}"
+        );
+        assert_eq!(cards[0].state, "completed");
+        assert_eq!(cards[0].output_preview, "latest result");
+        assert_eq!(
+            rows.iter().filter(|row| row.meta.is_some()).count(),
+            1,
+            "terminal footer duplicated on {terminal}"
+        );
+        assert_eq!(
+            rows.iter().filter(|row| row.child_notice.is_some()).count(),
+            1
+        );
+        assert!(state.window.older_part_cursor().is_none());
+        assert!(state.window.newer_part_cursor().is_none());
+    }
+}
+
+#[tokio::test]
 async fn reverted_boundary_retires_only_on_matching_model_or_compress_acceptance() {
     use crossterm::event::{MouseButton, MouseEventKind};
     use oc_core::core_app::InboxMsg;

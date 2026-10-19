@@ -1407,6 +1407,7 @@ impl TuiState {
             return;
         }
         self.live_projection_revision = Some((turn.clone(), projection.revision));
+        self.window.apply_notice_order(projection);
         // In-flight checkpoints retain measured usage for recovery before tools
         // run. Only the settled-step event may advance live footer usage; a
         // terminal projection can recover it after completion or failure.
@@ -1572,6 +1573,7 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        let canonical_ahead = self.canonical_history_ahead();
         self.invalidate_transcript();
         let meta = self.finish_meta(false, duration_ms);
         self.reset_scanner();
@@ -1581,7 +1583,7 @@ impl TuiState {
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Idle;
-        if self.live_parts.is_empty() {
+        if self.live_parts.is_empty() && !canonical_ahead {
             self.live_text.clear();
             self.live_reasoning.clear();
             self.reasoning_started = None;
@@ -1602,13 +1604,15 @@ impl TuiState {
                 child_notice: None,
                 shell_notice: None,
             });
+            self.window.set_latest_local_owner(&turn.0, Some(0), true);
             self.prune_reasoning();
             return;
         }
         let parts = self.commit_live_parts(reasoning);
-        self.push_committed_parts(parts);
-        self.window
-            .push_row(footer_row(self.active_agent.clone(), meta));
+        if !canonical_ahead {
+            self.push_committed_parts(parts, turn);
+        }
+        self.push_terminal_footer(turn, meta);
         self.prune_reasoning();
     }
 
@@ -1619,13 +1623,14 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        let canonical_ahead = self.canonical_history_ahead();
         self.invalidate_transcript();
         let meta = self.finish_meta(true, duration_ms);
         self.reset_scanner();
         let reasoning = self.take_reasoning();
         self.active_turn = None;
         self.status = TuiStatus::Cancelled;
-        if self.live_parts.is_empty() {
+        if self.live_parts.is_empty() && !canonical_ahead {
             self.live_text.clear();
             self.live_reasoning.clear();
             self.reasoning_started = None;
@@ -1646,14 +1651,16 @@ impl TuiState {
                 child_notice: None,
                 shell_notice: None,
             });
+            self.window.set_latest_local_owner(&turn.0, Some(0), true);
             self.prune_reasoning();
             return;
         }
         // The partial text is already the frozen trailing segment.
         let parts = self.commit_live_parts(reasoning);
-        self.push_committed_parts(parts);
-        self.window
-            .push_row(footer_row(self.active_agent.clone(), meta));
+        if !canonical_ahead {
+            self.push_committed_parts(parts, turn);
+        }
+        self.push_terminal_footer(turn, meta);
         self.prune_reasoning();
     }
 
@@ -1662,6 +1669,7 @@ impl TuiState {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
+        let canonical_ahead = self.canonical_history_ahead();
         self.invalidate_transcript();
         let mut meta = self.finish_meta(false, 0);
         self.reset_scanner();
@@ -1672,14 +1680,14 @@ impl TuiState {
         let parts = self.commit_live_parts(reasoning);
         self.active_turn = None;
         self.status = TuiStatus::Idle;
-        if !parts.is_empty() {
+        if !parts.is_empty() && !canonical_ahead {
             // Cards already shown stay visible; the error follows them.
-            self.push_committed_parts(parts);
+            self.push_committed_parts(parts, turn);
         }
-        self.window
-            .push_row(footer_row(self.active_agent.clone(), meta));
+        self.push_terminal_footer(turn, meta);
         self.window
             .push_synthetic("", &format!("(error: {error})"), None, None);
+        self.window.set_latest_local_owner(&turn.0, None, true);
         self.prune_reasoning();
     }
 
@@ -1707,7 +1715,14 @@ impl TuiState {
     }
 
     /// Push committed part rows into the window (bounded like any row).
-    fn push_committed_parts(&mut self, parts: Vec<LivePart>) {
+    fn push_terminal_footer(&mut self, turn: &WorkerTurnId, meta: AssistantMeta) {
+        let mut row = footer_row(self.active_agent.clone(), meta);
+        row.position = Some(crate::history::HistoryPosition::local(&turn.0, None, true));
+        self.window
+            .commit_live_row(row, &turn.0, Some(crate::history::HistoryComponent::Footer));
+    }
+
+    fn push_committed_parts(&mut self, parts: Vec<LivePart>, turn: &WorkerTurnId) {
         for (ordinal, part) in parts.into_iter().enumerate() {
             if matches!(part, LivePart::Vacant) {
                 continue;
@@ -1719,6 +1734,16 @@ impl TuiState {
                     self.live_part_offset + ordinal,
                 )),
             );
+            row.position = Some(crate::history::HistoryPosition::local(
+                &turn.0,
+                Some(
+                    self.live_part_sources
+                        .get(&(self.live_part_offset + ordinal))
+                        .copied()
+                        .unwrap_or(self.live_part_offset + ordinal),
+                ),
+                false,
+            ));
             if self.live_mixed_models
                 && row.tool.is_none()
                 && let Some(model) = self
@@ -1739,7 +1764,14 @@ impl TuiState {
                     ..Default::default()
                 });
             }
-            self.window.push_row(row);
+            self.window.commit_live_row(
+                row,
+                &turn.0,
+                self.live_part_sources
+                    .get(&(self.live_part_offset + ordinal))
+                    .copied()
+                    .map(crate::history::HistoryComponent::Part),
+            );
         }
     }
 

@@ -3005,7 +3005,8 @@ impl Db {
         from_start: bool,
     ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
         use oc_core::queries::{HistoryTurn, PartState, ToolOpView, TranscriptPart};
-        let conn = self.conn.lock().expect("db mutex");
+        let locked = self.conn.lock().expect("db mutex");
+        let conn = locked.unchecked_transaction()?;
         let record: Option<(String, String, String, String)> = conn.query_row(
             "SELECT t.id, t.status, COALESCE(json_extract(t.result,'$.display'),'{}'), COALESCE(json_extract(t.result,'$.model'),'')
              FROM turns t WHERE json_valid(t.result) AND t.session_id=?1 AND t.id=?2 LIMIT 1",
@@ -3215,6 +3216,8 @@ impl Db {
             turn.omitted_parts = (end - start).saturating_sub(turn.parts.len() + pending_text);
         }
         turn.truncated |= turn.omitted_parts > 0;
+        turn.notice_order = self.turn_notice_order_in(&conn, session, &id)?;
+        conn.commit()?;
         Ok(Some(turn))
     }
 

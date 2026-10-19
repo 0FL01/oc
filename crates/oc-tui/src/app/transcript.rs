@@ -259,10 +259,13 @@ impl TuiState {
     /// A child completion may arrive while another parent request streams.
     /// Keep that request's parts/draft and the window's paging boundaries.
     pub fn refresh_child_notice_page(&mut self, page: &HistoryPage) {
+        let revision = self.window.revision();
         if let Some(turn) = &self.active_turn {
             self.window.correlate_live_prompt(page, &turn.0);
         }
-        if self.window.refresh_owner_notices(page) {
+        let notices = self.window.refresh_owner_notices(page);
+        self.window.refresh_notice_orders(page);
+        if notices || revision != self.window.revision() {
             self.invalidate_transcript();
         }
     }
@@ -380,7 +383,7 @@ impl TuiState {
         }
         self.remember_compaction_turns(page);
         let view = self.viewport.get().filter(|_| self.scroll > 0);
-        let old_rows = self.transcript_rows();
+        let (old_rows, old_live) = self.compose_transcript();
         let mut anchor = None;
         if let Some(view) = view {
             let top = view
@@ -389,6 +392,7 @@ impl TuiState {
                 .saturating_sub(view.displayed_scroll);
             self.transcript_part_positions(
                 &old_rows,
+                old_live,
                 (view.width, view.terminal_width),
                 |index, start, end| {
                     if start <= top && top < end {
@@ -493,13 +497,14 @@ impl TuiState {
     fn transcript_part_positions(
         &self,
         rows: &[HistoryRow],
+        live: Option<usize>,
         widths: (u16, u16),
         part: impl FnMut(usize, usize, usize),
     ) -> usize {
         crate::messages::transcript_part_positions(
             rows,
             Theme::dark(),
-            (widths.0, widths.1, None),
+            (widths.0, widths.1, live),
             &|agent| self.agent_color(agent),
             &self.markdown_cache,
             &|target| self.tool_expanded(target),
@@ -673,9 +678,7 @@ impl TuiState {
             {
                 return None;
             }
-            let history = self.transcript_rows();
-            let live = (!self.live_text.is_empty() || !self.live_reasoning.is_empty())
-                .then(|| history.len() - 1);
+            let (history, live) = self.compose_transcript();
             crate::messages::pending_subagent_hover_at(
                 &history,
                 theme,
@@ -1290,10 +1293,7 @@ impl TuiState {
         if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
             return None;
         }
-        let rows = self.transcript_rows();
-        let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
-            rows.len() - 1 - usize::from(rows.last().is_some_and(|row| row.role == "reverted"))
-        });
+        let (rows, live_row) = self.compose_transcript();
         crate::messages::exploration_header_at_with_range(
             &rows,
             Theme::dark(),
@@ -1325,9 +1325,7 @@ impl TuiState {
         if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
             return None;
         }
-        let rows = self.transcript_rows();
-        let live_row =
-            (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
+        let (rows, live_row) = self.compose_transcript();
         crate::messages::reasoning_header_at(
             &rows,
             Theme::dark(),
@@ -1439,9 +1437,7 @@ impl TuiState {
         {
             return None;
         }
-        let rows = self.transcript_rows();
-        let live =
-            (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
+        let (rows, live) = self.compose_transcript();
         crate::messages::captured_child_at_with_range(
             &rows,
             Theme::dark(),
@@ -1697,6 +1693,10 @@ impl TuiState {
     /// (frozen text/reasoning segments and tool cards) and the open live
     /// answer (reasoning block and streaming text) while a turn is active.
     pub fn transcript_rows(&self) -> Vec<HistoryRow> {
+        self.compose_transcript().0
+    }
+
+    pub(super) fn compose_transcript(&self) -> (Vec<HistoryRow>, Option<usize>) {
         #[cfg(test)]
         self.transcript_row_copies
             .set(self.transcript_row_copies.get() + self.window.len());
@@ -1710,6 +1710,7 @@ impl TuiState {
                 })
             });
         }
+        let mut live_sources = vec![None; rows.len()];
         for (ordinal, part) in self.live_parts.iter().enumerate() {
             if matches!(part, LivePart::Vacant) {
                 continue;
@@ -1769,8 +1770,10 @@ impl TuiState {
                 row.agent.clone_from(&rows[index].agent);
                 row.agent_color_index = rows[index].agent_color_index;
                 rows[index] = row;
+                live_sources[index] = source.or(Some(slot));
             } else {
                 rows.push(row);
+                live_sources.push(source.or(Some(slot)));
             }
         }
         let live =
@@ -1801,7 +1804,10 @@ impl TuiState {
                 child_notice: None,
                 shell_notice: None,
             });
+            live_sources.push(Some(self.live_part_offset + self.live_parts.len()));
         }
+        let mut live_row = live.then(|| rows.len() - 1);
+        self.place_child_notices(&mut rows, &live_sources, &mut live_row);
         let mut group_first = None;
         for row in &mut rows {
             let adjacent = crate::messages::reasoning_group_member(row);
@@ -1840,7 +1846,7 @@ impl TuiState {
                 shell_notice: None,
             });
         }
-        self.interleave_compactions(&mut rows);
+        self.interleave_compactions(&mut rows, &mut live_row);
         if let Some(key) = self.background_hint_key() {
             rows.push(HistoryRow {
                 position: None,
@@ -1915,10 +1921,153 @@ impl TuiState {
                 }
             }
         }
-        rows
+        (rows, live_row)
     }
 
-    fn interleave_compactions(&self, rows: &mut Vec<HistoryRow>) {
+    fn place_child_notices(
+        &self,
+        rows: &mut Vec<HistoryRow>,
+        sources: &[Option<usize>],
+        live_row: &mut Option<usize>,
+    ) {
+        use oc_core::queries::NoticePlacement;
+        // The tags move with their rows. Never infer the open Markdown row from
+        // the final tail: that tail may now be a separately delivered notice.
+        let mut tagged: Vec<_> = std::mem::take(rows)
+            .into_iter()
+            .enumerate()
+            .map(|(i, row)| (row, sources[i], *live_row == Some(i)))
+            .collect();
+        for (turn, order) in self.window.notice_orders() {
+            let Some(prompt) = tagged.iter().position(|(row, _, _)| {
+                row.role == "user" && row.message_id.as_deref() == Some(&order.accepted_prompt)
+            }) else {
+                continue;
+            };
+            let end = tagged
+                .iter()
+                .enumerate()
+                .skip(prompt + 1)
+                .find_map(|(i, (row, _, _))| {
+                    (row.role == "user" || row.role == "model_switch" || row.shell_notice.is_some())
+                        .then_some(i)
+                })
+                .unwrap_or(tagged.len());
+            let own = |entry: &(HistoryRow, Option<usize>, bool)| {
+                entry
+                    .0
+                    .position
+                    .as_ref()
+                    .is_some_and(|p| p.belongs_to(turn))
+                    || (self
+                        .active_turn
+                        .as_ref()
+                        .is_some_and(|active| active.0 == turn)
+                        && entry.1.is_some())
+            };
+            // A disjoint page or an unrelated response is a barrier, not a row
+            // to skip over. No prose, child turn id or screen position is proof.
+            if tagged[prompt + 1..end]
+                .iter()
+                .any(|entry| entry.0.child_notice.is_none() && !own(entry))
+            {
+                continue;
+            }
+            for notice in &order.notices {
+                let Some(from) = tagged
+                    .iter()
+                    .enumerate()
+                    .take(end)
+                    .skip(prompt + 1)
+                    .find_map(|(i, (row, _, _))| {
+                        (row.child_notice.is_some()
+                            && row.message_id.as_deref() == Some(&notice.message))
+                        .then_some(i)
+                    })
+                else {
+                    continue;
+                };
+                let target = match &notice.placement {
+                    NoticePlacement::BeforeRequest {
+                        span,
+                        before_part_sequence,
+                    } => tagged
+                        .iter()
+                        .enumerate()
+                        .skip(prompt + 1)
+                        .take(end - prompt - 1)
+                        .find_map(|(i, entry)| {
+                            let canonical = entry.0.position.as_ref().is_some_and(|p| {
+                                p.belongs_to(turn)
+                                    && (p.component == crate::history::HistoryComponent::Part(*before_part_sequence)
+                                        || matches!(p.component, crate::history::HistoryComponent::Local { sequence: Some(sequence), .. } if sequence == *before_part_sequence))
+                            });
+                            let live = self
+                                .active_turn
+                                .as_ref()
+                                .is_some_and(|active| active.0 == turn)
+                                && entry.1 == Some(*before_part_sequence)
+                                && (!entry.2
+                                    || self
+                                        .live_span
+                                        .as_ref()
+                                        .is_some_and(|(_, current)| current == span));
+                            (canonical || live).then_some(i)
+                        }).or_else(|| {
+                            let frontier = self.active_turn.as_ref().is_some_and(|active| active.0 == turn)
+                                && self.live_checkpoint_end == Some(*before_part_sequence)
+                                && self.live_span.as_ref().is_some_and(|(_, current)| current == span);
+                            frontier.then(|| tagged.iter().enumerate().take(end).skip(prompt + 1)
+                                .filter(|(_, entry)| own(entry)).map(|(i, _)| i + 1).next_back()).flatten()
+                        }),
+                    NoticePlacement::Tail => {
+                        let complete = self
+                            .active_turn
+                            .as_ref()
+                            .is_some_and(|active| active.0 == turn)
+                            && !self.window.has_newer()
+                            || tagged[prompt + 1..end].iter().any(|entry| {
+                                entry.0.position.as_ref().is_some_and(|p| {
+                                    p.belongs_to(turn)
+                                        && (p.component == crate::history::HistoryComponent::Footer
+                                            || matches!(p.component, crate::history::HistoryComponent::Local { terminal: true, .. }))
+                                })
+                            });
+                        complete
+                            .then(|| {
+                                tagged
+                                    .iter()
+                                    .enumerate()
+                                    .take(end)
+                                    .skip(prompt + 1)
+                                    .filter(|(_, entry)| own(entry))
+                                    .map(|(i, _)| i + 1)
+                                    .next_back()
+                            })
+                            .flatten()
+                    }
+                };
+                let Some(mut target) = target else { continue };
+                if matches!(notice.placement, NoticePlacement::Tail) {
+                    while target < end
+                        && tagged[target].0.child_notice.is_some()
+                        && tagged[target].0.seq < tagged[from].0.seq
+                    {
+                        target += 1;
+                    }
+                }
+                let entry = tagged.remove(from);
+                if from < target {
+                    target -= 1;
+                }
+                tagged.insert(target, entry);
+            }
+        }
+        *live_row = tagged.iter().position(|(_, _, live)| *live);
+        *rows = tagged.into_iter().map(|(row, _, _)| row).collect();
+    }
+
+    fn interleave_compactions(&self, rows: &mut Vec<HistoryRow>, live_row: &mut Option<usize>) {
         // Traverse newest first so multiple checkpoints sharing one anchor stay ordered.
         for snapshot in self.compactions.iter().rev() {
             let anchor = &snapshot.anchor;
@@ -1961,6 +2110,11 @@ impl TuiState {
             } else {
                 continue;
             };
+            if let Some(live) = live_row.as_mut()
+                && position <= *live
+            {
+                *live += 1;
+            }
             rows.insert(
                 position,
                 crate::compaction::row(
@@ -2073,9 +2227,7 @@ impl TuiState {
         #[cfg(test)]
         self.visible_projection_builds
             .set(self.visible_projection_builds.get() + 1);
-        let rows = self.transcript_rows();
-        let live_row =
-            (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
+        let (rows, live_row) = self.compose_transcript();
         let render = |height, scroll| {
             crate::messages::visible_transcript_user_targets(
                 &rows,
@@ -2119,6 +2271,7 @@ impl TuiState {
                 let mut top = None;
                 let total = self.transcript_part_positions(
                     &rows,
+                    live_row,
                     (width, terminal_width),
                     |part, start, end| {
                         if part == index && end > start {

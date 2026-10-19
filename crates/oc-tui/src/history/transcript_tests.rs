@@ -38,6 +38,39 @@ fn page(start: usize, end: usize, total: usize) -> HistoryPage {
 }
 
 #[test]
+fn local_completion_cannot_become_a_durable_paging_anchor() {
+    for older in [false, true] {
+        let mut window = HistoryWindow::default();
+        if older {
+            let mut old = page(0, 1, 1);
+            old.rows[0].id.0 = "older".into();
+            old.rows[0].seq = 1;
+            old.rows[0].turn = None;
+            window.reset(&old);
+        }
+        window.push_synthetic("assistant", "local terminal fallback", None, None);
+        window.set_latest_local_owner("turn", Some(0), true);
+        window.refresh_completed(&page(0, 3, 3), true);
+        assert!(window.rows().iter().all(|row| {
+            !row.position
+                .as_ref()
+                .is_some_and(|p| matches!(p.component, HistoryComponent::Local { .. }))
+        }));
+        if older {
+            assert!(window.has_newer());
+            window.append_newer(&page(0, 3, 3));
+        }
+        for sequence in 0..3 {
+            assert!(window.rows().iter().any(|row| {
+                row.position
+                    .as_ref()
+                    .is_some_and(|p| p.component == HistoryComponent::Part(sequence))
+            }));
+        }
+    }
+}
+
+#[test]
 fn evicted_parts_of_one_message_are_reachable_in_both_directions() {
     let mut window = HistoryWindow::default();
     window.reset(&page(240, 480, 480));

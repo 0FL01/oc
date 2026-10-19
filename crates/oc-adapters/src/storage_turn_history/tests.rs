@@ -92,6 +92,172 @@ fn working(log: &TurnLog) -> serde_json::Value {
 }
 
 #[test]
+fn child_notice_order_uses_original_requests_and_survives_raw_rollover_reopen() {
+    use oc_core::{
+        domain::SessionId,
+        queries::{ChildJob, ChildState, NoticePlacement},
+    };
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    let mut log = closed(&db);
+    log.shell_notice_messages.clear();
+    log.input.insert(
+        0,
+        InputItem::EffortUpdate {
+            event_seq: 1,
+            effort: Some("high".into()),
+            previous: None,
+        },
+    );
+    log.call_occurrences.clear();
+    log.call_occurrences.insert(3, 0);
+    log.display_parts[0]["call_input_index"] = json!(3);
+    log.requests[0].input_start += 1;
+    log.spans[0].request = Some(log.requests[0].clone());
+    db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+    db.create_child_session("s", "child", Some("explore"), Some("p/A"), Some("task"))
+        .unwrap();
+    db.record_tool_intent(
+        "launch",
+        "s",
+        Some("t"),
+        "subagent",
+        r#"{"agent":"explore","prompt":"task"}"#,
+    )
+    .unwrap();
+    db.admit_child_job(&ChildJob {
+        parent: SessionId("s".into()),
+        child: SessionId("child".into()),
+        operation: "launch".into(),
+        generation: 1,
+        location: "/project".into(),
+        agent: "explore".into(),
+        model: "p/A".into(),
+        description: "task".into(),
+        delivery_id: "delivery".into(),
+        state: ChildState::Admitted,
+        background: true,
+        turn: None,
+        result: None,
+        message_id: None,
+    })
+    .unwrap();
+    db.finish_child_job("launch", ChildState::Completed, "result")
+        .unwrap();
+    let notice = db.deliver_child_notices().unwrap().remove(0);
+    let id = notice.job.message_id.unwrap();
+    let tail = db
+        .turn_presentation("s", "t")
+        .unwrap()
+        .unwrap()
+        .notice_order
+        .unwrap();
+    assert_eq!(tail.accepted_prompt.0, log.user_message.clone().unwrap());
+    assert_eq!(tail.notices[0].message.0, id);
+    assert_eq!(tail.notices[0].placement, NoticePlacement::Tail);
+    // Equality does not consume: an output-less prior request can end here.
+    let index = log.input.len();
+    let mut prior = log.requests[0].clone();
+    prior.input_start = index;
+    prior.span = "zero".into();
+    let mut zero = log.spans[0].clone();
+    zero.id = prior.span.clone();
+    zero.request = Some(prior.clone());
+    log.requests.push(prior);
+    log.spans.push(zero);
+    log.shell_notice_messages.push(id.clone());
+    log.input.push(InputItem::message(
+        InputRole::User,
+        "notice data, not parsed",
+    ));
+    let mut receipt = log.requests[0].clone();
+    receipt.input_start = log.input.len();
+    receipt.span = "next".into();
+    let mut span = log.spans[0].clone();
+    span.id = receipt.span.clone();
+    span.step = 3;
+    span.request = Some(receipt.clone());
+    log.requests.push(receipt);
+    log.spans.push(span);
+    log.display_parts
+        .push(json!({"reasoning":"subsequent step","span":"next"}));
+    db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+    let expected = db
+        .turn_presentation("s", "t")
+        .unwrap()
+        .unwrap()
+        .notice_order
+        .unwrap();
+    let consuming = log.requests.pop().unwrap();
+    db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+    assert!(
+        db.turn_presentation("s", "t")
+            .unwrap()
+            .unwrap()
+            .notice_order
+            .is_none(),
+        "a span without its physical receipt is unknown, never guessed Tail"
+    );
+    log.requests.push(consuming);
+    db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+    assert_eq!(
+        expected.notices[0].placement,
+        NoticePlacement::BeforeRequest {
+            span: "next".into(),
+            before_part_sequence: 1
+        }
+    );
+    let seq = db
+        .conn
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT seq FROM conversation_messages WHERE id=?1",
+            [&id],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap();
+    let (segment, hot) = log
+        .prepare_closed_segment(log.closed_counts(), working(&log), seq)
+        .unwrap();
+    db.commit_closed_turn_segment(&log, &segment, &hot, None)
+        .unwrap();
+    let original = db
+        .raw_turn_segment("t", 1, crate::runtime::ACTIVE_CONTEXT_BYTES_CAP)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        db.turn_presentation("s", "t")
+            .unwrap()
+            .unwrap()
+            .notice_order,
+        Some(expected.clone())
+    );
+    db.commit_turn(
+        "t",
+        "completed",
+        Some(&hot.to_json().to_string()),
+        Some("done"),
+    )
+    .unwrap();
+    drop(db);
+    let db = Db::open(tmp.path()).unwrap();
+    assert_eq!(
+        db.turn_presentation("s", "t")
+            .unwrap()
+            .unwrap()
+            .notice_order,
+        Some(expected)
+    );
+    assert_eq!(
+        db.raw_turn_segment("t", 1, crate::runtime::ACTIVE_CONTEXT_BYTES_CAP)
+            .unwrap()
+            .unwrap(),
+        original
+    );
+}
+
+#[test]
 fn active_pending_text_has_recoverable_windows_and_explicit_loss_remains_visible() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();

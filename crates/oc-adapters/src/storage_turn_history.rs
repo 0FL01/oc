@@ -9,6 +9,32 @@ fn invalid(message: &str) -> StorageError {
     ))
 }
 
+fn notice_receipts_coherent(journal: &serde_json::Value) -> bool {
+    let (Some(requests), Some(spans)) =
+        (journal["requests"].as_array(), journal["spans"].as_array())
+    else {
+        return false;
+    };
+    let mut by_span = std::collections::BTreeMap::new();
+    for request in requests {
+        let Some(span) = request["span"].as_str() else {
+            return false;
+        };
+        if request["input_start"].as_u64().is_none() || by_span.insert(span, request).is_some() {
+            return false;
+        }
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    spans.iter().all(|span| {
+        span["id"].as_str().is_some_and(|id| {
+            seen.insert(id)
+                && by_span
+                    .get(id)
+                    .is_some_and(|request| span["request"] == **request)
+        })
+    }) && seen.len() == by_span.len()
+}
+
 fn call_window(log: &TurnLog) -> Result<Vec<(DcpCallKey, usize)>, StorageError> {
     let selected = log
         .working
@@ -713,6 +739,186 @@ impl Db {
             }
         }
         Ok(Some(raw))
+    }
+
+    /// Bounded original journal evidence, independent of DCP working selection.
+    /// A missing page/boundary leaves placement unknown; it never implies Tail.
+    pub(super) fn turn_notice_order_in(
+        &self,
+        conn: &Connection,
+        session: &str,
+        turn: &str,
+    ) -> Result<Option<oc_core::queries::HistoryNoticeOrder>, StorageError> {
+        use oc_core::{
+            queries::{HistoryNoticeOrder, HistoryNoticePlacement, NoticePlacement},
+            session::MessageId,
+        };
+        let accepted: Option<(String,i64)> = conn.query_row(
+            "SELECT a.user_message,m.seq FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=a.session_id WHERE a.turn_id=?1 AND a.session_id=?2",
+            params![turn,session], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+        let Some((prompt, prompt_seq)) = accepted else {
+            return Ok(None);
+        };
+        let mut candidates = conn.prepare("SELECT m.id,m.seq FROM conversation_messages m JOIN child_jobs j ON j.message_id=m.id AND j.parent_id=m.session_id WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<COALESCE((SELECT MIN(n.seq) FROM conversation_messages n WHERE n.session_id=?1 AND n.seq>?2 AND (n.id=(SELECT json_extract(result,'$.assistant_message') FROM turns WHERE id=?3) OR EXISTS(SELECT 1 FROM turn_acceptances a WHERE a.user_message=n.id AND a.session_id=n.session_id))),9223372036854775807) ORDER BY m.seq LIMIT 241")?;
+        let candidates = candidates
+            .query_map(params![session, prompt_seq, turn], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        if candidates.is_empty()
+            || candidates.len() > 240
+            || candidates.iter().map(|(id, _)| id.len()).sum::<usize>()
+                > super::HISTORY_PAGE_ID_BYTES
+        {
+            return Ok(None);
+        }
+        let raw: Option<String> = conn.query_row("SELECT CASE WHEN length(CAST(json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) AS BLOB))<=?2 THEN json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) END FROM turns WHERE id=?1",params![turn,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0))?;
+        let Some(raw) = raw else { return Ok(None) };
+        let hot: serde_json::Value =
+            serde_json::from_str(&raw).map_err(|_| invalid("notice original journal"))?;
+        if hot["user_message"].as_str() != Some(prompt.as_str()) {
+            return Ok(None);
+        }
+        let prefix = RawPrefix::parse(hot.get("raw_prefix"))
+            .map_err(|e| invalid(&e))?
+            .unwrap_or_default();
+        Self::validate_raw_prefix(conn, turn, (prefix.ordinal > 0).then_some(&prefix))?;
+        let mut bytes = raw.len();
+        let mut pages = std::collections::BTreeMap::new();
+        let coherent = notice_receipts_coherent(&hot);
+        pages.insert(prefix.ordinal + 1, (prefix.clone(), hot, coherent));
+        let mut notices = Vec::new();
+        for (message, seq) in candidates {
+            let ordinal = if seq > prefix.delivered_notice_seq {
+                prefix.ordinal + 1
+            } else {
+                let found: Option<i64> = conn.query_row("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND json_extract(descriptor,'$.delivered_notice_seq')>=?2 ORDER BY ordinal LIMIT 1",params![turn,seq],|r|r.get(0)).optional()?;
+                let Some(found) = found else { continue };
+                found as u64
+            };
+            let mut at = ordinal;
+            let mut input_index = None;
+            let mut placement = None;
+            // At most four admitted original pages, with one aggregate byte bound.
+            // This is a presentation serving bound, never an execution limit.
+            while at <= prefix.ordinal + 1 {
+                if !pages.contains_key(&at) {
+                    let Ok(sql_ordinal) = i64::try_from(at) else {
+                        break;
+                    };
+                    let size: Option<i64> = conn.query_row("SELECT length(CAST(payload AS BLOB)) FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2",params![turn,sql_ordinal],|r|r.get(0)).optional()?;
+                    let Some(size) = size else { break };
+                    if pages.len() >= 4
+                        || bytes.saturating_add(size as usize)
+                            > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP
+                    {
+                        break;
+                    }
+                    let Some(raw) = Self::validated_raw_page_in(
+                        conn,
+                        turn,
+                        sql_ordinal,
+                        crate::runtime::ACTIVE_CONTEXT_BYTES_CAP - bytes,
+                    )?
+                    else {
+                        break;
+                    };
+                    bytes += raw.len();
+                    let page: serde_json::Value =
+                        serde_json::from_str(&raw).map_err(|_| invalid("notice raw journal"))?;
+                    let base = serde_json::from_value::<RawPrefix>(page["base"].clone())
+                        .map_err(|_| invalid("notice raw base"))?;
+                    let coherent = notice_receipts_coherent(&page["journal"]);
+                    pages.insert(at, (base, page["journal"].clone(), coherent));
+                }
+                let (base, journal, coherent) = &pages[&at];
+                let (Some(input), Some(ids), Some(requests), Some(spans), Some(parts)) = (
+                    journal["input"].as_array(),
+                    journal["shell_notice_messages"].as_array(),
+                    journal["requests"].as_array(),
+                    journal["spans"].as_array(),
+                    journal["display_parts"].as_array(),
+                ) else {
+                    break;
+                };
+                // HOT can be legacy/partial. Missing physical receipts do not
+                // prove that an already represented notice is unconsumed.
+                if !coherent {
+                    break;
+                }
+                let mut users = input
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, v)| v["type"] == "message" && v["role"] == "user")
+                    .map(|(i, _)| base.ends[0] + i)
+                    .collect::<Vec<_>>();
+                if base.ends[0] == 0 {
+                    if users.is_empty() {
+                        break;
+                    }
+                    users.remove(0); // Prompt can follow EffortUpdate, not necessarily input[0].
+                }
+                if users.len() != ids.len() || ids.iter().any(|id| id.as_str().is_none()) {
+                    break;
+                }
+                if input_index.is_none() {
+                    input_index = ids
+                        .iter()
+                        .position(|id| id.as_str() == Some(message.as_str()))
+                        .map(|i| users[i]);
+                }
+                if let Some(index) = input_index
+                    && let Some(request) = requests.iter().find(|r| {
+                        r["input_start"]
+                            .as_u64()
+                            .is_some_and(|start| start > index as u64)
+                    })
+                {
+                    let Some(span) = request["span"].as_str() else {
+                        break;
+                    };
+                    if !spans
+                        .iter()
+                        .any(|s| s["id"] == span && s["request"] == *request)
+                    {
+                        break;
+                    }
+                    if let Some(i) = parts.iter().position(|p| p["span"] == span) {
+                        placement = Some(NoticePlacement::BeforeRequest {
+                            span: span.into(),
+                            before_part_sequence: base.ends[4] + i,
+                        });
+                    } else if at == prefix.ordinal + 1
+                        && spans
+                            .last()
+                            .is_some_and(|s| s["id"] == span && s["status"] == "started")
+                    {
+                        placement = Some(NoticePlacement::BeforeRequest {
+                            span: span.into(),
+                            before_part_sequence: base.ends[4] + parts.len(),
+                        });
+                    }
+                    break;
+                }
+                if at == prefix.ordinal + 1 {
+                    if seq > prefix.delivered_notice_seq {
+                        placement = Some(NoticePlacement::Tail);
+                    }
+                    break;
+                }
+                at += 1;
+            }
+            if let Some(placement) = placement {
+                notices.push(HistoryNoticePlacement {
+                    message: MessageId(message),
+                    placement,
+                });
+            }
+        }
+        Ok((!notices.is_empty()).then_some(HistoryNoticeOrder {
+            accepted_prompt: MessageId(prompt),
+            notices,
+        }))
     }
 
     pub(super) fn latest_turn_spans(
