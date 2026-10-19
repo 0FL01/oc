@@ -1393,7 +1393,7 @@ pub(crate) fn subagent_block_expanded(
         let labels = if width == 0 {
             vec![label]
         } else {
-            styled::wrap_line(&label, width as usize - indent)
+            styled::wrap_source_space_line_limited(&label, width as usize - indent, usize::MAX)
         };
         labels
             .into_iter()
@@ -1441,12 +1441,16 @@ pub(crate) fn subagent_block_expanded(
                 .fg(theme.text_muted())
                 .bg(theme.decrease(theme.background())),
         );
+        // The wrapped caption occupies the full flex-item width, not merely
+        // the used cells on its final line (InlineToolRow).
+        let one_line = out.len() == 1;
         let last = out.last_mut().expect("inline header");
         if width == 0
-            || last.spans().iter().map(styled::span_width).sum::<usize>()
-                + 1
-                + styled::span_width(&badge)
-                <= width as usize
+            || one_line
+                && last.spans().iter().map(styled::span_width).sum::<usize>()
+                    + 1
+                    + styled::span_width(&badge)
+                    <= width as usize
         {
             let mut spans = last.spans().to_vec();
             spans.push(Span::plain(" "));
@@ -2646,6 +2650,40 @@ mod tests {
                     assert_eq!(badge.content(), " Background ");
                     assert_eq!(badge.style().fg, Some(theme.text_muted()));
                     assert_eq!(badge.style().bg, Some(theme.decrease(theme.background())));
+                    let mut wrapped = card.clone();
+                    let description = "Сравнение subagent с upstream — проверка длинной строки и переноса целого статуса";
+                    wrapped.child_job.as_mut().unwrap().description = description.into();
+                    let ToolRender::Subagent(view) = &mut wrapped.render else {
+                        unreachable!()
+                    };
+                    view.description = description.into();
+                    for state in [
+                        oc_core::queries::ChildState::Running,
+                        oc_core::queries::ChildState::Completed,
+                    ] {
+                        wrapped.child_job.as_mut().unwrap().state = state;
+                        let ToolRender::Subagent(view) = &wrapped.render else {
+                            unreachable!()
+                        };
+                        let lines = subagent_block_expanded(view, &wrapped, theme, 76, false);
+                        assert_eq!(
+                            lines.len(),
+                            3,
+                            "wrapped caption and status are separate flex items"
+                        );
+                        assert!(!lines[1].plain_text().contains("Background"));
+                        assert!(lines[0].plain_text().ends_with("длинной "));
+                        assert_eq!(
+                            lines[0].spans().last().unwrap().style().fg,
+                            Some(theme.text_muted()),
+                            "the fitting source separator retains its caption foreground"
+                        );
+                        assert_eq!(lines[2].plain_text(), "      Background ");
+                        assert_eq!(
+                            lines[2].spans()[1].style().bg,
+                            Some(theme.decrease(theme.background()))
+                        );
+                    }
                 } else {
                     assert_eq!(lines.len(), 1);
                 }

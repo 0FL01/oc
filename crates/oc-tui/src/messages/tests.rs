@@ -4354,6 +4354,18 @@ fn locale_helpers_match_upstream_formatting() {
     assert_eq!(Locale::titlecase("my-agent_2"), "My-Agent_2");
     assert_eq!(Locale::titlecase(""), "");
 
+    for (text, width, expected) in [
+        ("abc", 0, ""),
+        ("abc", 1, "…"),
+        ("abc", 2, "a…"),
+        ("abc", 3, "abc"),
+        ("e\u{301}界x", 3, "e\u{301}…"),
+        ("界xy", 3, "界…"),
+        ("界xy", 4, "界xy"),
+    ] {
+        assert_eq!(Locale::truncate_width(text, width), expected);
+    }
+
     assert_eq!(Locale::duration(0), "0ms");
     assert_eq!(Locale::duration(999), "999ms");
     assert_eq!(Locale::duration(1_000), "1.0s");

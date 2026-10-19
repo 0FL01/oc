@@ -3458,14 +3458,23 @@ fn child_notice_line(
     } else {
         color
     };
+    let suffix = format!(" · {}", job.description)
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect::<String>();
+    let suffix = if width == 0 {
+        suffix
+    } else {
+        Locale::truncate_width(
+            &suffix,
+            (width as usize).saturating_sub(3 + UnicodeWidthStr::width(label.as_str())),
+        )
+    };
     Some(clipped_line(
         sanitize_line(Line::new(vec![
             Span::plain("   "),
             Span::styled(label, Style::default().fg(color)),
-            Span::styled(
-                format!(" · {}", job.description),
-                Style::default().fg(theme.text_muted()),
-            ),
+            Span::styled(suffix, Style::default().fg(theme.text_muted())),
         ])),
         width,
     ))
@@ -4249,6 +4258,28 @@ fn syntax_failure(body: &[String], theme: &Theme, error: crate::syntax::Error) -
 pub(crate) struct Locale;
 
 impl Locale {
+    /// `truncateWidth`: keep complete graphemes and reserve the final ellipsis.
+    pub fn truncate_width(input: &str, width: usize) -> String {
+        if width == 0 {
+            return String::new();
+        }
+        if UnicodeWidthStr::width(input) <= width {
+            return input.to_owned();
+        }
+        let mut remaining = width - 1;
+        let mut out = String::new();
+        for glyph in input.graphemes(true) {
+            let cells = UnicodeWidthStr::width(glyph);
+            if cells > remaining {
+                break;
+            }
+            out.push_str(glyph);
+            remaining -= cells;
+        }
+        out.push('…');
+        out
+    }
+
     /// `titlecase`: uppercase the first letter of every word.
     pub fn titlecase(input: &str) -> String {
         let mut out = String::with_capacity(input.len());

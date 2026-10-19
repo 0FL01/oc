@@ -202,6 +202,10 @@ fn child_notice_and_task_are_typed_bounded_projection_with_matching_indexed_cell
         for width in [43, 80, 120, 160] {
             let painted = crate::messages::transcript(&rows, theme, width, width, |_| theme.text());
             assert_eq!(painted.len(), 1, "notice never wraps");
+            assert!(
+                painted[0].plain_text().ends_with('…'),
+                "long notice uses the upstream suffix ellipsis"
+            );
             assert!(painted[0].plain_text().contains(label));
             assert!(!painted[0].plain_text().chars().any(char::is_control));
             assert_eq!(painted[0].spans()[1].style().fg, Some(color));
