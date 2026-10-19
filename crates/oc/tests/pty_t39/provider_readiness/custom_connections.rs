@@ -237,6 +237,15 @@ fn conn04_saved_failed_catalog_retry_and_key_change_join_old_get_then_empty_is_c
     wait_count(&fixture.catalog_control.closed, 1);
     wait_count(&fixture.discoveries, previous + 2);
     pty.send(b"\x1b[D"); // Same binding already pending: coalesce, do not restart.
+    // A PTY write is not an owner ACK. Keep the GET held until a subsequent
+    // search edit is painted: the preceding refresh intent is awaited by the
+    // input loop before it can handle this edit. Otherwise the Retry may run
+    // after release and correctly start a new, explicitly requested GET.
+    const RECEIPT: &str = "pending-retry-ack";
+    paste(&mut pty, RECEIPT);
+    wait_screen_row(&pty, RECEIPT, DEADLINE);
+    pty.send(&vec![0x7f; RECEIPT.len()]);
+    wait_screen_absent(&pty, RECEIPT);
     fixture.catalog_control.hold.store(false, Ordering::Relaxed);
     wait_screen_row(&pty, NAME, DEADLINE);
     wait_screen_row(&pty, "Catalog: ready", DEADLINE);

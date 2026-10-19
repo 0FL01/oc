@@ -45,7 +45,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: targeted crate/fixture/comparator/syntax checks и `bash scripts/test.sh` PASS; review/diff-check и closure; own commits pushed без force в verified origin/master.
   - Primary evidence: команды/exit codes, commit IDs, remote HEAD.
   - Status: in_progress
-  - Evidence: targeted Rust/fixture/comparator/syntax gates и финальная strict workspace/all-target Clippy + 618 TUI PASS. Renderer commit `bf1dc41fb` опубликован и сверён с origin/master. Full `bash scripts/test.sh` выполняется; qualification tooling и финальная closure/delivery ещё не завершены.
+  - Evidence: targeted Rust/fixture/comparator/syntax gates и strict workspace/all-target Clippy + 618 TUI PASS. Renderer `bf1dc41fb` и qualification tooling `e011e7e97` опубликованы. Final `CARGO_INCREMENTAL=0 TMPDIR=/home/stfu/.cache/opencode-tmp/opencode bash scripts/test.sh` — PASS: fmt, strict Clippy, 2157/2157 nextest (12 штатных skipped, 408.368s), doctests, locked build, help/version. Log: `.local/evidence/background-full-offline-gate-02.log`. Gate-only fixture fix и closure ожидают delivery.
 
 ### Constraints
 
@@ -68,6 +68,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Chronology: `oc-core/src/queries.rs` optional typed sidecar/compat tests; `oc-adapters/src/{storage,storage_turn_history}.rs` read-only projection and nearest tests; existing TUI history/live/composer/geometry consumers.
 - Qualification: existing `scripts/tui_capture/{capture,composer,tool_preview}.mjs`, composer fixture/config/bridge/snapshot consumers and nearest tests; narrowly sealed current-TS launcher/build inputs in approved owned scratch. No edits to donor TS product source/dependency contract.
 - Artifacts: bounded gitignored per-run evidence; this repo-local goal. Current worktree/non-root only.
+- R5 gate-only expansion: `crates/oc/tests/pty_t39/provider_readiness/custom_connections.rs` — synchronize the existing pending-retry input with an observable UI receipt before releasing its HTTP barrier. Full gate observed 7 GETs versus 6; the unchanged isolated case passed, and the fixture currently releases before the queued Retry is processed. Keep the exact GET assertion, load and deadlines; no connection/runtime change.
 
 ## Копия исправленного плана
 
@@ -81,15 +82,15 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ## Current Checkpoint
 
 - Closes: R5.
-- Smallest next action: завершить full offline gate и опубликовать проверенный qualification tooling в verified origin/master; затем closure и проверка remote HEAD.
-- Expected evidence: `bash scripts/test.sh` PASS, diff-check, normal commit/push и remote HEAD; затем closure без расширения scope.
+- Smallest next action: опубликовать проверенный gate-only fixture fix и сверить remote HEAD; затем closure без расширения scope. Full offline gate и qualification tooling уже завершены.
+- Expected evidence: normal commit/push и remote HEAD, diff-check; final closure всех R1–R5.
 
 ## Current State
 
-- Resolved: plan `7e96fe16d`, R1 `d1669cbed`, R2 `9b0596f19`, R3 `15bd28cd4`, renderer `bf1dc41fb` published; R4 actual scoped qualification verified. Wrap fixes preserve the complete badge, fitting source separator style and grapheme-safe notice ellipsis.
-- Last relevant evidence: final Clippy + 618 TUI PASS; 11 actual current-source paired runs, exact components throughout and strict matching-boundary anchor proof. Both products retain distinct real children/notices, all four links, draft/caret and unchanged controlled project hashes; reopen does not replay. Own background evidence 444.1 MiB, each raw log <16 MiB. Current TS sealed manifest: `/home/stfu/.cache/opencode-tmp/opencode/background-current-ts-p9ZWO6/background-reference.json` (source `bc5ebf00…`, Bun 1.4.2, OpenTUI 0.5.17 and platform FFI/PTY/watcher payloads). Donor/user service unchanged.
+- Resolved: plan `7e96fe16d`, R1 `d1669cbed`, R2 `9b0596f19`, R3 `15bd28cd4`, renderer `bf1dc41fb` и qualification tooling `e011e7e97` published; R4 actual scoped qualification verified. Wrap fixes preserve the complete badge, fitting source separator style and grapheme-safe notice ellipsis.
+- Last relevant evidence: full offline gate PASS, 2157/2157 nextest + doctests/build/help/version; 11 actual current-source paired runs, exact components throughout and strict matching-boundary anchor proof. Both products retain distinct real children/notices, all four links, draft/caret and unchanged controlled project hashes; reopen does not replay. Own background evidence 444.1 MiB, each raw log <16 MiB. Current TS sealed manifest: `/home/stfu/.cache/opencode-tmp/opencode/background-current-ts-p9ZWO6/background-reference.json` (source `bc5ebf00…`, Bun 1.4.2, OpenTUI 0.5.17 and platform FFI/PTY/watcher payloads). Donor/user service unchanged.
 - Blocker: нет подтверждённого.
-- Next: R5 full gate/delivery and closure.
+- Next: R5 gate-only fix delivery and closure.
 
 ## Material Decisions
 
@@ -97,6 +98,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: exact terminal state and current child activity are separate; apply receipt then full-inventory activity, preserve continuation and immutable Background provenance.
 - 2026-10-19: current TS runtime required; identical presentation source with old binary alone is insufficient current renderer/backend proof.
 - 2026-10-20: relative notice anchors compare corresponding request boundaries, not cumulative height across genuinely different request histories. Natural idle matrix remains exercised with its unchanged `DIFFERENT` A-anchor reports (TS really resumes the parent); all four held-terminal configurations supply strict anchor equality. No invented footer, masking, PASS override or native admission/scheduler change.
+- 2026-10-20: R5 full gate: 2156/2157 passed, one existing custom-connection PTY case failed at its exact GET count. Isolated unchanged reproduction passed; replace its write-only pending-retry/release ordering with an observed input receipt, not a retry or a relaxed assertion.
 
 ## Checkpoint History
 
@@ -105,6 +107,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: R2 implementation checkpoint — 612 TUI + exact notice routing PASS; actual-running clocks separate from pending, owner/shared/lifecycle/cache/off-gap checks green. Current TS standalone production binary built isolated; proceed R3, visual proof remains R4.
 - 2026-10-19: R3 read-only request-boundary projection and shared transcript composition verified, including transient terminal ownership without duplicate canonical prefix/footer. Optional DTO only; no migration. Proceed actual R4 captures.
 - 2026-10-20: R4 actual qualification — 11 final paired runs / 22 behavior probes PASS; seven strict matched-boundary component PASS, four idle exact-component results with truthful extra-step anchor difference. Actual wrap RED exposed whole-badge placement, ellipsis and one source-separator style; minimal native fixes pass 618 TUI + Clippy and fresh on/off wrap captures. Proceed R5.
+- 2026-10-20: R5 gate diagnosis — unchanged isolated conn04 case PASS; observed pending-retry UI receipt now precedes HTTP release. Both conn04 PTY cases PASS (6.916s), exact GET counts/deadlines unchanged. Full gate rerun required; production/qualified renderer unchanged.
+- 2026-10-20: R5 final full gate PASS — 2157/2157 tests, 12 штатных skipped, doctests, strict Clippy, fmt and locked CLI build/help/version. No retries or filters in the full gate; proceed delivery and closure.
 
 ## Completion
 
