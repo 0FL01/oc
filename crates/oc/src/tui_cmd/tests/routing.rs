@@ -819,6 +819,183 @@ async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live
 }
 
 #[tokio::test]
+async fn exact_child_notice_terminalizes_retained_launch_outside_inventory_without_retargeting() {
+    use oc_core::queries::{ChildHistory, ChildJob, ChildNotice, ChildState};
+    for retained_history in [false, true] {
+        for continuation in [false, true] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let parent = SessionId("notice-card-parent".into());
+            let turn = WorkerTurnId("launch-parent-turn".into());
+            let mut state = TuiState::new(app.clone(), parent.clone());
+            let make_job = |name: &str| ChildJob {
+                parent: parent.clone(),
+                child: SessionId(format!("child-{name}")),
+                operation: name.into(),
+                generation: 7,
+                location: "/original".into(),
+                agent: "explore".into(),
+                model: "fixture/child".into(),
+                description: format!("Task {name}"),
+                delivery_id: format!("delivery-{name}"),
+                state: ChildState::Running,
+                background: true,
+                turn: Some(format!("child-turn-{name}")),
+                result: None,
+                message_id: None,
+            };
+            let a = make_job("A");
+            let b = make_job("B");
+            state.begin_linked_turn(turn.clone());
+            state.apply_child_jobs(vec![a.clone(), b.clone()]);
+            for job in [&a, &b] {
+                let input = serde_json::json!({"agent":"explore", "description":job.description, "prompt":"controlled task", "background":true});
+                state.apply_tool_started(&turn, &job.operation, "subagent", &input.to_string());
+                state.apply_tool_finished(
+                    &turn,
+                    &job.operation,
+                    "subagent",
+                    "running",
+                    "owned returned handle",
+                    21,
+                    false,
+                );
+            }
+            if retained_history {
+                state.apply_finished(&turn, "parent finished", 1);
+                state.begin_linked_turn(WorkerTurnId("later-parent-turn".into()));
+            }
+            state.restore_prompt("newer unsent draft".into());
+            let mut terminal =
+                ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+            terminal
+                .draw(|frame| oc_tui::shell::render(frame, &state))
+                .unwrap();
+            let original = state
+                .transcript_rows()
+                .into_iter()
+                .find_map(|row| row.tool.filter(|card| card.op == "B"))
+                .unwrap();
+            let mut finished = b.clone();
+            finished.state = ChildState::Completed;
+            finished.message_id = Some("finished-B".into());
+            let notice = HistoryMessage {
+                id: oc_core::session::MessageId("finished-B".into()),
+                seq: 8,
+                role: Role::User,
+                text: "RAW is not presentation".into(),
+                images: vec![],
+                turn: None,
+                model_switch: None,
+                user_shell: None,
+                child: Some(ChildHistory::Notice(Box::new(finished.clone()))),
+                shell_notice: None,
+            };
+            let mut inventory = vec![a.clone()];
+            if continuation {
+                let mut next = b.clone();
+                next.operation = "B-continuation".into();
+                next.generation += 1;
+                next.delivery_id = "continued-delivery".into();
+                inventory.push(next);
+            }
+            while inventory.len() < 16 {
+                inventory.push(make_job(&format!("other-{}", inventory.len())));
+            }
+            assert!(!inventory.iter().any(|job| job.operation == "B"));
+            let owner = tokio::spawn(async move {
+                for _ in 0..2 {
+                    let InboxMsg::History {
+                        message,
+                        limit,
+                        ack,
+                        ..
+                    } = inbox.recv().await.unwrap()
+                    else {
+                        panic!("exact notice")
+                    };
+                    assert_eq!(message, Some(notice.id.clone()));
+                    assert_eq!(limit, 1);
+                    ack.send(Ok(HistoryPage {
+                        rows: vec![notice.clone()],
+                        total: 8,
+                        ..Default::default()
+                    }))
+                    .unwrap();
+                    let InboxMsg::ChildJobs { ack, .. } = inbox.recv().await.unwrap() else {
+                        panic!("bounded current inventory")
+                    };
+                    ack.send(Ok(inventory.clone())).unwrap();
+                    let InboxMsg::History { message, ack, .. } = inbox.recv().await.unwrap() else {
+                        panic!("recent history")
+                    };
+                    assert!(message.is_none());
+                    ack.send(Ok(HistoryPage {
+                        rows: vec![notice.clone()],
+                        total: 8,
+                        ..Default::default()
+                    }))
+                    .unwrap();
+                }
+                inbox
+            });
+            for _ in 0..2 {
+                handle_worker_event(
+                    &app,
+                    &mut state,
+                    &mut LoopState::default(),
+                    &parent,
+                    CoreEvent::ChildNotice(ChildNotice {
+                        job: finished.clone(),
+                        text: "untrusted event prose".into(),
+                    }),
+                )
+                .await
+                .unwrap();
+                terminal
+                    .draw(|frame| oc_tui::shell::render(frame, &state))
+                    .unwrap();
+                let rows = state.transcript_rows();
+                let cards: Vec<_> = rows.iter().filter_map(|row| row.tool.as_ref()).collect();
+                assert_eq!(cards.len(), 2);
+                let updated = cards.iter().find(|card| card.op == "B").unwrap();
+                assert_eq!(updated.child_job.as_deref(), Some(&finished));
+                assert_eq!(updated.state, original.state);
+                assert_eq!(updated.output_preview, original.output_preview);
+                assert!(
+                    matches!(&updated.render, oc_tui::tools::ToolRender::Subagent(view) if view.live_running == continuation)
+                );
+                assert_eq!(
+                    cards
+                        .iter()
+                        .find(|card| card.op == "A")
+                        .unwrap()
+                        .child_job
+                        .as_deref(),
+                    Some(&a)
+                );
+                let shown = state
+                    .transcript_lines(120, 120)
+                    .iter()
+                    .map(oc_tui::styled::Line::plain_text)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert!(
+                    shown.contains(if continuation {
+                        "Explore Subagent — Task B"
+                    } else {
+                        "✓ Explore Subagent — Task B"
+                    }),
+                    "{shown}"
+                );
+                assert!(shown.contains("Background"));
+                assert_eq!(state.input(), "newer unsent draft");
+            }
+            assert!(owner.await.unwrap().try_recv().is_err());
+        }
+    }
+}
+
+#[tokio::test]
 async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_parts() {
     use oc_core::{
         queries::{

@@ -266,6 +266,28 @@ impl TuiState {
         }
     }
 
+    /// Project an exact owner-qualified notice after any history replacement.
+    /// It can update a retained launch outside the sixteen-job inventory.
+    pub fn apply_child_notice(&mut self, receipt: &oc_core::queries::ChildJob) {
+        if self.session.as_ref() != Some(&receipt.parent) {
+            return;
+        }
+        let mut changed =
+            self.children
+                .apply_notice(receipt, &mut self.window, self.picker.as_ref());
+        for part in &mut self.live_parts {
+            if let LivePart::Tool { card, .. } = part {
+                changed |= self
+                    .children
+                    .apply_live_notice(receipt, card, self.picker.as_ref());
+            }
+        }
+        if changed {
+            self.enforce_parts();
+        }
+        self.sync_foreground_hint(Instant::now());
+    }
+
     /// The existing inventory can arrive before a receipt/history attachment.
     pub fn has_model_shell_card(&self, operation: &str) -> bool {
         self.window.rows().iter().any(|row| {

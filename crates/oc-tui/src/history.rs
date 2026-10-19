@@ -311,6 +311,27 @@ impl HistoryWindow {
         changed
     }
 
+    pub(crate) fn apply_subagent_notice(
+        &mut self,
+        receipt: &oc_core::queries::ChildJob,
+        jobs: &[oc_core::queries::ChildJob],
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        let mut changed = false;
+        for row in &mut self.rows {
+            if let Some(card) = &mut row.tool {
+                changed |= card.apply_subagent_notice(receipt, jobs, picker);
+            }
+        }
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+        changed
+    }
+
     /// Retained row count.
     pub fn len(&self) -> usize {
         self.rows.len()
@@ -1239,6 +1260,39 @@ pub struct ToolCard {
 }
 
 impl ToolCard {
+    /// Exact durable completion can outlive the bounded inventory. Apply it
+    /// only to its captured launch; current continuation activity is separate.
+    pub(crate) fn apply_subagent_notice(
+        &mut self,
+        receipt: &oc_core::queries::ChildJob,
+        jobs: &[oc_core::queries::ChildJob],
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        use oc_core::queries::ChildState;
+        if !matches!(self.render, ToolRender::Subagent(_))
+            || matches!(receipt.state, ChildState::Admitted | ChildState::Running)
+            || receipt.message_id.is_none()
+            || receipt.retained_bytes() > oc_core::tool_output::RECORD_BYTES
+            || !self.child_job.as_ref().is_some_and(|captured| {
+                self.op == receipt.operation
+                    && captured.parent == receipt.parent
+                    && captured.child == receipt.child
+                    && captured.operation == receipt.operation
+                    && captured.generation == receipt.generation
+                    && captured.location == receipt.location
+                    && captured.delivery_id == receipt.delivery_id
+            })
+        {
+            return false;
+        }
+        let mut terminal = receipt.clone();
+        terminal.result = None;
+        let changed = self.child_job.as_deref() != Some(&terminal);
+        self.child_job = Some(Box::new(terminal));
+        // The inventory may contain a real continuation of this same child.
+        self.refresh_subagent_job(&receipt.parent, jobs, picker) || changed
+    }
+
     /// Presentation only; every grouping, operation and permission key remains
     /// the canonical wire name. Missing/invalid legacy facts remain that name.
     pub(crate) fn display_name(&self) -> &str {

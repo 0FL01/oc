@@ -24,6 +24,69 @@ fn job() -> ChildJob {
 }
 
 #[tokio::test]
+async fn terminal_notice_wrong_fence_is_noop_for_capture_and_continuation_activity() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, SessionId("parent".into()));
+    let turn = WorkerTurnId("parent-turn".into());
+    state.begin_linked_turn(turn.clone());
+    let mut original = job();
+    original.background = true;
+    state.apply_child_jobs(vec![original.clone()]);
+    state.apply_tool_started(
+        &turn,
+        "launch",
+        "subagent",
+        r#"{"agent":"helper","description":"inspect configs","prompt":"task","background":true}"#,
+    );
+    state.apply_tool_finished(
+        &turn,
+        "launch",
+        "subagent",
+        "running",
+        "owned handle",
+        12,
+        false,
+    );
+    let mut continued = original.clone();
+    continued.operation = "continued".into();
+    continued.generation += 1;
+    continued.delivery_id = "continued-delivery".into();
+    state.apply_child_jobs(vec![continued]);
+    let before = state.transcript_rows();
+    for field in [
+        "parent",
+        "child",
+        "operation",
+        "generation",
+        "location",
+        "delivery",
+        "state",
+        "message",
+    ] {
+        let mut foreign = original.clone();
+        foreign.state = ChildState::Completed;
+        foreign.message_id = Some("real-notice".into());
+        match field {
+            "parent" => foreign.parent = SessionId("foreign".into()),
+            "child" => foreign.child = SessionId("foreign".into()),
+            "operation" => foreign.operation = "foreign".into(),
+            "generation" => foreign.generation += 1,
+            "location" => foreign.location = "/foreign".into(),
+            "delivery" => foreign.delivery_id = "foreign".into(),
+            "state" => foreign.state = ChildState::Running,
+            "message" => foreign.message_id = None,
+            _ => unreachable!(),
+        }
+        state.apply_child_notice(&foreign);
+        assert_eq!(
+            state.transcript_rows(),
+            before,
+            "rejected {field} must not reset live_running"
+        );
+    }
+}
+
+#[tokio::test]
 async fn captured_subagent_live_background_and_terminal_keep_one_graph_and_original_family() {
     let (app, mut inbox, _) = CoreApp::channel(8);
     let mut state = TuiState::new(app, SessionId("parent".into()));

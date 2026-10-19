@@ -17,6 +17,24 @@ pub(crate) struct ChildView {
     inactive: bool,
 }
 impl ChildView {
+    pub(crate) fn apply_notice(
+        &self,
+        receipt: &ChildJob,
+        window: &mut crate::history::HistoryWindow,
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        window.apply_subagent_notice(receipt, &self.rows, picker)
+    }
+
+    pub(crate) fn apply_live_notice(
+        &self,
+        receipt: &ChildJob,
+        card: &mut crate::history::ToolCard,
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        card.apply_subagent_notice(receipt, &self.rows, picker)
+    }
+
     pub(crate) fn foreground_job(
         &self,
         session: &SessionId,

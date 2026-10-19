@@ -20,8 +20,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: screenshots 1–3, corrected plan §2.
   - Acceptance: две Explore строки с descriptions «Сравнение subagent с upstream» / «Состояние Git и тесты»; завершение B меняет только старую B на ✓, Background остаётся; отдельный `↳ Explore finished · description`; A продолжает работу. Terminal notice обновляет и retained card вне inventory16, не ретаргетирует fence/result/link, не выключает genuine continuation; повтор notice идемпотентен.
   - Primary evidence: real handler regression с exact owner notice, B вне inventory и warm cache; existing child/foreground/continuation/navigation tests.
-  - Status: pending
-  - Evidence: —
+  - Status: verified
+  - Evidence: new actual handler `exact_child_notice_terminalizes_retained_launch_outside_inventory_without_retargeting` — RED на Running vs Completed, затем PASS (live/history × continuation/no-continuation, повтор notice, warm paint). `cargo test -p oc-tui --lib --locked child_view::tests` — 4 PASS, включая foreign-fence no-op. Финальная paired lifecycle qualification остаётся R4.
 - R2: actual-running spinner соответствует TS и lifecycle интерфейса.
   - Source: screenshot 1, corrected plan §3.
   - Acceptance: 10 frames/80ms, независимая фаза строки, parent idle/live→history/shared refresh не сбрасывают phase; canonical/live winner до eligibility; off→on reset, None=true, отсутствие own idle deadlines после завершения/removal/rebind. Off-mode foreground labeled gap отличается от bare Background gap. Pending Delegating/Linked hover не регрессируют.
@@ -80,16 +80,16 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: regression вне inventory и exact fenced terminal reconciliation.
-- Expected evidence: handler/card regression сначала RED, затем targeted GREEN; no other card/continuation changes.
+- Closes: R2.
+- Smallest next action: actual-running clocks отдельно от provider-pending, effective-card precedence и shared-owner phase preservation.
+- Expected evidence: deterministic Instant/cache/live→history/shared/config/reset tests; existing pending/continuation/foreground behavior preserved.
 
 ## Current State
 
-- Resolved: corrected plan copied; preflight clean.
-- Last relevant evidence: Rust HEAD `1d78b56bb59916a6c2682ddec22a4452e4f731eb`; TS `bc5ebf00a4c169ece10f276e6ce02eaf18c326e6`; both clean; verified origin/master same Rust SHA; UID1000, free disk >90GiB, MemAvailable >12GiB.
+- Resolved: plan commit `7e96fe16d` published; R1 exact terminal capture verified, no inventory expansion/new query.
+- Last relevant evidence: actual routing regression — 1 PASS; child_view suite — 4 PASS. Both with `CARGO_INCREMENTAL=0`, approved TMPDIR; fmt/diff-check PASS. TS current-runtime dependencies provisioned only in owned scratch, donor unchanged.
 - Blocker: нет подтверждённого.
-- Next: R1; independent read-only preflight current TS/runtime and durable chronology helper may inform later checkpoints.
+- Next: R2; original-journal notice reader and isolated current-TS runtime remain later checkpoints.
 
 ## Material Decisions
 
@@ -100,6 +100,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ## Checkpoint History
 
 - 2026-10-19: verified clean Rust/TS/origin; frozen corrected plan copied before implementation.
+- 2026-10-19: R1 RED→GREEN — retained card outside inventory terminalized via exact owner receipt after page refresh; full-inventory activity preserves continuation. 5 targeted tests PASS; proceed R2.
 
 ## Completion
 

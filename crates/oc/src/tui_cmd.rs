@@ -4056,17 +4056,21 @@ async fn handle_worker_event(
             let exact = app
                 .history_message(
                     notice.job.parent.clone(),
-                    oc_core::session::MessageId(message),
+                    oc_core::session::MessageId(message.clone()),
                 )
                 .await
                 .map_err(|error| error.to_string())?;
-            if !exact
-                .rows
-                .iter()
-                .any(|row| matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_))))
-            {
+            let Some(receipt) = exact.rows.iter().find_map(|row| {
+                let Some(oc_core::queries::ChildHistory::Notice(job)) = &row.child else {
+                    return None;
+                };
+                (row.id.0 == message
+                    && job.message_id.as_ref() == Some(&message)
+                    && job.parent == notice.job.parent)
+                    .then(|| job.as_ref().clone())
+            }) else {
                 return Ok(());
-            }
+            };
             if state.has_subagent_cards() {
                 child_controls::refresh(app, state).await?;
             }
@@ -4088,6 +4092,7 @@ async fn handle_worker_event(
                 .map_err(|error| error.to_string())?;
                 state.refresh_completed_page(&page);
             }
+            state.apply_child_notice(&receipt);
         }
         CoreEvent::ShellChanged { .. } => unreachable!("handled above"),
         CoreEvent::TerminalChanged { .. } => {}
