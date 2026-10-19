@@ -1,11 +1,13 @@
 // Real parent delegation, child-owned Shell and terminal effects, no UI stories.
 import {probeHistoryCompletion} from './history_completion.mjs';
+import {probeBackgroundSubagents} from './background_subagents.mjs';
 const glyphs=row=>row.map(c=>c.width===0?'':c.symbol).join('');
 const activeTab=(f,label)=>f.cells.some(row=>{
   const text=glyphs(row),x=text.indexOf(label);
   return text.includes('Subagents')&&text.includes('Terminals')&&x>=0&&row[x]?.modifiers.includes('bold');
 });
 export async function probeComposer(args) {
+  if(args.backgroundSubagents)return probeBackgroundSubagents(args);
   if(args.subagentPending)return probePendingSubagent(args);
   if(args.historyCompletion)return probeHistoryCompletion(args);
   if(args.rootHandoff)return probeRootHandoff(args);

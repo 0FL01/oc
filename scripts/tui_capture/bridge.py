@@ -642,7 +642,7 @@ if spec.get('clipboard_images'):
     (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
     env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
     clipboard = clipboard_fixture.Clipboard(env)
-if spec.get('mcp_sidebar') or spec.get('execute_preview') or spec.get('subagent_pending'):
+if spec.get('mcp_sidebar') or spec.get('execute_preview') or spec.get('subagent_pending') or spec.get('background_subagents'):
     (home / 'tmp').mkdir(exist_ok=True)
     env['TMPDIR'] = str(home / 'tmp')
 if spec.get('execute_preview') and spec['origin'] == 'oc':
@@ -920,6 +920,8 @@ try:
         emit({'kind': 'relaunch', 'generation': generation, 'argv': argv, 'cwd': str(project)})
 finally:
     compaction_fixture.release.set()
+    if spec.get('background_subagents'):
+        tool_preview_fixture.composer_fixture.background_subagent_fixture.cleanup()
     if clipboard:
         clipboard.close()
     scanner_release.set()

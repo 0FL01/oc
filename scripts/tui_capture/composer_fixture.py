@@ -6,6 +6,7 @@ import sqlite3
 import threading
 import time
 import history_completion_fixture
+import background_subagent_fixture
 
 ROOT_TASK = 'VIS39_ROOT_TASK'
 HANDOFF_TASK = 'VIS39_ROOT_HANDOFF_TASK'
@@ -26,6 +27,8 @@ pending_witness = None
 
 
 def configure(spec, home, project, config, cli):
+    if spec.get('background_subagents'):
+        return background_subagent_fixture.configure(spec, home, project, config, cli)
     if spec.get('history_completion'):
         return history_completion_fixture.configure(spec, home, project, config, cli)
     if spec.get('subagent_pending'):
@@ -83,6 +86,8 @@ with (root / ('composer-' + origin + '-completed.effects')).open('a') as f:
 
 
 def control(project, action, spec):
+    if spec.get('background_subagents'):
+        return background_subagent_fixture.control(action)
     if spec.get('history_completion'):
         return history_completion_fixture.control(action)
     global continuation_child
@@ -112,6 +117,8 @@ def control(project, action, spec):
 
 
 def snapshot(home, project, spec):
+    if spec.get('background_subagents'):
+        return background_subagent_fixture.snapshot(home, project, spec)
     if spec.get('history_completion'):
         return history_completion_fixture.snapshot(home)
     effects = {}
@@ -172,6 +179,8 @@ def snapshot(home, project, spec):
 
 
 def respond(handler, body, spec, emit):
+    if spec.get('background_subagents'):
+        return background_subagent_fixture.respond(handler, body, spec, emit)
     if spec.get('history_completion'):
         return history_completion_fixture.respond(handler, body, emit)
     global requests, parent_call_issued, continuation_call_issued, pending_witness

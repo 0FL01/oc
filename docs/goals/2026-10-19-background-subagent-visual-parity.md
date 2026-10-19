@@ -2,7 +2,7 @@
 
 Status: active
 Source: три пользовательских скриншота и уточнение «нам нужен визуальный паритет с OC2 TS в этом scope»; исправленный после четырёхчастного аудита план; запрос «делай копию плана в цель и итеративно реализовать и коммит пуш».
-Last updated: 2026-10-19
+Last updated: 2026-10-20
 
 ## Objective
 
@@ -21,13 +21,13 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: две Explore строки с descriptions «Сравнение subagent с upstream» / «Состояние Git и тесты»; завершение B меняет только старую B на ✓, Background остаётся; отдельный `↳ Explore finished · description`; A продолжает работу. Terminal notice обновляет и retained card вне inventory16, не ретаргетирует fence/result/link, не выключает genuine continuation; повтор notice идемпотентен.
   - Primary evidence: real handler regression с exact owner notice, B вне inventory и warm cache; existing child/foreground/continuation/navigation tests.
   - Status: verified
-  - Evidence: new actual handler `exact_child_notice_terminalizes_retained_launch_outside_inventory_without_retargeting` — RED на Running vs Completed, затем PASS (live/history × continuation/no-continuation, повтор notice, warm paint). `cargo test -p oc-tui --lib --locked child_view::tests` — 4 PASS, включая foreign-fence no-op. Финальная paired lifecycle qualification остаётся R4.
+  - Evidence: new actual handler `exact_child_notice_terminalizes_retained_launch_outside_inventory_without_retargeting` — RED на Running vs Completed, затем PASS (live/history × continuation/no-continuation, повтор notice, warm paint). `cargo test -p oc-tui --lib --locked child_view::tests` — 4 PASS, включая foreign-fence no-op. Финальная R4 matrix подтверждает B→A, сохранённые исходные карточки и четыре правильных card/notice navigation targets.
 - R2: actual-running spinner соответствует TS и lifecycle интерфейса.
   - Source: screenshot 1, corrected plan §3.
   - Acceptance: 10 frames/80ms, независимая фаза строки, parent idle/live→history/shared refresh не сбрасывают phase; canonical/live winner до eligibility; off→on reset, None=true, отсутствие own idle deadlines после завершения/removal/rebind. Off-mode foreground labeled gap отличается от bare Background gap. Pending Delegating/Linked hover не регрессируют.
   - Primary evidence: deterministic Instant/cache/owner tests и actual unpaused paired glyph observation.
-  - Status: in_progress
-  - Evidence: 4 deterministic actual_subagent tests PASS: row-local phase, 80ms/nanos remainder/cache, parent completion/shared reconstruction, canonical/live winner, config/reset; foreground/background static gap + resolved-theme badge wrap PASS. Full `cargo test -p oc-tui --lib --locked` — 612 PASS; actual exact-notice routing regression — 1 PASS. Visual/unpaused acceptance остаётся R4.
+  - Status: verified
+  - Evidence: deterministic actual_subagent tests PASS: row-local phase, 80ms/nanos remainder/cache, parent completion/shared reconstruction, canonical/live winner, config/reset; foreground/background static gap + resolved-theme badge wrap PASS. Финальный полный TUI — 618 PASS. Actual idle captures в обоих размерах: 8–9 разных естественно наблюдённых glyphs каждой строки за 650ms, parent step завершён до cadence; on/off whole-component cells/pixels совпадают с current TS. Evidence: `.local/evidence/background-final-evidence.json`.
 - R3: notice имеет TS step chronology при streaming, consumption, canonical refresh и reopen.
   - Source: screenshot 2 «вставляется вниз чата» и current TS pending/steer semantics, corrected audit §4.
   - Acceptance: pending notice после текущего step; consumed notice перед последующим assistant step; не за всем Rust turn. Позднее обычное сообщение не перетягивает старый notice. Unknown/legacy/partial provenance не вызывает guessed rotation; paging/RAW/order/dedup неизменны. Paint/hit/count/anchor используют actual live index; canonical-ahead возвращает None.
@@ -38,14 +38,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user current OC2 TS scope, corrected plan §1/§5.
   - Acceptance: изолированный runtime checkout `bc5ebf00…`, sealed runtime/source/runner/font provenance; 120×40 и 80×24 on/off: A+B running, B done/A running, оба done, правильные notices/clicks. Отдельный long-description badge-wrap и held-parent terminal/continuation cases; реальные correlated child owners и no duplicate/effects. Сравнивать целые компоненты, значимые spaces/background и relative anchors; полные grids/PNG/cursors unmasked. Независимые A/B phases допускают только component-specific observed pairing при доказанном concurrent state, не whole-scene PASS.
   - Primary evidence: paired actual captures, structured owner/provider witnesses, negative fixture/comparator tests.
-  - Status: in_progress
-  - Evidence: isolated current-source reference sealed with Bun/OpenTUI and actual native payloads; two-child fixture/probe and whole-component comparator implemented. Four Node and 18 Python fixture tests + 25 existing frame-comparator tests PASS. Actual paired runtime captures not yet qualified.
+  - Status: verified
+  - Evidence: 11 actual paired runs одного native source/binary, current-TS seal и font inputs: 4 idle lifecycle, 4 matched-boundary terminal, 2 wrap и 1 consumed. Все 22 behavior probes PASS, точные whole-component styled cells/PNG pixels совпадают во всех runs; 7 matched-boundary runs имеют `TARGETED_COMPONENT_PASS`, включая numeric notice anchors. Четыре idle reports сохраняют `DIFFERENT` для cumulative A-anchor из-за настоящего дополнительного TS step; все whole-frame differences также сохранены. Полные неизменённые artifacts: `.local/evidence/background-final-{lifecycle,terminal}-{120,80}-{on,off}`, `background-final-wrap-80-{on,off}`, `background-final-consumed-120-on`; сводки `background-final-matrix.json` / `background-final-evidence.json`. Node 6 / Python fixture 20 / existing frame-comparator 25 tests PASS. Профиль и интерпретация — `scripts/tui_capture/README.md`.
 - R5: код проверен и доставлен в Git.
   - Source: commit/push request, corrected plan §6.
   - Acceptance: targeted crate/fixture/comparator/syntax checks и `bash scripts/test.sh` PASS; review/diff-check и closure; own commits pushed без force в verified origin/master.
   - Primary evidence: команды/exit codes, commit IDs, remote HEAD.
-  - Status: pending
-  - Evidence: —
+  - Status: in_progress
+  - Evidence: targeted Rust/fixture/comparator/syntax gates и финальная strict workspace/all-target Clippy + 618 TUI PASS. Renderer commit `bf1dc41fb` опубликован и сверён с origin/master. Full `bash scripts/test.sh` выполняется; qualification tooling и финальная closure/delivery ещё не завершены.
 
 ### Constraints
 
@@ -80,22 +80,23 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R4.
-- Smallest next action: actual paired two-child lifecycle at 120×40, followed by 80×24 on/off, wrap and held-parent cases.
-- Expected evidence: independently observed animation phases, original cards and notices/navigation, structured execution witnesses and unmasked component cells/pixels against sealed current TS.
+- Closes: R5.
+- Smallest next action: завершить full offline gate и опубликовать проверенный qualification tooling в verified origin/master; затем closure и проверка remote HEAD.
+- Expected evidence: `bash scripts/test.sh` PASS, diff-check, normal commit/push и remote HEAD; затем closure без расширения scope.
 
 ## Current State
 
-- Resolved: plan `7e96fe16d`, R1 `d1669cbed`, R2 `9b0596f19` published; R3 implementation verified. R4 tooling checks green; runtime qualification remains.
-- Last relevant evidence: 618 TUI, 11 storage turn-history and core DTO compatibility tests PASS; latest source chronology tests 3 PASS and strict workspace/all-target Clippy PASS. `CARGO_INCREMENTAL=0`, approved TMPDIR; fmt/diff-check PASS. Current TS sealed manifest: `/home/stfu/.cache/opencode-tmp/opencode/background-current-ts-p9ZWO6/background-reference.json` (source `bc5ebf00…`, Bun 1.4.2, OpenTUI 0.5.17 and platform FFI/PTY/watcher payloads). Donor/user service unchanged.
+- Resolved: plan `7e96fe16d`, R1 `d1669cbed`, R2 `9b0596f19`, R3 `15bd28cd4`, renderer `bf1dc41fb` published; R4 actual scoped qualification verified. Wrap fixes preserve the complete badge, fitting source separator style and grapheme-safe notice ellipsis.
+- Last relevant evidence: final Clippy + 618 TUI PASS; 11 actual current-source paired runs, exact components throughout and strict matching-boundary anchor proof. Both products retain distinct real children/notices, all four links, draft/caret and unchanged controlled project hashes; reopen does not replay. Own background evidence 444.1 MiB, each raw log <16 MiB. Current TS sealed manifest: `/home/stfu/.cache/opencode-tmp/opencode/background-current-ts-p9ZWO6/background-reference.json` (source `bc5ebf00…`, Bun 1.4.2, OpenTUI 0.5.17 and platform FFI/PTY/watcher payloads). Donor/user service unchanged.
 - Blocker: нет подтверждённого.
-- Next: R4 actual paired qualification, then R5 full gate/delivery.
+- Next: R5 full gate/delivery and closure.
 
 ## Material Decisions
 
 - 2026-10-19: source audit corrected whole-turn notice rotation to actual request-boundary projection; additive DTO required, SQL/runtime mutation is not.
 - 2026-10-19: exact terminal state and current child activity are separate; apply receipt then full-inventory activity, preserve continuation and immutable Background provenance.
 - 2026-10-19: current TS runtime required; identical presentation source with old binary alone is insufficient current renderer/backend proof.
+- 2026-10-20: relative notice anchors compare corresponding request boundaries, not cumulative height across genuinely different request histories. Natural idle matrix remains exercised with its unchanged `DIFFERENT` A-anchor reports (TS really resumes the parent); all four held-terminal configurations supply strict anchor equality. No invented footer, masking, PASS override or native admission/scheduler change.
 
 ## Checkpoint History
 
@@ -103,6 +104,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: R1 RED→GREEN — retained card outside inventory terminalized via exact owner receipt after page refresh; full-inventory activity preserves continuation. 5 targeted tests PASS; proceed R2.
 - 2026-10-19: R2 implementation checkpoint — 612 TUI + exact notice routing PASS; actual-running clocks separate from pending, owner/shared/lifecycle/cache/off-gap checks green. Current TS standalone production binary built isolated; proceed R3, visual proof remains R4.
 - 2026-10-19: R3 read-only request-boundary projection and shared transcript composition verified, including transient terminal ownership without duplicate canonical prefix/footer. Optional DTO only; no migration. Proceed actual R4 captures.
+- 2026-10-20: R4 actual qualification — 11 final paired runs / 22 behavior probes PASS; seven strict matched-boundary component PASS, four idle exact-component results with truthful extra-step anchor difference. Actual wrap RED exposed whole-badge placement, ellipsis and one source-separator style; minimal native fixes pass 618 TUI + Clippy and fresh on/off wrap captures. Proceed R5.
 
 ## Completion
 

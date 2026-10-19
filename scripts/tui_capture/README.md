@@ -82,6 +82,64 @@ component qualification never relabels known whole-frame differences as PASS.
 The pending-only comparison checks styled cells and in-memory pixel regions read
 from the complete sealed PNGs; it produces no masked replacement artifacts.
 
+## Actual background Subagents (current-source reference)
+
+This exclusive profile uses the production executable built from the current
+local TS checkout, not the older pending-component oracle. Provision the locked
+CLI dependencies and Bun 1.4.2 in an owned source archive under approved scratch,
+then build/seal it with:
+
+```sh
+node scripts/tui_capture/background_reference.mjs "$REFERENCE_BUILD" "$DONOR_CHECKOUT"
+```
+
+The sealer requires donor commit `bc5ebf00a4c169ece10f276e6ce02eaf18c326e6`,
+clean tracked sources, an archive without unexpected source/dotenv files, and
+the exact OpenTUI 0.5.17/Solid 1.9.15 dependency inputs. It hashes the actual
+platform FFI/PTY/watcher payloads and builds with `--no-env-file`, a minimal owned
+environment, and the existing production CLI build script. It does not install
+dependencies, modify the donor, or discover/connect to a user's service.
+
+```sh
+TMPDIR="$TOOLS/tmp" FONTCONFIG_FILE="$TOOLS/fonts.conf" \
+node scripts/tui_capture/capture.mjs \
+  --reference "$REFERENCE_BUILD/dist/cli-linux-x64/bin/opencode" \
+  --background-reference "$REFERENCE_BUILD/background-reference.json" \
+  --oc "$WORKTREE/target/debug/oc2" --tools "$TOOLS" --build-oc true \
+  --geometry true --sample short --sidebar hide --tool-preview true \
+  --combined-composer true --subagent-cards true --background-subagents true \
+  --background-animation true --background-case terminal \
+  --columns 120 --rows 40 --output "$WORKTREE/.local/evidence/NEW_ATTEMPT"
+```
+
+Use absolute owned paths below approved scratch for tools, fonts and TMPDIR.
+The mode requires this worktree's newly built native executable, verifies the
+current-reference seal before and after each capture, and leaves the old ELF
+guard unchanged for all other profiles. Actual application HOME/XDG/TMP roots
+are private; native uses its real `tui` CLI and TS uses `--standalone`.
+
+Run both `120×40` and `80×24`, with `--background-animation true|false`:
+`lifecycle` exercises two actual Explore children with an idle parent; `terminal`
+holds a real parent response across both B→A completions to compare matching
+request boundaries. `consumed` instead releases the parent after B and proves
+B precedes the actual consuming continuation; `wrap` uses a separate long
+description to exercise the entire wrapped Background badge. Snapshots correlate
+issued provider calls with real operations/children and distinct durable notices.
+Every episode checks all four card/notice navigation targets and saved-session
+reopen, without seeded history, tool replay or filesystem mutation.
+
+Unpaused observations establish natural row-local glyph progress. Each animated
+component is paired at an actually observed phase while both children run; the
+runner pauses/drains only its own processes to save stable full grids/PNGs and
+resumes immediately. Comparisons cover whole components, significant padding,
+badge styles and notice anchors. No masked/spliced artifacts are produced.
+Current TS automatically resumes an idle parent on notice delivery, whereas
+native does not: real additional TS steps can make cumulative idle anchors
+`DIFFERENT`. Keep those reports unchanged; matched-boundary `terminal` captures
+provide strict anchor evidence separately. `TARGETED_COMPONENT_PASS` is not
+whole-scene parity: full unmasked grid/PNG/cursor reports and CLI exit 1 remain
+honest about unrelated differences.
+
 ## Supplementary MCP sidebar (2.0.31, not frozen T44 qualification)
 
 `--mcp-sidebar true` is an exclusive `160×48`, short-answer, sidebar-auto profile.
