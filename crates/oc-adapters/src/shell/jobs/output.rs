@@ -7,6 +7,14 @@ use crate::tools::output::StreamRedactor;
 
 pub(super) const RECENT_CAP: usize = 65536;
 
+#[derive(Clone, Copy)]
+struct CaptureCause {
+    stage: &'static str,
+    code: &'static str,
+    kind: Option<std::io::ErrorKind>,
+    errno: Option<i32>,
+}
+
 struct TextStream {
     utf8: Vec<u8>,
     ansi: anstyle_parse::Parser,
@@ -147,6 +155,7 @@ pub(super) struct StreamCapture {
     observed: u64,
     lost: bool,
     failure: Option<CaptureState>,
+    first_cause: Option<CaptureCause>,
     interrupted: bool,
     admitted_bytes: u64,
     admitted_newlines: u64,
@@ -165,6 +174,7 @@ impl StreamCapture {
             observed: 0,
             lost: false,
             failure: None,
+            first_cause: None,
             interrupted: false,
             admitted_bytes: 0,
             admitted_newlines: 0,
@@ -181,6 +191,12 @@ impl StreamCapture {
         {
             self.lost = true;
             self.failure = Some(CaptureState::Io);
+            self.first_cause.get_or_insert(CaptureCause {
+                stage: "redaction_admission",
+                code: "material_limit",
+                kind: None,
+                errno: None,
+            });
             self.stdout.suppress = true;
             self.stderr.suppress = true;
             return;
@@ -198,7 +214,8 @@ impl StreamCapture {
             Ok(writer) => self.writer = Some(writer),
             Err(error) => {
                 self.lost = true;
-                self.failure = Some(failure_state(&error));
+                self.failure.get_or_insert(failure_state(&error));
+                self.observe_error("begin", &error);
             }
         }
     }
@@ -257,11 +274,9 @@ impl StreamCapture {
                 writer.shell_facts(facts);
                 if let Err(error) = writer.append(&framed) {
                     self.lost = true;
-                    let state = match error {
-                        StorageError::Sqlite(_) => CaptureState::RegisterFailure,
-                        _ => CaptureState::Io,
-                    };
-                    self.failure = Some(state);
+                    let state = failure_state(&error);
+                    self.failure.get_or_insert(state);
+                    self.observe_error("append", &error);
                     self.resource = self.writer.take().expect("writer").abandon(state);
                 }
             }
@@ -307,50 +322,62 @@ impl StreamCapture {
                 CaptureState::Complete
             };
             match writer.finish_state(state) {
-                Ok(resource) => self.resource = Some(resource),
+                Ok(resource) => {
+                    self.observe_state("finish", resource.state);
+                    self.resource = Some(resource);
+                }
                 Err(error) => {
                     self.lost = true;
-                    self.failure = Some(failure_state(&error));
-                    // Final rename/registration may have failed. Only an actually
-                    // reopenable registered prefix may be advertised.
-                    self.resource = db
-                        .output_for_operation(&p.operation)
-                        .ok()
-                        .flatten()
-                        .and_then(|r| {
-                            db.open_tool_output(&p.session, &r.path)
-                                .ok()
-                                .map(|reader| reader.resource.clone())
-                        });
+                    self.failure.get_or_insert(failure_state(&error));
+                    self.observe_error("finish", &error);
                 }
             }
         }
-        if db
-            .shell_output_facts(
-                &p.operation,
-                self.facts(),
-                self.admitted_bytes,
-                self.admitted_newlines + u64::from(self.admitted_bytes > 0 && !self.last_newline),
-                self.failure,
-            )
-            .is_err()
-        {
+        if let Err(error) = db.shell_output_facts(
+            &p.operation,
+            self.facts(),
+            self.admitted_bytes,
+            self.admitted_newlines + u64::from(self.admitted_bytes > 0 && !self.last_newline),
+            self.failure,
+        ) {
             self.lost = true;
-            self.failure = Some(CaptureState::RegisterFailure);
+            self.failure.get_or_insert(CaptureState::RegisterFailure);
+            self.observe_error("facts", &error);
         }
-        self.resource = db
-            .output_for_operation(&p.operation)
-            .ok()
-            .flatten()
-            .and_then(|r| {
-                db.open_tool_output(&p.session, &r.path)
-                    .ok()
-                    .map(|reader| reader.resource.clone())
-            });
-        if self.resource.is_none() {
-            self.lost = true;
-            self.failure.get_or_insert(CaptureState::Io);
-        }
+        // One authoritative final lookup/readback, after facts settlement. A
+        // missing row is not an exception, and no later failure replaces the
+        // first observed boundary. Only a genuinely reopenable prefix is usable.
+        self.resource = match db.output_for_operation(&p.operation) {
+            Ok(Some(resource)) => {
+                self.observe_state("lookup", resource.state);
+                match db.open_tool_output(&p.session, &resource.path) {
+                    Ok(reader) => Some(reader.resource.clone()),
+                    Err(error) => {
+                        self.lost = true;
+                        self.failure.get_or_insert(failure_state(&error));
+                        self.observe_error("reopen", &error);
+                        None
+                    }
+                }
+            }
+            Ok(None) => {
+                self.lost = true;
+                self.failure.get_or_insert(CaptureState::Io);
+                self.first_cause.get_or_insert(CaptureCause {
+                    stage: "lookup",
+                    code: "resource_missing",
+                    kind: None,
+                    errno: None,
+                });
+                None
+            }
+            Err(error) => {
+                self.lost = true;
+                self.failure.get_or_insert(failure_state(&error));
+                self.observe_error("lookup", &error);
+                None
+            }
+        };
         if self.lost
             && self
                 .resource
@@ -387,6 +414,75 @@ impl StreamCapture {
                 )
             })
         })
+    }
+
+    fn observe_error(&mut self, stage: &'static str, error: &StorageError) {
+        let (code, kind, errno) = match error {
+            StorageError::Sqlite(_) => ("sqlite", None, None),
+            StorageError::Io(error) => ("io", Some(error.kind()), error.raw_os_error()),
+            StorageError::StorageFull => ("storage_full", None, None),
+            StorageError::UnsafeRoot(_) => ("unsafe_root", None, None),
+            _ => ("storage_error", None, None),
+        };
+        self.first_cause.get_or_insert(CaptureCause {
+            stage,
+            code,
+            kind,
+            errno,
+        });
+    }
+
+    fn observe_state(&mut self, stage: &'static str, state: CaptureState) {
+        let code = match state {
+            CaptureState::Io => "state_io",
+            CaptureState::Quota => "state_quota",
+            CaptureState::ArtifactCap => "state_artifact_cap",
+            CaptureState::RegisterFailure => "state_register_failure",
+            _ => return,
+        };
+        self.failure.get_or_insert(state);
+        self.first_cause.get_or_insert(CaptureCause {
+            stage,
+            code,
+            kind: None,
+            errno: None,
+        });
+    }
+
+    pub(super) fn diagnostic(&self) -> Option<String> {
+        // Producer interruption alone is not a capture failure. Prefer a real
+        // observed failure if cleanup later reports one; otherwise describe only
+        // the incomplete boundary actually known here, never an inferred errno.
+        let cause = self.first_cause.or_else(|| {
+            let (stage, code) = if self.interrupted {
+                ("ingest", "producer_interrupted")
+            } else if self
+                .resource
+                .as_ref()
+                .is_some_and(|r| r.state == CaptureState::Interrupted)
+            {
+                ("finish", "state_interrupted")
+            } else {
+                return None;
+            };
+            Some(CaptureCause {
+                stage,
+                code,
+                kind: None,
+                errno: None,
+            })
+        })?;
+        let mut text = format!(
+            "capture first_observed stage={} code={}",
+            cause.stage, cause.code
+        );
+        if let Some(kind) = cause.kind {
+            text.push_str(&format!(" kind={kind:?}"));
+        }
+        if let Some(errno) = cause.errno {
+            text.push_str(&format!(" errno={errno}"));
+        }
+        Some(text)
     }
 }
 

@@ -42,7 +42,7 @@ struct ProgressReceipt {
     prior_selection_json_bytes: u64,
     replacement_selection_json_bytes: u64,
 }
-fn serialized_size<T: serde::Serialize>(value: &T) -> Result<u64, RuntimeError> {
+pub(super) fn serialized_size<T: serde::Serialize>(value: &T) -> Result<u64, RuntimeError> {
     struct Counter(u64);
     impl std::io::Write for Counter {
         fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {

@@ -895,6 +895,56 @@ fn fresh_child_admission_commit_fault_rolls_back_session_location_event_and_job(
 }
 
 #[test]
+fn full_notice_batch_preflights_bytes_without_skipping_an_oversized_prefix() {
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let accepted = admitted(&db);
+    let first = "Ω界 \"report\"\\\n".repeat(3000);
+    db.finish_child_job("launch", ChildState::Completed, &first)
+        .unwrap();
+    db.record_tool_intent("second-launch", "parent", None, "subagent", "{}")
+        .unwrap();
+    let second = ChildJob {
+        child: oc_core::domain::SessionId("second-child".into()),
+        operation: "second-launch".into(),
+        delivery_id: "second-delivery".into(),
+        ..accepted
+    };
+    db.admit_fresh_child_job(&second).unwrap();
+    db.finish_child_job(
+        "second-launch",
+        ChildState::Completed,
+        &"second\n".repeat(1000),
+    )
+    .unwrap();
+    let notices = db.deliver_child_notices().unwrap();
+    assert_eq!(notices.len(), 2);
+    let texts = notices
+        .iter()
+        .map(|notice| child_notice_text(&db, notice))
+        .collect::<Vec<_>>();
+    let bytes = texts.iter().map(String::len).sum::<usize>();
+    assert!(texts[0].len() > texts[1].len());
+    // Both an oversized first row and an aggregate-only overflow return no
+    // bodies, never a fitting suffix or an admitted prefix.
+    for budget in [texts[0].len() - 1, bytes - 1] {
+        let page = db.shell_notices_after("parent", 0, budget).unwrap();
+        assert!(page.overflow && page.rows.is_empty());
+        assert_eq!(page.rows_read, 2);
+        assert_eq!(page.bytes, bytes as u64);
+    }
+    let page = db.shell_notices_after("parent", 0, bytes).unwrap();
+    assert!(!page.overflow);
+    assert_eq!(page.rows.len(), 2);
+    for ((id, role, text), (notice, expected)) in page.rows.iter().zip(notices.iter().zip(&texts)) {
+        assert_eq!(Some(id.as_str()), notice.job.message_id.as_deref());
+        assert_eq!(role, "user");
+        assert_eq!(text, expected);
+    }
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+}
+
+#[test]
 fn complete_report_survives_settlement_delivery_and_bounded_status_projection() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();

@@ -616,11 +616,11 @@ impl Jobs {
                     || r.admitted_lines > p.output_limits.max_lines as u64
             });
             outcome.capture = resource.clone();
-            outcome.capture_failure = owned_capture
-                .stream
-                .lock()
-                .expect("stream admission")
-                .failure();
+            let capture_diagnostic = {
+                let capture = owned_capture.stream.lock().expect("stream admission");
+                outcome.capture_failure = capture.failure();
+                capture.diagnostic()
+            };
             outcome.output_presentation = Some(outcome.prepared_presentation());
             let (display, omitted) = owned_capture
                 .stream
@@ -671,11 +671,21 @@ impl Jobs {
                     if matches!(outcome.state.as_str(), "completed" | "failed") {
                         outcome.state = "failed".into();
                     }
-                    outcome.diagnostic = Some(
-                        "tool output capture failed; execution facts/exit retained; not replayed"
-                            .into(),
+                    let diagnostic = outcome.diagnostic.get_or_insert_with(String::new);
+                    if !diagnostic.is_empty() {
+                        diagnostic.push('\n');
+                    }
+                    diagnostic.push_str(
+                        "tool output capture failed; execution facts/exit retained; not replayed",
                     );
                 }
+            }
+            if let Some(cause) = capture_diagnostic {
+                let diagnostic = outcome.diagnostic.get_or_insert_with(String::new);
+                if !diagnostic.is_empty() {
+                    diagnostic.push('\n');
+                }
+                diagnostic.push_str(&cause);
             }
             let mut control = owned_control.lock().expect("shell control");
             if let Some(presentation) = &mut outcome.output_presentation

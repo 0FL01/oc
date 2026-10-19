@@ -16,6 +16,167 @@ mod identity_tests {
 }
 
 #[tokio::test]
+async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_capture() {
+    use crate::config::{McpEntry, ProviderEntry, ProviderOptions};
+    use crate::shell::jobs::{Jobs, Provenance};
+    use crate::storage::tool_output::CaptureState;
+    let key = "k".repeat(1024);
+    let url = "https://synthetic.invalid".to_owned();
+    let bearer = format!("Bearer {key}");
+    let request = ResponsesConfig {
+        headers: BTreeMap::from([("X-Binding".into(), "binding-only".into())]),
+        cache: crate::provider::CacheMode::None,
+        wire: Default::default(),
+        base_url: url.clone(),
+        api_key: key.clone(),
+        timeout: None,
+        header_timeout_ms: None,
+        chunk_timeout_ms: None,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: false,
+    };
+    let mut config = Generation::default();
+    let bindings = (0..80)
+        .map(|index| {
+            (
+                (format!("model-{index}"), Some("variant".into())),
+                request.clone(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert!(
+        bindings.len() * key.len() > 65536,
+        "fixture must exceed the old duplicate-counting guard"
+    );
+    config.providers.insert(
+        "fixture".into(),
+        ProviderEntry {
+            npm: None,
+            name: None,
+            env: Vec::new(),
+            compatibility: Default::default(),
+            models: BTreeMap::new(),
+            options: ProviderOptions {
+                redaction_material: vec![
+                    key.clone(),
+                    "header-token".into(),
+                    " header-token ".into(),
+                    "HEADER-TOKEN".into(),
+                    String::new(),
+                ],
+                api_key: key.clone(),
+                base_url: url.clone(),
+                headers: BTreeMap::from([
+                    ("Authorization".into(), bearer.clone()),
+                    ("X-Duplicate".into(), key.clone()),
+                    ("X-Empty".into(), String::new()),
+                ]),
+                request_bindings: bindings,
+                ..Default::default()
+            },
+        },
+    );
+    config.mcp.insert(
+        "not-started".into(),
+        McpEntry {
+            environment: BTreeMap::from([
+                ("ONLY".into(), "mcp-only".into()),
+                ("SECRET".into(), key.clone()),
+            ]),
+            blocked_inherited_values: vec!["blocked-only".into(), key.clone()],
+            url: Some(url.clone()),
+            headers: BTreeMap::from([
+                ("Authorization".into(), bearer.clone()),
+                ("X-Unique".into(), "mcp-header".into()),
+            ]),
+            ..Default::default()
+        },
+    );
+    let env = BTreeMap::from([
+        ("A_KEY".into(), key.clone()),
+        ("B_TOKEN".into(), key.clone()),
+        ("EMPTY_SECRET".into(), String::new()),
+    ]);
+    let secrets = mcp::mcp_redactions(&config, &env);
+    assert_eq!(
+        secrets.len(),
+        10,
+        "only exact nonempty first occurrences remain"
+    );
+    assert_eq!(
+        secrets,
+        vec![
+            key,
+            "header-token".into(),
+            " header-token ".into(),
+            "HEADER-TOKEN".into(),
+            url,
+            bearer,
+            "binding-only".into(),
+            "mcp-only".into(),
+            "blocked-only".into(),
+            "mcp-header".into()
+        ]
+    );
+    let temp = tempfile::tempdir().unwrap();
+    let project = temp.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let db = Db::open(&temp.path().join("data")).unwrap();
+    db.create_bound_session("s", project.to_str().unwrap())
+        .unwrap();
+    db.begin_turn("t", "s", "silent capture").unwrap();
+    db.record_tool_intent("op", "s", Some("t"), "shell", "{}")
+        .unwrap();
+    let jobs = Jobs::new(&db);
+    let shell = crate::shell::Shell::new(&project).unwrap();
+    let argv = vec!["/bin/sh".into(), "-c".into(), "exit 0".into()];
+    let cwd = shell.pin_cwd(&argv, ".").unwrap();
+    jobs.launch_mode(
+        shell,
+        BTreeMap::new(),
+        argv,
+        ".".into(),
+        Duration::from_secs(3),
+        cwd,
+        Provenance {
+            version: 1,
+            session: "s".into(),
+            turn: "t".into(),
+            operation: "op".into(),
+            location: project.display().to_string(),
+            generation: 1,
+            output_limits: Default::default(),
+            output_source: "synthetic/config".into(),
+            agent: None,
+            agent_digest: None,
+            model: "fixture".into(),
+            provider: "fixture".into(),
+            command: "exit 0".into(),
+            cwd: ".".into(),
+            selected_shell: "/bin/sh".into(),
+        },
+        jobs.reserve().unwrap(),
+        true,
+        secrets,
+    )
+    .await
+    .unwrap();
+    let outcome = jobs
+        .foreground("s", "op", &AtomicBool::new(false))
+        .await
+        .unwrap()
+        .unwrap();
+    jobs.shutdown().await.unwrap();
+    assert_eq!(outcome.exit, Some(0));
+    assert_eq!(outcome.state, "completed");
+    assert!(outcome.capture_failure.is_none() && outcome.diagnostic.is_none());
+    let resource = db.output_for_operation("op").unwrap().unwrap();
+    assert_eq!(resource.state, CaptureState::Complete);
+    assert_eq!((resource.bytes, resource.admitted_bytes), (0, 0));
+    assert!(db.open_tool_output("s", &resource.path).is_ok());
+}
+
+#[tokio::test]
 async fn conn05_custom_publication_keeps_captured_generation_policy_and_mcp_lease() {
     let project = tempfile::tempdir().unwrap();
     let data = tempfile::tempdir().unwrap();

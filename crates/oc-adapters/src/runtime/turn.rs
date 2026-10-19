@@ -1585,11 +1585,13 @@ impl<'a> Runtime<'a> {
         let admitted_history = dcp_continuation(&history, &[], &tool_projection);
         crate::attachments::admit_images(&selection.entry, &admitted_history, &prompt_input)
             .map_err(RuntimeError::InvalidArgs)?;
-        let admission_bytes =
-            serde_json::to_vec(&(&fixed_input, &admitted_history, &prompt_input, &tool_defs))
-                .map_err(|_| RuntimeError::Storage)?
-                .len();
-        if admission_bytes > ACTIVE_CONTEXT_BYTES_CAP {
+        let admission_bytes = super::compaction::serialized_size(&(
+            &fixed_input,
+            &admitted_history,
+            &prompt_input,
+            &tool_defs,
+        ))?;
+        if admission_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
             return Err(RuntimeError::InvalidArgs(
                 "active context byte limit exceeded".into(),
             ));
@@ -1806,7 +1808,21 @@ impl<'a> Runtime<'a> {
             .iter()
             .filter_map(|(id, _, _)| id.strip_prefix('m')?.parse::<i64>().ok())
             .max()
-            .unwrap_or(0);
+            .unwrap_or(0)
+            .max(
+                turn_log
+                    .shell_notice_messages
+                    .iter()
+                    .filter_map(|id| id.strip_prefix('m')?.parse::<i64>().ok())
+                    .max()
+                    .unwrap_or(0),
+            )
+            .max(
+                turn_log
+                    .raw_prefix
+                    .as_ref()
+                    .map_or(0, |prefix| prefix.delivered_notice_seq),
+            );
         if !resuming {
             let instruction_position = if instruction_revision != 0 {
                 turn_log.input.len()
@@ -1911,18 +1927,47 @@ impl<'a> Runtime<'a> {
             {
                 self.shell_jobs.deliver(events)?;
             }
-            for (id, notice) in self
-                .db
-                .shell_notices_after(&params.session, shell_notice_seq)?
-            {
-                shell_notice_seq = id
+            let notices = self.db.shell_notices_after(
+                &params.session,
+                shell_notice_seq,
+                ACTIVE_CONTEXT_BYTES_CAP,
+            )?;
+            if notices.overflow {
+                let error = RuntimeError::ContextOverflow {
+                    bytes: notices.bytes,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                };
+                let mut report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    context_usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                report.diagnostic = Some(error.to_string());
+                return Ok(TurnExecution::Report(Box::new(report)));
+            }
+            // Keep the open notice tail out of instruction/checkpoint commits
+            // until the complete next request has passed byte and model admission.
+            let mut staged_notice_seq = shell_notice_seq;
+            let mut staged_notice_ids = Vec::new();
+            let mut staged_notice_input = Vec::new();
+            for (id, _, notice) in notices.rows {
+                staged_notice_seq = id
                     .strip_prefix('m')
                     .and_then(|value| value.parse().ok())
                     .ok_or(RuntimeError::Storage)?;
-                turn_log.shell_notice_messages.push(id);
-                turn_log
-                    .input
-                    .push(InputItem::message(InputRole::User, notice));
+                if !turn_log.represents_notice(&id) {
+                    staged_notice_ids.push(id);
+                    staged_notice_input.push(InputItem::message(InputRole::User, notice));
+                }
             }
             if params.cancel.load(Ordering::Relaxed) {
                 return self
@@ -2109,6 +2154,7 @@ impl<'a> Runtime<'a> {
                     .filter(|row| {
                         turn_log.user_message.as_deref() != Some(row.0.as_str())
                             && !turn_log.represents_notice(&row.0)
+                            && !staged_notice_ids.contains(&row.0)
                     })
                     .cloned()
                     .collect::<Vec<_>>();
@@ -2288,13 +2334,14 @@ impl<'a> Runtime<'a> {
                 });
                 previous_instruction_input = latest_instruction_input;
             }
-            let current_instruction_input = turn_log.instruction_input_for_bound(
+            let mut current_instruction_input = turn_log.instruction_input_for_bound(
                 &selection.id,
                 &params.catalog.provider,
                 &instruction_facts,
                 Some(&binding),
                 Some(&lane.request_profile()),
             );
+            current_instruction_input.extend(staged_notice_input.iter().cloned());
             let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
             if let Some(text) = crate::plan::missing(
@@ -2411,9 +2458,26 @@ impl<'a> Runtime<'a> {
                 }
                 last_compacted_round = Some(rounds);
                 let refreshed = self.active_projection(&params.session)?;
+                // The running turn's journal is supplied separately below.
+                // Its user and staged/represented notices must not reappear
+                // through history, including when the anchor was compacted.
+                let window = turn_log
+                    .user_message
+                    .as_deref()
+                    .and_then(|anchor| refreshed.projected.iter().position(|row| row.0 == anchor))
+                    .map_or(refreshed.projected.as_slice(), |index| {
+                        &refreshed.projected[..index]
+                    });
+                let prior = window
+                    .iter()
+                    .filter(|row| {
+                        !turn_log.represents_notice(&row.0) && !staged_notice_ids.contains(&row.0)
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>();
                 history = self.wire_history_bound(
                     &params.session,
-                    &refreshed.projected,
+                    &prior,
                     &refreshed.blocks,
                     &selection.id,
                     &params.catalog.provider,
@@ -2421,23 +2485,6 @@ impl<'a> Runtime<'a> {
                     refreshed.after_seq,
                     Some(&binding),
                 )?;
-                // The running turn's journal is supplied separately below.
-                // Its active user row must not appear twice after refresh.
-                if let Some(anchor) = turn_log.user_message.as_deref()
-                    && let Some(index) = refreshed.projected.iter().position(|row| row.0 == anchor)
-                {
-                    let prior = &refreshed.projected[..index];
-                    history = self.wire_history_bound(
-                        &params.session,
-                        prior,
-                        &refreshed.blocks,
-                        &selection.id,
-                        &params.catalog.provider,
-                        lane.agent_digest.as_deref(),
-                        refreshed.after_seq,
-                        Some(&binding),
-                    )?;
-                }
                 projected = refreshed.projected;
                 let raw_context: Vec<_> = history
                     .iter()
@@ -2464,10 +2511,45 @@ impl<'a> Runtime<'a> {
             // Compaction re-evaluation is the same logical primary iteration,
             // not another nudge tick. Finite pre-output retries share it too.
             let cadence_messages = if compress_available && !lane.manual_compression {
-                self.dcp_cadence_messages(&params.session, &projected, &turn_log)?
+                self.dcp_cadence_messages(
+                    &params.session,
+                    &projected,
+                    &turn_log,
+                    &staged_notice_ids,
+                )?
             } else {
                 Vec::new()
             };
+            let baseline_bytes = {
+                let input: Vec<_> = fixed_input
+                    .iter()
+                    .chain(anchors.iter())
+                    .chain(&projected_continuation)
+                    .collect();
+                super::compaction::serialized_size(&(&input, &tool_defs))?
+            };
+            if baseline_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
+                let error = RuntimeError::ContextOverflow {
+                    bytes: baseline_bytes,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                };
+                let mut report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    context_usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                report.diagnostic = Some(error.to_string());
+                return Ok(TurnExecution::Report(Box::new(report)));
+            }
             let (nudge, persisted_nudge) = {
                 let estimate = estimate_input_tokens(
                     &serde_json::to_string(&(
@@ -2523,20 +2605,42 @@ impl<'a> Runtime<'a> {
             let continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
             crate::instructions::reconcile(&mut fixed_input, &continuation, &instruction_facts);
-            let input: Vec<InputItem> = fixed_input
+            let input: Vec<_> = fixed_input
                 .iter()
                 .chain(nudge_input.iter())
                 .chain(anchors.iter())
                 .chain(&continuation)
-                .cloned()
                 .collect();
+            let escaped_bytes = super::compaction::serialized_size(&(&input, &tool_defs))?;
+            if escaped_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
+                let error = RuntimeError::ContextOverflow {
+                    bytes: escaped_bytes,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                };
+                let mut report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    context_usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                report.diagnostic = Some(error.to_string());
+                return Ok(TurnExecution::Report(Box::new(report)));
+            }
+            let input: Vec<InputItem> = input.into_iter().cloned().collect();
             crate::attachments::admit_images(&selection.entry, &input, &[])
                 .map_err(RuntimeError::InvalidArgs)?;
             let request_estimate = estimate_input_tokens(
                 &serde_json::to_string(&(&input, &tool_defs)).map_err(|_| RuntimeError::Storage)?,
                 input.iter(),
             );
-            let read_log_base = turn_log.to_json().to_string().len();
             let read_context_bytes = serde_json::to_vec(&input)
                 .map_err(|_| RuntimeError::Storage)?
                 .len()
@@ -2569,6 +2673,10 @@ impl<'a> Runtime<'a> {
                 report.diagnostic = Some(error.to_string());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
+            turn_log.input.extend(staged_notice_input);
+            turn_log.shell_notice_messages.extend(staged_notice_ids);
+            shell_notice_seq = staged_notice_seq;
+            let read_log_base = turn_log.to_json().to_string().len();
             // A retry with no committed output reuses the complete prepared
             // request, not just its publication number. Only a durably settled
             // partial continuation returns to the fresh-preparation boundary.

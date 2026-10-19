@@ -597,14 +597,42 @@ impl Db {
         &self,
         session: &str,
         after: i64,
-    ) -> Result<Vec<(String, String)>, StorageError> {
+        budget: usize,
+    ) -> Result<ActiveHistory, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         // Native notice admission follows the same branch visibility as every
-        // other conversation input; raw immutable history is not the wire view.
-        let mut stmt = conn.prepare("SELECT m.id,m.text FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND (EXISTS(SELECT 1 FROM shell_jobs j WHERE j.message_id=m.id AND j.session_id=m.session_id) OR EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id)) ORDER BY m.seq LIMIT 8")?;
-        Ok(stmt
-            .query_map(params![session, after], |r| Ok((r.get(0)?, r.get(1)?)))?
-            .collect::<Result<Vec<_>, _>>()?)
+        // other input. Size the whole page before transferring any bodies; a
+        // fitting suffix must not skip an oversized first notice or advance IDs.
+        let mut stmt = conn.prepare("SELECT m.id,m.role,length(CAST(m.text AS BLOB)) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND (EXISTS(SELECT 1 FROM shell_jobs j WHERE j.message_id=m.id AND j.session_id=m.session_id) OR EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id)) ORDER BY m.seq LIMIT 8")?;
+        let page = stmt
+            .query_map(params![session, after], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        let bytes = page.iter().fold(0u64, |total, (_, _, size)| {
+            total.saturating_add((*size).max(0) as u64)
+        });
+        let mut result = ActiveHistory {
+            rows: Vec::new(),
+            bytes,
+            rows_read: page.len(),
+            overflow: bytes > budget as u64,
+        };
+        if !result.overflow {
+            for (id, role, _) in page {
+                let text = conn.query_row(
+                    "SELECT text FROM conversation_messages WHERE session_id=?1 AND id=?2",
+                    params![session, id],
+                    |r| r.get::<_, String>(0),
+                )?;
+                result.rows.push((id, role, text));
+            }
+        }
+        Ok(result)
     }
 
     pub(crate) fn shell_output(

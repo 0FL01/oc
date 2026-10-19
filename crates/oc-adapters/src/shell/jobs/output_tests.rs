@@ -1,6 +1,108 @@
 use super::*;
 use std::fs;
 
+#[test]
+fn shell_unique_redaction_aggregate_boundary_stays_fail_closed() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = Db::open(temp.path()).unwrap();
+    db.create_bound_session("s", "/project").unwrap();
+    db.begin_turn("t", "s", "capture").unwrap();
+    for total in [65536, 65537] {
+        let operation = format!("boundary-{total}");
+        db.record_tool_intent(&operation, "s", Some("t"), "shell", "{}")
+            .unwrap();
+        let p = provenance(Path::new("/project"), &operation);
+        let capture = Capture::new(Arc::default());
+        let secrets = vec!["A".repeat(32768), "B".repeat(total - 32768)];
+        assert_eq!(secrets.iter().map(String::len).sum::<usize>(), total);
+        capture.stream.lock().unwrap().begin(&db, &p, secrets);
+        capture.ingest(Stream::Stdout, b"SAFE_BODY\n", true, true);
+        capture.ingest(Stream::Stderr, b"SAFE_ERR\n", true, true);
+        let (tail, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
+        let diagnostic = capture.stream.lock().unwrap().diagnostic();
+        if total == 65536 {
+            assert!(!failed);
+            let resource = resource.unwrap();
+            assert_eq!(
+                resource.state,
+                crate::storage::tool_output::CaptureState::Complete
+            );
+            assert!(db.open_tool_output("s", &resource.path).is_ok());
+            assert!(tail.contains("SAFE_BODY") && tail.contains("SAFE_ERR"));
+            assert!(diagnostic.is_none());
+        } else {
+            assert!(failed && resource.is_none() && tail.is_empty());
+            assert_eq!(capture.text(), "status: running\n");
+            assert!(capture.stdout.lock().unwrap().bytes.is_empty());
+            assert!(capture.stderr.lock().unwrap().bytes.is_empty());
+            assert!(db.output_for_operation(&operation).unwrap().is_none());
+            assert_eq!(
+                diagnostic.as_deref(),
+                Some("capture first_observed stage=redaction_admission code=material_limit")
+            );
+        }
+    }
+}
+
+#[test]
+fn shell_capture_begin_error_keeps_returned_errno_over_later_missing_resource() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = Db::open(temp.path()).unwrap();
+    db.create_bound_session("s", "/project").unwrap();
+    db.begin_turn("t", "s", "capture").unwrap();
+    db.record_tool_intent("op", "s", Some("t"), "shell", "{}")
+        .unwrap();
+    let p = provenance(Path::new("/project"), "op");
+    fs::rename(db.root().join("tool-output"), db.root().join("held-output")).unwrap();
+    let capture = Capture::new(Arc::default());
+    capture.stream.lock().unwrap().begin(&db, &p, Vec::new());
+    capture.ingest(Stream::Stdout, b"safe prefix", true, true);
+    capture.ingest(Stream::Stderr, &[], true, true);
+    let (_, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
+    assert!(failed && resource.is_none());
+    assert_eq!(
+        capture.stream.lock().unwrap().diagnostic().as_deref(),
+        Some("capture first_observed stage=begin code=io kind=NotFound errno=2")
+    );
+    fs::rename(db.root().join("held-output"), db.root().join("tool-output")).unwrap();
+}
+
+#[test]
+fn shell_capture_facts_failure_retains_reopenable_complete_bytes_and_safe_cause() {
+    let temp = tempfile::tempdir().unwrap();
+    let db = Db::open(temp.path()).unwrap();
+    db.create_bound_session("s", "/project").unwrap();
+    db.begin_turn("t", "s", "capture").unwrap();
+    db.record_tool_intent("op", "s", Some("t"), "shell", "{}")
+        .unwrap();
+    let fault = rusqlite::Connection::open(db.root().join("oc.sqlite")).unwrap();
+    fault.execute_batch("CREATE TRIGGER facts_fault BEFORE UPDATE OF descriptor ON tool_output_resources WHEN OLD.state='Complete' BEGIN SELECT RAISE(ABORT,'fixture facts detail must not escape'); END;").unwrap();
+    let p = provenance(Path::new("/project"), "op");
+    let capture = Capture::new(Arc::default());
+    capture.stream.lock().unwrap().begin(&db, &p, Vec::new());
+    capture.ingest(Stream::Stdout, b"complete bytes\n", true, true);
+    capture.ingest(Stream::Stderr, &[], true, true);
+    let (_, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
+    assert!(failed);
+    let resource = resource.unwrap();
+    assert_eq!(
+        resource.state,
+        crate::storage::tool_output::CaptureState::Complete
+    );
+    let mut reader = db.open_tool_output("s", &resource.path).unwrap();
+    assert!(
+        reader
+            .byte_page(0, 4096)
+            .unwrap()
+            .0
+            .contains("complete bytes")
+    );
+    assert_eq!(
+        capture.stream.lock().unwrap().diagnostic().as_deref(),
+        Some("capture first_observed stage=facts code=sqlite")
+    );
+}
+
 #[tokio::test]
 async fn tool21_review_short_interrupted_capture_is_explicit_without_falsifying_exit() {
     let temp = tempfile::tempdir().unwrap();
@@ -51,6 +153,8 @@ async fn tool21_review_short_interrupted_capture_is_explicit_without_falsifying_
     assert!(resource.admitted_bytes < 4096 && resource.admitted_lines < 20);
     assert_eq!(outcome.exit, Some(0));
     assert_eq!(outcome.state, "completed");
+    let diagnostic = outcome.diagnostic.as_deref().unwrap();
+    assert!(diagnostic.starts_with("capture first_observed") && diagnostic.contains("interrupted"));
     assert!(
         outcome.capture_failure.is_none(),
         "producer interruption is not a logging fault"
@@ -336,6 +440,10 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
     capture.ingest(Stream::Stderr, &[], true, true);
     let (tail, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
     assert!(failed && resource.is_none());
+    assert_eq!(
+        capture.stream.lock().unwrap().diagnostic().as_deref(),
+        Some("capture first_observed stage=append code=unsafe_root")
+    );
     assert!(tail.len() <= output::RECENT_CAP);
     assert!(capture.stdout.lock().unwrap().bytes.len() <= output::RECENT_CAP);
     let preview = capture.presentation();
@@ -366,6 +474,10 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
     capture.ingest(Stream::Stderr, &[], true, true);
     let (tail, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
     assert!(failed && resource.is_none() && tail.is_empty());
+    assert_eq!(
+        capture.stream.lock().unwrap().diagnostic().as_deref(),
+        Some("capture first_observed stage=redaction_admission code=material_limit")
+    );
     assert!(!capture.text().contains("unsafe raw producer text"));
     assert_eq!(capture.stdout.lock().unwrap().total, 24);
 }
@@ -429,6 +541,15 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
         jobs.shutdown().await.unwrap();
         let resource = db.output_for_operation("op").unwrap().unwrap();
         assert_eq!(resource.state, want);
+        let diagnostic = outcome.diagnostic.as_deref().unwrap();
+        assert!(diagnostic.contains(
+            if want == crate::storage::tool_output::CaptureState::Quota {
+                "stage=finish code=state_quota"
+            } else {
+                "stage=finish code=state_artifact_cap"
+            }
+        ));
+        assert!(!diagnostic.contains("errno="));
         assert!(resource.bytes <= crate::storage::tool_output::CAP && resource.bytes <= quota);
         assert!(
             resource.admitted_bytes > 20 * 1024 * 1024 && resource.admitted_bytes > resource.bytes
@@ -579,6 +700,23 @@ async fn tool21_shell_logging_event_failure_keeps_durable_exit_and_effect_withou
         Some(crate::storage::tool_output::CaptureState::RegisterFailure)
     );
     assert!(outcome.capture.is_none() && outcome.stdout.contains("no usable path"));
+    let diagnostic = outcome.diagnostic.as_deref().unwrap();
+    assert!(diagnostic.contains("stage=finish code=sqlite"));
+    assert!(
+        !diagnostic.contains("fixture")
+            && !diagnostic.contains("errno=")
+            && !diagnostic.contains("reopen")
+    );
+    assert_eq!(
+        fs::read_to_string(project.join("effect")).unwrap(),
+        "effect"
+    );
+    drop(jobs);
+    drop(db);
+    let db = Db::open(&temp.path().join("data")).unwrap();
+    let frozen = db.shell_job_outcome("s", "op").unwrap();
+    assert_eq!(frozen.exit, Some(17));
+    assert_eq!(frozen.diagnostic.as_deref(), Some(diagnostic));
     assert_eq!(
         fs::read_to_string(project.join("effect")).unwrap(),
         "effect"

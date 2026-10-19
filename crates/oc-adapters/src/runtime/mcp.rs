@@ -272,6 +272,8 @@ pub(super) fn mcp_redactions(
                 .filter_map(|v| v.split_once(' ').map(|(_, token)| token.to_string())),
         );
     }
+    let mut seen = std::collections::HashSet::new();
+    secrets.retain(|value| !value.is_empty() && seen.insert(value.clone()));
     secrets
 }
 

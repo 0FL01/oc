@@ -569,6 +569,7 @@ impl<'a> Runtime<'a> {
         session: &str,
         projected: &[(String, String, String)],
         current: &TurnLog,
+        staged_notices: &[String],
     ) -> Result<Vec<(String, bool)>, RuntimeError> {
         let active = self.active_projection(session)?;
         let logs =
@@ -602,7 +603,10 @@ impl<'a> Runtime<'a> {
         }
         let mut messages = Vec::new();
         for (id, role, _) in projected {
-            if current.user_message.as_ref() == Some(id) || current.represents_notice(id) {
+            if current.user_message.as_ref() == Some(id)
+                || current.represents_notice(id)
+                || staged_notices.contains(id)
+            {
                 continue;
             }
             if ignored_users.contains(id) {

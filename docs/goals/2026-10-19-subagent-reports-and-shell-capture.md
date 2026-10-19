@@ -44,9 +44,11 @@ required outcome is resolved and affected constraints remain satisfied.
     Full result/notice remains durable.
   - Primary evidence: card result over RECORD_BYTES and escape-heavy/overflowing
     notice assertions at the actual parent-input boundary.
-  - Status: in_progress
-  - Evidence: fitting cards and bounded refreshes no longer hold report bodies;
-    storage/integration coverage passes. Aggregate notice admission remains pending.
+  - Status: verified
+  - Evidence: fitting cards and bounded refreshes omit report bodies.17storage and
+    2context tests pass: whole-page preflight does not skip an oversized prefix;
+    an actual escaped request over16MiB is refused without checkpointing rejected
+    bodies/IDs, while the complete result/notice and prior read outcome stay durable.
 - R3: complete recovery without rerun or premature success.
   - Source: accepted plan D and source audit of post-canonical MCP cleanup.
   - Acceptance: remove recovery's 8192-character cut; resolve the exact linked
@@ -67,16 +69,21 @@ required outcome is resolved and affected constraints remain satisfied.
     errno only when available. Exit/effects remain truthful, no replay or secrets.
   - Primary evidence: synthetic collector-to-real-Jobs duplicate-heavy regression,
     unique aggregate65536/65537 boundaries and existing capture fault/redaction tests.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: verified
+  - Evidence: actual collector-to-silent-Jobs regression passes (261raw entries become
+    10distinct values, exit0, reopenable zero-byte Complete capture). All11capture
+    scenarios pass, including real errno, facts/rename faults, cap/quota, interruption,
+    split-secret redaction and fail-closed aggregate65536/65537 boundaries. Original
+    exit17, effect-once and safe diagnostic survive database reopen without execution.
 - R5: verified delivery and debug build.
   - Source: latest owner instruction and accepted checks.
   - Acceptance: targeted checks and bash scripts/test.sh pass; normal
     cargo build -p oc2 --bin oc2 --locked builds target/debug/oc2; reviewed commits
     and ordinary push to verified origin/master; factual evidence/task closeout.
   - Primary evidence: actual commands/exits, Git refs and evidence/T71/report.md.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: in_progress
+  - Evidence: contract and first implementation commits are pushed; final subagent
+    target44/44 passes28.50s. Full offline gate, current debug binary and closeout pending.
 
 ### Constraints and Non-goals
 
@@ -121,11 +128,11 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
 
 ## Current Checkpoint
 
-- Closes: R2, then independent R4.
-- Next: reproduce escaped full-notice overflow at a held parent request, stage
-  notices outside checkpoints, admit exact aggregate input; then shell slice.
-- Evidence expected: explicit refusal, intact durable report and no rejected
-  body/ID/cursor in the parent checkpoint, followed by collector/capture regressions.
+- Closes: R5.
+- Next: commit/push the reviewed admission/shell slice, then run the required full
+  offline gate/debug build and factual task closeout.
+- Evidence expected: workspace gates, default-path debug binary, ordinary push and
+  complete R1–R5 evidence, without changing production after successful qualification.
 
 ## Current State and Material Decisions
 
@@ -134,8 +141,11 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
   2048 bytes; twelve shell jobs retain exit0/Io without capture resource rows.
 - BG is synthetic conversation input, not a second generic tool result. Existing
   child_jobs owns settlement; canonical success precedes fallible MCP cleanup.
-- R1/R3 and UI half of R2 implemented; full gate and aggregate/shell work pending.
+- R1/R2/R3/R4 verified; final qualification remains in progress.
 - Blocker: none observed. No schema/migration or owner restart.
+- runtime/turn.rs already exceeded the soft5k guide (5614baseline lines); keep this
+  bounded admission change with its existing request owner (5722lines). The next
+  natural seam is captured request preparation/admission, not a line-count split.
 
 ## Checkpoint History
 
@@ -145,7 +155,16 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
   Actual BG/FG long reports pass. Integration43/44 passed after view-assertion
   corrections; the remaining Location case is now green1/1 without weakening its
   trust guard. Logs: .local/evidence/T71/{children,child-runtime,subagent,location-history}-*.log.
+- 2026-10-19: reproduced aggregate admission (old code issued an escaped over-budget
+  request) and duplicate collector (261rather than10values). Staged admission and
+  collector regressions now pass.17storage/2context and10capture cases are green;
+  the remaining new boundary check was an incorrect empty-view expectation, fixed
+  to require only the exact native control prefix and zero admitted producer bytes.
+  Largest capture case21.36s; no test budget exception. Full qualification pending.
+- 2026-10-19: corrected aggregate control-view assertion passes0.70s; full current
+  subagent target44/44 passes28.50s. R1–R4 targeted evidence is green. No production
+  change was needed for the control-view assertion; full offline gate is next.
 
 ## Completion
 
-- Pending R1–R5; no implementation PASS or delivery claim yet.
+- R1/R2/R3/R4 verified; R5 pending closure. No final PASS/delivery claim yet.
