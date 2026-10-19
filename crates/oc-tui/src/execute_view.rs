@@ -3,7 +3,7 @@ use ratatui::{
     Frame,
     layout::Rect,
     style::{Modifier, Style},
-    widgets::Paragraph,
+    widgets::{Block, Paragraph},
 };
 use unicode_width::UnicodeWidthStr;
 
@@ -20,10 +20,10 @@ fn action_text(key: char, copied: Option<char>) -> &'static str {
         return "✓ copied";
     }
     match key {
-        'c' => "c copy code",
-        'o' => "o copy output",
-        'e' => "esc back",
-        _ => "↑/↓ scroll",
+        'c' => "copy code c",
+        'o' => "copy output o",
+        'e' => "back esc",
+        _ => "scroll ↑/↓",
     }
 }
 
@@ -65,7 +65,7 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
     let muted = Style::default().fg(theme.text_muted());
     let label = muted.add_modifier(Modifier::BOLD);
     let geometry = DialogFrame::rect(area, DialogSize::Xlarge, 0);
-    let width = geometry.width.saturating_sub(4) as usize;
+    let width = geometry.width.saturating_sub(6) as usize;
     let captured = state.execute_capture();
     let capture = captured.as_ref().map(|(capture, _)| &**capture);
     let facts = capture.map(|capture| &capture.facts);
@@ -97,7 +97,7 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
         .max(json.map_or(0, |text| text.split('\n').count()));
     let gutter = count.max(1).to_string().len();
     let inner = width.saturating_sub(gutter + 1).max(1);
-    let mut rows = vec![Line::styled("Code", label)];
+    let mut rows = vec![Line::plain(""), Line::styled("Code", label)];
     let numbered = |text: &str, language: &str, rows: &mut Vec<Line>| {
         for (index, line) in code_rows(text, language, theme, base)
             .into_iter()
@@ -177,6 +177,7 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
     } else {
         rows.push(Line::styled("Captured output unavailable", muted));
     }
+    rows.push(Line::plain(""));
     let wanted = rows
         .len()
         .min(((area.height as usize * 7 / 10).saturating_sub(6)).max(3));
@@ -187,9 +188,9 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
     );
     rect.y = area.y + area.height.saturating_sub(rect.height).div_ceil(2);
     let body = Rect::new(
-        rect.x + rect.width.min(2),
+        rect.x + rect.width.min(3),
         rect.y + rect.height.min(3),
-        rect.width.saturating_sub(4),
+        rect.width.saturating_sub(6),
         rect.height.saturating_sub(6),
     );
     let mut actions = vec![(
@@ -219,7 +220,7 @@ pub(crate) fn layout(state: &TuiState, area: Rect) -> Layout {
                 1.min(rect.height),
             ),
         ));
-        x = x.saturating_add(length + 3).min(body.right());
+        x = x.saturating_add(length + 2).min(body.right());
     }
     Layout {
         rect,
@@ -238,6 +239,15 @@ pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState) {
     if layout.body.width == 0 || layout.rect.height < 3 {
         return;
     }
+    frame.render_widget(
+        Block::default().style(Style::default().bg(theme.background_raised_high())),
+        Rect::new(
+            layout.rect.x,
+            layout.body.y,
+            layout.rect.width,
+            layout.body.height,
+        ),
+    );
     let muted = Style::default().fg(theme.text_muted());
     let heading = Rect::new(
         layout.body.x,
@@ -310,27 +320,21 @@ pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState) {
         } else {
             action_text(*key, copied)
         };
-        let line = if index > 0 && matches!(key, 'c' | 'o') {
-            if copied == Some(*key) {
-                Line::styled(
-                    text,
-                    Style::default()
-                        .fg(theme.success())
-                        .add_modifier(Modifier::BOLD),
-                )
-            } else {
-                Line::new(vec![
-                    Span::styled(
-                        key.to_string(),
-                        Style::default()
-                            .fg(theme.text())
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(&text[1..], muted),
-                ])
-            }
-        } else {
+        let line = if index == 0 {
             Line::styled(text, muted)
+        } else if copied == Some(*key) {
+            Line::styled(text, Style::default().fg(theme.success()))
+        } else {
+            let (title, binding) = match key {
+                'c' => ("copy code", "c"),
+                'o' => ("copy output", "o"),
+                'e' => ("back", "esc"),
+                _ => ("scroll", "↑/↓"),
+            };
+            Line::new(vec![
+                Span::styled(title, Style::default().fg(theme.text())),
+                Span::styled(format!(" {binding}"), muted),
+            ])
         };
         frame.render_widget(Paragraph::new(line.into_ratatui()), *rect);
     }

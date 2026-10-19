@@ -167,7 +167,8 @@ def snapshot(home, project, spec):
                 if table in tables:
                     data[table] = [dict(r) for r in connection.execute(f'SELECT * FROM "{table}" ORDER BY rowid LIMIT 10')]
             if 'events' in tables:
-                data['presentation'] = [json.loads(r[0]) for r in connection.execute("SELECT payload FROM events WHERE kind='tool_output_presentation' ORDER BY seq LIMIT 10")]
+                settled = " AND json_extract(payload,'$.presentation.label_only') IS NOT 1" if spec.get('execute_preview') else ''
+                data['presentation'] = [json.loads(r[0]) for r in connection.execute("SELECT payload FROM events WHERE kind='tool_output_presentation'" + settled + " ORDER BY seq LIMIT 10")]
             if spec.get('prompt_caret') and spec['origin'] == 'oc' and 'messages' in tables:
                 data['prompt_user_messages'] = [dict(r) for r in connection.execute(
                     "SELECT id,session_id,seq,role,CASE WHEN length(CAST(text AS BLOB))<=2048 THEN text END AS text FROM messages WHERE role='user' ORDER BY seq LIMIT 2")]
@@ -183,6 +184,13 @@ def snapshot(home, project, spec):
                     'SELECT id,session_id,status FROM turns ORDER BY rowid LIMIT 4')]
             if spec.get('question_forms'):
                 data['question_records'] = question_fixture.snapshot(connection, tables, spec['origin'])
+            if spec.get('execute_preview') and spec['origin'] == 'oc' and 'turns' in tables:
+                data['settled_raw'] = []
+                for row in connection.execute("SELECT id,session_id,status,result FROM turns WHERE status NOT IN ('queued','running') ORDER BY rowid LIMIT 8"):
+                    raw = row['result'] or '{}'
+                    data['settled_raw'].append({'id':row['id'],'session':row['session_id'],
+                        'status':row['status'],'bytes':len(raw.encode()),
+                        'sha256':hashlib.sha256(raw.encode()).hexdigest()})
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
@@ -207,6 +215,7 @@ def snapshot(home, project, spec):
         'bytes':len(effect_bytes), 'lines':len(effect_bytes.splitlines()),
         'sha256':hashlib.sha256(effect_bytes).hexdigest()}
     return {'observations':observations, 'artifacts':artifacts, 'shell_effect':shell_effect,
+            **({'http_fetches':execute_fixture.fetches} if spec.get('execute_preview') else {}),
             **({'syntax':syntax_fixture.snapshot(home, project)} if spec.get('syntax_inventory') else {}),
             **({'composer':composer_fixture.snapshot(home, project, spec)} if spec.get('combined_composer') else {}),
             **({'user_shell_boundary':user_shell_fixture.boundary(project, spec)} if spec.get('user_shell') else {}),

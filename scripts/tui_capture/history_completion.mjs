@@ -23,7 +23,7 @@ export async function probeHistoryCompletion({origin,send,shot,waitFor,frame,log
        if(f.cells[y].slice(x,x+labels[n].length).some(c=>c.fg!==color||c.bg!=='#0a0a0a'||c.modifiers.length))
         throw Error('Exploration label color differs from pinned component');
     }
-    const group=visibleMatches(f,'Explored — 2 reads, 2 searches');
+    const group=visibleMatches(f,origin==='oc'?'Explored: 2 reads, 2 searches':'Explored — 2 reads, 2 searches');
     if(group.length!==1||group[0].y!==points[0].y-1)throw Error('Terminal exploration grouping differs');
     const final=visibleMatches(f,'T70-'+source.toUpperCase()+'-DONE');
     if(final.length!==1||final[0].y!==points[3].y+2)throw Error('Final text or its single margin changed');

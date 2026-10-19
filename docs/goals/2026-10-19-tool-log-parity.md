@@ -33,11 +33,12 @@ required outcome is resolved and affected constraints remain satisfied.
     Named inline tools have their OC2 glyph/muted style; Skill stays standalone.
     Read ranges use valid explicit recorded input, never output-prose inference.
   - Primary evidence: TUI exploration/tool/pointer regressions; paired fixture.
-  - Status: in_progress
+  - Status: verified
   - Evidence: coordinated native implementation passes all 13 exploration tests,
     all 591 oc-tui library tests and strict oc-tui/all-target Clippy. New mixed
     fetch/empty-part regression failed on old positional behavior before the fix.
-    Paired actual-binary qualification remains R4.
+    The pinned actual-binary a04 fixture also passes collapsed/expanded group,
+    independent failed-member disclosure and direct/nested fetch style assertions.
 - R2: actual local Code Mode search is an ordered bounded observation.
   - Source: owner Execute/search screenshot and corrected plan B.
   - Acceptance: actual global/fallback catalog search appears as a completed
@@ -62,12 +63,15 @@ required outcome is resolved and affected constraints remain satisfied.
     invented completion or replay. Esc/backdrop restore the prior draft/panel.
   - Primary evidence: Execute render/input/lifecycle/clipboard regressions and
     actual paired receiving/running/terminal/disclosure/copy/resize observations.
-  - Status: in_progress
-  - Evidence: 11 Execute regressions and all 597 oc-tui library tests pass,
+  - Status: verified
+  - Evidence: all 598 oc-tui library tests, including 12 Execute regressions,
+    pass in the final workspace gate. These include
     including failed-parent mouse routing, Unicode/source-preserving wrapping,
     exact copy, independent fetch/search disclosures, source eviction/resync,
     visible approval ownership and read-only paste/backdrop containment. Strict
-    oc-tui/all-target Clippy passes. Paired actual-binary observations remain R4.
+    workspace/all-target Clippy passes. Paired a05 proves live/copy/resize behavior,
+    matching modal geometry/colors/footer and the corrected transcript-preview
+    continuation inset. Successful modal cells match the reference at all sizes.
 - R4: reproducible scoped actual-binary evidence, honestly classified.
   - Source: corrected plan D/E and TEST_PLAN paired-qualification contract.
   - Acceptance: exclusive Execute profile uses official pinned 2.0.31, verified
@@ -78,17 +82,29 @@ required outcome is resolved and affected constraints remain satisfied.
     EQUAL/DIFFERENT/INVALID/BLOCKED remain separate; unexplained scoped visual
     differences are unresolved, never pixel PASS.
   - Primary evidence: bounded paired capture and immutable per-run comparisons.
-  - Status: pending
-  - Evidence: cached reference SHA-256 matches 2df936a20cf74af5706020342164628f9a31978c50c2b0ad306b42b614fe245d;
-    source-level audit only, no runtime qualification yet.
+  - Status: verified
+  - Evidence: `evidence/tui/tool-log-parity-20261019-a05` retains 30 stages per
+    binary, both PASS_BEHAVIOR_ONLY, exact five-request/six-operation/three-MCP/
+    two-GET graph, settled RAW hashes, no replay and natural generation 0/1 exits.
+    The fixed 2.0.31 binary and bundled TS/pinned JSON inputs are verified. Full
+    comparisons retain 13 EQUAL/17 DIFFERENT grids and 3 EQUAL/27 DIFFERENT PNGs
+    (exit 1), not pixel PASS. Receiving, Running and successful modal cells match,
+    including 80x24/160x48. Remaining differences are actual elapsed/diagnostic
+    data, intentional explicit argument streams, chrome/cursor metadata, painted
+    whitespace FG and a two-pixel right raster edge even with identical grids.
+    No comparator normalization, crop or mask is used.
 - R5: tested integration and ordinary committed/pushed delivery.
   - Source: owner implementation/commit/push instruction and TEST_PLAN.
   - Acceptance: relevant checks and full offline gate pass on final code; debug
     binary is target/debug/oc2; reviewed scoped commits reach verified origin.
     No uncommitted implementation or known diff-created blocker remains.
   - Primary evidence: actual command exits, clean diff/status and remote tip.
-  - Status: pending
-  - Evidence: clean master 7b66d433; origin git@github.com:0FL01/oc.git.
+  - Status: in_progress
+  - Evidence: final `bash scripts/test.sh` passes: strict workspace/all-target
+    Clippy, 2132 nextest tests (12 pre-existing skips), doctests, debug build and
+    help/version. Runtime test phase is 381.493s. Verified increments through
+    07c093a38 are pushed to git@github.com:0FL01/oc.git master; current R4 increment
+    delivery/clean-status closure remain. No force or history rewrite.
 
 ### Constraints and Non-goals
 
@@ -186,22 +202,22 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R4 (R1/R3 native checks and R2 complete).
-- Smallest next action: establish the pinned JSON cache and exclusive 2.0.31
-  Execute fixture/profile, then capture the current-worktree binary in fresh roots.
-- Expected evidence: fixture/bootstrap regressions, exact effect/RAW assertions,
-  bounded actual paired observations and unmasked frame-comparison outcomes.
+- Closes: R5 (R1–R4 verified).
+- Smallest next action: commit/push the reviewed R4 increment, then record closure
+  and verify the final clean local/remote tip.
+- Expected evidence: ordinary verified-origin push and clean synchronized master.
 
 ## Current State
 
-- Resolved: R1 native rendering/range/pointer checks pushed as 83343ecf6; R2
-  private bounded observations pushed as 2dd9ced95. R3 native UI/lifecycle checks
-  pass. No schema/dependency change.
-- Last relevant evidence: 11 Execute and 597 full oc-tui library tests; strict
-  oc-tui/all-target Clippy; earlier Code Mode unit/runtime integration checks.
-- Blocker: none established. R4 needs the exact pinned JSON WASM download and
-  narrow cache bootstrap; existing browser/font/xterm and bundled TS are present.
-- Next: R4, then final full offline gate and delivery.
+- Resolved: R1–R4 behavior/style, native lifecycle and ordered bounded observations;
+  final full offline gate passes. No schema/dependency change.
+- Last relevant evidence: 12 Execute regressions, six Execute fixture/cache tests,
+  four existing tool-preview fixture tests and 25 comparator tests pass. Paired
+  a05 passes 30 behavior/style stages per side; full comparison outcomes are
+  retained separately rather than advertised as pixel PASS.
+- Blocker: none established. The exact JSON WASM, narrow cache/source provenance
+  and effective owned browser/font/temp setup are verified.
+- Next: final ordinary commit/push and closure.
 
 ## Checkpoint History
 
@@ -220,7 +236,23 @@ required outcome is resolved and affected constraints remain satisfied.
   strict Clippy passes (32.47s). Clippy identified a complex pointer tuple and
   test-only borrow/clone issues; a named local press record and scoped test
   borrows fixed them without suppressions. No paired visual PASS claimed.
+- 2026-10-19: paired a02 passed behavior but exposed modal inset, raised band and
+  footer differences. A failing surface regression drove the narrow correction;
+  all 12 Execute tests pass. a03 exposed a probe selector that incorrectly assumed
+  no transcript text to the left of the wide modal; paint-coordinate ownership
+  fixed it. a04 passes both 30-stage probes, preserving all nonzero full-frame
+  differences. Its transcript-error wrapping inset remains the next in-scope fix.
+- 2026-10-19: a05 verifies that preview continuation fix and all 30 stages per side;
+  exact effects/RAW/copy/no-replay assertions pass. All successful modal cells
+  match, while full grid/PNG outcomes remain honestly separate as recorded above.
+- 2026-10-19: the first full gate had one native-move progress failure after a
+  34m18s cold workspace compilation (two active rustc processes; adequate memory/
+  disk, not a stuck test). The unchanged case passes isolated in 2.192s, then the
+  unchanged 10-slot full profile passes all 2132 tests in 381.493s. Its failure
+  cause was not established; no automatic retries, deadlines, assertions, workload or test
+  configuration were changed. The only >30s case is the documented discovery
+  deadline exception (32.474s, below its owner-approved 40s bound).
 
 ## Completion
 
-- Pending R1–R5. No live/visual/full-product PASS claimed.
+- Pending R5 delivery only. No full-frame pixel or full-product PASS claimed.

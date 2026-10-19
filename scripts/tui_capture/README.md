@@ -491,7 +491,8 @@ node scripts/tui_capture/capture.mjs \
   --exploration-click true --output /home/opencode/ai/oc/evidence/tui/NEW-ATTEMPT
 ```
 
-This opt-in finds `→ Explored — 1 read` separately in each live styled grid,
+This opt-in finds `→ Explored: 1 read` in native and `→ Explored — 1 read` in the
+unchanged old reference, explicitly by origin rather than an either-format match,
 sends SGR mouse down/up through the PTY bridge, and waits for the header to
 remain with `Read fixture-note.txt` below it. A second dynamically located
 click waits for the detail to disappear. Per-side `exploration-checks.json`
@@ -1360,28 +1361,73 @@ one owner is declared, not separate admitted episodes or global pixel parity.
 
 The exclusive `--tool-preview true --execute-preview true` profile requires both
 explicit binaries, `--build-oc true`, short sample, hidden sidebar and120x40
-geometry. Run it with the same600-second outer watchdog and a fresh immutable
-output directory. It also visits actual80x24 and160x48 modal geometry. The profile
-and fixture hashes include both Execute source files and the shared local port;
-ordinary tool-preview/small/temporal modes remain separate and unchanged.
+geometry. The current profile uses only the official supplementary **2.0.31**
+binary pinned by `execute_reference.mjs`; the general 2.0.12 pin is unchanged.
+It requires explicit owned `--tools`, `--execute-assets` and `--syntax-cache true`,
+and binds `--oc` to this worktree's `target/debug/oc2`. Prebuild with
+`cargo build -p oc2 --bin oc2 --locked`, then run the existing600-second outer
+watchdog with a fresh immutable output directory. It also visits actual80x24
+and160x48 modal geometry. Source inputs are attested across build and capture.
 
 `execute_fixture.py` uses the existing real stdio MCP peer with Code Mode enabled,
-deny-all followed by exact Execute/MCP/fetch authorities, and one controlled local
-HTTP GET. A real incomplete argument stream holds the Receiving dialog; releasing
-it executes two nested MCP calls, then a held fetch supplies Running before the
-same dialog follows terminal JSON plus typed Logs. The native fixture explicitly
+deny-all followed by the listed Execute/MCP/direct exploration authorities and
+two exact loopback URLs. Four real direct Read/Grep/Glob/WebFetch calls precede
+Execute; Read intentionally fails. A real incomplete argument stream holds the
+Receiving dialog; releasing it performs local catalog search and two nested MCP
+calls, then a held fetch supplies Running before the same dialog follows terminal
+JSON plus typed Logs. The direct WebFetch uses the immediate second URL. Additional
+group/disclosure inspection occurs after releasing the hold, not by extending its
+30-second deadline. The native fixture explicitly
 opts into the existing test-only webfetch loopback admission. Production network
 policy, interpreter limits, permissions and RAW data are not changed.
 
-`execute_preview.mjs` records actual terminal OSC52 Code/Output bytes, pan and End
-scroll, all three modal sizes, selection-safe child input toggling, failed-parent
-expand/re-collapse, and session reopen/process restart. It requires exactly five
-provider requests, two Execute operations, three MCP calls and one GET; read-only
-snapshots and natural exits prove there is no replay. Desktop clipboard acceptance
-is not inferred from terminal delivery. Runtime elapsed values are not frozen.
+`execute_preview.mjs` records actual terminal OSC52 Code/Output bytes, wrapped
+source/End scroll, all three modal sizes, independent group/member-error and
+fetch/search/MCP parameter toggles, failed-parent details, and reopen/restart.
+It requires exactly five provider requests, six top-level operations (two Execute),
+four success children, one failed child, three MCP effects and two GETs. Compound
+SSE preserves all five first-response call IDs/indices; continuations validate the
+exact five/six result IDs. Read-only settled native RAW hashes, artifact/operation
+snapshots, MCP/HTTP counters and natural exits prove no replay. Desktop clipboard
+acceptance is not inferred from terminal delivery. Runtime elapsed is not frozen.
 Full styled-cell, PNG and cursor comparisons stay unmasked and strict; functional
-probe success is not VIS46/T44 pixel PASS. Current evidence and failed experiments
-are recorded in `evidence/T44/execute-ui-20261016.md`.
+probe success is not VIS46/T44 pixel PASS. `DIFFERENT` remains a nonzero comparison
+result. Historical `evidence/T44/execute-ui-20261016.md` is not rewritten or treated
+as evidence for this new contract.
+
+The narrow syntax bootstrap leaves bundled TypeScript untouched (verified bundled
+WASM/query hashes in the reference record). Only JSON's real URL-backed WASM/query
+are preloaded into each fresh reference home. Acquire the v0.24.8 WASM into a new
+current-owned approved-cache directory and verify SHA-256
+`d2119fb98d5912719b13f9458574f8608d2d29dfbe45f6be1f860ea1fe2a2405`.
+The412-byte query is already vendored, hash
+`6ab09656820f0e8dac860c96dced341221284544c05308ee337727f5db937101`;
+its original moving URL remains the cache key, with immutable payload origin
+recorded separately. This does not qualify all39 grammars or modify the legacy
+`preload(home)` contract. All scoped immutable release sources match the supplied
+checkout except the session route's unrelated `/copy` commands; both hashes and
+the narrow equivalence claim are recorded, never whole-tree equality.
+
+Example using the already installed owned tooling (supply the verified assets
+directory as `$assets`; no user service or live provider is involved):
+
+```bash
+tools=/home/stfu/.cache/opencode-tmp/opencode/mcp-sidebar-aCAnG0/tooling
+scratch=$(mktemp -d /home/stfu/.cache/opencode-tmp/opencode/execute-browser-XXXXXX)
+TMPDIR="$scratch" FONTCONFIG_FILE="$tools/fonts.conf" CARGO_BUILD_JOBS=2 \
+timeout 600 node scripts/tui_capture/capture.mjs \
+  --reference /home/stfu/.cache/opencode-tmp/opencode/mcp-sidebar-aCAnG0/reference/opencode-2.0.31 \
+  --oc "$PWD/target/debug/oc2" --build-oc true --tools "$tools" \
+  --execute-assets "$assets" --syntax-cache true --geometry true --sample short \
+  --sidebar hide --columns 120 --rows 40 --tool-preview true --execute-preview true \
+  --output "$PWD/evidence/tui/tool-log-parity-NEW-ATTEMPT"
+```
+
+The owned font configuration and scratch directory must reach Chromium/Node;
+each product has a separate fresh-home TMPDIR. The profile records effective
+`fc-match` with the browser environment. Old exploration/history probes keep an
+explicit native colon versus old-reference em-dash expectation; their full-frame
+differences are not normalized away.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

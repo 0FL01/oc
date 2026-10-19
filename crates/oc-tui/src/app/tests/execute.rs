@@ -63,6 +63,10 @@ async fn vis46_error_preview_limits_logical_text_and_empty_inputs_are_not_action
     assert!(collapsed[1].target.is_none());
     assert!(collapsed[2].line.plain_text().starts_with("   ↳ first"));
     assert!(
+        collapsed[4].line.plain_text().starts_with("   xxxx"),
+        "wrapped preview continuations start at the box inset, not the logical-line prefix"
+    );
+    assert!(
         collapsed.len() > 6,
         "four logical lines are wrapped after truncation"
     );
@@ -462,9 +466,9 @@ async fn vis46_numbered_json_and_typed_rest_share_the_source_layout() {
     let frame = Rect::new(0, 0, 160, 48);
     state.activate_execute("execute-ui-op", None, frame);
     let layout = crate::execute_view::layout(&state, frame);
-    assert_eq!(layout.rows[1].spans()[1].content(), " ");
+    assert_eq!(layout.rows[2].spans()[1].content(), " ");
     assert_eq!(
-        layout.rows[1].spans()[1].style(),
+        layout.rows[2].spans()[1].style(),
         ratatui::style::Style::default()
     );
     let logs = layout
@@ -477,6 +481,49 @@ async fn vis46_numbered_json_and_typed_rest_share_the_source_layout() {
         "1  {\"value\":2}"
     );
     assert_eq!(layout.rows[logs + 1].plain_text().trim(), "actual log");
+}
+
+#[tokio::test]
+async fn vis46_execute_surface_matches_the_shared_inset_band_and_footer() {
+    let (mut state, turn) = live().await;
+    let mut progress = Presentation::new("", 0, false);
+    progress.label_only = true;
+    progress.execute = Some(Execute::default());
+    state.apply_tool_progress(&turn, "execute-ui-op", Box::new(progress));
+    let area = Rect::new(0, 0, 120, 40);
+    state.activate_execute("execute-ui-op", None, area);
+    let layout = crate::execute_view::layout(&state, area);
+    assert_eq!(layout.rect, Rect::new(2, 14, 116, 13));
+    assert_eq!(layout.body, Rect::new(5, 17, 110, 7));
+    assert_eq!(layout.rows.first().unwrap().plain_text(), "");
+    assert_eq!(layout.rows.last().unwrap().plain_text(), "");
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::execute_view::render(frame, &state))
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    let theme = crate::theme::Theme::dark();
+    for y in layout.body.y..layout.body.bottom() {
+        for x in layout.rect.x..layout.rect.right() {
+            assert_eq!(buffer[(x, y)].bg, theme.background_raised_high());
+        }
+    }
+    assert_eq!(buffer[(5, 15)].symbol(), "e");
+    assert_eq!(buffer[(5, 18)].symbol(), "C");
+    let footer = (layout.rect.x..layout.rect.right())
+        .map(|x| buffer[(x, 25)].symbol())
+        .collect::<String>();
+    assert_eq!(
+        footer.trim(),
+        "scroll ↑/↓  copy code c  copy output o  back esc"
+    );
+    assert_eq!(buffer[(5, 25)].fg, theme.text());
+    assert_eq!(buffer[(12, 25)].fg, theme.text_muted());
+    assert!(
+        !buffer[(17, 25)]
+            .modifier
+            .contains(ratatui::style::Modifier::BOLD)
+    );
 }
 
 #[tokio::test]
@@ -614,14 +661,14 @@ async fn vis46_character_wrap_preserves_source_whitespace_unicode_and_original_j
             logical
         };
         assert_eq!(
-            reconstruct(&layout.rows[1..output - 2]),
+            reconstruct(&layout.rows[2..output - 2]),
             code.replace('\t', "  ")
                 .split('\n')
                 .map(str::to_owned)
                 .collect::<Vec<_>>()
         );
         assert_eq!(
-            reconstruct(&layout.rows[output + 1..layout.rows.len() - 1]),
+            reconstruct(&layout.rows[output + 1..layout.rows.len() - 2]),
             std::slice::from_ref(&json)
         );
         assert_eq!(
@@ -629,7 +676,7 @@ async fn vis46_character_wrap_preserves_source_whitespace_unicode_and_original_j
             "… code preview limited"
         );
         assert_eq!(
-            layout.rows.last().unwrap().plain_text(),
+            layout.rows[layout.rows.len() - 2].plain_text(),
             "… output preview limited"
         );
     }

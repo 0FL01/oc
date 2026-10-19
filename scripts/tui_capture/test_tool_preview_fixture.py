@@ -21,9 +21,11 @@ class ToolPreviewFixtureTests(unittest.TestCase):
                 self.assertEqual(server['command'][-1], '--small')
                 self.assertEqual(config['permissions'], [
                     {'action':'*', 'resource':'*', 'effect':'deny'},
-                    {'action':'execute', 'resource':'*', 'effect':'allow'},
-                    {'action':tool, 'resource':'*', 'effect':'allow'},
-                    {'action':'webfetch', 'resource':'http://localhost:45678/vis46-fetch', 'effect':'allow'}])
+                     {'action':'execute', 'resource':'*', 'effect':'allow'},
+                     {'action':tool, 'resource':'*', 'effect':'allow'},
+                     *[{'action':name, 'resource':'*', 'effect':'allow'} for name in ('read','grep','glob')],
+                     *[{'action':'webfetch', 'resource':'http://localhost:45678/'+name, 'effect':'allow'}
+                       for name in ('vis46-direct','vis46-fetch')]])
                 self.assertNotIn('setCacheKey', config)
 
     def test_generic_preview_uses_explicit_direct_mcp_on_both_binaries(self):

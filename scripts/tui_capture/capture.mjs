@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 import {spawn, spawnSync} from 'node:child_process';
 import readline from 'node:readline';
 import net from 'node:net';
+import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
 import {probeMessageActions} from './message_actions.mjs';
@@ -21,6 +22,7 @@ import {probeServices} from './services.mjs';
 import {probeToolPreview} from './tool_preview.mjs';
 import {probeSmallToolPreview} from './tool_preview_small.mjs';
 import {probeExecute} from './execute_preview.mjs';
+import {executeReference} from './execute_reference.mjs';
 import {probeMcpStatus} from './mcp_status.mjs';
 import {probeMcpFooter} from './mcp_footer.mjs';
 import {probePromptCaret} from './prompt_caret.mjs';
@@ -68,7 +70,7 @@ if(toolPreviewSmall&&Object.keys(args).some(k=>!['reference','oc','build-oc','ge
 if(toolPreviewSmall&&args['build-oc']!=='true')throw Error('--tool-preview-small requires a current repository build');
 const executePreview = args['execute-preview'] === 'true';
 if(args['execute-preview']!==undefined&&(!toolPreview||!['true','false'].includes(args['execute-preview'])))throw Error('--execute-preview requires tool-preview and true|false');
-if(executePreview&&(args['build-oc']!=='true'||Object.keys(args).some(k=>!['reference','oc','build-oc','geometry','sample','sidebar','tool-preview','execute-preview','columns','rows','output','compress-cells','compress-frames','syntax-cache'].includes(k))))throw Error('--execute-preview requires an exclusive paired current-build profile');
+if(executePreview&&(args['build-oc']!=='true'||Object.keys(args).some(k=>!['reference','oc','build-oc','tools','execute-assets','geometry','sample','sidebar','tool-preview','execute-preview','columns','rows','output','compress-cells','compress-frames','syntax-cache'].includes(k))))throw Error('--execute-preview requires an exclusive paired current-build profile');
 const tabMiddleClose = args['tab-middle-close'] === 'true';
 const middleCase = args['middle-case'] || 'horizontal';
 const railPersistence = args['rail-persistence'] === 'true';
@@ -85,6 +87,8 @@ if(tabMiddleClose) {
 }
 const syntaxCache=args['syntax-cache']==='true';
 if(args['syntax-cache']!==undefined&&(!toolPreview||!['true','false'].includes(args['syntax-cache'])))throw Error('--syntax-cache requires tool-preview and true|false');
+if(executePreview&&(!syntaxCache||!args.tools||!args['execute-assets']||path.resolve(args.oc||'')!==path.join(repo,'target/debug/oc2')))
+  throw Error('Execute requires explicit owned tools/assets, frozen JSON cache and this worktree target/debug/oc2');
 const compressCells = args['compress-cells'] === 'true';
 if(args['compress-cells']!==undefined&&(!toolPreview||!['true','false'].includes(args['compress-cells'])))throw Error('--compress-cells requires tool-preview and true|false');
 const compressFrames=args['compress-frames']==='true';
@@ -179,6 +183,17 @@ if(boundedMode && (!['variants','shell','wheel'].includes(boundedMode) || args.g
     Object.entries(args).some(([k,v])=>v==='true' && !['geometry','build-oc'].includes(k))))
   throw Error('--bounded-mode variants|shell|wheel requires exclusive paired short 120x40 geometry sidebar hide');
 const tools = path.resolve(args.tools || '/home/opencode/.cache/opencode-tmp/opencode/t44-reference');
+const executeCacheRoot=executePreview?path.join(os.homedir(),'.cache/opencode-tmp/opencode'):undefined;
+const executeAssets=executePreview?path.resolve(args['execute-assets']):undefined;
+if(executePreview) {
+  for(const name of [tools,executeAssets,process.env.TMPDIR,process.env.FONTCONFIG_FILE]) {
+    if(!name||!path.isAbsolute(name)||!fs.realpathSync(name).startsWith(executeCacheRoot+path.sep)||fs.statSync(name).uid!==process.getuid())
+      throw Error('Execute tools, assets, TMPDIR and FONTCONFIG_FILE must be current-owned approved-cache inputs');
+  }
+  if(sha256File(path.join(executeAssets,'tree-sitter-json.wasm'))!==executeReference.syntax.json_wasm_sha256)
+    throw Error('Execute JSON WASM SHA mismatch');
+}
+function sha256File(name) {return createHash('sha256').update(fs.readFileSync(name)).digest('hex');}
 process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(tools, 'browsers');
 const require = createRequire(path.join(tools, 'package.json'));
 const {chromium} = require('playwright');
@@ -422,7 +437,7 @@ const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 't
     ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort,probe:sha(fs.readFileSync(path.join(here,'execute_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'execute_fixture.py')))}:{}),
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
     ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,history_completion:historyCompletion,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
-    ...(syntaxCache?{syntax_cache:true,syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json'))),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
+    ...(syntaxCache?{syntax_cache:true,...(executePreview?{execute_syntax:executeReference.syntax}: {syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json')))}),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
     ...(syntaxInventory?{syntax_inventory:true}:{}),
     ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,mcp_footer:mcpFooter||null,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{}),...(mcpFooter?{footer_probe:sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')))}:{})} : {}),
     ...(cleanServices ? {clean_services:true,probe_sha256:sha(fs.readFileSync(path.join(here,'services.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'services_fixture.py')))} : {}),
@@ -488,7 +503,16 @@ if(permission){for(const n of ['permission.mjs','permission_fixture.py','permiss
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py','home_mcp.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreviewSmall)lock.runner_hashes['tool_preview_small.mjs']=sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs')));
-if(executePreview)for(const name of ['execute_preview.mjs','execute_fixture.py'])lock.runner_hashes[name]=sha(fs.readFileSync(path.join(here,name)));
+if(executePreview) {
+  const donor=path.join(repo,'.local/opencode');
+  if(execute(['git','-C',donor,'rev-parse','HEAD']).stdout.trim()!==executeReference.donor_commit)
+    throw Error('Execute supplementary donor checkout changed');
+  for(const [name,hash] of Object.entries(executeReference.source_hashes))
+    if(sha(fs.readFileSync(path.join(donor,name)))!==hash)throw Error('Execute supplementary source changed: '+name);
+  lock.sources.supplementary_execute=executeReference;
+  for(const name of ['execute_preview.mjs','execute_fixture.py','execute_reference.mjs','syntax_cache.py'])
+    lock.runner_hashes[name]=sha(fs.readFileSync(path.join(here,name)));
+}
 if(tabMiddleClose)lock.runner_hashes['middle_tabs.mjs']=sha(fs.readFileSync(path.join(here,'middle_tabs.mjs')));
 if(mcpStatus)lock.runner_hashes['mcp_status.mjs']=sha(fs.readFileSync(path.join(here,'mcp_status.mjs')));
 if(mcpFooter)lock.runner_hashes['mcp_footer.mjs']=sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')));
@@ -508,12 +532,13 @@ if(cursorRenderer==='webgl') {
   fs.copyFileSync(path.join(cursorRendererRoot,'package-lock.json'),path.join(output,'cursor-renderer.package-lock.json'));
 }
 if(args['build-oc'] === 'true') {
-  const build = execute(['cargo', 'build', '--locked']);
+  const buildCommand=executePreview?['cargo','build','-p','oc2','--bin','oc2','--locked']:['cargo','build','--locked'];
+  const build = execute(buildCommand);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
-  lock.oc.build_command = ['cargo','build','--locked'];
-  if(leaderPending) {
+  lock.oc.build_command = buildCommand;
+  if(leaderPending||executePreview) {
     lock.oc.source_inputs_unchanged_after_build=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
-    if(!lock.oc.source_inputs_unchanged_after_build)throw Error('Source inputs changed during leader build');
+    if(!lock.oc.source_inputs_unchanged_after_build)throw Error('Source inputs changed during capture build');
   }
 } else lock.oc.build_provenance = 'Existing binary; build/source association not attested by this run';
 fs.copyFileSync(path.join(tools, 'package-lock.json'), path.join(output, 'tooling.package-lock.json'));
@@ -521,13 +546,13 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // These stateful probes must be new even when fresh output trees share a
 // basename. Reusing a home mixes prior operations/cache/history into proof.
-const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
+const freshRoot = leaderPending || syntaxCache || executePreview || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
   LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers'),
-  ...(mcpSidebar && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
-if (mcpSidebar && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
+  ...((mcpSidebar||executePreview) && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
+if ((mcpSidebar||executePreview) && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
 fs.mkdirSync(cleanEnv.HOME, {recursive: true});
 process.env.PLAYWRIGHT_BROWSERS_PATH = cleanEnv.PLAYWRIGHT_BROWSERS_PATH;
 let browser;
@@ -568,7 +593,7 @@ try {
   browser = await chromium.launch({headless: true, env: cleanEnv});
   const profile = {frontend: '@xterm/xterm', frontend_version: require('@xterm/xterm/package.json').version,
     vt_parser: 'xterm.js 6.0.0', chromium_version: browser.version(), playwright_version: require('playwright/package.json').version,
-    font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono']).stdout,
+    font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono'],executePreview?{env:cleanEnv}:{}).stdout,
     fallback_fonts: null,
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
@@ -592,7 +617,7 @@ try {
     if (!binary) { lock.attempts.push({origin, status: 'SKIPPED', reason: 'No explicit binary supplied'}); continue; }
     if (!path.isAbsolute(binary)) throw Error('Binary must be an explicit absolute path');
     const hash = sha(fs.readFileSync(binary));
-    if (origin === 'upstream' && hash !== (mcpSidebar || clipboardImages ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
+    if (origin === 'upstream' && hash !== (executePreview?executeReference.binary_sha256:mcpSidebar || clipboardImages ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
     const dir = path.join(output, origin);
     fs.mkdirSync(dir);
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
@@ -607,7 +632,8 @@ try {
                clean_services:cleanServices,
                    tool_preview:toolPreview, tab_middle_close:tabMiddleClose, middle_case:middleCase,
                     tool_preview_small:toolPreviewSmall,
-                    execute_preview:executePreview,execute_fixture_port:executeFixturePort,
+                     execute_preview:executePreview,execute_fixture_port:executeFixturePort,
+                     ...(executePreview?{execute_assets:executeAssets,execute_cache_root:executeCacheRoot}:{}),
                     mcp_status:mcpStatus, ...(mcpSidebar ? {mcp_sidebar:true} : {}),
                     ...(clipboardImages ? {clipboard_images:true} : {}),
                    mcp_footer:mcpFooter||null,
@@ -760,7 +786,7 @@ try {
       const cellsFile=name+'.cells.json'+(compressCells?'.gz':'');
       const cellsBytes=Buffer.from(JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
-          producer_commit: origin==='upstream' ? (mcpSidebar || clipboardImages ? mcpSidebarReference.release_commit : lock.sources.upstream_commit) : commit, ...grid}));
+          producer_commit: origin==='upstream' ? (executePreview?executeReference.release_commit:mcpSidebar || clipboardImages ? mcpSidebarReference.release_commit : lock.sources.upstream_commit) : commit, ...grid}));
       fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
       const pngSeal=writeFrame(scenario,'.png',png);
       const textSeal=writeFrame(scenario,'.txt',text+'\n');
@@ -2955,7 +2981,7 @@ try {
        }
       if(explorationClick) {
          const checks = [];
-         const headerText = '→ Explored — 1 read';
+         const headerText = origin==='oc'?'→ Explored: 1 read':'→ Explored — 1 read';
          const detailText = 'Read fixture-note.txt';
          const observe = f => {
            const headers=visibleMatches(f,headerText), details=visibleMatches(f,detailText);
@@ -2983,7 +3009,7 @@ try {
            return f;
          };
          const collapsed = await awaitState('collapsed', c=>c.header_count===1 && c.detail_count===0,
-           'one visible → Explored — 1 read header and no Read fixture-note.txt detail');
+           'one visible '+headerText+' header and no Read fixture-note.txt detail');
          const click = (stage, f) => {
            // Aim inside "Explored", retaining one-based SGR PTY coordinates.
            const {x,y}=observe(f).header;
@@ -3236,7 +3262,7 @@ try {
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
       if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
         if(toolPreviewSmall)lock.qualification={status:'DIAGNOSTIC_SMALL_TOOL_PREVIEW_ONLY',actual_requests:'Two small real MCP calls and one real Shell effect; same12-line/1024-byte producer limits; local fake Responses only',clock:'Actual PTY submission monotonic clock and bounded real5500ms final-response wait; no clock/history/paint override',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Full unmasked grid/PNG/cursor comparators decide frame equality','Large-output/error/resource/temporal and other frozen T44 outcomes remain separate gates']};
-        if(executePreview)lock.qualification={status:'DIAGNOSTIC_EXECUTE_ONLY',actual_requests:'Two execute operations: real nested MCP success/error and one real controlled HTTP fetch; receiving/running/final live dialog and actual OSC52 copy',replay:'Read-only operations/artifacts/MCP audit through UI reopen and natural process restart',unresolved:['Full unmasked styled-grid/PNG/cursor comparators remain independent','Real elapsed time is not frozen','Other frozen T44 outcomes and final resource/safety gates remain mandatory']};
+         if(executePreview)lock.qualification={status:'SUPPLEMENTARY_EXECUTE_EXPLORATION_ONLY',reference:executeReference,actual_requests:'Four direct exploration calls and two execute operations: local catalog search, three real MCP effects and two controlled HTTP GETs; live dialogs/disclosures and actual OSC52 copy',replay:'Read-only settled RAW hashes, operations/artifacts/MCP/HTTP audit through UI reopen and natural process restart',unresolved:['Behavior/style observations are not full-frame pixel PASS; unmasked grid/PNG/cursor comparator results are independent','Real elapsed time is not frozen','Native pending/unknown/terminal group semantics and bounded capture remain intentional disclosed differences','Not whole T44, all-grammar, release-native or whole-product qualification']};
         if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:rootHandoff?'Actual Root remapped foreground Subagent then Shell hints/handoff, same source/process and custom profile footer across three geometries; local fake Responses only':modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':subagentCards?'Actual inline Subagent foreground/background/model/hover/navigation, same-child continuation and missing-agent error; one episode across three real geometries, local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
         if(syntaxInventory)lock.qualification={status:'DIAGNOSTIC_SYNTAX_INVENTORY_ONLY',actual_requests:'One actual scoped Write overwrite, title and all39 ordinary streamed grammar cases; real busy Root Add/return/parked completion, then one explicit same-root cancelled generation; zero MCP/Shell calls',reference_inputs:'Original worker consumes explicitly frozen real WASM/highlight cache inputs; official compatible Swift query freeze is recorded without changing descriptors or binary',replay:'Natural process exit/relaunch and painted session-list reopening before the explicit cancel turn; original file/operation facts and Write count must remain unchanged',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other full frozen T44 outcomes require independent qualification','Actual elapsed-time values are not frozen']};
        if(mcpStatus)lock.qualification={status:mcpFooter?'DIAGNOSTIC_MCP_FOOTER_ONLY':'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:mcpFooter?'Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames':'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};
@@ -3282,7 +3308,7 @@ try {
 } catch(e) {lock.attempts.push({status:'BLOCKED',reason:e.stack});result=2;}
 finally {
   if(browser)await browser.close();
-  if(leaderPending) {
+  if(leaderPending||executePreview) {
     lock.oc.source_inputs_unchanged_after_capture=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
     if(!lock.oc.source_inputs_unchanged_after_capture){lock.attempts.push({status:'BLOCKED',reason:'Source inputs changed during capture'});result=2;}
   }

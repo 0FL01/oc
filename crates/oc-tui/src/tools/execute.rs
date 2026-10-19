@@ -249,20 +249,27 @@ pub(crate) fn block(
             text.push('…');
         }
         let mut first = true;
+        let preview_width = if width == 0 {
+            usize::MAX
+        } else {
+            (width as usize)
+                .saturating_sub(crate::messages::MESSAGE_PADDING)
+                .max(1)
+        };
         for logical in text.lines() {
-            let line = Line::styled(logical, error);
-            for line in styled::wrap_line_limited(&line, available, usize::MAX) {
-                let mut spans = vec![
-                    Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
-                    Span::styled(if first { "↳ " } else { "  " }, error),
-                ];
+            let line = Line::styled(
+                format!("{}{logical}", if first { "↳ " } else { "  " }),
+                error,
+            );
+            for line in styled::wrap_line_limited(&line, preview_width, usize::MAX) {
+                let mut spans = vec![Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING))];
                 spans.extend_from_slice(line.spans());
                 rows.push(Row {
                     line: Line::new(spans),
                     target: None,
                 });
-                first = false;
             }
+            first = false;
         }
     }
     rows

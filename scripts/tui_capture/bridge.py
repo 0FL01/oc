@@ -498,7 +498,9 @@ if spec.get('sessions_interaction'):
 for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'data', 'state')]]:
     path.mkdir(parents=True, exist_ok=True)
 if spec.get('syntax_cache') and spec['origin'] == 'upstream':
-    emit({'kind': 'frozen_syntax_cache', **syntax_cache.preload(home)})
+    frozen = (syntax_cache.preload_execute(home, spec['execute_assets'], spec['execute_cache_root'])
+              if spec.get('execute_preview') else syntax_cache.preload(home))
+    emit({'kind': 'frozen_syntax_cache', **frozen})
 if spec.get('sample') == 'tools':
     (project / 'fixture-note.txt').write_text('fixture-content\n')
 if spec.get('revert_redo'):
@@ -640,7 +642,7 @@ if spec.get('clipboard_images'):
     (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
     env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
     clipboard = clipboard_fixture.Clipboard(env)
-if spec.get('mcp_sidebar'):
+if spec.get('mcp_sidebar') or spec.get('execute_preview'):
     (home / 'tmp').mkdir(exist_ok=True)
     env['TMPDIR'] = str(home / 'tmp')
 if spec.get('execute_preview') and spec['origin'] == 'oc':
