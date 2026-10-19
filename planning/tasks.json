@@ -1048,6 +1048,16 @@
       "work": "Owner-approved 2026-10-18 correction: remove the aggregate turn-history preview policy, not merely reprioritize omissions or mask missing arguments. Preserve canonical tool identity/arguments, ordered text and producer metadata across root/linked-child completion, navigation and reopen with bounded recoverable history windows. Qualify the affected visual transition against pinned TS 2.0.12 using the existing actual-binary capture pipeline. Preserve genuine per-result/output/security/transport guards, immutable RAW, sole native Db owner, no tool replay or automatic cold-output loading. Minimal core/query/consumer paging changes are allowed where existing message-only paging cannot recover evicted parts. T44/T61 remain paused; no unrelated parity backlog, schema migration, new store/framework, owner restart, live/paid campaign or whole-product READY claim. Iterate targeted regressions and checks, full offline gate, normal debug build and reviewed commit/push.",
       "evidence": "evidence/T70/report.md",
       "spec": "docs/goals/2026-10-18-completed-transcript.md"
+    },
+    {
+      "id": "T71",
+      "phase": "M8",
+      "title": "Complete subagent reports and truthful shell capture admission",
+      "depends_on": ["T70"],
+      "tests": ["A01", "A02", "A05", "A10"],
+      "work": "Owner-approved 2026-10-19 audited correction: remove 2048-byte child result and 8192-character recovery cuts. Existing child_jobs row owns the complete settled report, after execution and cleanup; exact foreground lookup uses winning stored outcome. Match current TS2.0.31 delivery: full BG synthetic notice without tool_output/artifact, existing FG limiter/artifact once. Inventory/live refresh carries bounded identity/history links, not full report copies; full notice admission retains existing aggregate context/model/security guards with explicit overflow. Preserve exact recovery, delivery dedup, RAW, continuation/conversion/cancel/lineage and no replay. Independently stable exact dedup of common redaction material, unchanged unique64KiB shell guard, bounded first-observed capture cause without secrets or invented errno. No migration/store/publication protocol/new report cap, historical backfill, owner restart, paid campaign or paused-task resume. Iterative targeted tests, full offline gate, default-path debug build, reviewed commits and ordinary push.",
+      "evidence": "evidence/T71/report.md",
+      "spec": "docs/goals/2026-10-19-subagent-reports-and-shell-capture.md"
     }
   ]
 }

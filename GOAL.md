@@ -1147,3 +1147,30 @@ gate PASS: 2089 tests / 12 существующих opt-in skips; прогрет
 timing budgets квалифицированы, debug build/help/version PASS. Reviewed implementation
 `df2358176` committed/pushed в origin/master; factual closeout — [T69 report](evidence/T69/report.md).
 Это не whole-product READY и не изменение historical evidence других задач.
+
+## Owner amendment (2026-10-19 — полные subagent reports и shell capture)
+
+По запросу «Делай копию плана в цель и итеративно реализовать и коммит пуш дебаг билд»
+сохранён [исправленный после четырёх параллельных аудитов план T71](docs/goals/2026-10-19-subagent-reports-and-shell-capture.md).
+Это bounded correction после T70, не resume/finish T44/T45/T61.
+
+- Убрать 2048-byte durable result и 8192-character recovery cuts: полный terminal
+  report принадлежит существующей child_jobs row после execution/cleanup. Exact FG
+  lookup читает winning stored outcome, не отдельную memory/publication authority.
+- Delivery parity текущего TS2.0.31: BG — полный durable synthetic notice без
+  tool_output limiter/artifact; FG — существующая подготовка один раз. Новый report
+  cap, publication event/DTO/store или output-policy fingerprints не нужны.
+- UI/status — bounded identity/history projections, не копии отчётов; большой result
+  не скрывает ранее допустимую карточку. Реальные aggregate context/model/memory/
+  security guards действуют на полном/escaped input с явным overflow.
+- Recovery читает точный committed assistant без substring/rerun; first settlement,
+  delivery dedup, conversion/cancel/lineage/checkpoints и immutable RAW сохраняются.
+  Нельзя фиксировать child Completed в canonical commit до fallible MCP cleanup.
+  Backfill старых clipped terminal receipts не входит в исправление.
+- Отдельно exact dedup redaction collector без пустых значений; unique64KiB shell
+  guard остаётся fail-closed. Первая наблюдаемая safe capture cause сохраняется без
+  секретов/выдуманного errno; реальные exit/effects и no replay обязательны.
+- Ближайшие red→green проверки, полный offline gate, обычный debug build и reviewed
+  commit/push обязательны. Нет migration, owner restart, paid campaign или whole READY.
+
+Execution status: T71 active; реализация и qualification pending.
