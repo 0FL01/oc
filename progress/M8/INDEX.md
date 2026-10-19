@@ -28,3 +28,4 @@ Plan: ../../roadmap/M8.md
 - [T69](T69/INDEX.md) [done] — Subagent empty optional arguments and admitted continuation scheduling; latest: 0001.md.
 - [T70](T70/INDEX.md) [done] — Canonical completed transcript without aggregate turn preview loss; latest: 0001.md.
 - [T71](T71/INDEX.md) [done] — Complete subagent reports and truthful shell capture admission; latest: 0001.md.
+- [T72](T72/INDEX.md) [done] — Worktree-local debug build guidance; latest: 0001.md.

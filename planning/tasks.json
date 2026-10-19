@@ -1058,6 +1058,16 @@
       "work": "Owner-approved 2026-10-19 audited correction: remove 2048-byte child result and 8192-character recovery cuts. Existing child_jobs row owns the complete settled report, after execution and cleanup; exact foreground lookup uses winning stored outcome. Match current TS2.0.31 delivery: full BG synthetic notice without tool_output/artifact, existing FG limiter/artifact once. Inventory/live refresh carries bounded identity/history links, not full report copies; full notice admission retains existing aggregate context/model/security guards with explicit overflow. Preserve exact recovery, delivery dedup, RAW, continuation/conversion/cancel/lineage and no replay. Independently stable exact dedup of common redaction material, unchanged unique64KiB shell guard, bounded first-observed capture cause without secrets or invented errno. No migration/store/publication protocol/new report cap, historical backfill, owner restart, paid campaign or paused-task resume. Iterative targeted tests, full offline gate, default-path debug build, reviewed commits and ordinary push.",
       "evidence": "evidence/T71/report.md",
       "spec": "docs/goals/2026-10-19-subagent-reports-and-shell-capture.md"
+    },
+    {
+      "id": "T72",
+      "phase": "M8",
+      "title": "Worktree-local debug build guidance",
+      "depends_on": ["T71"],
+      "tests": [],
+      "work": "Owner-approved 2026-10-19 documentation-only correction: replace AGENTS.md personal live-dev launcher guidance with worktree-local debug build guidance. Keep the soft cargo build -p oc2 --bin oc2 --locked rule, allow a binary already built by checks, and report the actual artifact path instead of personal launcher readiness. Remove personal alias, shell-profile and fixed home-path dependencies. Preserve default target/cache, no automatic interactive client launch or owner kill/restart/lock removal, shared config/data/startup-env and storage-migration warnings. Only AGENTS.md changes substantively; do not rewrite historical evidence/checkpoints or change runtime, shell configuration or environment. Check documentation, exact scope and diff; reviewed commit and ordinary push.",
+      "evidence": "evidence/T72/report.md",
+      "spec": "AGENTS.md"
     }
   ]
 }
