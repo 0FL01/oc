@@ -1,6 +1,6 @@
 # Goal: background Subagent lifecycle — current OC2 TS visual parity
 
-Status: active
+Status: complete
 Source: три пользовательских скриншота и уточнение «нам нужен визуальный паритет с OC2 TS в этом scope»; исправленный после четырёхчастного аудита план; запрос «делай копию плана в цель и итеративно реализовать и коммит пуш».
 Last updated: 2026-10-20
 
@@ -44,8 +44,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: commit/push request, corrected plan §6.
   - Acceptance: targeted crate/fixture/comparator/syntax checks и `bash scripts/test.sh` PASS; review/diff-check и closure; own commits pushed без force в verified origin/master.
   - Primary evidence: команды/exit codes, commit IDs, remote HEAD.
-  - Status: in_progress
-  - Evidence: targeted Rust/fixture/comparator/syntax gates и strict workspace/all-target Clippy + 618 TUI PASS. Renderer `bf1dc41fb` и qualification tooling `e011e7e97` опубликованы. Final `CARGO_INCREMENTAL=0 TMPDIR=/home/stfu/.cache/opencode-tmp/opencode bash scripts/test.sh` — PASS: fmt, strict Clippy, 2157/2157 nextest (12 штатных skipped, 408.368s), doctests, locked build, help/version. Log: `.local/evidence/background-full-offline-gate-02.log`. Gate-only fixture fix и closure ожидают delivery.
+  - Status: verified
+  - Evidence: targeted Rust/fixture/comparator/syntax gates и strict workspace/all-target Clippy + 618 TUI PASS. Renderer `bf1dc41fb`, qualification tooling `e011e7e97` и gate-only fixture fix `23a9bacae` опубликованы; origin/master сверён. Final `CARGO_INCREMENTAL=0 TMPDIR=/home/stfu/.cache/opencode-tmp/opencode bash scripts/test.sh` — PASS: fmt, strict Clippy, 2157/2157 nextest (12 штатных skipped, 408.368s), doctests, locked build, help/version. Log: `.local/evidence/background-full-offline-gate-02.log`. Closure всех R1–R5 прошла; текущий binary SHA совпадает с visual evidence.
 
 ### Constraints
 
@@ -81,16 +81,16 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R5.
-- Smallest next action: опубликовать проверенный gate-only fixture fix и сверить remote HEAD; затем closure без расширения scope. Full offline gate и qualification tooling уже завершены.
-- Expected evidence: normal commit/push и remote HEAD, diff-check; final closure всех R1–R5.
+- Closes: R1–R5 — complete.
+- Smallest next action: нет; closure пройдена, дальнейшая реализация в этой цели не требуется.
+- Evidence: full offline gate, актуальная paired matrix и normal delivery всех implementation/qualification commits сверены.
 
 ## Current State
 
-- Resolved: plan `7e96fe16d`, R1 `d1669cbed`, R2 `9b0596f19`, R3 `15bd28cd4`, renderer `bf1dc41fb` и qualification tooling `e011e7e97` published; R4 actual scoped qualification verified. Wrap fixes preserve the complete badge, fitting source separator style and grapheme-safe notice ellipsis.
+- Resolved: plan `7e96fe16d`, R1 `d1669cbed`, R2 `9b0596f19`, R3 `15bd28cd4`, renderer `bf1dc41fb`, qualification tooling `e011e7e97` и gate-only fixture fix `23a9bacae` published. R1–R5 verified; scoped qualification и full offline gate завершены.
 - Last relevant evidence: full offline gate PASS, 2157/2157 nextest + doctests/build/help/version; 11 actual current-source paired runs, exact components throughout and strict matching-boundary anchor proof. Both products retain distinct real children/notices, all four links, draft/caret and unchanged controlled project hashes; reopen does not replay. Own background evidence 444.1 MiB, each raw log <16 MiB. Current TS sealed manifest: `/home/stfu/.cache/opencode-tmp/opencode/background-current-ts-p9ZWO6/background-reference.json` (source `bc5ebf00…`, Bun 1.4.2, OpenTUI 0.5.17 and platform FFI/PTY/watcher payloads). Donor/user service unchanged.
 - Blocker: нет подтверждённого.
-- Next: R5 gate-only fix delivery and closure.
+- Next: нет; цель завершена.
 
 ## Material Decisions
 
@@ -109,7 +109,12 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-20: R4 actual qualification — 11 final paired runs / 22 behavior probes PASS; seven strict matched-boundary component PASS, four idle exact-component results with truthful extra-step anchor difference. Actual wrap RED exposed whole-badge placement, ellipsis and one source-separator style; minimal native fixes pass 618 TUI + Clippy and fresh on/off wrap captures. Proceed R5.
 - 2026-10-20: R5 gate diagnosis — unchanged isolated conn04 case PASS; observed pending-retry UI receipt now precedes HTTP release. Both conn04 PTY cases PASS (6.916s), exact GET counts/deadlines unchanged. Full gate rerun required; production/qualified renderer unchanged.
 - 2026-10-20: R5 final full gate PASS — 2157/2157 tests, 12 штатных skipped, doctests, strict Clippy, fmt and locked CLI build/help/version. No retries or filters in the full gate; proceed delivery and closure.
+- 2026-10-20: closure PASS — все outcomes verified, `23a9bacae` доставлен и совпадает с origin/master; visual evidence актуально (binary SHA совпадает), donor чистый, approved change envelope и constraints сохранены. Цель complete.
 
 ## Completion
 
-- Final status: active.
+- Resolved outcomes: R1–R5 verified; отдельные исходные карточки/notice identities, animation lifecycle, step chronology и scoped current-TS parity подтверждены.
+- Commands and artifacts: full `bash scripts/test.sh` PASS; relevant Node/Python/Rust gates PASS; `.local/evidence/background-final-{matrix,evidence}.json` и неизменённые full captures; `.local/evidence/background-full-offline-gate-02.log`.
+- Constraint and diff-scope check: production binary совпадает с квалифицированным; только перечисленные owners/tests/harness/docs и обоснованный gate-only fixture receipt. Нет SQL migration, RAW/storage-order/admission/scheduler изменений, новых authority/poller, ослабленных assertions/deadlines/load, изменений donor или user owner. Whole-frame и genuine idle extra-step differences сохранены без масок/PASS override.
+- Delivery: normal commits/push в verified origin/master; implementation/qualification/gate fix опубликованы через `23a9bacae`.
+- Final status: complete (2026-10-20).
