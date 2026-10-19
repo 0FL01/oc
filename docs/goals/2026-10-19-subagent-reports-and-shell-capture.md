@@ -30,8 +30,11 @@ required outcome is resolved and affected constraints remain satisfied.
     not an independent memory copy or last16 full results.
   - Primary evidence: storage settlement/delivery faults and actual FG/BG parent
     requests with an admitted report over 64 KiB and tail sentinel.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: verified
+  - Evidence: children16 and child-runtime7 pass; actual >64KiB BG user-message
+    and FG artifact/read cases pass. The integration target exposed three obsolete
+    inventory-body assertions; these now read canonical notice/child history. The
+    last Location case passes through its original cross-Location ReadChild fence.
 - R2: bounded projections and truthful resource admission.
   - Source: accepted plan C; A10 and existing context/security guards.
   - Acceptance: inventory/refresh carries identity/history links, not report copies;
@@ -41,8 +44,9 @@ required outcome is resolved and affected constraints remain satisfied.
     Full result/notice remains durable.
   - Primary evidence: card result over RECORD_BYTES and escape-heavy/overflowing
     notice assertions at the actual parent-input boundary.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: in_progress
+  - Evidence: fitting cards and bounded refreshes no longer hold report bodies;
+    storage/integration coverage passes. Aggregate notice admission remains pending.
 - R3: complete recovery without rerun or premature success.
   - Source: accepted plan D and source audit of post-canonical MCP cleanup.
   - Acceptance: remove recovery's 8192-character cut; resolve the exact linked
@@ -51,8 +55,10 @@ required outcome is resolved and affected constraints remain satisfied.
     Db::commit_turn; unpersisted diagnostics are not claimed recovered. No backfill.
   - Primary evidence: committed-assistant crash-gap and first-writer/reopen tests
     with long UTF-8 text; existing conversion/lineage/checkpoint regressions.
-  - Status: pending
-  - Evidence: none yet.
+  - Status: verified
+  - Evidence: full126017-byte canonical crash-gap recovery and91027-byte terminal/
+    delivery statement+commit fault/reopen tests pass. Existing checkpoint/unknown,
+    conversion/lineage and exact oldest-of18 foreground tests pass without rerun.
 - R4: correct shell redaction admission and safe capture cause.
   - Source: accepted independent shell plan E and observed generic capture Io.
   - Acceptance: mcp_redactions removes only empty/exact duplicates, preserving order
@@ -115,10 +121,11 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
 
 ## Current Checkpoint
 
-- Closes: R1/R2/R3.
-- Next: long-result settlement/recovery/inventory regressions, reproduce both cuts,
-  then existing-owner fix and exact FG reads before notice admission/shell slices.
-- Evidence expected: complete UTF-8 report, retained card and unchanged fault/lineage.
+- Closes: R2, then independent R4.
+- Next: reproduce escaped full-notice overflow at a held parent request, stage
+  notices outside checkpoints, admit exact aggregate input; then shell slice.
+- Evidence expected: explicit refusal, intact durable report and no rejected
+  body/ID/cursor in the parent checkpoint, followed by collector/capture regressions.
 
 ## Current State and Material Decisions
 
@@ -127,11 +134,17 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
   2048 bytes; twelve shell jobs retain exit0/Io without capture resource rows.
 - BG is synthetic conversation input, not a second generic tool result. Existing
   child_jobs owns settlement; canonical success precedes fallible MCP cleanup.
-- Blocker: none observed. Implementation and qualification not yet run.
+- R1/R3 and UI half of R2 implemented; full gate and aggregate/shell work pending.
+- Blocker: none observed. No schema/migration or owner restart.
 
 ## Checkpoint History
 
 - 2026-10-19: copied audited plan, froze R1–R5 and started T71; no paused tasks reopened.
+- 2026-10-19: reproduced exact2048-byte cuts against120015/91027/126017-byte results.
+  Full settlement/recovery and identity-only views are green (16storage/7runtime).
+  Actual BG/FG long reports pass. Integration43/44 passed after view-assertion
+  corrections; the remaining Location case is now green1/1 without weakening its
+  trust guard. Logs: .local/evidence/T71/{children,child-runtime,subagent,location-history}-*.log.
 
 ## Completion
 

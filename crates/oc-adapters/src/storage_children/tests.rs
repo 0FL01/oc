@@ -397,7 +397,7 @@ fn bounded_child_cards_do_not_truncate_execution_or_recovery_identity() {
         let accepted = admitted_description(&db, &input, &description);
         assert_eq!(db.child_jobs("parent").unwrap(), vec![accepted.clone()]);
         assert_eq!(
-            db.child_job("parent", &accepted.operation).unwrap(),
+            db.child_job("parent", &accepted.operation, true).unwrap(),
             Some(accepted.clone())
         );
         assert_eq!(
@@ -424,7 +424,7 @@ fn bounded_child_cards_do_not_truncate_execution_or_recovery_identity() {
         let actual = db.child_jobs("parent").unwrap().pop().unwrap();
         assert_eq!(actual.description, description);
         assert_eq!(
-            db.child_job("parent", &accepted.operation)
+            db.child_job("parent", &accepted.operation, true)
                 .unwrap()
                 .unwrap(),
             actual
@@ -499,7 +499,9 @@ fn child_history_projects_exact_task_and_delivery_without_changing_raw_or_replay
         assert_eq!(job.child.0, "child");
         assert_eq!(job.message_id.as_deref(), Some(notice_id.0.as_str()));
         assert!(job.result.is_none());
-        let spoof = db.append_message("parent", "user", &notice.text).unwrap();
+        let spoof = db
+            .append_message("parent", "user", &child_notice_text(&db, &notice))
+            .unwrap();
         assert_eq!(db.child_history("parent", &MessageId(spoof)).unwrap(), None);
         assert_eq!(db.child_history("child", &notice_id).unwrap(), None);
         let original = db
@@ -893,14 +895,68 @@ fn fresh_child_admission_commit_fault_rolls_back_session_location_event_and_job(
 }
 
 #[test]
+fn complete_report_survives_settlement_delivery_and_bounded_status_projection() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    let accepted = admitted(&db);
+    let report = format!("{}\nREPORT-END-界", "Ω界 report \"text\"\n".repeat(6000));
+    assert!(report.len() > 64 * 1024);
+    db.finish_child_job("launch", ChildState::Completed, &report)
+        .unwrap();
+    db.finish_child_job("launch", ChildState::Error, "late loser")
+        .unwrap();
+    let settled = db.child_job("parent", "launch", true).unwrap().unwrap();
+    assert_eq!(settled.state, ChildState::Completed);
+    assert_eq!(settled.result.as_ref().unwrap().len(), report.len());
+    assert_eq!(settled.result.as_deref(), Some(report.as_str()));
+    let cards = db.child_tool_jobs("parent").unwrap();
+    assert_eq!(cards.len(), 1);
+    assert!(cards[0].result.is_none());
+    assert_eq!(cards[0].child, accepted.child);
+    let notice = db.deliver_child_notices().unwrap().remove(0);
+    assert!(notice.job.result.is_none());
+    assert!(notice.job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES);
+    assert!(notice.text.len() <= TOOL_OP_PREVIEW_BYTES);
+    let text = child_notice_text(&db, &notice);
+    let (_, payload) = text.split_once('\n').unwrap();
+    let payload: serde_json::Value = serde_json::from_str(payload).unwrap();
+    assert_eq!(payload["result"].as_str(), Some(report.as_str()));
+    assert_eq!(
+        payload["deliveryID"].as_str(),
+        Some("child-delivery:launch")
+    );
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+    drop(db);
+    let db = Db::open(dir.path()).unwrap();
+    assert_eq!(child_notice_text(&db, &notice), text);
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+}
+
+fn child_notice_text(db: &Db, notice: &ChildNotice) -> String {
+    db.conn
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT text FROM messages WHERE session_id=?1 AND id=?2",
+            params![notice.job.parent.0, notice.job.message_id.as_ref().unwrap()],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
 fn terminal_and_delivery_statement_and_commit_faults_rollback_then_reopen_dedups() {
+    let report = format!(
+        "error: successful prose\n{}END",
+        "Ω界 report\n".repeat(7000)
+    );
     for commit in [false, true] {
         let dir = tempfile::tempdir().unwrap();
         let db = Db::open(dir.path()).unwrap();
         admitted(&db);
         fault(&db, "state", commit);
         assert!(
-            db.finish_child_job("launch", ChildState::Completed, "error: successful prose")
+            db.finish_child_job("launch", ChildState::Completed, &report)
                 .is_err()
         );
         assert_eq!(
@@ -908,7 +964,7 @@ fn terminal_and_delivery_statement_and_commit_faults_rollback_then_reopen_dedups
             ChildState::Admitted
         );
         remove_fault(&db);
-        db.finish_child_job("launch", ChildState::Completed, "error: successful prose")
+        db.finish_child_job("launch", ChildState::Completed, &report)
             .unwrap();
         // A lost acknowledgement AFTER terminal COMMIT preserves the result.
         drop(db);
@@ -926,7 +982,11 @@ fn terminal_and_delivery_statement_and_commit_faults_rollback_then_reopen_dedups
         let notices = db.deliver_child_notices().unwrap();
         assert_eq!(notices.len(), 1);
         assert_eq!(notices[0].job.state, ChildState::Completed);
-        assert!(notices[0].text.contains("error: successful prose"));
+        let text = child_notice_text(&db, &notices[0]);
+        let payload: serde_json::Value =
+            serde_json::from_str(text.split_once('\n').unwrap().1).unwrap();
+        assert_eq!(payload["result"].as_str().unwrap().len(), report.len());
+        assert_eq!(payload["result"].as_str(), Some(report.as_str()));
         assert_eq!(
             db.list_tool_ops("parent").unwrap()[0].output.as_deref(),
             Some(LAUNCH_OUTPUT)
@@ -942,6 +1002,7 @@ fn terminal_and_delivery_statement_and_commit_faults_rollback_then_reopen_dedups
 
 #[test]
 fn missing_terminal_receipt_recovers_committed_assistant_but_unfinished_effect_is_unknown() {
+    let report = format!("{}RECOVERED-END-界", "Ω界 committed text\n".repeat(6000));
     for completed in [false, true] {
         let dir = tempfile::tempdir().unwrap();
         let db = Db::open(dir.path()).unwrap();
@@ -954,7 +1015,7 @@ fn missing_terminal_receipt_recovers_committed_assistant_but_unfinished_effect_i
                 "child-turn",
                 "completed",
                 Some(&log.to_json().to_string()),
-                Some("exact committed child output"),
+                Some(&report),
             )
             .unwrap();
         } else {
@@ -980,7 +1041,8 @@ fn missing_terminal_receipt_recovers_committed_assistant_but_unfinished_effect_i
             }
         );
         if completed {
-            assert_eq!(job.result.as_deref(), Some("exact committed child output"));
+            assert_eq!(job.result.as_ref().unwrap().len(), report.len());
+            assert_eq!(job.result.as_deref(), Some(report.as_str()));
         } else {
             assert!(job.result.unwrap().contains("explicit recovery required"));
         }
@@ -1035,9 +1097,11 @@ fn recursive_fork_preserves_launch_and_notice_without_child_authority_or_foreign
         .unwrap();
     let notice = db.deliver_child_notices().unwrap().remove(0);
     log.shell_notice_messages
-        .push(notice.job.message_id.unwrap());
-    log.input
-        .push(InputItem::message(InputRole::User, &notice.text));
+        .push(notice.job.message_id.as_ref().unwrap().clone());
+    log.input.push(InputItem::message(
+        InputRole::User,
+        &child_notice_text(&db, &notice),
+    ));
     log.input
         .push(InputItem::message(InputRole::Assistant, "answer"));
     log.display_parts = vec![

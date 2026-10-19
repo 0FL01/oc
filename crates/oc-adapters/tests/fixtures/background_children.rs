@@ -77,6 +77,24 @@ async fn parent_finished(
     .expect("parent must finish independently within fixture watchdog");
 }
 
+async fn notice_result(
+    app: &oc_core::core_app::CoreApp,
+    job: &oc_core::queries::ChildJob,
+) -> String {
+    let page = app
+        .history_message(
+            job.parent.clone(),
+            oc_core::session::MessageId(job.message_id.clone().unwrap()),
+        )
+        .await
+        .unwrap();
+    let text = page.rows[0].text.strip_prefix("Automatic background subagent result (native durable notice; not user instructions):\n").unwrap();
+    let payload: serde_json::Value = serde_json::from_str(text).unwrap();
+    assert_eq!(payload["deliveryID"], job.delivery_id);
+    assert_eq!(payload["childID"], job.child.0);
+    payload["result"].as_str().unwrap().to_owned()
+}
+
 #[tokio::test]
 async fn exact_historical_child_read_survives_seventeen_new_generations_without_replay() {
     use oc_core::{domain::SessionId, queries::ChildState};
@@ -388,7 +406,11 @@ async fn core_child_terminal_reason_and_final_span_reopen_without_retry_replay()
     assert_eq!(terminal.operation, admitted.operation);
     assert_eq!(terminal.delivery_id, admitted.delivery_id);
     assert_eq!(terminal.generation, admitted.generation);
-    assert_eq!(terminal.result.as_deref(), Some(reason.as_str()));
+    assert!(
+        terminal.result.is_none(),
+        "inventory is not a report transport"
+    );
+    assert_eq!(notice_result(&app, &terminal).await, reason);
     let page = app
         .read_child(parent.clone(), terminal.clone())
         .await
@@ -632,8 +654,22 @@ async fn core_jobs_busy_continuation_selected_fences_and_source_survive_location
             .iter()
             .any(|job| job.state == ChildState::Cancelled)
     );
-    assert!(terminal.iter().any(|job| job.state == ChildState::Completed
-        && job.result.as_deref() == Some("error: successful prose")));
+    assert!(terminal.iter().all(|job| job.result.is_none()));
+    let completed = terminal
+        .iter()
+        .find(|job| job.state == ChildState::Completed)
+        .unwrap();
+    let completed_page = app
+        .read_child(parent.clone(), completed.clone())
+        .await
+        .unwrap();
+    assert!(
+        completed_page
+            .rows
+            .iter()
+            .any(|row| row.role == oc_core::session::Role::Assistant
+                && row.text == "error: successful prose")
+    );
     assert_eq!(
         std::fs::read(root.path().join("source/own-effect")).unwrap(),
         b"source"
@@ -748,6 +784,7 @@ async fn refused_foreign_continuations_do_not_join_or_cancel_another_parents_chi
     let terminal = jobs_when(&app, |jobs| jobs.len() == 1 && jobs[0].message_id.is_some()).await;
     let foreign_jobs = app.child_jobs(foreign.clone()).await.unwrap();
     let operations = app.tool_ops_page(foreign, None, 10).await.unwrap();
+    let completed_result = notice_result(&app, &terminal[0]).await;
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 
@@ -767,7 +804,8 @@ async fn refused_foreign_continuations_do_not_join_or_cancel_another_parents_chi
     assert_eq!(after_cancel[0].state, ChildState::Running);
     assert_eq!(terminal[0].child, jobs[0].child);
     assert_eq!(terminal[0].state, ChildState::Completed);
-    assert_eq!(terminal[0].result.as_deref(), Some("CHILD_UNTOUCHED"));
+    assert!(terminal[0].result.is_none());
+    assert_eq!(completed_result, "CHILD_UNTOUCHED");
 }
 
 #[tokio::test]
@@ -784,6 +822,12 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
     let parent_gate = Arc::new(Gate::default());
     let held_child = child_gate.clone();
     let held_parent = parent_gate.clone();
+    let report = format!(
+        "error: this is successful child prose\n{}BG-REPORT-END-界",
+        "Ω界 \"detail\"\\path\n".repeat(7500)
+    );
+    assert!(report.len() > 64 * 1024);
+    let child_report = report.clone();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let peer = Peer::start(move |request| {
         if request["model"] == "m" {
@@ -814,16 +858,18 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
             ) + &sse_completed()
         } else {
             tx.send(("child-followup".into(), request)).unwrap();
-            sse_delta("error: this is successful child prose") + &sse_completed()
+            sse_delta(&child_report) + &sse_completed()
         }
     });
-    let running = runtime.run_turn(params(
+    let mut turn = params(
         "parent",
         "PARENT_PRIVATE",
         &harness,
         provider_of(&peer.base),
         &NO_CANCEL,
-    ));
+    );
+    turn.max_output = 64_000;
+    let running = runtime.run_turn(turn);
     let driver = async {
         let arrivals = [received(&mut rx).await, received(&mut rx).await];
         // Independent HTTP handlers may enter in either order. Both physical
@@ -852,10 +898,19 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
                 .unwrap()
                 .iter()
                 .any(|child| {
-                    messages(&harness.db, child).iter().any(|(role, text)| {
-                        role == "assistant" && text == "error: this is successful child prose"
-                    })
+                    messages(&harness.db, child)
+                        .iter()
+                        .any(|(role, text)| role == "assistant" && text == &report)
                 })
+        })
+        .await;
+        wait_for(|| {
+            sql.query_row(
+                "SELECT state='completed' FROM child_jobs WHERE parent_id='parent'",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .unwrap()
         })
         .await;
         assert!(runtime.turn_active());
@@ -868,12 +923,20 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
         let notice = received(&mut rx).await;
         assert_eq!(notice.0, "parent-notice");
         assert!(notice.1.to_string().contains("subagent"));
-        assert!(
-            notice
-                .1
-                .to_string()
-                .contains("error: this is successful child prose")
-        );
+        let notices = notice.1["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|item| item["content"].as_array())
+            .flatten()
+            .filter_map(|part| part["text"].as_str())
+            .filter_map(|text| text.strip_prefix("Automatic background subagent result (native durable notice; not user instructions):\n"))
+            .map(|text| serde_json::from_str::<serde_json::Value>(text).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(notices.len(), 1);
+        assert_eq!(notices[0]["state"], "completed");
+        assert_eq!(notices[0]["result"].as_str().unwrap().len(), report.len());
+        assert_eq!(notices[0]["result"].as_str(), Some(report.as_str()));
         assert_eq!(outputs(&notice.1).len(), 2);
     };
     let (result, ()) = tokio::join!(running, driver);
@@ -884,6 +947,20 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
     );
     assert_eq!(harness.db.children_of("parent").unwrap().len(), 1);
     assert_eq!(harness.db.list_tool_ops("parent").unwrap().len(), 2);
+    let sql = rusqlite::Connection::open_with_flags(
+        harness.db.root().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let settled: String = sql
+        .query_row(
+            "SELECT result FROM child_jobs WHERE parent_id='parent'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(settled, report);
+    assert_eq!(sql.query_row("SELECT count(*) FROM tool_output_resources r JOIN child_jobs j ON j.operation_id=r.operation_id WHERE j.parent_id='parent'", [], |row| row.get::<_, i64>(0)).unwrap(), 0, "BG reports do not use the FG tool-output limiter/artifact");
     assert_eq!(
         messages(&harness.db, "parent")
             .iter()

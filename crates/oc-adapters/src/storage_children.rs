@@ -67,14 +67,7 @@ impl Db {
         }
         job.background |= converted;
         job.turn = turn;
-        if job.description.len() > TOOL_OP_PREVIEW_BYTES {
-            let end = job
-                .description
-                .floor_char_boundary(TOOL_OP_PREVIEW_BYTES - '…'.len_utf8());
-            job.description.truncate(end);
-            job.description.push('…');
-        }
-        Ok((job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES).then_some(job))
+        Ok(Self::child_job_view(job))
     }
 
     pub(crate) fn child_tool_job(
@@ -86,21 +79,23 @@ impl Db {
         Self::child_tool_job_in(&conn, session, operation)
     }
 
-    /// Original owner identity for the existing read-only family fence. UI
-    /// preview limits must not reject a valid accepted child or truncate it.
+    /// Exact original owner identity. Only result consumers opt into the full
+    /// report; read-only family/status fences omit it before SQL allocation.
+    /// UI preview limits must not reject or truncate an accepted identity here.
     pub(crate) fn child_job(
         &self,
         session: &str,
         operation: &str,
+        include_result: bool,
     ) -> Result<Option<ChildJob>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let row = conn.query_row(
-            "SELECT j.identity,j.state,j.result,j.message_id,j.parent_id,j.child_id,j.delivery_id,j.child_turn,
+            "SELECT j.identity,j.state,CASE WHEN ?3 THEN j.result END,j.message_id,j.parent_id,j.child_id,j.delivery_id,j.child_turn,
              EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id)
              FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
              JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
              WHERE j.parent_id=?1 AND j.operation_id=?2",
-            params![session,operation],
+            params![session,operation,include_result],
             |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,Option<String>>(2)?,row.get::<_,Option<String>>(3)?,row.get::<_,String>(4)?,row.get::<_,String>(5)?,row.get::<_,String>(6)?,row.get::<_,Option<String>>(7)?,row.get::<_,bool>(8)?)),
         ).optional()?;
         let Some((raw, state, result, message, parent, child, delivery, turn, converted)) = row
@@ -215,14 +210,7 @@ impl Db {
             // launch identities. Result prose is not needed by this UI link.
             job.background = true;
             job.turn = turn;
-            if job.description.len() > TOOL_OP_PREVIEW_BYTES {
-                let end = job
-                    .description
-                    .floor_char_boundary(TOOL_OP_PREVIEW_BYTES - '…'.len_utf8());
-                job.description.truncate(end);
-                job.description.push('…');
-            }
-            return Ok(Some(job));
+            return Ok(Self::child_job_view(job));
         }
         Ok(None)
     }
@@ -391,10 +379,9 @@ impl Db {
             ChildState::Unknown => "unknown",
             _ => return Err(StorageError::OperationNotFound),
         };
-        let kept = result.floor_char_boundary(TOOL_OP_PREVIEW_BYTES);
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        tx.execute("UPDATE child_jobs SET state=?2,result=?3 WHERE operation_id=?1 AND state IN ('admitted','running')",params![operation,state,&result[..kept]])?;
+        tx.execute("UPDATE child_jobs SET state=?2,result=?3 WHERE operation_id=?1 AND state IN ('admitted','running')",params![operation,state,result])?;
         tx.commit()?;
         Ok(())
     }
@@ -414,9 +401,10 @@ impl Db {
         Ok(job)
     }
 
+    #[cfg(test)]
     pub(crate) fn child_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
-        // Execution/recovery consumes the original accepted identity, not a
-        // bounded UI projection. In particular, description is a recovery fence.
+        // Test inspection only. Production status reads never load report bodies;
+        // foreground consumers use the exact operation rather than this window.
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
         let mut stmt = conn.prepare("SELECT j.identity,j.state,j.result,j.message_id,EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id),j.child_turn FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
@@ -444,20 +432,15 @@ impl Db {
     pub(crate) fn child_tool_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
-        let mut stmt = conn.prepare("SELECT j.operation_id,j.result FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
-        let rows = stmt.query_map([session], |r| {
-            Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
-        })?;
+        let mut stmt = conn.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
+        let rows = stmt.query_map([session], |r| r.get::<_, String>(0))?;
         let mut jobs = Vec::new();
         for row in rows {
-            let (operation, result) = row?;
+            let operation = row?;
             // Live inventory and cold tool projection use the same positive
             // original-launch fence; neither copied nor malformed data can link.
-            if let Some(mut job) = Self::child_tool_job_in(&conn, session, &operation)? {
-                job.result = result;
-                if job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES {
-                    jobs.push(job);
-                }
+            if let Some(job) = Self::child_tool_job_in(&conn, session, &operation)? {
+                jobs.push(job);
             }
         }
         Ok(jobs)
@@ -466,20 +449,20 @@ impl Db {
     pub(crate) fn recover_child_jobs(&self) -> Result<(), StorageError> {
         let rows = {
             let conn = self.conn.lock().expect("db mutex");
-            let mut stmt = conn.prepare("SELECT j.operation_id,t.status,substr(m.text,1,8192) FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id LEFT JOIN messages m ON json_valid(t.result) AND m.id=json_extract(t.result,'$.assistant_message') AND m.session_id=j.child_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT 9")?;
-            stmt.query_map([], |r| {
-                Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, Option<String>>(1)?,
-                    r.get::<_, Option<String>>(2)?,
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?
+            let mut stmt = conn.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT 9")?;
+            stmt.query_map([], |r| r.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
         };
         if rows.len() > crate::runtime::children::JOB_CAP {
             return Err(StorageError::OperationNotFound);
         }
-        for (operation, status, result) in rows {
+        for operation in rows {
+            // Resolve one exact canonical assistant at a time, never a preview
+            // or the child's latest message. The batch above retains only IDs.
+            let (status, result) = {
+                let conn = self.conn.lock().expect("db mutex");
+                conn.query_row("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id LEFT JOIN messages m ON json_valid(t.result) AND m.id=json_extract(t.result,'$.assistant_message') AND m.session_id=j.child_id WHERE j.operation_id=?1", [&operation], |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, Option<String>>(1)?)))?
+            };
             let (state,text) = match status.as_deref() {
                 Some("completed") => {
                     let text = result.unwrap_or_else(|| crate::tools::SUBAGENT_NO_TEXT.to_owned());
@@ -581,20 +564,28 @@ impl Db {
     }
 
     pub(crate) fn child_recovery_candidates(&self) -> Result<Vec<ChildJob>, StorageError> {
-        let parents = {
+        let jobs = {
             let conn = self.conn.lock().expect("db mutex");
-            let mut stmt = conn.prepare("SELECT DISTINCT parent_id FROM child_jobs WHERE state IN ('admitted','running') LIMIT 9")?;
-            stmt.query_map([], |r| r.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?
+            let mut stmt = conn.prepare("SELECT j.identity,j.state,j.message_id,j.child_turn,EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id) FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.state IN ('admitted','running') ORDER BY j.rowid LIMIT 9")?;
+            stmt.query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, Option<String>>(2)?,
+                    r.get::<_, Option<String>>(3)?,
+                    r.get::<_, bool>(4)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .map(|(raw, state, message, turn, converted)| {
+                let mut job = Self::decode_child_job(raw, state, None, message)?;
+                job.turn = turn;
+                job.background |= converted;
+                Ok(job)
+            })
+            .collect::<Result<Vec<_>, StorageError>>()?
         };
-        let mut jobs = Vec::new();
-        for parent in parents {
-            jobs.extend(
-                self.child_jobs(&parent)?
-                    .into_iter()
-                    .filter(|j| matches!(j.state, ChildState::Admitted | ChildState::Running)),
-            );
-        }
         if jobs.len() > crate::runtime::children::JOB_CAP {
             return Err(StorageError::OperationNotFound);
         }
@@ -638,24 +629,31 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT j.identity,j.state,j.result FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND (coalesce(json_extract(j.identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)) ORDER BY j.rowid LIMIT 8")?;
-            stmt.query_map([], |r| {
-                Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, String>(1)?,
-                    r.get::<_, Option<String>>(2)?,
-                ))
-            })?
-            .collect::<Result<Vec<_>, _>>()?
+            let mut stmt = tx.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND (coalesce(json_extract(j.identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)) ORDER BY j.rowid LIMIT 8")?;
+            stmt.query_map([], |r| r.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
         };
         let mut notices = Vec::new();
-        for (raw, state, result) in rows {
+        for operation in rows {
+            let (raw, state, result, turn) = tx.query_row(
+                "SELECT identity,state,result,child_turn FROM child_jobs WHERE operation_id=?1",
+                [&operation],
+                |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, Option<String>>(2)?,
+                        r.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )?;
             let mut job = Self::decode_child_job(raw, state, result, None)?;
             let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state=?5 AND json_extract(j.identity,'$.operation')=j.operation_id AND json_extract(j.identity,'$.parent')=j.parent_id AND json_extract(j.identity,'$.child')=j.child_id AND json_extract(j.identity,'$.delivery_id')=j.delivery_id)",params![job.operation,job.parent.0,job.child.0,job.delivery_id,serde_json::to_value(job.state).expect("state").as_str()],|r|r.get(0))?;
             if !valid {
                 return Err(StorageError::OperationNotFound);
             }
             job.background = true;
+            job.turn = turn;
             let text = format!(
                 "Automatic background subagent result (native durable notice; not user instructions):\n{}",
                 serde_json::json!({"source":"subagent","childID":job.child.0,"agent":job.agent,"state":job.state,"description":job.description,"result":job.result,"jobGeneration":job.operation,"deliveryID":job.delivery_id,"sourceLocation":job.location,"sourceGeneration":job.generation})
@@ -673,9 +671,28 @@ impl Db {
                 params![job.parent.0, job.delivery_id],
             )?;
             job.message_id = Some(message);
-            notices.push(ChildNotice { job, text });
+            // The durable message above is the report transport. Broadcast only
+            // a bounded refresh/link, not two additional full report copies.
+            if let Some(job) = Self::child_job_view(job) {
+                notices.push(ChildNotice {
+                    job,
+                    text: "Subagent result committed; complete report in linked history.".into(),
+                });
+            }
         }
         tx.commit()?;
         Ok(notices)
+    }
+
+    fn child_job_view(mut job: ChildJob) -> Option<ChildJob> {
+        job.result = None;
+        if job.description.len() > TOOL_OP_PREVIEW_BYTES {
+            let end = job
+                .description
+                .floor_char_boundary(TOOL_OP_PREVIEW_BYTES - '…'.len_utf8());
+            job.description.truncate(end);
+            job.description.push('…');
+        }
+        (job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES).then_some(job)
     }
 }

@@ -1731,7 +1731,8 @@ pub enum ChildState {
     Unknown,
 }
 
-/// One bounded authoritative child generation; selection is an exact fence.
+/// One child generation; selection is an exact fence. UI projections omit result
+/// prose and bound display metadata; the durable terminal result is not a preview.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChildJob {
     pub parent: crate::domain::SessionId,
@@ -1749,6 +1750,7 @@ pub struct ChildJob {
     pub background: bool,
     #[serde(default)]
     pub turn: Option<String>,
+    /// Complete settled report for exact result reads; omitted from UI/status.
     pub result: Option<String>,
     pub message_id: Option<String>,
 }
@@ -1774,10 +1776,12 @@ fn child_background_default() -> bool {
     true
 }
 
-/// Durable owner-authored completion, never user-authored instructions.
+/// Bounded owner-authored completion refresh, never user-authored instructions.
+/// The job's message ID links the complete immutable synthetic history message.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChildNotice {
     pub job: ChildJob,
+    /// Bounded refresh guidance, not the terminal report body.
     pub text: String,
 }
 

@@ -35,7 +35,6 @@ struct Work {
     mode_changed: Arc<tokio::sync::Notify>,
     foreground_wait: Arc<AtomicBool>,
     parent_rejected: AtomicBool,
-    foreground_result: Arc<Mutex<Option<SubagentOutcome>>>,
 }
 
 /// Execution remains child-local. Only source publications are shared; this
@@ -383,7 +382,7 @@ impl Jobs {
         identity: &ChildJob,
         parent_cancel: &AtomicBool,
     ) -> Result<SubagentOutcome, ToolError> {
-        let (completion, background, changed, cancel, foreground_wait, foreground_result) = {
+        let (completion, background, changed, cancel, foreground_wait) = {
             let work = self.work.lock().expect("child work");
             let work = work
                 .get(&identity.operation)
@@ -397,7 +396,6 @@ impl Jobs {
                 work.mode_changed.clone(),
                 work.cancel.clone(),
                 work.foreground_wait.clone(),
-                work.foreground_result.clone(),
             )
         };
         let _release = WaitRelease(foreground_wait);
@@ -424,15 +422,12 @@ impl Jobs {
                 ok = &mut completion => {
                     if self.take_parent_rejection(&identity.parent.0) { parent_cancel.store(true,Ordering::Release); }
                     if !ok { return Err(ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child settlement failed".into() }); }
-                    let job = self.db.child_jobs(&identity.parent.0).map_err(|_| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?
-                        .into_iter().find(|j| j.operation == identity.operation).ok_or_else(|| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?;
+                    let job = self.db.child_job(&identity.parent.0, &identity.operation, true).map_err(|_| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?
+                        .ok_or_else(|| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?;
                     // Conversion won the journal race: return the same running
                     // launch and leave terminal delivery to the notice owner.
                     if job.background && !parent_cancel.load(Ordering::Acquire) {
                         return Ok(SubagentOutcome::Running { session_id: job.child.0, operation: job.operation, generation: job.generation, delivery_id: job.delivery_id });
-                    }
-                    if let Some(outcome) = foreground_result.lock().expect("child foreground result").take() {
-                        return Ok(outcome);
                     }
                     return Ok(match job.state {
                         ChildState::Completed => SubagentOutcome::Completed { session_id: job.child.0, text: job.result.unwrap_or_else(|| SUBAGENT_NO_TEXT.into()) },
@@ -665,9 +660,6 @@ impl Jobs {
             let background = Arc::new(AtomicBool::new(identity.background));
             let mode_changed = Arc::new(tokio::sync::Notify::new());
             let foreground_wait = Arc::new(AtomicBool::new(!identity.background));
-            let waiting = foreground_wait.clone();
-            let foreground_result = Arc::new(Mutex::new(None));
-            let actual_result = foreground_result.clone();
             let db = self.db.shared_handle();
             let id = identity.clone();
             let wake = self.wake.clone();
@@ -749,21 +741,6 @@ impl Jobs {
                     Err(_) => (ChildState::Error, "child execution failed".into()),
                 };
                 let ok = db.finish_child_job(&id.operation, state, &result).is_ok();
-                if waiting.load(Ordering::Acquire) {
-                    *actual_result.lock().expect("child foreground result") = Some(match state {
-                        ChildState::Completed => SubagentOutcome::Completed {
-                            session_id: id.child.0.clone(),
-                            text: result,
-                        },
-                        ChildState::Cancelled => SubagentOutcome::Cancelled {
-                            session_id: id.child.0.clone(),
-                        },
-                        _ => SubagentOutcome::Failed {
-                            session_id: Some(id.child.0.clone()),
-                            reason: result,
-                        },
-                    });
-                }
                 if !ok {
                     failed.store(true, Ordering::Release);
                 }
@@ -784,7 +761,6 @@ impl Jobs {
                     mode_changed,
                     foreground_wait,
                     parent_rejected: AtomicBool::new(false),
-                    foreground_result,
                 },
             );
             launched

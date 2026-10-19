@@ -1173,4 +1173,5 @@ timing budgets квалифицированы, debug build/help/version PASS. Re
 - Ближайшие red→green проверки, полный offline gate, обычный debug build и reviewed
   commit/push обязательны. Нет migration, owner restart, paid campaign или whole READY.
 
-Execution status: T71 active; реализация и qualification pending.
+Execution status: T71 active; R1/R3 и bounded UI реализованы с targeted evidence;
+aggregate admission, shell slice и финальная qualification pending.

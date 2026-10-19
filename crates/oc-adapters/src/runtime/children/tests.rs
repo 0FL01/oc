@@ -294,7 +294,6 @@ async fn term01_terminal_creation_uses_retained_child_source_not_moved_parent() 
             mode_changed: Arc::new(tokio::sync::Notify::new()),
             foreground_wait: Arc::new(AtomicBool::new(false)),
             parent_rejected: AtomicBool::new(false),
-            foreground_result: Arc::new(Mutex::new(None)),
         },
     );
     let mut moved = make(&b, "/bin/sh");
@@ -433,6 +432,67 @@ fn identity(parent: &str, child: &str) -> ChildJob {
 }
 
 #[tokio::test]
+async fn foreground_reads_exact_winning_result_outside_latest_inventory_window() {
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_session("parent").unwrap();
+    let jobs = Jobs::new(&db);
+    let mut selected = identity("parent", "oldest");
+    selected.background = false;
+    db.record_tool_intent(&selected.operation, "parent", None, "subagent", "{}")
+        .unwrap();
+    db.admit_fresh_child_job(&selected).unwrap();
+    let report = format!("{}WINNING-END-界", "Ω界 report\n".repeat(6000));
+    db.finish_child_job(&selected.operation, ChildState::Completed, &report)
+        .unwrap();
+    db.finish_child_job(&selected.operation, ChildState::Error, "late loser")
+        .unwrap();
+    for index in 0..17 {
+        let newer = ChildJob {
+            background: false,
+            ..identity("parent", &format!("newer-{index}"))
+        };
+        db.record_tool_intent(&newer.operation, "parent", None, "subagent", "{}")
+            .unwrap();
+        db.admit_fresh_child_job(&newer).unwrap();
+        db.finish_child_job(&newer.operation, ChildState::Completed, "newer result")
+            .unwrap();
+    }
+    assert!(
+        db.child_tool_jobs("parent")
+            .unwrap()
+            .iter()
+            .all(|job| job.operation != selected.operation)
+    );
+    jobs.work.lock().unwrap().insert(
+        selected.operation.clone(),
+        Work {
+            identity: selected.clone(),
+            parent_turn: "parent-turn".into(),
+            runtime: std::sync::Weak::new(),
+            mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+            cancel: Arc::new(AtomicBool::new(false)),
+            completion: async { true }.boxed().shared(),
+            background: Arc::new(AtomicBool::new(false)),
+            mode_changed: Arc::new(tokio::sync::Notify::new()),
+            foreground_wait: Arc::new(AtomicBool::new(true)),
+            parent_rejected: AtomicBool::new(false),
+        },
+    );
+    let outcome = jobs
+        .wait_foreground(&selected, &AtomicBool::new(false))
+        .await
+        .unwrap();
+    let SubagentOutcome::Completed { session_id, text } = outcome else {
+        panic!("winning durable completion required");
+    };
+    assert_eq!(session_id, selected.child.0);
+    assert_eq!(text.len(), report.len());
+    assert_eq!(text, report);
+    jobs.shutdown().await.unwrap();
+}
+
+#[tokio::test]
 async fn foreground_conversion_releases_only_waiter_and_retains_actual_join_and_fences() {
     let data = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
@@ -464,7 +524,6 @@ async fn foreground_conversion_releases_only_waiter_and_retains_actual_join_and_
             mode_changed: Arc::new(tokio::sync::Notify::new()),
             foreground_wait: Arc::new(AtomicBool::new(true)),
             parent_rejected: AtomicBool::new(false),
-            foreground_result: Arc::new(Mutex::new(None)),
         },
     );
     let parent_cancel = AtomicBool::new(false);
@@ -645,7 +704,6 @@ async fn dropped_shutdown_keeps_shared_join_waits_and_reaps_leaf_with_sticky_fai
                 mode_changed: Arc::new(tokio::sync::Notify::new()),
                 foreground_wait: Arc::new(AtomicBool::new(false)),
                 parent_rejected: AtomicBool::new(false),
-                foreground_result: Arc::new(Mutex::new(None)),
             },
         );
         let mut first = Box::pin(jobs.shutdown());

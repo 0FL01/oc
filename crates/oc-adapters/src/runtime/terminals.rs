@@ -88,9 +88,9 @@ impl Runtime<'_> {
         }
         let actual = self
             .db
-            .child_jobs(&selected.parent.0)
+            .child_job(&selected.parent.0, &selected.operation, false)
             .map_err(|_| refused())?;
-        if !actual.iter().any(|job| {
+        if !actual.as_ref().is_some_and(|job| {
             same_source(job, &selected)
                 && !matches!(job.state, ChildState::Admitted | ChildState::Running)
         }) {

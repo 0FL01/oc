@@ -4067,7 +4067,7 @@ async fn query(
         } => {
             let result = (|| {
                 let job = db
-                    .child_job(&session.0, &selected.operation)
+                    .child_job(&session.0, &selected.operation, false)
                     .map_err(|e| query_storage_error(db, e))?
                     .filter(|job| {
                         job.parent == session

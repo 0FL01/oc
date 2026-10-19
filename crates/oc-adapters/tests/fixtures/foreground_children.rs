@@ -12,6 +12,99 @@ async fn concurrent_child_effect_invalidates_other_child_approved_preimage() {
     shared_child_preimage(false).await;
 }
 
+#[tokio::test]
+async fn complete_foreground_report_uses_one_artifact_and_read_without_rerunning_child() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(
+            2,
+            vec![agent("helper", false, Some("test/agent-model"))],
+        )))
+        .unwrap();
+    runtime.create_session("parent").unwrap();
+    let report = format!("{}FG-REPORT-END-界", "Ω界 detail\n".repeat(7500));
+    assert!(report.len() > 64 * 1024);
+    let child_report = report.clone();
+    let data = harness.db.root().to_owned();
+    let child_calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let executions = child_calls.clone();
+    let peer = Peer::start(move |request| {
+        if request["model"] == "agent-model" {
+            assert_eq!(executions.fetch_add(1, Ordering::SeqCst), 0);
+            return sse_delta(&child_report) + &sse_completed();
+        }
+        assert_eq!(request["model"], "m");
+        let results = outputs(&request);
+        match results.len() {
+            0 => {
+                subagent_call(
+                    "long-fg",
+                    serde_json::json!({"agent":"helper","description":"Full report","prompt":"OWN_LONG_REPORT_TASK"}),
+                ) + &sse_completed()
+            }
+            1 => {
+                assert!(results[0].1.len() <= 64 * 1024);
+                assert!(results[0].1.contains("read(path="));
+                assert!(!results[0].1.contains("FG-REPORT-END-界"));
+                let sql = rusqlite::Connection::open_with_flags(
+                    data.join("oc.sqlite"),
+                    rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+                )
+                .unwrap();
+                let path: String = sql.query_row("SELECT json_extract(r.descriptor,'$.path') FROM tool_output_resources r JOIN child_jobs j ON j.operation_id=r.operation_id WHERE j.parent_id='parent'", [], |row| row.get(0)).unwrap();
+                assert!(results[0].1.contains(&path));
+                sse_tool_call(
+                    "read-report-tail",
+                    "read",
+                    &serde_json::json!({"path":path,"offset":7490,"limit":40}),
+                ) + &sse_completed()
+            }
+            2 => {
+                assert!(results[1].1.contains("FG-REPORT-END-界"));
+                sse_delta("Parent read the full stored report") + &sse_completed()
+            }
+            _ => panic!("unexpected parent execution"),
+        }
+    });
+    let mut turn = params(
+        "parent",
+        "delegate",
+        &harness,
+        provider_of(&peer.base),
+        &NO_CANCEL,
+    );
+    turn.max_output = 64_000;
+    assert_eq!(
+        runtime.run_turn(turn).await.unwrap().status,
+        TurnStatus::Completed
+    );
+    let sql = rusqlite::Connection::open_with_flags(
+        harness.db.root().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let settled: String = sql
+        .query_row(
+            "SELECT result FROM child_jobs WHERE parent_id='parent'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(settled.len(), report.len());
+    assert_eq!(settled, report);
+    assert_eq!(
+        sql.query_row("SELECT count(*) FROM tool_output_resources", [], |row| row
+            .get::<_, i64>(
+            0
+        ))
+        .unwrap(),
+        1
+    );
+    assert_eq!(child_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(harness.db.list_tool_ops("parent").unwrap().len(), 2);
+}
+
 pub(super) async fn shared_child_preimage(background: bool) {
     use oc_core::approval::{ApprovalDecision, ApprovalReply};
     let (mut harness, generation) = make_harness(allow_all());
