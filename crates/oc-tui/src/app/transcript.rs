@@ -208,6 +208,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        self.subagent_clocks_attached = true;
         let _ = self.execute_capture();
         if let Some(job) = page.child_job.as_deref()
             && self.attached_session() == Some(&job.child)
@@ -370,6 +371,7 @@ impl TuiState {
     /// resets use attach_page. Preserve a painted part, not a total-row delta:
     /// durable projection may replace synthetic parts and the paging window.
     pub fn refresh_completed_page(&mut self, page: &HistoryPage) {
+        self.subagent_clocks_attached = true;
         let _ = self.execute_capture();
         if let Some(job) = page.child_job.as_deref()
             && self.attached_session() == Some(&job.child)
@@ -1639,6 +1641,58 @@ impl TuiState {
         })
     }
 
+    /// Borrow canonical/live winners, including non-tool replacements, before
+    /// applying actual-running eligibility. This never clones transcript rows.
+    pub(super) fn effective_subagent_cards(&self) -> BTreeMap<&str, &ToolCard> {
+        let mut cards: Vec<_> = self
+            .window
+            .rows()
+            .iter()
+            .map(|row| {
+                let sequence = row.position.as_ref().and_then(|position| {
+                    if self
+                        .active_turn
+                        .as_ref()
+                        .is_some_and(|turn| position.belongs_to(&turn.0))
+                        && let crate::history::HistoryComponent::Part(sequence) = position.component
+                    {
+                        Some(sequence)
+                    } else {
+                        None
+                    }
+                });
+                (sequence, row.tool.as_ref())
+            })
+            .collect();
+        if !self.canonical_history_ahead() {
+            for (ordinal, part) in self.live_parts.iter().enumerate() {
+                if matches!(part, LivePart::Vacant) {
+                    continue;
+                }
+                let source = self
+                    .live_part_sources
+                    .get(&(self.live_part_offset + ordinal));
+                let card = match part {
+                    LivePart::Tool { card, .. } => Some(card.as_ref()),
+                    _ => None,
+                };
+                if let Some(index) = source.and_then(|source| {
+                    cards
+                        .iter()
+                        .position(|(sequence, _)| *sequence == Some(*source))
+                }) {
+                    cards[index].1 = card;
+                } else {
+                    cards.push((None, card));
+                }
+            }
+        }
+        cards
+            .into_iter()
+            .filter_map(|(_, card)| card.map(|card| (card.op.as_str(), card)))
+            .collect()
+    }
+
     /// Render rows of the transcript: the bounded window plus the live parts
     /// (frozen text/reasoning segments and tool cards) and the open live
     /// answer (reasoning block and streaming text) while a turn is active.
@@ -1817,6 +1871,19 @@ impl TuiState {
                 row.agent_color_index = None;
             }
             if let Some(card) = &mut row.tool {
+                if self.subagent_clocks_attached && crate::tools::subagent_animated(card) {
+                    let frame = self
+                        .subagent_clocks
+                        .get(&card.op)
+                        .map_or(0, |clock| clock.frame);
+                    if let crate::tools::ToolRender::Subagent(view) = &mut card.render {
+                        view.spinner = Some(if self.chrome.animations == Some(false) {
+                            "⋯"
+                        } else {
+                            crate::compaction::FRAMES[frame]
+                        });
+                    }
+                }
                 card.diff_settings = self.chrome.diffs;
                 if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
                     view.config = self.chrome.dcp.clone();

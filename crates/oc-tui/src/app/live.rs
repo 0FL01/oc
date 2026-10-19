@@ -694,6 +694,9 @@ impl TuiState {
             self.tab_view.get_mut().cancel_rail_drag();
         }
         if (self.chrome.animations != Some(false)) != (snapshot.chrome.animations != Some(false)) {
+            for clock in self.subagent_clocks.values_mut() {
+                *clock = SubagentClock::default();
+            }
             for part in &mut self.live_parts {
                 if let LivePart::Tool {
                     delegation: Some(clock),

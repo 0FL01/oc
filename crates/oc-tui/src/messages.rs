@@ -2571,7 +2571,8 @@ fn visible_transcript_indexed(
                             subagent, card, theme, width, false,
                         );
                         if card.child_job.is_none()
-                            && (card.state == "argument_stream" || subagent.spinner.is_some())
+                            && crate::tools::subagent_pending(subagent, card)
+                            && card.state != "permission_pending"
                             && relative - margin < header.len()
                         {
                             hit = Some(TranscriptHit::PendingSubagentHover(

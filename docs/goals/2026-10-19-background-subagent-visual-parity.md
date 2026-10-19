@@ -26,8 +26,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: screenshot 1, corrected plan §3.
   - Acceptance: 10 frames/80ms, независимая фаза строки, parent idle/live→history/shared refresh не сбрасывают phase; canonical/live winner до eligibility; off→on reset, None=true, отсутствие own idle deadlines после завершения/removal/rebind. Off-mode foreground labeled gap отличается от bare Background gap. Pending Delegating/Linked hover не регрессируют.
   - Primary evidence: deterministic Instant/cache/owner tests и actual unpaused paired glyph observation.
-  - Status: pending
-  - Evidence: —
+  - Status: in_progress
+  - Evidence: 4 deterministic actual_subagent tests PASS: row-local phase, 80ms/nanos remainder/cache, parent completion/shared reconstruction, canonical/live winner, config/reset; foreground/background static gap + resolved-theme badge wrap PASS. Full `cargo test -p oc-tui --lib --locked` — 612 PASS; actual exact-notice routing regression — 1 PASS. Visual/unpaused acceptance остаётся R4.
 - R3: notice имеет TS step chronology при streaming, consumption, canonical refresh и reopen.
   - Source: screenshot 2 «вставляется вниз чата» и current TS pending/steer semantics, corrected audit §4.
   - Acceptance: pending notice после текущего step; consumed notice перед последующим assistant step; не за всем Rust turn. Позднее обычное сообщение не перетягивает старый notice. Unknown/legacy/partial provenance не вызывает guessed rotation; paging/RAW/order/dedup неизменны. Paint/hit/count/anchor используют actual live index; canonical-ahead возвращает None.
@@ -80,16 +80,16 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R2.
-- Smallest next action: actual-running clocks отдельно от provider-pending, effective-card precedence и shared-owner phase preservation.
-- Expected evidence: deterministic Instant/cache/live→history/shared/config/reset tests; existing pending/continuation/foreground behavior preserved.
+- Closes: R3.
+- Smallest next action: optional typed notice placement из original journal и bounded RAW reader, затем единый display composer с actual live index.
+- Expected evidence: request-boundary chronology (pending tail против consumed-before-next-step), original coordinates/RAW/reopen и geometry regressions.
 
 ## Current State
 
-- Resolved: plan commit `7e96fe16d` published; R1 exact terminal capture verified, no inventory expansion/new query.
-- Last relevant evidence: actual routing regression — 1 PASS; child_view suite — 4 PASS. Both with `CARGO_INCREMENTAL=0`, approved TMPDIR; fmt/diff-check PASS. TS current-runtime dependencies provisioned only in owned scratch, donor unchanged.
+- Resolved: plan `7e96fe16d` и R1 `d1669cbed` published; R2 implementation locally verified, no inventory expansion/new query.
+- Last relevant evidence: full oc-tui — 612 PASS (6.40s), exact-notice routing — 1 PASS. `CARGO_INCREMENTAL=0`, approved TMPDIR; fmt/diff-check PASS. Current TS production executable built in owned scratch (`bc5ebf00…`, Bun 1.4.2, OpenTUI 0.5.17), SHA-256 `91934537f0a3c142d4beae5044f192a19f7222cce83c3c7c35722c5c13cd467b`; donor/user service unchanged. Runtime qualification ещё не запускалась.
 - Blocker: нет подтверждённого.
-- Next: R2; original-journal notice reader and isolated current-TS runtime remain later checkpoints.
+- Next: R3 original-journal placement; затем R4 paired qualification и R5 full gate.
 
 ## Material Decisions
 
@@ -101,6 +101,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 - 2026-10-19: verified clean Rust/TS/origin; frozen corrected plan copied before implementation.
 - 2026-10-19: R1 RED→GREEN — retained card outside inventory terminalized via exact owner receipt after page refresh; full-inventory activity preserves continuation. 5 targeted tests PASS; proceed R2.
+- 2026-10-19: R2 implementation checkpoint — 612 TUI + exact notice routing PASS; actual-running clocks separate from pending, owner/shared/lifecycle/cache/off-gap checks green. Current TS standalone production binary built isolated; proceed R3, visual proof remains R4.
 
 ## Completion
 

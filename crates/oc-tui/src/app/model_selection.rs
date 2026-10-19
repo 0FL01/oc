@@ -93,6 +93,15 @@ impl TuiState {
             self.request_id = previous.request_id;
             self.generation = previous.generation;
             self.view_id = previous.view_id;
+            self.subagent_clocks.clone_from(&previous.subagent_clocks);
+            if (self.chrome.animations != Some(false))
+                != (previous.chrome.animations != Some(false))
+            {
+                for clock in self.subagent_clocks.values_mut() {
+                    *clock = SubagentClock::default();
+                }
+            }
+            self.sync_subagent_clocks();
             self.input_revision = previous.input_revision;
             self.mention_selected = previous.mention_selected;
             self.mention_dismissed = previous.mention_dismissed;

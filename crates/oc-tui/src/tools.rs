@@ -1297,6 +1297,28 @@ pub(crate) fn subagent_failed(card: &ToolCard) -> bool {
         && !matches!(&card.render,ToolRender::Subagent(render) if render.live_running)
 }
 
+pub(crate) fn subagent_running(view: &SubagentRender, card: &ToolCard) -> bool {
+    let terminal = card.child_job.as_ref().is_some_and(|job| {
+        !matches!(
+            job.state,
+            oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
+        )
+    });
+    view.live_running || (!terminal && matches!(card.state.as_str(), "started" | "running"))
+}
+
+pub(crate) fn subagent_pending(view: &SubagentRender, card: &ToolCard) -> bool {
+    matches!(
+        card.state.as_str(),
+        "argument_stream" | "permission_pending"
+    ) || view.description.is_empty()
+}
+
+pub(crate) fn subagent_animated(card: &ToolCard) -> bool {
+    matches!(&card.render, ToolRender::Subagent(view)
+        if !subagent_pending(view, card) && !view.continuation && subagent_running(view, card))
+}
+
 /// InlineTool/InlineToolRow, including an indivisible base-surface status badge.
 /// Error detail is the bounded recorded error, not a child result transcript.
 pub(crate) fn subagent_block_expanded(
@@ -1306,18 +1328,13 @@ pub(crate) fn subagent_block_expanded(
     width: u16,
     expanded: bool,
 ) -> Vec<Line> {
-    use oc_core::queries::ChildState;
-    let known_terminal = card
-        .child_job
-        .as_ref()
-        .is_some_and(|job| !matches!(job.state, ChildState::Admitted | ChildState::Running));
-    let running = subagent.live_running
-        || (!known_terminal && matches!(card.state.as_str(), "started" | "running"));
+    let running = subagent_running(subagent, card);
     // Native background results retain the recorded `running` operation state
     // after returning the handle. Positive result bytes distinguish that real
     // publication from an unfinished foreground await; never parse its prose.
     let handle_returned =
         card.state == "completed" || (card.state == "running" && card.output_bytes > 0);
+    let background = handle_returned && card.child_job.as_ref().is_some_and(|job| job.background);
     let failed = subagent_failed(card);
     let denied = card.state == "denied";
     let style = ratatui::style::Style::default().fg(
@@ -1334,10 +1351,7 @@ pub(crate) fn subagent_block_expanded(
     } else {
         style
     };
-    let pending = matches!(
-        card.state.as_str(),
-        "argument_stream" | "permission_pending"
-    ) || subagent.description.is_empty();
+    let pending = subagent_pending(subagent, card);
     let icon = if pending || running && !subagent.continuation {
         subagent.spinner.unwrap_or(SPINNER)
     } else if subagent.continuation {
@@ -1394,8 +1408,9 @@ pub(crate) fn subagent_block_expanded(
                     },
                     // The pinned width-two icon box styles only the glyph;
                     // its remaining layout cell does not inherit its roles.
-                    if pending
-                        && (card.state == "argument_stream" || subagent.spinner.is_some())
+                    if ((pending && card.state != "permission_pending")
+                        || running && !subagent.continuation)
+                        && !background
                         && icon == SPINNER
                     {
                         Span::styled(" ", style)
@@ -1419,7 +1434,7 @@ pub(crate) fn subagent_block_expanded(
     };
     // The mode belongs to the captured returned launch and persists after exit;
     // current child running state above is deliberately a different fact.
-    if handle_returned && card.child_job.as_ref().is_some_and(|job| job.background) {
+    if background {
         let badge = Span::styled(
             " Background ",
             ratatui::style::Style::default()
@@ -2575,6 +2590,67 @@ mod tests {
                 .iter()
                 .any(|line| line.plain_text().contains("child crashed"))
         );
+    }
+
+    #[test]
+    fn actual_subagent_static_gap_and_background_badge_use_resolved_roles() {
+        let mut asset: serde_json::Value =
+            serde_json::from_str(crate::theme::OPENCODE_THEME_JSON).unwrap();
+        asset["dark"]["text"]["muted"] = serde_json::json!("#123456");
+        let custom = Theme::from_json(&asset.to_string(), crate::theme::ThemeMode::Dark).unwrap();
+        for theme in [Theme::dark(), Theme::light(), &custom] {
+            for background in [false, true] {
+                let mut card = make_card(
+                    "subagent",
+                    "running",
+                    serde_json::json!({
+                        "agent":"explore", "description":"A long controlled task description", "prompt":"task"
+                    }),
+                    Some("actual returned handle"),
+                );
+                card.child_job = Some(Box::new(oc_core::queries::ChildJob {
+                    parent: oc_core::domain::SessionId("parent".into()),
+                    child: oc_core::domain::SessionId("child".into()),
+                    operation: card.op.clone(),
+                    generation: 1,
+                    location: "/fixture".into(),
+                    agent: "explore".into(),
+                    model: "fixture/model".into(),
+                    description: "A long controlled task description".into(),
+                    delivery_id: "delivery".into(),
+                    state: oc_core::queries::ChildState::Running,
+                    background,
+                    turn: None,
+                    result: None,
+                    message_id: None,
+                }));
+                let ToolRender::Subagent(view) = &mut card.render else {
+                    panic!("typed child")
+                };
+                view.spinner = Some("⋯");
+                let view = view.clone();
+                let lines = subagent_block_expanded(&view, &card, theme, 60, false);
+                assert_eq!(lines[0].spans()[1].style().fg, Some(theme.text_muted()));
+                assert_eq!(
+                    lines[0].spans()[2].style().fg,
+                    (!background).then_some(theme.text_muted())
+                );
+                if background {
+                    assert_eq!(
+                        lines.len(),
+                        2,
+                        "badge wraps as one item at the real narrow boundary"
+                    );
+                    assert_eq!(lines[1].plain_text(), "      Background ");
+                    let badge = lines[1].spans().last().unwrap();
+                    assert_eq!(badge.content(), " Background ");
+                    assert_eq!(badge.style().fg, Some(theme.text_muted()));
+                    assert_eq!(badge.style().bg, Some(theme.decrease(theme.background())));
+                } else {
+                    assert_eq!(lines.len(), 1);
+                }
+            }
+        }
     }
 
     #[test]

@@ -1431,6 +1431,261 @@ async fn rejected_prepared_patch_reconciles_without_started_or_duplicate_card() 
 }
 
 #[tokio::test]
+async fn actual_subagent_clock_uses_the_winning_canonical_or_live_card() {
+    use oc_core::queries::{HistoryPartWindow, HistoryTurn, PartState, ToolOpView, TranscriptPart};
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("clock-winners"));
+    let turn = WorkerTurnId("parent".into());
+    let card = ToolOpView {
+        child_job: None,
+        question: None,
+        rowid: 1,
+        op: "one-child".into(),
+        name: "subagent".into(),
+        state: "started".into(),
+        input: Some(r#"{"agent":"explore","description":"Real task"}"#.into()),
+        output: None,
+        output_bytes: 0,
+        output_truncated: false,
+        output_presentation: None,
+        patch_effects: None,
+        dcp: None,
+        dcp_topic: None,
+    };
+    let mut accepted = msg(1, Role::User, "request");
+    let mut projection = HistoryTurn {
+        id: turn.0.clone(),
+        status: "started".into(),
+        window: Some(HistoryPartWindow {
+            start: 0,
+            end: 1,
+            total: 1,
+        }),
+        parts: vec![TranscriptPart::Tool(card.clone())],
+        part_states: vec![PartState {
+            sequence: 0,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    accepted.turn = Some(projection.clone());
+    state.attach_page(&page(vec![accepted.clone()], 1, false, false));
+    state.begin_linked_turn(turn.clone());
+    state.apply_presentation(&turn, &projection);
+    let now = Instant::now();
+    state.tick_subagents(now);
+    assert_eq!(state.subagent_clocks.len(), 1);
+    state.apply_tool_finished(
+        &turn,
+        "one-child",
+        "subagent",
+        "completed",
+        "done",
+        4,
+        false,
+    );
+    state.tick_subagents(now + Duration::from_millis(80));
+    assert!(
+        state.subagent_clocks.is_empty(),
+        "terminal live replacement defeats stale canonical running"
+    );
+    state.apply_tool_started(&turn, "one-child", "subagent", card.input.as_ref().unwrap());
+    state.tick_subagents(now + Duration::from_millis(90));
+    assert_eq!(state.subagent_clocks.len(), 1);
+    let mut terminal = card;
+    terminal.state = "completed".into();
+    projection.parts = vec![
+        TranscriptPart::Tool(terminal),
+        TranscriptPart::Text("future canonical text".into()),
+    ];
+    projection.part_states.push(PartState {
+        sequence: 1,
+        ..Default::default()
+    });
+    projection.window = Some(HistoryPartWindow {
+        start: 0,
+        end: 2,
+        total: 2,
+    });
+    accepted.turn = Some(projection);
+    state.window.reset(&page(vec![accepted], 1, false, false));
+    assert!(state.canonical_history_ahead());
+    state.tick_subagents(now + Duration::from_millis(170));
+    assert!(
+        state.subagent_clocks.is_empty(),
+        "terminal canonical-ahead defeats stale running live copy"
+    );
+    assert_eq!(state.next_subagent_deadline(), None);
+}
+
+#[tokio::test]
+async fn actual_subagent_clocks_survive_parent_completion_and_shared_refresh() {
+    use oc_core::queries::{ChildJob, ChildState};
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app.clone(), sid("actual-clocks"));
+    let turn = WorkerTurnId("parent".into());
+    let job = |op: &str| ChildJob {
+        parent: sid("actual-clocks"),
+        child: sid(&format!("child-{op}")),
+        operation: op.into(),
+        generation: 1,
+        location: "/fixture".into(),
+        agent: "explore".into(),
+        model: "fixture/model".into(),
+        description: format!("Task {op}"),
+        delivery_id: format!("delivery-{op}"),
+        state: ChildState::Running,
+        background: true,
+        turn: Some(format!("child-turn-{op}")),
+        result: None,
+        message_id: None,
+    };
+    let a = job("A");
+    let mut b = job("B");
+    let launch = |state: &mut TuiState, op: &str| {
+        state.apply_tool_started(&turn, op, "subagent", &format!(r#"{{"agent":"explore","description":"Task {op}","prompt":"Controlled child","background":true}}"#));
+        state.apply_tool_finished(
+            &turn,
+            op,
+            "subagent",
+            "running",
+            "Returned background handle",
+            26,
+            false,
+        );
+    };
+    state.begin_linked_turn(turn.clone());
+    launch(&mut state, "A");
+    state.apply_child_jobs(vec![a.clone()]);
+    let now = Instant::now();
+    assert!(!state.tick_subagents(now));
+    assert!(state.tick_subagents(now + Duration::from_millis(80)));
+    launch(&mut state, "B");
+    state.apply_child_jobs(vec![a.clone(), b.clone()]);
+    state.tick_subagents(now + Duration::from_millis(90));
+    assert_eq!(state.subagent_clocks["A"].frame, 1);
+    assert_eq!(state.subagent_clocks["B"].frame, 0);
+    state.apply_finished(&turn, "Parent anchor", 10);
+    assert!(state.active_turn.is_none());
+    state.tick_subagents(now + Duration::from_millis(160));
+    assert_eq!(
+        state.subagent_clocks["A"].frame, 2,
+        "parent completion does not retire child clocks"
+    );
+    assert_eq!(state.subagent_clocks["B"].frame, 0);
+    assert!(state.window.rows().iter().filter_map(|row| row.tool.as_ref()).all(|card|
+        matches!(&card.render, crate::tools::ToolRender::Subagent(view) if view.spinner.is_none())));
+    let mut refreshed = TuiState::new(app, sid("actual-clocks"));
+    refreshed.window = state.window.clone();
+    refreshed.preserve_shared_composer(state);
+    assert_eq!(refreshed.subagent_clocks["A"].frame, 2);
+    assert_eq!(
+        refreshed.subagent_clocks["B"].at,
+        Some(now + Duration::from_millis(90))
+    );
+    b.state = ChildState::Completed;
+    refreshed.apply_child_jobs(vec![a.clone(), b.clone()]);
+    refreshed.tick_subagents(now + Duration::from_millis(170));
+    assert!(!refreshed.subagent_clocks.contains_key("B"));
+    let shown = refreshed
+        .transcript_lines(120, 120)
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        shown.contains("✓ Explore Subagent — Task B  Background"),
+        "{shown}"
+    );
+    assert!(
+        shown.contains("⠹ Explore Subagent — Task A  Background"),
+        "{shown}"
+    );
+    let mut catalog = snapshot();
+    catalog.chrome = refreshed.chrome.clone();
+    catalog.chrome.animations = Some(true);
+    refreshed.apply_catalog(catalog.clone());
+    assert_eq!(refreshed.subagent_clocks["A"].frame, 2);
+    catalog.chrome.animations = Some(false);
+    refreshed.apply_catalog(catalog.clone());
+    assert_eq!(refreshed.next_subagent_deadline(), None);
+    catalog.chrome.animations = Some(true);
+    refreshed.apply_catalog(catalog);
+    assert_eq!(refreshed.subagent_clocks["A"].frame, 0);
+    refreshed.tick_subagents(now + Duration::from_secs(1));
+    assert_eq!(
+        refreshed.next_subagent_deadline(),
+        Some(now + Duration::from_millis(1080))
+    );
+    refreshed.reset_workspace();
+    refreshed.tick_subagents(now + Duration::from_secs(2));
+    assert!(
+        refreshed.subagent_clocks.is_empty(),
+        "reset must not rearm stale retained rows"
+    );
+    assert_eq!(refreshed.next_subagent_deadline(), None);
+}
+
+#[tokio::test]
+async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("actual-cached"));
+    let turn = WorkerTurnId("parent".into());
+    state.begin_linked_turn(turn.clone());
+    for index in 0..20 {
+        state.apply_tool_started(&turn, &format!("op-{index}"), "subagent", r#"{"agent":"explore","description":"Controlled description","prompt":"Read-only fixture"}"#);
+    }
+    let now = Instant::now();
+    state.tick_subagents(now);
+    assert_eq!(
+        state.subagent_clocks.len(),
+        20,
+        "not limited by child inventory16"
+    );
+    let paint = |state: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, state))
+            .unwrap();
+    };
+    paint(&state);
+    let copies = state.transcript_row_copies.get();
+    let builds = state.visible_projection_builds.get();
+    assert!(!state.tick_subagents(now + Duration::from_millis(79)));
+    paint(&state);
+    assert_eq!(state.transcript_row_copies.get(), copies);
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    for step in 1..=10 {
+        assert!(
+            state
+                .tick_subagents(now + Duration::from_millis(step * 80) + Duration::from_nanos(123))
+        );
+        assert!(
+            state
+                .subagent_clocks
+                .values()
+                .all(|clock| clock.frame == step as usize % 10)
+        );
+        assert_eq!(
+            state.next_subagent_deadline(),
+            Some(now + Duration::from_millis((step + 1) * 80))
+        );
+    }
+    paint(&state);
+    let builds = state.visible_projection_builds.get();
+    assert!(!state.tick_subagents(now + Duration::from_millis(1600)));
+    paint(&state);
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    state.live_parts[0] = LivePart::Text("Non-tool replacement".into());
+    state.tick_subagents(now + Duration::from_millis(1610));
+    assert!(!state.subagent_clocks.contains_key("op-0"));
+    state.set_session(sid("other"));
+    state.tick_subagents(now + Duration::from_secs(2));
+    assert!(state.subagent_clocks.is_empty());
+}
+
+#[tokio::test]
 async fn pending_delegation_clock_is_local_cached_and_demand_driven() {
     use oc_core::tool_stream::{ToolStreamEvent as Event, ToolStreamIdentity};
     let mut state = fresh_state("delegation-clock").await;

@@ -118,7 +118,7 @@ async fn captured_subagent_live_background_and_terminal_keep_one_graph_and_origi
     assert_eq!(lines.len(), 1);
     assert_eq!(
         lines[0].plain_text(),
-        "   ⋯ Helper Subagent — inspect configs"
+        "   ⠋ Helper Subagent — inspect configs"
     );
     assert!(!lines[0].plain_text().contains("inherited"));
 
@@ -178,7 +178,7 @@ async fn captured_subagent_live_background_and_terminal_keep_one_graph_and_origi
     assert!(
         caption[0]
             .plain_text()
-            .contains("⋯ Helper Subagent — inspect configs  Background ")
+            .contains("⠋ Helper Subagent — inspect configs  Background ")
     );
     let badge = caption[0].spans().last().unwrap();
     assert_eq!(badge.content(), " Background ");
@@ -232,7 +232,7 @@ async fn captured_subagent_live_background_and_terminal_keep_one_graph_and_origi
     assert!(
         crate::tools::tool_block(&card, crate::theme::Theme::dark(), 120)[0]
             .plain_text()
-            .contains("⋯ Helper Subagent")
+            .contains("⠋ Helper Subagent")
     );
     continued.child = SessionId("unrelated-child".into());
     state.apply_child_jobs(vec![captured.clone(), continued]);
