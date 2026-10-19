@@ -105,6 +105,11 @@ const userShell=args['user-shell']==='true';
 const combinedComposer=args['combined-composer']==='true';
 const modelShell=args['model-shell']==='true';
 const subagentCards=args['subagent-cards']==='true';
+const subagentPending=args['subagent-pending']==='true';
+const pendingAnimation=args['pending-animation']==='true';
+if(args['subagent-pending']!==undefined&&(!subagentCards||!['true','false'].includes(args['subagent-pending'])))throw Error('--subagent-pending requires subagent-cards and true|false');
+if(args['pending-animation']!==undefined&&(!subagentPending||!['true','false'].includes(args['pending-animation'])))throw Error('--pending-animation requires subagent-pending and true|false');
+if(subagentPending&&(args['build-oc']!=='true'||![[80,24],[120,40]].some(([c,r])=>c===Number(args.columns)&&r===Number(args.rows))))throw Error('Pending parity requires a current build and 80x24 or 120x40');
 const rootHandoff=args['root-handoff']==='true';
 const historyCompletion=args['history-completion']==='true';
 if(args['history-completion']!==undefined&&(!combinedComposer||modelShell||subagentCards||rootHandoff||!['true','false'].includes(args['history-completion'])))throw Error('--history-completion requires exclusive ordinary combined-composer and true|false');
@@ -131,7 +136,7 @@ const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal||combinedComposer||questionForms?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','tool-preview-small','execute-preview','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','history-completion','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','tool-preview-small','execute-preview','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','subagent-pending','pending-animation','root-handoff','history-completion','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -436,7 +441,7 @@ const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 't
     ...(toolPreviewSmall?{tool_preview_small:true,small_probe:sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs'))),real_response_barrier_ms:5500}:{}),
     ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort,probe:sha(fs.readFileSync(path.join(here,'execute_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'execute_fixture.py')))}:{}),
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
-    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,history_completion:historyCompletion,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
+    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,subagent_pending:subagentPending,pending_animation:pendingAnimation,root_handoff:rootHandoff,history_completion:historyCompletion,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(syntaxCache?{syntax_cache:true,...(executePreview?{execute_syntax:executeReference.syntax}: {syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json')))}),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
     ...(syntaxInventory?{syntax_inventory:true}:{}),
     ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,mcp_footer:mcpFooter||null,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{}),...(mcpFooter?{footer_probe:sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')))}:{})} : {}),
@@ -532,11 +537,11 @@ if(cursorRenderer==='webgl') {
   fs.copyFileSync(path.join(cursorRendererRoot,'package-lock.json'),path.join(output,'cursor-renderer.package-lock.json'));
 }
 if(args['build-oc'] === 'true') {
-  const buildCommand=executePreview?['cargo','build','-p','oc2','--bin','oc2','--locked']:['cargo','build','--locked'];
+  const buildCommand=executePreview||subagentPending?['cargo','build','-p','oc2','--bin','oc2','--locked']:['cargo','build','--locked'];
   const build = execute(buildCommand);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
   lock.oc.build_command = buildCommand;
-  if(leaderPending||executePreview) {
+  if(leaderPending||executePreview||subagentPending) {
     lock.oc.source_inputs_unchanged_after_build=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
     if(!lock.oc.source_inputs_unchanged_after_build)throw Error('Source inputs changed during capture build');
   }
@@ -546,13 +551,13 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // These stateful probes must be new even when fresh output trees share a
 // basename. Reusing a home mixes prior operations/cache/history into proof.
-const freshRoot = leaderPending || syntaxCache || executePreview || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
+const freshRoot = leaderPending || syntaxCache || executePreview || subagentPending || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
   LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers'),
-  ...((mcpSidebar||executePreview) && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
-if ((mcpSidebar||executePreview) && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
+  ...((mcpSidebar||executePreview||subagentPending) && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
+if ((mcpSidebar||executePreview||subagentPending) && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
 fs.mkdirSync(cleanEnv.HOME, {recursive: true});
 process.env.PLAYWRIGHT_BROWSERS_PATH = cleanEnv.PLAYWRIGHT_BROWSERS_PATH;
 let browser;
@@ -593,7 +598,7 @@ try {
   browser = await chromium.launch({headless: true, env: cleanEnv});
   const profile = {frontend: '@xterm/xterm', frontend_version: require('@xterm/xterm/package.json').version,
     vt_parser: 'xterm.js 6.0.0', chromium_version: browser.version(), playwright_version: require('playwright/package.json').version,
-    font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono'],executePreview?{env:cleanEnv}:{}).stdout,
+    font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono'],executePreview||subagentPending?{env:cleanEnv}:{}).stdout,
     fallback_fonts: null,
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
@@ -606,10 +611,27 @@ try {
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
-          animations: compaction ? compactionAnimation : scanner ? scannerAnimation : `original supported animations=false; completed states only; terminal cursorBlink=${cursorTemporal==='blink'}`,
+           animations: subagentPending ? pendingAnimation : compaction ? compactionAnimation : scanner ? scannerAnimation : `original supported animations=false; completed states only; terminal cursorBlink=${cursorTemporal==='blink'}`,
           ...(compaction ? {compaction_tps:compactionTps} : {}),
        ...(scanner ? {scanner_cancel:scannerCancel} : {}),
        ...(modelsInteraction ? {models_interaction:true,catalog_extension:'fixture-scroll-00..11'} : {})}};
+  if(subagentPending) {
+    profile.pending_animation=pendingAnimation;
+    profile.fontconfig_sha256=sha(fs.readFileSync(cleanEnv.FONTCONFIG_FILE));
+    profile.font_file_sha256=sha(fs.readFileSync(profile.font_match.split('|')[2]));
+    lock.sources.pending_component_oracle={release_commit:'2670273ff17da96f85c5826ced57aa1b368754fa',
+      current_source_commit:execute(['git','-C',path.join(repo,'.local/opencode'),'rev-parse','HEAD']).stdout.trim(),
+      scope:'Delegating literal, Spinner80ms/frames, inline layout, hover and semantic colors agree; 2.0.12 is not a current-HEAD runtime pixel oracle',
+      renderer_difference:'OpenTUI 0.5.10 release versus 0.5.17 current source'};
+    const identical={
+      'packages/tui/src/component/spinner.tsx':'3207dcb6e4f4588297c24f88329e339d45df9b98',
+      'packages/tui/src/component/spinner-frames.ts':'dca99b642a727b9846b0bb7b2b995cd2c7636683'};
+    for(const [file,blob] of Object.entries(identical)) {
+      if(execute(['git','-C',path.join(repo,'.local/opencode'),'hash-object',file]).stdout.trim()!==blob)
+        throw Error('Scoped reference source correspondence changed: '+file);
+    }
+    lock.sources.pending_component_oracle.identical_release_and_current_blobs=identical;
+  }
   for (const origin of ['upstream','oc']) {
     if(sessionsInteraction && args['sessions-origin'] && origin!==args['sessions-origin'])continue;
     profile.columns = Number(args.columns || 160); profile.rows = Number(args.rows || 48);
@@ -643,7 +665,8 @@ try {
                      user_shell:userShell,
                       combined_composer:combinedComposer,
                        model_shell:modelShell,
-                        subagent_cards:subagentCards,
+                         subagent_cards:subagentCards,
+                         subagent_pending:subagentPending,pending_animation:pendingAnimation,
                         root_handoff:rootHandoff,
                         history_completion:historyCompletion,
                         syntax_cache:syntaxCache,
@@ -687,7 +710,7 @@ try {
         const bytes=Buffer.from(event.data, 'base64');
         const n=event.generation || 0;
          chunks[n].push(bytes);
-          if(boundedMode==='wheel'||compactionAnimation||leaderPending||cursorTemporal) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
+           if(boundedMode==='wheel'||compactionAnimation||leaderPending||cursorTemporal||subagentPending&&pendingAnimation) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
         // Keep a diagnostic VT prefix if the capture process is interrupted
         // before the normal per-generation teardown writes its sealed copy.
         fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
@@ -901,7 +924,7 @@ try {
                  questionProbe:questionForms?probeQuestionForms:null,
                  historyProbe:promptHistory?args=>probePromptHistory({...args,mode:promptHistory}):null,
                   userShellProbe:userShell?probeUserShell:null,
-                      composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,rootHandoff,historyCompletion}):null,
+                       composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,subagentPending,pendingAnimation,rootHandoff,historyCompletion}):null,
                mcpProbe:mcpStatus?args=>(mcpFooter?probeMcpFooter({...args,mode:mcpFooter}):probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')})):null,
                cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,writeFrame,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
@@ -3264,7 +3287,12 @@ try {
         if(toolPreviewSmall)lock.qualification={status:'DIAGNOSTIC_SMALL_TOOL_PREVIEW_ONLY',actual_requests:'Two small real MCP calls and one real Shell effect; same12-line/1024-byte producer limits; local fake Responses only',clock:'Actual PTY submission monotonic clock and bounded real5500ms final-response wait; no clock/history/paint override',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Full unmasked grid/PNG/cursor comparators decide frame equality','Large-output/error/resource/temporal and other frozen T44 outcomes remain separate gates']};
          if(executePreview)lock.qualification={status:'SUPPLEMENTARY_EXECUTE_EXPLORATION_ONLY',reference:executeReference,actual_requests:'Four direct exploration calls and two execute operations: local catalog search, three real MCP effects and two controlled HTTP GETs; live dialogs/disclosures and actual OSC52 copy',replay:'Read-only settled RAW hashes, operations/artifacts/MCP/HTTP audit through UI reopen and natural process restart',unresolved:['Behavior/style observations are not full-frame pixel PASS; unmasked grid/PNG/cursor comparator results are independent','Real elapsed time is not frozen','Native pending/unknown/terminal group semantics and bounded capture remain intentional disclosed differences','Not whole T44, all-grammar, release-native or whole-product qualification']};
         if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:rootHandoff?'Actual Root remapped foreground Subagent then Shell hints/handoff, same source/process and custom profile footer across three geometries; local fake Responses only':modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':subagentCards?'Actual inline Subagent foreground/background/model/hover/navigation, same-child continuation and missing-agent error; one episode across three real geometries, local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
-        if(syntaxInventory)lock.qualification={status:'DIAGNOSTIC_SYNTAX_INVENTORY_ONLY',actual_requests:'One actual scoped Write overwrite, title and all39 ordinary streamed grammar cases; real busy Root Add/return/parked completion, then one explicit same-root cancelled generation; zero MCP/Shell calls',reference_inputs:'Original worker consumes explicitly frozen real WASM/highlight cache inputs; official compatible Swift query freeze is recorded without changing descriptors or binary',replay:'Natural process exit/relaunch and painted session-list reopening before the explicit cancel turn; original file/operation facts and Write count must remain unchanged',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other full frozen T44 outcomes require independent qualification','Actual elapsed-time values are not frozen']};
+         if(subagentPending)lock.qualification={status:'TARGETED_PENDING_COMPONENT_ONLY',reference:lock.sources.pending_component_oracle,
+           actual_requests:'One parent proposal held after a meaningful incomplete prefix, explicit release, one real child; no Shell/terminal/MCP effects',
+           capture:'Full unmasked grids/PNGs/cursors; animated pending stills matched by observed first glyph, owned pause/drain/ACK then resume',
+           animation:pendingAnimation?'Bounded unpaused sampled glyph progression and raw PTY timeline; 80ms arithmetic is independently unit-tested':'Animations disabled on both binaries',
+           unresolved:['Whole-frame comparators retain DIFFERENT outcomes; no global pixel PASS','Pinned executable is a scoped component oracle, not current-HEAD renderer equivalence']};
+         if(syntaxInventory)lock.qualification={status:'DIAGNOSTIC_SYNTAX_INVENTORY_ONLY',actual_requests:'One actual scoped Write overwrite, title and all39 ordinary streamed grammar cases; real busy Root Add/return/parked completion, then one explicit same-root cancelled generation; zero MCP/Shell calls',reference_inputs:'Original worker consumes explicitly frozen real WASM/highlight cache inputs; official compatible Swift query freeze is recorded without changing descriptors or binary',replay:'Natural process exit/relaunch and painted session-list reopening before the explicit cancel turn; original file/operation facts and Write count must remain unchanged',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other full frozen T44 outcomes require independent qualification','Actual elapsed-time values are not frozen']};
        if(mcpStatus)lock.qualification={status:mcpFooter?'DIAGNOSTIC_MCP_FOOTER_ONLY':'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:mcpFooter?'Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames':'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};
        if(promptCaret)lock.qualification={status:'DIAGNOSTIC_PROMPT_CARET_ONLY',actual_requests:'One explicit edited user prompt plus title; zero tools/MCP/Shell effects',observation:'Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay'};
        if(promptHistory)lock.qualification={status:'DIAGNOSTIC_PROMPT_HISTORY_ONLY',mode:promptHistory,actual_requests:'Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects',observation:'Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor'};
@@ -3274,7 +3302,51 @@ try {
     if (mcpSidebar) lock.qualification = {status:'SUPPLEMENTARY_MCP_SIDEBAR_ONLY', reference:mcpSidebarReference,
       actual_requests:'One local fake-provider user exchange and auxiliary title per side; one stdio client; disabled zero-spawn and zero MCP calls',
       unresolved:['Not frozen 2.0.12/T44 qualification','Full grids, PNGs and cursors remain unmasked and are compared independently','Native restart/persistence is separately checked by the actual-binary PTY test']};
-    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
+     if(subagentPending) {
+       const reference=lock.tool_preview?.upstream?.composer, actual=lock.tool_preview?.oc?.composer;
+       const comparison={status:'NOT_QUALIFIED',scope:'Pending component only; full-frame comparators below remain unmasked',states:{}};
+       if(reference?.status==='OBSERVED_PENDING_COMPONENT'&&actual?.status==='OBSERVED_PENDING_COMPONENT') {
+         const rasters=[];
+         for(const state of ['normal','hover','inert-click']) {
+           const a=reference.component[state],b=actual.component[state];
+           comparison.states[state]={styled_cells_equal:canonical(a.cells)===canonical(b.cells),glyph:a.glyph};
+           rasters.push({state,columns:a.cells.length,left:{stem:path.join(output,'upstream','tool-preview-pending-'+state),row:a.y},
+             right:{stem:path.join(output,'oc','tool-preview-pending-'+state),row:b.y}});
+         }
+         // Read complete sealed PNGs; compare the observed component in memory.
+         // No cropped/masked replacement reference or comparator is produced.
+         const pixels=spawnSync('python3',['-c',`
+import hashlib,json,math,sys
+from PIL import Image
+result={}
+for item in json.loads(sys.argv[1]):
+    regions=[]; metrics=[]
+    for side in ('left','right'):
+        source=item[side]
+        with open(source['stem']+'.render.json') as f: geometry=json.load(f)['before']
+        cw,ch=geometry['measured_cell_width'],geometry['measured_cell_height']
+        if geometry['device_pixel_ratio']!=1: raise ValueError('unqualified device scale')
+        metrics.append((cw,ch))
+        with Image.open(source['stem']+'.png') as image:
+            top=round(source['row']*ch)
+            regions.append(image.convert('RGBA').crop((0,top,math.ceil(item['columns']*cw),round(top+ch))))
+            if regions[-1].getcolors(1) is not None: raise ValueError('component PNG has no observed glyph pixels')
+    if metrics[0]!=metrics[1] or regions[0].size!=regions[1].size: raise ValueError('component geometry mismatch')
+    raw=[region.tobytes() for region in regions]
+    result[item['state']]={'pixels_equal':raw[0]==raw[1],'size':regions[0].size,'sha256':[hashlib.sha256(value).hexdigest() for value in raw]}
+print(json.dumps(result))
+`,JSON.stringify(rasters)],{encoding:'utf8',env:cleanEnv});
+         if(pixels.status===0) {
+           const observations=JSON.parse(pixels.stdout);
+           for(const state of Object.keys(comparison.states))Object.assign(comparison.states[state],observations[state]);
+           comparison.status=Object.values(comparison.states).every(state=>state.styled_cells_equal&&state.pixels_equal)?'TARGETED_COMPONENT_PASS':'DIFFERENT';
+         } else comparison.error=pixels.stderr||pixels.error?.message||'Component PNG observation unavailable';
+       }
+       lock.pending_component_comparison=comparison;
+       json('pending-component-comparison.json',comparison);
+       if(comparison.status!=='TARGETED_COMPONENT_PASS')result=1;
+     }
+     for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
       const ext=mode==='grid'?'cells.json'+(compressCells?'.gz':''):'png';
@@ -3308,7 +3380,7 @@ try {
 } catch(e) {lock.attempts.push({status:'BLOCKED',reason:e.stack});result=2;}
 finally {
   if(browser)await browser.close();
-  if(leaderPending||executePreview) {
+  if(leaderPending||executePreview||subagentPending) {
     lock.oc.source_inputs_unchanged_after_capture=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
     if(!lock.oc.source_inputs_unchanged_after_capture){lock.attempts.push({status:'BLOCKED',reason:'Source inputs changed during capture'});result=2;}
   }

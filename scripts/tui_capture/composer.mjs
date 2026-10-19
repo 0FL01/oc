@@ -6,6 +6,7 @@ const activeTab=(f,label)=>f.cells.some(row=>{
   return text.includes('Subagents')&&text.includes('Terminals')&&x>=0&&row[x]?.modifiers.includes('bold');
 });
 export async function probeComposer(args) {
+  if(args.subagentPending)return probePendingSubagent(args);
   if(args.historyCompletion)return probeHistoryCompletion(args);
   if(args.rootHandoff)return probeRootHandoff(args);
   if(args.modelShell)return probeRootModelShell(args);
@@ -158,6 +159,92 @@ export async function probeComposer(args) {
   return {status:'OBSERVED_COMPOSER',started,converted,second,undefinedEnter,terminal,final,owner_facts:ownerFacts,
     origin,actual_tool_calls:3,actual_requests:requestCount(),shell_starts:2,shell_completions:1,
     terminal_effects:1,owner_snapshot_read_only:true,no_effect_replay:true};
+}
+
+async function probePendingSubagent({origin,pendingAnimation,send,shot,waitFor,frame,logs,snapshot,control}) {
+  const frames=['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+  const locate=f=>{
+    const matches=f.cells.flatMap((row,y)=>glyphs(row).includes('Delegating…')?[{row,y,text:glyphs(row)}]:[]);
+    if(matches.length!==1)return null;
+    const hit=matches[0],x=hit.text.indexOf('Delegating…');
+    if(x<2)return null;
+    return {...hit,x,glyph:hit.row[x-2].symbol};
+  };
+  const pending=f=>{
+    const hit=locate(f);
+    return hit&&(pendingAnimation?hit.glyph==='⠋':hit.glyph==='⋯')
+      &&!['arguments streaming','no effects yet','Inspect captured child shell','Helper Subagent','VIS39_CHILD_TASK'].some(s=>f.text.includes(s));
+  };
+  const owner=async stage=>{
+    const s=(await snapshot(stage)).composer;
+    const witnesses=s.observations.filter(o=>o.data.pending_schema);
+    if(witnesses.length!==1)throw Error('No unique recognized pending owner');
+    const d=witnesses[0].data,roots=d.sessions.filter(s=>s.parent_id===null);
+    if(roots.length!==1||d.sessions.length!==1||!s.pending_witness||s.pending_witness.prefix_bytes<256)throw Error('No real held root/prefix witness');
+    if(d.pending_schema==='native') {
+      if(['child_jobs','tool_operations','shell_jobs','terminals'].some(t=>d[t].length))throw Error('Draft caused admitted execution');
+    } else {
+      const parts=d.tool_parts;
+      if(parts.length!==1||parts[0].name!=='subagent'||parts[0].id!==s.pending_witness.call_id
+        ||parts[0].session_id!==roots[0].id||parts[0].state.status!=='streaming'
+        ||parts[0].time.ran!==undefined||parts[0].time.completed!==undefined)throw Error('TS does not witness a streaming unexecuted contract');
+    }
+    if(Object.values(s.effects).some(e=>e.bytes)||Object.values(s.ready).some(Boolean)
+      ||logs.some(e=>e.kind==='provider'&&(!e.valid||e.operation==='child'))
+      ||logs.some(e=>e.kind==='provider_completed'&&e.operation==='parent'))throw Error('Execution occurred before explicit release');
+    return s;
+  };
+  const component=(f,color)=>{
+    const hit=locate(f);
+    // Both supported geometries have a two-cell Session route inset, in
+    // addition to InlineToolRow's three-cell component-local padding.
+    const glyph=2+3;
+    if(!hit||hit.x!==glyph+2||hit.row[glyph].width!==1||hit.row.slice(glyph,hit.x+'Delegating…'.length).some((c,i)=>
+      c.bg!=='#0a0a0a'||c.modifiers.length||i!==1&&c.fg!==color)||hit.row[glyph+1].fg!==(pendingAnimation?'#ffffff':color))throw Error('Pending inline cells differ from scoped TS contract: '+JSON.stringify(hit&&{label_x:hit.x,cells:hit.row.slice(0,hit.x+'Delegating…'.length)}));
+    return {y:hit.y,label_x:hit.x,glyph:hit.glyph,cells:hit.row.slice(0,hit.x+'Delegating…'.length)};
+  };
+  await shot('pending-home',f=>f.text.includes('Ask anything'));
+  send('\x1b[200~VIS39_ROOT_TASK\x1b[201~\r','pending_parent_submit');
+  const normal=await shot('pending-normal',pending,{},pendingAnimation);
+  const before=await owner('pending-before-interaction');
+  const normalCells=component(normal,'#808080');
+  const unpaused=[];
+  if(pendingAnimation) {
+    const start=performance.now();
+    while(performance.now()-start<1800) {
+      const f=await frame(),hit=locate(f);
+      if(!hit||!frames.includes(hit.glyph))throw Error('Natural pending animation disappeared');
+      unpaused.push({observed_ms:performance.now()-start,glyph:hit.glyph,cursor:f.cursor});
+      await new Promise(r=>setTimeout(r,20));
+    }
+    if(new Set(unpaused.map(o=>o.glyph)).size<3)throw Error('No natural pending glyph progression');
+  }
+  const point={x:normalCells.label_x+1,y:normalCells.y+1};
+  send(`\x1b[<35;${point.x};${point.y}M`,'pending_hover');
+  const hovered=await shot('pending-hover',pending,{},pendingAnimation);
+  const hoverCells=component(hovered,'#eeeeee');
+  if(JSON.stringify(normal.cursor)!==JSON.stringify(hovered.cursor))throw Error('Hover moved prompt caret');
+  send(`\x1b[<0;${point.x};${point.y}M\x1b[<0;${point.x};${point.y}m`,'pending_inert_click');
+   const clicked=await shot('pending-inert-click',pending,{},pendingAnimation);
+   if(JSON.stringify(clicked.cursor)!==JSON.stringify(normal.cursor))throw Error('Pending click navigated or changed caret');
+   const clickedCells=component(clicked,'#eeeeee');
+  const after=await owner('pending-after-interaction');
+  const request_id='release-pending';
+  control({kind:'tool_preview_control',request_id,action:request_id});
+  const deadline=Date.now()+6000;
+  while(!logs.some(e=>e.kind==='tool_preview_control_ack'&&e.request_id===request_id)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,25));
+  if(!logs.some(e=>e.kind==='tool_preview_control_ack'&&e.request_id===request_id))throw Error('Missing finite pending release ACK');
+  const completed=await shot('pending-completed',f=>f.text.includes('VIS39-PARENT-DONE')&&f.text.includes('Helper Subagent')&&!f.text.includes('Delegating…'));
+  if(completed.text.split('Helper Subagent').length!==2)throw Error('Pending handoff duplicated the visible canonical slot');
+  const final=(await snapshot('pending-completed-owner')).composer;
+  const data=final.observations.find(o=>o.data.pending_schema)?.data;
+  if(!data||data.sessions.length!==2||data.sessions.filter(s=>s.parent_id!==null).length!==1
+    ||logs.filter(e=>e.kind==='provider'&&e.operation==='child').length!==1
+    ||logs.filter(e=>e.kind==='fixture_tool_call').length!==1||Object.values(final.effects).some(e=>e.bytes))throw Error('Released contract did not create one real child without replay');
+  if(origin==='oc'&&(data.child_jobs.length!==1||data.tool_operations.length!==1))throw Error('Native canonical operation duplicated');
+   return {status:'OBSERVED_PENDING_COMPONENT',before,after,final,component:{normal:normalCells,hover:hoverCells,'inert-click':clickedCells},
+    animation:pendingAnimation,unpaused_observations:unpaused,timing_claim:'Natural progression only; PTY/sample timestamps are not application paint timestamps',
+    no_pre_admission_effects:true,inert_pending_click:true,one_real_child:true,whole_frame_parity:'NOT_PASS; compare full unmasked artifacts separately'};
 }
 
 async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,control,resize}) {

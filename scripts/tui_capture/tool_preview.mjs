@@ -20,32 +20,45 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
   let draftCaret=null;
   const poll=async(predicate,label)=>{const end=Date.now()+6000;while(Date.now()<end){if(predicate())return;await new Promise(r=>setTimeout(r,25));}throw Error('Timed out '+label);};
   const snapshot=async stage=>{control({kind:'tool_preview_snapshot',request_id:stage});await poll(()=>logs.some(e=>e.kind==='tool_preview_snapshot'&&e.request_id===stage),stage);return logs.find(e=>e.kind==='tool_preview_snapshot'&&e.request_id===stage);};
-  const shot=async(stage,predicate,checks={})=>{
-    let f=await waitFor(predicate,stage,15000);
+  const shot=async(stage,predicate,checks={},observed=false)=>{
+    const deadline=Date.now()+15000;
+    let acquisition=0;
+    do {
+    const pauseId=observed?stage+'-phase-'+(++acquisition):stage;
+    let f;
+    if(observed) {
+      while(Date.now()<deadline) {f=await frame();if(predicate(f))break;await new Promise(r=>setTimeout(r,20));}
+      if(!f||!predicate(f))throw Error('Timed out observed component '+stage);
+    } else f=await waitFor(predicate,stage,15000);
     if(draftCaret)checks={...checks,draft_preserved:f.text.includes('preserved draft'),
       prompt_caret_preserved:JSON.stringify(f.cursor)===JSON.stringify(draftCaret)};
     let signature;
     let status;
     try {
       if(composerProbe||syntaxProbe) {
-        control({kind:'pause_scanner',request_id:stage});
-        await poll(()=>logs.some(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage),'owned composer pause');
-        if(!logs.find(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage).paused)throw Error('Composer process did not pause');
+        control({kind:'pause_scanner',request_id:pauseId});
+        await poll(()=>logs.some(e=>e.kind==='scanner_pause_ack'&&e.request_id===pauseId),'owned composer pause');
+        if(!logs.find(e=>e.kind==='scanner_pause_ack'&&e.request_id===pauseId).paused)throw Error('Composer process did not pause');
         f=await frame();
-        if(!predicate(f))throw Error('Actual composer phase changed before acknowledged pause');
+        if(!predicate(f)) {
+          if(observed)continue; // Finally resumes before acquiring the requested glyph again.
+          throw Error('Actual composer phase changed before acknowledged pause');
+        }
         const read=f=>createHash('sha256').update(JSON.stringify(f)).digest('hex');
         signature={read,expected:read(f)};
       }
       status=await capture('tool-preview-'+stage,f,'CAPTURED_TOOL_PREVIEW',signature);
     } finally {
       if(composerProbe||syntaxProbe) {
-        control({kind:'resume_scanner',request_id:stage});
-        await poll(()=>logs.some(e=>e.kind==='scanner_resume_ack'&&e.request_id===stage),'owned composer resume');
+        control({kind:'resume_scanner',request_id:pauseId});
+        await poll(()=>logs.some(e=>e.kind==='scanner_resume_ack'&&e.request_id===pauseId),'owned composer resume');
       }
     }
     result.stages.push({stage,status,cursor:f.cursor,requests:requests(),calls:calls(),checks});save();
     if(status!=='CAPTURED_TOOL_PREVIEW'||Object.values(checks).some(v=>v===false))throw Error('Bad capture/check '+stage);
     return f;
+    } while(observed&&Date.now()<deadline);
+    throw Error('Observed component phase could not be paused '+stage);
   };
   const slash=async text=>{send(text,'tool_preview_command');await waitFor(f=>f.text.includes(text),'draft '+text,6000);send('\r','tool_preview_command_enter');};
    const target=(f,index)=>visibleMatches(f,(smallProbe?'vispreview_output':'vis16_output')+' [index='+index);
@@ -100,7 +113,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     }
     if(composerProbe) {
       result.differences=['Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity.'];
-      result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control,resize,relaunch,slash,visibleMatches});
+      result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control,resize,relaunch,slash,visibleMatches,readVt});
       result.status='PASS_BEHAVIOR_ONLY';save();return result;
     }
     if(userShellProbe) {

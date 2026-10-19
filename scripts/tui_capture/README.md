@@ -57,6 +57,31 @@ records it; otherwise the association of an existing Rust binary with the source
 commit is **not attested**. CLI exit `1` retains mismatches/failed predicates;
 exit `2` denotes a runner blocker. Neither is parity success.
 
+## Held pending Subagent component
+
+Use `--tool-preview true --combined-composer true --subagent-cards true
+--subagent-pending true --pending-animation false|true`, with a current
+`--build-oc true`, `--geometry true --sample short --sidebar hide`, and either
+`--columns 120 --rows 40` or `--columns 80 --rows 24`. Supply explicit absolute
+`--reference`, `--oc`, `--tools`, and a new `--output` directory. Set
+`FONTCONFIG_FILE` to the owned tooling `fonts.conf` and `TMPDIR` to approved
+owned scratch; both are forwarded and the actual font/config bytes are sealed.
+
+This opt-in episode flushes a meaningful incomplete contract (at least 256
+retained bytes), observes recognized native/TS owners before and after an inert
+pending click, then releases it into exactly one real child without Shell
+effects. Normal and hovered `Delegating…` cells are checked. Animated stills
+wait for the actual first component glyph, pause/drain with unique ACKs, and
+resume immediately. A separate bounded unpaused observation and PTY timeline
+show natural progress; read timestamps do not prove exact paint cadence.
+
+The pinned 2.0.12 executable is a scoped component oracle corresponding to the
+current TS Spinner/Subagent contract, not current-HEAD OpenTUI pixel evidence.
+Full styled-grid/PNG/cursor comparators run unchanged and unmasked. Targeted
+component qualification never relabels known whole-frame differences as PASS.
+The pending-only comparison checks styled cells and in-memory pixel regions read
+from the complete sealed PNGs; it produces no masked replacement artifacts.
+
 ## Supplementary MCP sidebar (2.0.31, not frozen T44 qualification)
 
 `--mcp-sidebar true` is an exclusive `160×48`, short-answer, sidebar-auto profile.

@@ -26,26 +26,26 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: второй баг, явное требование visual parity и исправленный план, часть B.
   - Acceptance: `Delegating…`, отступ 3, правильные glyph/gap/semantic colors и hover без действия; opaque input; один slot через Linked/Started; никаких child/effects из preview.
   - Primary evidence: production rendering/lifecycle tests и paired actual-binary captures.
-  - Status: in_progress
-  - Evidence: typed/opaque/Linked/hover/theme regressions PASS; полный `oc-tui --lib` — 607 PASS. Actual paired capture остаётся R4.
+  - Status: verified
+  - Evidence: typed/opaque/Linked/hover/theme regressions PASS; `oc-tui --lib` — 607 PASS. Четыре paired static/animated captures 120×40 и 80×24: exact styled cells и component pixels PASS для normal/hover/inert-click; actual owner/nonexecution/one-child witnesses PASS (R4).
 - R3: pending spinner соответствует lifecycle и animation policy TS.
   - Source: второй баг и исправленный план, часть B.
   - Acceptance: 10 braille frames/80ms, независимая фаза строки, без restart на repeated Pending; Linked сохраняет фазу до реального handoff; animation-off даёт `⋯`; правильный первый paint, cache invalidation и cleanup без собственного idle deadline.
   - Primary evidence: deterministic Instant/visible-cache tests и bounded unpaused actual-binary animation observation.
-  - Status: in_progress
-  - Evidence: deterministic phase/cache/nanosecond remainder/config/permission/owner cleanup PASS; existing actual-binary lifecycle suite — 13 PASS. Unpaused paired observation остаётся R4.
+  - Status: verified
+  - Evidence: deterministic phase/cache/80ms/nanosecond remainder/config/permission/owner cleanup PASS; actual-binary lifecycle suite — 13 PASS. В обоих animated paired geometries оба binaries естественно показали все 10 glyphs за bounded unpaused interval; read timestamps не выдаются за paint deadlines.
 - R4: визуальная приёмка использует действительный reference и честные witnesses.
   - Source: visual parity, исправленный план, часть C.
   - Acceptance: same-config reference/native grid+PNG+cursor при 120×40 и 80×24, static/animated/hover pending; осмысленный prefix >=256 retained bytes; отсутствие execution подтверждается recognized native/TS schema и effect/provider counters; unmasked whole-frame differences не объявляются PASS. Reference текущего checkout либо доказанная scoped correspondence, без ложного current-HEAD claim.
   - Primary evidence: bounded paired probe artifacts и tests изменённых capture fixtures.
-  - Status: pending
-  - Evidence: —
+  - Status: verified
+  - Evidence: `evidence/tui/pending-parity-{120x40-static-20261019-02,80x24-static-20261019-01,120x40-animated-20261019-01,80x24-animated-20261019-01}/pending-component-comparison.json` — TARGETED_COMPONENT_PASS во всех четырёх runs. Normal/hover/inert-click: styled cells и 152×16 RGBA pixels exact; обе стороны PASS_BEHAVIOR_ONLY, meaningful prefix 375 bytes, recognized schema/root, no premature effects, one real child после release. Полные grid/PNG/cursor seals и unmasked DIFFERENT сохранены, global PASS не заявлен. Fixture tests 12 PASS; comparator tests 25 PASS; JS syntax/negative-profile и PNG-analysis negative cases PASS.
 - R5: релевантные проверки зелёные, изменения доставлены в Git.
   - Source: исправленный план, часть C; последний запрос commit/push.
   - Acceptance: targeted checks, tooling checks, full offline gate и diff-check успешны; goal отражает evidence; свои commits доступны в verified origin/master.
   - Primary evidence: реальные команды/exit codes, commit IDs и remote HEAD.
-  - Status: pending
-  - Evidence: —
+  - Status: in_progress
+  - Evidence: два full gates: fmt/clippy PASS, каждый nextest 2142 PASS / 1 source-move failure. Затем 7 same-environment diagnostic samples и workspace-feature targeted nextest PASS; failure-only read-only диагностика сохраняет исходный assertion/deadline/load. Финальный full gate ещё требуется.
 
 ### Constraints
 
@@ -66,6 +66,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Undo: `crates/oc-tui/src/app/{live,user_shell,transcript}.rs`, tests; `crates/oc/src/tui_cmd.rs` recovery и ближайшие tests; existing `pty_t39/interaction.rs`.
 - Pending: `oc-tui/src/{app,tools,messages}.rs`, `app/{live,transcript}.rs`, direct indexed hover/paint consumers и ближайшие tests.
 - Visual: существующие `scripts/tui_capture/{capture,composer}.mjs`, `composer_fixture.py` и direct fixture/config/bridge consumers, их tests; bounded gitignored artifacts.
+- R5 gate diagnostics: `crates/oc/tests/pty_t42/shared_runtime.rs` — только bounded read-only turn outcomes в failure message исходного progress assertion; не менять condition, deadline, workload или product SourceMove.
 - Goal — этот файл. Нет новых runtime dependencies/services/stores/migrations/frameworks.
 
 ## Копия исправленного плана
@@ -100,22 +101,24 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R2/R3/R4/R5.
-- Smallest next action: full offline gate для стабилизации binary, затем bounded paired pending captures static/animated при 120×40 и 80×24.
-- Expected evidence: full gate PASS; full unmasked artifacts, exact pending cells/hover, actual owner nonexecution и natural glyph progression.
+- Closes: R5.
+- Smallest next action: финальный full offline gate с actionable failure-only SourceMove diagnostic, затем итоговый commit/push и closure check.
+- Expected evidence: full gate PASS и remote HEAD; R1–R4 evidence уже successful.
 - Stop or replan if: observed blocker требует выхода за envelope; не расширять scope из speculative audit findings.
 
 ## Current State
 
-- Resolved: plan и R1 (`0232f6d17`) опубликованы; pending implementation и local clock/hover regressions готовы.
+- Resolved: plan, R1 (`0232f6d17`) и pending implementation (`448f40d2e`) опубликованы; R2/R3/R4 actual visual component qualification PASS.
 - Last relevant evidence: `cargo test -p oc-tui --lib --locked` — 607 PASS (6.09s); `cargo test -p oc2 --test pty_t39 --locked lifecycle:: -- --test-threads=1` — 13 PASS; capture fixture tests — 12 PASS; comparator tests — 25 PASS; JS syntax и diff-check PASS. Cargo с `CARGO_INCREMENTAL=0`, без clean/target override.
 - Blocker: нет подтверждённого.
-- Next: full gate, затем R4 visual evidence; R2/R3 не объявлять визуально verified до captures.
+- Next: финальный full gate; при source-move failure использовать turn outcomes для конкретной диагностики, не менять workload/deadlines/expectations и не объявлять R5 green по targeted rerun.
 
 ## Material Decisions
 
 - 2026-10-19: literal source parity — `Delegating…`, не `Delegation`; scope — reported pending component, не full subagent lifecycle.
 - 2026-10-19: audit found Linked-handoff/cache/first-paint/recovery/capture gaps; исправленный план выше является execution scope.
+- 2026-10-19: повторный full gate воспроизвёл SourceMove failure. Минимальное расширение R5 — actionable failure-only diagnostics существующего assertion, без изменения поведения теста/продукта. Visual evidence независимо от полного gate; окончательная приёмка требует оба результата.
+- 2026-10-19: owned 2.0.12 binary — scoped pending oracle (`2670273…`), не current `bc5ebf…` executable. Spinner/frame blobs совпадают; OpenTUI 0.5.10/0.5.17 различие остаётся явно указанным. Компонентный отступ 3 находится внутри session inset 2: actual global glyph column 5 и caption column 7 подтверждены TS source и обеими captures, без production adjustment.
 
 ## Checkpoint History
 
@@ -123,6 +126,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: R1 receipt/controller checkpoint — 4 TUI + 3 binary tests PASS; минимальная recovery-only актуализация history, без schema/protocol изменений. Далее held-response PTY и existing conversation regressions.
 - 2026-10-19: R1 complete — held-response PTY, existing five-turn redo и 22 conversation tests PASS; далее pending component.
 - 2026-10-19: R2/R3 implementation checkpoint — 607 TUI tests и 13 actual-binary lifecycle tests PASS; typed renderer, per-slot clock, Linked/cache/prepaint/permission cleanup и inert hover. Tooling prototype tests PASS; actual paired visual qualification ещё не выполнена.
+- 2026-10-19: первый full gate — 2142/2143 PASS; source-move progress case failed also in isolation, затем 7 diagnostic samples PASS. Временный диагностический diff полностью удалён; повторный gate без изменения deadlines/load/expectations. R4 tooling: 12 fixture + 25 comparator tests PASS, invalid-profile и PNG-analysis negative cases PASS; actual captures pending.
+- 2026-10-19: R2/R3/R4 complete — четыре actual paired runs static/animated, 120×40/80×24, exact normal/hover/inert-click cells+pixels и nonexecution/one-child PASS. Первый probe обнаружил ошибочное ожидание global inset; исправлен только probe по TS source. Full-frame comparators сохранили DIFFERENT; далее только R5.
 
 ## Completion
 

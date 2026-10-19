@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sqlite3
 import threading
+import time
 import history_completion_fixture
 
 ROOT_TASK = 'VIS39_ROOT_TASK'
@@ -20,11 +21,20 @@ parent_call_issued = False
 continuation_child = None
 continuation_call_issued = False
 continuation_release = threading.Event()
+pending_release = threading.Event()
+pending_witness = None
 
 
 def configure(spec, home, project, config, cli):
     if spec.get('history_completion'):
         return history_completion_fixture.configure(spec, home, project, config, cli)
+    if spec.get('subagent_pending'):
+        if not spec.get('subagent_cards'):
+            raise ValueError('Pending capture requires subagent cards')
+        pending_release.clear()
+        cli['animations'] = bool(spec.get('pending_animation'))
+        if spec['origin'] == 'oc':
+            config['animations'] = cli['animations']
     config['mcp'] = {'servers': {}}
     config['tool_output'] = {'max_lines': 1000, 'max_bytes': 65536}
     cli['keybinds'] = {'session.child.first': 'ctrl+g'}
@@ -76,6 +86,11 @@ def control(project, action, spec):
     if spec.get('history_completion'):
         return history_completion_fixture.control(action)
     global continuation_child
+    if action == 'release-pending':
+        if not spec.get('subagent_pending') or pending_witness is None:
+            raise ValueError('No owned pending contract to release')
+        pending_release.set()
+        return {'released': 'pending', 'call_id': pending_witness['call_id']}
     if spec.get('subagent_cards') and action == 'capture-continuation':
         # Capture an actual relational child ID, never original RAW/tool prose.
         data = snapshot(project.parent / spec['origin'] / 'home', project, spec)
@@ -135,17 +150,31 @@ def snapshot(home, project, spec):
                 data['sessions'] = [dict(r) for r in conn.execute(
                     'SELECT id,parent_id,time_created FROM session_v2 '
                     'WHERE fork_session_id IS NULL ORDER BY time_created,id LIMIT 12')]
+            if spec.get('subagent_pending'):
+                if {'sessions', 'child_jobs', 'tool_operations', 'shell_jobs', 'terminals'} <= tables:
+                    data['pending_schema'] = 'native'
+                elif {'session_v2', 'session_message'} <= tables:
+                    data['pending_schema'] = 'ts'
+                    data['tool_parts'] = [
+                        {'message': row['id'], 'session_id': row['session_id'], **part}
+                        for row in conn.execute('SELECT id,session_id,data FROM session_message '
+                                                'WHERE type=\'assistant\' ORDER BY seq LIMIT 12')
+                        for part in json.loads(row['data']).get('content', [])
+                        if part.get('type') == 'tool']
             observations.append({'tables': sorted(tables), 'data': data})
+    if spec.get('subagent_pending') and not any(o['data'].get('pending_schema') for o in observations):
+        raise AssertionError('Pending owner database/schema unavailable; no inactivity claim')
     ready = {phase: (project / ('composer-' + spec['origin'] + '-ready-' + phase)).exists()
              for phase in ('first', 'second')}
     return {'effects': effects, 'ready': ready, 'observations': observations,
+            **({'pending_witness': pending_witness} if spec.get('subagent_pending') else {}),
             'read_only_sqlite': True}
 
 
 def respond(handler, body, spec, emit):
     if spec.get('history_completion'):
         return history_completion_fixture.respond(handler, body, emit)
-    global requests, parent_call_issued, continuation_call_issued
+    global requests, parent_call_issued, continuation_call_issued, pending_witness
     with lock:
         requests += 1
         number = requests
@@ -190,6 +219,8 @@ def respond(handler, body, spec, emit):
     valid = valid and all(i.get('call_id') in ('call_vis39_parent', 'call_vis39_shell_0', 'call_vis39_shell_1', *(['call_vis39_continue','call_vis39_missing'] if cards else [])) for i in results)
     name = 'shell' if child or root_model else 'subagent'
     tool = not title and (index < 2 if child or root_model else index == 0)
+    if spec.get('subagent_pending') and child:
+        tool = False  # Real child admission, without unrelated Shell effects.
     if handoff:
         name = 'shell' if child or index == 1 else 'subagent'
         tool = not title and (index == 0 if child else index < 2)
@@ -236,6 +267,8 @@ def respond(handler, body, spec, emit):
             else:
                 args['model'] = 'fixture/fixture-model-1'
                 args['description'] = 'Inspect captured child shell'
+                if spec.get('subagent_pending'):
+                    args['prompt'] = CHILD_TASK + ' ' + 'Inspect only the controlled delegation contract. ' * 8
         item = {'id': f'fc_vis39_{number}', 'type': 'function_call', 'status': 'completed',
                 'call_id': f'call_vis39_shell_{index}' if name == 'shell' else 'call_vis39_parent',
                  'name': name, 'arguments': json.dumps(args)}
@@ -256,9 +289,15 @@ def respond(handler, body, spec, emit):
     events = [{'type': 'response.created', 'response': response},
               {'type': 'response.output_item.added', 'output_index': 0,
                'item': {**item, 'status': 'in_progress', **({'arguments': ''} if tool else {'content': []})}}]
+    held = bool(spec.get('subagent_pending') and tool and name == 'subagent' and index == 0 and not child)
     if tool:
-        events.append({'type': 'response.function_call_arguments.delta', 'item_id': item['id'],
-                       'output_index': 0, 'delta': item['arguments']})
+        chunks = [item['arguments']]
+        if held:
+            split = item['arguments'].index('Inspect only') + 280
+            chunks = [item['arguments'][:split], item['arguments'][split:]]
+            assert len(chunks[0].encode()) >= 256 and chunks[1]
+        events += [{'type': 'response.function_call_arguments.delta', 'item_id': item['id'],
+                    'output_index': 0, 'delta': chunk} for chunk in chunks]
     else:
         events += [{'type': 'response.content_part.added', 'item_id': item['id'], 'output_index': 0,
                     'content_index': 0, 'part': {'type': 'output_text', 'text': '', 'annotations': []}},
@@ -267,12 +306,25 @@ def respond(handler, body, spec, emit):
     events += [{'type': 'response.output_item.done', 'output_index': 0, 'item': item},
                {'type': 'response.completed', 'response': {**response, 'status': 'completed',
                 'output': [item], 'usage': {'input_tokens': 1234, 'output_tokens': 64, 'total_tokens': 1298}}}]
-    payload = ''.join('event: ' + e['type'] + '\ndata: ' + json.dumps({**e, 'sequence_number': n}) + '\n\n'
-                      for n, e in enumerate(events)).encode()
+    encoded = [('event: ' + e['type'] + '\ndata: ' + json.dumps({**e, 'sequence_number': n}) + '\n\n').encode()
+               for n, e in enumerate(events)]
+    payload = b''.join(encoded)
     handler.send_response(200)
     handler.send_header('Content-Type', 'text/event-stream')
     handler.send_header('Content-Length', str(len(payload)))
     handler.end_headers()
-    handler.wfile.write(payload)
+    if held:
+        handler.wfile.write(b''.join(encoded[:3]))
+        handler.wfile.flush()
+        pending_witness = {'call_id': item['call_id'], 'item_id': item['id'],
+                           'prefix_bytes': len(chunks[0].encode()),
+                           'prefix_sha256': hashlib.sha256(chunks[0].encode()).hexdigest(),
+                           'flushed_ns': time.monotonic_ns()}
+        emit({'kind': 'pending_contract_flushed', **pending_witness})
+        if not pending_release.wait(30):
+            raise AssertionError('Finite pending contract was not released')
+        handler.wfile.write(b''.join(encoded[3:]))
+    else:
+        handler.wfile.write(payload)
     handler.wfile.flush()
     emit({'kind': 'provider_completed', 'operation': 'title' if title else 'child' if child else 'parent'})
