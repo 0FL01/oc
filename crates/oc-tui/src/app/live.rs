@@ -693,6 +693,18 @@ impl TuiState {
             // horizontal config ignores it, but invalidates the old gesture.
             self.tab_view.get_mut().cancel_rail_drag();
         }
+        if (self.chrome.animations != Some(false)) != (snapshot.chrome.animations != Some(false)) {
+            for part in &mut self.live_parts {
+                if let LivePart::Tool {
+                    delegation: Some(clock),
+                    ..
+                } = part
+                {
+                    clock.frame = 0;
+                    clock.at = None;
+                }
+            }
+        }
         self.chrome = snapshot.chrome.clone();
         if dialog_changed {
             self.select.clear_action_focus();
@@ -1272,6 +1284,7 @@ impl TuiState {
         }
         self.live_part_sources.clear();
         self.live_checkpoint_end = None;
+        self.retire_delegation_clocks();
         self.active_turn = Some(turn);
         self.status = TuiStatus::Streaming;
         self.turn_usage = None;
@@ -1433,6 +1446,7 @@ impl TuiState {
         self.live_agent_color_index = projection.agent_color_index;
         if projection.status != "started" {
             self.live_terminal_status = Some(projection.status.clone());
+            self.discard_pending_tools();
         }
         self.live_model_label = projection
             .spans
@@ -1477,14 +1491,16 @@ impl TuiState {
                     LivePart::Tool {
                         card: Box::new(card),
                         input: row.input.clone().unwrap_or_default(),
+                        delegation: None,
                     }
                 }
             });
         }
         // Unadmitted argument streams are not part of this checkpoint yet.
         for part in previous {
-            if let LivePart::Tool { card, .. } = &part
-                && card.state == "argument_stream"
+            if let LivePart::Tool { card, delegation, .. } = &part
+                && (card.state == "argument_stream" || delegation.is_some())
+                && !self.live_parts.iter().any(|current| matches!(current, LivePart::Tool { card: canonical, .. } if canonical.op == card.op))
             {
                 self.live_parts.push(part);
             }
@@ -1824,6 +1840,7 @@ impl TuiState {
             *part = LivePart::Tool {
                 card: Box::new(card),
                 input: input.to_string(),
+                delegation: None,
             };
             self.enforce_parts();
             self.sync_compaction_clock();
@@ -1833,6 +1850,7 @@ impl TuiState {
         self.live_parts.push(LivePart::Tool {
             card: Box::new(card),
             input: input.to_string(),
+            delegation: None,
         });
         self.enforce_parts();
         self.sync_compaction_clock();
@@ -1892,17 +1910,21 @@ impl TuiState {
             let present = self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == request.binding.call)));
             if !present && self.live_parts.iter().filter(|p| matches!(p, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))).count() < oc_core::tool_stream::PENDING_TOOL_MAX {
                 let card = card_from_row(&ToolOpView { child_job: None, question: None, rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, output_presentation: None, patch_effects: None, dcp: None, dcp_topic: None });
-                self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new() });
+                self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new(), delegation: None });
             }
         }
         for part in &mut self.live_parts {
-            let LivePart::Tool { card, .. } = part else {
+            let LivePart::Tool {
+                card, delegation, ..
+            } = part
+            else {
                 continue;
             };
             if !matches!(
                 card.state.as_str(),
                 "argument_stream" | "permission_pending"
-            ) {
+            ) && delegation.is_none()
+            {
                 continue;
             }
             let request = eligible.iter().find(|r| {
@@ -1926,6 +1948,7 @@ impl TuiState {
             // reconcile without a Started/Linked event (neither may precede consent).
             card.op.clone_from(&request.binding.operation);
             card.state = "permission_pending".into();
+            *delegation = None;
             card.input_preview.clear();
             if let ApprovalPreview::Patch {
                 files,
@@ -2039,13 +2062,14 @@ impl TuiState {
                     // Round-local provider drafts can expire. Owner-prepared
                     // waits recovered ahead of this broadcast remain authoritative.
                     for part in &mut self.live_parts {
-                        if matches!(part, LivePart::Tool { card, .. } if card.state == "argument_stream")
+                        if matches!(part, LivePart::Tool { card, delegation, .. } if card.state == "argument_stream" || delegation.is_some())
                         {
                             *part = LivePart::Vacant;
                         }
                     }
                     self.pending_tool_seen.clear();
                     self.pending_tool_round = identity.round;
+                    self.invalidate_transcript();
                 }
                 let op = key(identity);
                 // A queue snapshot can recover the prepared card before older
@@ -2080,6 +2104,7 @@ impl TuiState {
                 if !matches!(
                     card.render,
                     crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)
+                        | crate::tools::ToolRender::Subagent(_)
                 ) {
                     card.render =
                         crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
@@ -2096,9 +2121,23 @@ impl TuiState {
                     end -= 1;
                 }
                 card.input_preview = preview[..end].to_string();
+                let delegation =
+                    matches!(card.render, crate::tools::ToolRender::Subagent(_)).then(|| {
+                        found
+                            .and_then(|index| match &self.live_parts[index] {
+                                LivePart::Tool { delegation, .. } => delegation.clone(),
+                                _ => None,
+                            })
+                            .unwrap_or(DelegationSpinner {
+                                round: identity.round,
+                                frame: 0,
+                                at: None,
+                            })
+                    });
                 let part = LivePart::Tool {
                     card: Box::new(card),
                     input: String::new(),
+                    delegation,
                 };
                 if let Some(index) = found {
                     self.live_parts[index] = part;
@@ -2113,6 +2152,7 @@ impl TuiState {
             ToolStreamEvent::Linked { identity, op } => {
                 let key = key(identity);
                 let prefix = format!("pending:{}:", identity.round);
+                let mut changed = false;
                 for part in &mut self.live_parts {
                     let LivePart::Tool { card, .. } = part else {
                         continue;
@@ -2124,6 +2164,7 @@ impl TuiState {
                         continue;
                     }
                     if card.op == key {
+                        changed = true;
                         if let Some(detail) = self.execute_detail.as_mut()
                             && detail.operation == key
                         {
@@ -2141,25 +2182,34 @@ impl TuiState {
                         // A canonical call supersedes conflicting announcements;
                         // never link the wrong provider item or show both cards.
                         *part = LivePart::Vacant;
+                        changed = true;
                     }
+                }
+                if changed {
+                    self.invalidate_transcript();
                 }
             }
             ToolStreamEvent::Clear { round } => {
                 let prefix = format!("pending:{round}:");
+                let mut changed = false;
                 for part in &mut self.live_parts {
-                    if matches!(part, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending") && card.op.starts_with(&prefix))
+                    if matches!(part, LivePart::Tool { card, delegation, .. } if delegation.as_ref().is_some_and(|clock| clock.round == *round) || matches!(card.state.as_str(), "argument_stream" | "permission_pending") && card.op.starts_with(&prefix))
                     {
                         *part = LivePart::Vacant;
+                        changed = true;
                     }
                 }
                 self.prune_reasoning();
+                if changed {
+                    self.invalidate_transcript();
+                }
             }
         }
     }
 
     fn discard_pending_tools(&mut self) {
         for part in &mut self.live_parts {
-            if matches!(part, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))
+            if matches!(part, LivePart::Tool { card, delegation, .. } if delegation.is_some() || matches!(card.state.as_str(), "argument_stream" | "permission_pending"))
             {
                 *part = LivePart::Vacant;
             }
@@ -2298,7 +2348,11 @@ impl TuiState {
             dcp,
             dcp_topic: None,
         };
-        if let Some(LivePart::Tool { card, input }) = self
+        if let Some(LivePart::Tool {
+            card,
+            input,
+            delegation,
+        }) = self
             .live_parts
             .iter_mut()
             .rev()
@@ -2342,6 +2396,7 @@ impl TuiState {
                 finished.files_truncated = card.files_truncated;
             }
             **card = finished;
+            *delegation = None;
             self.enforce_parts();
             self.sync_compaction_clock();
             self.refresh_running_user_shell_output();
@@ -2356,6 +2411,7 @@ impl TuiState {
         self.live_parts.push(LivePart::Tool {
             card: Box::new(card),
             input: String::new(),
+            delegation: None,
         });
         self.enforce_parts();
         self.sync_compaction_clock();

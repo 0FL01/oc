@@ -2098,7 +2098,9 @@ pub(crate) fn exploration_header_at_with_range(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Exploration(op, range) => Some((op, range)),
-        TranscriptHit::Reasoning(_) | TranscriptHit::ChildNotice(_, _, _) => None,
+        TranscriptHit::Reasoning(_)
+        | TranscriptHit::ChildNotice(_, _, _)
+        | TranscriptHit::PendingSubagentHover(_) => None,
     })
 }
 
@@ -2127,7 +2129,9 @@ pub(crate) fn reasoning_header_at(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Reasoning(id) => Some(id),
-        TranscriptHit::Exploration(_, _) | TranscriptHit::ChildNotice(_, _, _) => None,
+        TranscriptHit::Exploration(_, _)
+        | TranscriptHit::ChildNotice(_, _, _)
+        | TranscriptHit::PendingSubagentHover(_) => None,
     })
 }
 
@@ -2156,6 +2160,35 @@ pub(crate) fn captured_child_at_with_range(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::ChildNotice(job, range, tool) => Some((job, range, tool)),
+        _ => None,
+    })
+}
+
+pub(crate) fn pending_subagent_hover_at(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    widths: (u16, u16),
+    viewport: (usize, usize, Option<usize>),
+    agent_color: impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    hit: (&impl Fn(ToolExpansion<'_>) -> bool, (usize, usize)),
+) -> Option<std::ops::Range<usize>> {
+    visible_transcript_indexed(
+        rows,
+        theme,
+        widths,
+        viewport,
+        &agent_color,
+        cache,
+        ExplorationOptions {
+            expanded: hit.0,
+            point: Some(hit.1),
+            retries: 2,
+        },
+    )
+    .2
+    .and_then(|hit| match hit {
+        TranscriptHit::PendingSubagentHover(range) => Some(range),
         _ => None,
     })
 }
@@ -2336,6 +2369,7 @@ pub(crate) enum CapturedChildTarget {
 }
 
 enum TranscriptHit {
+    PendingSubagentHover(std::ops::Range<usize>),
     Exploration(String, std::ops::Range<usize>),
     Reasoning(ReasoningIdentity),
     ChildNotice(CapturedChildTarget, std::ops::Range<usize>, bool),
@@ -2536,6 +2570,17 @@ fn visible_transcript_indexed(
                         let header = crate::tools::subagent_block_expanded(
                             subagent, card, theme, width, false,
                         );
+                        if card.child_job.is_none()
+                            && (card.state == "argument_stream" || subagent.spinner.is_some())
+                            && relative - margin < header.len()
+                        {
+                            hit = Some(TranscriptHit::PendingSubagentHover(
+                                (position + margin).saturating_sub(start)
+                                    ..(position + margin + header.len())
+                                        .min(end)
+                                        .saturating_sub(start),
+                            ));
+                        }
                         let eligible = header.get(relative - margin).is_some_and(|line| {
                             let text = line.plain_text();
                             let leading = UnicodeWidthStr::width(text.as_str())

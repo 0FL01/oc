@@ -59,7 +59,7 @@ async fn mcp_label_tracks_pending_linked_started_and_failed_without_hiding_raw()
         None,
         None,
     );
-    let LivePart::Tool { card, input } = &state.live_parts[0] else {
+    let LivePart::Tool { card, input, .. } = &state.live_parts[0] else {
         panic!("card")
     };
     assert_eq!(card.name, "mcp_hash_2");
@@ -1309,7 +1309,7 @@ async fn permission_transient_uses_owner_prepared_resource_warning_without_inten
         },
     };
     state.project_pending_approvals(std::slice::from_ref(&request));
-    let LivePart::Tool { card, input } = &state.live_parts[0] else {
+    let LivePart::Tool { card, input, .. } = &state.live_parts[0] else {
         panic!("transient")
     };
     assert_eq!(card.state, "permission_pending");
@@ -1426,6 +1426,490 @@ async fn rejected_prepared_patch_reconciles_without_started_or_duplicate_card() 
     assert!(shown.contains("# Patch failed approval.txt"), "{shown}");
     assert!(
         !shown.contains("← Patched") && !shown.contains("Patching"),
+        "{shown}"
+    );
+}
+
+#[tokio::test]
+async fn pending_delegation_clock_is_local_cached_and_demand_driven() {
+    use oc_core::tool_stream::{ToolStreamEvent as Event, ToolStreamIdentity};
+    let mut state = fresh_state("delegation-clock").await;
+    let turn = WorkerTurnId("parent".into());
+    state.begin_linked_turn(turn.clone());
+    let identity = ToolStreamIdentity {
+        round: 1,
+        item_id: "a".into(),
+        call_id: "a".into(),
+    };
+    let pending = |identity| Event::Pending {
+        output_presentation: None,
+        identity,
+        name: "subagent".into(),
+        preview: "opaque".into(),
+        truncated: false,
+    };
+    state.apply_tool_argument_stream(&turn, &pending(identity.clone()));
+    let now = Instant::now();
+    assert!(!state.tick_delegations(now));
+    let frame = |state: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, state))
+            .unwrap();
+        state
+            .visible_projection
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lines
+            .iter()
+            .filter(|line| line.plain_text().contains("Delegating…"))
+            .map(crate::styled::Line::plain_text)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(frame(&state), ["   ⠋ Delegating…"]);
+    let builds = state.visible_projection_builds.get();
+    assert!(!state.tick_delegations(now + Duration::from_millis(79)));
+    frame(&state);
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    for i in 1..=10 {
+        assert!(
+            state.tick_delegations(now + Duration::from_millis(i * 80) + Duration::from_nanos(750))
+        );
+        assert_eq!(
+            frame(&state),
+            [format!(
+                "   {} Delegating…",
+                crate::compaction::FRAMES[i as usize % 10]
+            )]
+        );
+        assert_eq!(
+            state.next_delegation_deadline(),
+            Some(now + Duration::from_millis((i + 1) * 80))
+        );
+    }
+    let builds = state.visible_projection_builds.get();
+    assert!(!state.tick_delegations(now + Duration::from_millis(1600)));
+    frame(&state);
+    assert_eq!(
+        state.visible_projection_builds.get(),
+        builds,
+        "a full skipped cycle changes no glyph"
+    );
+    state.apply_tool_argument_stream(&turn, &pending(identity.clone()));
+    let b = ToolStreamIdentity {
+        item_id: "b".into(),
+        call_id: "b".into(),
+        ..identity.clone()
+    };
+    state.apply_tool_argument_stream(&turn, &pending(b));
+    assert!(!state.tick_delegations(now + Duration::from_millis(1610)));
+    assert!(state.tick_delegations(now + Duration::from_millis(1680)));
+    assert_eq!(frame(&state), ["   ⠙ Delegating…", "   ⠋ Delegating…"]);
+    state.apply_tool_argument_stream(&turn, &pending(identity.clone()));
+    assert_eq!(
+        frame(&state)[0],
+        "   ⠙ Delegating…",
+        "snapshots preserve phase"
+    );
+    state.apply_tool_argument_stream(
+        &turn,
+        &Event::Linked {
+            identity,
+            op: "linked".into(),
+        },
+    );
+    assert_eq!(
+        frame(&state)[0],
+        "   ⠙ Delegating…",
+        "Linked has no complete input yet"
+    );
+    let mut catalog = snapshot();
+    catalog.chrome = state.chrome.clone();
+    catalog.chrome.animations = Some(true);
+    state.apply_catalog(catalog.clone());
+    assert_eq!(
+        frame(&state)[0],
+        "   ⠙ Delegating…",
+        "None and true are equivalent"
+    );
+    catalog.chrome.animations = Some(false);
+    state.apply_catalog(catalog.clone());
+    assert!(frame(&state).iter().all(|line| line == "   ⋯ Delegating…"));
+    assert_eq!(state.next_delegation_deadline(), None);
+    catalog.chrome.animations = Some(true);
+    state.apply_catalog(catalog);
+    assert!(frame(&state).iter().all(|line| line == "   ⠋ Delegating…"));
+    assert!(!state.tick_delegations(now + Duration::from_millis(1700)));
+    assert_eq!(
+        state.next_delegation_deadline(),
+        Some(now + Duration::from_millis(1780))
+    );
+    state.apply_tool_argument_stream(&turn, &Event::Clear { round: 1 });
+    assert!(
+        frame(&state).is_empty(),
+        "warm cache must lose linked and unlinked drafts"
+    );
+    assert_eq!(state.next_delegation_deadline(), None);
+    state.apply_interrupted(&turn, "", 1);
+    // The real paint above also arms the independent tab-completion animation.
+    assert_eq!(state.next_delegation_deadline(), None);
+    assert!(state.live_parts.is_empty());
+}
+
+#[tokio::test]
+async fn pending_delegation_cleanup_and_checkpoint_keep_the_actual_owner() {
+    use oc_core::queries::{HistoryPartWindow, HistoryTurn};
+    use oc_core::tool_stream::{ToolStreamEvent as Event, ToolStreamIdentity};
+    for outcome in [
+        "started",
+        "denied",
+        "clear",
+        "new-round",
+        "terminal",
+        "presentation",
+        "workspace",
+        "rebind",
+        "evicted",
+    ] {
+        let mut state = fresh_state("delegation-cleanup").await;
+        let turn = WorkerTurnId("parent".into());
+        state.begin_linked_turn(turn.clone());
+        let identity = ToolStreamIdentity {
+            round: 1,
+            item_id: "i".into(),
+            call_id: "c".into(),
+        };
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Pending {
+                identity: identity.clone(),
+                name: "subagent".into(),
+                preview: "opaque".into(),
+                truncated: false,
+                output_presentation: None,
+            },
+        );
+        let now = Instant::now();
+        state.tick_delegations(now);
+        state.tick_delegations(now + Duration::from_millis(80));
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Linked {
+                identity,
+                op: "actual".into(),
+            },
+        );
+        state.apply_presentation(
+            &turn,
+            &HistoryTurn {
+                id: turn.0.clone(),
+                status: "started".into(),
+                window: Some(HistoryPartWindow::default()),
+                ..Default::default()
+            },
+        );
+        assert!(
+            state
+                .visible_transcript(80, 80, 40)
+                .0
+                .iter()
+                .any(|line| line.plain_text() == "   ⠙ Delegating…")
+        );
+        match outcome {
+            "started" => state.apply_tool_started(
+                &turn,
+                "actual",
+                "subagent",
+                r#"{"agent":"helper","description":"Real task"}"#,
+            ),
+            "denied" => {
+                state.apply_tool_finished(&turn, "actual", "subagent", "denied", "Denied", 6, false)
+            }
+            "clear" => state.apply_tool_argument_stream(&turn, &Event::Clear { round: 1 }),
+            "new-round" => state.apply_tool_argument_stream(
+                &turn,
+                &Event::Pending {
+                    identity: ToolStreamIdentity {
+                        round: 2,
+                        item_id: "read".into(),
+                        call_id: "read".into(),
+                    },
+                    name: "read".into(),
+                    preview: "".into(),
+                    truncated: false,
+                    output_presentation: None,
+                },
+            ),
+            "terminal" => state.apply_interrupted(&turn, "", 1),
+            "presentation" => state.apply_presentation(
+                &turn,
+                &HistoryTurn {
+                    id: turn.0.clone(),
+                    status: "failed".into(),
+                    revision: 1,
+                    ..Default::default()
+                },
+            ),
+            "workspace" => state.reset_workspace(),
+            "rebind" => state.begin_linked_turn(WorkerTurnId("other".into())),
+            "evicted" => {
+                state
+                    .live_parts
+                    .extend((0..super::LIVE_PARTS_MAX).map(|_| LivePart::Text("tail".into())));
+                state.enforce_parts();
+            }
+            _ => unreachable!(),
+        }
+        assert_eq!(state.next_delegation_deadline(), None, "{outcome}");
+        assert!(
+            state.live_parts.iter().all(|part| !matches!(
+                part,
+                LivePart::Tool {
+                    delegation: Some(_),
+                    ..
+                }
+            )),
+            "{outcome}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn pending_delegation_permission_does_not_recreate_a_provider_clock() {
+    use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
+    use oc_core::tool_stream::{ToolStreamEvent, ToolStreamIdentity};
+    let mut state = fresh_state("delegation-permission").await;
+    let turn = WorkerTurnId("parent".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_tool_argument_stream(
+        &turn,
+        &ToolStreamEvent::Pending {
+            identity: ToolStreamIdentity {
+                round: 1,
+                item_id: "i".into(),
+                call_id: "c".into(),
+            },
+            name: "subagent".into(),
+            preview: "opaque".into(),
+            truncated: false,
+            output_presentation: None,
+        },
+    );
+    state.tick_delegations(Instant::now());
+    let request = ApprovalRequest {
+        id: 1,
+        binding: ApprovalBinding {
+            session: "delegation-permission".into(),
+            turn: turn.0.clone(),
+            call: "c".into(),
+            operation: "prepared".into(),
+            input_digest: "digest".into(),
+            location: "location".into(),
+            generation: 1,
+            agent: None,
+            agent_digest: None,
+        },
+        project: "project".into(),
+        action: "subagent".into(),
+        resources: vec!["helper".into()],
+        save_patterns: vec![],
+        preview: ApprovalPreview::Resource {
+            values: vec!["helper".into()],
+        },
+    };
+    state.project_pending_approvals(&[request]);
+    assert_eq!(state.next_delegation_deadline(), None);
+    state.project_pending_approvals(&[]);
+    state.tick_delegations(Instant::now() + Duration::from_secs(1));
+    assert_eq!(
+        state.next_delegation_deadline(),
+        None,
+        "argument_stream after permission is not a new provider draft"
+    );
+    state.apply_tool_finished(&turn, "prepared", "subagent", "denied", "Denied", 6, false);
+    assert_eq!(
+        state
+            .transcript_rows()
+            .iter()
+            .filter(|row| row.tool.is_some())
+            .count(),
+        1
+    );
+    assert_eq!(state.next_delegation_deadline(), None);
+}
+
+#[tokio::test]
+async fn pending_delegation_hover_is_presentation_only() {
+    use crossterm::event::MouseEventKind;
+    use oc_core::tool_stream::{ToolStreamEvent, ToolStreamIdentity};
+    use ratatui::{Terminal, backend::TestBackend};
+    let mut state = fresh_state("pending-hover").await;
+    let turn = WorkerTurnId("parent".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_tool_argument_stream(
+        &turn,
+        &ToolStreamEvent::Pending {
+            identity: ToolStreamIdentity {
+                round: 1,
+                item_id: "i".into(),
+                call_id: "c".into(),
+            },
+            name: "subagent".into(),
+            preview: "opaque".into(),
+            truncated: false,
+            output_presentation: None,
+        },
+    );
+    state.restore_prompt("preserved draft".into());
+    state.tick_delegations(Instant::now());
+    let area = Rect::new(0, 0, 80, 24);
+    let rect = crate::shell::transcript_area(&state, area);
+    let (lines, _, _) = state.visible_transcript_at_viewport(rect.width, area.width, rect.height);
+    let row = lines
+        .iter()
+        .position(|line| line.plain_text().contains("Delegating…"))
+        .unwrap();
+    let y = rect.y + row as u16;
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    assert_eq!(
+        terminal.backend().buffer()[(rect.x + 5, y)].fg,
+        Theme::dark().text_muted()
+    );
+    let caret = state.editor.cursor;
+    for x in [rect.x, rect.x + 5, rect.x + rect.width - 1] {
+        state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), area);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(rect.x + 5, y)].fg,
+            Theme::dark().text()
+        );
+        let down = state.handle_mouse(
+            selection_mouse(
+                MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                x,
+                y,
+            ),
+            area,
+        );
+        let up = state.handle_mouse(
+            selection_mouse(
+                MouseEventKind::Up(crossterm::event::MouseButton::Left),
+                x,
+                y,
+            ),
+            area,
+        );
+        assert!(down.intent.is_none() && up.intent.is_none());
+        assert_eq!(state.input(), "preserved draft");
+        assert_eq!(state.editor.cursor, caret);
+    }
+}
+
+#[tokio::test]
+async fn pending_delegation_uses_typed_inline_opaque_presentation() {
+    use oc_core::tool_stream::{ToolStreamEvent as Event, ToolStreamIdentity};
+    let mut state = fresh_state("pending-delegation").await;
+    let turn = WorkerTurnId("parent-contract".into());
+    state.active_turn = Some(turn.clone());
+    state.status = TuiStatus::Streaming;
+    state.chrome.animations = Some(false);
+    let identity = ToolStreamIdentity {
+        round: 1,
+        item_id: "item".into(),
+        call_id: "call".into(),
+    };
+    for preview in [
+        "",
+        "{not JSON",
+        r#"{"agent":"LEAK_AGENT","description":"LEAK_DESCRIPTION","model":"LEAK_MODEL","sessionID":"LEAK_CHILD"}"#,
+    ] {
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Pending {
+                output_presentation: None,
+                identity: identity.clone(),
+                name: "subagent".into(),
+                preview: preview.into(),
+                truncated: false,
+            },
+        );
+        let rows = state.transcript_rows();
+        let cards: Vec<_> = rows.iter().filter_map(|row| row.tool.as_ref()).collect();
+        assert_eq!(cards.len(), 1);
+        let card = cards[0];
+        assert!(matches!(card.render, crate::tools::ToolRender::Subagent(_)));
+        assert_eq!(card.state, "argument_stream");
+        assert!(card.child_job.is_none() && card.patch_effects.is_none() && card.files.is_empty());
+        assert_eq!(card.output_bytes, 0);
+        assert!(card.started_at.is_none());
+        for width in [80, 120] {
+            let (lines, _) = state.visible_transcript(width, width, 40);
+            let shown = lines
+                .iter()
+                .map(crate::styled::Line::plain_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(
+                lines
+                    .iter()
+                    .any(|line| line.plain_text() == "   ⋯ Delegating…"),
+                "{shown}"
+            );
+            assert!(
+                !shown.contains("LEAK_")
+                    && !shown.contains("arguments streaming")
+                    && !shown.contains("no effects yet")
+            );
+        }
+    }
+    state.apply_tool_argument_stream(
+        &turn,
+        &Event::Linked {
+            identity: identity.clone(),
+            op: "actual-operation".into(),
+        },
+    );
+    assert!(
+        state
+            .visible_transcript(80, 80, 40)
+            .0
+            .iter()
+            .any(|line| line.plain_text().contains("Delegating…"))
+    );
+    state.apply_tool_started(
+        &turn,
+        "actual-operation",
+        "subagent",
+        r#"{"agent":"helper","description":"Actual description","prompt":"Controlled task"}"#,
+    );
+    state.apply_tool_argument_stream(
+        &turn,
+        &Event::Pending {
+            output_presentation: None,
+            identity,
+            name: "subagent".into(),
+            preview: "late".into(),
+            truncated: false,
+        },
+    );
+    let rows = state.transcript_rows();
+    assert_eq!(rows.iter().filter(|row| row.tool.is_some()).count(), 1);
+    let shown = state
+        .visible_transcript(80, 80, 40)
+        .0
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        shown.contains("Helper Subagent — Actual description") && !shown.contains("Delegating…"),
         "{shown}"
     );
 }

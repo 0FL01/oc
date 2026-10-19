@@ -121,6 +121,8 @@ pub struct PatchRender {
 /// `subagent` card fields parsed from the recorded request and result.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SubagentRender {
+    /// View-only pending glyph; never parsed from arguments or stored history.
+    pub spinner: Option<&'static str>,
     /// Explicit recorded continuation input, not a returned session id.
     pub continuation: bool,
     /// Current existing supervisor inventory; logical completion is independent.
@@ -1337,7 +1339,7 @@ pub(crate) fn subagent_block_expanded(
         "argument_stream" | "permission_pending"
     ) || subagent.description.is_empty();
     let icon = if pending || running && !subagent.continuation {
-        SPINNER
+        subagent.spinner.unwrap_or(SPINNER)
     } else if subagent.continuation {
         "↳"
     } else if handle_returned {
@@ -1392,7 +1394,14 @@ pub(crate) fn subagent_block_expanded(
                     },
                     // The pinned width-two icon box styles only the glyph;
                     // its remaining layout cell does not inherit its roles.
-                    Span::plain(" "),
+                    if pending
+                        && (card.state == "argument_stream" || subagent.spinner.is_some())
+                        && icon == SPINNER
+                    {
+                        Span::styled(" ", style)
+                    } else {
+                        Span::plain(" ")
+                    },
                 ];
                 spans.extend(line.spans().iter().cloned());
                 Line::new(spans)
@@ -2566,6 +2575,53 @@ mod tests {
                 .iter()
                 .any(|line| line.plain_text().contains("child crashed"))
         );
+    }
+
+    #[test]
+    fn golden_pending_delegation_uses_resolved_theme_and_animation_gap() {
+        let mut asset: serde_json::Value =
+            serde_json::from_str(crate::theme::OPENCODE_THEME_JSON).unwrap();
+        asset["dark"]["text"]["muted"] = serde_json::json!("#123456");
+        let custom = Theme::from_json(&asset.to_string(), crate::theme::ThemeMode::Dark).unwrap();
+        for theme in [Theme::dark(), Theme::light(), &custom] {
+            for glyph in ["⠋", "⋯"] {
+                let mut card =
+                    make_card("subagent", "argument_stream", serde_json::json!({}), None);
+                let ToolRender::Subagent(view) = &mut card.render else {
+                    panic!("typed pending")
+                };
+                view.spinner = Some(glyph);
+                let view = view.clone();
+                for width in [12, 80, 120] {
+                    let lines = subagent_block_expanded(&view, &card, theme, width, false);
+                    assert!(lines[0].plain_text().starts_with(&format!("   {glyph} ")));
+                    if width >= 80 {
+                        assert_eq!(lines[0].plain_text(), format!("   {glyph} Delegating…"));
+                    }
+                    let spans = lines[0].spans();
+                    assert_eq!(spans[1].style().fg, Some(theme.text_muted()));
+                    assert_eq!(
+                        spans[2].style().fg,
+                        if glyph == "⋯" {
+                            Some(theme.text_muted())
+                        } else {
+                            None
+                        }
+                    );
+                    assert!(spans.iter().all(|span| span.style().bg.is_none()));
+                    let hovered = crate::messages::hover_subagent_content(&lines[0], theme);
+                    assert_eq!(hovered.spans()[1].style().fg, Some(theme.text()));
+                    assert_eq!(
+                        hovered.spans()[2].style().fg,
+                        if glyph == "⋯" {
+                            Some(theme.text())
+                        } else {
+                            None
+                        }
+                    );
+                }
+            }
+        }
     }
 
     /// Parsing is honest: unknown tools fall back to the generic renderer and

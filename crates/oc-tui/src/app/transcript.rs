@@ -627,7 +627,45 @@ impl TuiState {
                 });
             }
         }
-        let hover_child = frame.and_then(|frame| {
+        let hover_pending = frame.and_then(|frame| {
+            let (x, y, owner) = self.last_mouse?;
+            if owner != frame
+                || self.panel != TuiPanel::None
+                || self.approvals.active().is_some()
+                || self.questions.active().is_some()
+                || self.composer_contains(frame, (x, y))
+                || self.shell_viewer().is_some()
+                || !area.contains((x, y).into())
+                || self.transcript_overpainted(frame, x, y)
+                || !self.live_parts.iter().any(|part| {
+                    matches!(
+                        part,
+                        LivePart::Tool {
+                            delegation: Some(_),
+                            ..
+                        }
+                    )
+                })
+            {
+                return None;
+            }
+            let history = self.transcript_rows();
+            let live = (!self.live_text.is_empty() || !self.live_reasoning.is_empty())
+                .then(|| history.len() - 1);
+            crate::messages::pending_subagent_hover_at(
+                &history,
+                theme,
+                (area.width, frame.width),
+                (area.height as usize, scroll, live),
+                |agent| self.agent_color(agent),
+                &self.markdown_cache,
+                (
+                    &|target| self.tool_expanded(target),
+                    ((x - area.x) as usize, (y - area.y) as usize),
+                ),
+            )
+        });
+        let hover_child = frame.filter(|_| hover_pending.is_none()).and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
             (owner == frame).then_some(())?;
             self.child_notice_hit(frame, x, y)
@@ -654,6 +692,12 @@ impl TuiState {
                     &hovered
                 } else if hover_row == Some(row) {
                     hovered = crate::messages::hover_collapsed_thought(line, theme);
+                    &hovered
+                } else if hover_pending
+                    .as_ref()
+                    .is_some_and(|range| range.contains(&row))
+                {
+                    hovered = crate::messages::hover_subagent_content(line, theme);
                     &hovered
                 } else if let Some((target, _, tool)) = hover_child
                     .as_ref()
@@ -1561,6 +1605,18 @@ impl TuiState {
         texts[start..end].to_vec()
     }
 
+    pub(super) fn canonical_history_ahead(&self) -> bool {
+        self.active_turn.as_ref().is_some_and(|turn| {
+            self.window.rows().iter().any(|row| {
+                row.position.as_ref().is_some_and(|position| {
+                    position.belongs_to(&turn.0)
+                        && matches!(position.component, crate::history::HistoryComponent::Part(sequence)
+                            if self.live_checkpoint_end.is_none_or(|end| sequence >= end))
+                })
+            })
+        })
+    }
+
     /// Render rows of the transcript: the bounded window plus the live parts
     /// (frozen text/reasoning segments and tool cards) and the open live
     /// answer (reasoning block and streaming text) while a turn is active.
@@ -1569,15 +1625,7 @@ impl TuiState {
         self.transcript_row_copies
             .set(self.transcript_row_copies.get() + self.window.len());
         let mut rows = self.window.rows().to_vec();
-        let canonical_ahead = self.active_turn.as_ref().is_some_and(|turn| {
-            rows.iter().any(|row| {
-                row.position.as_ref().is_some_and(|position| {
-                    position.belongs_to(&turn.0)
-                        && matches!(position.component, crate::history::HistoryComponent::Part(sequence)
-                            if self.live_checkpoint_end.is_none_or(|end| sequence >= end))
-                })
-            })
-        });
+        let canonical_ahead = self.canonical_history_ahead();
         if let Some(turn) = &self.active_turn {
             rows.retain(|row| {
                 !row.position.as_ref().is_some_and(|position| {
@@ -1612,6 +1660,19 @@ impl TuiState {
                     self.live_part_offset + ordinal,
                 )),
             );
+            if let LivePart::Tool {
+                delegation: Some(clock),
+                ..
+            } = part
+                && let Some(card) = row.tool.as_mut()
+                && let crate::tools::ToolRender::Subagent(view) = &mut card.render
+            {
+                view.spinner = Some(if self.chrome.animations == Some(false) {
+                    "⋯"
+                } else {
+                    crate::compaction::FRAMES[clock.frame]
+                });
+            }
             if self.live_mixed_models
                 && row.tool.is_none()
                 && let Some(model) = self

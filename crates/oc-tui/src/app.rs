@@ -396,13 +396,15 @@ struct TranscriptClick {
     count: u8,
 }
 
-/// One live part of the streaming turn, in arrival order (upstream message
-/// parts: reasoning, text, tool — `routes/session/index.tsx:1433-1481`).
-///
-/// Text/reasoning segments freeze when a tool call starts so tool cards keep
-/// their upstream position between the text parts; the transient recorded
-/// input stays with an in-flight card until its outcome arrives, then the
-/// card is rebuilt and the input dropped (bounded live state).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DelegationSpinner {
+    round: u32,
+    frame: usize,
+    at: Option<Instant>,
+}
+
+/// One live part in arrival order. Frozen text/reasoning and disposable tool
+/// drafts keep their upstream positions; canonical input is dropped on outcome.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum LivePart {
     /// Removed transient slot; keeps subsequent live reasoning identities stable.
@@ -415,7 +417,12 @@ enum LivePart {
         duration_ms: Option<u64>,
     },
     /// One tool call card plus the recorded input of an in-flight call.
-    Tool { card: Box<ToolCard>, input: String },
+    Tool {
+        card: Box<ToolCard>,
+        input: String,
+        /// Provider draft presentation, never observed execution timing.
+        delegation: Option<DelegationSpinner>,
+    },
 }
 
 /// One disposable, byte-bounded tool-output page in the Cards dialog.
@@ -432,7 +439,7 @@ impl LivePart {
         match self {
             LivePart::Vacant => 0,
             LivePart::Text(text) | LivePart::Reasoning { text, .. } => text.len(),
-            LivePart::Tool { card, input } => card.retained_bytes() + input.len(),
+            LivePart::Tool { card, input, .. } => card.retained_bytes() + input.len(),
         }
     }
 
@@ -1183,6 +1190,7 @@ impl TuiState {
 
     fn invalidate_submission(&mut self) {
         self.reset_scanner();
+        self.retire_delegation_clocks();
         self.live_part_states.clear();
         self.live_agent_color_index = None;
         self.live_terminal_status = None;
@@ -1239,6 +1247,7 @@ impl TuiState {
             .and_then(|expiry| expiry.started.map(|at| at + expiry.remaining));
         [
             scanner,
+            self.next_delegation_deadline(),
             self.compaction_at
                 .filter(|_| self.chrome.animations != Some(false))
                 .map(|at| at + Duration::from_millis(80)),
@@ -1269,6 +1278,7 @@ impl TuiState {
             });
         self.tick_toast(now);
         let scanner = self.tick_scanner(now);
+        let delegation = self.tick_delegations(now);
         let wheel = self.tick_scroll_animation(now);
         let compaction = self.tick_compaction(now);
         let tabs = self.tick_tabs(now);
@@ -1277,7 +1287,81 @@ impl TuiState {
         if leader {
             self.leader = None;
         }
-        expired || scanner || wheel || compaction || leader || tabs || retry_due || foreground
+        expired
+            || scanner
+            || delegation
+            || wheel
+            || compaction
+            || leader
+            || tabs
+            || retry_due
+            || foreground
+    }
+
+    fn delegation_animation_enabled(&self) -> bool {
+        self.chrome.animations != Some(false)
+            && self.active_turn.is_some()
+            && self.live_terminal_status.is_none()
+            && !self.canonical_history_ahead()
+    }
+
+    fn next_delegation_deadline(&self) -> Option<Instant> {
+        if !self.delegation_animation_enabled() {
+            return None;
+        }
+        self.live_parts
+            .iter()
+            .filter_map(|part| match part {
+                LivePart::Tool {
+                    delegation: Some(clock),
+                    ..
+                } => clock.at.map(|at| at + Duration::from_millis(80)),
+                _ => None,
+            })
+            .min()
+    }
+
+    /// Arm before first paint and advance only real provider-draft spinners.
+    pub fn tick_delegations(&mut self, now: Instant) -> bool {
+        if !self.delegation_animation_enabled() {
+            return false;
+        }
+        let mut changed = false;
+        for part in &mut self.live_parts {
+            let LivePart::Tool {
+                delegation: Some(clock),
+                ..
+            } = part
+            else {
+                continue;
+            };
+            let Some(at) = clock.at else {
+                clock.at = Some(now);
+                continue;
+            };
+            let elapsed = now.saturating_duration_since(at).as_nanos();
+            let steps = elapsed / 80_000_000;
+            if steps != 0 {
+                let next = (clock.frame
+                    + (steps % crate::compaction::FRAMES.len() as u128) as usize)
+                    % crate::compaction::FRAMES.len();
+                changed |= next != clock.frame;
+                clock.frame = next;
+                clock.at = now.checked_sub(Duration::from_nanos((elapsed % 80_000_000) as u64));
+            }
+        }
+        if changed {
+            self.invalidate_transcript();
+        }
+        changed
+    }
+
+    fn retire_delegation_clocks(&mut self) {
+        for part in &mut self.live_parts {
+            if let LivePart::Tool { delegation, .. } = part {
+                *delegation = None;
+            }
+        }
     }
 
     fn leader_deadline(&self) -> Option<Instant> {

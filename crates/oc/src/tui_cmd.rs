@@ -1289,6 +1289,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         // replacement must still paint the accepted receipt in this iteration.
         dirty |= job_lanes != loop_state.job_lanes();
         dirty |= state.tick_scanner(Instant::now());
+        dirty |= state.tick_delegations(Instant::now());
         if dirty && Instant::now() >= paint_at {
             let draw_start = frame_metrics
                 .as_ref()

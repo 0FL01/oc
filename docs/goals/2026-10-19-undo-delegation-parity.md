@@ -26,14 +26,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: второй баг, явное требование visual parity и исправленный план, часть B.
   - Acceptance: `Delegating…`, отступ 3, правильные glyph/gap/semantic colors и hover без действия; opaque input; один slot через Linked/Started; никаких child/effects из preview.
   - Primary evidence: production rendering/lifecycle tests и paired actual-binary captures.
-  - Status: pending
-  - Evidence: —
+  - Status: in_progress
+  - Evidence: typed/opaque/Linked/hover/theme regressions PASS; полный `oc-tui --lib` — 607 PASS. Actual paired capture остаётся R4.
 - R3: pending spinner соответствует lifecycle и animation policy TS.
   - Source: второй баг и исправленный план, часть B.
   - Acceptance: 10 braille frames/80ms, независимая фаза строки, без restart на repeated Pending; Linked сохраняет фазу до реального handoff; animation-off даёт `⋯`; правильный первый paint, cache invalidation и cleanup без собственного idle deadline.
   - Primary evidence: deterministic Instant/visible-cache tests и bounded unpaused actual-binary animation observation.
-  - Status: pending
-  - Evidence: —
+  - Status: in_progress
+  - Evidence: deterministic phase/cache/nanosecond remainder/config/permission/owner cleanup PASS; existing actual-binary lifecycle suite — 13 PASS. Unpaused paired observation остаётся R4.
 - R4: визуальная приёмка использует действительный reference и честные witnesses.
   - Source: visual parity, исправленный план, часть C.
   - Acceptance: same-config reference/native grid+PNG+cursor при 120×40 и 80×24, static/animated/hover pending; осмысленный prefix >=256 retained bytes; отсутствие execution подтверждается recognized native/TS schema и effect/provider counters; unmasked whole-frame differences не объявляются PASS. Reference текущего checkout либо доказанная scoped correspondence, без ложного current-HEAD claim.
@@ -100,17 +100,17 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R2/R3.
-- Smallest next action: typed pending Subagent regression, минимальная row-local анимация и hover через существующий indexed path.
-- Expected evidence: exact inline `Delegating…`, opaque input/one slot; deterministic frames/cache/Linked/config/cleanup и inert hover.
+- Closes: R2/R3/R4/R5.
+- Smallest next action: full offline gate для стабилизации binary, затем bounded paired pending captures static/animated при 120×40 и 80×24.
+- Expected evidence: full gate PASS; full unmasked artifacts, exact pending cells/hover, actual owner nonexecution и natural glyph progression.
 - Stop or replan if: observed blocker требует выхода за envelope; не расширять scope из speculative audit findings.
 
 ## Current State
 
-- Resolved: plan commit `74162b02e` опубликован; R1 verified (31 targeted tests).
-- Last relevant evidence: actual binary снимает marker при принятом replacement с открытым response, контекст не содержит reverted tail; owner/storage redo и RAW/context checks PASS. После прерванной компиляции incremental linker дал undefined hidden symbols; без clean/удаления target проверки успешно выполнены с `CARGO_INCREMENTAL=0`.
+- Resolved: plan и R1 (`0232f6d17`) опубликованы; pending implementation и local clock/hover regressions готовы.
+- Last relevant evidence: `cargo test -p oc-tui --lib --locked` — 607 PASS (6.09s); `cargo test -p oc2 --test pty_t39 --locked lifecycle:: -- --test-threads=1` — 13 PASS; capture fixture tests — 12 PASS; comparator tests — 25 PASS; JS syntax и diff-check PASS. Cargo с `CARGO_INCREMENTAL=0`, без clean/target override.
 - Blocker: нет подтверждённого.
-- Next: R2/R3, затем R4 visual evidence и R5 full gate.
+- Next: full gate, затем R4 visual evidence; R2/R3 не объявлять визуально verified до captures.
 
 ## Material Decisions
 
@@ -122,6 +122,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: preflight/freeze, goal commit `74162b02e` pushed в verified origin/master.
 - 2026-10-19: R1 receipt/controller checkpoint — 4 TUI + 3 binary tests PASS; минимальная recovery-only актуализация history, без schema/protocol изменений. Далее held-response PTY и existing conversation regressions.
 - 2026-10-19: R1 complete — held-response PTY, existing five-turn redo и 22 conversation tests PASS; далее pending component.
+- 2026-10-19: R2/R3 implementation checkpoint — 607 TUI tests и 13 actual-binary lifecycle tests PASS; typed renderer, per-slot clock, Linked/cache/prepaint/permission cleanup и inert hover. Tooling prototype tests PASS; actual paired visual qualification ещё не выполнена.
 
 ## Completion
 
