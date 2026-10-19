@@ -27,4 +27,4 @@ Plan: ../../roadmap/M8.md
 - [T68](T68/INDEX.md) [done] — Portless shared runtime, mirrored TUI and global client lifetime; latest: 0001.md.
 - [T69](T69/INDEX.md) [done] — Subagent empty optional arguments and admitted continuation scheduling; latest: 0001.md.
 - [T70](T70/INDEX.md) [done] — Canonical completed transcript without aggregate turn preview loss; latest: 0001.md.
-- [T71](T71/INDEX.md) [active] — Complete subagent reports and truthful shell capture admission; latest: нет.
+- [T71](T71/INDEX.md) [done] — Complete subagent reports and truthful shell capture admission; latest: 0001.md.

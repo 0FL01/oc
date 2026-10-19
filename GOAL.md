@@ -1173,5 +1173,7 @@ timing budgets квалифицированы, debug build/help/version PASS. Re
 - Ближайшие red→green проверки, полный offline gate, обычный debug build и reviewed
   commit/push обязательны. Нет migration, owner restart, paid campaign или whole READY.
 
-Execution status: T71 active; full reports/recovery, bounded UI и aggregate admission
-проверены targeted. Shell slice реализован; финальная qualification/debug build pending.
+Execution status: T71 complete, R1–R5 verified. Полный offline gate:2114 passed,
+12existing skipped; fmt/strict clippy/doctests и default debug build/help/version PASS.
+Фактический отчёт и RECON существующего40s discovery-test exception — evidence/T71/report.md.
+Нет migration, historical backfill, owner restart или whole-product READY claim.

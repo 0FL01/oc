@@ -1,6 +1,6 @@
 # Goal: complete subagent reports and truthful shell capture admission
 
-Status: active
+Status: complete
 Source: owner evidence, four parallel source audits, corrected plan accepted by
 «Делай копию плана в цель и итеративно реализовать и коммит пуш дебаг билд».
 Last updated: 2026-10-19
@@ -81,9 +81,12 @@ required outcome is resolved and affected constraints remain satisfied.
     cargo build -p oc2 --bin oc2 --locked builds target/debug/oc2; reviewed commits
     and ordinary push to verified origin/master; factual evidence/task closeout.
   - Primary evidence: actual commands/exits, Git refs and evidence/T71/report.md.
-  - Status: in_progress
-  - Evidence: contract and first implementation commits are pushed; final subagent
-    target44/44 passes28.50s. Full offline gate, current debug binary and closeout pending.
+  - Status: verified
+  - Evidence: code d1b730b76 and preceding implementation commits are pushed.
+    bash scripts/test.sh exits0: fmt/strict clippy,2114 nextest passed (12existing
+    skipped), doctests, default debug build/help/version. Cold total1220.05s includes
+    10m14s test and2m53s debug compilation; tests384.506s. Existing UI07 <=40s owner
+    exception covers32.471s real-deadline case; others <=28.275s. Report records RECON.
 
 ### Constraints and Non-goals
 
@@ -128,11 +131,9 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
 
 ## Current Checkpoint
 
-- Closes: R5.
-- Next: commit/push the reviewed admission/shell slice, then run the required full
-  offline gate/debug build and factual task closeout.
-- Evidence expected: workspace gates, default-path debug binary, ordinary push and
-  complete R1–R5 evidence, without changing production after successful qualification.
+- Closed: R1–R5. No implementation checkpoint remains.
+- Evidence: evidence/T71/report.md, reviewed pushed code and default target/debug/oc2.
+- No production changes after successful qualification; closeout is documentation only.
 
 ## Current State and Material Decisions
 
@@ -141,7 +142,7 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
   2048 bytes; twelve shell jobs retain exit0/Io without capture resource rows.
 - BG is synthetic conversation input, not a second generic tool result. Existing
   child_jobs owns settlement; canonical success precedes fallible MCP cleanup.
-- R1/R2/R3/R4 verified; final qualification remains in progress.
+- R1–R5 verified; full offline qualification and default debug build are complete.
 - Blocker: none observed. No schema/migration or owner restart.
 - runtime/turn.rs already exceeded the soft5k guide (5614baseline lines); keep this
   bounded admission change with its existing request owner (5722lines). The next
@@ -164,7 +165,17 @@ brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No depende
 - 2026-10-19: corrected aggregate control-view assertion passes0.70s; full current
   subagent target44/44 passes28.50s. R1–R4 targeted evidence is green. No production
   change was needed for the control-view assertion; full offline gate is next.
+- 2026-10-19: strict gate found one needless test-fixture borrow; d1b730b76 fixes it
+  without changing assertions/production. Full gate then passes2114 tests, doctests,
+  strict clippy/fmt and debug/help/version. Mandatory RECON identifies the sole32.471s
+  case as an existing dated <=40s exception for real30s discovery; no new exception,
+  timeout or workload change. Full cold-build breakdown is in evidence/T71/report.md.
 
 ## Completion
 
-- R1/R2/R3/R4 verified; R5 pending closure. No final PASS/delivery claim yet.
+- Resolved: R1–R5 verified; task-scoped PASS, not whole-product READY.
+- Primary evidence: evidence/T71/report.md; full gate at d1b730b76; target/debug/oc2.
+- Constraints/scope: one existing owner/store, no migrations or dependencies; RAW,
+  original source/permissions, resource guards and no replay preserved. Historical
+  receipts are not backfilled. No owner restart/live campaign/config or env change.
+- Final status: complete. Stop substantive work; only factual progress/Git closeout.
