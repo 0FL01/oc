@@ -6,6 +6,97 @@ use oc_core::{
 };
 
 #[test]
+fn exploration_named_inline_glyphs_styles_and_spacers_are_semantic() {
+    use ratatui::style::Modifier;
+    for theme in [Theme::dark(), Theme::light()] {
+        for (name, glyph) in [
+            ("read", "→"),
+            ("glob", "✱"),
+            ("grep", "✱"),
+            ("webfetch", "%"),
+            ("skill", "→"),
+        ] {
+            for state in ["completed", "failed", "cancelled", "denied", "unknown"] {
+                let mut row = operation(name, "error: actual failure", None);
+                row.state = state.into();
+                let card = card_from_row(&row);
+                let block = tool_block(&card, theme, 80);
+                let spans = block[0].spans();
+                assert_eq!(spans[1].content(), glyph, "{name}/{state}");
+                assert_eq!(spans[2].content(), " ");
+                assert_eq!(spans[2].style(), ratatui::style::Style::default());
+                assert_eq!(
+                    spans[1].style().fg,
+                    Some(if matches!(state, "completed" | "denied") {
+                        theme.text_muted()
+                    } else {
+                        theme.error()
+                    }),
+                    "{name}/{state}"
+                );
+                assert_eq!(
+                    spans[1]
+                        .style()
+                        .add_modifier
+                        .contains(Modifier::CROSSED_OUT),
+                    state == "denied"
+                );
+                assert_eq!(spans[3].style(), spans[1].style());
+            }
+            let mut row = operation(name, "", None);
+            row.state = "started".into();
+            assert!(
+                tool_block(&card_from_row(&row), theme, 80)[0]
+                    .plain_text()
+                    .contains('⋯')
+            );
+            row.state = "permission_pending".into();
+            let pending = tool_block(&card_from_row(&row), theme, 80);
+            assert_eq!(pending[0].spans()[1].style().fg, Some(theme.warning()));
+        }
+    }
+}
+
+#[test]
+fn exploration_read_ranges_use_complete_valid_captured_arguments() {
+    for (fields, suffix) in [
+        ("", ""),
+        (",\"offset\":20", ":20-"),
+        (",\"limit\":10", ":1-10"),
+        (",\"offset\":20,\"limit\":10", ":20-29"),
+        (",\"offset\":2000000,\"limit\":2", ":2000000-2000001"),
+        (",\"offset\":0,\"limit\":10", ""),
+        (",\"offset\":-1", ""),
+        (",\"offset\":1.5", ""),
+        (",\"offset\":\"bad\",\"limit\":10", ""),
+        (",\"offset\":20,\"limit\":null", ""),
+        (",\"offset\":20,\"limit\":0", ""),
+        (",\"offset\":18446744073709551615,\"limit\":2", ""),
+    ] {
+        let mut row = operation("read", "not range evidence", None);
+        row.input = Some(format!("{{\"path\":\"file.txt\"{fields}}}"));
+        assert_eq!(
+            tool_block(&card_from_row(&row), Theme::dark(), 80)[0].plain_text(),
+            format!("   → Read file.txt{suffix}"),
+            "{fields}"
+        );
+    }
+    let mut row = operation("read", "", None);
+    row.input = Some(format!(
+        "{{\"ignored\":\"{}\",\"path\":\"captured.txt\",\"offset\":7,\"limit\":3}}",
+        "x".repeat(2000)
+    ));
+    let before = row.clone();
+    let card = card_from_row(&row);
+    assert!(card.input_preview.len() < row.input.as_ref().unwrap().len());
+    assert_eq!(
+        tool_block(&card, Theme::dark(), 80)[0].plain_text(),
+        "   → Read captured.txt:7-9"
+    );
+    assert_eq!(row, before);
+}
+
+#[test]
 fn exploration_search_uses_captured_root_and_omits_zero_count() {
     for (name, label) in [("glob", "Glob"), ("grep", "Grep")] {
         let mut row = operation(name, r#"{"items":[],"matches":[]}"#, None);

@@ -577,17 +577,12 @@ pub(crate) fn transcript_with_expansion(
             continue;
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
-            if group.is_empty() {
-                continue;
-            }
+            grouped_until = group.end;
             let op = &row.tool.as_ref().expect("group has tool").op;
-            out.extend(group);
+            out.extend(group.header);
             if expanded(ToolExpansion::Operation(op)) {
-                for member in rows[index..]
-                    .iter()
-                    .take_while(|row| exploration_kind(row).is_some())
-                {
-                    out.extend(exploration_member(member, theme, width, expanded));
+                for member in group.members {
+                    out.extend(exploration_member(&rows[member], theme, width, expanded));
                 }
             }
         } else if let Some(lines) = expandable_tool_entry(
@@ -964,8 +959,8 @@ fn reasoning_group_header(group: &ReasoningGroup<'_>, theme: &Theme, width: u16)
     clipped_line(sanitize_line(Line::new(spans)), width)
 }
 
-/// Upstream groups adjacent read/glob/grep parts in their first-seen order
-/// (`grouping/session.ts`, `index.tsx:1865-1929`). Terminal errors and bounded
+/// Upstream groups direct exploration parts in their first-seen order.
+/// Terminal errors and bounded
 /// output previews remain real members. Unknown recovery outcomes stay explicit.
 fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
     let card = row.tool.as_ref()?;
@@ -982,9 +977,15 @@ fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
         crate::tools::ToolRender::Inline(
             crate::tools::InlineRender::Glob { .. } | crate::tools::InlineRender::Grep { .. },
         ) => Some("search"),
+        crate::tools::ToolRender::Inline(crate::tools::InlineRender::WebFetch { .. }) => {
+            Some("fetch")
+        }
         _ => None,
     }?;
-    Some((name, !crate::tools::is_running(&card.state)))
+    Some((
+        name,
+        !crate::tools::is_running(&card.state) && card.state != "running",
+    ))
 }
 
 fn exploration_member(
@@ -1005,17 +1006,44 @@ fn exploration_member(
     .collect()
 }
 
-fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option<Vec<Line>> {
+struct ExplorationGroup {
+    end: usize,
+    members: Vec<usize>,
+    header: Vec<Line>,
+}
+
+fn exploration_transparent(row: &HistoryRow) -> bool {
+    // Only structurally empty content is transparent. Redacted reasoning,
+    // metadata and notices remain boundaries even if they paint no text.
+    row.role == "assistant"
+        && row.text.trim().is_empty()
+        && row
+            .reasoning
+            .as_ref()
+            .is_none_or(|part| part.text.trim().is_empty())
+        && row.meta.is_none()
+        && row.tool.is_none()
+        && row.chips.is_empty()
+        && row.child_notice.is_none()
+        && row.shell_notice.is_none()
+}
+
+fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option<ExplorationGroup> {
     exploration_kind(rows.get(index)?)?;
-    if index > 0 && exploration_kind(&rows[index - 1]).is_some() {
-        return Some(Vec::new());
-    }
+    let mut end = index;
+    let mut members = Vec::new();
     let mut counts = Vec::<(&str, usize)>::new();
     let mut completed = true;
-    for row in &rows[index..] {
+    for (member, row) in rows.iter().enumerate().skip(index) {
         let Some((name, done)) = exploration_kind(row) else {
+            if exploration_transparent(row) {
+                end = member + 1;
+                continue;
+            }
             break;
         };
+        end = member + 1;
+        members.push(member);
         completed &= done;
         if let Some((_, count)) = counts.iter_mut().find(|(known, _)| *known == name) {
             *count += 1;
@@ -1030,7 +1058,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
                 "{count} {name}{}",
                 if count == 1 {
                     ""
-                } else if name == "search" {
+                } else if matches!(name, "search" | "fetch") {
                     "es"
                 } else {
                     "s"
@@ -1040,7 +1068,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
         .collect::<Vec<_>>()
         .join(", ");
     let muted = Style::default().fg(theme.text_muted());
-    Some(vec![
+    let header = vec![
         Line::plain(""),
         Line::new(vec![
             Span::plain(" ".repeat(MESSAGE_PADDING)),
@@ -1048,13 +1076,18 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
             Span::plain(" "),
             Span::styled(
                 format!(
-                    "{} — {label}",
+                    "{}: {label}",
                     if completed { "Explored" } else { "Exploring" }
                 ),
                 muted,
             ),
         ]),
-    ])
+    ];
+    Some(ExplorationGroup {
+        end,
+        members,
+        header,
+    })
 }
 
 fn render_row(
@@ -2391,19 +2424,22 @@ fn visible_transcript_indexed(
             continue;
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
-            let is_expanded = !group.is_empty()
-                && (options.expanded)(ToolExpansion::Operation(
-                    &row.tool.as_ref().expect("group has tool").op,
-                ));
-            if !group.is_empty()
-                && let Some((x, y)) = options.point
-            {
+            grouped_until = group.end;
+            let is_expanded = (options.expanded)(ToolExpansion::Operation(
+                &row.tool.as_ref().expect("group has tool").op,
+            ));
+            if let Some((x, y)) = options.point {
                 // The first line is vertical spacing. Only a wrapped header
                 // text cell can toggle; neither spacing nor the row tail can.
                 let header_start = position
-                    + styled::wrap_line_limited(&group[0], width as usize, MAX_MARKDOWN_ROWS).len();
+                    + styled::wrap_line_limited(
+                        &group.header[0],
+                        width as usize,
+                        MAX_MARKDOWN_ROWS,
+                    )
+                    .len();
                 for (offset, line) in
-                    styled::wrap_line_limited(&group[1], width as usize, MAX_MARKDOWN_ROWS)
+                    styled::wrap_line_limited(&group.header[1], width as usize, MAX_MARKDOWN_ROWS)
                         .iter()
                         .enumerate()
                 {
@@ -2419,7 +2455,7 @@ fn visible_transcript_indexed(
                                     header_start.saturating_sub(start)
                                         ..(header_start
                                             + styled::wrap_line_limited(
-                                                &group[1],
+                                                &group.header[1],
                                                 width as usize,
                                                 MAX_MARKDOWN_ROWS,
                                             )
@@ -2433,17 +2469,15 @@ fn visible_transcript_indexed(
                 }
             }
             add_visible_lines(
-                group,
+                group.header,
                 Some(width),
                 (start, end),
                 &mut position,
                 &mut visible,
             );
             if is_expanded {
-                for member in rows[index..]
-                    .iter()
-                    .take_while(|row| exploration_kind(row).is_some())
-                {
+                for member in group.members {
+                    let member = &rows[member];
                     let card = member.tool.as_ref().expect("group has tool");
                     if crate::tools::inline_error_expandable(card)
                         && let Some((x, y)) = options.point
@@ -2739,25 +2773,27 @@ pub(crate) fn transcript_part_positions(
             continue;
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
-            let is_expanded = !group.is_empty()
-                && expanded(ToolExpansion::Operation(
-                    &row.tool.as_ref().expect("group has tool").op,
-                ));
-            for line in group {
+            grouped_until = group.end;
+            let is_expanded = expanded(ToolExpansion::Operation(
+                &row.tool.as_ref().expect("group has tool").op,
+            ));
+            for line in group.header {
                 total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }
             if is_expanded {
-                for member in rows[index..]
-                    .iter()
-                    .take_while(|row| exploration_kind(row).is_some())
-                {
-                    for line in exploration_member(member, theme, width, expanded) {
+                for member in group.members {
+                    for line in exploration_member(&rows[member], theme, width, expanded) {
                         total +=
                             styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
                                 .len();
                     }
                 }
             }
+            part(index, start, total);
+            for absorbed in index + 1..grouped_until {
+                part(absorbed, total, total);
+            }
+            continue;
         } else if let Some(lines) = expandable_tool_entry(
             row,
             theme,

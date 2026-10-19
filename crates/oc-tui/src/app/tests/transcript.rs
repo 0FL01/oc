@@ -517,6 +517,7 @@ async fn v06b_session_switch_discards_tool_cards_before_next_owner_load() {
         diff_settings: Default::default(),
         render: crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read {
             path: "a-only".into(),
+            range: None,
         }),
     };
     state.apply_cards(vec![card], true);
@@ -1825,7 +1826,29 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         meta: None,
         tool: Some(card),
     });
-    state.exploration_expanded.insert("read-op".into());
+    let (rows, total, scroll) =
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+    let header = rows
+        .iter()
+        .position(|line| line.plain_text().contains("Explored: 1 read"))
+        .unwrap();
+    assert!(
+        !rows
+            .iter()
+            .any(|line| line.plain_text().contains("Read fixture.txt"))
+    );
+    state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &[]);
+    state.click = None;
+    for kind in [
+        MouseEventKind::Down(MouseButton::Left),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        state.handle_mouse(
+            selection_mouse(kind, area.x + 5, area.y + header as u16),
+            frame,
+        );
+    }
+    assert!(state.exploration_expanded.contains("read-op"));
     let (rows, total, scroll) =
         state.visible_transcript_at_viewport(area.width, frame.width, area.height);
     let row = rows

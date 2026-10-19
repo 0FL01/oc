@@ -150,6 +150,8 @@ pub enum InlineRender {
     Read {
         /// Recorded path.
         path: String,
+        /// Valid recorded requested start and optional inclusive end.
+        range: Option<(u64, Option<u64>)>,
     },
     /// `glob` tool.
     Glob {
@@ -239,7 +241,7 @@ impl ToolRender {
                     + optional(&s.error)
                     + s.result.iter().map(String::len).sum::<usize>()
             }
-            Self::Inline(InlineRender::Read { path }) => path.len(),
+            Self::Inline(InlineRender::Read { path, .. }) => path.len(),
             Self::Inline(
                 InlineRender::Glob { pattern, path, .. } | InlineRender::Grep { pattern, path, .. },
             ) => pattern.len() + path.len(),
@@ -279,6 +281,7 @@ impl ToolRender {
             "subagent" => ToolRender::Subagent(subagent_render(value.as_ref(), output, state)),
             "read" => ToolRender::Inline(InlineRender::Read {
                 path: string_arg(value.as_ref(), "path"),
+                range: read_range(value.as_ref()),
             }),
             "glob" => ToolRender::Inline(InlineRender::Glob {
                 pattern: string_arg(value.as_ref(), "pattern"),
@@ -302,6 +305,15 @@ impl ToolRender {
 }
 
 impl InlineRender {
+    fn icon(&self) -> &'static str {
+        match self {
+            Self::Glob { .. } | Self::Grep { .. } => "✱",
+            Self::WebFetch { .. } => "%",
+            Self::Read { .. } | Self::Skill { .. } | Self::Question { .. } => "→",
+            Self::Execute | Self::Generic { .. } => SPINNER,
+        }
+    }
+
     /// Upstream pending label (`index.tsx:3072,3083,3107,3130,3142,3191,3547`).
     pub fn pending_label(&self) -> &'static str {
         match self {
@@ -315,6 +327,24 @@ impl InlineRender {
             InlineRender::Generic { .. } => "",
         }
     }
+}
+
+fn read_range(value: Option<&serde_json::Value>) -> Option<(u64, Option<u64>)> {
+    let value = value?.as_object()?;
+    if !value.contains_key("offset") && !value.contains_key("limit") {
+        return None;
+    }
+    let positive = |key| match value.get(key) {
+        None => Some(None),
+        Some(value) => value.as_u64().filter(|value| *value > 0).map(Some),
+    };
+    // Invalid supplied fields must not acquire defaults and invent a range.
+    let start = positive("offset")?.unwrap_or(1);
+    let end = match positive("limit")? {
+        Some(limit) => Some(start.checked_add(limit - 1)?),
+        None => None,
+    };
+    Some((start, end))
 }
 
 fn string_arg(value: Option<&serde_json::Value>, key: &str) -> String {
@@ -1452,28 +1482,31 @@ fn inline_rows_expanded(
         return generic_block_expanded(inline, card, theme, 0, false);
     }
     let pad = Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING));
-    let running = is_running(&card.state);
+    let running = is_running(&card.state) || card.state == "running";
     let waiting = card.state == "permission_pending";
     let question = matches!(inline, InlineRender::Question { .. });
     let cancelled_question =
         card.state == "cancelled" && matches!(inline, InlineRender::Question { count: Some(_) });
     let exploration = matches!(
         inline,
-        InlineRender::Read { .. } | InlineRender::Glob { .. } | InlineRender::Grep { .. }
+        InlineRender::Read { .. }
+            | InlineRender::Glob { .. }
+            | InlineRender::Grep { .. }
+            | InlineRender::WebFetch { .. }
     );
     // Pinned TUI treats a cancelled question as a denied inline row, not a
     // web "Questions dismissed" notice. Use the validated input/state, never
     // words in output; turn cancellation shares this outcome with form dismissal.
-    let denied = exploration && card.state == "denied" || cancelled_question;
+    let denied = (exploration || matches!(inline, InlineRender::Skill { .. }))
+        && card.state == "denied"
+        || cancelled_question;
     let failed = is_error_state(&card.state) && !denied;
     let style = if waiting {
         ratatui::style::Style::default().fg(theme.warning())
     } else if failed {
         ratatui::style::Style::default().fg(theme.error())
-    } else if question || denied || exploration {
-        ratatui::style::Style::default().fg(theme.text_muted())
     } else {
-        ratatui::style::Style::default().fg(theme.text())
+        ratatui::style::Style::default().fg(theme.text_muted())
     };
     let generic = matches!(inline, InlineRender::Generic { .. });
     // Named file tools retain their actual glyph in terminal/error states.
@@ -1489,13 +1522,8 @@ fn inline_rows_expanded(
         .to_string()
     } else if running {
         SPINNER.to_string()
-    } else if exploration {
-        if matches!(inline, InlineRender::Read { .. }) {
-            "→"
-        } else {
-            "✱"
-        }
-        .to_string()
+    } else if exploration || matches!(inline, InlineRender::Skill { .. }) {
+        inline.icon().to_string()
     } else if generic {
         if failed {
             "✗".to_string()
@@ -1537,9 +1565,8 @@ fn inline_rows_expanded(
         label
     };
     let mut spans = vec![pad.clone()];
-    if question || exploration {
-        // The pinned Question's one-cell arrow lives in a two-cell icon box.
-        // Its remaining layout blank does not inherit the glyph's FG/strike.
+    if icon != SPINNER {
+        // A named glyph's remaining icon-column cell is layout, not FG/strike.
         spans.push(Span::styled(icon, style));
         spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH - 1)));
     } else {
@@ -1610,7 +1637,10 @@ pub(crate) fn inline_error_expandable(card: &ToolCard) -> bool {
     matches!(
         card.render,
         ToolRender::Inline(
-            InlineRender::Read { .. } | InlineRender::Glob { .. } | InlineRender::Grep { .. }
+            InlineRender::Read { .. }
+                | InlineRender::Glob { .. }
+                | InlineRender::Grep { .. }
+                | InlineRender::WebFetch { .. }
         )
     ) && matches!(card.state.as_str(), "failed" | "cancelled")
         && !card.output_preview.is_empty()
@@ -1619,7 +1649,15 @@ pub(crate) fn inline_error_expandable(card: &ToolCard) -> bool {
 /// Terminal label for an inline tool (`index.tsx:3084-3168,3548,2620-2669`).
 fn inline_label(inline: &InlineRender) -> String {
     match inline {
-        InlineRender::Read { path } => format!("Read {path}"),
+        InlineRender::Read { path, range } => {
+            let suffix = range.map_or_else(String::new, |(start, end)| {
+                format!(
+                    ":{start}-{}",
+                    end.map_or_else(String::new, |end| end.to_string())
+                )
+            });
+            format!("Read {path}{suffix}")
+        }
         InlineRender::Glob {
             pattern,
             path,
@@ -2218,7 +2256,7 @@ mod tests {
             None,
         );
         let (rows, buffer) = render(&running, 60, 2);
-        assert_eq!(rows[1], "   ⋯ Exploring — 1 read");
+        assert_eq!(rows[1], "   ⋯ Exploring: 1 read");
         assert_eq!(buffer[(3, 1)].symbol(), "⋯");
         assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
         let individual = tool_block(&running, theme, 60)
@@ -2239,7 +2277,7 @@ mod tests {
             Some("fn main() {}\n"),
         );
         let (rows, _) = render(&completed, 60, 3);
-        assert_eq!(rows[1], "   → Explored — 1 read");
+        assert_eq!(rows[1], "   → Explored: 1 read");
         // The individual renderer is retained for non-collapsed/tool-detail
         // presentation; grouping changes only the transcript projection.
         let individual = tool_block(&completed, theme, 60)
@@ -2260,7 +2298,7 @@ mod tests {
             Some(r#"{"items":["a.rs","b.rs"],"pagination":{"returned":2,"truncated":false}}"#),
         );
         let (rows, _) = render(&glob, 60, 2);
-        assert_eq!(rows[1], "   → Explored — 1 search");
+        assert_eq!(rows[1], "   → Explored: 1 search");
 
         let fetch = make_card(
             "webfetch",
@@ -2269,7 +2307,11 @@ mod tests {
             Some("body"),
         );
         let (rows, _) = render(&fetch, 60, 2);
-        assert_eq!(rows[1], "     WebFetch https://example.test/x");
+        assert_eq!(rows[1], "   → Explored: 1 fetch");
+        assert_eq!(
+            tool_block(&fetch, theme, 60)[0].plain_text(),
+            "   % WebFetch https://example.test/x"
+        );
 
         let skill = make_card(
             "skill",
@@ -2278,7 +2320,7 @@ mod tests {
             Some("body"),
         );
         let (rows, _) = render(&skill, 60, 2);
-        assert_eq!(rows[1], "     Skill \"review\"");
+        assert_eq!(rows[1], "   → Skill \"review\"");
 
         // Generic/MCP tool: `✗ <tool> <args>` plus the recorded error.
         let failed = make_card(
@@ -2337,7 +2379,7 @@ mod tests {
             Some("error: cancelled"),
         );
         let (rows, _) = render(&cancelled, 60, 3);
-        assert_eq!(rows[1], "   → Explored — 1 read");
+        assert_eq!(rows[1], "   → Explored: 1 read");
         let member = exploration_member(&cancelled, theme, 60, true);
         assert_eq!(member[0].plain_text(), "   → Read src/main.rs");
         assert_eq!(member[1].plain_text(), "     error: cancelled");
@@ -2542,7 +2584,10 @@ mod tests {
             None,
         );
         match &card.render {
-            ToolRender::Inline(InlineRender::Read { path }) => assert!(path.is_empty()),
+            ToolRender::Inline(InlineRender::Read { path, range }) => {
+                assert!(path.is_empty());
+                assert!(range.is_none());
+            }
             other => panic!("expected read render, got {other:?}"),
         }
         let card = make_card(
@@ -2558,7 +2603,8 @@ mod tests {
         // Pending labels are the exact upstream strings.
         assert_eq!(
             InlineRender::Read {
-                path: String::new()
+                path: String::new(),
+                range: None,
             }
             .pending_label(),
             "Reading file…"

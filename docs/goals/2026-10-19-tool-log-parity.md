@@ -33,8 +33,11 @@ required outcome is resolved and affected constraints remain satisfied.
     Named inline tools have their OC2 glyph/muted style; Skill stays standalone.
     Read ranges use valid explicit recorded input, never output-prose inference.
   - Primary evidence: TUI exploration/tool/pointer regressions; paired fixture.
-  - Status: pending
-  - Evidence: baseline HEAD 7b66d433; no implementation checks yet.
+  - Status: in_progress
+  - Evidence: coordinated native implementation passes all 13 exploration tests,
+    all 591 oc-tui library tests and strict oc-tui/all-target Clippy. New mixed
+    fetch/empty-part regression failed on old positional behavior before the fix.
+    Paired actual-binary qualification remains R4.
 - R2: actual local Code Mode search is an ordered bounded observation.
   - Source: owner Execute/search screenshot and corrected plan B.
   - Acceptance: actual global/fallback catalog search appears as a completed
@@ -175,23 +178,29 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: implement coordinated exploration/direct-tool regression
-  and rendering changes, then run targeted oc-tui checks.
-- Expected evidence: full/indexed/measurement/hit parity, truthful boundaries and
-  independent WebFetch error interaction at narrow/wide widths.
+- Closes: R2 (R1 native checks complete; paired acceptance depends on R2/R3).
+- Smallest next action: implement private bounded ordered local-search observation
+  without changing public request-only Execution/run or effect scheduling.
+- Expected evidence: deterministic outcome-first search, order/admission/caps,
+  redaction and durable one-parent/reopen regressions.
 
 ## Current State
 
-- Resolved: corrected plan frozen; native baseline and origin verified, non-root,
-  disk/memory preflight sufficient. No schema or dependency change planned.
-- Last relevant evidence: read-only audit; no implementation PASS yet.
-- Blocker: none established; 2.0.31 syntax/bootstrap needs in-scope verification.
-- Next: R1 implementation; independently inspect existing oracle prerequisites.
+- Resolved: R1 native rendering, range and pointer checks; goal-plan commit
+  dffc8929b pushed to origin/master. No schema or dependency change.
+- Last relevant evidence: cargo test -p oc-tui --lib --locked (591 passed);
+  cargo clippy -p oc-tui --all-targets --locked -- -D warnings; diff check clean.
+- Blocker: none established. R4 needs the exact pinned JSON WASM download and
+  narrow cache bootstrap; existing browser/font/xterm and bundled TS are present.
+- Next: R2; then R3 and R4 against the same final binary.
 
 ## Checkpoint History
 
 - 2026-10-19: accepted audited plan copied here; no source implementation yet.
+- 2026-10-19: R1 native increment passed targeted/full-crate checks; no visual
+  PASS claimed. Initial full test compilation exceeded the 120s shell watchdog;
+  no surviving Cargo process, completed with a 600s compilation allowance. Actual
+  targeted tests took 0.01s and full crate 6.30s, no test deadline was changed.
 
 ## Completion
 

@@ -1020,6 +1020,7 @@ fn reasoning_index_hits_only_clipped_painted_cells_at_scroll() {
 fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
     let input = match name {
         "read" => serde_json::json!({"path": "fixture-note.txt"}),
+        "webfetch" => serde_json::json!({"url": "https://example.test/reference"}),
         _ => serde_json::json!({"pattern": "*.rs"}),
     };
     let card = card_from_row(&ToolOpView {
@@ -1056,9 +1057,151 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
 }
 
 #[test]
+fn exploration_mixed_fetches_cross_only_structurally_empty_content() {
+    let theme = Theme::dark();
+    let mut empty = assistant(" \n\t");
+    empty.reasoning = Some(ReasoningBlock {
+        text: " \n".into(),
+        duration_ms: None,
+        running: false,
+        expanded: false,
+        toggleable: true,
+        identity: None,
+    });
+    let mut second_fetch = exploration_tool("webfetch", "completed", true);
+    second_fetch.tool.as_mut().unwrap().op = "second-fetch".into();
+    let rows = [
+        exploration_tool("grep", "completed", false),
+        empty,
+        exploration_tool("read", "completed", false),
+        exploration_tool("webfetch", "failed", false),
+        second_fetch,
+    ];
+    for width in [16, 80] {
+        for open in [false, true] {
+            let cache = RefCell::new(MarkdownCache::default());
+            let expanded =
+                |target: ToolExpansion<'_>| open && target == ToolExpansion::Operation("grep");
+            let full = transcript_with_expansion(
+                &rows,
+                theme,
+                width,
+                width,
+                |_| theme.text(),
+                Some(&cache),
+                &expanded,
+            );
+            let expected = std::iter::once(Line::plain(""))
+                .chain(styled::wrap_lines(&full, usize::from(width)))
+                .collect::<Vec<_>>();
+            let mut positions = Vec::new();
+            assert_eq!(
+                transcript_part_positions(
+                    &rows,
+                    theme,
+                    (width, width, None),
+                    &|_| theme.text(),
+                    &cache,
+                    &expanded,
+                    |index, start, end| positions.push((index, start, end)),
+                ),
+                expected.len()
+            );
+            assert_eq!(positions.len(), rows.len());
+            assert!(positions[0].2 > positions[0].1);
+            assert!(positions[1..].iter().all(|(_, start, end)| start == end));
+            for scroll in 0..expected.len() {
+                let (visible, total) = visible_transcript_expanded(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (5, scroll, None),
+                    |_| theme.text(),
+                    &cache,
+                    &expanded,
+                );
+                let end = expected
+                    .len()
+                    .saturating_sub(scroll.min(expected.len().saturating_sub(5)));
+                assert_eq!(visible, expected[end.saturating_sub(5)..end]);
+                assert_eq!(total, expected.len());
+            }
+            if width == 80 {
+                let text = expected.iter().map(Line::plain_text).collect::<Vec<_>>();
+                assert_eq!(text[2], "   → Explored: 1 search, 1 read, 2 fetches");
+                assert!(!text.join("\n").contains("fixture result"));
+                if open {
+                    assert_eq!(
+                        &text[3..],
+                        [
+                            "   ✱ Grep \"*.rs\"",
+                            "   → Read fixture-note.txt",
+                            "   % WebFetch https://example.test/reference",
+                            "   % WebFetch https://example.test/reference",
+                        ]
+                    );
+                } else {
+                    assert_eq!(text.len(), 3);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn exploration_boundaries_do_not_hide_uncertain_or_unrelated_operations() {
+    let mut redacted = assistant("");
+    redacted.reasoning = Some(ReasoningBlock {
+        text: "[REDACTED]".into(),
+        duration_ms: None,
+        running: false,
+        expanded: false,
+        toggleable: true,
+        identity: None,
+    });
+    let mut metadata = assistant("");
+    metadata.meta = Some(Default::default());
+    let mut separators = vec![assistant("answer"), redacted, metadata, user("", vec![])];
+    for name in [
+        "shell",
+        "apply_patch",
+        "question",
+        "skill",
+        "execute",
+        "fetch",
+        "mcp.webfetch",
+    ] {
+        separators.push(exploration_tool(name, "completed", false));
+    }
+    for state in [
+        "permission_pending",
+        "argument_stream",
+        "unknown",
+        "no_gain",
+    ] {
+        separators.push(exploration_tool("read", state, false));
+    }
+    for separator in separators {
+        let rows = [
+            exploration_tool("read", "started", false),
+            separator,
+            exploration_tool("webfetch", "completed", false),
+        ];
+        let lines = transcript(&rows, Theme::dark(), 100, 100, |_| Color::Reset);
+        let text = lines
+            .iter()
+            .map(Line::plain_text)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(text.contains("Exploring: 1 read"), "{text}");
+        assert!(text.contains("Explored: 1 fetch"), "{text}");
+        assert!(!text.contains("1 read, 1 fetch"), "{text}");
+    }
+}
+
+#[test]
 fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
-    // The pinned original's completed read fixture shows exactly one
-    // collapsed `→ Explored — 1 read` row (index.tsx:1865-1929).
+    // The scoped OC2 oracle shows one colon-formatted collapsed exploration.
     let theme = Theme::dark();
     let rows = [
         exploration_tool("read", "completed", false),
@@ -1068,8 +1211,8 @@ fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
         exploration_tool("read", "completed", false),
     ];
     let (full, buffer) = render(&rows, 80, 12);
-    assert_eq!(full[1], "   → Explored — 1 read, 2 searches");
-    assert_eq!(full[5], "   → Explored — 1 read");
+    assert_eq!(full[1], "   → Explored: 1 read, 2 searches");
+    assert_eq!(full[5], "   → Explored: 1 read");
     assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
     assert!(!full.join("\n").contains("Loaded fixture-note.txt"));
 
@@ -1095,9 +1238,9 @@ fn completed_exploration_is_grouped_in_full_and_visible_transcript() {
     assert!(
         visible
             .iter()
-            .any(|line| line == "   → Explored — 1 read, 2 searches")
+            .any(|line| line == "   → Explored: 1 read, 2 searches")
     );
-    assert!(visible.iter().any(|line| line == "   → Explored — 1 read"));
+    assert!(visible.iter().any(|line| line == "   → Explored: 1 read"));
     assert!(
         !visible
             .iter()
@@ -1155,7 +1298,7 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
         assert_eq!(total, visible.len());
         let text = visible.join("\n");
         if width == 80 {
-            assert!(text.contains("Explored — 1 read, 2 searches"));
+            assert!(text.contains("Explored: 1 read, 2 searches"));
             assert!(text.contains("→ Read fixture-note.txt"));
             assert_eq!(
                 text.matches("→ Read fixture-note.txt").count(),
@@ -1182,14 +1325,14 @@ fn exploration_keeps_unknown_explicit_and_groups_real_terminal_results() {
     ];
     let (full, _) = render(&rows, 80, 20);
     let text = full.join("\n");
-    assert!(text.contains("→ Explored — 1 read"));
+    assert!(text.contains("→ Explored: 1 read"));
     assert!(text.contains("[outcome unknown]"));
     assert_eq!(
         text.matches("fixture result").count(),
         1,
         "unknown stays explicit; actual failed details are available on expansion"
     );
-    assert!(text.contains("Explored — 3 reads"));
+    assert!(text.contains("Explored: 3 reads"));
     assert!(text.contains("fixture result"));
     assert!(!text.contains("[output preview truncated; full result retained]"));
     assert!(
@@ -1205,106 +1348,117 @@ fn exploration_keeps_unknown_explicit_and_groups_real_terminal_results() {
 #[test]
 fn failed_exploration_preserves_styles_error_click_and_indexed_geometry() {
     let theme = Theme::dark();
-    let mut failed = exploration_tool("read", "failed", false);
-    failed.tool.as_mut().unwrap().op = "actual-failure".into();
-    let rows = [
-        failed,
-        exploration_tool("grep", "completed", true),
-        assistant("answer"),
-    ];
-    for width in [16, 80] {
-        let cache = RefCell::new(MarkdownCache::default());
-        for error_open in [false, true] {
-            let expanded = |target: ToolExpansion<'_>| {
-                target == ToolExpansion::Operation("actual-failure")
-                    || error_open && target == ToolExpansion::InlineError("actual-failure")
-            };
-            let full = transcript_with_expansion(
-                &rows,
-                theme,
-                width,
-                width,
-                |_| theme.text(),
-                Some(&cache),
-                &expanded,
-            );
-            let wrapped = styled::wrap_lines(&full, usize::from(width));
-            let (visible, total) = visible_transcript_expanded(
-                &rows,
-                theme,
-                (width, width),
-                (100, 0, None),
-                |_| theme.text(),
-                &cache,
-                &expanded,
-            );
-            assert_eq!(
-                visible,
-                std::iter::once(Line::plain(""))
-                    .chain(wrapped)
-                    .collect::<Vec<_>>()
-            );
-            assert_eq!(total, visible.len());
-            let mut positions = Vec::new();
-            assert_eq!(
-                transcript_part_positions(
+    for (name, label) in [
+        ("read", "→ Read fixture-note.txt"),
+        ("webfetch", "% WebFetch https://example.test/reference"),
+    ] {
+        let mut failed = exploration_tool(name, "failed", false);
+        failed.tool.as_mut().unwrap().op = "actual-failure".into();
+        let rows = [
+            failed,
+            exploration_tool("grep", "completed", true),
+            assistant("answer"),
+        ];
+        for width in [16, 80] {
+            let cache = RefCell::new(MarkdownCache::default());
+            for error_open in [false, true] {
+                let expanded = |target: ToolExpansion<'_>| {
+                    target == ToolExpansion::Operation("actual-failure")
+                        || error_open && target == ToolExpansion::InlineError("actual-failure")
+                };
+                let full = transcript_with_expansion(
                     &rows,
                     theme,
-                    (width, width, None),
-                    &|_| theme.text(),
+                    width,
+                    width,
+                    |_| theme.text(),
+                    Some(&cache),
+                    &expanded,
+                );
+                let wrapped = styled::wrap_lines(&full, usize::from(width));
+                let (visible, total) = visible_transcript_expanded(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (100, 0, None),
+                    |_| theme.text(),
                     &cache,
                     &expanded,
-                    |index, start, end| positions.push((index, start, end))
-                ),
-                total
-            );
-            let text = visible
-                .iter()
-                .map(Line::plain_text)
-                .collect::<Vec<_>>()
-                .join("\n");
-            assert_eq!(text.contains("result"), error_open);
-            if width == 80 && error_open {
-                assert!(text.contains("fixture result"));
-            }
-            let header = visible
-                .iter()
-                .position(|line| line.plain_text().contains("→ Read"))
-                .unwrap();
-            let (target, _, hover) = captured_child_at_with_range(
-                &rows,
-                theme,
-                (width, width),
-                (100, 0, None),
-                |_| theme.text(),
-                &cache,
-                (&expanded, (MESSAGE_PADDING + 2, header)),
-            )
-            .unwrap();
-            assert_eq!(
-                target,
-                CapturedChildTarget::InlineError("actual-failure".into())
-            );
-            assert!(!hover, "real failed rows do not acquire a hover color");
-            if width == 80 {
-                assert_eq!(visible[header].plain_text(), "   → Read fixture-note.txt");
-                assert_eq!(
-                    visible[header + usize::from(error_open) + 1].plain_text(),
-                    "   ✱ Grep \"*.rs\""
                 );
-                let mut buffer =
-                    Buffer::empty(ratatui::layout::Rect::new(0, 0, width, total as u16));
-                for (y, line) in visible.iter().enumerate() {
-                    buffer.set_line(0, y as u16, &line.clone().into_ratatui(), width);
+                assert_eq!(
+                    visible,
+                    std::iter::once(Line::plain(""))
+                        .chain(wrapped)
+                        .collect::<Vec<_>>()
+                );
+                assert_eq!(total, visible.len());
+                let mut positions = Vec::new();
+                assert_eq!(
+                    transcript_part_positions(
+                        &rows,
+                        theme,
+                        (width, width, None),
+                        &|_| theme.text(),
+                        &cache,
+                        &expanded,
+                        |index, start, end| positions.push((index, start, end))
+                    ),
+                    total
+                );
+                let text = visible
+                    .iter()
+                    .map(Line::plain_text)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert_eq!(text.contains("result"), error_open);
+                if width == 80 && error_open {
+                    assert!(text.contains("fixture result"));
                 }
+                let header = visible
+                    .iter()
+                    .position(|line| {
+                        line.plain_text().contains(if name == "read" {
+                            "→ Read"
+                        } else {
+                            "% WebFetch"
+                        })
+                    })
+                    .unwrap();
+                let (target, _, hover) = captured_child_at_with_range(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (100, 0, None),
+                    |_| theme.text(),
+                    &cache,
+                    (&expanded, (MESSAGE_PADDING + 2, header)),
+                )
+                .unwrap();
                 assert_eq!(
-                    buffer[(MESSAGE_PADDING as u16, header as u16)].fg,
-                    theme.error()
+                    target,
+                    CapturedChildTarget::InlineError("actual-failure".into())
                 );
-                assert_eq!(
-                    buffer[(MESSAGE_PADDING as u16 + 1, header as u16)].fg,
-                    Color::Reset
-                );
+                assert!(!hover, "real failed rows do not acquire a hover color");
+                if width == 80 {
+                    assert_eq!(visible[header].plain_text(), format!("   {label}"));
+                    assert_eq!(
+                        visible[header + usize::from(error_open) + 1].plain_text(),
+                        "   ✱ Grep \"*.rs\""
+                    );
+                    let mut buffer =
+                        Buffer::empty(ratatui::layout::Rect::new(0, 0, width, total as u16));
+                    for (y, line) in visible.iter().enumerate() {
+                        buffer.set_line(0, y as u16, &line.clone().into_ratatui(), width);
+                    }
+                    assert_eq!(
+                        buffer[(MESSAGE_PADDING as u16, header as u16)].fg,
+                        theme.error()
+                    );
+                    assert_eq!(
+                        buffer[(MESSAGE_PADDING as u16 + 1, header as u16)].fg,
+                        Color::Reset
+                    );
+                }
             }
         }
     }
@@ -1312,12 +1466,17 @@ fn failed_exploration_preserves_styles_error_click_and_indexed_geometry() {
 
 #[test]
 fn exploration_remains_running_until_every_grouped_operation_finishes() {
-    let rows = [
-        exploration_tool("read", "completed", false),
-        exploration_tool("glob", "started", false),
-    ];
-    let (live, _) = render(&rows, 80, 5);
-    assert_eq!(live[1], "   ⋯ Exploring — 1 read, 1 search");
+    for state in ["started", "running"] {
+        for boundary in [None, Some(assistant("later visible text"))] {
+            let mut rows = vec![
+                exploration_tool("read", "completed", false),
+                exploration_tool("glob", state, false),
+            ];
+            rows.extend(boundary);
+            let (live, _) = render(&rows, 80, 5);
+            assert_eq!(live[1], "   ⋯ Exploring: 1 read, 1 search");
+        }
+    }
     let (done, _) = render(
         &[
             exploration_tool("read", "completed", false),
@@ -1326,7 +1485,7 @@ fn exploration_remains_running_until_every_grouped_operation_finishes() {
         80,
         5,
     );
-    assert_eq!(done[1], "   → Explored — 1 read, 1 search");
+    assert_eq!(done[1], "   → Explored: 1 read, 1 search");
 }
 
 /// Render the transcript into a `width x height` buffer and return the

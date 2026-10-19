@@ -1951,6 +1951,7 @@ impl TuiState {
                 ApprovalPreview::Resource { values } if card.name == "read" => {
                     crate::tools::ToolRender::Inline(crate::tools::InlineRender::Read {
                         path: values.first().cloned().unwrap_or_default(),
+                        range: None,
                     })
                 }
                 ApprovalPreview::Resource { values } if card.name == "webfetch" => {
