@@ -14,7 +14,8 @@ import archive_failed_capture as archive
 class FailedCaptureArchiveTests(unittest.TestCase):
     @contextmanager
     def failed_campaign(self, campaign="model-shell-001"):
-        with tempfile.TemporaryDirectory(prefix="failed-archive-test-", dir=archive.TEMP) as private:
+        # The helper's historical capture root is not the unit fixture's temp root.
+        with tempfile.TemporaryDirectory(prefix="failed-archive-test-") as private:
             repo = Path(private)
             evidence = repo / "evidence/tui"
             root = evidence / campaign
@@ -117,7 +118,7 @@ class FailedCaptureArchiveTests(unittest.TestCase):
             self.assertTrue((private / "transaction.json").is_file())
 
     def test_complete_bytes_and_directory_metadata_roundtrip(self):
-        with tempfile.TemporaryDirectory(prefix="failed-archive-test-", dir=archive.TEMP) as private:
+        with tempfile.TemporaryDirectory(prefix="failed-archive-test-") as private:
             root = Path(private) / "failed-own-capture"
             nested = root / "oc"
             nested.mkdir(parents=True)
@@ -142,7 +143,7 @@ class FailedCaptureArchiveTests(unittest.TestCase):
                 archive.archive_bytes({"failed/a": b"a"},
                                       [["failed/a", 1, archive.sha(b"a"), 0o644, 1003, 1003, 0]],
                                       [["failed", 0o755, 1003, 1003, 0]])
-        with tempfile.TemporaryDirectory(prefix="failed-archive-test-", dir=archive.TEMP) as private:
+        with tempfile.TemporaryDirectory(prefix="failed-archive-test-") as private:
             target = Path(private) / "immutable"
             archive.durable(target, b"first\x00\xff")
             with self.assertRaises(FileExistsError):

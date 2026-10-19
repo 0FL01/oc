@@ -1,8 +1,10 @@
 # Goal: Native session-local interactive terminals
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
-Frozen R1–R4 / TERM01 verified; execution closure is recorded in progress/STATE.json
-and evidence/T56/report.md. T56 followed completed T53 chronologically. T44 remains PAUSED.
+Session-local PTY behavioral reference; visual/shared-owner qualifications remain separate in GOAL.
 Source: owner request for full OC2 child-TUI/Subagents/Shell/Terminals parity,
 explicit choice «Включить Terminals» and instruction to record the detailed plan
 and commit/push, 2026-10-01. Donor OC2 v2.0.12 at
@@ -16,13 +18,6 @@ created from Terminals and displayed in the right terminal pane. They remain ali
 while hidden or while the view changes within the application. They are distinct
 from T50 one-shot shell jobs. Real input/output/resize/focus and owned cleanup are
 qualified by TERM01; exact presentation is separately qualified by T44/VIS39.
-
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
 
 ## Frozen Contract
 
@@ -51,8 +46,6 @@ required outcome is resolved and affected constraints remain satisfied.
     inventory, genuine byte exchange and exit/reap; existing shell security and
     A02/A10/A13 regressions are reused, not reimplemented.
   - Status: verified
-  - Evidence: evidence/T56/report.md and owner/application/frontend/term01 receipts — actual native owner, scoped acknowledged controls, retained-child source, current debug/release shell/cwd/env/identity/byte exchange, full final workspace green.
-
 - R2: The real frontend selects, creates, hides/shows and focuses terminals.
   - Source: donor Terminals/session-terminal/session-frame/keymap U80–U83/U88.
   - Acceptance: Terminals lists existing session PTYs plus `+ New terminal`, displays
@@ -88,8 +81,6 @@ required outcome is resolved and affected constraints remain satisfied.
     checks process identity, no duplicate creation and focus/draft preservation.
     T44 reuses the same fixture for paired visual qualification, not a reverse gate.
   - Status: verified
-  - Evidence: evidence/T56/report.md and frontend/term01/signals receipts — actual lower composer and captured child route/target, raw controls/configured leader/focus/draft, last-toggle/remount/exit; forced ignored/masked parent policy passes current debug/release and full workspace.
-
 - R3: VT screen, output replay and resize are native and bounded.
   - Source: donor terminal-pane/session-frame and schema U82/U83/U85.
   - Acceptance: a vetted pinned native VT emulator projects cells, styles and cursor
@@ -110,8 +101,6 @@ required outcome is resolved and affected constraints remain satisfied.
     screen/cursor/ordered bytes and actual child size, then resource/cleanup facts.
     T44 owns full paired pane/list geometry, RGB/attributes and cursor evidence.
   - Status: verified
-  - Evidence: evidence/T56/report.md and owner/frontend/term01 receipts — native VT/Unicode/styles/cursor, atomic replay/ready/gap, owned DSR, host escape protection/flood/hidden drain and actual resize in both binaries; semantic dark/light ANSI mapping and final workspace green.
-
 - R4: Lifecycle remains safe across view changes, shutdown and crash/restart.
   - Source: GOAL A02/A10/no unknown-effect replay and explicit no-daemon boundary.
   - Acceptance: hide/show, composer close, child/parent/session navigation and panel
@@ -129,8 +118,6 @@ required outcome is resolved and affected constraints remain satisfied.
     descriptor checks and A10 measurements. Runtime difference from donor daemon
     persistence is disclosed; it cannot waive pane/list visual qualification.
   - Status: verified
-  - Evidence: evidence/T56/report.md and application/term01/signals receipts — original PTY across Location/reload, checked bounded/sticky failure handling, actual remove/exit/shutdown/two-orphan crash/no replay/stale PID plus independent FD/thread/RSS/idle facts; all final gates green.
-
 ### Constraints and non-goals
 
 - Rust 2024, Linux non-root, four existing crates; `oc-core` has typed ports/DTOs,
@@ -144,63 +131,6 @@ required outcome is resolved and affected constraints remain satisfied.
 - TERM01 has one owner T56. T45 retains child lifecycle, T50 retains shell jobs;
   T44 retains VIS39 presentation and VIS14/VIS35 grammar highlighting. No whole-task
   completion cycle or duplicate security/visual matrix. Existing gates/PASS unchanged.
-
-## Change Envelope
-
-- Add a narrow PTY owner under `crates/oc-adapters/src/`, reuse existing application,
-  session/Location/storage/shutdown and shell/env admission seams; add minimal typed
-  `oc-core` queries/commands/events and `oc`/`oc-tui` pane/composer consumers.
-- Native PTY/VT dependencies may be selected after a compile/license/provenance spike
-  and pinned in Cargo.lock; no dependency or code is added by this plan-only patch.
-- Substantial new unit tests live separately from production; actual-binary fixtures
-  use existing PTY/fake-provider harnesses. No general terminal-service framework,
-  store or new crate just for layout. No historical evidence/baseline rewrites.
-
-## Current Checkpoint and State
-
-Authoritative closure 2026-10-06, reviewed/pushed implementation `be5ec25fb`:
-**COMPLETE**, every frozen R1–R4 / TERM01 verified. Current workspace **1665/0/11**
-(43 result records), current real debug/rebuilt release full PTY fixture PASS,
-strict workspace all-target Clippy/fmt/locked builds/both help green. No known
-T56 blocker remains. [Report](../../evidence/T56/report.md) is primary closure;
-component receipts preserve failed experiments and their actual corrections.
-Stop substantive T56 work. T44 PAUSED, paired VIS39 not waived/PASS, no overall
-READY and no T57/adjacent-task completion. The checkpoints below are historical.
-
-- Execution authorized 2026-10-06: owner requests the next chronological logical T*
-  completed fully, commit/push each checked slice. HEAD `ea6b0b2cc`, tracked baseline
-  clean, T53 done, ready T56 precedes T57; `progress.py start T56` succeeded.
-- Native bounded PTY/VT owner checked/pushed `88e6631d0`; application source/epoch
-  commands, independent lifecycle/capability and migration12 pushed `5b165af61`.
-  Frontend composer/right pane, raw/leader/focus, theme cells/atomic attachment and
-  retained-child source creation pushed `0babd4e5e`: adapters TERM01 8/0, TUI 444/0,
-  binary unit 91/0 and strict workspace all-target Clippy green. Slice receipts:
-  evidence/T56/owner.md, application.md and frontend.md. All R1–R4 in_progress.
-- Checked actual-binary/lifecycle slice: TERM01 adapters 9/0, actual debug 1/0 and
-  identical explicit release fixture PASS; both binaries rebuilt, strict workspace
-  all-target Clippy/fmt/help/journal/diff green. Checked signal/proc enumeration,
-  bounded reap and sticky failures retain unproved recovery identity. Real child
-  close/target, raw controls, VT/gap/resize, hidden output, removal/shutdown and
-  two-orphan crash/no-replay/stale-PID/resource facts are in evidence/T56/term01.md.
-- That slice was pushed `87106ea5c`. Full workspace exposed inherited ignored
-  SIGINT: the byte reached the tty (`^C`) but the actual foreground job ignored it.
-  Deterministic reproduction and the child-only default-disposition/empty-mask
-  correction are in evidence/T56/signals.md. The fixture now forces ignored/masked
-  parent policy; adapters 9/0, whole actual debug 1/0 and strict Clippy/fmt green.
-  That correction was pushed `5ce0b9baf`; the fresh release fixture also passed
-  with deliberately ignored/masked parent signals. The full workspace then found
-  two old exact migration vectors ending at 11 instead of the required terminal
-  migration12. Test-only correction preserves all schema/legacy/idempotence
-  assertions; `child_schema_` 3/0 and strict impacted Clippy/fmt green, documented
-  in evidence/T56/migrations.md. The full final gates must still be rerun.
-- Final full workspace/final gates passed after the migration test-only slice
-  `be5ec25fb`; exact totals and the final success marker were independently checked.
-  The closure above supersedes earlier in_progress/pending checkpoints.
-- Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
-  impacted/final gates. T44 stays PAUSED; paired VIS39 is separate, not waived/PASS.
-- Reference inventory: U78–U88 in `tui-recovery/SOURCES.json`; canonical full segment
-  and qualification order in T44 amendment and roadmap/M8.md. Consume qualified
-  existing owner slices without requiring completion of all T45/T50/T44.
 
 ## Material Decision and Completion
 

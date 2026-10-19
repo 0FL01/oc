@@ -1,240 +1,93 @@
-# Архитектура: небольшой модульный монолит
+# Архитектура: модульный монолит
 
-Статус: технический дизайн v3. Не утверждение о существующей реализации. Принципы владельца: Rust 2024, KISS/YAGNI/Парето. Принятые defaults и deferred — `DECISIONS.md`.
+Rust 2024, KISS/YAGNI. Это границы и поведенческий контракт, не qualification report.
+Маршруты к реализации/tests — [CODE_MAP](CODE_MAP.md), неподтверждённые outcomes — [GOAL](../GOAL.md), design references — [DECISIONS](DECISIONS.md).
 
-## Packages и разрешённые зависимости
+## Packages и зависимости
 
 ```text
-crates/oc-core/src/
-  application.rs, core_app.rs, queries.rs, ports.rs, domain.rs, ...
-crates/oc-adapters/src/
-  application.rs, application_*.rs  # application lifecycle, workers, queries
-  runtime.rs, runtime/             # native turn/tool/MCP/context execution
-  storage.rs, storage_*.rs         # Db owner, transactions, history, DCP
-  config.rs, composition.rs, defs.rs, discovery.rs, provider.rs, ...
-crates/oc-tui/src/
-  app.rs, app/                     # TuiState owner + coarse implementation slices
-  messages.rs, shell.rs            # transcript rendering / frame composition
-  history.rs, styled.rs, editor.rs, tools.rs, ...
-crates/oc/src/
-  main.rs, cli.rs, bootstrap.rs, headless.rs, tui_cmd.rs
-# <owner>/tests.rs и tests/<suite>/ — тесты, не production-зависимости.
+oc2 (crates/oc)          binary, bootstrap, event loop, headless
+ |-- oc-tui             view-model, rendering, typed intents
+ |-- oc-adapters        native authority, runtime, storage, tools/config/provider
+ `-- oc-core            typed façade, DTOs, domain, ports
 ```
 
-Это карта укрупнённых владельцев, не предписание создать все возможные подпапки. `app/` и дополнительные slices `runtime/` уже содержат implementation/test parts с прежними state owners; реальные маршруты и ближайшие tests — в `CODE_MAP.md`. Не раскладывать небольшие core/config/provider-модули по старому концептуальному дереву ради единообразия.
-
-`oc` связывает конкретные реализации и может зависеть от всех остальных. `oc-tui` использует публичный application API `oc-core` и уже разрешённый D12 read-side `oc-adapters`; эта зависимость есть в Cargo.toml и не устраняется файловым рефакторингом. В текущем TuiState snapshots/intents проходят через CoreApp, а lifecycle Db/runtime/network/process остаётся у существующих application/binary owners. T52 не добавляет UI новый I/O и не расширяет исключение D12. `oc-adapters` реализует ports `oc-core`; обратной зависимости нет. `oc-core` может использовать Tokio/Serde и простые utility-типы, но не Ratatui, Axum, rusqlite, reqwest или rmcp.
-
-DCP placement: детерминированные общие `ContextPlan`/`CompressionBlock` и application commit rules принадлежат core; upstream-specific selection/nudge/strategy policy находится в `oc-adapters::dcp`, возвращает проверяемые изменения через узкий `ContextPolicy` interface. Не создавать crate/trait на каждый тип. Подключение второго контекстного движка не входит в задачу.
-
-Один binary target `oc2`; библиотеки statically linked в приложение. Нет runtime DCP/npm loader. Без Axum в production до появления реального remote requirement; fake HTTP test servers могут быть dev-dependency.
+- `oc-adapters` реализует ports `oc-core`; обратной зависимости нет. Core может использовать Tokio/Serde, но не Ratatui, rusqlite, reqwest, rmcp или UI/storage/network adapters.
+- `oc-tui` использует core application API и существующий adapter read-side. Это не разрешает raw Db/runtime/network/process I/O в view-model и не расширяется ради файлового рефакторинга.
+- Binary связывает реализации; один native `oc2`, statically linked workspace libraries. Нет production Node/Bun/npm loader, JS-plugin host, Axum/API server «на будущее». Native Code Mode — confined Rust interpreter; fake servers и capture tooling остаются dev-only.
+- DCP deterministic `ContextPlan`/`CompressionBlock` и commit rules — core; upstream selection/nudges/strategies — adapter policy. Узкие Provider/Store/ToolExecutor/ContextPolicy ports; enum/match достаточен для built-ins. Не создавать DI/plugin locator или trait/crate на каждый тип.
 
 ## Файлы и тесты
 
-Единица навигации — владелец поведения плюс несколько укрупнённых implementation/test slices. Лимит 5 000 физических строк мягкий и действует на отдельные рукописные production/test/dev-tool файлы; строки комментариев/пустые строки учитываются. Размер модуля со всеми дочерними файлами не ограничен этим числом. Ориентир 1–4k полезен для новых крупных slices, но не является минимумом: фасады, ports и существующие самостоятельные небольшие модули не укрупнять искусственно.
+- Единица навигации — владелец поведения и укрупнённые implementation/test slices. Мягкий ориентир **5000 физических строк** на рукописный файл, обычно 1–4k для крупных slices; это не CI-запрет, минимум или размер всего модуля.
+- Выше ориентира объясни связанность, риск переноса и следующий естественный шов; отдельный waiver/размерный отчёт не нужен. Не минифицировать строки, не прятать монолит в `include!`, не дробить согласованный 3k owner ради счётчика.
+- Состояние и инварианты сохраняют одного владельца. Дочерние файлы могут содержать `impl TuiState`/`impl Runtime`; не создавать копии состояния, `Arc<Mutex<Everything>>`, framework/traits/crates ради переноса методов.
+- `app.rs` использует обычный `app/`, не одновременно `app/mod.rs`. Private по умолчанию; scoped visibility только для реального шва. Сохранять публичные пути явными re-exports, без `pub use *` и массового `pub(crate)`.
+- Новые существенные unit-сценарии — `src/<owner>/tests.rs`, при росте несколько тематических test modules. Маленькие существующие inline tests не переносить массово; `#[cfg(test)]` probes/branches не удалять как «тестовый блок».
+- Integration target сохраняет `tests/<suite>.rs` с явными `#[path = "<suite>/<topic>.rs"] mod topic;`. Fixtures внутри suite/существующего `tests/support/`, не новые Cargo targets/common crate; public API ради tests не расширять.
+- При переносе сверять test discovery/ignored, живые filters и `include_str!`/`include_bytes!`/`#[path]`. Обновлять карту/consumers; старые sealed proofs и frozen source fixtures не переписывать, новых SHA256-манифестов ради рефакторинга не создавать.
 
-Сначала отделять большие тестовые блоки, затем повторно измерять production. Согласованный файл на 3k строк не дробить только потому, что до выноса тестов он занимал 8k. Выше 5k — warning и объяснение: какие обязанности связаны, почему выбранный перенос опаснее сохранения, следующий шов/условие пересмотра. Запись исключения держать рядом с владельцем в `CODE_MAP.md`, не в отдельной системе waiver/хешей. Уплотнение строк и монолит за `include!` не являются исправлением.
+## Authority, сессии и requests
 
-При сохранении публичного `app.rs` Rust ищет его обычные дочерние модули в `app/`; одновременно `app.rs` и `app/mod.rs` не создавать. Корневой owner сохраняет тип состояния и инварианты; тематические файлы могут содержать `impl TuiState`/`impl Runtime`. Не создавать новые копии состояния, `Arc<Mutex<Everything>>`, traits, crates или dispatcher framework ради переноса методов. Private поля предка доступны его потомкам; moved helpers, вызываемые родителем/соседями, получают только необходимую scoped visibility. Старые публичные пути сохранять явными re-exports, без общего `pub use *`.
+- Один native owner на **UID/data root** владеет Db/recovery, resources и canonical Location sources/MCP. Same-UID TUI/run/auth/sessions подключаются через bounded private UDS. Второй write/root-lock owner отказывает; public HTTP/TCP, privileged cross-user broker и `oc service` отсутствуют.
+- CoreApp — конкретная typed façade на local channels/native wire, не новый transport trait. Mutable execution/conversation ownership — на session; разные root-сессии могут работать одновременно даже в одной Location. Channels/queues bounded, принятие сообщения подтверждается durable ack.
+- Долгий stream не блокирует Cancel: owner обслуживает stream/inbox/shutdown; activities имеют owner/cancellation. UI не выдаёт storage failure за успешный ack и не получает raw Db handle.
+- Prepared request/stream/approval/full tool batch/outcomes сохраняют captured model/config/profile/authority. Picker draft отличается от committed selection; следующий fresh request той же задачи заново разрешает committed model/tools/budgets/compatible history. Старые calls не переименовываются/не replay.
+- Same-Location config adoption — только atomically validated publication на fresh preparation; issued leases неизменны. Fatal candidate сохраняет complete last-good. Оставшийся composed hot-reload/settings scope не объявляется qualified этим документом.
+- Все tool calls: registry → strict input validation → effective permissions → durable intent → executor → durable outcome. Admission/causality и mutation ordering/CAS/path guards общие; независимые admitted children могут работать concurrently, same-child continuation упорядочен.
+- Новый provider request ждёт terminal foreground batch. Background call возвращает running, а terminal result доставляется durable notice через parent owner без polling и потери при busy parent. Compress не запускает скрытую вторую модель.
 
-Unit tests остаются дочерними модулями владельца, но их код читается отдельно:
+## Native lifecycle и Location
 
-```rust
-// src/<owner>.rs
-#[cfg(test)]
-mod tests; // src/<owner>/tests.rs; при необходимости содержит mod input; и т.п.
-```
+- TUI зеркалят Location deck/order/active route и bounded live projection; unsent text/PNG drafts локальны. Persistent tab changes используют существующий Location/CAS owner.
+- Last global TUI disconnect отменяет interactive lineage как durable Interrupted, не auto-resume. Finite run/auth/sessions leases независимы; headless не отменяется уходом TUI. Startup env фиксирован первым owner, новый клиент его не подменяет.
+- One debounced watch/manual coordinator, latest desired MCP config и per-instance retirement/quarantine; request держит immutable authority/catalog lease, не создаёт clients на каждый chunk. Changed/removed instances закрываются после issued leases, late completions fenced; sticky unknown-effect quarantine сохраняется.
+- Client settings принадлежат adapter orchestration: narrow UI overlay, сохранение live/runtime facets, palette cache invalidation без provider/MCP rebuild или draft/selection reset. Полная qualification этого surface остаётся в GOAL.
+- Ordinary Location switch выбирает/создаёт Location-scoped session. Complete target generation строится до publication; failure оставляет текущую Location. Busy switch явно отказывает, view-model сбрасывает старые generation caches.
+- Явный same-ID session move отдельно проверяет caller/access/destination type/trust и строит target generation; placement admitted/applied durable. Source turn/operations/jobs/children сохраняют provenance, move применяется на safe turn boundary, не мигрирует family и не расширяет permissions.
+- После move следующий execution обновляет environment/instructions/catalogs/provider causality. Нет старого opaque continuation или unbounded retired-generation cache. Crash/restart deduplicates committed delivery, не replay неизвестные effects и не делает ambiguous resend.
 
-Fixtures общего unit-suite можно оставить в его `tests.rs`, сценарии — в нескольких крупных файлах `tests/<topic>.rs`. Мелкие существующие inline-тесты допустимы; новую крупную сценарную серию не наращивать в production-файле. `#[cfg(test)]` поля, probes и test/non-test branches не путать с целым тестовым блоком и не удалять механически. Уже публичный ScriptDriver не превращать в cfg(test)-only API только из-за переноса: чистая раскладка сохраняет доступность, даже если найденные call sites — unit tests.
+## Storage и effects
 
-Для существующего integration target сохранять `tests/<suite>.rs`; подключать части явными `#[path = "<suite>/<topic>.rs"] mod topic;`. Не добавлять одновременно `<suite>/main.rs`, второй target того же имени или top-level `tests/common.rs`. Shared fixtures остаются внутри suite либо в существующем `tests/support/`, без нового dev-support crate. Отдельный test-файл не означает отдельный Cargo target. За переносом следуют сверка test discovery/ignored и коррекция живых filters, `include_str!`/`include_bytes!`/`#[path]`; публичный API ради доступа тестов не расширять.
+- Одна SQLite DB/worker с короткими transactions, WAL и `synchronous=FULL`; synchronous work не выполняется на async runtime worker. Никаких network/LLM waits внутри transaction; inbox bounded.
+- Messages/operations и небольшое monotonic session event сохраняются одной transaction; notifications после commit. Это transactional journal, не event-sourcing платформа; coalescing UI hints не теряет единственный terminal outcome.
+- Own data root отделён от upstream, no-follow/restrictive ownership; advisory lock удерживается до joined shutdown. Lock inode не удалять по PID. Guarded read-only catalog/cache connection допустим без writes/recovery/второго owner. Network filesystem не квалифицирован.
+- Outputs/attachments — content-addressed blobs: atomic write/fsync/rename **до** DB reference. Только own GC с grace period удаляет unreferenced blobs; referenced не удаляются. Disk-full/DB errors прекращают mutations, logs не копируют blobs.
+- Cancel до admission — не запускать; после старта — остановка с partial/unknown outcome, не rollback. Drop future не обещает остановить blocking work. Shell process group: drain → TERM → deadline → KILL → wait/reap; escaped malicious daemon не делает shell kernel sandbox.
+- Shutdown: запрет новых turns → cancel → settle known outcomes → drain DB/resources → restore terminal → release lock. Panic/startup recovery не replay неизвестные shell/MCP/mutations и не делает `git reset --hard`.
+- Background recovery проверяет durable parent/child/job identity и deduplicates notices; committed results доставляются без исполнения. Donor at-least-once не означает exactly-once native effects; started/unknown effects quarantined. Parent completion не равно child cancellation, все own resources joined.
 
-Правила относятся к раскладке, а не к переутверждению поведения. Исторические evidence и frozen upstream сохраняются. Новый размерный отчёт — advisory; compile/test failures, нарушение ownership и потеря тестов остаются настоящими failures. Подробный первый проход: `goals/2026-09-28-code-slices.md`.
+## История, context и DCP
 
-## Composition и тестовые швы
+- RAW — append-only source of truth; HOT/provider projection хранится отдельно и восстанавливается как latest committed view. Сборщик идёт по bounded references/active or addressed dependencies, не clone/read всего архива в RAM.
+- Compression atomically меняет projection generation, не messages. Summary написан моделью; меньший размер сам по себе не доказывает semantic preservation. Активный batch не разрывается, закрытые call/result/reasoning группы сохраняются целиком или заменяются summary.
+- Нет lifetime compress/block-count quota или depth exhaustion из-за возраста. Число прошлых операций не становится грузом hot path; active traversal/payload/model bounds и explicit user protections сохраняются.
+- Exact child task/context pack неизменен в RAW и доставляется первым request; HOT может обновляться compress на закрытой границе до завершения той же задачи. Restart/recompression не восстанавливает забытое автоматически. LLM выбирает полезность/semantic completion, не harness classifier.
+- Opaque reasoning привязан к admitted provider/config/profile/model/agent compatibility и causality group, не только numeric generation или имени модели. Harmless metadata publication не требует strip compatible groups; foreign opaque не переносится. Локальный `store:false` history projection не продолжает старую remote chain после compress.
+- Token admission по model `limit.context` и независимый active byte safety cap дают явный OverContext/ContextOverflow, не silent truncation. При replay несовместимый opaque item — visible blocker, не strip-and-retry. Полный контракт — [DCP](DCP.md).
 
-Tokio runtime один на процесс. Application handle — cloneable typed sender/query façade. Узкие ports: Provider (request → stream), Store (короткие durable операции), ToolExecutor (descriptor/execute), ContextPolicy (projection + compression plan). Внутренняя диспетчеризация built-ins может быть enum/обычным match; DI framework и plugin service locator не нужны.
+## Prompt и native tools
 
-Использовать async traits только на реально подменяемых границах. Config adapter строит immutable `LocationGeneration`; ordinary enum/match по `(capability kind, exact identity, revision)` связывает DCP/OpenProxy marker с compiled module. Не создавать generic plugin trait/registry/service locator. MockProvider, fake clock и scripted tool driver нужны для unit/integration; production не содержит «успешных заглушек». Typed errors дают category/retryable/operation_id и redacted user message; произвольный `anyhow` chain не выходит в UI.
+- Один runtime assembler: agent system/base → compiled bounded host/workspace/date → ordered AGENTS/skill metadata → permitted MCP/DCP guidance → history → user/tool results. Custom system не убирает environment; schemas — отдельное request field, config/TUI финальный prompt не собирают.
+- Linux facts собираются native без shell/privilege escalation, отражают реальный executor, не `$SHELL`. Deterministic escaped fields, unknown optional facts без startup failure; immutable request snapshot, без env/proc dumps и накопления duplicates.
+- Initial instruction baseline durable; successful nested reads/updates/removals — chronological origin/revision messages, не RAW rewrite. Reconcile после compact/Revert/reopen внутри admitted source bounds.
+- Child получает свой profile/context, не parent transcript/system. Optional selected parent IDs — bounded exact escaped quotes после branch/revision/cutoff/budget checks; один durable snapshot/digest. Capability preview не обещает denied tools или automatic skill bodies.
+- Canonical shell и legacy bash используют один policy/supervisor, не два advertised tools. Unset/zero timeout не снимает retention/shutdown bounds. Question имеет application-owned pending/answer/cancel identities, не permission reply/DB wait.
+- File family (`apply_patch` либо `edit`/`write`) привязана к issued request. Exact OC2 model predicate — узкое исключение, не routing allowlist/permission grant. Direct model/session tools используют существующих owners; Code Mode вложенные MCP/fetch проходят общий admission.
+- Read images идут через provider media boundary, не base64 pretending text; search/rendering bounded/pinned. PDF, built-in browser/websearch и arbitrary JS-host не добавляются под видом parity.
 
-## Владение сессией
+## TUI и bounded presentation
 
-Один execution owner на session владеет mutable session/active turn/context generation. Session имеет текущий `LocationId`; T50 допускает только явный durable admitted move той же session на safe boundary, superseding прежнюю пожизненную привязку. Issued request/full tool batch держит immutable generation/profile view. T61 pending допускает same-Location config adoption только на fresh preparation; Location identity остаётся source до terminal исходного turn, destination execution принадлежит отдельному последующему turn, не in-flight retarget. Команды идут по bounded channel; одновременно один execution owner на session. Процесс сохраняет foreground-root single-flight per Location (второй root TurnBusy до acceptance); independent Location и существующие foreground/background children не сериализуются общей family lease. T45/R3 требует параллельных независимых foreground-детей и background progress до конца parent turn; existing supervisor owns bounded jobs/cancellation/delivery, без нового scheduler service. Tool mutations сохраняют ordering/CAS/path protections, а parent-held lease не сериализует все child sessions. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
+- Ratatui/Crossterm view-model получает redacted snapshots/live hints и dispatches typed operations; raw storage/config parser/catalog authority не дублируются. При отставании перечитывает cursor snapshot, не unbounded event backlog.
+- Transcript paging использует целые durable parts с исходной sequence, не общий расходуемый preview budget. Continuation идёт через History/launch-fenced ReadChild; новые message pages начинаются с первой части, без tail gaps/reordering.
+- Page target **8 MiB** допускает один более крупный producer-admitted part; TUI retention **240 rows /64 MiB** вмещает part до **32 MiB** generation guard и footer. Это не рост producer limits и не автоматическое чтение cold artifacts.
+- Tool cards newest-first; diff card — bounded parsed summary, не копия patch. Tool operation preview явно clipped, full durable result читается continuation. Oversized input видим в note, не отбрасывается молча; prompt budget совпадает с core.
+- Active DCP context читает только retained rows/needed wire logs; byte safety cap отдельно от heuristic bytes/4 token admission. Ручное обращение к pruned ranges может читать адресованный архив, но это не обычный per-turn hot path.
+- Bracketed paste — одно событие; resize/stream не блокируют loop, output failure завершает с terminal restoration. `oc2` владеет event loop/terminal guard, `OC_TUI_TEST_METRICS` только opt-in PTY.
+- Bare `oc2` при terminal stdin+stdout открывает TUI; иначе exit2 с headless hint, без hidden daemon. Explicit `oc2 tui` — stdin gate, непригодный stdout даёт видимый draw failure. `run --json` — NDJSON stdout, diagnostics stderr.
 
-Долгий provider stream не блокирует обработку Cancel: worker select-ит stream, inbox и shutdown, а выполняемые child activities имеют owner и cancellation. Очередь новых пользовательских сообщений ограничена; сообщение принято только после durable acknowledgement. Ошибка storage не маскируется успешным UI ack.
+## Простота и безопасность
 
-Все tool calls, включая `compress`, сначала проходят registry → input validation → permission check → durable intent → executor → durable outcome. Admission/causality IDs и объявленный mutation order сохраняются; независимые subagent calls могут исполняться одновременно. Новый provider request следует после terminal foreground batch; background call возвращает running, не ждёт terminal ребёнка. Завершение доставляется durable notice через parent owner, без polling, не теряется при занятом parent. Явно запущенные child loops не являются скрытым DCP summarizer: compress не вызывает вторую модель.
-
-T50 selected native tool target is defined in [its frozen contract](goals/2026-09-27-native-tool-parity.md).
-Canonical shell(command/workdir/timeout/background) and legacy bash(argv) reuse one
-policy/supervisor, with no duplicate advertised shell or alias-based authority gain.
-Background shell jobs retain bounded owned capture/cancel/teardown/durable notices;
-unset/zero execution timeout does not make retention or shutdown unbounded. Question
-uses typed application-owned pending/answer/cancel identities, not permission replies
-or a held database transaction. Direct opencode_* tools reuse catalog/session owners,
-without websearch integration, built-in browser or a second registry; T60 `execute` is a separate dynamic tool over MCP, not their transport.
-Read images use the existing provider media boundary, not base64 text pretending to
-be an image. Search/conversion engines stay bounded and pinned; PDF remains excluded.
-
-## Storage без event-sourcing платформы
-
-Одна SQLite DB, один выделенный worker thread с короткими транзакциями, WAL и `synchronous=FULL`. Версия bundled SQLite фиксируется после compile/security check. Worker никогда не ждёт сети/LLM внутри транзакции. Его inbox тоже bounded; synchronous calls не выполняются на async runtime worker.
-
-Минимальные таблицы: schema_migrations, locations, sessions, messages/parts, turns, tool_operations, events, compression_blocks/members, prune_marks и provider_catalog metadata. Структуру уточнять миграциями текущего slice; не строить все таблицы пустыми заранее.
-
-Persist messages/operations и небольшое durable событие в одной транзакции. События имеют monotonic seq на сессию; UI notifications после commit. Это transactional event journal, не система восстановления всей DB проигрыванием event stream. UI делtas могут coalesce; единственная durable копия terminal outcome не теряется из-за медленного потребителя.
-
-SQLite data root отделён от upstream; advisory OS lock на время владения. Lockfile inode не удалять по PID. Второй write/root-lock owner — `DataRootBusy`, не опасный «repair». По T68 обычные TUI/run/auth/sessions подключаются через private same-UID UDS к одному native owner, который удерживает единственный Db и recovery; existing guarded read-only catalog/cache connection допустим без writes/recovery/другого root owner. DB на локальном ext4; network filesystem не квалифицирован.
-
-Full outputs и attachments — content-addressed files в own blob dir, atomic temp/write/fsync/rename. Сначала durable blob, затем DB reference. Unreferenced files после crash безопасно собираются только собственным GC с grace period; referenced blobs не удаляются. DB errors/disc full прекращают mutations. Логи не дублируют blobs.
-
-## История, projection и continuation
-
-Raw history — append-only source of truth. `ContextPlan` содержит bounded references к retained ranges/summaries/tool results и protected data. Сборщик обходит план, не делает `clone()` всей истории. Активные projection entries и rendered bytes имеют предел; старые inactive compression blocks доступны из SQLite, не из process-wide cache.
-
-DCP создаёт `CompressionBlock` с anchors/member IDs, summary, refs на вложенные blocks, protected refs, input generation и tool call ID. Commit атомарно меняет активную projection generation, не messages. Summary source — текст из аргумента tool, написанный моделью; semantic preservation не доказывается одной меньшей длиной строки. Структурные invariants и regression fixtures обязательны.
-
-Provider continuation items (включая opaque reasoning) хранить отдельно от UI text и в пределах quotas. Они привязаны к admitted provider/config/profile/model/agent compatibility и causality group, не к одному ephemeral numeric generation. Не переносить foreign opaque по совпавшему имени модели; harmless metadata publication не требует уничтожать compatible closed groups (T61 target). В первой реализации используется явная локальная history projection с `store:false`, без зависимости от remote `previous_response_id`; не посылать старую server-side conversation цепочку после локального compress.
-
-Один runtime prompt assembler владеет semantic lanes: compiled policy, selected session-agent body/base prompt (primary или child), environment/date, ordered AGENTS/skill metadata/permitted MCP, DCP additions, history projection, user input и tool results. Config adapter/TUI не собирают финальный prompt. Command expansion и delegation/context pack остаются durable user input; skill body — tool result. Fixed config lanes не входят в DCP compression и не дублируются между turns.
-
-Target architecture under owner-approved [T45/R7](goals/2026-09-21-config-compat-and-subagents.md#environmentcontext-references--r7), not a current implementation claim: host/workspace environment is a compiled harness instruction layer, separate from the selected agent system/body and ordered AGENTS.md. A custom agent system replaces the base harness prompt but never suppresses environment/date. The missing base harness fallback is an explicit implementation requirement.
-
-Request context order: agent system/base harness prompt → host/workspace environment + date → ordered workspace instructions and skill metadata → permitted MCP guidance and DCP additions → history projection → current user input and tool results. Tool descriptions/schemas remain a separate provider request field. Root and child requests share the assembler; guidance describes actual native tools.
-
-T45/R8–R10 target: initial instruction baseline is durable; safe-boundary updates/removals and successful-read nested AGENTS are chronological messages with origin/revision, not rewrites of raw history. Reconcile after compaction/Revert/reopen within admitted source boundaries. A new child gets its own profile/context, not parent transcript/system; optional context_message_ids adds exact selected parent text/roles as escaped quoted user context alongside the task. Resolve branch/revision/cutoff/unsupported content/budgets before admission and persist one snapshot/digest; continuation admits its next task/pack once. Candidate IDs are bounded and independent of DCP. Guidance and effective capability preview distinguish automatic AGENTS/tools/skill metadata from supplied task/history, never claim denied tools or automatic skill bodies.
-
-Linux host facts are collected natively with ordinary user permissions, without shell subprocesses or privilege escalation. Runtime metadata reflects the actual tool executor, not the inherited $SHELL. Render selected bounded fields deterministically, escaping control characters/block delimiters; unavailable optional facts are unknown/omitted, not startup failures. Preserve one immutable snapshot per request and refresh the relevant context on restart/Location change without accumulating duplicates. The environment block describes execution facts, not an access grant or sandbox assertion. Do not inject raw environment/proc dumps or changing resource/toolchain inventories.
-
-При reproject сохранять законченные call/result/reasoning группы целиком либо заменять закрытую группу summary. Активный незавершённый batch не сжимается. Корректность replay подтверждается fake wire suite и live OpenProxy; несовместимость конкретного opaque item — visible capability blocker, не strip-and-retry.
-
-## Lifecycle
-
-Native owner владеет DB/config/logger; `LocationGeneration` задаёт canonical Location,
-permission ceiling, prompt fragments/native capabilities, snapshotted agent/command/
-skill catalogs и safe diagnostics. Текущий baseline публикует config между turns.
-T61 target: source snapshot fully validated и atomically published, fresh preparation
-той же задачи принимает его; issued request/stream/approval/full batch/outcomes
-сохраняют lease. MCP connections принадлежат persistent Location supervisor, request
-получает immutable authority/catalog view, не новые clients на chunk/request.
-Fatal candidate failure сохраняет complete old generation. Turn сохраняет source
-Location/causality; ordinary switch выбирает другую Location-scoped session, T50
-explicit move применяется только после source-turn boundary. Hot reload native
-machine code отсутствует.
-
-T50 move admission validates caller/session access and destination existence/type/
-trust before building a complete target generation. Persist admitted versus applied
-placement and retain ID/history/DCP; next execution refreshes environment/instructions/
-catalogs and provider causality without stale source-local rules or opaque continuation.
-Original operations/background jobs/children keep execution Location/generation and
-provenance; the move is not family migration or a permission grant. Do not close a
-generation still owned by admitted work or accumulate an unbounded retired-generation
-cache. Sticky unknown-effect MCP quarantine/cleanup survives transitions. Crash/restart
-deduplicates committed move/result delivery, never replays unknown shell/MCP/mutations.
-
-Cancel до admission side effect = не запускать. Cancel после старта = запросить остановку, записать outcome/partial/unknown. Drop future не обещает остановить blocking work. Shell: отдельная process group, drain stdout/stderr, TERM → deadline → KILL → wait/reap. Отделившийся malicious daemon может выйти из простой group; это не kernel sandbox, containment нужен на runner/OS уровне.
-
-Shutdown: запрет новых turns → cancel streams/tools → завершить known outcomes → drain DB → restore terminal → release lock. Panic/abrupt kill оставляет interrupted turn; startup repair не повторяет неизвестные команды. Не предлагать автоматический `git reset --hard`.
-
-T45 background recovery validates durable parent/child/job identity and deduplicates
-terminal notice delivery. Already committed results are delivered without execution;
-eligible work may continue within pinned donor recovery bounds. Donor execution is
-at-least-once, not exactly-once; native started/unknown mutation/shell/MCP effects
-remain blocked from automatic replay. Successful parent completion is not child
-cancellation. Shutdown still joins all owned work; no orphan background tasks.
-
-### T68 shared owner; T61 reload qualification остаётся отдельной
-
-Contract: [T68](goals/2026-10-17-shared-tui-runtime.md), narrowly superseding D26.
-One UID/data-root authority owns Db/resources and canonical Location sources/MCP;
-session-scoped root runners execute concurrently without another Db or recovery.
-Clients mirror the Location deck/order/active route and bounded live projection;
-unsent text/PNG editors remain local. Tab persistence remains existing Location/CAS.
-Children share
-source publication only, not mutable execution state. Finite watch topology comes from
-admitted loading; one debounced watcher/manual pipeline, one latest desired MCP config,
-per-instance retirement/quarantine, no generation-owned supervisor chains.
-
-CoreApp remains the concrete typed facade, backed by local channels or bounded native
-wire, without an application/transport trait. Last global TUI disconnect cancels
-interactive lineage as Interrupted; finite run/auth/sessions leases are independent.
-Final shutdown joins all resources before root-lock release. Config-dependent child
-recovery routes by durable source Location; no root auto-replay or ambiguous mutation resend.
-
-Client settings parsing/watch belongs to adapter orchestration, not raw TUI code. Narrow
-UI settings merge overlays each runtime catalog snapshot, retains runtime facets/live
-state and invalidates palette-dependent caches. Full [T61](goals/2026-10-14-hot-reload-shared-service.md)
-remains paused; T68 does not restore HOT03 or qualify the remaining T61 settings surface.
-
-## TUI без второй модели мира
-
-Ratatui+Crossterm; bounded viewport и lazy paging session list/history. Input buffer ограничен. Rendering не парсит весь transcript на каждый token. UI получает snapshots + live hints; при отставании перечитывает snapshot с cursor, а не держит бесконечный backlog.
-
-T70: canonical transcript serving использует окна целых durable parts с исходным
-`PartState.sequence`, а не общий расходуемый preview-бюджет turn. Конец окна
-останавливается перед целой частью; ранее допущенные input/text/effects не
-обнуляются из-за соседних previews. Продолжения проходят через тот же History
-или launch-fenced ReadChild, включая части внутри одного сообщения. Обычный
-message read сохраняет aggregate text; transcript read не дублирует его поверх
-канонических parts. Page target 8 MiB допускает один более крупный
-producer-admitted part отдельно; TUI retention 240 rows / 64 MiB вмещает part
-до generation guard 32 MiB и footer, вытесненные части восстанавливаются cursor.
-Незавершённое окно parts остаётся на краю message page; переход вперёд к новому
-сообщению начинает с первой части, а не с его tail. Так edge-cursors не пропускают
-внутренний разрыв и не вставляют ответ перед его user message.
-Это не увеличение producer output/effect guards и не загрузка cold tool artifacts.
-
-Основные экраны: chat, sessions/Locations, model/variant/primary-agent picker, slash command completion, skill catalog/tool card, approvals, DCP context/stats. UI получает только redacted projection текущей generation и dispatches typed operations с expected generation; второго parser/catalog state нет. Минимальный markdown/diff/tool cards, paste/resize/Unicode и terminal restoration. Не строить собственный renderer/editor framework. При non-TTY без подкоманды — usage error; headless `run --json` выдаёт NDJSON, diagnostics отдельно stderr.
-
-T39 wiring: `oc-tui` — чистый view-model без storage handle. Панели открываются командами, а данные приходят bounded-запросами application owner (`catalog`, `skills`, `history_page`, `tool_ops_page`, `dcp_snapshot`); выборы уходят как typed intents (`ChooseModel`/`SelectAgent`/`SwitchSession`/`Compress`) и применяются только после acceptance — effective model/variant/agent меняются для следующих turns, смена session во время turn явно отклоняется. История живёт в bounded окне (`WINDOW_ROWS`/`WINDOW_BYTES`): старые страницы выгружаются, новые запрашиваются курсором; tool cards читаются newest-first страницами, а не первыми 200 старейшими записями. Bracketed paste приходит одним событием, resize/stream не блокируют loop, а ошибка output handle завершает процесс с восстановлением терминала. `oc2` бинарник владеет event loop, terminal guard и opt-in `OC_TUI_TEST_METRICS` (только для PTY-квалификации).
-
-T40 wiring: активный контекст собирается bounded projection, а не полным чтением архива. `Db::active_history` читает только строки выше prune mark, пропуская покрытые compression-блоками (placeholders не материализуются: `project_active_rows` ставит summary по позиции блока из `Db::block_positions`/`message_seqs`), а `Db::wire_logs_for_window` переигрывает turn logs newest-first до anchor floor — pruned turns не читаются. Итоговая проекция побайтово совпадает с `project_rows` над полной историей (это проверяется в тестах и debug-assertions). Независимый byte safety budget `ACTIVE_CONTEXT_BYTES_CAP` (16 MiB) — memory guard, а не model admission: token admission по `limit.context` остаётся отдельным и выполняется по эвристике bytes/4, поэтому переполнение любого из них даёт явную ошибку (`ContextOverflow`/`OverContext`) с диагностикой, а не silent truncation. Manual `/dcp-compress` остаётся explicit owner-действием над видимым транскриптом: ranges могут адресовать pruned rows, поэтому этот путь материализует адресованную историю и не входит в per-turn hot path. Tool operation rows отдают bounded preview с явным маркером `…[+N]`, полный result остаётся единственной durable копией в `tool_operations.output` и доступен продолжением `Db::read_tool_op_output(op, offset, limit)`; UI никогда не становится единственной копией результата. TUI input budget равен core-лимиту (`MAX_INPUT_BYTES`), а вставка/набор сверх него видны в note, а не отбрасываются молча.
-
-## Производительность и простота
-
-T45/R9 extends T40 with repeated-compression qualification: no lifetime compress-call
-or block-count quota. Keep durable archive/stable IDs but load only active/addressed
-blocks and required dependencies; normalize repeated summaries transactionally so
-age does not become depth exhaustion. Bounds apply to active traversal/payload/model
-budget, not cumulative operations. Exact delegation task/pack admission stays immutable
-in RAW and is delivered in the first child request; its HOT projection is distinct and
-renewable by existing compress at a closed boundary before the same task completes.
-Do not append the pack to an irreducible first input or restore it verbatim on recovery:
-restore latest committed HOT plus unfinished execution state. LLM chooses useful facts
-and semantic completion; runtime enforces explicit policy/in-flight safety, not a done
-classifier. Summaries retain conversation-data authority, never promote parent quotes
-to developer/system instructions. See [active-task renewal](DCP.md#taskpack-hot-renewal-and-completion--approved-2026-10-03-pending).
-T36/T40 historical evidence does not prove this pending outcome.
-
-Первоначальные safety caps заданы в `examples/oc-rs.toml`; это новые product defaults, не upstream defaults и не benchmark-обещание. Memory budgets квалифицируются A10. У метрик не должно быть high-cardinality labels на каждый token/message. Лог по умолчанию — metadata; payload tracing требует отдельного opt-in и никогда не включает credentials.
-
-Не оптимизировать custom allocator, static musl или speculative workers/cache до измерений; owner-required child concurrency не является speculative optimisation. Не заводить API server «на будущее». Первые архитектурные сигналы успеха — работающий вертикальный slice и тестируемые ownership boundaries.
-
-## T42 compatibility wiring
-
-Bare `oc2` is the local TUI: `bootstrap` launches the same `run_tui` path as `oc2 tui` when
-stdin *and* stdout are terminals, and otherwise exits 2 with an actionable `oc2 run "<prompt>"`
-hint instead of any hidden headless/daemon mode. `oc2 tui` stays the explicit equivalent
-(stdin-only gate, so an unusable stdout still fails visibly at draw time).
-
-A Location switch happens inside one running application lifecycle: `/location <path>` sends
-`InboxMsg::SwitchLocation`; the supervisor builds the complete target generation (config
-load, catalog, agents/skills/commands, MCP registry, runtime, session binding) *before*
-publication, then closes the old runtime's MCP resources, swaps the state and only then
-answers the frontend with `LocationSnapshot`. A build failure leaves the current Location
-untouched, and a switch requested while a turn streams is refused explicitly. Sessions stay
-Location-bound: a first visit mints a session, a return reopens the recorded one. The
-view-model drops every generation-bound cache (`TuiState::reset_workspace`) so no panel can
-show the previous Location's catalog, skills, cards, sessions or DCP snapshot.
-
-The paragraph above records T42 SelectLocationSession wiring, not a prohibition of
-T50's pending explicit same-session move. Ordinary UI switch semantics remain;
-permanent session binding alone is superseded by the admitted safe-boundary operation.
-Keep old operation provenance visible after move/reopen; do not rewrite history to
-make old tools appear to have executed in the destination workspace.
-
-`apply_patch` tool cards render a bounded diff summary (per-file op marker, path, +/- counts,
-hunk count, rename target; totals; file cap) parsed from the patch text, never a second copy
-of the patch bytes. Config sources are admitted only inside the canonical root that declared
-them: a symlinked `opencode.json`/`.opencode` root/`AGENTS.md` resolving outside fails closed,
-while in-root symlinks remain admitted and `{file:}` stays relative to the admitted source.
+- Config sources admitted только внутри declaring canonical root; escaping symlinked config/.opencode/AGENTS fails closed, in-root symlink и source-relative `{file:}` сохраняются. Lower-trust text/summary не становится system authority; [SECURITY](SECURITY.md).
+- Product caps — [examples/oc-rs.toml](../examples/oc-rs.toml), не benchmark guarantee. Логи metadata-only по умолчанию; payload trace отдельно opt-in, без credentials/high-cardinality labels на каждый token/message.
+- Не оптимизировать allocator/musl/speculative cache/workers до измерений; owner-required child concurrency не speculative optimisation. Cancellation, memory/queue/process cleanup и bounded recovery — обязательные свойства, не необязательная документация.

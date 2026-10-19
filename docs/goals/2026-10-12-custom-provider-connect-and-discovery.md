@@ -1,5 +1,8 @@
 # Goal: custom provider через /connect с OC2 auth flow и discovery
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete — T59 R1–R5 / CONN01–CONN05 verified on code `42c026053`.
 Source: запрос владельца 2026-10-12: название/base URL/API key через `/connect`,
 стандартные Responses/Chat/Messages, автоматический каталог с обязательными modalities
@@ -17,19 +20,6 @@ URL и ключу либо явно выбирает anonymous. Read-only discov
 provider-filtered picker, без автоматического выбора модели. Connection и scoped
 credential переживают restart, следующие requests используют выбранный native wire.
 
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
-
-План от 2026-10-12 реализован после отдельного T44 scheduling handoff и closeout
-T58/T60. T53/GO01–GO06, T57/AUTH01–AUTH06 и historical evidence не переоткрыты;
-T44 visual qualification и remote delivery остаются отдельными статусами.
-Dependency T59 только completed T53; минимальные qualified T47/T50/T51/T57 shared
-seams потребляются без whole-task/live/visual done-dependencies. Final T30 зависит от T59.
-
 ## Frozen Contract
 
 ### Required Outcomes
@@ -44,10 +34,6 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN01 existing storage/composition owner tests, reopen и
     actual-binary restart из CONN04; rollback, config collision и foreign-key negatives.
   - Status: verified.
-  - Evidence: `2747f9203` storage/composition/actor tests; `d700a4e63` actual debug
-    binary zero-provider onboarding and restart PASS without a test loopback grant.
-    `42c026053` adds held Location retirement and session-move attachment proof;
-    current debug/release restart and atomic rollback pass. See `evidence/T59/report.md`.
 - R2: bounded read-only обнаружение каталога и честный выбор native API.
   - Source: «сам фетчит и ловит какие там апи эндпоинты есть»; выбранное владельцем
     «Подтвердить тип API» при неоднозначности, без платной генерации для detection.
@@ -61,10 +47,6 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN02 fake GET transport/parser/pagination/clock/security;
     CONN04 endpoint counters подтверждают ноль generation POST до явного submit.
   - Status: verified.
-  - Evidence: `2747f9203` deterministic GET/parser/auth/pagination/limits;
-    `d700a4e63` debug PTY explicit API and zero generation requests before submit PASS.
-    `42c026053` qualifies the shared monotonic30s deadline and rejects partial or
-    inconsistent pagination; all five custom discovery cases pass. Legacy oracle unchanged.
 - R3: modalities и reasoning effort доходят до picker без выдуманных capabilities.
   - Source: «модальности и effort тоже берёт — это ... нужно обязательно учесть»;
     выбранное владельцем «Показывать неизвестное» для ID-only catalogs.
@@ -76,10 +58,6 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN03 parser → core snapshot → TUI reconstruction/picker
     fixtures плюс captured effort на трёх native wires; legacy DISC/VAR01 regressions.
   - Status: verified.
-  - Evidence: `0912c06b8` typed core→snapshot→picker reconstruction and actual
-    narrow/wide rendering; parser-fed exact effort on all three native wires PASS.
-    Current debug/release actual Responses requests retain `exact-effort`; metadata
-    does not promise PDF/audio/video/image generation.
 - R4: знакомый OC2 connect/accounts/auth → models и рабочий zero-model startup.
   - Source: «нам надо повторить его паттерн авторизации ... не шугать ... форка»;
     требование запустить приложение без добавленных providers/models.
@@ -96,10 +74,6 @@ seams потребляются без whole-task/live/visual done-dependencies. 
     binary zero-provider → connect → discovery → explicit model → fake request → restart.
     Shared auth presentation остаётся T44/VIS45, не второй visual owner.
   - Status: verified.
-  - Evidence: `d700a4e63` masked default-label accounts/custom forms, revision-scoped
-    async ACK/cancel/retry and actual debug PTY onboarding/repair/restart PASS;
-    current full debug PTY60/0, release custom2/0/accounts3/0/auth1/0 and workspace
-    gates pass on `42c026053`. No OC2 visual parity claim.
 - R5: новые каталоги публикуются coherent, без stale credentials/selection/reload effects.
   - Source: немедленно показать fetched models; согласованный narrow publication plan;
     существующие captured request, read-only CLI и one-owner invariants.
@@ -112,13 +86,6 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN05 barrier-held actor/runtime results и read-only CLI/cache
     effect counters, held prepared request и next-request/reopen assertions.
   - Status: verified.
-  - Evidence: `2747f9203` generation/selection and storage fences; `d700a4e63`
-    held old-key GET abort+join, binding/catalog revision2, single-flight retry,
-    actual CLI under writer lock (ready/failed/empty, unchanged prefs/GET counters)
-    PASS. `42c026053` qualifies held Location cleanup, busy prepared-request guards,
-    narrow immutable publication/unchanged MCP lease, mounted/parked/Home consumers
-    and missing/mismatched saved-cache revisions. See the factual report.
-
 ### Constraints and non-goals
 
 - Четыре existing crates, один application/Db/credential/discovery work owner;
@@ -181,89 +148,6 @@ Probe не меняет storage; cancel до Save ничего не сохран
 разные факты. Picker показывает loading/empty/failed/Retry/change-key, без false server
 validation или стирания сохранённого key. Повторный connect использует обычные accounts.
 
-## Change Envelope and ordered minimum slices
-
-1. **Typed actions и durable connection.** `oc-core/src/queries/accounts.rs`,
-   `core_app.rs`: finite public protocol, name/literal URL, Key(KeyInput)/Anonymous,
-   probe/cancel/create/explicit refresh. `oc-adapters/src/application/provider_connections.rs`
-   и минимальная actor wiring в `application.rs`; async work не удерживает TUI/actor.
-   Form revision/ACK, admission и duplicate-save guard до effects; ошибки — existing
-   typed safe diagnostic. Не создавать отдельный UI/backend auth framework.
-2. **Storage и composition.** `storage_provider_connections.rs`: typed
-   `custom_provider_connections` в existing `oc.sqlite`, additive migration (на baseline
-   следующая v14; перед реализацией проверить фактическую последнюю). Stable
-   `custom-<32 lowercase hex>` через existing SQL random ID, display name отдельно.
-   Поля: admitted endpoint/concrete wire/auth policy, non-secret revision, bounded
-   sanitized last-good models и safe last-attempt state. Ключ только `credential_accounts`.
-   Transaction-aware reuse credential insert: metadata+initial account одним commit,
-   credential epoch после commit; network вне transaction. Failed refresh сохраняет key.
-   `composition/custom_connections.rs` attaches после config admission/Db open и до
-   credentials в startup, `application::switch_target`, `session_move::prepare`.
-   Reserve все raw configured IDs, даже disabled; config wins collision, no resurrection.
-   Enabled whitelist/disabled filters обязательны и для onboarding, без скрытого bypass.
-   Custom tagged `AuthScope(custom,id,normalized endpoint)` несёт internal WireBinding,
-   включая account CRUD/request captures; не наследует env/OAuth/Go/MCP authority.
-3. **Custom discovery.** `custom_discovery.rs` + отдельный owner test module;
-   reuse secured `DiscoveryClient`/`ReqwestDiscoveryClient` и narrow `model_config(row)`
-   opencode parser, не переписывать legacy OpenProxy framework. GET под captured prefix;
-   finite read-only Bearer/x-api-key candidates на том же endpoint, не оба одновременно,
-   explicit anonymous без dummy key. Catalog envelope независим от generation wire:
-   OpenProxy Messages может вернуть OpenAI list. Concrete wire сохраняется только после
-   достаточного evidence/явного выбора; не делать неявный Responses default при ambiguity.
-   Anthropic: x-api-key/version, limit1000, after_id=last_id, validate page/cursor progress,
-   duplicates/row cap и atomic complete snapshot. Один total deadline30s, attempt≤15s,
-   finite transient retries с existing250/750/1500ms delays; max8MiB response и cumulative
-   catalog, max10000 rows. Не превращать pagination в ≤10 pages assumption: incomplete
-   pages тоже возможны; deadline/bytes/rows/progress ограничивают всю работу.
-4. **Binding-safe publication.** Existing `application/provider_catalog.rs::ProviderWork`
-   owns selected/public jobs и один requested custom/probe slot; outcomes carry provider
-   ID + monotonic captured binding revision. Single-flight/coalescing, abort+join и stale
-   rejection на effective key/account/Location changes, including existing account action
-   seam. Refresh только selected или explicit-requested admitted custom, не все endpoints.
-   Узкий Composition upsert и Runtime publication рядом с `publish_provider_credentials`:
-   immutable entry/catalog/request bindings/redaction capture; preserve generation ID,
-   Location epoch и Effective/preferences, без full reload/MCP restart. Apply на safe idle
-   boundary, `ProviderChanged` обновляет mounted/parked/Home views. Held request stays captured.
-5. **Metadata projection и consumers.** `queries.rs::ModelEntry`,
-   `application::snapshot_catalog`, `models.rs`, `oc-tui/src/app/live.rs`, `picker.rs`:
-   typed optional full modalities/partial image-PDF/reasoning/tool flags и variant-known
-   state, не generic executable extension bag. OpenProxy rich parser/merge unchanged;
-   Anthropic nullable limits только positive, effort flags exact, missing/null unknown,
-   false unsupported, no fabricated thinking settings/default levels. Canonical full
-   capabilities input/output не смешивать с Anthropic partial subtree. Shared image
-   admission: explicit full input modalities authoritative, иначе explicit image flag,
-   unknown denies; PDF/audio/video/image generation остаются unsupported client features.
-   Exact effort использует существующие three-wire lowering и T47 order.
-   `composition::load_catalog_cached`/existing `public_read_only_connection` читают только
-   bounded sanitized snapshots для `oc models`; no credential read/Db::open/custom probe.
-   Snapshot tied to binding revision; failed/missing/mismatched incomplete, valid empty
-   complete. Last-good IDs могут печататься при incomplete/nonzero, не fake readiness.
-6. **Обычный connect UI, затем qualification.** `oc-tui/src/commands.rs`, `app/accounts.rs`,
-   input/views/live и `oc/src/tui_cmd.rs`: generic title/provider search/categories/source
-   markers, shared Add/method/key/accounts path, default label и custom setup states.
-   Secrets masked/cleared on unmount; cancel work и revision guard позднего response.
-   ACK → существующий filtered picker, variants/modalities/effort/unknown visible,
-   no auto model commit. Existing-target owner tests/`pty_t39`/CLI, final gates и factual
-   report по [TEST_PLAN / CONN01–CONN05](../TEST_PLAN.md#custom-provider-connect--t59-approved-2026-10-12-pending).
-   T44/VIS45 сохраняет paired proof общих auth screens; custom-only screens не выдавать
-   за отсутствующий donor pixel oracle. CODE_MAP обновить только по реально созданным owners.
-
-## Current Checkpoint / State
-
-- All frozen R1–R5 are verified. Source slices: `2747f9203` native owner,
-  `0912c06b8` metadata, `d700a4e63` onboarding and `42c026053` final discovery/
-  publication qualification. This is a new delivery, not a reopening of T53.
-- Current workspace: 1938 passed/0 failed/12 existing opt-in ignored; full debug
-  `pty_t39`60/0, rebuilt release custom2/0, accounts3/0 and auth1/0. Workspace fmt,
-  strict all-target clippy, locked build and debug/release help pass. Primary owner
-  filters are nonzero. Commands, counts and direct evidence: `evidence/T59/report.md`.
-- Zero-provider startup, masked cancel, explicit API/Save/model acknowledgements,
-  exact selected effort, restart, failed/empty catalogs, held old-key/Location join,
-  unchanged captured generation/MCP and read-only CLI effects are qualified offline.
-- No T59 substantive work remains. T61 is next ready; T44/VIS45/VIS46, existing live
-  gates and the T44 remote write-auth blocker remain separate. No paid/live campaign,
-  fresh paired-visual or overall GOAL READY claim.
-
 ## Material Decisions
 
 - 2026-10-12: ambiguous API подтверждает пользователь; detection только read-only.
@@ -272,13 +156,3 @@ validation или стирания сохранённого key. Повторн�
   не full reload. One-owner captured binding и immutable raw остаются обязательными.
 - 2026-10-12: familiar OC2 auth/accounts/picker, без mandatory account label; custom
   setup — narrow extension. API confirmation не auth-method selection; OAuth scope не расширяется.
-
-## Completion
-
-Complete: R1–R5 verified, CONN01–CONN05 backed by current code `42c026053` and
-`evidence/T59/report.md`. Final reviewed diff stays within the frozen envelope;
-no dependency, second store/owner, new wire, JS host, config writer or paid campaign.
-Required code/debug/release checks pass without relaxed caps, ignored tests or
-baselines. Documentation/journal closeout is checked separately. Remote delivery is
-BLOCKED_REMOTE under the existing dedicated-account authentication evidence; this
-does not undo local completion or waive T44/T45/T57/T61/A01–A13 requirements.

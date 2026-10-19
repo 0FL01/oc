@@ -1,7 +1,10 @@
 # Goal: Selected native tool parity with OC2
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
-All assigned R1–R10 and approved supplements are qualified in `evidence/T50/report.md`; execution state belongs to progress/STATE.json. The amendment text and its initial pending labels below remain the historical frozen source, not current status. T44 remains PAUSED; T45/T53/T56 and whole-product acceptance retain independent ownership.
+The R1–R10 requirements and supplements below are the behavioral reference. Initial pending labels are historical, not current execution state; open qualifications remain separate in GOAL.
 Source: owner-approved tool RECON and plan, 2026-09-27: omit built-in websearch and Code Mode, accept the remaining proposed tool work, then update the plan and commit/push. Donor OC2 v2.0.12 at `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Additional source: owner request for OC2 TS edit/write for non-patch models, apply_patch for compatible GPT models, mandatory catalog removal/replacement after a user model switch, followed by detailed plan commit/push approval, 2026-10-01.
 Additional source: owner requires OC2 TS parity when switching models during an active task, approves the follow-up RECON and detailed plan commit/push, 2026-10-01. This supersedes whole-turn model pinning, not immutable Location/config generation or execution authority.
@@ -13,10 +16,6 @@ Last updated: 2026-10-02
 ## Objective
 
 The selected Linux-native tool set matches the agreed OC2 capabilities through real model calls, application-owned outcomes and frontend consumers. The selected model receives apply_patch or edit/write using the exact donor predicate. A committed user model switch is accepted during busy and replaces incompatible definitions and runtime-managed guidance before the next request of the same autonomous task, without a new prompt. Picker draft is not commit; the prepared request and its tools retain their captured view. Large admitted tool text is bounded before model/history publication, retained in a registered filesystem artifact and explicitly readable in bounded pages; `tool_output` in `opencode.json/jsonc` controls line/byte previews without disabling safety caps. This is not full upstream parity: built-in websearch, Code Mode/execute, built-in browser and PDF remain excluded. Explicit MCP search/browser tools remain supported, not automatically connected or advertised.
-
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary Evidence. Work on the smallest unresolved outcome. Do not add requirements from reviews, tests, tools, speculative risks, or optional source text. Finish when every required outcome is resolved and affected constraints remain satisfied.
 
 ## Frozen Contract
 
@@ -33,8 +32,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: canonical shell uses the OC2 command schema. Preserve existing bash(argv/cwd/timeout_ms) compatibility through the same executor/admission owner; normalize permission identities without bypassing legacy Deny, saved-grant scope or structural ceilings. Do not advertise two interchangeable shell tools or silently reinterpret argv as command text. Per-tool names/descriptions/schemas and effective root/child capability previews stay truthful; Explore retains its native file/shell restrictions and separately approved own-history compress grant. The approved T45 built-ins/MCP amendment adds default Allow for all registered admitted MCP tools, not a claim that Explore/Plan sandbox external effects; explicit Deny/Ask remain authoritative and T45 owns the effective profile/default-policy qualification.
   - Primary evidence: TOOL12 source-derived fake-provider/actual-binary root and own-model-child catalogs, real file outcomes and PTY selection. Synthetic IDs cover exact predicate/exceptions/case. Provider/tool/approval barriers prove draft-only versus commit, blank Enter/captured ordering, GPT → non-GPT → GPT inside one active task without another prompt, completion/attribution of old-request tools, refreshed next-request budgets/tools/guidance/fingerprints and compatible causal history. Retry/compaction rebuild/restart and excluded-by-request-call zero effects reuse existing invariants. See the live-switch slices below and docs/TEST_PLAN.md; PRM01/profile/VAR01 and existing A05/A06/A13/PROV04 remain regressions, not duplicate owners or a paid matrix.
    - Status: verified
-   - Evidence: `evidence/T50/file-mutations.md`, `evidence/T50/live-model-switch.md`, aggregate `evidence/T50/report.md`.
-
 - R2: Linux shell supports real command and owned foreground/background lifecycles.
   - Source: approved Linux shell parity proposal; donor shell schema and job/notification implementation.
   - Owner: T50, existing shell supervisor and session/runtime ownership.
@@ -46,8 +43,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence: TOOL13 actual binary with process/provider barriers proves early background return/progress/automatic notice, normal foreground waiting, default/explicit/zero timeouts, cancel/shutdown, crash/delivery and credential exclusion; reuse TOOL05/TOOL06/AUD27/AUD28 and A10 measurements, not duplicate helper-only suites.
   - Primary evidence supplement: actual-binary PTY and owner assertions prove authoritative running inventory, output while the process is held, same-PID foreground conversion, selected-job kill, final output/status after inventory removal, independent sibling progress and correct child/source routing through move/reopen/restart. T44/VIS39 reuses these facts for Shell rows/output dialog geometry and keys; TERM01/T56 interactive PTY is separate, not TOOL13 completion or a whole-task dependency.
    - Status: verified
-   - Evidence: `evidence/T50/foreground-shell.md`, `background-shell.md`, `shell-controls.md`, `shell-review.md`; aggregate `evidence/T50/report.md`.
-
 - R3: grep and glob expose the agreed OC2 search options.
   - Source: approved search parity proposal; pinned grep/glob schemas and filesystem behavior.
   - Owner: T50, existing file/search executor and policy.
@@ -55,8 +50,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: validate patterns/options before scanning; malformed regex and exhausted scan/result budgets are explicit outcomes. Preserve own-data-root exclusion except R10's exact registered-artifact read/search route, canonical admitted path boundaries, no-follow regular-file checks and bounded entries/bytes/time. The 2026-10-02 external read/search amendment below permits explicit external_directory + glob/grep policy access outside Location; effective Allow dispatches without Ask, not an unconditional OutsideRoot refusal. Existing search read-Deny ceilings remain.
   - Primary evidence: TOOL14 pinned source-derived fixtures for regex/literal/case/path/include/hidden/ignore/options plus actual provider schemas/calls; TOOL01 and path/permission regressions remain authoritative.
    - Status: verified
-   - Evidence: `evidence/T50/search.md`, `evidence/T50/external-read.md`; aggregate `evidence/T50/report.md`.
-
 - R4: question is a real application-owned user-question tool.
   - Source: approved question proposal; donor Question/Form tool, distinct from permission approval.
   - Owner: T50 end-to-end typed tool/application/frontend behavior; T44/VIS37 owns exact FormPrompt/card presentation and paired visual qualification, distinct from VIS36 permission approval.
@@ -65,8 +58,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence: TOOL15 scripted model calls and actual PTY answers/multiple/free-form/dismiss/cancel, headless/--auto and restart assertions; real application state/result and call/result graph, not a screenshot-only question widget.
   - Delivery order (owner-approved 2026-09-27): first deliver this minimal backend/real answer-consumer slice and prove ordered answers in the next provider request (TOOL15); then execute [T44/VIS37](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#question-ui-parity--vis37) FormPrompt/transcript/replay and full paired styled-cell/PNG qualification using pinned U31–U33. Share the same fixture/runtime evidence, keep behavior and visual results separate; neither task depends on completion of the whole other task. Independent T44 work remains ready and only one journal task is active.
    - Status: verified
-   - Evidence: `evidence/T50/question.md`; aggregate `evidence/T50/report.md`. Visual VIS37 stays separate.
-
 - R5: read supports text, directory listings and images with honest modality handling.
   - Source: approved read proposal; PDF remains outside the selected scope.
   - Owner: T50 file/result/provider boundary; T45 retains nested AGENTS instruction ownership.
@@ -74,8 +65,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: retain path/permission/symlink/own-data-root protections except R10's exact registered-artifact read/search route and the 2026-10-02 external read/search amendment below, byte/model budgets and bounded output. Explicit external_directory + read Allow admits bounded external file/listing access without Ask, including first access and restart. Successful project file/directory reads invoke the same admitted nested AGENTS lifecycle as T45/R10, with provenance and dedup; artifact and permitted external-cache reads are tool data, not automatic instruction/config discovery. Image handling does not introduce a second instruction loader or broader grants.
   - Primary evidence: TOOL16 actual binary text/directory pagination and captured image continuation, malformed/PDF/unsupported/over-budget cases; reuse PROV05/PRM01 rather than claiming user-image input tests already prove tool-image output.
    - Status: verified
-   - Evidence: `evidence/T50/read.md`, `evidence/T50/external-read.md`; aggregate `evidence/T50/report.md`.
-
 - R6: webfetch supports the agreed formats and timeout semantics.
   - Source: approved fetch proposal; pinned webfetch schema/conversion.
   - Owner: T50 existing HTTP/conversion executor.
@@ -83,8 +72,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: one total deadline covers DNS/hops/body/conversion; preserve actual-dial/redirect SSRF protection, response/output caps, credential exclusion and explicit test-only loopback admission. Requested format never bypasses egress/security or creates an unbounded serialization path.
   - Primary evidence: TOOL17 fake HTTP and actual model calls for all formats/defaults/timeout/redirects/Unicode; TOOL07/TOOL08/AUD25/AUD26 remain mandatory.
    - Status: verified
-   - Evidence: `evidence/T50/webfetch.md`; aggregate `evidence/T50/report.md`.
-
 - R7: Native model lookup/session rename are available to the model, and users can list exact model references with `oc models`.
   - Source: approved native model/session tools proposal; donor opencode tool plugin. Owner-approved 2026-10-01 CLI models/profile-binding follow-up and pinned CLI models handler add the user-facing catalog consumer.
   - Owner: T50 existing catalog and application/session/storage owners; T45/R6 owns profile binding/execution, T53 owns future Go/custom catalogs/credentials. Reuse minimal qualified seams, no circular whole-task completion dependency.
@@ -94,8 +81,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence: TOOL18 captured direct schemas/results with static/dynamic/unknown metadata, paging and model retention; actual rename/reopen/restart and deny/foreign-target/no-effect assertions. No Code Mode or second catalog/store.
   - Primary evidence supplement: TOOL18 rebuilt debug/release subprocess stdout/stderr/exit and fake-service/effect counters for catalog-only listing, no-selection/static/dynamic/multi-provider/empty/failure cases and unchanged prefs/config/history. T45/R6 uses the captured listed reference in profile requests/reopen/restart; profile semantics stay T45-owned. Existing direct-tool evidence does not qualify the new CLI extension.
    - Status: verified
-   - Evidence: `evidence/T50/model-session-tools.md`, `evidence/T50/cli-models.md`; aggregate `evidence/T50/report.md`.
-
 - R8: session_move durably changes the same session's Location at a safe boundary.
   - Source: approved session_move proposal and explicit supersession of permanent session-to-Location binding; pinned donor move/admission/projector.
   - Owner: T50 existing application/session/config-generation/storage owners; T45 reconciles its shared instruction/profile consumers.
@@ -105,8 +90,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: ordinary SelectLocationSession/UI Location switching still selects/creates a target-scoped session. This distinct explicit move supersedes only the permanent-binding prohibition, not immutable Location/config-generation, trust or session-access guards; histories/reopen/UI metadata reflect actual placement and original operation provenance. R1's same-generation model switch is not permission for an in-flight Location/config move.
   - Primary evidence: TOOL19 provider/process barriers and actual binary A→B move preserve ID/history and show source/destination requests, blocked destination-dependent batch assumptions, invalid/untrusted/stale/no-effect cases, original background completion, child placement, quarantine and crash/restart around admission/apply. AUD14 is amended narrowly; existing UI06/A13/PRM01/CTX01/SUB02 and cleanup gates remain.
    - Status: verified
-   - Evidence: `evidence/T50/session-move.md`; aggregate `evidence/T50/report.md`.
-
 - R9: Native edit/write provide the donor file contracts through the shared mutation owner.
   - Source: owner instruction and detailed RECON-plan approval, 2026-10-01; pinned core tool/plugin/edit.ts, write.ts and FileMutation helpers. This narrowly supersedes the old no-write/edit clause; apply_patch behavior itself is unchanged.
   - Owner: T50 real tools/admission/results and minimal frontend data consumer; T45 consumes selected family for profiles/Plan/prompt, T44 owns VIS35 cards/paired visuals and VIS36 approval presentation, not a second executor.
@@ -117,8 +100,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: DCP and configured mutation protections check edit/write's parsed path, not oldString/newString/content as pseudo-paths; patch retains all source/destination affected_paths. Preserve protected tool/content/dedup/purge behavior, immutable raw history and bounded hot projection without old-schema resurrection. Persist result-derived presentation for live/reopen/restart; never reconstruct historical effects from present-day files or mutate through the renderer.
   - Primary evidence: TOOL20 source-derived edit/write fixtures prove schema/output, exact/normalized/line matching precedence, unique/all/no-match/ambiguity/empty-identical-old/empty-new, Unicode/CRLF/final-newline/BOM and write create/overwrite/empty/parents. Actual rebuilt binary/fake provider verifies bytes, durable matched call/results, confirmed diffs, Allow/Ask/Deny, changed approval preimage, path/data-root/protections and crash/reopen/no replay. Reuse TOOL02–TOOL04/TOOL09/TOOL10/AUD04–AUD06/AUD16/AUD42 and A10 without duplicating their entire matrices at every layer. VIS35/VIS36 visual results remain separate.
    - Status: verified
-   - Evidence: `evidence/T50/file-mutations.md`; aggregate `evidence/T50/report.md`.
-
 - R10: Configurable tool-text previews retain readable filesystem artifacts without context bombs.
   - Source: owner-requested OC2 TS comparison and approved RECON plan, 2026-10-01; pinned tool-output/config/runner/shell sources below.
   - Owner: T50 common result/config/runtime/storage/file/shell owners. TOOL21 is the one new common executable scenario; TOOL13 keeps shell lifecycle, TOOL16 keeps read/media, T45 keeps prompt/DCP/child authority and T44 keeps existing visual qualification. No new task or circular whole-task dependency.
@@ -130,8 +111,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: completed artifacts expire after7 days through the same owner, with active writer/reader leases protected, explicit expired/missing continuation and crash/orphan handling. This expirable resource class does not delete raw history or ordinary referenced blobs. Old raw records remain immutable; only universal full-inline publication of new oversized outputs is superseded.
   - Primary evidence: TOOL21 rebuilt debug/release binary with bounded fake provider executes a >1 MiB shell output, captures the next request's bounded preview/path, then actual read/grep → distant sentinel → useful continuation. Nearest source-derived config/line/byte/media fixtures and fault/restart/cancel/resource receipts are described in TEST_PLAN. Reuse TOOL13/TOOL16/AUD34/LOAD02/STORE04/A05/A10, retain historical ownership/evidence; helpers/UI SQLite continuation alone cannot qualify this path.
    - Status: verified
-   - Evidence: `evidence/T50/tool-output-common.md`, `shell-output.md`, `shell-review.md`; aggregate `evidence/T50/report.md`.
-
 ### Constraints and non-goals
 
 - Rust 2024, Linux rootless, existing crate DAG/error/policy/ownership levels; no service, JS/Code Mode/plugin host, cloud scheduler, second executable registry or second history/archive.
@@ -554,27 +533,6 @@ seams precede shell/read integration and common qualification; they are prerequi
 for those slices, not whole T45/T44/T46/T56 completion. T44 remains PAUSED and owns
 existing presentation gates separately. R10 is pending/NOT_RUN; historical T40/AUD34
 and initial shell retention evidence do not prove the new filesystem/provider path.
-
-## Change Envelope
-
-- Reuse `crates/oc-adapters/src/{files,tools,shell,webfetch,runtime,application,composition,config,storage}.rs`, `oc-core` typed commands/queries/results, existing provider result lowering and `oc`/`oc-tui` consumers; targeted tests/fixtures/docs/evidence. Changes to internal typed media/job/move storage are allowed only for these outcomes.
-- R1/R9 additionally touch `runtime.rs::builtin_tool_defs`, `runtime/turn.rs` early/per-request assembly and captured execution, `models.rs` selected ID/budget, `provider.rs` schema-based cache inputs, `runtime/context.rs::wire_history`/protection extraction and existing compaction callers. R1 live switching includes `application_selection.rs`, `application.rs` SessionSelection/SelectModel owner guards, existing storage selection/event/request-log transactions and `oc-core` typed snapshot/event identity; `oc/src/tui_cmd.rs` and `oc-tui` composer draft/capture/blank-Enter/reconciliation are direct consumers. Minimal internal identity/schema migration is allowed only if existing records cannot truthfully represent multiple request models in one turn. Use one selection/mutation/context owner, no global registry rewrite, provider-routing redesign or new store/cache.
-- R9 extends `patch.rs` and `patch/{fs,effects}.rs` through a coarse private shared mutation seam, `tools.rs` registry/validation/resources/dispatch, `approval.rs` preview/grant/preimage preparation, `permissions.rs`/`config.rs` path normalization and `dcp.rs`/runtime mutation protections. Existing invocation permits/durable tool effects and core FileEffect/PatchEffects payloads may extend minimally; do not create a second executable registry, generic framework, new crate or public API solely for tests. Add substantial tests beside their owner in separate test modules and retain existing Cargo targets.
-- Direct presentation consumers are `oc-tui/src/tools.rs`, `app/live.rs` and existing history projection/results; T50 supplies persisted write/edit input/results/effects, T44 extends VIS35/VIS36 actual cards/previews. Update CODE_MAP/fixture paths with the implementation only; this plan leaves unrelated dirty session_move/CODE_MAP work untouched.
-- A vetted regex/search dependency or existing ripgrep integration and a bounded Markdown converter may be chosen for R3/R6; pin/provenance/compile checks are required. No dependency is added by this plan-only delivery.
-- R7 CLI adds `oc/src/{cli,bootstrap}.rs` and a narrow command consumer, existing config/composition/catalog/metadata projection seams and actual-binary tests. Minimal provider-qualified read-only DTOs may extend the existing core query surface only as needed by real consumers; no full application/session startup, public API solely for tests, second catalog/store/cache, credential import or automatic config writer. T45/R6 retains binding normalization/selection ownership; T53 supplies its future catalog through the same seam.
-- R10 extends existing `config.rs::Generation`/loader, `tools.rs`/result and `runtime/{turn,context}.rs` publication, `storage.rs`/`storage_shell_jobs.rs`, `shell.rs`/`shell/jobs.rs` drains, `files.rs`/`files/read.rs`/search and resource/permission preparation. Typed core/application/UI continuation facts may extend minimally for actual consumers; media/MCP/fetch/skill lowering must use the same common preparation. Internal native schema migration/streaming artifact resources are allowed only under the existing Db owner, not a new store/archive/framework/crate or public test API. Tests remain beside owners/in existing runtime/storage/binary targets; CODE_MAP updates follow implementation, not this plan.
-- R3/R5 external read/search extends only the existing files/path/permission/resource-preparation seams and actual-binary fixtures. No trusted-root registry, additional interactive admission, external mutation owner, wider config/instruction loader or new persistence surface. T45 consumes the effective facts; no duplicate permission engine.
-- No private authoring config, secrets, deployment changes, paid search provisioning or executable runtime/config example edits in this plan update. Ordinary own-branch commit/push is required.
-
-## Current Checkpoint and State
-
-- At this plan amendment T50 is active and T44 PAUSED. The current NOW checkpoint reports the R9 executors/captured file-family slice verified and live busy switching next; Git HEAD includes initial file executors at0804b7dbb, with the live-switch/runtime/TUI/R8/CODE_MAP work still dirty. This is existing handoff evidence, not fresh qualification of that code or R10. Plan delivery does not alter execution statuses, historical leaves or evidence.
-- R7 lookup/rename is committed at 0dc85e817. Initial file-tools RECON was at 3446dc3c1; that plan landed in 760d54f7d. Live-switch RECON/this clarification starts from 760d54f7d with R8 session_move/CODE_MAP/runtime/evidence dirty. Git takes precedence over the older R6 handoff. Preserve all dirty work and settle its current slice before scheduling this extension. R2 inventory/live-output/foreground-conversion and R1/R9 file-tools/live-switch extensions remain pending; follow M8 ordering without a second active task or interruption of approved T55 priority. Neither historical file-tools plan nor existing busy-refusal tests qualifies corrected same-task switching.
-- Checks: TOOL12–TOOL21 have one owner T50; relevant A02/A03/A04/A05/A06/A07/A08/A10/A13 and prior scenarios are regressions, not reassigned owners. TOOL12/TOOL20 and T44 VIS35/VIS36 are separate behavioral/visual results; existing A09/live owners/flow remain. Plan validation is not runtime PASS.
-- Blocker: none for this plan delivery; PDF is deliberately excluded, not a hidden pending requirement.
-- CLI follow-up (2026-10-01): R7 direct lookup/rename evidence is historical delivered behavior; newly approved `oc models`/catalog-only extension is NOT_STARTED/NOT_RUN. Missing CLI/default-dependent composition and differing tool paging are source-verified gaps at RECON HEAD 70de7a256. Profile consumer belongs to T45/R6, future Go/custom catalogs to T53; dirty runtime/TUI/CODE_MAP and execution statuses remain untouched by this plan.
-- Tool-output follow-up (2026-10-01): R10/TOOL21 is frozen/pending; native source gaps are recorded above at HEAD8a4291d13. This delivery changes plan/registry/generated NOW only, not runtime, executable configs, historical leaves/evidence, active T50 or PAUSED T44. Minimum next R10 action after the safe scheduled handoff is typed common-result/config/capture fixtures; missing producer capture and exact artifact read are implementation work, not an external blocker or existing PASS.
 
 ## Pinned References
 

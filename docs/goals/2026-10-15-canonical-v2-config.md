@@ -1,6 +1,9 @@
 # Goal: canonical OpenCode 2 config only
 
-Status: done locally 2026-10-15 — see evidence/T62/report.md.
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
+Historical implementation: 2026-10-15. Current source checks follow TEST_PLAN.
 Source: решение владельца 2026-10-15: «совместимость с opencode 1 конфигами не нужна,
 это всё под нож, по апи совместимость только с opencode 2»; выбран fail-closed отчёт
 с подсказкой; владелец конвертирует свой конфиг сам.
@@ -70,16 +73,3 @@ Task: T62 / M8; detailed acceptance CFG11–CFG13 только T62.
 Нет `oc2 config migrate`, автоматической перезаписи пользовательских файлов, warn-and-
 ignore режима или скрытого fallback. Trust-before-substitution, secret redaction,
 CFG04/CFG10 safety и T61 last-good сохраняются. Четыре crates, без нового framework.
-
-## Change Envelope
-
-`crates/oc-adapters/src/config.rs`, новый `config/legacy.rs` (+ `legacy_tests.rs`),
-`config/{providers,mcp,diagnostic}.rs`, `defs.rs`, `permissions.rs`, `compaction.rs`,
-`composition.rs`, `composition/catalog.rs`, `application.rs`, reload coordinator,
-`oc-core/src/queries.rs` (`ServiceCode`); фикстуры в crate tests и `crates/oc/tests`;
-`scripts/**` генераторы и `check_docs.py`; docs/examples.
-
-## Current checkpoint
-
-Done locally; CFG11–CFG13 verified (evidence/T62/report.md). Remaining: owner converts their
-OpenCode 1 config; E2E06 re-qualification by its owner afterwards.

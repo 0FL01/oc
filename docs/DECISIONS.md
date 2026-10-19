@@ -156,9 +156,7 @@ OAuth/JS host. Historical T37 env evidence remains factual but does not qualify 
 
 ### D22 — model-dependent file tools (owner-approved 2026-10-01; pending)
 
-После RECON владелец утвердил подробный план и commit/push:
-[T50/R1/R9](goals/2026-09-27-native-tool-parity.md),
-[ordered slices](../roadmap/M8.md#model-dependent-file-tools--t50r1r9-approved-2026-10-01-pending).
+Предметный контракт: [model-dependent file tools](goals/2026-09-27-native-tool-parity.md).
 Нативные `edit`/`write` добавляются с OC2 schemas/файловой семантикой. Точный
 case-sensitive predicate `model.id.includes("gpt-") && !model.id.includes("oss") &&
 !model.id.includes("gpt-4")` выбирает только `apply_patch`; иначе только `edit`/`write`,

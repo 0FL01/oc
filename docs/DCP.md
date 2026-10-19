@@ -648,15 +648,11 @@ archive to recover omitted facts. Model-authored DCP still has no hidden second 
   Operation safety checks are not an obligation to retain intentionally forgotten
   closed history. Unadmitted clipping/error truncation is not legitimate forgetting.
 
-### Work slices, minimum evidence and done
+### Mixed renewal qualification
 
-Use the existing T45/R9 owner and DCP10/DCP11/DCP12 IDs. The ordered, independently
-checkable slices are in [M8](../roadmap/M8.md#infinite-hot-context--optional-cold-path--t45r9dcp11-approved-2026-09-30-pending):
-standalone replacement; full-wire/protection release; compact/recovery seam; one mixed
-qualification. Reproduce a kept fact and an intentionally forgotten sentinel before
-each affected change. No new memory framework/store/worker/cold tool/paid campaign;
-T44 remains PAUSED and has its own presentation qualification. A plan-only delivery
-does not interrupt active T50 or mark implementation evidence PASS.
+Standalone replacement, full-wire/protection release and compact/recovery must compose.
+Reproduce both a kept fact and an intentionally forgotten sentinel; no new memory
+framework/store/worker/cold tool or paid campaign. TUI presentation remains a separate qualification.
 
 Freeze one actual-binary fake-provider workload before qualification:
 
@@ -749,8 +745,8 @@ controls квалифицировались T39 в прежнем объёме. 
 typed display modes, session-scoped durable metrics/bar и K/M требуют отдельной
 T44/VIS38 qualification; исторический отчёт не является их PASS.
 
-Offline evidence: `evidence/T36/report.md`. Полная archive materialization и
-process-wide lifetime/RSS gates не считаются закрытыми этим срезом. T40 measured
+Полная archive materialization и process-wide lifetime/RSS gates не считаются
+закрытыми историческим one-compression срезом. T40 measured
 active-history construction; T45/R9 additionally owns repeated-summary/archive-block
 qualification. Historical one-compression evidence is not sustainable-DCP PASS.
 

@@ -1,9 +1,12 @@
 # Goal: startup fault isolation и безопасная actionable диагностика
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
 Source: владелец 2026-09-27 утвердил после RECON MCP/plugin/connect isolation; 2026-09-29 потребовал real-user E2E в текущей конфликтующей TS-config среде и strace, затем утвердил правки плана. Donor: OC2 v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Last updated: 2026-10-02
-Task: T51 (complete; current R1–R4 qualification — evidence/T51/report.md; not product READY or T44 visual PASS).
+Reference: startup/plugin/provider diagnostics; current real-user E2E06 qualification remains separate in GOAL.
 
 Completion above is the delivered 2026-09-29 baseline. The owner-approved DCP3.2.0
 compatibility follow-up below is pending/NOT_RUN; this plan patch neither reopens
@@ -19,13 +22,6 @@ sources и saved missing/invalid agent/model/variant не закрывают л�
 историю и selectors, в том числе при восстановлении parked tabs. Truly fatal
 локальный отказ остаётся non-success, но экран/CLI объясняет источник и действие.
 
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
-
 ## Frozen Contract
 
 ### Required Outcomes
@@ -35,29 +31,21 @@ required outcome is resolved and affected constraints remain satisfied.
   - Acceptance: CFG09 proves an unknown/lookalike/version/path plugin gets source-qualified `failed/UnsupportedPlugin` before resolution/import/file-as-code/process/network. Other admitted compiled aliases/config/runtime remain usable, failed revision is not represented as active. Exact aliases remain idempotent; genuine compiled-module setup failure is isolated where safe, previous healthy activation retained only with truthful requested/current identity. Do not catch storage/trust/cleanup fatal errors as plugin failures. No arbitrary JS module is loaded; bounded inventory/diagnostics are visible before first prompt and after reload/reopen.
   - Primary evidence: rebuilt actual binary with mixed native aliases + unsupported marker and side-effect counters/typed current-generation inventory; reuse CFG08/AUD17/E2E05.
    - Status: verified
-   - Evidence: evidence/T51/plugin-admission.md and evidence/T51/report.md.
-
 - R2: local application availability independent of selected-provider readiness.
   - Source: approved plan; donor `packages/core/src/provider.ts:358–409,426–446`, `model-resolver.ts:357–408`, `packages/tui/src/component/dialog-integration.tsx:327–358,382–411`, `context/local.tsx:181–215`.
   - Acceptance: UI07 proves cold discovery timeout/connect/auth failure or missing selected credential does not destroy TUI/history/model picker/diagnostics. Pending/unavailable/error reflects actual owner state, not free text. Configured/persisted selection remains explicit and no silent provider/model fallback or mock response appears. A prompt needing unavailable credentials/model fails before generation/tool effects with an actionable typed outcome; headless exits nonzero. Bounded admitted retry/refresh or explicit valid selection restores readiness and next actual request uses that selection. Failed refresh retains the last healthy catalog; empty cold result does not erase configured models. Discovery success/retry/deadline/metadata/atomic publication contracts are unchanged.
   - Primary evidence: rebuilt TUI/headless with fake discovery/Responses barriers/errors, existing stored history and captured first/next request identity/effect counters; reuse UI02/UI05/DISC01–DISC10/PROV06.
    - Status: verified
-   - Evidence: evidence/T51/provider-readiness.md and evidence/T51/report.md; T44/VIS42 owns paired presentation.
-
 - R3: common safe diagnostic contract and precise fatal/recoverable classification.
   - Source: approved plan; native `application.rs::SpawnIssue/spawn_diagnostic`, `composition.rs::load_with_env_diagnostic`, `oc/src/tui_cmd.rs`, `oc-tui/src/shell.rs::render_startup_failure`; donor `packages/core/src/config.ts:102–143,194–242,265–287`.
   - Acceptance: CFG10 proves loader/application/TUI/headless use structured source/field/service/stage/safe-code/retryability and allowed next action, not raw error strings or regex classification. Optional service/definition errors yield per-entry failed state, not generic Configuration load failed. Truly fatal trust/policy/owned-storage/data-root/recovery/cleanup/caps failures preserve non-success and explain a redacted source/field/stage/cause/action. Malformed optional config document may be rejected with a visible diagnostic only if effective mandatory policy/config is still completely admitted; cold load cannot discard an unreadable/security-critical policy to proceed with broader defaults. Failed security-relevant reload retains last healthy complete generation, with no mixed generations or half-applied catalogs/instructions/clients. No blanket catch-and-continue. Details/copy/investigate and stderr remain secret/control-sequence safe; --json stdout stays NDJSON only.
   - Primary evidence: actual-binary failure matrix: malformed optional vs policy-critical document, invalid MCP entry (reuse MCP09), unsupported plugin, missing credential/discovery failure, owned storage/trust refusal and failed reload; typed assertions plus stderr/PTY source/field and no raw secret/URL/ANSI leakage.
    - Status: verified
-   - Evidence: evidence/T51/fatal-diagnostics.md and evidence/T51/report.md; fatal native frame is a declared difference, not invented donor pixel parity.
-
 - R4: inherited TS configuration и недоступный saved selection не блокируют локальный startup; обязательная real-user qualification.
   - Source: запрос владельца 2026-09-29: добавить E2E с запуском от лица пользователя в текущей среде с конфликтующими конфигами/MCP OpenCode TS и дополнительно проверить бинарник через strace; утверждение правок плана на текущей ветке.
   - Acceptance: E2E06 proves supported global/Location/.opencode sources keep pinned precedence and safe diagnostics; optional plugin/DCP/compaction/MCP/provider failures remain visible without cancelling healthy local Home/history/agent-model-variant selectors. Missing/invalid saved agent or its pinned model/variant, including active and parked tabs restored before Home, remains explicitly unavailable; no silent sibling/default fallback, automatic preference reset/rewrite or policy widening. Invalid choice refuses turn/headless before generation/tools; explicit valid choice recovers and survives restart/reopen. A malformed security-critical definition/policy never grants default authority. Qualification includes the current non-root user, real inherited HOME/XDG/PATH, current Location and untouched config sources with both existing default native data and fresh isolated --data-dir; not just hermetic fixtures or --help.
   - Primary evidence: source-derived fake-service actual-binary PTY/headless regression and captured recovered request identity; rebuilt retained target/release/oc bare PTY startup on the real current store plus the same real config environment with fresh --data-dir, both under bounded strace. Record redacted config-root/native-store access, typed failure/selection facts, pre-prompt local interaction, owned process/terminal cleanup and effect counters under docs/TEST_PLAN.md E2E06. No paid generation in the user's workspace.
    - Status: verified
-   - Evidence: evidence/T51/inherited-fixture.md and evidence/T51/real-user.md; evidence/T51/report.md distinguishes fixture, real-user existing/fresh and recovery PASS. Full A13/product readiness remains separate.
-
 ### Error policy
 
 | Outcome | Scope and continuation |
@@ -89,25 +77,6 @@ required outcome is resolved and affected constraints remain satisfied.
   not a read-only launch; no automatic rewriting of selections/history to get green.
 - Raw PTY/strace remains gitignored, bounded and secret-safe per runbook; no payload,
   argv/env/config dump, runner-auth extraction or attach to unrelated processes.
-
-## Change Envelope
-
-- Expected files/symbols: adapters config/composition/application diagnostic and readiness
-  projections; core runtime request admission as needed; binary TUI/headless startup
-  consumers. T44 consumes owner facts; no UI-owned network/process/init or config writes.
-- R4 seams: Effective::set_agent and application_selection resolution vs strict turn
-  admission; tui_cmd initial_state/restore_views/load_tab; nearest owner tests and
-  actual-binary PTY/headless tests/support for deterministic and real-user profiles.
-  Reuse native selection/storage owners; do not make selectors a new authority owner.
-- Allowed: minimal typed startup/readiness/inventory changes and source-derived fixtures,
-  actual-binary integration tests/report. New persistent schema/dependency/framework is
-  not preapproved: prove a blocker to R1–R4 and record smallest justified expansion first.
-- Plan amendment: GOAL.md, this spec, planning/acceptance.json, planning/tasks.json,
-  docs/TEST_PLAN.md, roadmap/M8.md and derived progress/NOW.md text only; preserve
-  canonical progress state, historical checkpoint leaves/reports and unrelated dirty work.
-- Coordination: T46 owns MCP09/MCP10/MCP08, T51 owns CFG09/CFG10/UI07/E2E06; share a minimal
-  diagnostic shape without whole-task done-dependencies. T44 independently owns VIS42
-  and config/startup transitions in VIS19/VIS40. Existing detailed owners are unchanged.
 
 ## DCP 3.2.0 compatibility follow-up — approved 2026-10-02, pending
 
@@ -146,47 +115,3 @@ T53 owns custom config/protocols/LAN, not this plugin gate. No new task/acceptan
 generic version resolver or task-status/dependency change; T45 active/T44 PAUSED and
 historical R1–R4 completion remain. Schedule only at the existing dirty T45 safe handoff;
 this plan does not reopen completed T51 or qualify runtime behavior.
-
-## Historical execution checkpoint
-
-- Closes: remaining R3 → R4, without relabelling delivered R1/R2 evidence.
-- Smallest next action: finish current safe fatal-diagnostic boundary; reproduce saved
-  missing-agent/tab restoration with source-derived E2E06 fixture, then separate local
-  unavailable selection projection from strict pre-effect request admission.
-- Next slices: explicit repair/restart fake-service proof → rebuilt debug/release gates
-  → real-user existing/fresh native store PTY/strace qualification → T44 visual consumer
-  qualification only after explicit resume, not a whole-task backend dependency.
-- Verification: nearest affected crate tests; actual binary CFG09/CFG10/UI07/E2E06; impacted
-  regressions above; workspace fmt/clippy/tests/build for cross-crate/final acceptance.
-  Use offline fake services; existing mandatory live gates still apply at final closure.
-
-## Historical state and material decisions
-
-- 2026-09-27 RECON: disabled MCP environment fails strict loader before network; unknown
-  plugin and selected-provider composition can fail before TUI; spawn_diagnostic loses
-  actionable detail. Donor isolates service/plugin failures; initial filesystem/trust
-  failures are not universally recoverable.
-- 2026-09-27 docs-only checkpoint froze this plan, not implementation; at that point
-  T51 was todo and T44 active. Previous task statuses/PASS reports were unchanged.
-- D21 supersedes only app-wide optional-service rejection and admitted local-MCP minimal
-  env/lazy-start policy; shell/security/quarantine/resource/discovery gates remain.
-- 2026-09-29 inspection: current native preferences/tab deck retain an agent absent from
-  current definitions. set_agent reports admission/invalid_definition/agent.entry.model;
-  selection resolution propagates it through restore_views/load_tab before Home. This
-  is a native stale-selection gap alongside inherited TS config, not a TS DB migration.
-  Safe diagnostic improvement alone does not prove local startup availability.
-- 2026-09-29 amendment: R4/E2E06 approved; T51 already active, R1/R2 have delivered
-  evidence and R3 has uncommitted work. T44 PAUSED, T53 separate. Frozen R1–R3 rows and
-  old PASS reports are not rewritten by this planning checkpoint.
-- strace --help exit 0 observed during read-only inspection exercises clap/help only,
-  not config admission/TUI/storage. Full real-user PTY/strace and E2E06 remain NOT_RUN.
-- Blocker: none for plan delivery; runtime qualification remains pending, no new PASS.
-
-## Completion
-
-R1–R4 verified in evidence/T51/report.md. E2E06 includes the source-derived fixture
-and both mandatory real-user data profiles with bounded PTY/strace; actual existing
-store lock was available, choices/history remained unchanged, fresh store stayed
-empty. Current compiled-source workspace 1297/0, Python47, post-build native28 and
-independent profile metadata audit passed. Backend completion does not qualify
-VIS42 or product READY; doc validation proves structure only.

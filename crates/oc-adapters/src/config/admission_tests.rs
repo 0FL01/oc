@@ -128,6 +128,27 @@ fn cfg12_canonical_document_has_no_findings() {
 }
 
 #[test]
+fn repository_example_uses_admitted_keys_and_safe_defaults() {
+    let document = crate::config::parse_jsonc(
+        include_str!("../../../../examples/opencode.jsonc"),
+        "examples/opencode.jsonc",
+    )
+    .unwrap();
+    assert!(scan_document(&document).is_empty());
+    assert_eq!(
+        document["mcp"]["servers"]["chrome-devtools"]["disabled"],
+        true
+    );
+    assert_eq!(document["mcp"]["servers"]["codex_web"]["oauth"], false);
+    let provider = &document["providers"]["ludka2"];
+    assert_eq!(provider["package"], "@opencode/ai/providers/openai");
+    assert!(provider["settings"].get("setCacheKey").is_none());
+    if let Some(models) = provider.get("models") {
+        assert!(models.as_object().unwrap().is_empty());
+    }
+}
+
+#[test]
 fn cfg11_v2_schema_values_and_unsupported_capabilities_are_not_unknown_keys() {
     use crate::config::{ConfigError, Source, assemble, provider_wire};
     use std::collections::BTreeMap;

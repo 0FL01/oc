@@ -1,5 +1,8 @@
 # Goal: Codex / ChatGPT OAuth и обычный OpenAI API key
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: blocked (BUILD_READY_LIVE_BLOCKED; R1–R5 offline verified, R6 real authorization/input unavailable)
 Source: владелец 2026-10-06 потребовал полноценный Codex OAuth, headless авторизацию,
 обычный OpenAI API key, донорскую логику, полный backend и визуальный паритет,
@@ -22,13 +25,6 @@ Headless здесь означает device authorization: `oc` показыва
 подтверждает вход в браузере другого устройства. Не обещается unattended вход без
 пользователя. Это отдельный CLI flow, а не требование запускать TUI без терминала.
 
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
-
 ## Frozen Contract
 
 ### Required Outcomes
@@ -40,7 +36,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: source-derived fake issuer + real loopback tests, затем rebuilt
     native binary с callback/error/cancel/occupied-port barriers; никакого реального входа.
   - Status: verified
-  - Evidence: evidence/T57/report.md / attempts.md / application.md / cli.md / tui-binary.md / binary-fixture.md / qualification.md — exact PKCE/state, owned real sockets/callback/foreign-port/cancel/expiry, durable fake issuer approval and current rebuilt normal/explicit-fixture consumers. No real account claim.
 - R2: полноценный device OAuth и headless CLI.
   - Source: явный запрос headless; `openai.ts:169–228`, CLI `handlers/auth/login.ts`.
   - Acceptance: AUTH02 доказывает usercode → pending polling → code exchange → stored
@@ -49,7 +44,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake-clock/issuer + actual binary с pipes и PTY; inspect request
     counters/intervals, CLI exit/status и account reopen.
   - Status: verified
-  - Evidence: evidence/T57/report.md / attempts.md / application.md / binary-fixture.md / qualification.md — structured code/source polling/cancel/expiry, actual fixture ELF no-TTY fake approval/exchange/durable ack/reopen without local listener or browser; current normal CLI preflight. Real human approval belongs to R6.
 - R3: общие accounts, OAuth metadata и automatic refresh.
   - Source: полный backend parity; donor `integration.ts`/`credential.ts`, existing T53 GO01.
   - Acceptance: AUTH03 доказывает transactional add/activate/rename/remove, Key/OAuth
@@ -58,7 +52,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: synthetic credentials + owning storage/resolver tests с barriers,
     fake clock/refresh counters и native reopen; safe DTO/redaction assertions.
   - Status: verified
-  - Evidence: evidence/T57/report.md / credentials.md / attempts.md / application.md / preparation.md / cli.md / tui.md / qualification.md — one SQLite owner, metadata/legacy/refresh/CAS/coalescing/rotation/reopen/unknown refusal, stale login/selection fences and safe acknowledged native consumer actions/prepared capture.
 - R4: subscription-authorized requests, catalog и donor transport.
   - Source: полный backend parity; `openai.ts:230–317`, `session/model-transport.ts`,
     AI `openai-responses.ts`/`open-responses-channel.ts`, T50/T53 captured binding.
@@ -69,7 +62,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
   - Status: verified
-  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md / runtime-ws.md / binary-fixture.md / qualification.md — captured authority/catalog/all-lane preparation, checked local native channels/runtime effects and rebuilt fixture ELF Key/OAuth WS/HTTP read/result/final/reopen; real provider authorization remains separate under R6.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
     `dialog-integration.tsx`, CLI auth handlers, T53 GO05.
@@ -79,7 +71,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: source-derived key/OAuth separation fixtures + actual binary
     PTY/pipe actions и captured requests; token/key never enters transcript/composer.
   - Status: verified
-  - Evidence: evidence/T57/cli.md / tui.md / tui-binary.md / qualification.md — current normal debug/release CLI/TUI methods/masked keys/accounts/picker/no model commit and owned browser controls/restart; fixture ELF proves separate own-env/config headless native requests without stored accounts. Metadata-only previews leave held requests intact. Real provider qualification is R6; presentation only T44/VIS45.
 - R6: current offline и bounded real authorization/request qualification.
   - Source: полноценный backend и визуальный результат, existing A01–A13/live rules.
   - Acceptance: AUTH06 требует current nearest/impacted/final gates и opt-in native
@@ -88,8 +79,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: factual report с commits/commands/exits, sanitized durable
     campaign counters и ссылкой на independent paired VIS45 evidence.
   - Status: blocked
-  - Evidence: evidence/T57/report.md / qualification.md / live-campaign.json — current normal debug/release/workspace1711/0/11 and explicit fixture-release gates green; dedicated real browser/device/key authorization/request/reopen NOT_RUN because operator confirmation/test-input permission were not supplied. Zero live receipt is not a qualified guard. T44/VIS45 independently PAUSED.
-
 ### Donor behavior to port
 
 **Scenario ownership.** Generic SQLite account lifecycle/storage and functional
@@ -232,160 +221,3 @@ and donor --server/--standalone compatibility remain outside this slice.
   evidence; URL and device code appear only in the active auth surface and explicit
   copy/open actions, not conversation or generic diagnostics. DB/root/WAL restrictions,
   trust/endpoint/redirect guards, finite resource caps, cancellation and cleanup remain.
-
-## Change Envelope and ordered slices
-
-1. Freeze pinned differential fixtures/methods/CLI/TUI sources and qualify the shared
-   T53 seams needed here; schedule T57 only at a safe handoff, no all-task done cycle.
-2. Extend existing `storage_credentials.rs`/`auth.rs` owner and typed core/application
-   actions/snapshots; method metadata/refresh/attempt lifecycle tests before consumers.
-3. Native browser PKCE/callback and device polling in one coarse OpenAI auth module
-   using existing transport/cancel/redaction; fake issuer/clock and real-loopback gates.
-4. Admit Key/OAuth bindings, OpenAI public catalog transform, native WS/HTTP owner and
-   all request/history lanes; fake tool roundtrip/switch/restart/resources before live.
-5. CLI auth and actual TUI connect/accounts/model consumers through shared ack/actions;
-   AUTH02/AUTH05 binary behavior first. T44/VIS45 styling/captures after explicit resume,
-   using minimal qualified backend slices, not whole-T57/T44 circular dependency.
-6. Current impacted/workspace gates → bounded owner-operated live → factual T57 report;
-   pair with independent VIS45 result before claiming full auth-segment parity.
-
-Expected paths: core `CoreApp` actions/queries, adapters auth/storage_credentials/
-provider_catalog/models_dev/composition/provider/runtime/storage replay, binary cli/
-bootstrap/headless/tui_cmd, TUI app/input/dialogs/picker and nearest separate tests.
-No new crate/framework/store solely for arrangement. Sources/locators are recorded in
-`tui-recovery/SOURCES.json` U116–U128; method is in `docs/TEST_PLAN.md` AUTH01–AUTH06/VIS45.
-
-2026-10-06 qualification seam: AUTH02/AUTH04 explicitly require actual binary fake
-approval and native request/tool captures. Normal production intentionally fixes
-issuer/routes, so local fake captures cannot use endpoint configuration, a proxy,
-DNS/TLS interception or a trust bypass. A non-default `auth-fixture` build feature
-may supply **only** an explicitly provided numeric IPv4 loopback fixture origin to
-the existing native issuer/request owners. It must fail closed without that origin,
-retain endpoint pinning/peer checks, redirects/retries/caps and the same credential/
-runtime code, and contain no new production API or default-build override. Default
-debug/release qualification remains separate; fixture build flags and synthetic
-captures are reported, never presented as real provider authorization. This narrow
-test-build seam closes the two original offline gates, not AUTH06 live or VIS45.
-
-## Current State / checkpoint
-
-- 2026-10-06: owner explicitly requested T57 after T56 closure `0879e199b`;
-  T57 active, T53/T56 complete, T44 PAUSED. Frozen R1–R6 unchanged; VIS45 remains
-  independent, no historical reports/baselines rewritten.
-- First implementation slice: same SQLite credential table additively preserves
-  legacy OAuth and adds methodID/accountID metadata, separate selection/material
-  revisions and durable refresh reservation (migration13). Native resolver uses one
-  shared refresh flight, exact account/epoch CAS, trusted structured claim priority,
-  five-minute refresh and rotation; unknown/failed/cancelled refresh requires reauth,
-  never implicit key/env fallback. Native expiry remains Unix seconds (donor ms
-  converted at the boundary); public summaries contain no tokens/routing account ID.
-- Current checked evidence: `evidence/T57/credentials.md`; owning auth03_ 5/0,
-  auth05_ 1/0, existing go01_ 13/0 and child_schema_ 3/0; strict impacted all-target
-  Clippy/fmt/diff green. This does not prove login, connected TUI, WS or live access.
-- Second checked slice: owned native browser PKCE/loopback and device usercode/poll/
-  exchange, typed redacted snapshots, finite deadlines/retention/idle cleanup,
-  joined cancel/shutdown and store-once stale-account fences. Same SQLite owner;
-  issuer/socket tests only, no browser/profile imports or real authorization.
-- Current owning checks: auth0 12/0 and full adapters lib 641/0/1, strict workspace
-  all-target Clippy/fmt/diff green; evidence/T57/attempts.md. This is partial owner
-  evidence, not rebuilt application/CLI/TUI or WS/live qualification.
-- Third checked slice: typed Core method/auth actions and safe account method ID;
-  one application-lifetime attempt owner with joined cleanup after all worker exits,
-  no Location/endpoint rebinding and no model cancellation during auth commands.
-- Current application checks: auth0 15/0, adapters lib 644/0/1, Core 32/0, TUI 444/0;
-  strict workspace all-target Clippy/fmt/diff green. `evidence/T57/application.md` is
-  backend bridge evidence, not rebuilt login consumers, OAuth execution or live PASS.
-- Fourth checked slice: admitted OpenAI composition templates use the shared async
-  resolver; immutable subscription/Key route, native session/account headers and
-  account-partitioned replay scope retain captured tokens across later rotation.
-  Issuer POSTs reuse DNS/peer/redirect guards. Existing Go/custom scope encoding and
-  source priority remain unchanged; `evidence/T57/bindings.md` is partial AUTH04.
-- Current binding checks: final adapters lib 645/0/1, auth04_ 1/0, strict workspace
-  all-target Clippy/fmt/diff green. No actual model request or WS/live proof here.
-- Fifth checked slice: shared credential-free models.dev OpenAI slice/cache and exact
-  subscription-only catalog transform, finite captured leaves, connection/model/lookup
-  and protected metadata-only read-only listing. Independent previews do not refresh
-  unrelated accounts; shared cache changes publish without an unchanged-cache loop.
-- Current metadata checks: adapters lib649/0/1, auth04_5/0, go02_13/0, go05_8/0;
-  strict workspace all-target Clippy/fmt/diff green. `evidence/T57/catalog.md` remains
-  partial AUTH04, not native WS/actual request/login/live evidence.
-- Sixth checked slice: native selected-leaf request preparation uses the existing
-  refresh/capture owner before main/follow-up/retry/child/title/summary attempts.
-  Issued credentials/actor/model remain immutable; subscription budgets/gate match
-  catalog, profile overlays cannot replace native identity. Summary retries refuse
-  changed authority rather than replaying already-projected opaque state.
-- Current preparation checks: auth04_ 8/0, adapters lib 652/0/1, Core 32/0, TUI 444/0
-  and strict workspace all-target Clippy/fmt/diff green; evidence/T57/preparation.md.
-  A reproduced non-native pre-cancel regression was fixed without changing its test.
-  No WS/default transport, rebuilt consumer, real OAuth/key or complete AUTH04 claim.
-- Seventh checked slice: native session-owned Responses channel, default Key/OAuth
-  WS and explicit HTTP, same-authority safe fallback/pin, 55-minute affinity and
-  fully consumed continuation proof. Unknown channel delivery cannot replay;
-  continuation rejection uses the existing finite retry owner. Common restricted
-  classification/redaction preserves terminal policy and older unknown-message
-  privacy. Foreign WS is unready before admission; joined channel cleanup is owned.
-- Current channel checks: auth04_18/0, adapters lib662/0/1, strict workspace all-target
-  Clippy/fmt/diff green; evidence/T57/websocket.md. Real local WS/HTTP peer captures
-  are not real OpenAI/Codex, rebuilt CLI/TUI or complete AUTH04/AUTH06 evidence.
-- Eighth checked slice: real Runtime WS read/function-result/final, settled receipt
-  fork and changed-account opaque filtering, counted existing-owner continuation
-  recovery, non-replayed delivered failures, actual child actor/policy lifecycle
-  and ordinary summary checkpoint. Only the owning synthetic peer/tests changed.
-- Current runtime checks: auth04_21/0, adapters lib665/0/1 and strict workspace
-  all-target Clippy/fmt/diff green; evidence/T57/runtime-ws.md. These local native
-  runtime effects are not real OpenAI/Codex authorization or rebuilt CLI/TUI/live.
-- Ninth checked slice: native built-in OpenAI CLI login/list/logout/switch through
-  the same credential/attempt owner, independent of runtime config/model/session/MCP.
-  Safe explicit non-TTY method/target, masked TTY-only keys and metadata-only JSON;
-  owned browser failure/cancel and durable account actions in current native ELF.
-- Current CLI checks: binary unit94/0, actual auth CLI pipe/PTY1/0, adapter auth0_36/0
-  and strict workspace all-target Clippy/fmt/diff green; evidence/T57/cli.md. No real
-  issuer/device/model authorization, release or full AUTH05/AUTH06 claim.
-- Tenth checked slice: shared mounted TUI methods/Starting/Waiting/open/copy/cancel,
-  source account actions, acknowledgement-first provider picker and metadata-only
-  idle/held catalog previews. Late Begin/unmount is joined and cancelled by owned ID;
-  active details never reappear from parked views. One private boxed account owner
-  retains normal-stack restoration without changing existing tests or stack size.
-- Current TUI checks: adapters lib665/0/1, auth0_36/0, TUI446/0, binary unit97/0 and
-  strict workspace all-target Clippy/fmt/diff green; evidence/T57/tui.md. No rebuilt
-  TUI login, release, real authorization or VIS45/full AUTH05/AUTH06 claim.
-- Eleventh checked slice: actual normal debug TUI PTYs qualify ordered methods,
-  masked keys, durable account actions, cached provider-filtered picker without
-  selection/collision retarget, restart, explicit sanitized open/copy and owned
-  callback refusal/cancel/quit cleanup. Zero history/model effects; active URL stays
-  in memory. Current actual TUI target1/0 and strict workspace Clippy/fmt/diff green;
-  evidence/T57/tui-binary.md. No real issuer/device/model or paired VIS45 claim.
-- Twelfth checked slice: non-default `auth-fixture` native ELF closes the original
-  actual-binary fake device approval/browser success and native Key/OAuth WS/HTTP
-  read/result/final/reopen gates. One explicit numeric loopback origin retains native
-  guards/owners; invalid origin fails closed, default production has no override.
-- Current fixture checks: owning actual binary1/0 (7WS/6HTTP, two token exchanges,
-  four device controls), feature all-target Clippy, default auth0_36/0 and strict
-  workspace Clippy/fmt/diff green; evidence/T57/binary-fixture.md. Fake approval and
-  feature flags are explicit, not real provider authorization or AUTH06 PASS.
-- Thirteenth checked test-only slice: partial-write CLI menu barrier fixed within
-  its original deadline; fixture release proves own-env/config headless native
-  requests in empty credential roots. Current normal debug/release/full workspace
-  1711/0/11, default and feature strict gates all green; evidence/T57/qualification.md.
-- Next checkpoint: factual AUTH06 dedicated live prerequisite assessment and
-  sanitized counters; never replace required real proof with the local campaign.
-- Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
-  not authoring-agent auth. Missing prerequisites block only required live proof;
-  independent offline work proceeds. No READY from docs, storage or fake-only PASS.
-
-## Completion
-
-Authoritative checkpoint 2026-10-06, pushed implementation `d43d084fa`:
-**BUILD_READY_LIVE_BLOCKED**, R1–R5 verified offline, R6 real authorization/input
-blocked. [Report](../../evidence/T57/report.md),
-[current gates](../../evidence/T57/qualification.md),
-[zero live preflight](../../evidence/T57/live-campaign.json). Every independent
-offline gate is current and green; no unresolved local failure remains. Dedicated
-operator confirmation for real browser/device and explicit ordinary OpenAI test
-input were not supplied; no credential search/import or route/trust substitute.
-Do not finish T57, reset counters or infer real/visual PASS from synthetic fixtures.
-Earlier material checkpoints above are historical, not current remaining coding todos.
-
-Not complete. T57 completion requires AUTH01–AUTH06 with current factual evidence; full
-auth-segment backend+visual parity additionally requires T44/VIS45. Final product
-READY still requires all A01–A13 and other mandatory outcomes.

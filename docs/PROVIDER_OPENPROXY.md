@@ -126,7 +126,7 @@ claim рабочего image workflow или полного A04. AUD10 допу�
 Same-session provider/model switch сейчас явно отказывает вместо replay чужого
 opaque state; UI switching квалифицируется T39. Live A04 остаётся за T27.
 
-Доказательства: `evidence/T34/report.md`; источники protocol shape:
+Источники protocol shape (история qualification — в Git):
 [pinned P1](https://raw.githubusercontent.com/0FL01/openproxy/4ef76dbce2cdbb85206cbe5e59acbad9d96ae387/contracts/lean-proxy.md),
 [Responses create](https://developers.openai.com/api/reference/resources/responses/methods/create),
 [reasoning](https://developers.openai.com/api/docs/guides/reasoning),
@@ -134,12 +134,10 @@ opaque state; UI switching квалифицируется T39. Live A04 оста
 
 ## Live test credentials (боевые тестовые, проверяемы)
 
-Владелец выдал тестовые credentials для live-проверок (T16/T27): файл `.local/live.env` (gitignored, в индекс не попадает):
-
-```sh
-source .local/live.env   # LUDKA2_API_URL, LUDKA2_API_KEY, OC_TEST_MODEL
-cargo test -p oc-adapters --test e2e_live -- --ignored --nocapture
-```
+Тестовые product credentials — `.local/live.env` (gitignored): `LUDKA2_API_URL`,
+`LUDKA2_API_KEY`, `OC_TEST_MODEL`. Только конкретный bounded live test по
+[TEST_PLAN](TEST_PLAN.md#live-и-внешние-effects) и существующий campaign ledger;
+не запускать все ignored cases и не считать presence ключа generation allowance.
 
 Опционально: `OC_TEST_VARIANT`, `LUDKA2_MCP_URL` (exact codex_web URL, тот же ключ как bearer).
 Проверенные deployment/models: `https://ludka2.bash8.de/v1`, `ocg/muse-spark-1.3-contributor`, `cx/gpt-5.6-luna` (39 IDs в /models на момент проверки).

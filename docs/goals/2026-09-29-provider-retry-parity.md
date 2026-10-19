@@ -1,12 +1,15 @@
 # Goal: LLM-provider retry и безопасное продолжение как в OC2
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete (assigned Responses/common-runtime baseline; additive follow-ups pending; GO03/VIS43 separate)
 Source: требование владельца о полном parity provider-error retry (лимиты и 5xx)
 и его TUI-представления; утверждение исправленного после RECON/параллельного аудита
 плана 2026-09-29. Reference: `opencode` v2.0.12,
 `2670273ff17da96f85c5826ced57aa1b368754fa`.
 Last updated: 2026-10-06
-Task: T54; current qualification — evidence/T54/report.md.
+Reference: provider retry/failure/span semantics; additive qualifications remain in GOAL.
 
 ## Objective
 
@@ -16,13 +19,6 @@ Task: T54; current qualification — evidence/T54/report.md.
 T53/GO03 подключает следующие Chat/Messages wires к тому же owner, а T44/VIS43
 после явного resume квалифицирует внешний вид. Пока backend и visual gates не
 пройдены, заявлять полный retry parity нельзя.
-
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
 
 ## Frozen Contract
 
@@ -39,8 +35,6 @@ required outcome is resolved and affected constraints remain satisfied.
     408/409/5xx, 400/401/403/413, ошибок внутри HTTP 200 SSE, EOF после
     partial output и наблюдаемых retry headers.
   - Status: verified
-  - Evidence: evidence/T54/report.md; evidence/T54/typed-failures.md and current provider tests.
-
 - R2: конечное ожидание и истинное продолжение одного логического шага.
   - Source: pinned `packages/core/src/session/runner/{retry,step,llm}.ts`;
     текущие `docs/CONTRACTS.md` и no unknown-effect replay.
@@ -54,8 +48,6 @@ required outcome is resolved and affected constraints remain satisfied.
     pre-output/partial failures, exhaustion, terminal auth/quota, retry override,
     interrupted read после output, cancel during backoff, persisted tool outcomes.
   - Status: verified
-  - Evidence: evidence/T54/report.md; evidence/T54/runtime-retry.md and owner/native mixed-continuation gates.
-
 - R3: durable assistant-span факт и адресная presentation без второго владельца.
   - Source: pinned `session/message-updater.ts:213–255,402–409`,
     `session/projector.ts:298–313`; A02/A07/A08/A10 и T44/VIS43.
@@ -72,8 +64,6 @@ required outcome is resolved and affected constraints remain satisfied.
     headless/PTY: reschedule, due, partial→continue→success→reopen, tab park,
     restart/cancel и ordering snapshot/events без ложного нового запроса.
   - Status: verified
-  - Evidence: evidence/T54/report.md; durable journal/query, scoped ordering and native reopen/restart gates.
-
 - R4: сохранить лимиты, другие LLM lanes и существующие gates.
   - Source: pinned `session/compaction.ts`, `session/title.ts`; GOAL.md
     A01–A13, PROV07/AUD11/AUD13, T53/GO03, docs/TEST_PLAN.md.
@@ -92,8 +82,6 @@ required outcome is resolved and affected constraints remain satisfied.
     Responses/headless/PTY и affected crate/workspace gates по TEST_PLAN;
     отдельные T53/GO03 и T44/VIS43 evidence без подмены результатов.
   - Status: verified
-  - Evidence: evidence/T54/report.md; operation dispatch/socket accounting and current workspace gates.
-
 ### Source-derived decision table
 
 - Приоритет из pinned classifier: verified event/HTTP status и structured
@@ -140,33 +128,6 @@ required outcome is resolved and affected constraints remain satisfied.
   restart auto-resumer или новую платную campaign. T51 readiness refresh
   не является paid generation retry. Native закрывает полный response
   до локального tool admission, в отличие от donor overlapping tool fibers.
-
-## Change Envelope и порядок срезов
-
-1. Зафиксировать эту таблицу и адресно supersede старые pre-first-event/
-   per-turn 2-retry и blanket incomplete rules в CONTRACTS/PROV06/AUD11/
-   AUD13/T53 GO03. Исторический PASS не подтверждает новый RET01.
-2. `crates/oc-adapters/src/provider.rs` — bounded typed HTTP/SSE classification,
-   safe diagnostic и один physical attempt; existing runtime turn owner —
-   finite retry/continuation и счётчик dispatch. Добавлять узкий модуль
-   только если его реально разделят primary/child/compaction; без нового crate/
-   trait/общего store. Не re-enter user admission/agent-step при retry.
-3. Через текущий TurnLog/SQLite/core query/event/TUI/headless DTO провести
-   irreducible span/lifecycle факты, сохранив raw history и старые rows.
-   T44 отвечает за final warning geometry/timing; T53/GO03 — за lowering
-   typed failures/headers из новых протоколов.
-4. Ближайший owner fake-clock/RNG/provider test → bounded actual rebuilt
-   binary PTY/headless → affected resource/security gates и workspace quality
-   на code commit. Mocked failures бесплатны; перед разрешённой live
-   квалификацией соблюсти отдельный durable ≤24 physical-request campaign
-   envelope, включая title/compaction/children/retries. Это не runtime cap.
-
-Expected consumers: `runtime/turn.rs`, `runtime_compaction.rs`,
-`application.rs`, `oc-core/src/{core_app.rs,queries.rs}`,
-`oc-tui/src/{app.rs,messages.rs,app/live.rs}`, `oc/src/{headless.rs,tui_cmd.rs}`;
-называть новые файлы по фактическим seams, не по типам. Один mutation owner;
-для новых срезов сверить активную T50 dirty работу и qualified readiness seam,
-не reopening completed T51/T54.
 
 ## Long-workflow follow-up — approved 2026-10-02, pending
 
@@ -281,44 +242,10 @@ capture proving HTTP400/SSE/WS or observed headers):
   only expose missing optional PartState owning span and necessary referenced metadata
   within existing serving budgets. T44/VIS43 independently qualifies footer/dialog,
   VIS39 the child consumer, per [UI contract](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#restricted-provider-error-details--approved-2026-10-06-pending)
-  and [method](../TEST_PLAN.md#restricted-provider-errors-and-details--approved-2026-10-06-pending).
+  and [method](../TEST_PLAN.md#открытые-livemanual-qualifications).
 
 This additive contract does not reopen all completed R1–R4/T54, change task/gate IDs,
 dependencies, progress or historical evidence. T57 remains active, T44 PAUSED until
 explicit resume; implementation and new RET01/AUTH04/SUB01–SUB02/VIS43/VIS39 assertions
 are pending/NOT_RUN. No paid cyber-refusal campaign, whole-task dependency, policy bypass
 or product/visual PASS follows from plan validation.
-
-## Historical planning checkpoint / state
-
-- 2026-09-29: RECON и независимый аудит completed; docs-only контракт
-  утверждён, implementation RET01/VIS43/GO03 NOT_RUN. T51 active;
-  T44 PAUSED до явного resume; T53 todo; T54 pending без start через
-  `progress.py`. Исторические reports/PASS не менялись.
-- Graph-change rationale: T12 был техническим bounded Responses retry,
-  но не закрывал source-derived quota/continuation/TUI; reopening completed
-  T12, назначение T51 generation owner или смешение backend с PAUSED T44
-  ломали бы ownership. Поэтому одна новая T54/RET01 зарегистрирована
-  `todo`, GO03/T53 и VIS43/T44 сохраняют своих владельцев; существующий
-  active T51 и его checkpoint не переназначены. `progress.py reindex/check`
-  нужен после добавления записи, без заявления о product PASS.
-- Next: после корректного scheduling handoff подтвердить текущие
-  provider/turn owner paths и frozen typed classification table, затем
-  минимальный Responses owner test для quota-versus-throttle.
-- Blocker: нет для планирования; исполнение не начинается этой правкой.
-
-## Evidence / Completion
-
-Assigned R1–R4/RET01 backend verified at implementation commits `a7ddde9f8` and
-`2d0dea21a`: current workspace 1321 passed, 0 failed, 10 unchanged opt-in ignored;
-normal debug/release nine native scenarios per ELF, deterministic owner matrix,
-safe span/recovery/operation accounting and strict quality gates PASS. Full report:
-`evidence/T54/report.md`. No GO03/VIS43 or whole-product completion claim.
-
-RET01 имеет только T54 как owner; подробные cases и команды —
-`planning/acceptance.json`, `docs/TEST_PLAN.md`. Отчёт:
-`evidence/T54/report.md` после исполнения, не от публикации плана.
-**T54 complete** означает validated Responses/common runtime backend;
-**полный parity retry для поставляемых wires и TUI** — RET01 + GO03 при
-допуске Chat/Messages + VIS43. Без фактических тестов и парных кадров
-документация/JSON validator не даёт implementation PASS.

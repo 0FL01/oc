@@ -1,22 +1,20 @@
 # Goal: complete subagent reports and truthful shell capture admission
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
 Source: owner evidence, four parallel source audits, corrected plan accepted by
 «Делай копию плана в цель и итеративно реализовать и коммит пуш дебаг билд».
 Last updated: 2026-10-19
 Task: T71 / M8
 
-## Objective and Execution Directive
+## Objective
 
 Complete admitted child reports reach durable background notices and the parent
 without an artificial report cap. Foreground keeps ordinary tool-output limiting;
 UI/status reads remain bounded. Duplicate redaction material cannot falsely reject
-shell capture. Deliver checked commits, ordinary push and the default debug build.
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
+shell capture.
 
 ## Frozen Contract
 
@@ -31,10 +29,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: storage settlement/delivery faults and actual FG/BG parent
     requests with an admitted report over 64 KiB and tail sentinel.
   - Status: verified
-  - Evidence: children16 and child-runtime7 pass; actual >64KiB BG user-message
-    and FG artifact/read cases pass. The integration target exposed three obsolete
-    inventory-body assertions; these now read canonical notice/child history. The
-    last Location case passes through its original cross-Location ReadChild fence.
 - R2: bounded projections and truthful resource admission.
   - Source: accepted plan C; A10 and existing context/security guards.
   - Acceptance: inventory/refresh carries identity/history links, not report copies;
@@ -45,10 +39,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: card result over RECORD_BYTES and escape-heavy/overflowing
     notice assertions at the actual parent-input boundary.
   - Status: verified
-  - Evidence: fitting cards and bounded refreshes omit report bodies.17storage and
-    2context tests pass: whole-page preflight does not skip an oversized prefix;
-    an actual escaped request over16MiB is refused without checkpointing rejected
-    bodies/IDs, while the complete result/notice and prior read outcome stay durable.
 - R3: complete recovery without rerun or premature success.
   - Source: accepted plan D and source audit of post-canonical MCP cleanup.
   - Acceptance: remove recovery's 8192-character cut; resolve the exact linked
@@ -58,9 +48,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: committed-assistant crash-gap and first-writer/reopen tests
     with long UTF-8 text; existing conversion/lineage/checkpoint regressions.
   - Status: verified
-  - Evidence: full126017-byte canonical crash-gap recovery and91027-byte terminal/
-    delivery statement+commit fault/reopen tests pass. Existing checkpoint/unknown,
-    conversion/lineage and exact oldest-of18 foreground tests pass without rerun.
 - R4: correct shell redaction admission and safe capture cause.
   - Source: accepted independent shell plan E and observed generic capture Io.
   - Acceptance: mcp_redactions removes only empty/exact duplicates, preserving order
@@ -70,23 +57,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: synthetic collector-to-real-Jobs duplicate-heavy regression,
     unique aggregate65536/65537 boundaries and existing capture fault/redaction tests.
   - Status: verified
-  - Evidence: actual collector-to-silent-Jobs regression passes (261raw entries become
-    10distinct values, exit0, reopenable zero-byte Complete capture). All11capture
-    scenarios pass, including real errno, facts/rename faults, cap/quota, interruption,
-    split-secret redaction and fail-closed aggregate65536/65537 boundaries. Original
-    exit17, effect-once and safe diagnostic survive database reopen without execution.
-- R5: verified delivery and debug build.
-  - Source: latest owner instruction and accepted checks.
-  - Acceptance: targeted checks and bash scripts/test.sh pass; normal
-    cargo build -p oc2 --bin oc2 --locked builds target/debug/oc2; reviewed commits
-    and ordinary push to verified origin/master; factual evidence/task closeout.
-  - Primary evidence: actual commands/exits, Git refs and evidence/T71/report.md.
-  - Status: verified
-  - Evidence: code d1b730b76 and preceding implementation commits are pushed.
-    bash scripts/test.sh exits0: fmt/strict clippy,2114 nextest passed (12existing
-    skipped), doctests, default debug build/help/version. Cold total1220.05s includes
-    10m14s test and2m53s debug compilation; tests384.506s. Existing UI07 <=40s owner
-    exception covers32.471s real-deadline case; others <=28.275s. Report records RECON.
 
 ### Constraints and Non-goals
 
@@ -105,77 +75,3 @@ required outcome is resolved and affected constraints remain satisfied.
 - Already delivered notices/RAW and previously clipped terminal receipts are not
   backfilled. Full original child history remains available. Generic historical shell
   Io cannot prove a particular failure stage or redaction dictionary size.
-
-## Change Envelope and Ordered Plan
-
-1. storage_children.rs finish_child_job: full result, existing transaction/first writer
-   after cleanup. runtime/children.rs Work/launch/wait_foreground: exact stored outcome,
-   no competing memory body. Existing FG rendering/common preparation stays once.
-2. child_tool_jobs/deliver_child_notices and Jobs::deliver: identity/history-only UI,
-   scan IDs then process one full body at a time. BG message remains complete;
-   message_id/subagent_notice remain atomic. Existing identity budgets unchanged.
-3. recover_child_jobs: full exact assistant per job; existing checkpoint/unknown rules.
-   storage_shell_jobs.rs shell_notices_after and runtime/turn.rs: bounded preflight
-   plus escaped-input admission under existing aggregate cap, explicit overflow.
-4. runtime/mcp.rs stable exact dedup; shell/jobs/output.rs and jobs.rs first-observed
-   safe cause and explicit facts/lookup/reopen handling. No exhaustive errno plumbing.
-5. Existing storage/runtime/subagent/shell tests: long UTF-8/reopen/first-writer,
-   >64KiB actual BG/FG request, large-card, conversion, escaped overflow, redaction
-   collection and aggregate boundary/fault checks. No new harness/provider matrix.
-6. Targeted checks, reviewed implementation commits, full offline gate, debug build,
-   ordinary push and factual closeout. Tests >30s or warmed gate >10min require RECON,
-   not relaxed guards/assertions/timeouts. No concurrent Cargo processes.
-
-Allowed supporting artifacts: this goal, GOAL amendment, task/progress registration,
-brief current TEST_PLAN/CODE_MAP pointers and evidence/T71/report.md. No dependencies.
-
-## Current Checkpoint
-
-- Closed: R1–R5. No implementation checkpoint remains.
-- Evidence: evidence/T71/report.md, reviewed pushed code and default target/debug/oc2.
-- No production changes after successful qualification; closeout is documentation only.
-
-## Current State and Material Decisions
-
-- Base: clean master b7d460e98e61ab4bf86584da88ebf40492398fe1.
-- Read-only incident evidence: four results exactly prefix their full assistant at
-  2048 bytes; twelve shell jobs retain exit0/Io without capture resource rows.
-- BG is synthetic conversation input, not a second generic tool result. Existing
-  child_jobs owns settlement; canonical success precedes fallible MCP cleanup.
-- R1–R5 verified; full offline qualification and default debug build are complete.
-- Blocker: none observed. No schema/migration or owner restart.
-- runtime/turn.rs already exceeded the soft5k guide (5614baseline lines); keep this
-  bounded admission change with its existing request owner (5722lines). The next
-  natural seam is captured request preparation/admission, not a line-count split.
-
-## Checkpoint History
-
-- 2026-10-19: copied audited plan, froze R1–R5 and started T71; no paused tasks reopened.
-- 2026-10-19: reproduced exact2048-byte cuts against120015/91027/126017-byte results.
-  Full settlement/recovery and identity-only views are green (16storage/7runtime).
-  Actual BG/FG long reports pass. Integration43/44 passed after view-assertion
-  corrections; the remaining Location case is now green1/1 without weakening its
-  trust guard. Logs: .local/evidence/T71/{children,child-runtime,subagent,location-history}-*.log.
-- 2026-10-19: reproduced aggregate admission (old code issued an escaped over-budget
-  request) and duplicate collector (261rather than10values). Staged admission and
-  collector regressions now pass.17storage/2context and10capture cases are green;
-  the remaining new boundary check was an incorrect empty-view expectation, fixed
-  to require only the exact native control prefix and zero admitted producer bytes.
-  Largest capture case21.36s; no test budget exception. Full qualification pending.
-- 2026-10-19: corrected aggregate control-view assertion passes0.70s; full current
-  subagent target44/44 passes28.50s. R1–R4 targeted evidence is green. No production
-  change was needed for the control-view assertion; full offline gate is next.
-- 2026-10-19: strict gate found one needless test-fixture borrow; d1b730b76 fixes it
-  without changing assertions/production. Full gate then passes2114 tests, doctests,
-  strict clippy/fmt and debug/help/version. Mandatory RECON identifies the sole32.471s
-  case as an existing dated <=40s exception for real30s discovery; no new exception,
-  timeout or workload change. Full cold-build breakdown is in evidence/T71/report.md.
-
-## Completion
-
-- Resolved: R1–R5 verified; task-scoped PASS, not whole-product READY.
-- Primary evidence: evidence/T71/report.md; full gate at d1b730b76; target/debug/oc2.
-- Constraints/scope: one existing owner/store, no migrations or dependencies; RAW,
-  original source/permissions, resource guards and no replay preserved. Historical
-  receipts are not backfilled. No owner restart/live campaign/config or env change.
-- Final status: complete. Stop substantive work; only factual progress/Git closeout.

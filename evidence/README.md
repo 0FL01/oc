@@ -1,7 +1,8 @@
-# Evidence
+# Fixtures, provenance и сохранённые proofs
 
-Здесь хранятся короткие sanitized reports по task ID и итоговый FINAL.md. Raw stdout/stderr, live request/response bodies и credentials сюда не входят; `.local/evidence/` исключается из Git.
+Здесь остаются используемые тестами inputs, paired captures/seals, source licenses/notices и live campaign ledgers.
+Это не task journal: обычный bugfix не требует нового report, FINAL или closeout. История удалённой отчётности — в Git.
 
-Минимум report: task, code commit/dirty status, метод (synthetic/source-derived/differential/live/manual), команды/exit codes, проверенные assertions, ограничения, ссылки на tests и measurement inputs. Для каждого назначенного task acceptance ID указать `PASS`, `FAIL`, `BLOCKED_EXTERNAL` или `NOT_RUN`; `NOT_RUN_DISABLED` допустим только для условного browser smoke. PASS нельзя получить одной ссылкой на план. Test-only fabricated model IDs допустимы и не попадают в production registry.
-
-Task reports являются authoritative evidence; `FINAL.md` только связывает их с A01–A13 и не копирует полные логи.
+Не удалять дерево целиком: Rust `include_str!` использует `T55/sparse-completed.fixture.json` и compaction `.cells.json` под `tui/`.
+Source attribution и sealed proofs остаются на исходных путях; live identities/uncertain reservations не сбрасывать и не переносить между campaigns.
+Новые diagnostics — bounded gitignored per-run storage по [TEST_PLAN](../docs/TEST_PLAN.md); credentials/raw live payloads не коммитить.

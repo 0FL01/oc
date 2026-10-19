@@ -1,5 +1,8 @@
 # Goal: общий portless runtime и зеркальные TUI проекта
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
 Source: RECON и уточнения владельца 2026-10-17; аудит, поручение реализации/commit/push и утверждение границ 2026-10-18.
 Last updated: 2026-10-18
@@ -53,20 +56,6 @@ Runtime запускается автоматически, не требует �
 всех TUI. Старые R3/HOT03 из T61 автоматически не восстанавливаются: у них иной lifetime
 и оставалось ограничение одного foreground root на Location.
 
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied. Stop
-substantive work at a proven external blocker, an approved budget boundary, or when
-no remaining in-scope action has a falsifiable expected result; record the exact
-evidence and smallest unlock.
-
-Контракт frozen ответом владельца 2026-10-18. Исполнение принадлежит T68; T44 временно
-приостановлена без completion, T61 остаётся paused. Не выдавать structural checks,
-промежуточный slice или сохранение плана за implementation PASS всей цели.
-
 ## Подтверждённый контракт
 
 ### Required Outcomes
@@ -79,8 +68,6 @@ evidence and smallest unlock.
   - Primary evidence: изолированный actual-binary concurrent-start/attach fixture,
     identity одного owner, once-only recovery и отсутствие control TCP listener.
   - Status: verified
-  - Evidence: debug full gate `9179f01a-6711-4888-bb25-e35c0453a865` и rebuilt release
-    `4b096bed-d4c2-4858-a2bb-eb64869db277` PASS, включая actual concurrent-start/owner/startup.
 - R2 — общий workspace и бесшовная смена подключений.
   - Source: зеркало вкладок D/S и «открыть новый опенкод, потом закрыть старый».
   - Acceptance: подключённые TUI одного Location видят общий набор, порядок и
@@ -91,9 +78,6 @@ evidence and smallest unlock.
   - Primary evidence: paired PTY A/B/C с управляемым provider stream: общий deck,
     live update, новый attach до старого detach, один execution/effect counter.
   - Status: verified
-  - Evidence: debug paired PTY, native gap/receipt и unchanged PNG/editor regressions
-    PASS в `9179f01a-6711-4888-bb25-e35c0453a865`; rebuilt release paired PTY PASS
-    в `4b096bed-d4c2-4858-a2bb-eb64869db277` (5.656s).
 - R3 — lifetime по TUI и штатный Interrupted на последнем disconnect.
   - Source: последние два уточнения владельца про все TUI и Esc/Interrupted.
    - Acceptance: счётчик TUI общий для UID/data root. В проектах A/B/C идут задачи;
@@ -106,9 +90,6 @@ evidence and smallest unlock.
      закрытия A/B, затем global last-close/reopen; CLI без TUI/overlap/client-loss,
      durable Interrupted, ноль root auto-resume requests и owned orphans после cleanup.
   - Status: verified
-  - Evidence: A/B/C/last-close, headless/EOF/crash и auth/PTY handoff PASS в debug
-    `9179f01a-6711-4888-bb25-e35c0453a865` и rebuilt release
-    `4b096bed-d4c2-4858-a2bb-eb64869db277`.
 - R4 — параллельные разные сессии одного каталога.
   - Source: явный выбор «Параллельно и в одном каталоге».
   - Acceptance: D и S одного Location начинают независимые root turns одновременно;
@@ -117,10 +98,6 @@ evidence and smallest unlock.
   - Primary evidence: application owner barrier test: оба provider requests начаты
     до освобождения любого; same-session refusal происходит до input/effects.
   - Status: verified
-  - Evidence: same-directory barrier/pre-effect reservation, scoped controls/move и
-    captured publication/MCP regressions PASS в debug full gate
-    `9179f01a-6711-4888-bb25-e35c0453a865`; rebuilt release scoped controls/move PASS
-    в `4b096bed-d4c2-4858-a2bb-eb64869db277`.
 - R5 — пользовательская граница исключает root-executor для stfu.
   - Source: исходная проблема файлов в home `stfu`, созданных общим root-сервером.
   - Acceptance: endpoint/data-root/peer UID проверены; клиент чужого UID не attach-ится
@@ -129,11 +106,6 @@ evidence and smallest unlock.
     fixture; реальная пара root/stfu — только штатные отдельные пользовательские
     запуски, без sudo или host-admin действий authoring-agent.
   - Status: verified
-  - Evidence: real same-UID UDS peer credentials и unsafe/foreign metadata/FIFO
-    admission fixtures PASS в debug full gate `9179f01a-6711-4888-bb25-e35c0453a865`.
-    Unprivileged rebuilt release fixtures также PASS. Это не real root/stfu launch
-    pair: такой запуск только owner-operated, не выдан за authoring-agent PASS.
-
 ### Затронутые ограничения
 
 - Один storage/resource owner, `oc.lock`, WAL + `synchronous=FULL`, restrictive
@@ -170,16 +142,6 @@ evidence and smallest unlock.
 - Новая paid campaign, release/version bump/publishing, whole T44/T61/READY completion.
 - Новые persistent retry receipts/fingerprints/index/tombstones, автоматический retry
   неоднозначной mutation, shared editor/CRDT, inactivity eviction активных Locations.
-
-## Change Envelope
-
-- Runtime: существующие application/runtime/publication/selection/storage owners в
-  `crates/oc-adapters`, новый private service seam без нового crate/framework/store.
-- Consumers: CoreApp/queries/DTO в `oc-core`, TUI state в `oc-tui`, bootstrap/TUI/
-  headless/auth/sessions/trace в `oc`; сохранить public contracts и dependency direction.
-- Evidence: ближайшие unit modules и существующие Cargo targets/binary fixtures,
-  affected docs/registry/progress. Никаких user config/data/secrets edits, privileged
-  authoring actions, arbitrary dependencies/paid calls/remote API/release scope.
 
 ## RECON: подтверждённые владельцы поведения
 
@@ -330,28 +292,6 @@ evidence and smallest unlock.
 - `memory_bounds.rs` измеряет owner + client + owned processes, не только тонкий TUI.
   Существующие archive workload/thresholds сохранены; произвольный fixture 128/8 удалён.
 
-## Минимальные доказательства и завершение
-
-- R1/R5: actual UDS discovery/election/identity и unsafe/stale/incompatible admission;
-  отдельный startup не может провести recovery живых ресурсов первого owner.
-- R2/R3: paired PTY shared-deck/live-work/handoff/last-close/reopen; статус Interrupted,
-  одна provider execution, после last-close ноль owned orphans и ноль auto-resume requests.
-- Обязателен normal UI quit на fresh-acceptance границе, не только client kill. Отдельный
-  A/B/C cross-project fixture наблюдает новый progress всех трёх после ухода A/B;
-  reattach A подхватывает текущую работу; последний глобальный close останавливает все.
-- CLI без TUI/overlap/client-loss и auth без model/project/MCP; transport oversized
-  replies/original PNG/gap/stale control по ближайшим owner tests, не новый test matrix.
-- R4: owner concurrency barrier, same-session busy-before-effects, scoped cancel/auto,
-  coherent profile/reload и move A при продолжающем B.
-- Сохранить affected STORE/crash/quota/leases/tab CAS/child launch/captured-batch/
-  shell/PTY/auth/headless/DCP regressions, без копии каждого сценария на всех слоях.
-- Сначала ближайшие owner tests и affected Cargo targets; после связной интеграции
-  обязательный `bash scripts/test.sh`, обычный/locked build и изолированные rebuilt
-  debug/release binary fixtures. Нового paid generation campaign для сервера нет.
-- Завершение: каждый R verified текущими evidence, нерешённых material decisions нет,
-  affected constraints сохранены, итоговый diff проверен; затем complete и остановка.
-  Historical PASS или doc validator не доказывают runtime/whole T44/overall READY.
-
 ## Material decisions — frozen 2026-10-18
 
 - Реальное препятствие wire: shared DTO содержат original `Arc<[u8]>` PNG и PTY
@@ -371,107 +311,3 @@ evidence and smallest unlock.
 общего owner буквальное «все TUI» считается по UID/data root, не отдельно по чатам.
 Browser OAuth callback 1455/1457 остаётся отдельным provider contract: portless control
 socket не обещает отсутствия иных явно нужных listeners, существующий device flow сохранён.
-
-## Current Checkpoint
-
-- Closed: R1–R5, только T68; [factual qualification report](../../evidence/T68/report.md).
-- Source: `4af8c3ad646d283c5d7c79f269594931b4bb685c`, ordinary push в verified origin/master ACK.
-- Primary evidence: full offline/debug и rebuilt release actual-ELF PASS, numeric
-  resource receipts и RECON в report. Дальнейших implementation/audit действий нет.
-
-## Current State
-
-- Implemented и runtime-qualified: цельный native TUI/run/auth/sessions cutover;
-  одна retained Db/recovery, private UID-checked UDS, Source/primary/resource ownership,
-  bounded materialized live snapshot/gap repair, общий deck/active и локальные drafts,
-  global TUI/finite CLI lifetime, scoped controls/auto/model/move и idle Source retirement.
-- Последние прямые доказательства:
-  - `76eb44ac-2051-49c7-b953-08f3f5d4d94f`: paired live/draft A/B/C/handoff/last-close
-    PASS 4.198s; CLI overlap PASS 2.666s; stale-T1/picker PASS 2.492s; scoped move
-    PASS 3.245s; обычные два одновременно стартующих TUI PASS 2.468s; startup/discovery
-    PASS 25.701s/17.128s. Его единственный fresh-label отказ исправлен и подтверждён
-    `3b9806b0-b827-4282-a548-d3717545224a` PASS 4.156s с управляемым title response.
-  - `659b9ce0-6dda-4e17-a255-4c9ee7765abc`: scoped controls/move и два IPC checks 4/4 PASS;
-    `fd6f83cc-f4e2-49c7-9bf7-c6dd6b8672bf`: MCP metadata/operation cancellation,
-    per-incarnation retirement, truthful cleanup failure и no-effect-replay 9/9 PASS.
-  - `849c5d2c-6bf9-4395-a5cc-0f7a69f07707`: 16-tab capacity, CAS/no automatic mutation
-    retry, corrupt-deck isolation и независимые Home/session selection repairs PASS.
-  - `7e784786-f310-48a2-87c3-c113f3dcf3e1`: неизменный 120-turn soak PASS 28.125s;
-    RECON нашёл ожидание полного TERM grace при уже zombie-only группе. Теперь leader
-    остаётся unreaped/PID-reserved, final group KILL сохранён; отдельные tests подтверждают
-    пропуск только zombie wait и полный grace/SIGKILL для реально работающей группы.
-    WAL FULL, workload, resource limits и assertions не ослаблены.
-  - `defa9f8b-c8af-42a9-80cd-bcaf0714736e`: strict all-target Clippy PASS; 5/5 tests PASS:
-    lost startup intent 1.388s, actual client crash/EOF handoff and Interrupted 2.064s,
-    real owner/auth/terminal handoff 2.191s, TERM01 19.210s, local quit after owner loss
-    0.008s. Owner crash остаётся unknown/recovery, не ложный записанный Interrupted.
-- Первый полный gate был RED (2024/54/12); targeted fixes не выданы за полный PASS.
-  Повторный gate `277ac197-cd6f-4125-a090-44c5f9793626` прерван рестартом authoring
-  server: 641 PASS, 10 SIGTERM, 1432 not run; assertion failures до сигнала нет.
-  Следующий полный `847b8495-3420-44b1-9bc5-b090dce948fe`: 2082 PASS/1 FAIL/12 opt-in
-  skips, 378.306s test phase/383s wall. V04 отказ был false match terminal delta:
-  diagnostic reconstruction показал точный ответ на painted screen. Проверка того же
-  сценария через screen grid сохраняет wire/durable assertions: `6a69d8ee-ede2-441c-937a-c039f3b54c6a`
-  1/1 PASS 6.570s. Discovery 32.122s имеет существующее owner-approved исключение ≤40s
-  для настоящего 30000ms deadline, не новый timeout или ослабление бюджета.
-- Review выявил два дефекта новых R3/R5 paths; `29c8f5e4-033c-409a-b1e1-3394facdc6f1`
-  воспроизвёл потерянный overtaking CancelRequest и blocking FIFO registration open.
-  Добавлены bounded pre-admission cancellation tracking и O_NONBLOCK перед прежними
-  descriptor/file/UID/mode checks. `7eab9d6a-c34f-440a-b924-175950bf8701` подтвердил
-  native/authority 9/9 PASS 2.540s: FIFO 0.019s, overtaking cancel 1.484s; wire limits,
-  full-window priority, gap resnapshot, stale socket, peer boundary и same-directory
-   reservation также PASS.
-- Gate `4e226a42-9ea1-418e-928e-1d61d8ea1d5f` не является qualification: во время
-  запуска владелец очистил часть `target`; 1128 failures — отсутствующие test ELF
-  (exit70/ENOENT). Итог 953 PASS/1132 FAIL/12 skips, 233.749s test phase, 651s wall
-  включая 379s rebuild. Один из четырёх assertion/timeout failures снова показал
-  точный ответ в painted screen при false raw-delta match; тот же modal scenario
-  переведён на existing screen-grid checks без изменения wire/durable assertions.
-  После rebuild `50b4470d-344e-4e96-a6b8-04939a8fcd12` проверил все три PTY cases:
-  3/3 PASS, 17.203s; исправленный modal scenario 7.952s, два прежних startup timeout
-  1.996s/7.249s. Serial RECON `b4ef8666-37b9-4021-8779-fdc5d4a63299`: 5/5 PASS,
-  60.195s test phase; три неизменённых storage workloads 13.658s/13.451s/19.798s,
-  approval commit/restart 11.890s и reconnect/reply 1.390s. Все снова в пределах
-  исходных budgets; конкретная причинность очистки/IO contention не заявляется.
-  Deadlines, workload и durability assertions не изменены.
-  Логи: `.local/t68-offline-gate-final.log`, `.local/t68-target-rebuild-{pty,recon}.log`.
-- Blocker: отсутствует; material product boundaries утверждены 2026-10-18.
-- Gate `7fafe172-6823-4537-8fd3-60fb7197625d`: 2084 PASS/1 FAIL/12 existing skips,
-  371.976s test phase, 916s wall включая cold build. Единственный отказ — потерянный
-  `closed` receipt в Python MCP fixture, после успешных sensitive-identity assertions.
-  Deterministic worker-directed TERM reproduction показал 0 receipts: маска main
-  не мешала unmasked worker запланировать Python handler между `closed=True` и записью.
-  Workers теперь наследуют blocked TERM mask; main остаётся получателем сигнала.
-  Тот же reproduction дал ровно 1 receipt; `f028f997-4caf-4159-b319-5f71812841fe`
-  подтвердил весь affected `mcp_stdio`: 21/21 PASS, 1 прежний opt-in skip, 1.953s.
-  Production teardown/security, assertions и deadlines не менялись. Следующий full
-  gate использует новый log path; предыдущий RED не объявлен qualification.
-- Next: нет новой implementation работы. T44 temporarily paused/incomplete, T61 paused;
-  historical evidence неизменны. Closeout фиксирует только T68.
-- Full gate `9179f01a-6711-4888-bb25-e35c0453a865`: 2085/2085 PASS, 12 прежних opt-in
-  skips, 381.170s test phase, 430s wall; fmt, strict all-target Clippy, doctests и
-  locked debug build/help/version PASS. Numeric owner/client/descendant receipts captured.
-  Soak 32.662s вызвал RECON, не молчаливое исключение: дорогая первая эпоха 17.720s;
-  scheduling уже exclusive. Узкий unchanged workload `2fdad410-0897-4290-9766-142272352443`
-  PASS 28.172s (эпохи 13.328s/14.133s). Wall-time syscall profile показал 2323 fsync,
-  23.304s в instrumented run: FULL durability — доминирующий I/O cost; он сохранён.
-  Это не новый timeout/waiver и не утверждение точной причины разницы latency.
-  Дальнейшая full-suite перестройка не требуется без нового implementation change.
-- Rebuilt release `4b096bed-d4c2-4858-a2bb-eb64869db277`: 12/12 PASS, 29.246s test
-  phase, 426s wall включая 6m36s cold fat-LTO build с 2 jobs. Девять shared-runtime
-  cases, два startup suites и clean-HOME configured workspace; longest case 27.003s.
-  Обычный `cargo build`, `cargo build --locked`, explicit locked debug build и
-  debug/release help/version PASS. `target/debug/oc2` готов (697854200 bytes, mode755).
-  Изменений storage schema/migrations нет; working owner/данные/конфигурация не тронуты.
-
-## Completion
-
-- R1–R5 verified; debug full offline и rebuilt release qualification PASS.
-- Source implementation `4af8c3ad646d283c5d7c79f269594931b4bb685c` committed/pushed;
-  factual report: [evidence/T68/report.md](../../evidence/T68/report.md), T68-only journal closeout.
-- Commands: full `scripts/test.sh` 2085 PASS/12 existing opt-in skips; rebuilt release
-  12/12 PASS; ordinary/locked debug builds и debug/release help/version PASS.
-- Constraint/diff check: один retained Db/flock, FULL durability, UID/private UDS,
-  bounded resources/captured requests/no unknown replay сохранены; нет schema/migration,
-  user data/config/env edits, paid campaign, нового retry ledger или remote API.
-- Final status: complete. T44/T61 не завершены и не resumed; whole READY не заявлен.

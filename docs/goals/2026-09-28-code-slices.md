@@ -1,8 +1,11 @@
 # T52 — укрупнённые code slices и отдельные тесты
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 ## Контракт и границы
 
-Статус при принятии: **план, NOT_STARTED**, не выполненный рефакторинг. Task definition: `planning/tasks.json`; ARCH01–ARCH05: `planning/acceptance.json`; execution state: `progress/STATE.json`. Текущая T44 active/PAUSED остаётся неизменной до явного resume. Первичный проход — одна T52 с R0–R7, а не новый task/crate/framework на каждый файл.
+Это исторический reference первого прохода раскладки, не следующий task. Текущие правила файлов/tests — в [ARCHITECTURE](../ARCHITECTURE.md); номера R0–R7 ниже обозначают технические швы.
 
 Источник инвентаризации — присланный архив ветки `agent/oc-rust-port`, ZIP comment `ddb6ae2f0cba18c4aa161159899228a7343398eb` (commit `fix(tui): preserve exact-fit words in comparable DCP frames`). Архив не содержит Git worktree metadata и заведомо неполон по большим TUI captures. Это достаточная база для структурного плана, но не доказательство текущего host status или запуска тестов. Перед исполнением сверить фактический HEAD/diff; при drift пересчитать числа и скорректировать швы, не откатываться к архиву.
 
@@ -30,20 +33,13 @@
 
 Отдельный сигнал для контекста: `scripts/tui_capture/capture.mjs` имеет 2 954 строки, но 221 185 bytes. Это не девятое превышение и не обязательная миграция T52; показывает, почему LOC не заменяет byte/token awareness и scoped reads. JSON/PNG/cells/raw logs/upstream/assets не добавлять к метрике рукописного Rust-кода и не читать вместе с ним.
 
-## Порядок исполнения
+## Технические швы раскладки
 
-R0 → R1 → R2 → R3 → R4 → R5 → R6 → R7. Каждый срез может состоять из нескольких independently checked commits; не требуется один огромный commit на весь crate. Сначала mechanical relocation/import/path fixes, затем отдельный commit для необходимого исправления поведения, только если оно действительно найдено и разрешено текущим feature contract. Заодно «улучшать» алгоритмы, assertions, formatting всего workspace и names нельзя.
-
-T52 не зависит от полного завершения T44/T45/T46/T50/T51. Их текущие owner paths переносятся без реализации pending features. Полные completion dependencies между ними не добавлять. До нового функционального роста этих owners завершить соответствующий первый проход T52; обычное выполнение после T52 возвращается к прежнему feature плану.
+R0–R7 ниже описывают принципы переноса, не расписание новых работ. Mechanical relocation/import/path fixes не должны заодно менять algorithms, assertions или ownership.
 
 ### R0 — безопасный старт, baseline и отчёт размеров
 
-**До разрешённого resume никаких code edits/start/capture campaigns.** Применение planning patch оставляет T44 active/PAUSED. После явного разрешения продолжить с T52:
-
-1. Проверить `git status --short`, `git rev-parse HEAD`, `git diff --stat`, `git diff --cached --stat` и state. Чужие/неизвестные изменения, включая ранее отмеченную `?? .opencode/`, не читать/стейджить/чистить. Не использовать reset/stash/clean для удобства распила. Уточнение нужно только при реальном конфликте/неизвестном состоянии, не для повторного согласования уже заданных правил.
-2. Если T44 всё ещё active: написать новый короткий scheduling note с `## Result`, `## Checks`, `## Risks`, `## Next`, фактическим Git state и сохранённым next T44 slice. Указать временную паузу ради T52, отсутствие нового failed parity gate и условие возврата. Через `python3 scripts/progress.py block --note <repo-relative-note>` освободить active slot; затем `python3 scripts/progress.py start T52`. Старые leaves не менять. Если active task уже другой, не блокировать его автоматически по устаревшему плану.
-3. Зафиксировать baseline Git commit перед переносом. Выполнить применимые baseline checks на реальном разрешённом host с pinned toolchain. Исторический PASS из T44 не выдавать за текущий результат. При настоящем pre-existing failure записать его до правок; missing prerequisites = NOT_RUN/blocker, не PASS.
-4. Сохранить реальные test lists/ignored membership для затронутых targets и baseline размеры. Raw списки не печатать в prompt целиком; отчёт содержит totals, различия и ссылки. Сначала проверить prerequisites/resource envelope из `AGENT_RUNBOOK.md`; не запускать одновременно Cargo/capture в одном target.
+Перед переносом сверить Git/diff и test discovery/ignored затронутых targets, не трогать чужие изменения. Исторический PASS не заменяет текущие checks; ресурсы/параллелизм — по [TEST_PLAN](../TEST_PLAN.md), без обязательного task handoff.
 
 **Разведка:** можно выдать три параллельных read-only задания на одном base: UI state/render; runtime/application/storage; test/harness/path consumers. Ответ каждого: файлы и owner symbols, зависимости/visibility seams, конкретные риски, target/filter. Не давать всем весь spec/source/evidence и не возвращать полные transcripts. Coordinator проверяет швы и один изменяет worktree; новая multi-worktree write policy не вводится.
 
@@ -170,21 +166,15 @@ mod tool_lifecycle;
 
 **Контекстный smoke:** по карте провести read-only разведку двух обычных следующих задач — таб hover/animation и runtime DCP projection. Зафиксировать достаточный read-set и ближайшие tests. Они должны находиться без загрузки 17k app/tests monolith, но все реальные зависимости разрешено читать. Это qualitative навигационная проверка, не обещание фиксированного token savings. Записать каждый остаточный >5k файл с причиной/следующим швом; отсутствие строки исключения не заменять молчаливым игнорированием warning.
 
-### R7 — qualification и closeout
+### R7 — проверка переноса
 
-Полный gate выполняется на реальном host после всех moves. Придерживаться `AGENT_RUNBOOK.md`: default `CARGO_BUILD_JOBS=3`, `RUST_TEST_THREADS=2`, один Cargo процесс за раз, owned disk TMPDIR, resource checks; не делать `cargo clean`/toolchain upgrades и не покупать paid runs ради файлового распила.
+Integration gate и resource policy — [TEST_PLAN](../TEST_PLAN.md). Один Cargo owner, owned disk TMPDIR; без `cargo clean`, toolchain upgrades и paid campaigns ради раскладки.
 
 ```sh
-cargo fmt --all -- --check
-cargo test --workspace --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo build --workspace --locked
-cargo build --workspace --release --locked
+bash scripts/test.sh
 python3 scripts/test_code_size.py
-python3 scripts/test_progress.py
 python3 scripts/test_check_docs.py
 python3 scripts/check_docs.py
-python3 scripts/progress.py check
 git diff --check
 ```
 
@@ -207,9 +197,7 @@ git diff --cached --check
 
 Последние большие diffs просматривать по одному owner и сохранять в bounded files; в prompt не выводить весь move одновременно. Rename/moved-block detection — помощь review, не доказательство behavioral equivalence. Не создавать tags, checksum files, копии всего дерева или rollback scripts; Git commits и narrow diff достаточны для provenance. Rollback при необходимости — отдельный reviewed revert своих commits, не reset чужого worktree.
 
-`evidence/T52/report.md` содержит фактические Result/Checks/Risks/Next, исходный и implementation Git commits, выполненные R-срезы, before/after table, list/ignored mapping summary, APIs/ownership review, commands/exits, ARCH01–ARCH05 с PASS/FAIL/NOT_RUN и remaining warnings. Уложить report в существующий лимит 16 384 UTF-8 bytes; большие списки/логи отдельно, без обязательного чтения при каждом resume. `finish` utility проверяет структуру, а не истинность утверждений.
-
-Closeout: implementation commit уже существует → report + factual note → `python3 scripts/progress.py finish --note <note> --evidence evidence/T52/report.md` → review/closeout commit → обычный разрешённый push. Затем, при разрешённом продолжении и без настоящего blocker, `start T44`; продолжить прежний незавершённый feature slice. Нельзя маркировать T44 done, менять её frozen acceptance или считать product READY по результату этого рефакторинга.
+Результат сообщается в ответе с фактическими checks/ограничениями, без report/finish/closeout. Раскладка не закрывает другие требования и не означает product READY.
 
 ## Критерий результата
 

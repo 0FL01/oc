@@ -1,5 +1,8 @@
 # Goal: canonical completed transcript
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
 Source: owner instructions of 2026-10-18; GOAL.md A01/A02/A08/A10
 Last updated: 2026-10-19
@@ -10,13 +13,6 @@ Finishing a primary or child response does not erase previously admitted tool
 arguments or canonical assistant text from its accessible history. Remove the
 aggregate turn preview policy responsible for this loss, and qualify the affected
 transition against the pinned OC2 TypeScript reference.
-
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and Primary
-Evidence. Work on the smallest unresolved outcome. Do not add requirements from
-reviews, tests, tools, speculative risks, or optional source text. Finish when every
-required outcome is resolved and affected constraints remain satisfied.
 
 ## Frozen Contract
 
@@ -33,10 +29,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: focused storage replay/window regression above the former
     64 KiB threshold; actual root and selected-child completion/reopen episodes.
   - Status: verified
-  - Evidence: red late-input regression at base a8a3d28c is green; whole-part
-    UTF-8 windows, normalized arguments, large text/reference and immutable replay
-    regressions pass. Source-qualified canonical-05 passes all ten actual stages
-    in both binaries, including the public-reasoning tail and cold reopening.
 - R2: visual parity for this completion/history bug family.
   - Source: owner: "нам нужен визуальный паритет с oc2 ts" and "никаких костылей".
   - Acceptance: affected populated labels, grouping/expansion, blank rows, terminal
@@ -46,12 +38,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: existing actual-binary full styled-cell/PNG/cursor capture
     pipeline, frozen reference provenance, focused before/after/reopen episodes.
   - Status: verified
-  - Evidence: canonical-05 affected tool-row cells have zero styled-cell differences
-    at seven comparable root/child stages (four complete 120-cell member rows each).
-    Real error expand/recollapse, reasoning-tail traversal, 80×24 child resize and
-    prompt/composer cursor checks pass. All full-frame grid/PNG comparisons remain
-    unmasked and DIFFERENT: real timings/error data and the pre-existing child-input
-    bootstrap difference are not rewritten or claimed as whole-product parity.
 - R3: verified and delivered implementation and debug binary.
   - Source: owner: "коммит пуш, билд дебаг билда"; AGENTS.md and A01.
   - Acceptance: relevant regressions and full offline gate pass, reviewed cohesive
@@ -59,13 +45,6 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: targeted checks, bash scripts/test.sh, Git commit/delivery
     facts and cargo build -p oc2 --bin oc2 --locked.
   - Status: verified
-  - Evidence: full offline gate 04 passes fmt, strict Clippy, 2,105 tests (12 existing
-    skips), doctests, normal debug build/help/version. Test execution 371.977 s;
-    total 689.98 s includes 265 s test compilation and 42.61 s Clippy build.
-    Implementation b1c2b529729fdc370c97cf1e225fd1e49ad86219 is pushed to verified
-    origin/master and independently confirmed by ls-remote. Post-commit normal
-    debug build passes in 0.34 s; target/debug/oc2 contains debug_info, not stripped.
-
 ### Constraints
 
 - Keep genuine producer per-result metadata/output limits, security validation,
@@ -84,42 +63,6 @@ required outcome is resolved and affected constraints remain satisfied.
 - Fix hypothetical duplicate events or unrelated cancellation/failure lifecycle
   asymmetries without an in-scope reproduction.
 - New generic paging framework, persistent store, dependency or renderer.
-
-## Change Envelope
-
-- Target: durable transcript serving and its direct root/child history consumers.
-- Expected owners: adapter storage/history/application/live snapshot; core query
-  DTOs if needed; TUI history/live/window/renderer and binary history request paths;
-  nearest unit/integration/PTY fixtures and existing tui_capture pipeline.
-- Minimal optional cursor/page changes are allowed: current message-sequence paging
-  cannot recover rows evicted inside a retained message (history.rs enforce and
-  tui_cmd history paging). This is a direct R1 blocker, not a new product feature.
-- Allowed artifacts: source/tests, current execution contract and factual evidence.
-  No historical evidence/golden rewrites, crops/masks or relaxed baselines.
-
-## Current Checkpoint
-
-- Closed: R1/R2/R3. No implementation checkpoint remains.
-- Evidence: evidence/T70/report.md, final-source canonical-05, offline gate 04 and
-  verified implementation delivery b1c2b529729fdc370c97cf1e225fd1e49ad86219.
-
-## Current State
-
-- Resolved: R1/R2/R3, affected invariants and reviewed diff scope.
-- Last relevant evidence: full offline gate 04 passes all 2,105 tests, fmt, strict
-  Clippy, doctests and debug build/help/version. Canonical-05 completes all ten
-  stages in both binaries: 86,565 public bytes per
-  source, exact native hashes, nine real tools/seven HTTP requests per origin and
-  unchanged settled RAW after cold reopen. Seven tool-row comparisons each have
-  zero differences. Full-frame comparisons remain DIFFERENT, not global pixel PASS.
-- Blocker: none. Owner-authorized key use resolves the HTTPS credential prerequisite;
-  the key contents are never inspected or printed.
-- Gate checkpoint: 371.977 s test execution / 689.98 s total, not a warmed gate:
-  test compilation takes 265 s and Clippy 42.61 s. Only UI07 exceeds 30 s (32.500 s),
-  within its already approved 40 s measurement contract. No thresholds changed.
-- Delivery: implementation b1c2b529729fdc370c97cf1e225fd1e49ad86219 is on origin/master;
-  separate ls-remote matches. Debug ELF is ready; no running owner was manipulated.
-- Next: none for T70. T44/T61 and whole-product readiness remain independent.
 
 ## Material Decisions
 
@@ -160,39 +103,3 @@ required outcome is resolved and affected constraints remain satisfied.
   production shutdown change. The 681.06 s first run included 280 s compilation
   and 382.123 s tests; its only test above 30 s was the approved UI07 window
   (32.731 s, within 40 s), not a new slow-test exception.
-
-## Checkpoint History
-
-- 2026-10-19: R1 continuation review found a partial turn must stay at the page
-  edge: earlier messages before its missing prefix can make edge cursors skip or
-  misorder the prefix. Verify both directions through the application owner.
-- 2026-10-19: the correctly Location-bound owner regression reproduces four rows
-  instead of the contiguous three-row tail. Root/child pages now stop at partial
-  turns; forward message traversal starts at part zero. The original aggregate
-  API and RAW stay unchanged. This case, UTF-8 continuation and the unchanged
-  clipboard deadline/cancel/reap regression pass 3/3 in 2.547 s.
-- 2026-10-19: full gate 03 has 2,103 passes and one existing clipboard test failure
-  (expired deadline races immediate helper EOF). Permit the smallest correction in
-  clipboard/read.rs; keep the deadline/cancel/reap test and all bounds unchanged.
-- 2026-10-19: HTTPS push preflight has no credential and no gh client. The owner
-  subsequently authorizes ~/.ssh/gl for execution-only Git authentication to the
-  exact configured origin. Keyed ls-remote succeeds; no key/config contents are read
-  and no persistent Git configuration is changed.
-
-- 2026-10-18: contract frozen before implementation; no checks claimed yet.
-- 2026-10-18: red producer regression and actual failing native completion obtained;
-  TS passes the controlled root/child/cold-reopen graph. Initial interrupted Cargo
-  compile left an incremental linker failure; a non-incremental rebuild passed
-  linking and reached the expected failing assertion. Target/dev ELF were not cleaned.
-
-## Completion
-
-- Resolved outcomes: R1/R2/R3, evidence/T70/report.md.
-- Checks: final offline gate 2,105 passed / 12 existing skips; actual pinned pair
-  completes ten stages per origin and all 3,360 compared member cells agree.
-- Delivery: b1c2b529729fdc370c97cf1e225fd1e49ad86219 pushed and remote-verified;
-  normal post-commit debug build succeeds.
-- Constraint/diff check: RAW and per-result/security/resource guards preserved,
-  no migration/new store/owner restart/live campaign, no broadened paused scope.
-  Unmasked full-frame differences are explicitly retained, not called global parity.
-- Final status: complete.

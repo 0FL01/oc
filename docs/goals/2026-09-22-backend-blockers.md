@@ -1,5 +1,8 @@
 # Backend blockers after v2.0.12 audit
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: active (integration permission resolved; T27 engineering/live remains open)
 Source: owner instruction 2026-09-22: document and iteratively fix blockers/bugs;
 original handoff excluded T44 (another agent owned it). Owner approval 2026-09-27
@@ -61,71 +64,10 @@ second active task. Shared rank helper, no competing `names.sort()` path or glob
 sort; source discovery allowlist/validation and provider wire unchanged. No new task,
 store, dependency, paid campaign, execution status or retroactive PASS.
 
-## Iteration and done
-
-Document contract -> reproducing test -> smallest implementation -> targeted tests
--> affected workspace gates -> review. R1–R4 require passing evidence; R5 requires
-an honest, reachable remaining plan (implementation of all T45 is not claimed).
-Record a proven external live prerequisite separately from offline completion.
-Do not infer an unavailable credential without checking allowed prerequisites.
-
-## Historical checkpoint (2026-09-22; retained as executed)
-
-Base HEAD `15719e9`; backend code/tests/docs are uncommitted, no push. T44 task,
-state, leaves, spec, TUI source/tests/evidence remain unchanged. Shared generated
-progress views reflect registry changes only; no task was marked done.
-
-- R1: backend/runtime/binary verified, including shared budget for title and child;
-  integration blocked at three protected T44 tests. `shell.rs` fixture sets
-  `CatalogSnapshot.variant=None` but expects `low` at lines 1155/1179/1194. The
-  no-overlay contract correctly removes this unselected variant. Returning the
-  wrong implicit variant, fabricating a DTO label, test-only backend behavior or
-  skipping these tests is not an acceptable fix. Only the T44 owner may align
-  its fixture/expectations with the intentional contract change.
-- R2: verified targeted and combined backend checks. Ordered resource policy,
-  effective/restored primary and inherited child constraints, literal-star deny
-  regression, hidden/disabled metadata. `evidence/T43/backend-permissions.md`.
-- R3: verified targeted and combined backend checks. Structured/textual resources,
-  bounded authorized guidance, successful argv-secret redaction, exact structured
-  error codes instead of keyword inference. `evidence/T46/backend-parity.md`.
-- R4: registry/validator/harness offline repairs verified. Live remains NOT_RUN;
-  not missing credentials. Read-only prerequisite inspection found product root
-  overlaps excluded authoring config, fixture lacks coding/search grants, and no
-  verified durable 24-generation/4-search campaign enforcement. Harness rejects
-  external execution before discovery/generation until that engineering prerequisite
-  exists; five-step/time bounds alone are not the authorized envelope. This safety
-  gate is not a claim that T27 is runnable/complete. `evidence/T27/backend-harness.md`.
-- R5: verified plan-only: T43 prerequisite ownership clarified; T45 reachable
-  without circular done-dependency; full remaining orchestration is still pending.
-
-The external closure blocker is the explicit lack of permission to modify T44's
-three stale assertions. The live harness enforcement gap is recorded separately as
-unfinished engineering, not mislabelled as unavailable credentials or external quota.
-No full-workspace PASS, task finish, READY or full upstream parity is claimed.
-
-## Integration update and historical handoff
-
-Resume update 2026-09-22: owner explicitly resumed T44 and authorized incorporating
-this backend delivery. The T44 owner corrected its fixture to select `low`
-explicitly and added absent-variant and actual PTY named-none/Default regressions.
-Fresh full workspace now passes 488/0/5; fmt/clippy/build/docs/Python checks pass.
-See `evidence/tui/recovery-v04/integration-checkpoint.md`. The above blocked report
-describes the original backend handoff and is retained, not rewritten as a PASS.
-This resolves its protected-assertion permission blocker, not T27 engineering,
-live authorization/config isolation, T45 or MCP remaining scope.
-
-Combined evidence and exact checks: `evidence/T47/backend-integration.md`.
-The original next integration action belonged to the T44 owner: make the render
-fixture select `low` explicitly if that is what the geometry case intends, or
-expect no variant for `None`; then run unchanged full workspace gates. At that
-original handoff this agent did neither because the owner forbade any T44 change.
-Independent backend repairs and their local regressions were preserved in the worktree.
-
-## Current checkpoint — approved canonical effort plan (2026-09-27)
+## Canonical effort ordering
 
 R6/VAR01 remains pending/NOT_RUN; earlier R1 evidence does not qualify ordering.
-T44 is still active, T47 todo; do not start/finish another journal task for plan delivery.
-Implement independently reviewable slices:
+Behavioral cases:
 
 1. Freeze nearest effective variants fixtures: permutations/subsets/disabled, reserved
    default vs named none, effort/name conflicts, absent vs unknown effort, case/whitespace,

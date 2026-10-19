@@ -1,6 +1,9 @@
 # Goal: strict OpenCode 2 key allowlist (no OpenCode 1 vocabulary)
 
-Status: done locally 2026-10-16 — see evidence/T66/report.md
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
+Historical implementation: 2026-10-16. Current source checks follow TEST_PLAN.
 Source: owner request 2026-10-16: «выкинуть из код базы поддержку легаси пути и оставить
 только oc2 и исправить всё остальное»; owner chose «V1-детектор → V2-allowlist».
 The owner converts `~/.config/opencode/*` himself; the agent does not edit it.
@@ -57,16 +60,3 @@ No V1 migration, warn-and-ignore mode, replacement hints, config rewrite or edit
 the owner's `~/.config/opencode`. Values and secrets are never printed. The allowlist
 is stricter than TS (`onExcessProperty: "ignore"`): an unknown future key fails
 explicitly — a declared fail-closed divergence.
-
-## Change Envelope
-
-`crates/oc-adapters/src/config/{admission.rs,admission_tests.rs}` (replacing
-`legacy.rs`), `config.rs`, `config/mcp.rs`, `composition.rs`, `composition/catalog.rs`,
-`defs.rs`, `permissions.rs`, `oc-core/src/queries.rs`, `oc-tui/src/shell.rs`,
-`models_dev.rs` (R5), affected tests, `opencode.json`, `examples/opencode.jsonc`,
-docs and SKILL.md.
-
-## Current checkpoint
-
-Done locally 2026-10-16 (evidence/T66/report.md). The owner converted
-`~/.config/opencode` himself (commit `bcec58b` in that repository).

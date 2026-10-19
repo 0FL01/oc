@@ -7,7 +7,7 @@ if command -v cargo-nextest >/dev/null; then
 elif [[ -x .local/tools/cargo-nextest ]]; then
     nextest=(.local/tools/cargo-nextest nextest)
 else
-    echo 'cargo-nextest is required; see docs/AGENT_RUNBOOK.md.' >&2
+    echo 'cargo-nextest is required; see docs/TEST_PLAN.md.' >&2
     exit 1
 fi
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-$(getconf _NPROCESSORS_ONLN)}"

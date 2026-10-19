@@ -1,5 +1,8 @@
 # Goal: native V2 provider and permission semantics
 
+> Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
+> Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+
 Status: complete
 Source: owner plan 2026-10-15, sections1–5 and done/check/scope clauses; explicit
 instruction to pause T44, implement this plan, commit/push, then resume TUI parity.
@@ -19,15 +22,6 @@ ordinary user-permission interpretation in pinned TS and Rust, without a second
 Rust-specific cache switch. This is the specified configuration subset, not full
 application, built-in-agent or TUI parity. V1 remains fail-closed.
 
-## Execution Directive
-
-Complete the frozen Required Outcomes using the listed Change Envelope and
-Primary Evidence. Work on the smallest unresolved outcome. Do not add requirements
-from reviews, tests, tools, speculative risks, or optional source text. Finish
-when every required outcome is resolved and affected constraints remain satisfied.
-Then publish the verified new version and perform the owner's explicit return to
-the separately frozen T44 objective.
-
 ## Frozen Contract
 
 ### Required Outcomes
@@ -43,10 +37,6 @@ the separately frozen T44 objective.
   - Primary evidence: existing legacy/config/composition tests plus positive V2
     and negative V1 synthetic fixtures with pre-effect assertions.
    - Status: verified
-   - Evidence: shared13 schema cases within TS79/192 expectations; native config44
-     PASS. Actual binary accepts opaque setCacheKey JSON and starts the positive
-     MCP/provider controls; five V1 key families fail legacy_config with zero MCP/
-     provider effects and no canary disclosure. Strict workspace Clippy PASS.
 - R2: provider defaults then model compatibility overrides.
   - Source: owner section2; pinned `config/plugin/provider.ts`, `model.ts`
     (`Model.snapshot`), `schema/src/model-compatibility.ts`.
@@ -58,9 +48,6 @@ the separately frozen T44 objective.
   - Primary evidence: shared synthetic V2 cases for both boolean directions,
     missing values and cross-document overrides, checked against pinned TS.
   - Status: verified
-  - Evidence: shared21 binding cases and24 actual protocol requests, including
-    cross-document model false with an API-model alias; corrected TS pin45 tests
-    PASS. See evidence/T65/report.md and R3's cache/selection checks.
 - R3: V2 compatibility alone controls protocol-specific prompt cache-key behavior.
   - Source: owner section3; pinned `ai/src/protocols/shared.ts` and `openai-chat.ts`.
   - Acceptance: remove `settings.setCacheKey` as a runtime gate; preserve
@@ -72,9 +59,6 @@ the separately frozen T44 objective.
   - Primary evidence: exact captured synthetic Responses/Chat/Messages request
     JSON and affinity headers for absent/false/true/cache-none cases.
   - Status: verified
-  - Evidence: shared8 cache cases ×3 protocols, TS45/95 expectations overall;
-    native context3, provider79, config42, actual-binary Responses4 and strict
-    adapter/all-target Clippy PASS. No runtime setCacheKey gate remains.
 - R4: provider-only transport settings and separate native timeout budgets.
   - Source: owner section4; pinned `core/src/provider.ts::modelSettings` and actual
     HTTP/WebSocket protocol consumers.
@@ -88,15 +72,6 @@ the separately frozen T44 objective.
   - Primary evidence: binding overlay cases and controlled local servers delaying
     headers/chunks/frames, total timeout and cancellation; no real credentials.
   - Status: verified
-  - Evidence: shared TS54/167 expectations, native CFG16 four targeted tests;
-    base/variant HTTP/transport/raw-WS budgets, controlled independent headers/body,
-    disabled-deadline cancellation, all-protocol overall deadline with phase
-    budgets disabled, WS30-minute default/false/numeric frames and cancellation.
-    Provider82/1existingignored, config43, binary Responses4 and strict workspace
-    all-target Clippy PASS. Reproduced overall timer restarting after delayed
-    dispatch (701ms for400ms), fixed by retaining the absolute body deadline;
-    all-protocol partial-output/one-attempt guards pass. Explicit SDK WS idle
-    overrides and native bounded connect/resource guards are retained.
 - R5: ordered ordinary permission overrides without weakening real authorities.
   - Source: owner section5; pinned `config/plugin/agent.ts`, `permission.ts`
     (`evaluate`, `configured`, `evaluateInput`).
@@ -111,10 +86,6 @@ the separately frozen T44 objective.
   - Primary evidence: shared ordered-rule cases plus saved-grant/config-deny,
     child-parent authority, sandbox/endpoint and existing security regressions.
   - Status: verified
-  - Evidence: shared TS66/179 expectations; native shared rule/agent cases and
-    saved-grant, child/independent/Plan/Explore/scalar guards5 PASS, permissions8,
-    child integration41, strict binary Responses4 and workspace all-target Clippy
-    PASS after the scalar-ceiling fix; earlier broader adapter library801/1ignored.
 - R6: qualify the specified subset with shared synthetic inputs and retain guards.
   - Source: owner checks and unchanged/non-goal sections.
   - Acceptance: same covered V2 documents and expected results used for TS and
@@ -127,15 +98,6 @@ the separately frozen T44 objective.
     `cargo test --locked -p oc2`, `cargo test --locked --workspace --no-fail-fast`,
     fmt/strict Clippy and affected native build gates.
   - Status: verified
-  - Evidence: first0.2.0 workspace gate1987 PASS/11 FAIL/12existingignored;
-    six binary targets exposed implicit fixture permissions and one VIS31 lag
-    sample. Explicit intended fixture permissions restore five targets63 PASS
-     and S07; unchanged VIS31 also passes its single-test rerun with zero lag.
-     Explicit package gates pass: adapters1086/5existingignored and binary333/
-     7existingignored. Fresh normal two-thread workspace:1998 PASS/0 FAIL/
-     12 unchanged opt-in ignored across46 targets, including VIS31/S07/VIS38.
-     Final fmt/strict workspace Clippy/debug+release/CLI and latest extracted
-     four-package archive verification PASS; no test/guard waiver.
 - R7: deliver this configuration slice, then resume TUI after publication R8.
   - Source: «Потом коммит пуш, и продолжить работу с паритетом TUI».
   - Acceptance: reviewed configuration implementation/evidence committed and
@@ -145,11 +107,6 @@ the separately frozen T44 objective.
   - Primary evidence: implementation/closeout commits, ordinary push and journal
     transition; T44 resume checkpoint.
    - Status: verified
-   - Evidence: implementation/checkpoint feeea77fc and publication receipt6e06a150c
-     pushed normally. After installed-registry proof, journal finish T65/start T44
-     succeeded and stash1087067b3025322885c6a964579d80cea4931b06 was applied once,
-     without conflict or deletion. The return checkpoint records the pending TUI
-     work separately from the qualified published configuration snapshot.
 - R8: bump and publish the completed configuration implementation to crates.io.
   - Source: subsequent explicit owner publication authorization.
   - Acceptance: choose an appropriate unpublished version for exposed API changes,
@@ -163,16 +120,6 @@ the separately frozen T44 objective.
   - Primary evidence: existing T64 publication workflow reused for the new version,
     real package/publish receipts, registry metadata and isolated install output.
    - Status: verified
-  - Evidence: all four workspace packages/internal requirements and the lock agree
-    on0.2.0; no third-party lock changes. Package inventories30/325/252/85 retain
-    metadata/licenses and exclude private artifacts. Workspace publication dry run
-    builds all four extracted packages against staged registry dependencies. A
-    single actual publication PASS after pushed checkpoint feeea77fc. Public
-    metadata confirms all four0.2.0 versions unyanked/by0FL01 with correct licenses
-     and only the oc2 executable. Isolated crates-io installation passes; actual
-     installed ELF version/help/smoke and canonical V2 headless/cache/affinity/
-     persisted-session/no-replay checks pass with fresh HOME and empty PATH.
-
 ### Constraints and non-goals
 
 - Four native Rust crates; no JS production host, V1 migration/fallback, V1 plugin
@@ -183,79 +130,6 @@ the separately frozen T44 objective.
   RAW/effect ownership, child authority and data-root/process safety.
 - No full TUI/storage/service API/built-in-agent parity claim; shared service
   remains descoped. T44 is a separate paused objective, resumed after delivery.
-
-## Change Envelope
-
-- `oc-adapters/src/config.rs`, `config/{providers,request_bindings,legacy}.rs` and
-  nearest tests; `defs.rs`, `permissions.rs`, `composition.rs`/`composition/catalog.rs`;
-  `provider.rs` plus `provider/{context,chat,websocket,timeout_tests}.rs` and direct
-  protocol consumers; existing permission/config/provider integration targets.
-- Shared synthetic fixtures/test-only pinned-TS oracle runner, current CONFIG/
-  PROVIDER documentation and the existing journal/task registry as necessary.
-- Workspace/package Cargo manifests/lock and publication metadata, archive and
-  isolated-install checks as in T64; no new publishing framework or release/tag.
-- No new store, service, scheduler, production SDK/dependency or general
-  abstraction. Expand only for a demonstrated blocker to these R outcomes.
-
-## Current Checkpoint
-
-- Resolved: R1–R8. No further substantive configuration work is authorized by this
-  completed goal. All four0.2.0 packages are published and the registry-installed
-  ELF passes its actual checks. Do not repeat publication.
-- Journal now owns active T44; its parked WIP was restored once. Continue that
-  separately frozen objective at its actual return checkpoint, not by expanding
-  or reopening this completed configuration subset.
-
-## Current State
-
-- T44 delivered through `8a68dde06`, then paused for this configuration slice.
-  After publication/install verification, the journal resumed T44 and its WIP was
-  restored once from stash `1087067b3025322885c6a964579d80cea4931b06`; the stash
-  remains preserved. Current continuation is
-  `evidence/T44/configuration-return-20261016.md`; the pause receipt remains history.
-- Old TUI pin/stale `v2` branch lack required configuration fields; initial f16
-  established compatibility/cache behavior, then R4's explicit300000ms defaults
-  selected the exact pre-fifteen-minute-change revision above. R2/R3 are verified:
-  same21 compatibility cases and24 protocol cache requests, current TS45/95
-  expectations, native context3/provider79/config42/Responses4/strict Clippy PASS.
-  Request cache:none survives captured model selection, affinity is independent,
-  and minimal Messages requests retain absent fields rather than nulls.
-- R4 is verified: actual ModelResolver service and native captured bindings agree
-  on provider-only settings; independent HTTP defaults/false/cancel and separate
-  WS frame policy pass real local-server tests. Shared TS now54/167 expectations;
-  provider82/1existingignored, config43, binary Responses4 and strict workspace
-  all-target Clippy pass. SDK deadline-field changes join the authorized version
-   bump, not a new JSON switch.
-- R5 is verified against TS66/179 expectations, native guards5, permissions8,
-  child41, strict binary4 and workspace Clippy after the reviewed scalar-ceiling
-  fix. Broader adapter library801/1ignored passed before that fix. Ordinary config
-  phases are separate from native/programmatic/captured-parent constraints.
-   Final configuration gates and publication now pass below.
-- R1 is verified: shared canonical schema cases distinguish malformed values from
-  valid unsupported capabilities, opaque settings remain nonlegacy; native
-  config44, actual positive/negative binary controls and strict workspace Clippy
-  pass. Pinned TS now79/192 expectations. No V1 migration or new capability added.
-- Version preparation: all four packages and six internal requirements are0.2.0,
-  with only the four local lock entries updated. Metadata/licenses and complete
-  package file inventories pass; no secrets/private databases enter packages.
-  All four extracted packages passed latest publication dry-run verification with
-  staged registry dependencies. Actual publication and public0.2.0 metadata now
-   pass after pushed checkpoint feeea77fc; isolated registry installation and
-   actual installed ELF checks pass. See evidence/T65/closeout.md.
-- R6 first aggregate run exposed old implicit fixture restrictions after the
-  required TS agent-default change. Explicit deny-all plus intended read/Shell/MCP
-  allowances restore five targets63 PASS; S07's explicit read-only actor passes
-  unchanged resource/equal-history guards. Unchanged VIS31 passes a single-test
-   rerun (both rates, all1031 events, zero lag), then the normal complete run below.
-   No queue, timing, resource or exact-wire assertion was relaxed.
-- Explicit final package checks pass: adapters1086/0/5existingignored across19
-  targets, binary333/0/7existingignored across23 targets. Fresh serialized workspace
-  also passes1998/0/12existingignored across46 targets with a separate isolated HOME
-  and the unchanged two-thread policy. Final strict workspace Clippy,
-  debug/release/CLI and latest four-package archive verification also pass.
-- Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
-  tests/strict Clippy, debug/release/help. These predate this configuration work.
-- Evidence: `evidence/T65/report.md`. No external blocker demonstrated.
 
 ## Material Decisions
 
@@ -296,16 +170,3 @@ the separately frozen T44 objective.
 - Ordinary configured precedence and saved grants must both satisfy R5; inspect
   the pinned configured/evaluateInput split instead of flattening real authority
   restrictions or letting a saved grant bypass configured deny.
-
-## Completion
-
-- Resolved outcomes: R1–R8 verified, no pending/blocked requirement.
-- Primary evidence: `evidence/T65/report.md`, `publication.md`, `closeout.md` and
-  the actual T44 return checkpoint. Shared TS79/192 expectations; native package
-  1086/333 passed and workspace1998/0/12 existing opt-in ignored; strict/build/
-  archive checks and actual registry-installed ELF behavior pass.
-- Constraint/diff check: four native crates; no V1 migration, real provider
-  credentials, user-config edits, new runtime dependency/service/store, tag or
-  release. Independent native authority/cancellation/data/resource guards remain.
-- Final status: complete. Published source/checkpoint feeea77fc; subsequent work
-  belongs to the resumed T44 goal, not a full-product READY claim.

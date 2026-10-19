@@ -2,7 +2,6 @@
 /target/
 /.local/
 /evidence/raw/
-/progress/.lock
 .env
 .env.*
 !.env.example

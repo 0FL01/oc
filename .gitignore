@@ -3,7 +3,6 @@
 /.local/
 /evidence/raw/
 /evidence/T53/.go-live.lock
-/progress/.lock
 .env
 .env.*
 !.env.example
@@ -16,7 +15,7 @@
 __pycache__/
 *.pyc
 
-# Evidence run artifacts — keep reports/receipts, donor sources and live fixtures.
+# Evidence run artifacts — keep proofs/receipts, donor sources and live fixtures.
 # Tracked intermediates were removed from the index; these rules prevent re-adding.
 evidence/**/*.log
 evidence/**/*.gz

@@ -104,16 +104,8 @@ Native `/compact` — отдельный механизм, не обязател
 Отключение compression не отменяет resource admission: если безопасное
 продолжение не помещается, нужен честный отказ, а не silent truncate.
 
-**Статус, не обещание реализации:** native DCP и общий `enabled` уже имеют
-кодовые owners. Снятие successful-step round stops и bounded closed-current-task
-RAW/HOT seam реализованы и отдельно квалифицированы:
-[round removal](../evidence/T45/round-removal-short.md),
-[current-task RAW/HOT](../evidence/T45/hot-raw.md). Это не whole-past DCP11/A10,
-завершение Long Horizon или всей T45. Whole-past renewal, обновление task/pack HOT
-внутри незавершённой задачи и оставшиеся off/manual/API controls, включая
-`compress.enabled`, ещё требуют реализации/qualification. Точный config-контракт и gaps —
-[DCP controls](DCP.md#compression-switch-and-effective-config-controls--t45r9dcp12-approved-2026-10-02-pending).
 Приёмка Long Horizon требует измеренных bounded RAM/checkpoint/I/O при
 растущем прошлом и одинаковом hot state; прохождение 17 steps доказывает
-только снятие старого round stop. Актуальное исполнение — `GOAL.md` и
-`progress/STATE.json`, не этот документ.
+только снятие старого round stop. Это свойства продукта, не требование вести
+development journal. Открытые qualifications — [GOAL](../GOAL.md), config-контракт —
+[DCP controls](DCP.md#compression-switch-and-effective-config-controls--t45r9dcp12-approved-2026-10-02-pending).
