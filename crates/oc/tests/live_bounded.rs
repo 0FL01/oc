@@ -363,6 +363,7 @@ struct Peer {
     url: String,
     requests: Arc<Mutex<Vec<Value>>>,
     discoveries: Arc<AtomicUsize>,
+    error_release: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     handle: Option<std::thread::JoinHandle<()>>,
 }
@@ -399,8 +400,16 @@ impl Peer {
         let captured = requests.clone();
         let discoveries = Arc::new(AtomicUsize::new(0));
         let discovery_count = discoveries.clone();
+        let error_release = Arc::new(AtomicBool::new(status.is_none()));
+        let released = error_release.clone();
         let handle = std::thread::spawn(move || {
+            let mut pending_error = None;
             while !stopping.load(Ordering::Relaxed) {
+                if released.load(Ordering::Relaxed)
+                    && let Some(mut socket) = pending_error.take()
+                {
+                    write_status(&mut socket, status.unwrap());
+                }
                 match listener.accept() {
                     Ok((mut socket, _)) => {
                         socket.set_read_timeout(Some(CALL_TIMEOUT)).ok();
@@ -417,19 +426,21 @@ impl Peer {
                             );
                             continue;
                         }
+                        let is_title = texts(&body)
+                            .iter()
+                            .any(|s| s.contains("Generate a short session title"));
                         captured.lock().expect("requests").push(json!({
                             "model": body["model"], "reasoning": body["reasoning"],
                             "max_output_tokens": body["max_output_tokens"],
-                            "is_title": texts(&body).iter().any(|s| s.contains("Generate a short session title"))
+                            "is_title": is_title
                         }));
                         let index = hits.fetch_add(1, Ordering::Relaxed);
                         if let Some(status) = status {
-                            let body = r#"{"error":"PRIVATE_DIAGNOSTIC_CANARY"}"#;
-                            let _ = write!(
-                                socket,
-                                "HTTP/1.1 {status} Offline\r\ncontent-type: application/json\r\nx-private-fixture: PRIVATE_DIAGNOSTIC_CANARY\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
-                                body.len()
-                            );
+                            if !is_title && !released.load(Ordering::Relaxed) {
+                                assert!(pending_error.replace(socket).is_none());
+                            } else {
+                                write_status(&mut socket, status);
+                            }
                             continue;
                         }
                         if retry_once && index == 0 {
@@ -457,10 +468,17 @@ impl Peer {
             url,
             requests,
             discoveries,
+            error_release,
             stop,
             handle: Some(handle),
         }
     }
+}
+
+fn write_status(socket: &mut TcpStream, status: u16) {
+    let body = r#"{"error":"PRIVATE_DIAGNOSTIC_CANARY"}"#;
+    write!(socket,
+        "HTTP/1.1 {status} Offline\r\ncontent-type: application/json\r\nx-private-fixture: PRIVATE_DIAGNOSTIC_CANARY\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).expect("fixture HTTP error response");
 }
 
 impl Drop for Peer {

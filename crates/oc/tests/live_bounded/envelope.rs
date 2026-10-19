@@ -453,7 +453,37 @@ fn bounded_native_r4_http_failure_reports_safe_actual_receipts() {
     let guard = Envelope::start(id.clone(), &targets.to_string(), true).unwrap();
     let fixture = Fixture::guarded("fixture/gpt-dry-run-model".into(), None, guard);
     fixture.restrict_r4();
+    // Main failure cancels automatic title work. Arrange a completed title
+    // receipt first: this case proves HTTP-error receipts, not cancellation's
+    // deliberately consumed/unknown reservations (covered by envelope tests).
+    let release = peer.error_release.clone();
+    let campaign = id.clone();
+    let title_receipt = std::thread::spawn(move || {
+        let until = Instant::now() + Duration::from_secs(5);
+        let observed = (|| -> Result<(), String> {
+            loop {
+                let state = inspect(&campaign)?;
+                if state["attempts"].as_array().is_some_and(|attempts| {
+                    attempts.iter().any(|a| {
+                        a["kind"] == "generation"
+                            && a["http_status"] == 400
+                            && a["outcome"] == "complete"
+                    })
+                }) {
+                    return Ok(());
+                }
+                if Instant::now() >= until {
+                    return Err("title HTTP receipt must precede main failure".into());
+                }
+                std::thread::sleep(POLL);
+            }
+        })();
+        // Never leave the native request held if observation itself fails.
+        release.store(true, Ordering::Relaxed);
+        observed.unwrap();
+    });
     let report = r4_report(&fixture);
+    title_receipt.join().unwrap();
     assert_eq!(report["status"], "non-success");
     assert_eq!(report["native_run_ok"], false);
     assert_eq!(report["native_error_code"], "unknown");
@@ -466,12 +496,17 @@ fn bounded_native_r4_http_failure_reports_safe_actual_receipts() {
         .collect();
     let actual = peer.requests.lock().unwrap().len();
     assert!(actual > 0);
-    assert_eq!(generations.len(), actual);
+    assert_eq!(
+        generations.len(),
+        actual,
+        "generation receipts: {generations:?}"
+    );
     assert_eq!(report["durable_envelope"]["counts"]["generation"], actual);
     assert!(
         generations
             .iter()
-            .all(|a| a["http_status"] == 400 && a["outcome"] == "complete")
+            .all(|a| a["http_status"] == 400 && a["outcome"] == "complete"),
+        "generation receipts: {generations:?}"
     );
     assert_eq!(report["durable_envelope"]["counts"]["mcp"], 0);
     assert!(codex.calls().is_empty() && crw.calls().is_empty() && unavailable.calls().is_empty());

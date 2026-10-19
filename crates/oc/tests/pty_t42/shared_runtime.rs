@@ -242,7 +242,16 @@ fn progress_after(fixture: &Fixture, label: &str, previous: usize) -> usize {
         }
         assert!(
             Instant::now() < until,
-            "no new {label} progress after {previous}"
+            "no new {label} progress after {previous}; turn outcomes: {:?}",
+            (|| -> rusqlite::Result<Vec<(String, String, Option<String>)>> {
+                let db = rusqlite::Connection::open_with_flags(
+                    fixture.data_dir().join("oc.sqlite"),
+                    rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+                )?;
+                db.prepare("SELECT session_id,status,substr(result,1,512) FROM turns ORDER BY rowid LIMIT 16")?
+                    .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+                    .collect()
+            })()
         );
         std::thread::sleep(POLL);
     }
