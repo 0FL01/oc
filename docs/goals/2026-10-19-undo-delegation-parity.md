@@ -1,6 +1,6 @@
 # Goal: undo и pending delegation — OC2 TS parity
 
-Status: active
+Status: complete
 Source: запрос пользователя «делай копию плана в цель и итеративно реализовать и коммит пуш»; исправленный план после параллельного аудита.
 Last updated: 2026-10-19
 
@@ -44,8 +44,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: исправленный план, часть C; последний запрос commit/push.
   - Acceptance: targeted checks, tooling checks, full offline gate и diff-check успешны; goal отражает evidence; свои commits доступны в verified origin/master.
   - Primary evidence: реальные команды/exit codes, commit IDs и remote HEAD.
-  - Status: in_progress
-  - Evidence: два full gates: fmt/clippy PASS, каждый nextest 2142 PASS / 1 source-move failure. Затем 7 same-environment diagnostic samples и workspace-feature targeted nextest PASS; failure-only read-only диагностика сохраняет исходный assertion/deadline/load. Финальный full gate ещё требуется.
+  - Status: verified
+  - Evidence: финальный `CARGO_INCREMENTAL=0 TMPDIR=/home/stfu/.cache/opencode-tmp/opencode bash scripts/test.sh` — PASS: fmt, strict clippy, nextest 2143 PASS / 12 existing skips (386.646s), doc-tests, locked build, help/version. Перед ним три targeted workspace-feature gate cases PASS; Python guard tests — 13 PASS. `git diff --check` PASS. Финальные test fixtures — `977f9b0bf`, remote origin/master подтверждён тем же SHA.
 
 ### Constraints
 
@@ -67,6 +67,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Pending: `oc-tui/src/{app,tools,messages}.rs`, `app/{live,transcript}.rs`, direct indexed hover/paint consumers и ближайшие tests.
 - Visual: существующие `scripts/tui_capture/{capture,composer}.mjs`, `composer_fixture.py` и direct fixture/config/bridge consumers, их tests; bounded gitignored artifacts.
 - R5 gate diagnostics: `crates/oc/tests/pty_t42/shared_runtime.rs` — только bounded read-only turn outcomes в failure message исходного progress assertion; не менять condition, deadline, workload или product SourceMove.
+- R5 HTTP-error fixture: `crates/oc/tests/live_bounded.rs::Peer::with_status` и `live_bounded/envelope.rs` — main error после наблюдённого completed title receipt; metadata-only failure diagnostics. Все исходные assertions, workload, deadlines, accounting и budgets сохранены; guard implementation не менялся.
 - Goal — этот файл. Нет новых runtime dependencies/services/stores/migrations/frameworks.
 
 ## Копия исправленного плана
@@ -102,16 +103,15 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ## Current Checkpoint
 
 - Closes: R5.
-- Smallest next action: финальный full offline gate с actionable failure-only SourceMove diagnostic, затем итоговый commit/push и closure check.
-- Expected evidence: full gate PASS и remote HEAD; R1–R4 evidence уже successful.
-- Stop or replan if: observed blocker требует выхода за envelope; не расширять scope из speculative audit findings.
+- Result: полный gate PASS; final test-fixture commit `977f9b0bf` опубликован, remote SHA подтверждён.
+- Next: нет; frozen objective закрыт, substantive work остановлена.
 
 ## Current State
 
-- Resolved: plan, R1 (`0232f6d17`) и pending implementation (`448f40d2e`) опубликованы; R2/R3/R4 actual visual component qualification PASS.
-- Last relevant evidence: `cargo test -p oc-tui --lib --locked` — 607 PASS (6.09s); `cargo test -p oc2 --test pty_t39 --locked lifecycle:: -- --test-threads=1` — 13 PASS; capture fixture tests — 12 PASS; comparator tests — 25 PASS; JS syntax и diff-check PASS. Cargo с `CARGO_INCREMENTAL=0`, без clean/target override.
-- Blocker: нет подтверждённого.
-- Next: финальный full gate; при source-move failure использовать turn outcomes для конкретной диагностики, не менять workload/deadlines/expectations и не объявлять R5 green по targeted rerun.
+- Resolved: R1–R5 verified; plan `74162b02e`, undo `0232f6d17`, pending `448f40d2e`, visual qualification `ed7164b39`, gate fixtures `977f9b0bf` опубликованы.
+- Last relevant evidence: full gate 2143 PASS; 607 TUI / 13 actual-binary lifecycle / 22 conversation / 12 capture fixture / 13 Python guard / 25 comparator tests PASS; JS syntax и diff-check PASS. Cargo с `CARGO_INCREMENTAL=0`, без clean/target override. Final binary byte-identical всем четырём successful paired captures; cursor equality проверена для 12 stage pairs.
+- Blocker: нет.
+- Next: нет; complete.
 
 ## Material Decisions
 
@@ -119,6 +119,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: audit found Linked-handoff/cache/first-paint/recovery/capture gaps; исправленный план выше является execution scope.
 - 2026-10-19: повторный full gate воспроизвёл SourceMove failure. Минимальное расширение R5 — actionable failure-only diagnostics существующего assertion, без изменения поведения теста/продукта. Visual evidence независимо от полного gate; окончательная приёмка требует оба результата.
 - 2026-10-19: owned 2.0.12 binary — scoped pending oracle (`2670273…`), не current `bc5ebf…` executable. Spinner/frame blobs совпадают; OpenTUI 0.5.10/0.5.17 различие остаётся явно указанным. Компонентный отступ 3 находится внутри session inset 2: actual global glyph column 5 и caption column 7 подтверждены TS source и обеими captures, без production adjustment.
+- 2026-10-19: R5 receipt failure captured: основной generation complete/400, параллельный title generation остаётся reserved после client cancellation, включая поздний snapshot. Это корректно по TEST_PLAN (unknown/reserved spent) и existing Python cancellation test. Минимальное расширение envelope — только `Peer::with_status` в `crates/oc/tests/live_bounded.rs` и HTTP-error fixture: задержать основную ошибку до title receipt, без изменения всех исходных assertions/нагрузки/deadlines и без product/envelope accounting changes.
 
 ## Checkpoint History
 
@@ -128,7 +129,12 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-19: R2/R3 implementation checkpoint — 607 TUI tests и 13 actual-binary lifecycle tests PASS; typed renderer, per-slot clock, Linked/cache/prepaint/permission cleanup и inert hover. Tooling prototype tests PASS; actual paired visual qualification ещё не выполнена.
 - 2026-10-19: первый full gate — 2142/2143 PASS; source-move progress case failed also in isolation, затем 7 diagnostic samples PASS. Временный диагностический diff полностью удалён; повторный gate без изменения deadlines/load/expectations. R4 tooling: 12 fixture + 25 comparator tests PASS, invalid-profile и PNG-analysis negative cases PASS; actual captures pending.
 - 2026-10-19: R2/R3/R4 complete — четыре actual paired runs static/animated, 120×40/80×24, exact normal/hover/inert-click cells+pixels и nonexecution/one-child PASS. Первый probe обнаружил ошибочное ожидание global inset; исправлен только probe по TS source. Full-frame comparators сохранили DIFFERENT; далее только R5.
+- 2026-10-19: третий full gate — source-move PASS, HTTP-failure accounting mismatch (journal 2 / peer 1). Минимальная R5 диагностика расширена только safe receipt failure message; guards/budgets и assertions неизменны.
+- 2026-10-19: R5 complete — title receipt/main error упорядочены в fake peer, исходные assertions сохранены; targeted 3/3 и полный gate 2143/2143 PASS. Test-only commit `977f9b0bf` pushed; closure сверила все R1–R5, scope/constraints и current-binary visual evidence.
 
 ## Completion
 
-- Final status: active.
+- Resolved outcomes: R1–R5 verified; closure check PASS.
+- Commands and artifacts: targeted suites и четыре paired episodes указаны выше; final `bash scripts/test.sh` и `git diff --check` PASS. Собран `target/debug/oc2`, SHA-256 `4b7167f8aa0188a7a1bc4739ce55d7a29aff4803ed6bf997af51912ebc97c2a8`, совпадает с sealed paired binaries.
+- Constraint and diff-scope check: без runtime dependency/schema/protocol/authority changes, без user-owner restart; original test assertions/deadlines/load и guard accounting сохранены. Scoped component parity подтверждён; unmasked whole-frame DIFFERENT не скрыт и global parity не заявлен.
+- Final status: complete.
