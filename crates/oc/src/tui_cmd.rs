@@ -1212,7 +1212,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     let mut input_pending = std::collections::VecDeque::new();
 
     loop {
-        let had_pending = state.has_pending_submission();
+        let had_pending = (
+            state.has_pending_submission(),
+            state.has_pending_model_commit(),
+        );
         state.questions.share_drafts(&loop_state.questions);
         let job_lanes = loop_state.job_lanes();
         let job_ready = loop_state.ready_job();
@@ -1258,7 +1261,12 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         finish_conversation(app, &mut state, &mut loop_state).await;
         finish_compaction_admission(&mut state, &mut loop_state).await;
         dirty |= sync_clipboard(&mut state, &mut loop_state).await;
-        dirty |= job_ready || had_pending != state.has_pending_submission();
+        dirty |= job_ready
+            || had_pending
+                != (
+                    state.has_pending_submission(),
+                    state.has_pending_model_commit(),
+                );
         if loop_state.reload_job.is_some()
             && loop_state.reload_painted
             && loop_state
@@ -1571,7 +1579,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         if dirty {
             deadline = Some(deadline.map_or(paint_at, |at| at.min(paint_at)));
         }
-        if state.has_pending_submission() || loop_state.has_jobs() {
+        if state.has_pending_submission()
+            || state.has_pending_model_commit()
+            || loop_state.has_jobs()
+        {
             let check = Instant::now() + FRAME_BUDGET;
             deadline = Some(deadline.map_or(check, |at| at.min(check)));
         }

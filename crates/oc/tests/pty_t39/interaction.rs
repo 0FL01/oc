@@ -375,6 +375,12 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
     // Keep the saved session valid while explicitly retiring the independent
     // Home draft through successful refresh; retained-tab reload guards remain.
     pty.send(b"\r"); // commit the existing session; Home keeps its own local draft
+    // The footer already shows the local draft. Wait for the actual receipt
+    // to enable departure rather than racing /new against the commit ACK.
+    pty.send(b"\x10New session");
+    wait_screen_row(&pty, "ctrl+x n", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Commands");
     pty.send(b"/new\r");
     wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
     for (phase, disabled) in [(2, false), (3, true)] {
@@ -2708,22 +2714,17 @@ fn aud30_pty_paste_resize_error_recovery() {
     let off = submit(&mut pty, "slow stream");
     std::thread::sleep(Duration::from_millis(300));
     pty.resize(100, 30);
-    // A session switch during a stream is explicitly refused, never silent.
+    // The read-only picker remains usable during accepted execution.
     pty.send(b"/sessions\r");
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
-    // The refused slash suggestion remains visible while its draft is editable;
-    // dismiss that overlay before checking that no session dialog opened.
+    wait_screen_row(&pty, "Sessions for project", DEADLINE);
     pty.send(b"\x1b");
     let start = Instant::now();
     while render_screen(&pty.snapshot())
         .rows()
         .iter()
-        .any(|r| r.contains("/sessions") && r.contains("Switch session"))
+        .any(|r| r.contains("Sessions for project"))
     {
-        assert!(
-            start.elapsed() < DEADLINE,
-            "slash overlay was not dismissed"
-        );
+        assert!(start.elapsed() < DEADLINE, "Sessions was not dismissed");
         std::thread::sleep(POLL);
     }
     assert!(
@@ -2732,7 +2733,6 @@ fn aud30_pty_paste_resize_error_recovery() {
             .iter()
             .any(|r| r.contains("Sessions"))
     );
-    pty.send(&[0x7f; 9]); // refused /sessions leaves the draft available for editing
     pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
 
     pty.send(b"\x03"); // Ctrl-C quits from idle

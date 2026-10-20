@@ -2053,7 +2053,8 @@ impl TuiState {
             .collect();
         for (turn, order) in self.window.notice_orders() {
             let Some(prompt) = tagged.iter().position(|(row, _, _)| {
-                row.role == "user" && row.message_id.as_deref() == Some(&order.accepted_prompt)
+                matches!(row.role.as_str(), "user" | "native_control")
+                    && row.message_id.as_deref() == Some(&order.accepted_prompt)
             }) else {
                 continue;
             };
@@ -2062,8 +2063,11 @@ impl TuiState {
                 .enumerate()
                 .skip(prompt + 1)
                 .find_map(|(i, (row, _, _))| {
-                    (row.role == "user" || row.role == "model_switch" || row.shell_notice.is_some())
-                        .then_some(i)
+                    (matches!(
+                        row.role.as_str(),
+                        "user" | "native_control" | "model_switch"
+                    ) || row.shell_notice.is_some())
+                    .then_some(i)
                 })
                 .unwrap_or(tagged.len());
             let own = |entry: &(HistoryRow, Option<usize>, bool)| {

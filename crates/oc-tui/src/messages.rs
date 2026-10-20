@@ -612,9 +612,12 @@ fn shell_leading_margin(rows: &[HistoryRow], index: usize) -> bool {
     // A direct command is the first visible session row; consumed RAW admission
     // anchors do not create a second leading spacer ahead of its BlockTool.
     !matches!(rows[index].role.as_str(), "shell" | "shell_input")
-        || rows[..index]
-            .iter()
-            .any(|row| row.role != "shell_input_delivered")
+        || rows[..index].iter().any(|row| {
+            !matches!(
+                row.role.as_str(),
+                "shell_input_delivered" | "native_control"
+            )
+        })
 }
 
 fn expandable_tool_entry(
@@ -1101,7 +1104,7 @@ fn render_row(
 ) -> Vec<Line> {
     let (index, footer_after) = identity;
     let lines = match row.role.as_str() {
-        "shell_input_delivered" => Vec::new(),
+        "shell_input_delivered" | "native_control" => Vec::new(),
         "child_notice" => child_notice_block(row, index, theme, width),
         "shell_notice" => shell_notice_block(row, index, theme, width),
         "background_hint" => {

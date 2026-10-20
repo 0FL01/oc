@@ -140,69 +140,156 @@ async fn child_notice_order_tracks_the_consuming_step_live_final_and_reopen() {
         job.delivery_id = "delivery-A".into();
         job.message_id = Some(later_notice.id.0.clone());
     }
-    for placement in [
-        NoticePlacement::Tail,
-        NoticePlacement::BeforeRequest {
-            span: "next-step".into(),
-            before_part_sequence: 1,
-        },
-    ] {
-        answer.turn = Some(projection(placement.clone()));
-        let mut ordinary = prompt.clone();
-        ordinary.turn = None;
-        let canonical = page(
-            vec![
+    for native_successor in [false, true] {
+        if native_successor {
+            // A separate canonical scenario: do not replace the preceding
+            // case's genuine user message with a native message at its ID.
+            state = TuiState::new(app.clone(), sid("parent"));
+            let mut ordinary = prompt.clone();
+            ordinary.turn = None;
+            answer.turn = Some(projection(NoticePlacement::Tail));
+            state.attach_page(&page(
+                vec![
+                    ordinary,
+                    notice.clone(),
+                    answer.clone(),
+                    later_notice.clone(),
+                ],
+                4,
+                false,
+                false,
+            ));
+        }
+        for placement in [
+            NoticePlacement::Tail,
+            NoticePlacement::BeforeRequest {
+                span: "next-step".into(),
+                before_part_sequence: 1,
+            },
+        ] {
+            answer.turn = Some(projection(placement.clone()));
+            let mut ordinary = prompt.clone();
+            ordinary.turn = None;
+            let mut canonical_rows = vec![
                 ordinary.clone(),
                 notice.clone(),
                 answer.clone(),
                 later_notice.clone(),
-                msg(12, Role::User, "later prompt"),
-            ],
-            5,
-            false,
-            false,
-        );
-        state.refresh_completed_page(&canonical);
-        let mut reopened = TuiState::new(app.clone(), sid("parent"));
-        reopened.attach_page(&canonical);
-        for view in [&state, &reopened] {
-            let rows = view.transcript_rows();
-            let at = rows
-                .iter()
-                .position(|row| row.child_notice.is_some())
-                .unwrap();
-            let before = rows
-                .iter()
-                .position(|row| row.text == "step before notice")
-                .unwrap();
-            let after = rows
-                .iter()
-                .position(|row| row.text == "step consuming notice")
-                .unwrap();
-            assert!(before < at);
-            assert_eq!(
-                at < after,
-                matches!(placement, NoticePlacement::BeforeRequest { .. })
-            );
-            assert!(
-                at < rows
+            ];
+            let mut control = msg(12, Role::User, "");
+            control.child = Some(ChildHistory::NativeControl);
+            let mut own_notice = notice.clone();
+            own_notice.id = MessageId("notice-C".into());
+            own_notice.seq = 13;
+            if let Some(ChildHistory::Notice(job)) = &mut own_notice.child {
+                job.child = sid("child-C");
+                job.operation = "C".into();
+                job.description = "Task C".into();
+                job.delivery_id = "delivery-C".into();
+                job.message_id = Some(own_notice.id.0.clone());
+            }
+            if native_successor {
+                let mut followup = msg(14, Role::Assistant, "");
+                followup.turn = Some(HistoryTurn {
+                    id: "automatic-turn".into(),
+                    status: "completed".into(),
+                    notice_order: Some(HistoryNoticeOrder {
+                        accepted_prompt: control.id.clone(),
+                        notices: vec![HistoryNoticePlacement {
+                            message: own_notice.id.clone(),
+                            placement: NoticePlacement::Tail,
+                        }],
+                    }),
+                    parts: vec![TranscriptPart::Text("native followup".into())],
+                    part_states: vec![PartState {
+                        sequence: 0,
+                        status: "completed".into(),
+                        ..Default::default()
+                    }],
+                    window: Some(HistoryPartWindow {
+                        start: 0,
+                        end: 1,
+                        total: 1,
+                    }),
+                    ..Default::default()
+                });
+                canonical_rows.extend([
+                    control.clone(),
+                    own_notice.clone(),
+                    followup,
+                    msg(15, Role::User, "later prompt"),
+                ]);
+            } else {
+                canonical_rows.push(msg(12, Role::User, "later prompt"));
+            }
+            let total = canonical_rows.len();
+            let canonical = page(canonical_rows, total, false, false);
+            state.refresh_completed_page(&canonical);
+            let mut reopened = TuiState::new(app.clone(), sid("parent"));
+            reopened.attach_page(&canonical);
+            for view in [&state, &reopened] {
+                let rows = view.transcript_rows();
+                let at = rows
                     .iter()
-                    .position(|row| row.text == "later prompt")
-                    .unwrap()
-            );
-            assert_eq!(
-                rows.iter().filter(|row| row.child_notice.is_some()).count(),
-                2
-            );
-            let later = rows
-                .iter()
-                .position(|row| row.message_id.as_deref() == Some(&later_notice.id))
-                .unwrap();
-            assert!(
-                at < later && after < later,
-                "an earlier Tail must not rotate past a later post-response notice"
-            );
-            assert_eq!(view.compose_transcript().1, None);
+                    .position(|row| row.child_notice.is_some())
+                    .unwrap();
+                let before = rows
+                    .iter()
+                    .position(|row| row.text == "step before notice")
+                    .unwrap();
+                let after = rows
+                    .iter()
+                    .position(|row| row.text == "step consuming notice")
+                    .unwrap();
+                assert!(
+                    before < at,
+                    "native_successor={native_successor}, placement={placement:?}"
+                );
+                assert_eq!(
+                    at < after,
+                    matches!(placement, NoticePlacement::BeforeRequest { .. })
+                );
+                assert!(
+                    at < rows
+                        .iter()
+                        .position(|row| row.text == "later prompt")
+                        .unwrap()
+                );
+                assert_eq!(
+                    rows.iter().filter(|row| row.child_notice.is_some()).count(),
+                    if native_successor { 3 } else { 2 }
+                );
+                let later = rows
+                    .iter()
+                    .position(|row| row.message_id.as_deref() == Some(&later_notice.id))
+                    .unwrap();
+                assert!(
+                    at < later && after < later,
+                    "an earlier Tail must not rotate past a later post-response notice"
+                );
+                if native_successor {
+                    let boundary = rows
+                        .iter()
+                        .position(|row| {
+                            row.message_id.as_deref() == Some(&control.id)
+                                && row.role == "native_control"
+                        })
+                        .expect("native input retains an invisible canonical boundary");
+                    let body = rows
+                        .iter()
+                        .position(|row| row.text == "native followup")
+                        .unwrap();
+                    let own = rows
+                        .iter()
+                        .position(|row| row.message_id.as_deref() == Some(&own_notice.id))
+                        .unwrap();
+                    assert!(
+                        later < boundary && boundary < body && body < own,
+                        "automatic turn owns its Tail without absorbing predecessor notices"
+                    );
+                }
+                assert_eq!(view.compose_transcript().1, None);
+            }
         }
     }
     // Partial/unqualified history must not guess a placement.

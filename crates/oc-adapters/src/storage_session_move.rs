@@ -119,6 +119,16 @@ impl Db {
         Ok(())
     }
 
+    pub(crate) fn pending_session_move_caller(
+        &self,
+        record: &MoveRecord,
+    ) -> Result<Option<String>, StorageError> {
+        self.conn.lock().expect("db mutex").query_row(
+            "SELECT t.session_id FROM session_moves m JOIN turns t ON t.id=m.source_turn WHERE m.operation_id=?1 AND m.source_turn=?2 AND m.source=?3 AND m.phase='pending'",
+            params![record.operation, record.source_turn, record.source], |row| row.get(0),
+        ).optional().map_err(Into::into)
+    }
+
     pub(crate) fn ready_session_moves(
         &self,
         source: &str,

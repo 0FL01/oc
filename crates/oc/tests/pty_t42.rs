@@ -2939,7 +2939,7 @@ fn vis44_middle_down_closes_inactive_active_and_last_tabs_without_deleting_histo
 }
 
 #[test]
-fn retained_deck_busy_strip_add_keeps_command_guard_and_failed_location() {
+fn retained_deck_live_new_and_strip_add_preserve_drafts_and_failed_location() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(
         fixture.clone(),
@@ -2951,16 +2951,14 @@ fn retained_deck_busy_strip_add_keeps_command_guard_and_failed_location() {
     submit(&mut pty, "slow stream");
     fixture.wait_requests(1);
     wait_screen_row(&pty, "esc interrupt", DEADLINE);
-    // The command remains guarded; the painted strip Add has its own checked
-    // admission and preserves the accepted root rather than creating a turn.
+    // New and painted Add both preserve the accepted root, without another
+    // submission. A retained Home is sessionless until a real prompt accepts.
     pty.send(b"/new\r");
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
     assert_eq!(journal_counts(&fixture).0, 1);
-    assert!(
-        !render_screen(&pty.snapshot()).rows()[0].contains("New session"),
-        "the guarded command cannot leave its busy tab"
-    );
-    pty.send(&[0x7f; 64]);
+    assert!(render_screen(&pty.snapshot()).rows()[0].contains("New session"));
+    click(&mut pty, 10, 1);
+    wait_screen_row(&pty, "slow stream", DEADLINE);
     pty.send(b"draft after turn");
     wait_screen_row(&pty, "draft after turn", DEADLINE);
     let strip = render_screen(&pty.snapshot()).rows()[0].clone();

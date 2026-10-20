@@ -12,7 +12,12 @@ fn native_control_hides_only_its_user_bubble_not_turn_parts_or_cursors() {
     control.text.clear();
     control.child = Some(ChildHistory::NativeControl);
     control.turn = None;
-    assert!(rows_from_page(&control).is_empty());
+    let rows = rows_from_page(&control);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].role, "native_control");
+    assert_eq!(rows[0].message_id.as_deref(), Some(&control.id));
+    let theme = crate::theme::Theme::load(crate::theme::ThemeMode::Dark).unwrap();
+    assert!(crate::messages::transcript(&rows, &theme, 80, 80, |_| theme.text()).is_empty());
     control.turn = Some(HistoryTurn {
         id: "automatic".into(),
         status: "completed".into(),
@@ -28,8 +33,9 @@ fn native_control_hides_only_its_user_bubble_not_turn_parts_or_cursors() {
     });
     let rows = rows_from_page(&control);
     assert!(rows.iter().all(|row| row.role != "user"));
-    assert_eq!(rows[0].text, "parent follow-up");
-    assert_eq!(rows[0].position.as_ref().unwrap().turn, "automatic");
+    assert_eq!(rows[0].role, "native_control");
+    assert_eq!(rows[1].text, "parent follow-up");
+    assert_eq!(rows[1].position.as_ref().unwrap().turn, "automatic");
     assert!(
         rows.iter()
             .all(|row| row.message_id.as_deref() == Some(&control.id))
@@ -40,6 +46,10 @@ fn native_control_hides_only_its_user_bubble_not_turn_parts_or_cursors() {
         rows_from_page(&control)[0].role,
         "user",
         "empty prose is not native provenance"
+    );
+    assert!(
+        !crate::messages::transcript(&rows_from_page(&control), &theme, 80, 80, |_| theme.text())
+            .is_empty()
     );
 }
 

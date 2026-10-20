@@ -396,6 +396,177 @@ async fn parent_notice_episode(case: ParentEpisode) {
 }
 
 #[tokio::test]
+async fn source_queries_and_sibling_primary_cannot_consume_an_owned_move() {
+    let root = tempfile::tempdir().unwrap();
+    let a = root.path().join("a");
+    let b = root.path().join("b");
+    std::fs::create_dir(&a).unwrap();
+    std::fs::create_dir(&b).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut raw = config(&format!("http://{}/v1", listener.local_addr().unwrap()));
+    raw["permissions"] = json!([
+        {"action":"opencode_session_move","resource":"*","effect":"allow"},
+        {"action":"external_directory","resource":"*","effect":"allow"}
+    ]);
+    for project in [&a, &b] {
+        std::fs::write(project.join("opencode.json"), raw.to_string()).unwrap();
+    }
+    let sibling_ready = Arc::new(tokio::sync::Notify::new());
+    let sibling_release = Arc::new(tokio::sync::Notify::new());
+    let ready = sibling_ready.clone();
+    let release = sibling_release.clone();
+    let destination = b.to_string_lossy().into_owned();
+    let peer = tokio::spawn(async move {
+        let mut clients = tokio::task::JoinSet::new();
+        let posts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        for _ in 0..3 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let ready = ready.clone();
+            let release = release.clone();
+            let destination = destination.clone();
+            let posts = posts.clone();
+            clients.spawn(async move {
+                let body = request(&mut socket).await;
+                if body["input"].to_string().contains("SIBLING_TASK") {
+                    ready.notify_one();
+                    release.notified().await;
+                    respond(&mut socket, json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"sibling settled"}]}])).await;
+                } else if posts.fetch_add(1, Ordering::AcqRel) == 0 {
+                    respond(&mut socket, json!([{"type":"function_call","id":"move-item","call_id":"move-call","name":"opencode_session_move","arguments":json!({"directory":destination}).to_string()}])).await;
+                } else {
+                    respond(&mut socket, json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"moving settled"}]}])).await;
+                }
+            });
+        }
+        while let Some(result) = clients.join_next().await {
+            result.unwrap();
+        }
+    });
+    let owner = Owner::new(
+        Db::open(&root.path().join("data")).unwrap(),
+        env(root.path()),
+    )
+    .unwrap();
+    let source = owner.location(&a, false).await.unwrap();
+    let target = owner.location(&b, false).await.unwrap();
+    for session in ["moving", "sibling"] {
+        source
+            .app
+            .create_session(SessionId(session.into()))
+            .await
+            .unwrap();
+        source
+            .app
+            .rename_session(SessionId(session.into()), session.into())
+            .await
+            .unwrap();
+    }
+    let gate = target.deck_gate.lock().await;
+    let sibling_origin = Arc::new(Origin::new(Kind::Interactive, false).at(source.clone()));
+    let sibling = owner
+        .begin(
+            source.clone(),
+            "sibling".into(),
+            sibling_origin,
+            2,
+            false,
+            None,
+        )
+        .unwrap();
+    sibling.ready().await.unwrap();
+    sibling
+        .app
+        .submit(SessionId("sibling".into()), "SIBLING_TASK".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(5), sibling_ready.notified())
+        .await
+        .unwrap();
+    let origin = Arc::new(Origin::new(Kind::Interactive, false).at(source.clone()));
+    let moving = owner
+        .begin(source.clone(), "moving".into(), origin, 2, false, None)
+        .unwrap();
+    moving.ready().await.unwrap();
+    let mut events = owner.events.subscribe();
+    let turn = moving
+        .app
+        .submit(SessionId("moving".into()), "OWNED_MOVE_TASK".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            let event = events.recv().await.unwrap();
+            let event = match event {
+                CoreEvent::Projection { event, .. } => *event,
+                event => event,
+            };
+            if matches!(event, CoreEvent::TurnFinished { turn: ref id, .. } if id == &turn) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    // These real Source query round trips give its idle worker the opportunity
+    // to scan the completed move. Only the issuing primary owns its application.
+    let first_query = source.app.catalog().await;
+    let second_query = source.app.catalog().await;
+    let pending = owner
+        .db
+        .ready_session_moves(&a.to_string_lossy())
+        .unwrap()
+        .into_iter()
+        .find(|record| record.session == "moving");
+    sibling_release.notify_one();
+    let sibling_retires = matches!(
+        tokio::time::timeout(std::time::Duration::from_secs(5), owner.next_root()).await,
+        Ok(Ok(()))
+    );
+    drop(gate);
+    let moved = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            let event = events.recv().await.unwrap();
+            let event = match event {
+                CoreEvent::Projection { event, .. } => *event,
+                event => event,
+            };
+            if matches!(event, CoreEvent::SessionMoved { ref session, .. } if session.0 == "moving")
+            {
+                break;
+            }
+        }
+    })
+    .await
+    .is_ok();
+    let moving_retires = matches!(
+        tokio::time::timeout(std::time::Duration::from_secs(5), owner.next_root()).await,
+        Ok(Ok(()))
+    );
+    let stale_rejected = owner.root("moving").is_none()
+        && pending
+            .as_ref()
+            .is_some_and(|record| matches!(owner.source_move_available(record), Ok(false)));
+    let shutdown = owner.shutdown().await;
+    peer.abort();
+    let _ = peer.await;
+    assert!(
+        pending.is_some(),
+        "Source applied a primary's move without its held deck gate"
+    );
+    assert!(
+        sibling_retires,
+        "an unrelated primary consumed the pending move"
+    );
+    assert!(first_query.is_ok() && second_query.is_ok());
+    assert!(moved);
+    assert!(
+        moving_retires && stale_rejected,
+        "a retired primary's stale ready list became Source fallback"
+    );
+    shutdown.unwrap();
+}
+
+#[tokio::test]
 async fn srv03_idle_location_retires_only_after_last_operation_reference() {
     let root = tempfile::tempdir().unwrap();
     let project = root.path().join("project");

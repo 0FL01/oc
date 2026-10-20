@@ -1166,32 +1166,33 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     if row.model_switch.is_some() {
         return vec![row_from_page(row, &message_id)];
     }
-    let Some(turn) = &row.turn else {
+    // Keep the real accepted-input boundary for notice ordering and paging,
+    // without turning native continuation data into a human prompt bubble.
+    let input_row = || {
+        let mut result = row_from_page(row, &message_id);
         if matches!(
             row.child,
             Some(oc_core::queries::ChildHistory::NativeControl)
         ) {
-            return Vec::new();
+            result.role = "native_control".into();
+            result.text.clear();
         }
-        return vec![row_from_page(row, &message_id)];
+        result
+    };
+    let Some(turn) = &row.turn else {
+        return vec![input_row()];
     };
     let mut rows = Vec::new();
     if turn.legacy_text_only {
-        rows.push(row_from_page(row, &message_id));
+        rows.push(input_row());
         let mut notice = row_from_page(row, &message_id);
         notice.text = "[Legacy text-only history: reasoning and part order were not recorded; tool records remain available in /cards]".into();
         notice.role = "assistant".into();
         rows.push(notice);
         return rows;
     }
-    if row.role == Role::User
-        && !matches!(
-            row.child,
-            Some(oc_core::queries::ChildHistory::NativeControl)
-        )
-        && turn.window.as_ref().is_none_or(|window| window.start == 0)
-    {
-        rows.push(row_from_page(row, &message_id));
+    if row.role == Role::User && turn.window.as_ref().is_none_or(|window| window.start == 0) {
+        rows.push(input_row());
     }
     // Avoid cloning the aggregate message once per projected part.
     let empty_row = || HistoryRow {

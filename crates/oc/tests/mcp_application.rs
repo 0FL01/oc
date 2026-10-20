@@ -2461,10 +2461,10 @@ fn inspect_mcp_code(tui: &mut PtyProcess, server: &str, code: &str) {
     lifecycle::close_mcps(tui);
 }
 
-/// S06: the real key route must refuse both navigation actions while a
-/// submission is waiting for MCP admission, without accepting a stale turn.
+/// S06: opening the read-only picker is safe while MCP admission is pending;
+/// departing the receipt owner is not, and must not accept a stale turn.
 #[test]
-fn s06_pending_submit_refuses_navigation_and_keeps_draft() {
+fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let fixture = Fixture::new();
     let other = fixture._root.path().join("other-location");
@@ -2494,13 +2494,22 @@ fn s06_pending_submit_refuses_navigation_and_keeps_draft() {
     }
     tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
 
-    // Ctrl+X L is the real session-list binding. While busy the picker is
-    // unavailable, so a session cannot be selected from it.
+    // Inspecting Sessions must not abandon the pending submission owner.
     tui.raw(b"\x18l");
-    tui.wait_screen("turn active; action unavailable", IO_TIMEOUT);
-    assert!(!tui.screen().iter().any(|row| row.contains("Sessions |")));
-    tui.raw(b"\r"); // duplicate Enter resets the note to pending
-    tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
+    tui.wait_screen("Sessions for project", IO_TIMEOUT);
+    tui.wait_screen("Today", IO_TIMEOUT); // an actual selectable session loaded
+    tui.raw(b"\r");
+    tui.wait_screen("submission or model selection pending", IO_TIMEOUT);
+    tui.raw(b"\x1b"); // close only the picker, retaining the admission
+    let deadline = Instant::now() + IO_TIMEOUT;
+    while tui
+        .screen()
+        .iter()
+        .any(|row| row.contains("Sessions for project"))
+    {
+        assert!(Instant::now() < deadline, "Sessions did not close");
+        std::thread::sleep(POLL);
+    }
 
     // There is no direct Location key: the slash command goes through the
     // editor. Replace the draft temporarily and restore it after the refusal.

@@ -970,36 +970,49 @@ impl<'a> Runtime<'a> {
     pub(crate) async fn ready_session_move(
         &self,
     ) -> Result<Option<crate::application::session_move::Prepared>, String> {
-        let Some(record) = self
+        let records = self
             .db
             .ready_session_moves(&self.location)
-            .map_err(|_| "move storage unavailable")?
-            .into_iter()
-            .next()
-        else {
-            return Ok(None);
-        };
-        let cached = self
-            .prepared_moves
-            .lock()
-            .expect("moves lock")
-            .remove(&record.operation);
-        let prepared = match cached {
-            Some(prepared) => prepared,
-            None => {
-                crate::application::session_move::prepare_owned(
-                    &self.db,
-                    record,
-                    self.parent_env.clone(),
-                    self.native_owner
-                        .as_ref()
-                        .and_then(std::sync::Weak::upgrade),
-                )
-                .await?
+            .map_err(|_| "move storage unavailable")?;
+        let owner = self
+            .native_owner
+            .as_ref()
+            .and_then(std::sync::Weak::upgrade);
+        for record in records {
+            if self.native_origin.is_none()
+                && let Some(owner) = &owner
+                && !owner
+                    .source_move_available(&record)
+                    .map_err(|_| "move storage unavailable")?
+            {
+                continue;
             }
-        };
-        prepared.recheck(&self.db)?;
-        Ok(Some(prepared))
+            let cached = self
+                .prepared_moves
+                .lock()
+                .expect("moves lock")
+                .remove(&record.operation);
+            // Independent native primaries must never steal another actor's
+            // pending record. Unowned child/idle moves retain Source fallback.
+            if self.native_origin.is_some() && cached.is_none() {
+                continue;
+            }
+            let prepared = match cached {
+                Some(prepared) => prepared,
+                None => {
+                    crate::application::session_move::prepare_owned(
+                        &self.db,
+                        record,
+                        self.parent_env.clone(),
+                        owner.clone(),
+                    )
+                    .await?
+                }
+            };
+            prepared.recheck(&self.db)?;
+            return Ok(Some(prepared));
+        }
+        Ok(None)
     }
 
     #[allow(clippy::too_many_arguments)]

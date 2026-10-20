@@ -280,6 +280,20 @@ impl Owner {
         })
     }
 
+    pub(crate) fn source_move_available(
+        &self,
+        record: &crate::storage::MoveRecord,
+    ) -> Result<bool, crate::storage::StorageError> {
+        let roots = self.roots.lock().expect("primary roots");
+        // A Source is only the fallback for work without an issuing primary.
+        // Recheck the phase under this lock: the ready list can predate the
+        // primary's application and subsequent retirement.
+        Ok(self
+            .db
+            .pending_session_move_caller(record)?
+            .is_some_and(|caller| !roots.contains_key(&caller)))
+    }
+
     pub(crate) async fn loaded_locations(&self) -> Vec<Arc<Location>> {
         self.locations
             .lock()
