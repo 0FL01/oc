@@ -45,7 +45,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: durable report → one bounded assigned batch → real parent request; active/user race оставляет один runner; cancellation/last TUI/Run release/shutdown suppress; original Source и current committed parent selection; fork/DCP/Undo/Revert chronology сохранена.
   - Primary evidence: storage/runtime/authority regressions + existing actual background capture provider witnesses.
   - Status: in_progress
-  - Evidence: native batch admission/history foundation checked: full adapters lib 865 PASS + 1 pre-existing ignored; full subagent integration 44 PASS; strict affected core/adapters/TUI all-target Clippy PASS. Atomic batch rollback/assignment, fresh tail chronology, recursive inert fork, Revert, >1MiB native report and old-DCP/new-journal regressions PASS. Protected checkpoint reports are assigned only when actually emitted and appear once in native admission and later history. Owner idle-wake wiring and actual lifecycle proof remain pending.
+  - Evidence: admission/history foundation `4d676301d`: full adapters lib 865 PASS + 1 pre-existing ignored, subagent integration 44 PASS. Actual Owner idle-root RED (2 parent + 1 child requests) → GREEN (3 parent + 1 child, fresh committed beta selection, full report once, no new Submit). Owner 12 PASS covers mutation release, last-TUI/Run suppression, independent Run, finite refusal, error/cancelled child and foreground conversion; child resource 8 PASS covers retained cap and no ready-future spin. Actual shared-runtime PTY/native-owner 11 PASS; strict affected four-crate all-target Clippy PASS. Paired lifecycle qualification remains pending.
 - R6: проверенные изменения закоммичены и отправлены в verified origin.
   - Source: последний пользовательский запрос.
   - Acceptance: relevant tests, full offline gate, scoped current-TS paired qualification и diff review; normal commits/push, remote HEAD verified.
@@ -107,17 +107,17 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 ## Current Checkpoint
 
-- Closes: R5 (R2/R3/R4 verified; R1 actual capture remains pending).
-- Smallest next action: reproduce actual Owner idle-root wake with a held physical child response, then wire the bounded existing child Work/owner handoff to the checked private native batch path.
-- Expected evidence: after original root has fully joined, child completion causes one real parent request with current committed parent selection, no second Submit/child execution; cancellation/settlement and capacity remain bounded.
+- Closes: R1/R5/R6 (R2/R3/R4 verified).
+- Smallest next action: deliver checked Owner handoff, run the full offline gate, then run existing sealed current-TS/native foreground-click and background lifecycle captures at 120×40 and 80×24.
+- Expected evidence: natural pre-Ctrl+B redraw click opens the actual child in both products; provider-completed/idle/assignment witnesses qualify native idle continuation; scoped comparisons and full unmasked artifacts remain honest about whole-frame differences.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
 ## Current State
 
-- Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b`, R2 `9420451d1` published. R5 native batch/history foundation checked. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
-- Last relevant evidence: 865 adapters lib PASS + 1 existing ignored; 44 subagent integration PASS; 23 runtime compaction PASS; native-control TUI regression PASS; strict affected all-target Clippy PASS. Prior actual navigation evidence remains; no full offline gate/capture claim yet.
+- Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b`, R2 `9420451d1`, R5 admission foundation `4d676301d` published. R5 existing Owner/Work integration is implemented and checked. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
+- Last relevant evidence: Owner 12 PASS (4.42s), bounded children 8 PASS (6.08s), actual shared-runtime 11 PASS (19.07s), affected all-target Clippy PASS; earlier E full adapter/subagent/history gates remain recorded. No full offline gate or paired capture claim yet.
 - Blocker: none observed.
-- Next: bounded Owner continuation and current-source captures. Automatic idle-root scheduling is not implemented yet; R1/R6 actual captures and final full gate remain pending. Running-card current-reference capture preparation is a separate uncommitted script diff, not visual qualification.
+- Next: full offline gate and current-source captures. Capture preparation remains a separate uncommitted script diff with Node/Python unit checks, not visual qualification. R1/R5/R6 closure awaits the actual paired evidence.
 
 ## Material Decisions
 
@@ -134,6 +134,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 - 2026-10-20: R2/R3 integrated: accepted turns no longer veto New/Add/tab/Sessions; exact parked child launch updates its parent before completion. Original standalone read-only provenance survives nested return. Review found close/delete post-commit activation and typed child command draft hazards; both corrected with explicit preflight/source consumption and regressions. Actual one-TUI A/B streams progress across New and repeated switches, no resubmits; actual held-turn slash/chord/palette/Sessions aliases PASS. Finite receipts, profile/destructive and ordinary Location guards remain. Next R5 native batch, not a scheduler rewrite.
 - 2026-10-20: R5 admission foundation: one typed empty tail control and atomic whole-batch assignment preserve final-gap fork/DCP chronology; ordinary requests assign only emitted report IDs at prepared checkpoint. Exact original input coordinates survive working/fork projections without granting wake authority. Review exposed protected-checkpoint metadata/exclusion holes; current-task and retained-journal dedup now have a direct regression. Full adapters lib 865 PASS + 1 existing ignored (133.77s suite), subagent integration 44 PASS (31.21s suite), affected strict Clippy PASS. No idle wake or paired capture claim: next existing Work/Owner wiring.
+- 2026-10-20: R5 Owner handoff: original root fully joins before held child completion, then one actual parent request uses the newly committed parent selection. Existing Work holds its existing permit through execution/handoff; one original Origin and session reservation preserve cancellation/source/consumer authority. Review fixed idle-cancel/admission serialization and a failed-launch barrier notification. Owner 12, child 8 and actual shared-runtime 11 PASS, strict four-crate all-target Clippy PASS. Individual child interruption reports without cancelling its parent; foreground conversion keeps the original wake lineage. No new scheduler, queue, schema or startup scan. Next scoped paired capture/full gate.
 
 ## Completion
 

@@ -588,7 +588,7 @@ async fn connection(
             .iter()
             .filter_map(Weak::upgrade)
         {
-            origin.cancel();
+            owner.cancel_origin(&origin);
         }
     }
     while work.join_next().await.is_some() {}
@@ -965,6 +965,26 @@ async fn handle(
     if fresh.is_some() && location.app.tab_deck().await?.sessions.len() >= crate::storage::MAX_TABS
     {
         return Err(CoreError::InvalidTabDeck);
+    }
+    if let Request::Cancel { session } = &request {
+        let origin = match expected {
+            Some(Expected::Origin(origin)) => Some(origin),
+            Some(Expected::Pending(request)) => Some(
+                state
+                    .lock()
+                    .expect("native leases")
+                    .operations
+                    .iter()
+                    .find(|(_, operation)| {
+                        operation.attachment == peer.id && operation.request == request
+                    })
+                    .map(|(&origin, _)| origin)
+                    .ok_or(CoreError::TurnNotActive)?,
+            ),
+            None => None,
+        };
+        owner.cancel_session(&location, &session.0, origin)?;
+        return Ok(serde_json::Value::Null);
     }
     if let Some(session) = cancel_session(&request)
         && let Some(root) = owner.root(session)

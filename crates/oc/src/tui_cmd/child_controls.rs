@@ -268,6 +268,7 @@ pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::RetryScheduled { session, .. } => Some(session),
         CoreEvent::ChildNotice(n) => Some(&n.job.parent),
+        CoreEvent::ParentContinuationRefused { session, .. } => Some(session),
         CoreEvent::ShellNotice(n) => Some(&n.session),
         _ => None,
     }

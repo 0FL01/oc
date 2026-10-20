@@ -4107,6 +4107,7 @@ async fn handle_worker_event_at(
         CoreEvent::ChildNotice(notice) => &notice.job.parent,
         CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::ShellChanged { session }
+        | CoreEvent::ParentContinuationRefused { session, .. }
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::SessionModelSelected { session, .. }
@@ -4144,6 +4145,12 @@ async fn handle_worker_event_at(
         return Ok(());
     }
     match event {
+        CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
+            state.push_transient_note(
+                &format!("Background continuation refused: {diagnostic}"),
+                NoteVariant::Error,
+            );
+        }
         CoreEvent::ChildNotice(notice) => {
             let Some(message) = notice.job.message_id else {
                 return Ok(());

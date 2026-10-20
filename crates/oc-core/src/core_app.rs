@@ -211,6 +211,14 @@ pub enum CoreEvent {
     /// Automatic shell result; history delivery is already committed.
     ShellNotice(crate::queries::ShellNotice),
     ChildNotice(crate::queries::ChildNotice),
+    /// A live root's automatic continuation was refused before turn acceptance.
+    /// The durable child report remains available; this is not a replay request.
+    ParentContinuationRefused {
+        /// Original parent session.
+        session: SessionId,
+        /// Safe typed refusal without report/provider payloads.
+        diagnostic: crate::queries::ServiceDiagnostic,
+    },
     /// Coalesced actual supervisor drain/lifecycle change; read current facts.
     ShellChanged {
         session: SessionId,
@@ -3079,6 +3087,9 @@ mod tests {
                     panic!("unexpected question request")
                 }
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+                CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
+                    panic!("unexpected continuation refusal: {diagnostic}")
+                }
             }
         }
     }
@@ -3407,6 +3418,9 @@ mod tests {
                     panic!("unexpected native provider in scripted runtime")
                 }
                 CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+                CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
+                    panic!("unexpected continuation refusal: {diagnostic}")
+                }
             }
         }
 

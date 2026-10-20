@@ -4438,173 +4438,196 @@ async fn worker(
             }
             continue;
         }
-        let message = if !reload_work.forced() && !pending_inputs.is_empty() {
-            pending_inputs.pop_front().expect("queued input")
-        } else {
-            tokio::select! {
-                biased;
-                error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
-                () = runtime.shell_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
-                () = runtime.child_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
-                () = async {
-                    match primary.as_mut() {
-                        Some(primary) => { let _ = primary.advance.changed().await; }
-                        None => std::future::pending().await,
-                    }
-                } => { continue; }
-                Some(result) = title_rx.recv() => {
-                    commit_automatic_title(db, events, title_work, result);
-                    continue;
-                }
-                result = provider_work.wait(), if provider_work.pending() => return Ok(WorkerOutcome::ProviderCatalog(result)),
-                request = async {
-                    match authority.as_mut() {
-                        Some(source) => source.requests.recv().await,
-                        None => std::future::pending().await,
-                    }
-                } => {
-                    if let (Some(source), Some(request)) = (authority.as_mut(), request) {
-                        source.primary(request, db, runtime, composition, effective, location_epoch);
-                    }
-                    continue;
-                }
-                ready = reload_work.wait() => {
-                    if let Some(ready) = ready?
-                        && let Some(receipt) = reload_work.finish(ready, db, runtime, composition, effective, registry, sessions, location_epoch, provider_work, events, None).await? {
-                        if receipt.retire_titles() {
-                            while let Ok(result) = title_rx.try_recv() { commit_automatic_title(db, events, title_work, result); }
-                            stop_automatic_titles(title_work).await?;
-                            home_choices.remove(runtime.location());
-                        }
-                        receipt.reply();
-                    }
-                    continue;
-                }
-                message = inbox.recv() => match message {
-                    Some(message) => message,
-                    None => break,
-                },
-            }
-        };
-        if reload_work.forced()
-            && matches!(
-                &message,
-                InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. } | InboxMsg::UserShell { .. }
-            )
-        {
-            if pending_inputs.len() < MAX_QUEUE_ITEMS {
-                pending_inputs.push_back(message);
-            } else {
-                query(
-                    db,
-                    runtime,
-                    composition,
-                    effective,
-                    registry,
-                    sessions,
-                    home_choices,
-                    location_epoch,
-                    suggestion_queue,
-                    title_work,
-                    terminals,
-                    authentication,
-                    message,
-                )
-                .await;
-            }
-            continue;
-        }
-        if (matches!(&message, InboxMsg::Catalog { .. }) && composition.go_catalog.is_some()
-            || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if composition.public_provider(provider)))
-            && !provider_work.pending()
-            && !provider_work.custom.has_probe()
-        {
-            let requested = match &message {
-                InboxMsg::ProviderCatalog { provider, .. } => Some(provider.as_str()),
-                _ => None,
-            };
-            *provider_work =
-                provider_catalog::ProviderWork::start_requested(composition, db, requested);
-        }
-        // Only this typed command creates an explicit bounded manual trigger.
-        // Refusal precedes Submit, turn acceptance and provider dispatch.
-        primary_started |= matches!(
-            message,
-            InboxMsg::Submit { .. }
-                | InboxMsg::SubmitFresh { .. }
-                | InboxMsg::UserShell { .. }
-                | InboxMsg::Compress { .. }
-                | InboxMsg::CompactSession { .. }
-                | InboxMsg::RegenerateTitle { .. }
-        );
         let mut manual_trigger = None;
-        let message = match message {
-            InboxMsg::Compress {
-                session,
-                focus,
-                ack,
-            } => {
-                let admitted = (|| -> Result<_, CoreError> {
-                    let selected = selection::for_turn(db, composition, effective, &session.0)?;
-                    selected.admit_selection(composition)?;
-                    let (catalog, provider) = selected.request(composition)?;
-                    publish_workspace(runtime, composition, &selected).map_err(app_error)?;
-                    runtime
-                        .admit_provider_variant(
-                            catalog,
-                            &selected.model_id,
-                            selected.variant.as_deref(),
-                            &provider,
-                        )
-                        .map_err(runtime_error)?;
-                    runtime
-                        .admit_manual_compression(&session.0)
-                        .map_err(app_error)
-                })();
-                match admitted {
-                    Ok(trigger) => manual_trigger = Some(trigger),
-                    Err(error) => {
-                        let _ = ack.send(Err(error));
+        let initial = if !reload_work.forced() {
+            primary
+                .as_mut()
+                .and_then(|primary| primary.initial_notices.take())
+        } else {
+            None
+        };
+        // Exactly one source owns this iteration. Native startup is private
+        // input, not a synthetic public InboxMsg or a second dispatch queue.
+        let message = if initial.is_some() {
+            primary_started = true;
+            None
+        } else {
+            let message = if !reload_work.forced() && !pending_inputs.is_empty() {
+                pending_inputs.pop_front().expect("queued input")
+            } else {
+                tokio::select! {
+                    biased;
+                    error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
+                    () = runtime.shell_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
+                    () = runtime.child_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
+                    () = async {
+                        match primary.as_mut() {
+                            Some(primary) => { let _ = primary.advance.changed().await; }
+                            None => std::future::pending().await,
+                        }
+                    } => { continue; }
+                    Some(result) = title_rx.recv() => {
+                        commit_automatic_title(db, events, title_work, result);
                         continue;
                     }
+                    result = provider_work.wait(), if provider_work.pending() => return Ok(WorkerOutcome::ProviderCatalog(result)),
+                    request = async {
+                        match authority.as_mut() {
+                            Some(source) => source.requests.recv().await,
+                            None => std::future::pending().await,
+                        }
+                    } => {
+                        if let (Some(source), Some(request)) = (authority.as_mut(), request) {
+                            source.primary(request, db, runtime, composition, effective, location_epoch);
+                        }
+                        continue;
+                    }
+                    ready = reload_work.wait() => {
+                        if let Some(ready) = ready?
+                            && let Some(receipt) = reload_work.finish(ready, db, runtime, composition, effective, registry, sessions, location_epoch, provider_work, events, None).await? {
+                            if receipt.retire_titles() {
+                                while let Ok(result) = title_rx.try_recv() { commit_automatic_title(db, events, title_work, result); }
+                                stop_automatic_titles(title_work).await?;
+                                home_choices.remove(runtime.location());
+                            }
+                            receipt.reply();
+                        }
+                        continue;
+                    }
+                    message = inbox.recv() => match message {
+                        Some(message) => message,
+                        None => break,
+                    },
                 }
-                InboxMsg::Submit {
-                    session,
-                    text: compress_prompt(&focus).into(),
-                    selection: None,
-                    ack,
+            };
+            if reload_work.forced()
+                && matches!(
+                    &message,
+                    InboxMsg::Submit { .. }
+                        | InboxMsg::SubmitFresh { .. }
+                        | InboxMsg::UserShell { .. }
+                )
+            {
+                if pending_inputs.len() < MAX_QUEUE_ITEMS {
+                    pending_inputs.push_back(message);
+                } else {
+                    query(
+                        db,
+                        runtime,
+                        composition,
+                        effective,
+                        registry,
+                        sessions,
+                        home_choices,
+                        location_epoch,
+                        suggestion_queue,
+                        title_work,
+                        terminals,
+                        authentication,
+                        message,
+                    )
+                    .await;
                 }
+                continue;
             }
-            other => other,
+            if (matches!(&message, InboxMsg::Catalog { .. }) && composition.go_catalog.is_some()
+                || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if composition.public_provider(provider)))
+                && !provider_work.pending()
+                && !provider_work.custom.has_probe()
+            {
+                let requested = match &message {
+                    InboxMsg::ProviderCatalog { provider, .. } => Some(provider.as_str()),
+                    _ => None,
+                };
+                *provider_work =
+                    provider_catalog::ProviderWork::start_requested(composition, db, requested);
+            }
+            // Only this typed command creates an explicit bounded manual trigger.
+            // Refusal precedes Submit, turn acceptance and provider dispatch.
+            primary_started |= matches!(
+                message,
+                InboxMsg::Submit { .. }
+                    | InboxMsg::SubmitFresh { .. }
+                    | InboxMsg::UserShell { .. }
+                    | InboxMsg::Compress { .. }
+                    | InboxMsg::CompactSession { .. }
+                    | InboxMsg::RegenerateTitle { .. }
+            );
+            let message = match message {
+                InboxMsg::Compress {
+                    session,
+                    focus,
+                    ack,
+                } => {
+                    let admitted = (|| -> Result<_, CoreError> {
+                        let selected = selection::for_turn(db, composition, effective, &session.0)?;
+                        selected.admit_selection(composition)?;
+                        let (catalog, provider) = selected.request(composition)?;
+                        publish_workspace(runtime, composition, &selected).map_err(app_error)?;
+                        runtime
+                            .admit_provider_variant(
+                                catalog,
+                                &selected.model_id,
+                                selected.variant.as_deref(),
+                                &provider,
+                            )
+                            .map_err(runtime_error)?;
+                        runtime
+                            .admit_manual_compression(&session.0)
+                            .map_err(app_error)
+                    })();
+                    match admitted {
+                        Ok(trigger) => manual_trigger = Some(trigger),
+                        Err(error) => {
+                            let _ = ack.send(Err(error));
+                            continue;
+                        }
+                    }
+                    InboxMsg::Submit {
+                        session,
+                        text: compress_prompt(&focus).into(),
+                        selection: None,
+                        ack,
+                    }
+                }
+                other => other,
+            };
+            if let InboxMsg::ChangeConversation { session, .. } = &message {
+                title_work
+                    .lock()
+                    .expect("title work mutex")
+                    .cancel(&session.0);
+            }
+            Some(message)
         };
-        if let InboxMsg::ChangeConversation { session, .. } = &message {
-            title_work
-                .lock()
-                .expect("title work mutex")
-                .cancel(&session.0);
-        }
-        match message {
-            InboxMsg::CustomProvider { action, ack } => {
+        match (message, initial) {
+            (Some(InboxMsg::CustomProvider { action, ack }), None) => {
                 return Ok(WorkerOutcome::CustomProvider { action, ack });
             }
-            InboxMsg::ProviderAccounts {
-                provider,
-                action,
-                ack,
-            } => {
+            (
+                Some(InboxMsg::ProviderAccounts {
+                    provider,
+                    action,
+                    ack,
+                }),
+                None,
+            ) => {
                 return Ok(WorkerOutcome::Accounts {
                     provider,
                     action,
                     ack,
                 });
             }
-            InboxMsg::OpenPickerSession {
-                session,
-                search,
-                all_projects,
-                old_deck,
-                ack,
-            } => {
+            (
+                Some(InboxMsg::OpenPickerSession {
+                    session,
+                    search,
+                    all_projects,
+                    old_deck,
+                    ack,
+                }),
+                None,
+            ) => {
                 let target =
                     picker_target(db, runtime, composition, &session, &search, all_projects);
                 match target {
@@ -4624,11 +4647,11 @@ async fn worker(
                     }
                 }
             }
-            InboxMsg::Shutdown => {
+            (Some(InboxMsg::Shutdown), None) => {
                 runtime.cancel_all_compactions();
                 break 'worker;
             }
-            InboxMsg::CancelTitle { session, ack } => {
+            (Some(InboxMsg::CancelTitle { session, ack }), None) => {
                 let result = if title_work
                     .lock()
                     .expect("title work mutex")
@@ -4640,7 +4663,7 @@ async fn worker(
                 };
                 let _ = ack.send(result);
             }
-            InboxMsg::RegenerateTitle { session, ack } => {
+            (Some(InboxMsg::RegenerateTitle { session, ack }), None) => {
                 let prepared = (|| -> Result<_, CoreError> {
                     runtime
                         .open_session(&session.0)
@@ -4906,19 +4929,19 @@ async fn worker(
                     break 'worker;
                 }
             }
-            InboxMsg::SwitchLocation { path, ack } => {
+            (Some(InboxMsg::SwitchLocation { path, ack }), None) => {
                 return Ok(WorkerOutcome::Switch {
                     path,
                     ack: SwitchAck::Session(ack),
                 });
             }
-            InboxMsg::SwitchLocationHome { path, ack } => {
+            (Some(InboxMsg::SwitchLocationHome { path, ack }), None) => {
                 return Ok(WorkerOutcome::Switch {
                     path,
                     ack: SwitchAck::Home(ack),
                 });
             }
-            InboxMsg::ReloadLocation { ack } => {
+            (Some(InboxMsg::ReloadLocation { ack }), None) => {
                 if provider_work.selected_pending() && composition.go_catalog.is_none() {
                     let diagnostic = composition
                         .provider_state
@@ -4931,7 +4954,7 @@ async fn worker(
                 reload_work.request(ack);
                 continue;
             }
-            message @ InboxMsg::UserShell { .. } => {
+            (Some(message @ InboxMsg::UserShell { .. }), None) => {
                 if user_shell::run(
                     db,
                     runtime,
@@ -4958,23 +4981,39 @@ async fn worker(
                     break 'worker;
                 }
             }
-            message @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }) => {
-                let (session, text, fresh, captured_selection, ack) = match message {
-                    InboxMsg::Submit {
-                        session,
-                        text,
-                        selection,
-                        ack,
-                    } => (session, text, None, selection, ack),
-                    InboxMsg::SubmitFresh {
-                        session,
-                        text,
-                        selection,
-                        ack,
-                    } => (session, text, Some(selection), None, ack),
+            message @ ((Some(InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }), None)
+            | (None, Some(_))) => {
+                let (session, text, fresh, captured_selection, ack, native_notices) = match message
+                {
+                    (
+                        Some(InboxMsg::Submit {
+                            session,
+                            text,
+                            selection,
+                            ack,
+                        }),
+                        None,
+                    ) => (session, text, None, selection, ack, None),
+                    (
+                        Some(InboxMsg::SubmitFresh {
+                            session,
+                            text,
+                            selection,
+                            ack,
+                        }),
+                        None,
+                    ) => (session, text, Some(selection), None, ack, None),
+                    (None, Some(initial)) => (
+                        initial.session,
+                        "".into(),
+                        None,
+                        None,
+                        initial.ack,
+                        Some(initial.messages),
+                    ),
                     _ => unreachable!(),
                 };
-                if text.trim().is_empty() {
+                if native_notices.is_none() && text.trim().is_empty() {
                     let _ = ack.send(Err(app_error("empty prompt")));
                     continue;
                 }
@@ -4983,7 +5022,11 @@ async fn worker(
                     continue;
                 }
                 let images = text.images;
-                let (prompt, invocation) = match resolve_submission(composition, text.text) {
+                let (prompt, invocation) = match if native_notices.is_some() {
+                    Ok((String::new(), None))
+                } else {
+                    resolve_submission(composition, text.text)
+                } {
                     Ok(resolved) => resolved,
                     Err(error) => {
                         let _ = ack.send(Err(app_error(error)));
@@ -5242,7 +5285,9 @@ async fn worker(
                             // request for a rejected prompt, an already titled
                             // root, or one with an in-flight title request.
                             let stamp = db.root_title_stamp(&session.0).ok().flatten();
-                            if let Some((None, expected_event)) = stamp {
+                            if native_notices.is_none()
+                                && let Some((None, expected_event)) = stamp
+                            {
                                 let mut work = title_work.lock().expect("title work mutex");
                                 if !work.pending.contains_key(&session.0) {
                                     work.pending.insert(session.0.clone(), expected_event);
@@ -5455,7 +5500,7 @@ async fn worker(
                                     params,
                                     manual_trigger,
                                     command_route.as_ref(),
-                                    None,
+                                    native_notices.as_deref(),
                                     on_accept,
                                     on_text,
                                     on_reasoning,
@@ -5680,7 +5725,7 @@ async fn worker(
                     break;
                 }
             }
-            message => {
+            (Some(message), None) => {
                 query(
                     db,
                     runtime,
@@ -5698,6 +5743,7 @@ async fn worker(
                 )
                 .await
             }
+            _ => unreachable!("one private startup or public inbox input per iteration"),
         }
     }
     runtime.cancel_all_compactions();

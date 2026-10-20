@@ -2742,6 +2742,9 @@ async fn dto_application_events_surface_reasoning_and_usage() {
                 text, duration_ms, ..
             } => break (text, duration_ms),
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
+                panic!("unexpected continuation refusal: {diagnostic}")
+            }
             CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
             CoreEvent::ChildNotice(_)

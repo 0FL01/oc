@@ -286,10 +286,19 @@ async fn term01_terminal_creation_uses_retained_child_source_not_moved_parent() 
         Work {
             identity: selected.clone(),
             parent_turn: "fixture".into(),
-            runtime: Arc::downgrade(&source),
-            mcp: source.mcp_owner(),
+            execution: Some(Execution {
+                runtime: Arc::downgrade(&source),
+                mcp: source.mcp_owner(),
+                completion: async { true }.boxed().shared(),
+            }),
+            parent_wake: None,
+            _slot: original
+                .child_jobs
+                .slots
+                .clone()
+                .try_acquire_owned()
+                .unwrap(),
             cancel: Arc::new(AtomicBool::new(false)),
-            completion: async { true }.boxed().shared(),
             background: Arc::new(AtomicBool::new(true)),
             mode_changed: Arc::new(tokio::sync::Notify::new()),
             foreground_wait: Arc::new(AtomicBool::new(false)),
@@ -469,10 +478,14 @@ async fn foreground_reads_exact_winning_result_outside_latest_inventory_window()
         Work {
             identity: selected.clone(),
             parent_turn: "parent-turn".into(),
-            runtime: std::sync::Weak::new(),
-            mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+            execution: Some(Execution {
+                runtime: std::sync::Weak::new(),
+                mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+                completion: async { true }.boxed().shared(),
+            }),
+            parent_wake: None,
+            _slot: jobs.slots.clone().try_acquire_owned().unwrap(),
             cancel: Arc::new(AtomicBool::new(false)),
-            completion: async { true }.boxed().shared(),
             background: Arc::new(AtomicBool::new(false)),
             mode_changed: Arc::new(tokio::sync::Notify::new()),
             foreground_wait: Arc::new(AtomicBool::new(true)),
@@ -516,10 +529,14 @@ async fn foreground_conversion_releases_only_waiter_and_retains_actual_join_and_
         Work {
             identity: selected.clone(),
             parent_turn: "parent-turn".into(),
-            runtime: std::sync::Weak::new(),
-            mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+            execution: Some(Execution {
+                runtime: std::sync::Weak::new(),
+                mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+                completion: completion.clone(),
+            }),
+            parent_wake: None,
+            _slot: jobs.slots.clone().try_acquire_owned().unwrap(),
             cancel: cancel.clone(),
-            completion: completion.clone(),
             background: Arc::new(AtomicBool::new(false)),
             mode_changed: Arc::new(tokio::sync::Notify::new()),
             foreground_wait: Arc::new(AtomicBool::new(true)),
@@ -669,6 +686,107 @@ fn seven_outstanding_two_reserved_launches_reject_without_orphan_or_cleanup() {
 }
 
 #[tokio::test]
+async fn delivered_handoffs_hold_existing_capacity_without_ready_future_spin_or_mixed_origins() {
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_session("parent").unwrap();
+    db.begin_turn("closed-parent-turn", "parent", "original task")
+        .unwrap();
+    db.finish_turn("closed-parent-turn", "completed", Some("done"))
+        .unwrap();
+    let jobs = Jobs::new(&db);
+    let interactive = Arc::new(origin::Origin::new(origin::Kind::Interactive, false));
+    let run = Arc::new(origin::Origin::new(origin::Kind::Run, false));
+    for index in 0..JOB_CAP {
+        let selected = identity("parent", &format!("retained-{index}"));
+        db.record_tool_intent(&selected.operation, "parent", None, "subagent", "{}")
+            .unwrap();
+        db.admit_fresh_child_job(&selected).unwrap();
+        db.finish_child_job(
+            &selected.operation,
+            ChildState::Completed,
+            "actual terminal report",
+        )
+        .unwrap();
+        let origin = if index < JOB_CAP / 2 {
+            &interactive
+        } else {
+            &run
+        };
+        jobs.work.lock().unwrap().insert(
+            selected.operation.clone(),
+            Work {
+                identity: selected,
+                parent_turn: "closed-parent-turn".into(),
+                execution: Some(Execution {
+                    runtime: std::sync::Weak::new(),
+                    mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+                    completion: async { true }.boxed().shared(),
+                }),
+                parent_wake: Some(ParentWake {
+                    origin: origin.clone(),
+                    _work: origin.work(),
+                }),
+                _slot: jobs.slots.clone().try_acquire_owned().unwrap(),
+                cancel: Arc::new(AtomicBool::new(false)),
+                background: Arc::new(AtomicBool::new(true)),
+                mode_changed: Arc::new(tokio::sync::Notify::new()),
+                foreground_wait: Arc::new(AtomicBool::new(false)),
+                parent_rejected: AtomicBool::new(index == 0),
+            },
+        );
+    }
+    jobs.reap().await.unwrap();
+    assert!(
+        jobs.work
+            .lock()
+            .unwrap()
+            .values()
+            .all(|job| job.execution.is_none() && !job.parent_rejected.load(Ordering::Acquire))
+    );
+    let (events, _) = tokio::sync::broadcast::channel(16);
+    jobs.deliver(Some(&events)).unwrap();
+    let batches = jobs.parent_batches().unwrap();
+    assert_eq!(
+        batches.len(),
+        2,
+        "Interactive and Run must retain separate cancellation authority"
+    );
+    assert!(
+        batches
+            .iter()
+            .all(|batch| batch.messages.len() == JOB_CAP / 2)
+    );
+    assert_eq!(jobs.slots.available_permits(), 0);
+    assert!(
+        jobs.reserve("parent", "overflow").is_err(),
+        "completed unassigned reports must not escape the existing capacity bound"
+    );
+    while jobs.wake.notified().now_or_never().is_some() {}
+    let mut changed = Box::pin(jobs.changed());
+    assert!(
+        futures_util::poll!(&mut changed).is_pending(),
+        "completed handoffs must not keep polling a ready child join"
+    );
+    drop(changed);
+    jobs.suppress_origin(interactive.id);
+    interactive.settle().await;
+    assert_eq!(jobs.slots.available_permits(), JOB_CAP / 2);
+    let remaining = jobs.parent_batches().unwrap();
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(remaining[0].origin.id, run.id);
+    assert!(jobs.cancel_session("parent"));
+    assert!(
+        !jobs.batch_current(&remaining[0]).unwrap(),
+        "a captured batch cannot survive session cancellation"
+    );
+    run.settle().await;
+    assert_eq!(jobs.slots.available_permits(), JOB_CAP);
+    assert!(jobs.work.lock().unwrap().is_empty());
+    jobs.shutdown().await.unwrap();
+}
+
+#[tokio::test]
 async fn dropped_shutdown_keeps_shared_join_waits_and_reaps_leaf_with_sticky_failure() {
     for good in [true, false] {
         let data = tempfile::tempdir().unwrap();
@@ -696,10 +814,14 @@ async fn dropped_shutdown_keeps_shared_join_waits_and_reaps_leaf_with_sticky_fai
             Work {
                 identity: identity("parent", "held"),
                 parent_turn: "closed-parent-turn".into(),
-                runtime: std::sync::Weak::new(),
-                mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+                execution: Some(Execution {
+                    runtime: std::sync::Weak::new(),
+                    mcp: Arc::new(mcp::McpOwner::new("/owned-source", 7)),
+                    completion: completion.clone(),
+                }),
+                parent_wake: None,
+                _slot: jobs.slots.clone().try_acquire_owned().unwrap(),
                 cancel: cancel.clone(),
-                completion: completion.clone(),
                 background: Arc::new(AtomicBool::new(true)),
                 mode_changed: Arc::new(tokio::sync::Notify::new()),
                 foreground_wait: Arc::new(AtomicBool::new(false)),

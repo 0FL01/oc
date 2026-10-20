@@ -869,6 +869,9 @@ async fn check_application_patch_replay(line: &str, count: usize) {
                 break;
             }
             CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
+                panic!("unexpected continuation refusal: {diagnostic}")
+            }
             CoreEvent::McpChanged(snapshot) => assert!(snapshot.servers.is_empty()),
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
             CoreEvent::ChildNotice(_)

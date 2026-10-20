@@ -90,6 +90,17 @@ impl ScriptDriver {
                 state.apply_child_jobs(jobs);
             }
             match event {
+                Ok(Ok(CoreEvent::ParentContinuationRefused {
+                    session,
+                    diagnostic,
+                })) => {
+                    if state.attached_session() == Some(&session) {
+                        state.push_transient_note(
+                            &format!("Background continuation refused: {diagnostic}"),
+                            NoteVariant::Error,
+                        );
+                    }
+                }
                 Ok(Ok(
                     CoreEvent::Projection { .. }
                     | CoreEvent::WorkspaceChanged { .. }

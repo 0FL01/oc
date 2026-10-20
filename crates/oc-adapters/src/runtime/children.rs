@@ -27,14 +27,40 @@ const SESSION_CAP: usize = 4;
 struct Work {
     identity: ChildJob,
     parent_turn: String,
-    runtime: std::sync::Weak<Runtime<'static>>,
-    mcp: Arc<mcp::McpOwner>,
+    execution: Option<Execution>,
+    parent_wake: Option<ParentWake>,
+    _slot: tokio::sync::OwnedSemaphorePermit,
     cancel: Arc<AtomicBool>,
-    completion: Shared<BoxFuture<'static, bool>>,
     background: Arc<AtomicBool>,
     mode_changed: Arc<tokio::sync::Notify>,
     foreground_wait: Arc<AtomicBool>,
     parent_rejected: AtomicBool,
+}
+
+struct Execution {
+    runtime: std::sync::Weak<Runtime<'static>>,
+    mcp: Arc<mcp::McpOwner>,
+    completion: Shared<BoxFuture<'static, bool>>,
+}
+
+struct ParentWake {
+    origin: Arc<origin::Origin>,
+    _work: origin::Work,
+}
+
+pub(crate) struct ParentBatch {
+    pub(crate) parent: String,
+    pub(crate) origin: Arc<origin::Origin>,
+    pub(crate) messages: Vec<String>,
+    operations: Vec<String>,
+}
+
+impl Work {
+    fn running(&self) -> bool {
+        self.execution
+            .as_ref()
+            .is_some_and(|execution| execution.completion.clone().now_or_never().is_none())
+    }
 }
 
 /// Execution remains child-local. Only source publications are shared; this
@@ -133,10 +159,11 @@ impl LaunchCeiling {
     }
 }
 
-struct WaitRelease(Arc<AtomicBool>);
+struct WaitRelease(Arc<AtomicBool>, Arc<tokio::sync::Notify>);
 impl Drop for WaitRelease {
     fn drop(&mut self) {
         self.0.store(false, Ordering::Release);
+        self.1.notify_one();
     }
 }
 
@@ -153,7 +180,7 @@ pub(crate) struct Jobs {
 }
 
 pub(super) struct Reservation {
-    _slot: tokio::sync::OwnedSemaphorePermit,
+    slot: Option<tokio::sync::OwnedSemaphorePermit>,
     sessions: Arc<Mutex<BTreeMap<String, String>>>,
     child: String,
 }
@@ -180,9 +207,7 @@ impl Jobs {
             .lock()
             .expect("child work")
             .values()
-            .find(|w| {
-                w.identity.child.0 == session && w.completion.clone().now_or_never().is_none()
-            })
+            .find(|w| w.identity.child.0 == session && w.running())
             .map(|w| w.identity.operation.clone());
         if let Some(operation) = operation {
             self.permission_rejected(&operation);
@@ -190,20 +215,30 @@ impl Jobs {
     }
 
     pub(super) fn take_parent_rejection(&self, session: &str) -> bool {
-        self.work
+        let mut cleared = false;
+        let rejected = self
+            .work
             .lock()
             .expect("child work")
             .values()
             .filter(|w| w.identity.parent.0 == session)
             .fold(false, |rejected, w| {
                 let pending = w.parent_rejected.swap(false, Ordering::AcqRel);
+                cleared |= pending;
                 (pending
                     && self
                         .db
                         .turn_result(&w.parent_turn)
                         .is_ok_and(|(state, _)| state == "started"))
                     || rejected
-            })
+            });
+        if rejected {
+            self.cancel_session(session);
+        }
+        if cleared {
+            self.notify();
+        }
+        rejected
     }
 
     /// Scoped observer of the real parent's borrowed cancellation token. Child
@@ -272,7 +307,7 @@ impl Jobs {
         }
         sessions.insert(child.into(), parent.into());
         Ok(Reservation {
-            _slot: slot,
+            slot: Some(slot),
             sessions: self.sessions.clone(),
             child: child.into(),
         })
@@ -299,7 +334,7 @@ impl Jobs {
         }
         sessions.insert(identity.child.0.clone(), identity.parent.0.clone());
         Ok(Reservation {
-            _slot: slot,
+            slot: Some(slot),
             sessions: self.sessions.clone(),
             child: identity.child.0.clone(),
         })
@@ -315,7 +350,15 @@ impl Jobs {
             .lock()
             .expect("child work")
             .values()
-            .map(|job| job.completion.clone())
+            .filter(|job| {
+                !job.foreground_wait.load(Ordering::Acquire)
+                    && !job.parent_rejected.load(Ordering::Acquire)
+            })
+            .filter_map(|job| {
+                job.execution
+                    .as_ref()
+                    .map(|execution| execution.completion.clone())
+            })
             .collect::<Vec<_>>();
         if completions.is_empty() {
             self.wake.notified().await;
@@ -395,14 +438,21 @@ impl Jobs {
                     reason: "child join unavailable".into(),
                 })?;
             (
-                work.completion.clone(),
+                work.execution
+                    .as_ref()
+                    .ok_or_else(|| ToolError::Failed {
+                        tool: SUBAGENT_TOOL.into(),
+                        reason: "child join unavailable".into(),
+                    })?
+                    .completion
+                    .clone(),
                 work.background.clone(),
                 work.mode_changed.clone(),
                 work.cancel.clone(),
                 work.foreground_wait.clone(),
             )
         };
-        let _release = WaitRelease(foreground_wait);
+        let _release = WaitRelease(foreground_wait, self.wake.clone());
         let mut completion = Box::pin(completion);
         loop {
             let notified = changed.notified();
@@ -453,8 +503,13 @@ impl Jobs {
             .lock()
             .expect("child work")
             .values()
-            .find(|w| w.identity.child.0 == child)
-            .map(|w| (w.completion.clone(), w.cancel.clone()));
+            .find(|w| w.identity.child.0 == child && w.execution.is_some())
+            .map(|w| {
+                (
+                    w.execution.as_ref().expect("execution").completion.clone(),
+                    w.cancel.clone(),
+                )
+            });
         let Some((completion, cancel)) = work else {
             return true;
         };
@@ -472,7 +527,8 @@ impl Jobs {
 
     pub(crate) fn cancel_session(&self, parent: &str) -> bool {
         let mut found = false;
-        for work in self.work.lock().expect("child work").values() {
+        let mut work = self.work.lock().expect("child work");
+        for work in work.values_mut() {
             if work.identity.parent.0 == parent
                 || self
                     .db
@@ -480,11 +536,145 @@ impl Jobs {
                     .unwrap_or(false)
             {
                 work.cancel.store(true, Ordering::Release);
+                work.parent_wake = None;
                 found = true;
             }
         }
+        work.retain(|_, work| work.execution.is_some() || work.parent_wake.is_some());
         self.wake.notify_one();
         found
+    }
+
+    pub(crate) fn suppress_origin(&self, origin: u64) {
+        let mut work = self.work.lock().expect("child work");
+        for job in work.values_mut() {
+            if job
+                .parent_wake
+                .as_ref()
+                .is_some_and(|wake| wake.origin.id == origin)
+            {
+                job.parent_wake = None;
+            }
+        }
+        work.retain(|_, job| job.execution.is_some() || job.parent_wake.is_some());
+        self.notify();
+    }
+
+    pub(crate) fn suppress_wakes(&self) {
+        let mut work = self.work.lock().expect("child work");
+        for job in work.values_mut() {
+            job.parent_wake = None;
+        }
+        work.retain(|_, job| job.execution.is_some());
+        self.notify();
+    }
+
+    pub(crate) fn finish_batch(&self, batch: &ParentBatch) {
+        let mut work = self.work.lock().expect("child work");
+        for operation in &batch.operations {
+            if let Some(job) = work.get_mut(operation)
+                && job
+                    .parent_wake
+                    .as_ref()
+                    .is_some_and(|wake| wake.origin.id == batch.origin.id)
+            {
+                job.parent_wake = None;
+            }
+        }
+        work.retain(|_, job| job.execution.is_some() || job.parent_wake.is_some());
+        self.notify();
+    }
+
+    pub(crate) fn batch_current(&self, batch: &ParentBatch) -> Result<bool, StorageError> {
+        let work = self.work.lock().expect("child work");
+        if batch.origin.flag.load(Ordering::Acquire)
+            || batch.origin.foreground.load(Ordering::Acquire)
+        {
+            return Ok(false);
+        }
+        for (operation, message) in batch.operations.iter().zip(&batch.messages) {
+            let Some(job) = work.get(operation) else {
+                return Ok(false);
+            };
+            if job.execution.is_some()
+                || job
+                    .parent_wake
+                    .as_ref()
+                    .is_none_or(|wake| wake.origin.id != batch.origin.id)
+                || self.db.parent_notice_assigned(&batch.parent, message)?
+            {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    /// Only finite, live launch handoffs confer scheduling authority. Durable
+    /// history alone (including recovery/forks) never creates a runnable batch.
+    pub(crate) fn parent_batches(&self) -> Result<Vec<ParentBatch>, StorageError> {
+        let mut work = self.work.lock().expect("child work");
+        let mut groups: BTreeMap<(String, u64), ParentBatch> = BTreeMap::new();
+        for job in work.values_mut() {
+            let Some(wake) = &job.parent_wake else {
+                continue;
+            };
+            let current =
+                self.db
+                    .child_job(&job.identity.parent.0, &job.identity.operation, false)?;
+            let assigned =
+                if let Some(message) = current.as_ref().and_then(|job| job.message_id.as_deref()) {
+                    self.db
+                        .parent_notice_assigned(&job.identity.parent.0, message)?
+                } else {
+                    false
+                };
+            if wake.origin.flag.load(Ordering::Acquire)
+                || wake.origin.foreground.load(Ordering::Acquire)
+                || assigned
+                || (job.execution.is_none() && current.as_ref().is_none_or(|job| !job.background))
+            {
+                job.parent_wake = None;
+                continue;
+            }
+            if job.execution.is_some() {
+                continue;
+            }
+            let Some(message) = current.and_then(|job| job.message_id) else {
+                continue;
+            };
+            let batch = groups
+                .entry((job.identity.parent.0.clone(), wake.origin.id))
+                .or_insert_with(|| ParentBatch {
+                    parent: job.identity.parent.0.clone(),
+                    origin: wake.origin.clone(),
+                    messages: Vec::new(),
+                    operations: Vec::new(),
+                });
+            batch.messages.push(message);
+            batch.operations.push(job.identity.operation.clone());
+        }
+        work.retain(|_, job| job.execution.is_some() || job.parent_wake.is_some());
+        let mut ordered = Vec::new();
+        for mut batch in groups.into_values() {
+            let seqs = self.db.message_seqs(&batch.parent, &batch.messages)?;
+            let mut positions = batch
+                .messages
+                .iter()
+                .zip(&batch.operations)
+                .map(|(id, op)| {
+                    seqs.iter()
+                        .find(|(message, _)| message == id)
+                        .map(|(_, seq)| (*seq, id.clone(), op.clone()))
+                        .ok_or(StorageError::OperationNotFound)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            positions.sort_by_key(|(seq, _, _)| *seq);
+            batch.messages = positions.iter().map(|(_, id, _)| id.clone()).collect();
+            batch.operations = positions.iter().map(|(_, _, op)| op.clone()).collect();
+            ordered.push((positions[0].0, batch));
+        }
+        ordered.sort_by_key(|(seq, _)| *seq);
+        Ok(ordered.into_iter().map(|(_, batch)| batch).collect())
     }
 
     pub(crate) fn deliver(
@@ -505,13 +695,32 @@ impl Jobs {
     pub(crate) async fn reap(&self) -> Result<(), StorageError> {
         let finished = {
             let work = self.work.lock().expect("child work");
+            for job in work.values() {
+                if job.parent_rejected.load(Ordering::Acquire)
+                    && self
+                        .db
+                        .turn_result(&job.parent_turn)
+                        .is_ok_and(|(state, _)| state != "started")
+                {
+                    job.parent_rejected.store(false, Ordering::Release);
+                }
+            }
             work.iter()
                 .filter(|(_, job)| {
                     !job.foreground_wait.load(Ordering::Acquire)
                         && !job.parent_rejected.load(Ordering::Acquire)
-                        && job.completion.clone().now_or_never().is_some()
+                        && job.execution.as_ref().is_some_and(|execution| {
+                            execution.completion.clone().now_or_never().is_some()
+                        })
                 })
-                .map(|(id, job)| (id.clone(), job.completion.clone(), job.mcp.clone()))
+                .map(|(id, job)| {
+                    let execution = job.execution.as_ref().expect("execution");
+                    (
+                        id.clone(),
+                        execution.completion.clone(),
+                        execution.mcp.clone(),
+                    )
+                })
                 .collect::<Vec<_>>()
         };
         for (id, completion, owner) in finished {
@@ -525,7 +734,10 @@ impl Jobs {
             // Ready joins alone cannot let a concurrent reaper remove it.
             let mut work = self.work.lock().expect("child work");
             if !self.closing.load(Ordering::Acquire) {
-                work.remove(&id);
+                if let Some(job) = work.get_mut(&id) {
+                    job.execution = None;
+                }
+                work.retain(|_, job| job.execution.is_some() || job.parent_wake.is_some());
             }
         }
         let retired = {
@@ -534,7 +746,13 @@ impl Jobs {
                 .lock()
                 .expect("retired child source")
                 .iter()
-                .filter(|owner| !work.values().any(|job| Arc::ptr_eq(&job.mcp, owner)))
+                .filter(|owner| {
+                    !work.values().any(|job| {
+                        job.execution
+                            .as_ref()
+                            .is_some_and(|execution| Arc::ptr_eq(&execution.mcp, owner))
+                    })
+                })
                 .cloned()
                 .collect::<Vec<_>>()
         };
@@ -563,13 +781,22 @@ impl Jobs {
 
     pub(crate) async fn shutdown(&self) -> Result<(), StorageError> {
         self.closing.store(true, Ordering::Release);
+        self.suppress_wakes();
         let work = {
             let work = self.work.lock().expect("child work");
             for job in work.values() {
                 job.cancel.store(true, Ordering::Release);
             }
             work.iter()
-                .map(|(id, job)| (id.clone(), job.completion.clone(), job.mcp.clone()))
+                .filter_map(|(id, job)| {
+                    job.execution.as_ref().map(|execution| {
+                        (
+                            id.clone(),
+                            execution.completion.clone(),
+                            execution.mcp.clone(),
+                        )
+                    })
+                })
                 .collect::<Vec<_>>()
         };
         for (id, completion, owner) in work {
@@ -603,7 +830,7 @@ impl Jobs {
         catalog: ModelCatalog,
         provider: ResponsesConfig,
         attached: mcp::McpGeneration,
-        reservation: Reservation,
+        mut reservation: Reservation,
         fresh: bool,
         resume: Option<TurnLog>,
     ) -> Result<SubagentOutcome, ToolError> {
@@ -633,6 +860,28 @@ impl Jobs {
                     reason: "child owner closing; no prompt admitted".into(),
                 });
             }
+            let parent_wake = if resume.is_none()
+                && self
+                    .db
+                    .session_meta(&identity.parent.0)
+                    .map_err(|_| ToolError::Failed {
+                        tool: SUBAGENT_TOOL.into(),
+                        reason: "parent state unavailable".into(),
+                    })?
+                    .parent_id
+                    .is_none()
+            {
+                runtime
+                    .native_origin
+                    .as_ref()
+                    .filter(|origin| origin.location().is_some())
+                    .map(|origin| ParentWake {
+                        origin: origin.clone(),
+                        _work: origin.work(),
+                    })
+            } else {
+                None
+            };
             if resume.is_none() {
                 let mut launch_sources = Vec::new();
                 let mut ancestor = runtime
@@ -673,6 +922,7 @@ impl Jobs {
             let mcp = runtime.mcp_owner();
             let child_runtime = runtime.clone();
             let origin_work = runtime.native_origin.as_ref().map(|origin| origin.work());
+            let slot = reservation.slot.take().expect("reserved child capacity");
             // The captured request future is large; transfer a heap-pinned
             // future rather than moving it through spawn's stack frames.
             let task = tokio::spawn(Box::pin(async move {
@@ -757,10 +1007,14 @@ impl Jobs {
                 Work {
                     identity: identity.clone(),
                     parent_turn,
-                    runtime: Arc::downgrade(&runtime),
-                    mcp,
+                    execution: Some(Execution {
+                        runtime: Arc::downgrade(&runtime),
+                        mcp,
+                        completion,
+                    }),
+                    parent_wake,
+                    _slot: slot,
                     cancel,
-                    completion,
                     background,
                     mode_changed,
                     foreground_wait,
@@ -778,6 +1032,7 @@ impl Jobs {
             {
                 work.foreground_wait.store(false, Ordering::Release);
             }
+            self.notify();
             return Err(ToolError::Failed {
                 tool: SUBAGENT_TOOL.into(),
                 reason: "child launch failed; inspect child state".into(),
@@ -801,13 +1056,13 @@ impl Jobs {
             .values()
             .find(|job| {
                 job.identity.location == binding.location
-                    && job.completion.clone().now_or_never().is_none()
+                    && job.running()
                     && self
                         .db
                         .shell_family_contains(&job.identity.child.0, &binding.session)
                         .unwrap_or(false)
             })
-            .and_then(|job| job.runtime.upgrade())
+            .and_then(|job| job.execution.as_ref()?.runtime.upgrade())
     }
 
     pub(super) fn terminal_source(&self, selected: &ChildJob) -> Option<Arc<Runtime<'static>>> {
@@ -816,17 +1071,15 @@ impl Jobs {
             .expect("child work")
             .get(&selected.operation)
             .filter(|work| super::terminals::same_source(&work.identity, selected))
-            .and_then(|work| work.runtime.upgrade())
+            .and_then(|work| work.execution.as_ref()?.runtime.upgrade())
     }
 
     fn retain_source(&self, owner: Arc<mcp::McpOwner>) -> bool {
-        if !self
-            .work
-            .lock()
-            .expect("child work")
-            .values()
-            .any(|job| Arc::ptr_eq(&job.mcp, &owner))
-        {
+        if !self.work.lock().expect("child work").values().any(|job| {
+            job.execution
+                .as_ref()
+                .is_some_and(|execution| Arc::ptr_eq(&execution.mcp, &owner))
+        }) {
             return false;
         }
         let mut retired = self.retired.lock().expect("retired child source");
@@ -838,12 +1091,11 @@ impl Jobs {
 
     pub(super) fn remote_unknown(&self) -> bool {
         self.remote_unknown.load(Ordering::Acquire)
-            || self
-                .work
-                .lock()
-                .expect("child work")
-                .values()
-                .any(|job| job.mcp.remote_unknown())
+            || self.work.lock().expect("child work").values().any(|job| {
+                job.execution
+                    .as_ref()
+                    .is_some_and(|execution| execution.mcp.remote_unknown())
+            })
     }
 }
 

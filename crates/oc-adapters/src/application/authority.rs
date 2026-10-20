@@ -50,6 +50,7 @@ impl Resources {
         db: &Db,
         events: &broadcast::Sender<CoreEvent>,
         mut stop: oneshot::Receiver<()>,
+        owner: std::sync::Weak<Owner>,
     ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
         loop {
             let shell = &self.shell;
@@ -63,6 +64,9 @@ impl Resources {
             shell
                 .deliver(events)
                 .map_err(|error| storage_diagnostic(db.root(), &error))?;
+            if let Some(owner) = owner.upgrade() {
+                owner.reconcile_parent_notices()?;
+            }
             self.advance
                 .send_modify(|revision| *revision = revision.wrapping_add(1));
             tokio::select! {
@@ -101,6 +105,7 @@ pub(crate) struct Owner {
     seed: Mutex<Option<Composition>>,
     locations: tokio::sync::Mutex<BTreeMap<PathBuf, LocationCell>>,
     roots: Mutex<BTreeMap<String, Reservation>>,
+    closing: AtomicBool,
     root_tasks: Mutex<tokio::task::JoinSet<Result<(), oc_core::queries::ServiceDiagnostic>>>,
     root_added: tokio::sync::Notify,
     origins: Mutex<Vec<std::sync::Weak<crate::runtime::origin::Origin>>>,
@@ -127,9 +132,7 @@ impl Owner {
         let pump_db = db.shared_handle();
         let pump_resources = resources.clone();
         let pump_events = events.clone();
-        let pump =
-            tokio::spawn(async move { pump_resources.pump(&pump_db, &pump_events, stop).await });
-        Ok(Arc::new(Self {
+        let owner = Arc::new(Self {
             db,
             events,
             resources,
@@ -137,12 +140,21 @@ impl Owner {
             seed: Mutex::new(None),
             locations: tokio::sync::Mutex::new(BTreeMap::new()),
             roots: Mutex::new(BTreeMap::new()),
+            closing: AtomicBool::new(false),
             root_tasks: Mutex::new(tokio::task::JoinSet::new()),
             root_added: tokio::sync::Notify::new(),
             origins: Mutex::new(Vec::new()),
             pump_stop: Mutex::new(Some(pump_stop)),
-            pump: Mutex::new(Some(pump)),
-        }))
+            pump: Mutex::new(None),
+        });
+        let weak = Arc::downgrade(&owner);
+        let pump = tokio::spawn(async move {
+            pump_resources
+                .pump(&pump_db, &pump_events, stop, weak)
+                .await
+        });
+        *owner.pump.lock().expect("resource pump") = Some(pump);
+        Ok(owner)
     }
 
     pub(crate) fn prime(&self, composition: Composition) {
@@ -236,15 +248,16 @@ impl Owner {
     }
 
     pub(crate) fn cancel_interactive(&self) {
-        for origin in self
+        let origins: Vec<_> = self
             .origins
             .lock()
             .expect("operation origins")
             .iter()
             .filter_map(std::sync::Weak::upgrade)
-        {
+            .collect();
+        for origin in origins {
             if origin.kind == crate::runtime::origin::Kind::Interactive {
-                origin.cancel();
+                self.cancel_origin(&origin);
             }
         }
     }
@@ -252,6 +265,9 @@ impl Owner {
     pub(crate) fn reserve_mutation(self: &Arc<Self>, session: &str) -> Result<Mutation, CoreError> {
         static NEXT: AtomicU64 = AtomicU64::new(1);
         let mut roots = self.roots.lock().expect("primary roots");
+        if self.closing.load(Ordering::Acquire) {
+            return Err(CoreError::Shutdown);
+        }
         if roots.contains_key(session) {
             return Err(CoreError::TurnBusy);
         }
@@ -430,7 +446,30 @@ impl Owner {
         question_consumer: bool,
         reservation: Option<&Mutation>,
     ) -> Result<Arc<Root>, CoreError> {
+        self.begin_inner(
+            location,
+            session,
+            origin,
+            (approval_mode, question_consumer),
+            reservation,
+            None,
+        )
+    }
+
+    fn begin_inner(
+        self: &Arc<Self>,
+        location: Arc<Location>,
+        session: String,
+        origin: Arc<crate::runtime::origin::Origin>,
+        consumers: (u8, bool),
+        reservation: Option<&Mutation>,
+        batch: Option<crate::runtime::children::ParentBatch>,
+    ) -> Result<Arc<Root>, CoreError> {
+        let (approval_mode, question_consumer) = consumers;
         let mut roots = self.roots.lock().expect("primary roots");
+        if self.closing.load(Ordering::Acquire) {
+            return Err(CoreError::Shutdown);
+        }
         let reserved = reservation.is_some_and(|reservation| reservation.session == session
             && std::ptr::eq(reservation.owner.as_ref(), self.as_ref())
             && matches!(roots.get(&session), Some(Reservation::Mutation(token)) if *token == reservation.token));
@@ -439,6 +478,15 @@ impl Owner {
         }
         if !reserved && roots.len() >= MAX_QUEUE_ITEMS {
             return Err(CoreError::QueueFull);
+        }
+        if let Some(batch) = &batch
+            && !self
+                .resources
+                .children
+                .batch_current(batch)
+                .map_err(app_error)?
+        {
+            return Err(CoreError::TurnNotActive);
         }
         let (app, inbox) = CoreApp::channel_with_events(MAX_QUEUE_ITEMS, self.events.clone());
         let (prepared, ready) = watch::channel(None);
@@ -452,28 +500,40 @@ impl Owner {
         roots.insert(session.clone(), Reservation::Running(root.clone()));
         let mut origins = self.origins.lock().expect("operation origins");
         origins.retain(|origin| origin.strong_count() > 0);
-        origins.push(Arc::downgrade(&origin));
+        if !origins
+            .iter()
+            .any(|held| held.ptr_eq(&Arc::downgrade(&origin)))
+        {
+            origins.push(Arc::downgrade(&origin));
+        }
         drop(origins);
         let owner = Arc::downgrade(self);
         let running = root.clone();
         let events = self.events.clone();
         let db = self.db.shared_handle();
         let origin_work = origin.work();
+        let children = self.resources.children.clone();
         self.root_tasks
             .lock()
             .expect("primary tasks")
             .spawn(async move {
                 let _origin_work = origin_work;
+                let mut refused = None;
                 let result = async {
                     let seed = match location.primary(session.clone()).await {
                         Ok(seed) => seed,
                         Err(error) => {
+                            refused = Some(error.clone());
                             prepared.send_replace(Some(Err(error)));
                             return Ok(());
                         }
                     };
                     prepared.send_replace(Some(Ok(())));
-                    seed.run(
+                    let (initial, reply) = if let Some(batch) = &batch {
+                        let (ack, reply) = oneshot::channel();
+                        (Some(ParentNotices { session:SessionId(session.clone()), messages:batch.messages.clone(), ack }), Some(reply))
+                    } else { (None,None) };
+                    let result = seed.run(
                         &db,
                         &events,
                         &session,
@@ -482,10 +542,26 @@ impl Owner {
                         origin,
                         approval_mode,
                         question_consumer,
+                        initial,
                     )
-                    .await
+                    .await;
+                    if let Some(reply) = reply {
+                        match reply.await { Ok(Ok(_)) => {}, Ok(Err(error)) => refused = Some(error), Err(_) => refused = Some(CoreError::Shutdown) }
+                    }
+                    result
                 }
                 .await;
+                if let Some(batch) = &batch {
+                    children.finish_batch(batch);
+                    if let Some(error) = refused
+                        && !running.origin.flag.load(Ordering::Acquire) && !running.cancel.load(Ordering::Acquire) {
+                        let diagnostic = match error {
+                            CoreError::Diagnostic(diagnostic) | CoreError::ProviderUnavailable(diagnostic) => diagnostic,
+                            _ => runtime_issue(&running.location.project.to_string_lossy(), &["subagent","continuation"], &RuntimeError::InvalidArgs("native continuation refused".into())).diagnostic,
+                        };
+                        let _ = events.send(CoreEvent::ParentContinuationRefused { session:SessionId(session.clone()), diagnostic });
+                    }
+                }
                 if let Some(owner) = owner.upgrade() {
                     let mut roots = owner.roots.lock().expect("primary roots");
                     if roots
@@ -496,11 +572,102 @@ impl Owner {
                     }
                     drop(roots);
                     owner.root_added.notify_waiters();
+                    owner.resources.children.notify();
                 }
                 result
             });
         self.root_added.notify_one();
         Ok(root)
+    }
+
+    fn reconcile_parent_notices(
+        self: &Arc<Self>,
+    ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
+        if self.closing.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        for batch in self
+            .resources
+            .children
+            .parent_batches()
+            .map_err(|error| storage_diagnostic(self.db.root(), &error))?
+        {
+            let Some(location) = batch.origin.location() else {
+                self.resources.children.finish_batch(&batch);
+                continue;
+            };
+            let origin = batch.origin.clone();
+            let approval = if origin.approval_consumer.load(Ordering::Acquire) {
+                if origin.auto_once.load(Ordering::Acquire) {
+                    2
+                } else {
+                    1
+                }
+            } else {
+                0
+            };
+            let questions = origin.question_consumer.load(Ordering::Acquire);
+            match self.begin_inner(
+                location.clone(),
+                batch.parent.clone(),
+                origin,
+                (approval, questions),
+                None,
+                Some(batch),
+            ) {
+                Ok(_)
+                | Err(
+                    CoreError::TurnBusy
+                    | CoreError::QueueFull
+                    | CoreError::TurnNotActive
+                    | CoreError::Shutdown,
+                ) => {}
+                Err(_) => {
+                    return Err(runtime_issue(
+                        "native owner",
+                        &["subagent", "continuation"],
+                        &RuntimeError::Storage,
+                    )
+                    .diagnostic);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn cancel_origin(&self, origin: &crate::runtime::origin::Origin) {
+        let _roots = self.roots.lock().expect("primary roots");
+        origin.cancel();
+        self.resources.children.suppress_origin(origin.id);
+    }
+
+    /// Session cancellation and automatic root admission share one decision
+    /// boundary. An idle cancellation must not race through the Source inbox.
+    pub(crate) fn cancel_session(
+        &self,
+        location: &Location,
+        session: &str,
+        expected: Option<u64>,
+    ) -> Result<(), CoreError> {
+        let roots = self.roots.lock().expect("primary roots");
+        let running = match roots.get(session) {
+            Some(Reservation::Running(root)) => {
+                if expected != Some(root.origin.id) || root.location.project != location.project {
+                    return Err(CoreError::TurnNotActive);
+                }
+                root.cancel.store(true, Ordering::Release);
+                true
+            }
+            Some(Reservation::Mutation(_)) => false,
+            None => false,
+        };
+        let children = self.resources.children.cancel_session(session);
+        let shell = self.resources.shell.cancel_session(session);
+        if running || children || shell {
+            Ok(())
+        } else {
+            Err(CoreError::TurnNotActive)
+        }
     }
 
     /// Check the captured operation under the same lock as root replacement.
@@ -551,16 +718,18 @@ impl Owner {
     }
 
     pub(crate) async fn shutdown(&self) -> Result<(), oc_core::queries::ServiceDiagnostic> {
-        let roots: Vec<_> = self
-            .roots
-            .lock()
-            .expect("primary roots")
-            .values()
-            .filter_map(|entry| match entry {
-                Reservation::Running(root) => Some(root.clone()),
-                Reservation::Mutation(_) => None,
-            })
-            .collect();
+        let roots: Vec<_> = {
+            let roots = self.roots.lock().expect("primary roots");
+            self.closing.store(true, Ordering::Release);
+            self.resources.children.suppress_wakes();
+            roots
+                .values()
+                .filter_map(|entry| match entry {
+                    Reservation::Running(root) => Some(root.clone()),
+                    Reservation::Mutation(_) => None,
+                })
+                .collect()
+        };
         for root in &roots {
             root.origin.cancel();
             root.cancel.store(true, Ordering::Release);
@@ -645,6 +814,8 @@ impl Drop for Mutation {
         {
             roots.remove(&self.session);
         }
+        drop(roots);
+        self.owner.resources.children.notify();
     }
 }
 
@@ -671,6 +842,13 @@ impl Root {
 pub(super) struct Operation {
     pub(super) cancel: Arc<AtomicBool>,
     pub(super) advance: watch::Receiver<u64>,
+    pub(super) initial_notices: Option<ParentNotices>,
+}
+
+pub(super) struct ParentNotices {
+    pub(super) session: SessionId,
+    pub(super) messages: Vec<String>,
+    pub(super) ack: oneshot::Sender<Result<oc_core::core_app::WorkerTurnId, CoreError>>,
 }
 
 pub(crate) struct Location {
@@ -740,6 +918,7 @@ impl Primary {
         origin: Arc<crate::runtime::origin::Origin>,
         approval_mode: u8,
         question_consumer: bool,
+        initial_notices: Option<ParentNotices>,
     ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
         self.runtime.bind_native_origin(origin.clone());
         self.composition
@@ -748,10 +927,10 @@ impl Primary {
         self.composition
             .question_consumer
             .store(question_consumer, Ordering::SeqCst);
-        if approval_mode > 0 {
+        if approval_mode > 0 && initial_notices.is_none() {
             self.runtime.register_approval_consumer(approval_mode == 2);
         }
-        if question_consumer {
+        if question_consumer && initial_notices.is_none() {
             self.runtime.register_question_consumer();
         }
         self.runtime.set_approval_events(events);
@@ -773,6 +952,7 @@ impl Primary {
         let mut operation = Operation {
             cancel: cancel.clone(),
             advance: self.resources.advance.subscribe(),
+            initial_notices,
         };
         let result = {
             let work = worker(
