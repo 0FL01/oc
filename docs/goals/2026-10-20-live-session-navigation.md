@@ -1,6 +1,6 @@
 # Goal: live session navigation and root background lifecycle
 
-Status: active
+Status: complete
 Source: пользовательские screenshots running Subagent/tab refusal; выбор «Полный background lifecycle»; четырёхчастный read-only audit; запрос «Делай копию плана в цель и итеративно реализовать и коммит пуш».
 Last updated: 2026-10-20
 
@@ -50,8 +50,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: последний пользовательский запрос.
   - Acceptance: relevant tests, full offline gate, scoped current-TS paired qualification и diff review; normal commits/push, remote HEAD verified.
   - Primary evidence: команды/exit codes, capture witnesses, commit IDs и remote HEAD.
-  - Status: in_progress
-  - Evidence: checked runtime/UI iterations through `52a150cb` published. Four scoped current-source paired episodes qualify R1/R5 at 120×40 and 80×24; capture guard/causal snapshot tests: Node 8, Python 9+8 PASS. First full-gate failures have relevant green corrections; final full offline gate and capture delivery remain pending.
+  - Status: verified
+  - Evidence: runtime/UI through `52a150cb` and checked capture delivery `e0ecb26a9` published to verified origin/master. Final `TMPDIR=/home/stfu/.cache/opencode-tmp/opencode CARGO_BUILD_JOBS=2 bash scripts/test.sh` exited 0: fmt, strict workspace/all-target Clippy, nextest 2196 PASS / 12 existing SKIP (396.136s), doctest commands, debug build/help/version PASS. Test artifact code generation took 13m02s, distinct from runtime; build jobs only were bounded, test load/deadlines/retries unchanged. Four current-source paired episodes and Node 8/Python 17 checks qualify the scoped UI/lifecycle; whole frames remain DIFFERENT.
 
 ### Constraints
 
@@ -107,17 +107,16 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 ## Current Checkpoint
 
-- Closes: R1/R5/R6 (R2/R3/R4 verified).
-- Smallest next action: deliver the checked capture guards/probes/causal snapshot tests, then run the full offline gate on final source and perform the frozen closure check.
-- Expected evidence: final fmt/strict workspace Clippy/nextest/doctests/debug build/help pass; scoped paired results retain correct provenance and full unmasked DIFFERENT scenes without a whole-product parity claim.
-- Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
+- Closes: R1–R6, all verified.
+- Smallest next action: none; closure is terminal. Commit/push this completion record without further implementation or backlog work.
+- Evidence: final full offline gate exit 0, four scoped current-source paired episodes, checked normal commits and verified origin/master.
 
 ## Current State
 
 - Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b`, R2 `9420451d1`, R5 admission `4d676301d` and Owner integration `2b198d7d5` published. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
-- Last relevant evidence: Owner 13, legacy move guards 2, actual scoped move/picker 3, binary TUI 120, full TUI 623 PASS; strict affected all-target Clippy PASS. Correct-provenance foreground and idle-background captures both pass at 120×40/80×24, including complete lower-pane/card/notice scoped styled-cell/pixel equality. Node 8/Python 17 capture tests PASS. First full gate was 2188 PASS / 6 FAIL / 12 SKIP; its diagnosed corrections are checked, but this is not a final gate PASS. No deadlines, retries or test load changed.
-- Blocker: no external blocker; only final gate/delivery/closure remain.
-- Next: full offline rerun after capture delivery; finish when the frozen R1–R6 closure passes. Preserve historical captures and disclose whole-frame DIFFERENT results.
+- Last relevant evidence: final full offline gate PASS: 2196 tests passed, 12 existing skips, strict workspace Clippy/fmt/doctest commands/debug build/help/version passed. Correct-provenance foreground and idle-background captures pass at 120×40/80×24, including complete lower-pane/card/notice scoped styled-cell/pixel equality; Node 8/Python 17 capture tests PASS. The historical first-gate 2188 PASS / 6 FAIL / 12 SKIP is preserved; its diagnosed causes are fixed. No deadlines, retries or test load changed.
+- Blocker: none.
+- Next: no substantive work; publish the completion record. Whole unmasked frames remain DIFFERENT, and no live external-provider or whole-product qualification is claimed.
 
 ## Material Decisions
 
@@ -141,10 +140,11 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - 2026-10-20: full-gate corrections checked: zero-height native input boundary preserves both predecessor and automatic-turn notice order; existing finite model-receipt wake fixes VAR01 without relaxing departure safety. Native primaries consume only their prepared moves; Source fallback checks the still-pending issuing caller under existing roots/Db synchronization. Held-gate Source/sibling and stale-list regressions, scoped actual streams/pickers and strict Clippy PASS. Deliver these corrections, then actual paired qualification/final gate; no whole-product readiness claim.
 - 2026-10-20: actual sealed foreground episode passes both products before Ctrl+B, including natural redraw, live child, original foreground ownership and later automatic parent settlement. Initial observer-before-admission snapshot now correctly reports no root as not idle. Producer provenance is corrected for fresh captures. Complete lower-pane comparison exposed 14 local styling differences; targeted raised-surface/separator regression is under verification, full scene differences remain disclosed.
 - 2026-10-20: final scoped paired qualification: fresh foreground 120×40/80×24 has 17 behavioral stages per product and complete lower-pane styled-cell/RGBA equality after the local semantic fix. Idle-background 120×40/80×24 has 15 stages, two actual parent followups, exact assignments/no child replay, and complete card/notice component equality. Consistent read-only snapshots and delivered-message causality prevent false idle witnesses. Full unmasked scenes remain DIFFERENT; no generic harness, donor change or masked whole-scene PASS. Proceed only final offline gate/delivery/closure.
+- 2026-10-20: capture delivery `e0ecb26a9` pushed; final full offline gate exited 0 with 2196 PASS / 12 existing SKIP, strict workspace Clippy/fmt/doctest commands/build/help/version PASS. Frozen R1–R6 closure passed; finish without opening further work.
 
 ## Completion
 
-- Resolved outcomes: pending.
-- Commands and artifacts: pending.
-- Constraint and diff-scope check: pending.
-- Final status: active.
+- Resolved outcomes: R1–R6 verified; no pending or waived outcomes.
+- Commands and artifacts: full `bash scripts/test.sh` exit 0 on `e0ecb26a9` (managed log `sh_159a681e4001L8A4YEDENe5M4I`); Node capture tests 8 PASS and Python capture tests 9+8 PASS. Primary paired artifacts are `.local/evidence/live-navigation-r1-120-03`, `live-navigation-r1-80-01`, `live-navigation-background-120-01`, and `live-navigation-background-80-01`; their component reports/producers and causal behavior witnesses are qualified. Full scene comparisons remain DIFFERENT.
+- Constraint and diff-scope check: existing sole owner/Db/private UDS and bounded Jobs reused; no new dependency/service/scheduler/queue/SQL DDL, donor edits, user-owner restart, credentials or paid live calls. Source/model/batch/cancel/unknown-effect and read-only/pending-receipt protections remain. Root-only live-origin continuation, no historical wake and no same-session steering are the frozen boundaries. Evidence stays gitignored within the existing retention limits; historical failures/seals are unchanged. Final completion edit is documentation-only, so it does not invalidate the checked runtime/capture inputs.
+- Final status: complete; normal iterative commits/push delivered to verified origin/master. The user's already-running owner was not replaced; rebuild does not update that process in place.
