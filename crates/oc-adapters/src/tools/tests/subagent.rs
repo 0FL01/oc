@@ -2,6 +2,36 @@ use super::super::{ToolCall, ToolError, subagent_request, validate_call};
 use serde_json::{Value, json};
 
 #[test]
+fn background_is_optional_boolean_and_never_changes_the_original_arguments() {
+    for (value, expected) in [(None, false), (Some(false), false), (Some(true), true)] {
+        let mut arguments = json!({"agent":"explore","description":"Read","prompt":"go"});
+        if let Some(value) = value {
+            arguments["background"] = value.into();
+        }
+        let call = ToolCall {
+            id: "launch".into(),
+            name: "subagent".into(),
+            arguments: arguments.clone(),
+        };
+        validate_call(&call).unwrap();
+        assert_eq!(subagent_request(&call).unwrap().background, expected);
+        assert_eq!(call.arguments, arguments);
+    }
+    for value in [Value::Null, json!("true"), json!(1), json!([]), json!({})] {
+        let call = ToolCall {
+            id: "invalid".into(),
+            name: "subagent".into(),
+            arguments: json!({"agent":"explore","prompt":"go","background":value}),
+        };
+        assert!(validate_call(&call).is_err());
+        assert!(matches!(
+            subagent_request(&call),
+            Err(ToolError::InvalidArgs { .. })
+        ));
+    }
+}
+
+#[test]
 fn optional_strings_normalize_only_exact_empty_and_preserve_raw_arguments() {
     for (key, nonempty) in [
         ("model", "fixture/model#variant"),

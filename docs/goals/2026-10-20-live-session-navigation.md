@@ -20,8 +20,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: первый screenshot и исправленный audit §B.
   - Acceptance: actual child transcript и существующий нижний Subagents/Shell/Terminals открываются до completion и без Ctrl+B; selection/drag/resize/overlay/foreign launch остаются безопасны.
   - Primary evidence: deterministic pointer regression и pre-Ctrl+B actual capture.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: deterministic running-click test RED на 80×24 spinner redraw, затем PASS на 80/120/160; 619 TUI tests PASS до дополнительного source-replacement regression. Selection/failed/error/drag/resize tests сохраняются. Дополнительный card→notice source fence реализован; его typed fixture ещё проверяется. Actual capture pending.
 - R2: accepted execution не блокирует root tab/New/Add/Sessions navigation и независимый запуск B при работающем A.
   - Source: третий screenshot, требование параллельных вкладок, audit §C.
   - Acceptance: одна TUI переключает A/B и создаёт B; оба stream прогрессируют до release; нет Cancel/Background/repeated Submit; linked и standalone read-only provenance не расширяется.
@@ -38,8 +38,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user background tool suspicion, audit §A.
   - Acceptance: optional Boolean, foreground default, explicit asynchronous/no-poll guidance в actual serialized tool definition; true не ждёт child terminal.
   - Primary evidence: actual provider definition/parser tests + existing background overlap integration.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: actual serialized provider definition test `r8_subagent_guidance_separates_automatic_assembly_from_caller_context` PASS; `tools::tests::subagent` — 3 PASS (omitted/false/true, invalid types, original arguments); compiled integration `background_children::background_child_posts_effects_and_completes_before_parent_response` — 1 PASS, 1.57s. Background launch engine/default/routing не менялись; automatic idle-root continuation остаётся R5.
 - R5: terminal background child автоматически продолжает live idle canonical root parent без нового user input и без повторного child execution.
   - Source: выбор «Полный background lifecycle», audit §E/§F.
   - Acceptance: durable report → one bounded assigned batch → real parent request; active/user race оставляет один runner; cancellation/last TUI/Run release/shutdown suppress; original Source и current committed parent selection; fork/DCP/Undo/Revert chronology сохранена.
@@ -106,17 +106,17 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 ## Current Checkpoint
 
-- Closes: R1, R4 (independent narrow initial iteration).
-- Smallest next action: establish pointer redraw regression; implement local painted-target capture, and explicit background guidance.
-- Expected evidence: targeted TUI child pointer and actual advertised tool tests.
+- Closes: R1 (R4 checked independently).
+- Smallest next action: finish exact card→notice replacement fixture and pointer gates, then native running-target picker regression.
+- Expected evidence: focused child pointer, full TUI and strict affected-crate Clippy; native picker RED on a genuinely running target.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
 ## Current State
 
-- Resolved: frozen audited plan copied; initial Rust HEAD `c70e1c9a7`, clean worktree, verified origin `git@github.com:0FL01/oc.git`, branch `master` tracking origin/master.
-- Last relevant evidence: read-only source audit; no implementation tests yet.
+- Resolved: plan `5384c03a5` published; R4 tool guidance/schema/parser/runtime behavior checked. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
+- Last relevant evidence: 619 TUI PASS, actual advertised tool PASS, 3 parser PASS and actual asynchronous background overlap PASS. Extra source-replacement test under diagnosis; no full offline gate/capture claim yet.
 - Blocker: none observed.
-- Next: R1/R4 regression → minimal fix → focused gates → checked iteration commit/push.
+- Next: R1 source-fence fixture → focused gates → checked pointer commit; R2/R3 and R5 remain unimplemented.
 
 ## Material Decisions
 
@@ -126,6 +126,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 ## Checkpoint History
 
 - 2026-10-20: copied corrected plan and froze R1–R6 before implementation.
+- 2026-10-20: R4 verified: explicit TS-like async/no-poll guidance, optional Boolean/default and actual wire assertions; parser 3 PASS, advertised definition PASS, physical child/parent overlap PASS. No new launch engine or forced background default. R1 running redraw RED→GREEN; independent review found missing pressed surface flag, now retained; finish its typed notice replacement regression before pointer delivery.
 
 ## Completion
 

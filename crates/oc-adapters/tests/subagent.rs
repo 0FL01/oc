@@ -1971,12 +1971,28 @@ async fn r8_subagent_guidance_separates_automatic_assembly_from_caller_context()
         "Your conversation and findings are not shared",
         "context_message_ids",
         "workspace is shared rather than a separate sandbox",
+        "background=true launches it asynchronously and returns immediately",
+        "DO NOT sleep, poll, or proactively check on its progress",
     ] {
         assert!(description.contains(expected), "{expected}: {description}");
     }
     let ids = &tool["parameters"]["properties"]["context_message_ids"];
     assert_eq!(ids["type"], "array");
     assert_eq!(ids["maxItems"], 64);
+    let background = &tool["parameters"]["properties"]["background"];
+    assert_eq!(background["type"], "boolean");
+    assert!(
+        !tool["parameters"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("background"))
+    );
+    assert!(
+        background["description"]
+            .as_str()
+            .unwrap()
+            .contains("return immediately")
+    );
 }
 
 #[tokio::test]

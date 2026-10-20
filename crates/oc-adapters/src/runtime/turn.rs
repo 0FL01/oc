@@ -107,7 +107,10 @@ fn subagent_tool_def(
         "Spawns an agent in a child session to work on the specified task.\n\
          The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
          New child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\n\
-         Foreground (default) runs the subagent to completion and returns its final response.\n\
+          Foreground (default) runs the subagent to completion and returns its final response.\n\
+          background=true launches it asynchronously and returns immediately; you will be notified when it completes. \
+          Use background only for independent work that can run while you continue elsewhere. \
+          DO NOT sleep, poll, or proactively check on its progress.\n\
          Each subagent automatically receives its own profile prompt, environment, applicable AGENTS instructions, permitted tool schemas, skill metadata (skill bodies load through the skill tool) and allowed MCP guidance. \
          Your conversation and findings are not shared: put them in prompt, or quote exact messages with context_message_ids from your stable text-message IDs or DCP context anchors list. \
          State task restrictions explicitly; the child's tools may permit broader work, and the workspace is shared rather than a separate sandbox.",
@@ -235,7 +238,7 @@ fn subagent_tool_def(
                 },
                 "background": {
                     "type": "boolean",
-                    "description": "Start independently and deliver a durable terminal notice. Foreground is the default.",
+                    "description": "Run independently in the background and return immediately after launch admission. You will be notified when it completes. DO NOT sleep, poll, or proactively check on its progress. Foreground is the default.",
                 },
                 "context_message_ids": {
                     "type": "array",
