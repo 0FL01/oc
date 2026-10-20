@@ -1280,6 +1280,56 @@ impl TuiState {
 
     // ---- worker events --------------------------------------------------
 
+    /// Native stream coverage belongs to this retained session view, not to a
+    /// turn ID or the shared receiver. Other sessions still receive their hints.
+    pub fn projection_floor(&self) -> u64 {
+        self.projection_floor
+    }
+
+    pub fn cover_projection(&mut self, revision: u64, truncated: bool) {
+        self.projection_floor = self.projection_floor.max(revision);
+        self.live_preview_truncated |= truncated;
+    }
+
+    /// Replace only disposable turn presentation after a canonical/live repair.
+    /// The caller prepares all fallible reads first; composer, history paging,
+    /// linked authority, controls and durable expansion state stay in this view.
+    pub fn reset_live_projection(&mut self) {
+        self.live_text.clear();
+        self.live_reasoning.clear();
+        self.live_parts.clear();
+        self.pending_tool_seen.clear();
+        self.pending_tool_round = 0;
+        self.live_part_offset = 0;
+        self.live_part_sources.clear();
+        self.live_checkpoint_end = None;
+        self.live_part_states.clear();
+        self.live_agent_color_index = None;
+        self.live_terminal_status = None;
+        self.live_model_label = None;
+        self.live_mixed_models = false;
+        self.live_preview_truncated = false;
+        self.reasoning_started = None;
+        self.reasoning_finished = None;
+        self.reasoning_down = None;
+        self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
+        self.turn_usage = None;
+        self.turn_context_usage = None;
+        self.live_retry = None;
+        self.live_retry_seen = None;
+        self.retry_due = None;
+        self.live_span = None;
+        self.live_projection_revision = None;
+        self.active_turn = None;
+        self.compress_turn = None;
+        self.retire_delegation_clocks();
+        self.reset_scanner();
+        if self.status != TuiStatus::Quit {
+            self.status = TuiStatus::Idle;
+        }
+        self.invalidate_transcript();
+    }
+
     /// Observe an owner-accepted child without admitting synthetic user input.
     pub fn begin_linked_turn(&mut self, turn: WorkerTurnId) {
         if self.active_turn.as_ref() == Some(&turn) {

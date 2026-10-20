@@ -1317,7 +1317,6 @@ async fn open_picker(
         return Err(CoreError::TabDeckConflict);
     }
     let next_epoch = epoch.checked_add(1).ok_or(CoreError::TabDeckConflict)?;
-    let _session = owner.reserve_mutation(&session.0)?;
     let context = source.app.session_picker_context(None).await?;
     if context.all_projects != all_projects {
         return Err(CoreError::Application(
@@ -1335,13 +1334,6 @@ async fn open_picker(
         .find(|row| row.id == session)
         .and_then(|row| row.directory)
         .ok_or(CoreError::SessionNotFound)?;
-    if owner
-        .db
-        .session_family_running(&session.0)
-        .map_err(|_| CoreError::TabDeckStorage)?
-    {
-        return Err(CoreError::TurnBusy);
-    }
     let target = owner
         .location(Path::new(&directory), peer.lease == Lease::Tui)
         .await
@@ -1357,15 +1349,6 @@ async fn open_picker(
     } else {
         None
     };
-    let current = source.app.tab_deck().await?;
-    let mut removed = Vec::new();
-    for id in current
-        .sessions
-        .iter()
-        .filter(|id| !old_deck.sessions.contains(id))
-    {
-        removed.push(owner.reserve_mutation(&id.0)?);
-    }
     if target.app.probe_session(session.clone()).await? != oc_core::queries::SessionProbe::Root {
         return Err(CoreError::SessionNotFound);
     }
@@ -1400,6 +1383,18 @@ async fn open_picker(
     } else {
         vec![old_deck, deck]
     };
+    // Selecting an executing root is only navigation. Reserve actual removals
+    // against the final source deck: the target may itself be a pending adoption
+    // absent from the caller's older projection, without a preference revision.
+    let current = source.app.tab_deck().await?;
+    let mut removed = Vec::new();
+    for id in current
+        .sessions
+        .iter()
+        .filter(|id| !decks[0].sessions.contains(id))
+    {
+        removed.push(owner.reserve_mutation(&id.0)?);
+    }
     owner.db.save_picker_decks(&mut decks)?;
     {
         let mut route = peer.route.lock().expect("attachment route");

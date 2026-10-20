@@ -117,4 +117,5 @@ fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &st
 }
 
 mod lifecycle;
+mod projection;
 mod routing;

@@ -116,6 +116,7 @@ async fn view(
     {
         view.begin_linked_turn(WorkerTurnId(turn));
     }
+    shared::attach(app, &mut view).await?;
     Ok(view)
 }
 
@@ -244,6 +245,8 @@ pub(super) async fn route_event(
     state: &mut TuiState,
     deck: &mut LoopState,
     event: &CoreEvent,
+    revision: Option<u64>,
+    replay: bool,
 ) -> Result<bool, String> {
     let Some(owner) = event_owner(event).cloned() else {
         return Ok(false);
@@ -257,16 +260,19 @@ pub(super) async fn route_event(
         .is_some_and(|v| v.attached_session() == Some(&owner))
     {
         let mut parent = deck.child_parent.take().expect("linked parent");
-        Box::pin(handle_worker_event(
+        let result = Box::pin(handle_worker_event_at(
             app,
             &mut parent,
             deck,
             &owner,
             event.clone(),
+            revision,
+            replay,
         ))
-        .await?;
+        .await;
         deck.child_parent = Some(parent);
         deck.read_only = true;
+        result?;
         return Ok(true);
     }
     if !deck.child_views.contains_key(&owner) && matches!(event, CoreEvent::TurnStarted { .. }) {
@@ -309,15 +315,18 @@ pub(super) async fn route_event(
         }
     }
     if let Some(mut child) = deck.child_views.remove(&owner) {
-        Box::pin(handle_worker_event(
+        let result = Box::pin(handle_worker_event_at(
             app,
             &mut child,
             deck,
             &owner,
             event.clone(),
+            revision,
+            replay,
         ))
-        .await?;
+        .await;
         park(deck, child);
+        result?;
         if state.children_open()
             || state.linked_child().is_some()
             || state.has_subagent_cards()

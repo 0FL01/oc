@@ -3975,6 +3975,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     state.apply_tab_rail_width(Some(20)).unwrap();
     let mut deck = LoopState {
         location: Some("/a".into()),
+        projection_revision: 7,
         ..Default::default()
     };
     deck.sync_tabs(&mut state);
@@ -3995,7 +3996,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         ack.send(Ok(oc_core::queries::SessionPickerOpen {
             session,
             location: "/a".into(),
-            catalog,
+            catalog: catalog.clone(),
             page: oc_core::queries::HistoryPage {
                 rows: vec![row(200)],
                 total: 200,
@@ -4003,10 +4004,32 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
                 title: Some("real title".into()),
                 ..Default::default()
             },
-            deck: accepted,
+            deck: accepted.clone(),
             previous_deck: old_deck,
         }))
         .unwrap();
+        empty_compactions(&mut inbox).await;
+        let Some(InboxMsg::Workspace { ack, .. }) = inbox.recv().await else {
+            panic!("WorkspaceChanged reconciliation")
+        };
+        ack.send(Ok(oc_core::queries::WorkspaceSnapshot {
+            revision: 10,
+            deck: accepted,
+            turns: Vec::new(),
+        }))
+        .unwrap();
+        let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+            panic!("retained view refreshes catalog, not transcript")
+        };
+        ack.send(Ok(catalog)).unwrap();
+        let Some(InboxMsg::PendingApprovals { ack }) = inbox.recv().await else {
+            panic!("retained approval projection")
+        };
+        ack.send(Ok(Vec::new())).unwrap();
+        let Some(InboxMsg::PendingQuestions { ack }) = inbox.recv().await else {
+            panic!("retained question projection")
+        };
+        ack.send(Ok(Vec::new())).unwrap();
     });
     apply_intent(
         &app,
@@ -4021,6 +4044,12 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     assert_eq!(state.input(), "retained draft");
     assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(state.session_title.as_deref(), Some("real title"));
+    deck.shared_refresh = true;
+    assert!(shared::sync(&app, &mut state, &mut deck).await.unwrap());
+    assert_eq!(state.history().rows()[0].seq, 1);
+    assert!(state.history().has_newer());
+    assert_eq!(state.input(), "retained draft");
+    assert_eq!(deck.projection_revision, 7);
     worker.await.unwrap();
 }
 

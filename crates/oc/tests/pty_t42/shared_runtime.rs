@@ -2,6 +2,96 @@ use super::*;
 use oc_core::{core_app::CoreEvent, domain::SessionId};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn srv04_running_picker_adoption_is_not_a_removed_tab() {
+    let fixture = Fixture::new();
+    let mut tui = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
+    wait_screen_row(&tui, "Ask anything", DEADLINE);
+    let (source, source_guard, _) = oc_adapters::native::attach(
+        &fixture.data_dir(),
+        Some(&fixture.project_a()),
+        oc_adapters::native::Lease::Tui,
+    )
+    .await
+    .unwrap();
+    let (observer, observer_guard, _) = oc_adapters::native::attach(
+        &fixture.data_dir(),
+        Some(&fixture.project_a()),
+        oc_adapters::native::Lease::Tui,
+    )
+    .await
+    .unwrap();
+    // Keep the real owner and two viewers, without an unrelated UI saving the
+    // adoption before this deliberately stale (but same-revision) picker.
+    quit(&mut tui);
+    let original = SessionId("fork-source".into());
+    source.create_session(original.clone()).await.unwrap();
+    let mut events = source.subscribe();
+    let first = source
+        .submit(original.clone(), "completed source task".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(DEADLINE, async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::Projection { event, .. }
+                if matches!(&*event, CoreEvent::TurnFinished { turn, .. } if turn == &first))
+            {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    let page = source
+        .history_page(original.clone(), None, None, 24)
+        .await
+        .unwrap();
+    let before = page
+        .rows
+        .iter()
+        .find(|row| row.role == oc_core::session::Role::User)
+        .unwrap()
+        .id
+        .clone();
+    observer.session_picker_context(Some(false)).await.unwrap();
+    let old = observer
+        .save_tab_deck(observer.tab_deck().await.unwrap())
+        .await
+        .unwrap();
+    let target = tokio::time::timeout(DEADLINE, async {
+        loop {
+            match source.fork_session(original.clone(), before.clone()).await {
+                Ok(fork) => break fork.session,
+                Err(oc_core::session::CoreError::TurnBusy) => tokio::task::yield_now().await,
+                Err(error) => panic!("fork refused: {error}"),
+            }
+        }
+    })
+    .await
+    .unwrap();
+    let turn = source
+        .submit(target.clone(), "srv-progress PICKER-ADOPTION".into())
+        .await
+        .unwrap();
+    progress_after(&fixture, "PICKER-ADOPTION", 2);
+    let current = observer.tab_deck().await.unwrap();
+    assert_eq!(current.revision, old.revision);
+    assert!(!old.sessions.contains(&target));
+    assert!(current.sessions.contains(&target));
+    let opened = observer
+        .open_picker_session(target.clone(), String::new(), false, old)
+        .await
+        .unwrap();
+    assert_eq!(opened.deck.active, Some(target.clone()));
+    assert!(opened.deck.sessions.contains(&target));
+    observer.workspace(Some(target.clone())).await.unwrap();
+    observer.cancel_turn(target, turn).await.unwrap();
+    observer.shutdown().await.unwrap();
+    observer_guard.join_diagnostic().await.unwrap();
+    source.shutdown().await.unwrap();
+    source_guard.join_diagnostic().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn srv04_stale_turn_and_picker_are_scoped_to_the_issuing_location() {
     let fixture = Fixture::new();
     let mut tui = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
@@ -73,6 +163,11 @@ async fn srv04_stale_turn_and_picker_are_scoped_to_the_issuing_location() {
     progress_after(&fixture, "SCOPED-CONTROL", previous);
     let target = SessionId("picker-target".into());
     destination.create_session(target.clone()).await.unwrap();
+    let target_turn = destination
+        .submit(target.clone(), "srv-progress PICKER-TARGET".into())
+        .await
+        .unwrap();
+    progress_after(&fixture, "PICKER-TARGET", 2);
     let epoch = source.catalog().await.unwrap().chrome.terminal_generation;
     observer.session_picker_context(Some(true)).await.unwrap();
     let old = observer.tab_deck().await.unwrap();
@@ -100,6 +195,10 @@ async fn srv04_stale_turn_and_picker_are_scoped_to_the_issuing_location() {
             .is_err(),
         "a foreign Location cannot acquire S's control"
     );
+    observer.workspace(Some(target.clone())).await.unwrap();
+    observer.cancel_turn(target, target_turn).await.unwrap();
+    let previous = fixture.progress.lock().unwrap()["SCOPED-CONTROL"];
+    progress_after(&fixture, "SCOPED-CONTROL", previous);
     source.cancel_turn(session, second).await.unwrap();
     observer.shutdown().await.unwrap();
     observer_guard.join_diagnostic().await.unwrap();

@@ -1133,7 +1133,13 @@ async fn refresh_control_views(
     refresh_approvals_in_views(app, state, unadmitted_shell.as_ref()).await?;
     // Existing bounded retained roots own their control projections too. None
     // of these reads replies to a request or grants an execution capability.
-    for parked in deck.tabs.iter_mut().flatten() {
+    for parked in deck
+        .tabs
+        .iter_mut()
+        .flatten()
+        .chain(deck.child_parent.as_deref_mut())
+        .chain(deck.child_views.values_mut())
+    {
         refresh_approvals_in_views(app, parked, unadmitted_shell.as_ref()).await?;
     }
     Ok(())
@@ -1438,7 +1444,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 }
                 Err(_) => break,
             };
-            let event = match event {
+            let (event, event_revision) = match event {
                 CoreEvent::Projection { revision, event } => {
                     if revision <= loop_state.projection_revision {
                         continue;
@@ -1450,9 +1456,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                         loop_state.shared_refresh = true;
                     }
                     loop_state.projection_revision = revision;
-                    *event
+                    (*event, Some(revision))
                 }
-                event => event,
+                event => (event, None),
             };
             match &event {
                 CoreEvent::WorkspaceChanged { location } => {
@@ -1505,7 +1511,16 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 .cloned()
                 .or_else(|| child_controls::event_owner(&event).cloned())
             {
-                handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
+                handle_worker_event_at(
+                    app,
+                    &mut state,
+                    &mut loop_state,
+                    &current,
+                    event,
+                    event_revision,
+                    false,
+                )
+                .await?;
             }
             loop_state.sync_tabs(&mut state);
             if let Some(metrics) = frame_metrics.as_mut() {
@@ -2144,6 +2159,9 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
         state.apply_shell_jobs(rows);
     }
     refresh_dcp_summaries(app, &mut state).await;
+    shared::attach(app, &mut state)
+        .await
+        .map_err(CoreError::Application)?;
     Ok(state)
 }
 
@@ -3325,12 +3343,15 @@ async fn apply_owned_intent(
                     || (!state.history().has_newer()
                         && state.history().rows().last().map(|row| row.seq)
                             != receipt.page.rows.last().map(|row| row.seq));
-                if pending_refresh || changed {
+                if pending_refresh {
                     state.attach_page(&receipt.page);
+                    shared::attach(app, state).await?;
                     if let Some(job) = loop_state.recovery_job.take() {
                         job.abort();
                     }
                     loop_state.conversation_recovery = None;
+                } else if changed {
+                    state.refresh_completed_page(&receipt.page);
                 } else if let Some(title) = receipt.page.title {
                     state.selected_session_renamed(&target.0, title);
                 }
@@ -3346,6 +3367,7 @@ async fn apply_owned_intent(
             next.attach_page(&receipt.page);
             next.apply_catalog(receipt.catalog);
             refresh_compactions(app, &mut next).await;
+            shared::attach(app, &mut next).await?;
             state.close_panel();
             next.take_tab_clocks_from(state);
             next.apply_tab_rail_width(receipt.deck.rail_width)
@@ -3673,6 +3695,11 @@ async fn adopt_picker_open(
     let mut active = TuiState::new(app.clone(), receipt.session.clone());
     active.attach_page(&receipt.page);
     active.apply_catalog(receipt.catalog.clone());
+    if let Err(error) = shared::attach(app, &mut active).await {
+        deck.shared_gap = true;
+        deck.shared_refresh = true;
+        active.push_note(&format!("Session opened; live refresh pending: {error}"));
+    }
     if active
         .apply_tab_rail_width(receipt.deck.rail_width)
         .is_err()
@@ -3718,6 +3745,11 @@ async fn adopt_picker_open(
                     view.attach_page(&page);
                     view.apply_catalog(catalog);
                     refresh_compactions(app, &mut view).await;
+                    if let Err(error) = shared::attach(app, &mut view).await {
+                        deck.shared_gap = true;
+                        deck.shared_refresh = true;
+                        view.push_note(&format!("Session opened; live refresh pending: {error}"));
+                    }
                 }
                 _ => {
                     deck.picker_pending_tabs.insert(session);
@@ -3865,12 +3897,25 @@ async fn selection(
     }
 }
 
+#[cfg(test)]
 async fn handle_worker_event(
     app: &CoreApp,
     state: &mut TuiState,
     _loop_state: &mut LoopState,
     session: &SessionId,
     event: CoreEvent,
+) -> Result<(), String> {
+    handle_worker_event_at(app, state, _loop_state, session, event, None, false).await
+}
+
+async fn handle_worker_event_at(
+    app: &CoreApp,
+    state: &mut TuiState,
+    _loop_state: &mut LoopState,
+    session: &SessionId,
+    event: CoreEvent,
+    revision: Option<u64>,
+    replay: bool,
 ) -> Result<(), String> {
     // Root tabs own their live view even while Home/another tab is selected.
     // Global inventory/Location publications below keep their existing all-view
@@ -3888,12 +3933,14 @@ async fn handle_worker_event(
         })
     {
         let mut parked = _loop_state.tabs[index].take().expect("exact parked root");
-        let result = Box::pin(handle_worker_event(
+        let result = Box::pin(handle_worker_event_at(
             app,
             &mut parked,
             _loop_state,
             &owner,
             event,
+            revision,
+            replay,
         ))
         .await;
         // Restore unique ownership before propagating a bounded read failure.
@@ -3901,7 +3948,9 @@ async fn handle_worker_event(
         _loop_state.tabs[index] = Some(parked);
         return result;
     }
-    if child_controls::route_event(app, state, _loop_state, &event).await? {
+    if !matches!(event, CoreEvent::SessionMoved { .. })
+        && child_controls::route_event(app, state, _loop_state, &event, revision, replay).await?
+    {
         return Ok(());
     }
     if let CoreEvent::TerminalChanged { session: owner } = &event {
@@ -4049,6 +4098,10 @@ async fn handle_worker_event(
     if state.attached_session() != Some(owner) {
         return Ok(());
     }
+    let covered = revision.filter(|_| shared::turn_event(&event));
+    if covered.is_some_and(|revision| revision <= state.projection_floor()) {
+        return Ok(());
+    }
     match event {
         CoreEvent::ChildNotice(notice) => {
             let Some(message) = notice.job.message_id else {
@@ -4180,10 +4233,21 @@ async fn handle_worker_event(
         CoreEvent::TurnStarted {
             turn, model_switch, ..
         } => {
-            if state.linked_child().is_some()
+            if state.linked_child().is_some_and(|job| {
+                job.turn.as_deref() == Some(turn.0.as_str())
+                    && !matches!(
+                        job.state,
+                        oc_core::queries::ChildState::Admitted
+                            | oc_core::queries::ChildState::Running
+                    )
+            }) {
+                return Ok(());
+            }
+            if replay
+                || state.linked_child().is_some()
                 || app.shares_workspace() && !state.has_pending_submission()
             {
-                if app.shares_workspace() && state.active_turn() != Some(&turn) {
+                if !replay && app.shares_workspace() && state.active_turn() != Some(&turn) {
                     let page = app
                         .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
                         .await;
@@ -4235,7 +4299,7 @@ async fn handle_worker_event(
                 dcp_topic,
                 output_presentation,
             );
-            if name == "subagent" && state.active_turn() == Some(&turn) {
+            if !replay && name == "subagent" && state.active_turn() == Some(&turn) {
                 child_controls::refresh(app, state).await?;
             }
         }
@@ -4274,10 +4338,10 @@ async fn handle_worker_event(
                 question,
                 output_presentation,
             );
-            if name == "subagent" && state.active_turn() == Some(&turn) {
+            if !replay && name == "subagent" && state.active_turn() == Some(&turn) {
                 child_controls::refresh(app, state).await?;
             }
-            if name == "compress" && state.active_turn() == Some(&turn) {
+            if !replay && name == "compress" && state.active_turn() == Some(&turn) {
                 refresh_dcp(app, state, session).await;
                 refresh_dcp_summaries(app, state).await;
             }
@@ -4307,7 +4371,7 @@ async fn handle_worker_event(
             let current = state.active_turn() == Some(&turn);
             let compress = state.is_compress_turn(&turn);
             state.apply_finished(&turn, &text, duration_ms);
-            if current {
+            if current && !replay {
                 let page = if let Some(selected) = state.linked_child().cloned() {
                     app.read_child_transcript(selected.parent.clone(), selected)
                         .await
@@ -4361,6 +4425,9 @@ async fn handle_worker_event(
                 });
             }
         }
+    }
+    if let Some(revision) = covered {
+        state.cover_projection(revision, false);
     }
     Ok(())
 }

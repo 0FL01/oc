@@ -371,6 +371,64 @@ struct Bridge {
     epoch: u64,
     death: tokio::io::unix::AsyncFd<OwnedFd>,
 }
+
+// Observations order snapshots against the wire, while owned request receipts
+// remain independently cancellable. Idle observations are temporary tombstones,
+// not a completed-session archive or an execution registry.
+#[derive(Default)]
+struct Operation {
+    observed: Option<(u64, Option<u64>)>,
+    owned: BTreeMap<u64, OwnedOperation>,
+    barrier: u64,
+}
+
+struct OwnedOperation {
+    origin: Option<u64>,
+    completion: OwnedCompletion,
+    acknowledged_at: Option<u64>,
+}
+
+#[derive(PartialEq, Eq)]
+enum OwnedCompletion {
+    Reply,
+    Turn,
+    Compaction,
+}
+
+impl Operation {
+    fn expected(&self) -> Option<Expected> {
+        self.owned
+            .last_key_value()
+            .map(|(&id, owned)| owned.origin.map_or(Expected::Pending(id), Expected::Origin))
+            .or_else(|| {
+                self.observed
+                    .and_then(|(_, origin)| origin.map(Expected::Origin))
+            })
+    }
+
+    fn observe(&mut self, revision: u64, origin: Option<u64>, barrier: u64) {
+        if self.observed.is_none_or(|(current, _)| revision >= current) {
+            self.observed = Some((revision, origin));
+            self.barrier = barrier;
+        }
+    }
+
+    fn snapshot(&mut self, revision: u64, origin: Option<u64>, barrier: u64, request: u64) {
+        if self.observed.is_some_and(|(floor, _)| revision < floor) {
+            return;
+        }
+        self.observe(revision, origin, barrier);
+        // An accepted turn's start/terminal may have been lost in a wire gap.
+        // Only a query SENT after its ACK supersedes that provisional owner
+        // with authoritative current (possibly successor/idle) turn state.
+        // Live-turn snapshots say nothing about queued compaction.
+        self.owned.retain(|_, owned| {
+            owned.completion != OwnedCompletion::Turn
+                || owned.acknowledged_at.is_none_or(|ack| request <= ack)
+        });
+    }
+}
+
 async fn bridge(bridge: Bridge) -> Result<(), ()> {
     let Bridge {
         stream,
@@ -389,12 +447,12 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
     let mut submitted = BTreeMap::new();
     // Control frames are small and cannot be denied by bulk work's byte quota.
     let control_budget = Budget::default();
-    let mut operations = BTreeMap::<String, Expected>::new();
+    let mut operations = BTreeMap::<String, Operation>::new();
     let mut sequence = 0_u64;
     let mut releasing = false;
     let mut closing = false;
     let mut revision = None;
-    let mut snapshots = BTreeSet::new();
+    let mut snapshots = BTreeMap::<u64, (Option<oc_core::domain::SessionId>, u64)>::new();
     let result = 'bridge: loop {
         tokio::select! {
             message = controls.recv(), if !releasing && control_pending.len() < 16 => {
@@ -411,7 +469,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                 let (request, reply) = Pending::from_inbox(InboxMsg::Cancel { session: session.clone(), ack }).expect("cancel receipt");
                 sequence = match sequence.checked_add(1) { Some(value) => value, None => { reply.finish(Err(wire::unknown())); break Err(()); } };
                 let expected = admission.map(|entry| Expected::Pending(entry.request.load(std::sync::atomic::Ordering::Acquire)))
-                    .or_else(|| control_session(&request).and_then(|session| operations.get(session).copied()));
+                    .or_else(|| control_session(&request).and_then(|session| operations.get(session).and_then(Operation::expected)));
                 let frame = Client::Control { id: sequence, location_epoch: epoch, expected, session, turn };
                 if send(&pipes.priority, &control_budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err(()); }
                 pending.insert(sequence, reply); control_pending.insert(sequence);
@@ -427,26 +485,65 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                         let Some(reply) = pending.remove(&id) else { break Err(()); };
                         control_pending.remove(&id);
                         if let Some(entry) = submitted.remove(&id) { admissions.complete(&entry); }
-                        if snapshots.remove(&id) && let Ok(value) = &result
+                        // Failure retracts only this request's provisional owner.
+                        // A newer pending input cannot erase the previous origin.
+                        let accepted = result.as_ref().is_ok_and(|value| value.get("Ok").is_some());
+                        for operation in operations.values_mut() {
+                            if operation.owned.get(&id).is_some_and(|owned| !accepted || owned.origin.is_none() || owned.completion == OwnedCompletion::Reply) {
+                                operation.owned.remove(&id);
+                            } else if let Some(owned) = operation.owned.get_mut(&id) {
+                                owned.acknowledged_at = Some(sequence);
+                            }
+                        }
+                        if let Some((selected, sent_epoch)) = snapshots.remove(&id)
+                            && sent_epoch == epoch && let Ok(value) = &result
                             && let Ok(Ok(snapshot)) = serde_json::from_value::<Result<oc_core::queries::WorkspaceSnapshot, oc_core::session::CoreError>>(value.clone()) {
-                                revision = Some(revision.unwrap_or(0).max(snapshot.revision));
-                                // Only current visible execution identities are
-                                // control capabilities, not a retained archive.
-                                operations.clear();
-                                for turn in snapshot.turns { if let Some(origin) = turn.origin { operations.insert(turn.session.0, Expected::Origin(origin)); } }
+                                // A workspace covers only its deck and selected
+                                // session. It never consumes the shared stream.
+                                for session in snapshot.deck.sessions.iter().chain(selected.iter()) {
+                                    let origin = snapshot.turns.iter().find(|turn| &turn.session == session).and_then(|turn| turn.origin);
+                                    operations.entry(session.0.clone()).or_default().snapshot(snapshot.revision, origin, sequence, id);
+                                }
                         }
                         reply.finish(result);
                     },
-                    Server::Bound { id: _, session, origin } => { operations.insert(session.0, Expected::Origin(origin)); },
+                    Server::Bound { id, session, origin } => {
+                        if let Some(operation) = operations.get_mut(&session.0)
+                            && let Some(owned) = operation.owned.get_mut(&id) {
+                                owned.origin = Some(origin);
+                        }
+                    },
                     Server::Event { revision: next, origin, event } => {
                         if revision.is_some_and(|current| next <= current) { continue; }
-                        if revision.is_some_and(|current| next != current + 1) { let _ = events.send(CoreEvent::ProjectionGap); }
+                        if revision.is_some_and(|current| next != current + 1) {
+                            // Missed terminal facts invalidate observations, not
+                            // exact local requests still awaiting their receipt.
+                            for operation in operations.values_mut() {
+                                if operation.observed.is_none_or(|(floor, _)| floor < next) {
+                                    operation.observe(next, None, sequence);
+                                }
+                            }
+                            let _ = events.send(CoreEvent::ProjectionGap);
+                        }
                         revision = Some(next);
                         let event = event.into_core();
-                        if lease == Lease::Tui && let (Some(origin), CoreEvent::TurnStarted { session, .. }) = (origin, &event) { operations.insert(session.0.clone(), Expected::Origin(origin)); }
-                        if let CoreEvent::TurnFinished { session, .. } | CoreEvent::TurnInterrupted { session, .. } | CoreEvent::TurnFailed { session, .. } = &event
-                            && matches!(operations.get(&session.0), Some(Expected::Origin(current)) if Some(*current) == origin) {
-                            operations.remove(&session.0);
+                        if lease == Lease::Tui && let (Some(origin), CoreEvent::TurnStarted { session, .. }) = (origin, &event) {
+                            let operation = operations.entry(session.0.clone()).or_default();
+                            operation.observe(next, Some(origin), sequence);
+                            operation.owned.retain(|_, owned| owned.origin != Some(origin));
+                        }
+                        if let CoreEvent::TurnFinished { session, .. } | CoreEvent::TurnInterrupted { session, .. } | CoreEvent::TurnFailed { session, .. } = &event {
+                            let operation = operations.entry(session.0.clone()).or_default();
+                            if operation.observed.is_none_or(|(_, current)| current.is_none() || current == origin) {
+                                operation.observe(next, None, sequence);
+                            }
+                            if origin.is_some() { operation.owned.retain(|_, owned| owned.origin != origin); }
+                        }
+                        if let CoreEvent::Compaction(snapshot) = &event
+                            && matches!(snapshot.state, oc_core::compaction::CompactionState::Completed | oc_core::compaction::CompactionState::Failed | oc_core::compaction::CompactionState::Cancelled)
+                            && let Some(operation) = operations.get_mut(&snapshot.session)
+                            && origin.is_some() {
+                            operation.owned.retain(|_, owned| owned.completion != OwnedCompletion::Compaction || owned.origin != origin);
                         }
                         let event = if lease == Lease::Tui { CoreEvent::Projection { revision: next, event: Box::new(event) } } else { event };
                         let _ = events.send(event);
@@ -465,9 +562,16 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                 }
                 sequence = match sequence.checked_add(1) { Some(value) => value, None => { reply.finish(Err(wire::unknown())); break Err(()); } };
                 if let Some(entry) = admission { entry.request.store(sequence, std::sync::atomic::Ordering::Release); submitted.insert(sequence, entry); }
-                let expected = control_session(&request).and_then(|session| operations.get(session).copied());
-                if matches!(request, wire::Request::Workspace { .. }) { snapshots.insert(sequence); }
-                if let Some(session) = submission(&request) { operations.insert(session.into(), Expected::Pending(sequence)); }
+                let expected = control_session(&request).and_then(|session| operations.get(session).and_then(Operation::expected));
+                if let wire::Request::Workspace { selected } = &request { snapshots.insert(sequence, (selected.clone(), epoch)); }
+                if let Some(session) = submission(&request) {
+                    let completion = match request {
+                        wire::Request::Submit { .. } | wire::Request::SubmitFresh { .. } | wire::Request::Compress { .. } => OwnedCompletion::Turn,
+                        wire::Request::CompactSession { .. } => OwnedCompletion::Compaction,
+                        _ => OwnedCompletion::Reply,
+                    };
+                    operations.entry(session.into()).or_default().owned.insert(sequence, OwnedOperation { origin: None, completion, acknowledged_at: None });
+                }
                 let frame = Client::Request { id: sequence, location_epoch: epoch, expected, request: Box::new(request) };
                 if send(&pipes.outgoing, &budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err(()); }
                 pending.insert(sequence, reply);
@@ -476,6 +580,26 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                 let cancelled: Vec<_> = pending.iter_mut().filter_map(|(&id, pending)| pending.take_cancellation().then_some(id)).collect();
                 for id in cancelled { if send(&pipes.priority, &control_budget, &Client::CancelRequest { id }).is_err() { break 'bridge Err(()); } }
             },
+        }
+        operations.retain(|_, operation| {
+            !operation.owned.is_empty()
+                || operation.observed.is_some_and(|(floor, origin)| {
+                    origin.is_some()
+                        || revision.is_none_or(|wire| wire < floor)
+                        || snapshots
+                            .first_key_value()
+                            .is_some_and(|(&id, _)| id <= operation.barrier)
+                })
+        });
+        // One stalled old query can otherwise retain unbounded idle ordering
+        // facts. This is a local bookkeeping budget, not a runtime root limit.
+        if operations
+            .values()
+            .map(|operation| 1 + operation.owned.len())
+            .sum::<usize>()
+            > oc_core::session::MAX_QUEUE_ITEMS * (crate::storage::MAX_TABS + 2)
+        {
+            break Err(());
         }
     };
     for (_, reply) in pending {

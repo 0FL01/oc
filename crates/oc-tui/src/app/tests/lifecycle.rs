@@ -1431,6 +1431,53 @@ async fn rejected_prepared_patch_reconciles_without_started_or_duplicate_card() 
 }
 
 #[tokio::test]
+async fn live_snapshot_replacement_keeps_canonical_window_and_private_draft() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("repaired"));
+    state.attach_page(&page(
+        vec![msg(1, Role::User, "older request")],
+        20,
+        true,
+        true,
+    ));
+    state.input = "private draft".into();
+    state.scroll = 3;
+    let original = state.window.rows().to_vec();
+    let old = WorkerTurnId("T1".into());
+    state.begin_linked_turn(old.clone());
+    state.apply_delta(&old, "superseded text");
+    state.apply_reasoning_delta(&old, "superseded reasoning");
+    state.apply_tool_started(&old, "old-op", "shell", r#"{"command":"old"}"#);
+    state.cover_projection(7, true);
+    state.reset_live_projection();
+    assert!(state.active_turn().is_none());
+    assert!(state.live_parts.is_empty());
+    assert!(state.live_text.is_empty() && state.live_reasoning.is_empty());
+    assert!(state.pending_tool_seen.is_empty());
+    assert!(!state.preview_limited());
+    assert_eq!(state.input, "private draft");
+    assert_eq!(state.scroll, 3);
+    assert_eq!(state.window.rows(), original);
+    assert_eq!(state.projection_floor(), 7);
+    let current = WorkerTurnId("T2".into());
+    state.begin_linked_turn(current.clone());
+    state.apply_delta(&current, "available prefix");
+    state.cover_projection(9, true);
+    state.cover_projection(8, false);
+    assert_eq!(state.projection_floor(), 9);
+    assert!(state.preview_limited());
+    assert_eq!(state.live_text, "available prefix");
+    state.reset_live_projection();
+    state.begin_linked_turn(current.clone());
+    state.apply_delta(&current, "available prefix");
+    assert_eq!(
+        state.live_text, "available prefix",
+        "repair replaces, not appends"
+    );
+    assert_eq!(state.input, "private draft");
+}
+
+#[tokio::test]
 async fn actual_subagent_clock_uses_the_winning_canonical_or_live_card() {
     use oc_core::queries::{HistoryPartWindow, HistoryTurn, PartState, ToolOpView, TranscriptPart};
     let (app, _, _) = CoreApp::channel(4);

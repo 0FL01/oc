@@ -32,8 +32,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: opening working session/child, audit §D.
   - Acceptance: retained window/draft сохраняется через WorkspaceChanged; available prefix появляется один раз; old T1/reordered snapshots не откатывают T2/controls; linked gap repair не теряет owner; truncated projection явно ограничен.
   - Primary evidence: native client ordering and shared adoption tests, actual running-target interaction.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: actual native running target RED `TurnBusy` → 2 PTY/native-owner picker PASS (3.54s), including real fork pending-adoption with unchanged deck revision and exact source/target cancel isolation. Native bridge ordering/owned receipts — 9 PASS. Snapshot→canonical→target replay, T1→T2 floor, linked staged gap/read failure, historical Source, and retained picker window through shared sync — binary TUI 116 PASS (4.18s). Gap repair retains existing compaction/Shell/MCP reconciliation. Full TUI 621 PASS (6.45s); strict affected all-target Clippy PASS. Final UI navigation episode depends on R2; scoped paired qualification remains R6.
 - R4: background tool contract явно описывает существующий async режим как TS.
   - Source: user background tool suspicion, audit §A.
   - Acceptance: optional Boolean, foreground default, explicit asynchronous/no-poll guidance в actual serialized tool definition; true не ждёт child terminal.
@@ -106,17 +106,17 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 ## Current Checkpoint
 
-- Closes: R3, then R2 (R1 pointer implementation and R4 checked independently).
-- Smallest next action: run extended actual native picker test with both source and target genuinely streaming; fix target/removal reservations, then bounded capability/live adoption.
-- Expected evidence: native picker RED→GREEN, native client ordering and TUI live adoption tests.
+- Closes: R2 and integrated R3 (R1 pointer implementation and R4 checked independently).
+- Smallest next action: replace accepted-turn navigation vetoes with finite receipt/transition checks; preserve writable-root/standalone-child provenance and exact parked-child discovery. Exercise actual A/New/B and running-child/root navigation.
+- Expected evidence: binary navigation regressions and actual-binary independent streams before completion; existing picker/projection/receipt guards stay green.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
 ## Current State
 
-- Resolved: plan `5384c03a5`, R4 `e3f7bf150` published; R1 pointer implementation checked, including same-cell source replacement. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
-- Last relevant evidence: 620 TUI PASS, actual advertised tool PASS, 3 parser PASS, actual async background overlap PASS (Cargo target rerun 1.59s), strict `cargo clippy -p oc-tui -p oc-adapters --all-targets --locked -- -D warnings` PASS. No full offline gate/capture claim yet.
+- Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02` published. R3 native picker/bridge and target projection implementation checked; broad UI running-turn vetoes are the next R2 change. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
+- Last relevant evidence: 9 native bridge PASS; 2 actual picker PASS; 116 binary TUI PASS; 621 TUI PASS; strict `cargo clippy -p oc-tui -p oc-adapters -p oc2 --all-targets --locked -- -D warnings` PASS, with final binary rerun after historical-source guard. No full offline gate/capture claim yet.
 - Blocker: none observed.
-- Next: native running-target picker RED→GREEN, live projection/capability adoption, root navigation; then native notice batch/owner continuation and actual captures. R2/R3/R5 remain unimplemented.
+- Next: root navigation and parked-child lifecycle; then native notice batch/owner continuation and current-source captures. R2/R5 remain unimplemented; R3 awaits integrated UI proof.
 
 ## Material Decisions
 
@@ -128,6 +128,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - 2026-10-20: copied corrected plan and froze R1–R6 before implementation.
 - 2026-10-20: R4 verified: explicit TS-like async/no-poll guidance, optional Boolean/default and actual wire assertions; parser 3 PASS, advertised definition PASS, physical child/parent overlap PASS. No new launch engine or forced background default. R1 running redraw RED→GREEN; independent review found missing pressed surface flag, now retained; finish its typed notice replacement regression before pointer delivery.
 - 2026-10-20: R1 pointer checked: 620 TUI PASS + strict affected-crate all-target Clippy. Same-cell card→notice regression uses an actual started canonical window and Tail receipt; a legacy unowned footer in the initial test fixture correctly prevented notice movement and was corrected, not a production chronology change. Pointer capture no longer depends on unrelated paint/mutable job, but preserves Down surface/source and actual current link. Proceed R3/R2; visual proof remains pending.
+- 2026-10-20: R3 native/projection checkpoint: actual busy picker RED→GREEN; final candidate prevents false removal of running fork adoption. Snapshot replies no longer consume shared wire events or clear unrelated controls; monotonic observations and exact owned request lifecycle include idle/reordered/old-epoch/gap/title cases within a bounded existing map. Target-only adoption and linked gap staging retain canonical windows/drafts, acknowledge truncation, and keep historical Source reads fenced without inferring idle from foreign snapshot absence. 9 bridge + 2 picker + 116 binary TUI + 621 TUI PASS; strict all-target affected Clippy PASS. Next R2, not a new runtime scheduler.
 
 ## Completion
 
