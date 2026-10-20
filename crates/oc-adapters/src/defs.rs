@@ -178,12 +178,22 @@ pub(crate) fn builtin_agents() -> [AgentDef; 4] {
     let mut general = build.clone();
     general.id = "general".into();
     general.mode = Some("subagent".into());
-    general.description = "General-purpose agent for complex tasks and research.".into();
+    general.description = "General-purpose agent for researching complex questions and executing multi-step tasks. Use this agent to execute multiple units of work in parallel.".into();
     general.color = Some("#9d7cd8".into());
     let mut explore = general.clone();
     explore.id = "explore".into();
-    explore.description = "Search specialist for exploring codebases.".into();
-    explore.body = "You are Explore, a search specialist for exploring codebases. Find files, search their contents and explain relevant code. Use the available search/read tools and permitted MCP tools; do not modify files. Adapt to the requested quick, medium, or very thorough level of exploration. Include useful file paths and concise findings.".into();
+    explore.description = "Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. \"src/components/**/*.tsx\"), search code for keywords (eg. \"API endpoints\"), or answer questions about the codebase (eg. \"how do API endpoints work?\"). When calling this agent, specify the desired thoroughness level: \"quick\" for basic searches, \"medium\" for moderate exploration, or \"very thorough\" for comprehensive analysis across multiple locations and naming conventions.".into();
+    explore.body = "You are a file search specialist. You excel at thoroughly navigating and exploring codebases.
+
+Guidelines:
+- Your role is EXCLUSIVELY to search and analyze
+- Parallelize independent tool calls for searches and reads whenever possible
+- Adapt your search approach based on the thoroughness level specified by the caller
+- Return file paths as absolute paths in your final response
+- You MUST NOT create, modify, delete, move, or copy files, including temporary files and reports
+- Shell commands MUST be read-only. NEVER run commands that write files or change system state
+
+Complete the user's search request efficiently and report your findings clearly.".into();
     explore.permission_rules = crate::permissions::PermissionRules::explore_defaults();
     explore.color = Some("#7fd88f".into());
     let mut agents = [build, plan, general, explore];

@@ -25,7 +25,27 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     assert_eq!(defs.agents["general"].color.as_deref(), Some("#9d7cd8"));
     assert_eq!(defs.agents["explore"].color.as_deref(), Some("#7fd88f"));
     assert!(defs.agents["general"].body.is_empty());
-    assert!(defs.agents["explore"].body.contains("very thorough"));
+    // Upstream core/plugin/agent.ts texts are the model-visible delegation contract.
+    assert!(
+        defs.agents["general"]
+            .description
+            .starts_with("General-purpose agent for researching complex questions")
+    );
+    assert!(
+        defs.agents["explore"]
+            .description
+            .starts_with("Fast agent specialized for exploring codebases. Use this when")
+    );
+    assert!(
+        defs.agents["explore"]
+            .description
+            .contains("\"very thorough\"")
+    );
+    assert!(
+        defs.agents["explore"]
+            .body
+            .starts_with("You are a file search specialist.")
+    );
     let original = agent_digest(&defs.agents["explore"]);
     merge_config_definitions(
         &mut defs,

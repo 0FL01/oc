@@ -90,124 +90,35 @@ pub(super) fn lane_fixed_input(
     fixed_input
 }
 
-/// `subagent` tool definition with the upstream `Available subagents` list.
-#[allow(clippy::too_many_arguments)]
-fn subagent_tool_def(
-    catalog: &SubagentCatalog,
-    policy: &RuntimePolicy<'_>,
-    model: &str,
-    model_catalog: &ModelCatalog,
-    provider: Option<&ResponsesConfig>,
-    home: Option<&str>,
-    dcp: &DcpConfig,
-    approval_consumer: bool,
-    ceiling: Option<&children::LaunchCeiling>,
-) -> ToolDef {
+/// `subagent` tool definition mirroring upstream `SubagentTool` text and its
+/// `Available subagents` context hook. Child policy, model and DCP checks run
+/// at launch admission, not in this advertisement.
+fn subagent_tool_def(catalog: &SubagentCatalog, policy: &RuntimePolicy<'_>) -> ToolDef {
     let mut description = String::from(
         "Spawns an agent in a child session to work on the specified task.\n\
          The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
          New child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\n\
-          Foreground (default) runs the subagent to completion and returns its final response.\n\
-          background=true launches it asynchronously and returns immediately; you will be notified when it completes. \
-          Use background only for independent work that can run while you continue elsewhere. \
-          DO NOT sleep, poll, or proactively check on its progress.\n\
-         Each subagent automatically receives its own profile prompt, environment, applicable AGENTS instructions, permitted tool schemas, skill metadata (skill bodies load through the skill tool) and allowed MCP guidance. \
-         Your conversation and findings are not shared: put them in prompt, or quote exact messages with context_message_ids from your stable text-message IDs or DCP context anchors list. \
-         State task restrictions explicitly; the child's tools may permit broader work, and the workspace is shared rather than a separate sandbox.",
+         Foreground (default) runs the subagent to completion and returns its final response.\n\
+         Background mode (background=true) launches it asynchronously and returns immediately; you are notified when it finishes.\n\
+         Use background only for independent work that can run while you continue elsewhere.",
     );
-    {
-        let available = catalog
-            .agents
-            .values()
-            .filter(|agent| {
-                !agent.primary
-                    && !agent.hidden
-                    && policy.effect(SUBAGENT_TOOL, &agent.id) != Permission::Deny
-            })
-            .collect::<Vec<_>>();
-        if !available.is_empty() {
-            description.push_str("\n\nAvailable subagents:");
-            for agent in available {
-                let fallback = "This subagent should only be called when explicitly requested.";
-                let summary = if agent.description.trim().is_empty() {
-                    fallback
-                } else {
-                    agent.description.trim()
-                };
-                description.push_str(&format!("\n- {}: {summary}", agent.id));
-                let child_model = match agent.model_reference().as_deref() {
-                    Some(raw) => match provider.map_or_else(
-                        || resolve_subagent_model(model_catalog, raw),
-                        |provider| {
-                            let (catalog, provider, model) =
-                                resolve_child_target(model_catalog, provider, raw)?;
-                            if let Some(ceiling) = ceiling {
-                                ceiling
-                                    .admit_provider(
-                                        &catalog.provider,
-                                        &model.id,
-                                        model.variant.as_deref(),
-                                        provider,
-                                    )
-                                    .map_err(|error| error.to_string())?;
-                            }
-                            Ok(model)
-                        },
-                    ) {
-                        Ok(resolved) => resolved.id,
-                        Err(_) => {
-                            description.push_str("\n  Effective permission preview unavailable: configured model is unavailable.");
-                            continue;
-                        }
-                    },
-                    None => model.to_owned(),
-                };
-                let mut rules = policy.rules.cloned().unwrap_or_default();
-                let mut agent_rules = agent.permission_rules.clone();
-                if let Some(home) = home {
-                    agent_rules.expand_home(home);
-                }
-                if let Some(project) = policy.root {
-                    agent_rules.bind_plan_project(project);
-                }
-                rules.configure_child(policy.permissions, &agent.permissions, &agent_rules);
-                let child_policy =
-                    RuntimePolicy::with_rules(policy.permissions, &rules).with_mcp(policy.mcp);
-                let compression_permission = effective_compress_permission(dcp, &child_policy);
-                let compression_refusal = dcp
-                    .compression_refusal(compression_permission, true, false)
-                    .or_else(|| {
-                        (compression_permission == Permission::Ask && !approval_consumer)
-                            .then_some(oc_core::dcp_view::DcpUnavailable::ApprovalConsumerRequired)
-                    });
-                let mut permitted = selected_tool_defs(&child_model)
-                    .into_iter()
-                    .map(|tool| tool.name)
-                    .filter(|name| {
-                        child_policy.tool_visible(name)
-                            && (name != COMPRESS_TOOL || compression_refusal.is_none())
-                    })
-                    .collect::<Vec<_>>();
-                permitted.extend(
-                    policy
-                        .mcp
-                        .iter()
-                        .filter(|entry| child_policy.tool_visible(&entry.namespaced))
-                        .map(|entry| entry.namespaced.clone()),
-                );
-                description.push_str(&format!("\n  Effective permission preview: {}. Resource/Ask admission and child-context checks still apply.", permitted.join(", ")));
-                description.push_str(&format!(
-                    "\n  Own-session compression: {}.",
-                    compression_refusal.map_or_else(
-                        || if compression_permission == Permission::Ask {
-                            "requires approval".to_owned()
-                        } else {
-                            "available".to_owned()
-                        },
-                        |reason| reason.reason().to_owned()
-                    )
-                ));
-            }
+    let available = catalog
+        .agents
+        .values()
+        .filter(|agent| {
+            !agent.primary
+                && !agent.hidden
+                && policy.effect(SUBAGENT_TOOL, &agent.id) != Permission::Deny
+        })
+        .collect::<Vec<_>>();
+    if !available.is_empty() {
+        description.push_str("\n\nAvailable subagents:");
+        for agent in available {
+            let summary = match agent.description.trim() {
+                "" => "This subagent should only be called when explicitly requested.",
+                summary => summary,
+            };
+            description.push_str(&format!("\n- {}: {summary}", agent.id));
         }
     }
     ToolDef {
@@ -218,7 +129,7 @@ fn subagent_tool_def(
             "properties": {
                 "agent": {
                     "type": "string",
-                    "description": "The type of specialized agent to use for this task.",
+                    "description": "The type of specialized agent to use for this task. If the user asks for a subagent by a name that is not one of the available subagents, they most likely mean a model: pick a suitable agent and pass the name through the model parameter instead.",
                 },
                 "description": {
                     "type": "string",
@@ -238,7 +149,7 @@ fn subagent_tool_def(
                 },
                 "background": {
                     "type": "boolean",
-                    "description": "Run independently in the background and return immediately after launch admission. You will be notified when it completes. DO NOT sleep, poll, or proactively check on its progress. Foreground is the default.",
+                    "description": "Run the subagent in the background and return immediately. You will be notified when it completes. DO NOT sleep, poll, or proactively check on its progress.",
                 },
                 "context_message_ids": {
                     "type": "array",
@@ -1599,17 +1510,7 @@ impl<'a> Runtime<'a> {
         if let Some(catalog) = &subagents
             && policy.tool_visible(SUBAGENT_TOOL)
         {
-            tool_defs.push(subagent_tool_def(
-                catalog,
-                &policy,
-                &selection.id,
-                params.catalog,
-                Some(&params.provider),
-                self.parent_env.get("HOME").map(String::as_str),
-                &dcp_config,
-                self.approvals.has_consumer(),
-                self.child_launch.as_deref(),
-            ));
+            tool_defs.push(subagent_tool_def(catalog, &policy));
         }
         tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
         let prompt_input = if let Some((_, input)) = &native_input {
@@ -2344,17 +2245,7 @@ impl<'a> Runtime<'a> {
             if let Some(catalog) = subagents
                 && policy.tool_visible(SUBAGENT_TOOL)
             {
-                tool_defs.push(subagent_tool_def(
-                    catalog,
-                    &policy,
-                    &selection.id,
-                    params.catalog,
-                    Some(source_provider),
-                    self.parent_env.get("HOME").map(String::as_str),
-                    dcp_config,
-                    self.approvals.has_consumer(),
-                    self.child_launch.as_deref(),
-                ));
+                tool_defs.push(subagent_tool_def(catalog, &policy));
             }
             tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
             let usage_scope = crate::compaction::fingerprint(&(

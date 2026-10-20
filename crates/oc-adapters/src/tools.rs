@@ -1394,7 +1394,7 @@ async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
         Err(error) => return format!("error: {error}"),
     };
     match runner.spawn(request).await {
-        Ok(SubagentOutcome::Running { session_id, operation, generation, delivery_id }) => serde_json::json!({"sessionID":session_id,"status":"running","jobGeneration":operation,"sourceGeneration":generation,"deliveryID":delivery_id,"output":"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response."}).to_string(),
+        Ok(SubagentOutcome::Running { session_id, operation, generation, delivery_id }) => serde_json::json!({"sessionID":&session_id,"status":"running","jobGeneration":operation,"sourceGeneration":generation,"deliveryID":delivery_id,"output":format!("The subagent is working in the background (sessionID: {session_id}). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.")}).to_string(),
         Ok(SubagentOutcome::Completed { session_id, text }) => {
             format!(
                 "<subagent sessionID=\"{session_id}\" state=\"completed\">\n{text}\n</subagent>"

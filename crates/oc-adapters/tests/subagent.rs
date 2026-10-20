@@ -1940,7 +1940,7 @@ async fn r8_oversized_quoted_context_is_refused_before_child_creation() {
 }
 
 #[tokio::test]
-async fn r8_subagent_guidance_separates_automatic_assembly_from_caller_context() {
+async fn r8_subagent_advertisement_matches_upstream_contract() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation);
     runtime
@@ -1965,33 +1965,33 @@ async fn r8_subagent_guidance_separates_automatic_assembly_from_caller_context()
         .iter()
         .find(|tool| tool["name"] == "subagent")
         .expect("subagent tool");
-    let description = tool["description"].as_str().unwrap();
-    for expected in [
-        "automatically receives its own profile prompt, environment, applicable AGENTS instructions",
-        "Your conversation and findings are not shared",
-        "context_message_ids",
-        "workspace is shared rather than a separate sandbox",
-        "background=true launches it asynchronously and returns immediately",
-        "DO NOT sleep, poll, or proactively check on its progress",
-    ] {
-        assert!(description.contains(expected), "{expected}: {description}");
-    }
+    // Upstream core/src/tool/plugin/subagent.ts description and context hook.
+    assert_eq!(
+        tool["description"],
+        "Spawns an agent in a child session to work on the specified task.\n\
+         The output includes a sessionID you can pass back later to continue that specific conversation with the subagent.\n\
+         New child sessions start with fresh context, so include all relevant context and instructions when you don't pass a sessionID.\n\
+         Foreground (default) runs the subagent to completion and returns its final response.\n\
+         Background mode (background=true) launches it asynchronously and returns immediately; you are notified when it finishes.\n\
+         Use background only for independent work that can run while you continue elsewhere.\n\
+         \n\
+         Available subagents:\n\
+         - helper: helper description"
+    );
     let ids = &tool["parameters"]["properties"]["context_message_ids"];
     assert_eq!(ids["type"], "array");
     assert_eq!(ids["maxItems"], 64);
     let background = &tool["parameters"]["properties"]["background"];
     assert_eq!(background["type"], "boolean");
+    assert_eq!(
+        background["description"],
+        "Run the subagent in the background and return immediately. You will be notified when it completes. DO NOT sleep, poll, or proactively check on its progress."
+    );
     assert!(
         !tool["parameters"]["required"]
             .as_array()
             .unwrap()
             .contains(&serde_json::json!("background"))
-    );
-    assert!(
-        background["description"]
-            .as_str()
-            .unwrap()
-            .contains("return immediately")
     );
 }
 

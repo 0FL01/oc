@@ -885,7 +885,18 @@ async fn background_child_posts_effects_and_completes_before_parent_response() {
             .iter()
             .find(|(kind, _)| kind == "parent-active")
             .unwrap();
-        assert!(outputs(&active.1)[0].1.contains("running"));
+        let launched: serde_json::Value = serde_json::from_str(&outputs(&active.1)[0].1).unwrap();
+        assert_eq!(launched["status"], "running");
+        let child = launched["sessionID"].as_str().unwrap();
+        // Upstream subagent.ts backgroundResult text.
+        assert_eq!(
+            launched["output"],
+            format!(
+                "The subagent is working in the background (sessionID: {child}). You will be notified automatically when it finishes.\n\
+                 DO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\n\
+                 Work on non-overlapping tasks, or briefly tell the user what you launched and end your response."
+            )
+        );
         assert!(runtime.turn_active());
         let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
         assert_eq!(sql.query_row("SELECT count(*) FROM child_jobs j JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.state='running' AND t.status='started'",[],|row|row.get::<_,i64>(0)).unwrap(),1);

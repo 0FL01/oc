@@ -249,7 +249,7 @@ within trust and immutable-generation boundaries, without rewriting old raw mess
 
 Owner-approved T50/R1/R9 file-family view (2026-10-01; pending) is shared by each
 request's admission/budget, primary follow-up, tool-catalog compaction contexts,
-root/own-model-child capability previews and runtime-managed guidance. Exact
+root/child capability selection and runtime-managed guidance. Exact
 case-sensitive selected model.id contains `gpt-` and neither `oss` nor `gpt-4` →
 apply_patch only; otherwise edit/write only, then effective policy narrows. Stable
 tool schemas and native apply_patch(patchText) are unchanged across providers.
@@ -308,8 +308,10 @@ exact deduplicated chronological messages as quoted user data, not system instru
 Budget validation precedes child/input creation. Snapshot/digest/provenance is durable
 and immutable after admission; replay never duplicates it. Runtime-owned candidate
 IDs are visible independently of DCP; harness/opaque/tool items are not candidates.
-Automatic-context guidance and policy-backed capabilities prevent duplicate AGENTS/
-tool schemas/skill bodies without hiding task-specific restrictions or user quotes.
+The advertised subagent description, parameter texts, Available subagents list,
+background running text and built-in General/Explore descriptions follow upstream
+subagent.ts/agent.ts verbatim; context_message_ids stays the only native schema addition.
+Child policy/model/DCP capability is enforced at launch admission, not previewed.
 
 Child DCP defaults allowed by allowSubAgents=true, gated by global/manual/policy and
 own-session identity. Exact admitted task/pack is immutable in RAW and delivered in

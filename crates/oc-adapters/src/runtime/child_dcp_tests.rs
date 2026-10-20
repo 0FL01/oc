@@ -75,11 +75,7 @@ fn dcp10_direct_child_query_and_api_cannot_use_root_authority() {
 }
 
 #[test]
-fn dcp10_explore_preview_and_ceiling_follow_real_config_permission_and_consumer() {
-    let models = ModelCatalog {
-        provider: "fixture".into(),
-        models: BTreeMap::from([("own-model".into(), serde_json::json!({}))]),
-    };
+fn dcp10_explore_compression_and_ceiling_follow_real_config_permission_and_consumer() {
     let builtin = crate::defs::builtin_agents()
         .into_iter()
         .find(|a| a.id == "explore")
@@ -187,39 +183,15 @@ fn dcp10_explore_preview_and_ceiling_follow_real_config_permission_and_consumer(
         ] {
             assert!(!policy.tool_visible(forbidden), "{forbidden}");
         }
-        let catalog = SubagentCatalog {
-            agents: BTreeMap::from([("explore".into(), explore.clone())]),
-            depth_limit: 1,
-        };
-        let parent = RuntimePolicy::new(&permissions);
-        let preview = subagent_tool_def(
-            &catalog,
-            &parent,
-            "own-model",
-            &models,
-            None,
-            None,
-            &config,
-            consumer,
-            None,
-        )
-        .description;
-        let names = preview
-            .split("Effective permission preview: ")
-            .nth(1)
-            .unwrap()
-            .split(". Resource/")
-            .next()
-            .unwrap()
-            .split(", ")
-            .collect::<Vec<_>>();
-        assert_eq!(names.contains(&"compress"), available, "{preview}");
-        if available
-            && (permission == Permission::Ask
-                || config.compress_permission == Some(Permission::Ask))
-        {
-            assert!(preview.contains("Own-session compression: requires approval"));
-        }
+        // Same predicate as child request admission (`Runtime::compression_refusal`).
+        let compression_permission = effective_compress_permission(&config, &policy);
+        let refusal = config
+            .compression_refusal(compression_permission, true, false)
+            .or_else(|| {
+                (compression_permission == Permission::Ask && !consumer)
+                    .then_some(oc_core::dcp_view::DcpUnavailable::ApprovalConsumerRequired)
+            });
+        assert_eq!(refusal.is_none(), available, "{permission:?} {config:?}");
         for custom in [
             serde_json::json!({"permissions": [{"action": "compress", "resource": "*", "effect": "deny"}]}),
             serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}),

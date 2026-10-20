@@ -79,8 +79,10 @@ contract, SQLite durability and authority narrowing are unchanged.
   native unknown side effects never automatically replay.
 - Optional context_message_ids attaches exact parent text/roles as quoted user data,
   not system authority. Validate branch/revision/cutoff/budgets before admission;
-  immutable durable snapshot, independent stable IDs and effective capability preview
-  distinguish automatic child profile/AGENTS/tools/skill metadata from supplied history.
+  immutable durable snapshot and independent stable IDs distinguish automatic child
+  profile/AGENTS/tools/skill metadata from supplied history. The subagent tool
+  advertisement stays upstream-verbatim (no per-agent capability preview): with the
+  same model, upstream sessions chose background=true far more often than native ones.
 - Child DCP defaults true with false/off/manual/Deny gates, narrow Explore compress
   and session isolation. Protect active task/pack, release on completion and restore
   for safe recovery; old packs do not become permanent fixed lanes.
