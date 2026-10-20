@@ -2070,6 +2070,8 @@ async fn vis11_idle_escape_is_noop_and_preserves_draft() {
         assert_eq!(state.editor.cursor, caret);
     }
     state.handle_key(KeyAction::Enter).await;
+    assert_eq!(state.status(), &TuiStatus::PendingSubmission);
+    assert_eq!(state.note(), None, "an ordinary submit raises no toast");
     assert_eq!(submits.recv().await.as_deref(), Some("keep me"));
     assert!(submits.try_recv().is_err(), "Esc created no submission");
 

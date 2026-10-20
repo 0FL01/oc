@@ -1146,7 +1146,6 @@ impl TuiState {
             compress,
         });
         self.status = TuiStatus::PendingSubmission;
-        self.push_note("submission pending; Esc to cancel");
     }
 
     /// Reconcile the unique acceptance receipt before applying queued turn

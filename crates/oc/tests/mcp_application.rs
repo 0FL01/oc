@@ -2492,7 +2492,7 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
         assert!(Instant::now() < deadline, "MCP initialize did not stall");
         std::thread::sleep(POLL);
     }
-    tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
+    tui.wait_screen(draft, IO_TIMEOUT); // the pending submission retains its draft
 
     // Inspecting Sessions must not abandon the pending submission owner.
     tui.raw(b"\x18l");
