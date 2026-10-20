@@ -268,7 +268,12 @@ async fn parked_root_events_keep_exact_view_and_restore_it_after_read_failure() 
 
 #[tokio::test]
 async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
-    for refuse_save in [true, false] {
+    for (refuse_save, intent) in [
+        (true, PanelIntent::NewSession),
+        (false, PanelIntent::NewSession),
+        (true, PanelIntent::AddSessionTab),
+        (false, PanelIntent::AddSessionTab),
+    ] {
         let (app, mut inbox, _) = CoreApp::channel(8);
         let root = SessionId("accepted-root-for-add".into());
         let turn = WorkerTurnId("existing-root-turn".into());
@@ -286,18 +291,15 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
             revision: Some("before-add".into()),
             ..Default::default()
         };
-        assert!(!deck.can_park_busy_root(&state), "pending is not accepted");
+        assert!(
+            deck.departure_ready(&state).is_err(),
+            "pending is not accepted"
+        );
         ack.send(Ok(turn.clone())).unwrap();
         state.poll_submission();
         state.restore_prompt("unfinished accepted-root draft".into());
         deck.sync_tabs(&mut state);
         assert!(state.tab_presentation().2, "painted Add is owner-enabled");
-        assert!(
-            apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
-                .await
-                .is_err(),
-            "command New still refuses an ordinary busy turn"
-        );
         assert!(inbox.try_recv().is_err());
         let before = deck.snapshot(&state);
         deck.conversation_recovery = Some((root.clone(), Instant::now()));
@@ -346,7 +348,7 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
             }
             inbox
         });
-        let result = apply_intent(&app, &mut state, &mut deck, PanelIntent::AddSessionTab).await;
+        let result = apply_intent(&app, &mut state, &mut deck, intent).await;
         inbox = owner.await.unwrap();
         assert!(
             inbox.try_recv().is_err(),

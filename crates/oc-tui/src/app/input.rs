@@ -364,6 +364,18 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if matches!(
+            action,
+            CommandAction::NewSession | CommandAction::OpenSessions
+        ) && !self.root_navigation_allowed()
+        {
+            return Some("child session: read-only history; saved tabs are unchanged");
+        }
+        if *action == CommandAction::NewSession
+            && (self.has_pending_submission() || self.has_pending_model_commit())
+        {
+            return Some("submission or model selection pending");
+        }
         if action.is_terminal() {
             if !self.chrome.session_terminal {
                 return Some("session terminals unavailable on this platform");
@@ -375,9 +387,7 @@ impl TuiState {
         if self.linked_child().is_some()
             && matches!(
                 action,
-                CommandAction::NewSession
-                    | CommandAction::CloseTab
-                    | CommandAction::OpenSessions
+                CommandAction::CloseTab
                     | CommandAction::OpenAgents
                     | CommandAction::OpenModelPicker
                     | CommandAction::OpenVariants
@@ -4316,10 +4326,10 @@ impl TuiState {
                     .command_unavailable(&CommandAction::OpenAgents)
                     .map(str::to_string)
             }
-            TuiPanel::Sessions if self.is_busy() => {
-                outcome.note = self
-                    .command_unavailable(&CommandAction::OpenSessions)
-                    .map(str::to_string)
+            TuiPanel::Sessions
+                if self.has_pending_submission() || self.has_pending_model_commit() =>
+            {
+                outcome.note = Some("submission or model selection pending".into())
             }
             TuiPanel::Model if self.model_directory_active().is_some() => {
                 return self.model_directory_enter();

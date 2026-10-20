@@ -1650,7 +1650,7 @@ async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_sou
 }
 
 #[tokio::test]
-async fn vis39_retained_view_activation_moves_mounted_tab_clocks_and_keeps_busy_guard() {
+async fn vis39_retained_view_activation_moves_mounted_tab_clocks_during_accepted_execution() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut running = TuiState::new(app.clone(), SessionId::new("running").unwrap());
     running.apply_catalog(catalog());
@@ -1659,7 +1659,12 @@ async fn vis39_retained_view_activation_moves_mounted_tab_clocks_and_keeps_busy_
     running.handle_key(KeyAction::Enter).await;
     assert!(running.is_busy());
     let request = inbox.try_recv().expect("one pending typed submission");
-    assert!(matches!(&request, InboxMsg::Submit { .. }));
+    let InboxMsg::Submit { ack, .. } = request else {
+        panic!("one submission")
+    };
+    ack.send(Ok(WorkerTurnId("accepted-running".into())))
+        .unwrap();
+    running.poll_submission();
     let mut state = TuiState::new(app.clone(), SessionId::new("current").unwrap());
     state.apply_catalog(catalog());
     state.chrome.location = Some("/owner/actual-project".into());
@@ -1698,10 +1703,12 @@ async fn vis39_retained_view_activation_moves_mounted_tab_clocks_and_keeps_busy_
         None,
         "parked view holds no second deck clock"
     );
+    deck.activate(&mut state, 1).unwrap();
     assert_eq!(
-        deck.activate(&mut state, 1),
-        Err("turn active; session switch refused".into())
+        deck.tabs[0].as_ref().unwrap().active_turn(),
+        Some(&WorkerTurnId("accepted-running".into()))
     );
+    deck.activate(&mut state, 0).unwrap();
     assert!(inbox.try_recv().is_err(), "clock transfer cannot resubmit");
 }
 

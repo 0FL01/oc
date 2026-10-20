@@ -126,6 +126,7 @@ pub(super) async fn open(
     deck: &mut LoopState,
     selected: ChildJob,
 ) -> Result<(), String> {
+    deck.departure_ready(state)?;
     let parent = deck
         .child_parent
         .as_ref()
@@ -184,6 +185,7 @@ pub(super) async fn open(
         let old = std::mem::replace(state, next);
         park(deck, old);
     } else {
+        deck.child_parent_read_only = deck.read_only;
         deck.child_parent = Some(Box::new(std::mem::replace(state, next)));
     }
     deck.read_only = true;
@@ -205,11 +207,42 @@ pub(super) fn return_parent(state: &mut TuiState, deck: &mut LoopState) {
         park(deck, child);
         return;
     }
+    return_root(state, deck);
+}
+
+pub(super) fn return_root(state: &mut TuiState, deck: &mut LoopState) {
     if let Some(parent) = deck.child_parent.take() {
         let child = std::mem::replace(state, *parent);
         park(deck, child);
-        deck.read_only = false;
+        deck.read_only = deck.child_parent_read_only;
     }
+}
+
+async fn refresh_parent(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    parent: &SessionId,
+) -> Result<(), String> {
+    let view = if state.attached_session() == Some(parent) {
+        Some(state)
+    } else if deck
+        .child_parent
+        .as_ref()
+        .is_some_and(|v| v.attached_session() == Some(parent))
+    {
+        deck.child_parent.as_deref_mut()
+    } else {
+        deck.tabs
+            .iter_mut()
+            .flatten()
+            .find(|v| v.attached_session() == Some(parent))
+            .or_else(|| deck.child_views.get_mut(parent))
+    };
+    if let Some(view) = view {
+        refresh(app, view).await?;
+    }
+    Ok(())
 }
 
 pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
@@ -287,11 +320,21 @@ pub(super) async fn route_event(
                 parents.push(state.session().clone());
             }
             parents.extend(deck.child_views.keys().cloned());
+            parents.extend(
+                deck.tabs
+                    .iter()
+                    .flatten()
+                    .filter_map(|v| v.attached_session().cloned()),
+            );
             parents.sort_by(|a, b| a.0.cmp(&b.0));
             parents.dedup();
             for parent in parents {
                 let jobs = app.child_jobs(parent).await.map_err(|e| e.to_string())?;
-                if let Some(selected) = jobs.iter().find(|j| j.child == owner) {
+                if let Some(selected) = jobs.iter().find(|j| {
+                    j.child == owner
+                        && j.state == oc_core::queries::ChildState::Running
+                        && matches!(event, CoreEvent::TurnStarted { turn, .. } if j.turn.as_deref() == Some(turn.0.as_str()))
+                }) {
                     if deck.child_views.len() >= 16 {
                         let retired = deck
                             .child_views
@@ -306,8 +349,8 @@ pub(super) async fn route_event(
                         deck.child_views
                             .insert(owner.clone(), view(app, selected.clone(), None).await?);
                     }
-                    if state.children_open() || state.has_subagent_cards() {
-                        refresh(app, state).await?;
+                    if !deck.child_views.contains_key(&owner) {
+                        refresh_parent(app, state, deck, &selected.parent).await?;
                     }
                     break;
                 }
@@ -315,6 +358,7 @@ pub(super) async fn route_event(
         }
     }
     if let Some(mut child) = deck.child_views.remove(&owner) {
+        let parent = child.linked_child().map(|job| job.parent.clone());
         let result = Box::pin(handle_worker_event_at(
             app,
             &mut child,
@@ -327,16 +371,28 @@ pub(super) async fn route_event(
         .await;
         park(deck, child);
         result?;
-        if state.children_open()
-            || state.linked_child().is_some()
-            || state.has_subagent_cards()
-                && matches!(
-                    event,
-                    CoreEvent::TurnStarted { .. }
-                        | CoreEvent::TurnFinished { .. }
-                        | CoreEvent::TurnFailed { .. }
-                        | CoreEvent::TurnInterrupted { .. }
-                )
+        if let Some(parent) = &parent
+            && matches!(
+                event,
+                CoreEvent::TurnStarted { .. }
+                    | CoreEvent::TurnFinished { .. }
+                    | CoreEvent::TurnFailed { .. }
+                    | CoreEvent::TurnInterrupted { .. }
+            )
+        {
+            refresh_parent(app, state, deck, parent).await?;
+        }
+        if parent.as_ref() != state.attached_session()
+            && (state.children_open()
+                || state.linked_child().is_some()
+                || state.has_subagent_cards()
+                    && matches!(
+                        event,
+                        CoreEvent::TurnStarted { .. }
+                            | CoreEvent::TurnFinished { .. }
+                            | CoreEvent::TurnFailed { .. }
+                            | CoreEvent::TurnInterrupted { .. }
+                    ))
         {
             refresh(app, state).await?;
         }

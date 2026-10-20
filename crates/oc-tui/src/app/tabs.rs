@@ -2,6 +2,17 @@
 
 use super::*;
 
+impl TuiState {
+    /// Leaving a linked view is navigation, not permission to edit the child.
+    pub fn set_root_navigation(&mut self, allowed: bool) {
+        self.root_navigation = allowed;
+    }
+
+    pub fn root_navigation_allowed(&self) -> bool {
+        self.root_navigation && (self.parent_id.is_none() || self.linked_child().is_some())
+    }
+}
+
 /// Bounded, application-supplied presentation for one retained real tab.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TabPresentation {

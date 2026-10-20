@@ -2560,27 +2560,39 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
     };
     state.handle_key(KeyAction::Commands).await;
     state.handle_paste("New session");
-    assert!(state.modal_options()[0].footer.contains("turn active"));
+    assert!(
+        state.modal_options()[0]
+            .footer
+            .contains("submission or model selection pending")
+    );
     let outcome = state.handle_panel_key(KeyAction::Enter);
     assert_eq!(outcome.intent, None);
     assert_eq!(
         outcome.note.as_deref(),
-        Some("turn active; action unavailable")
+        Some("submission or model selection pending")
     );
     assert_eq!(state.panel(), &TuiPanel::Commands);
     state.handle_panel_key(KeyAction::Cancel);
     assert_eq!(state.input(), "pending prompt");
     assert_eq!(state.status(), &TuiStatus::PendingSubmission);
-    for action in [
-        CommandAction::NewSession,
-        CommandAction::OpenSessions,
-        CommandAction::OpenAgents,
-    ] {
+    for action in [CommandAction::NewSession, CommandAction::OpenAgents] {
         let outcome = state.run_command(action);
         assert_eq!(outcome.intent, None);
-        assert!(outcome.note.unwrap().contains("turn active"));
+        assert!(outcome.note.is_some());
         assert_eq!(state.panel(), &TuiPanel::None);
     }
+    let outcome = state.run_command(CommandAction::OpenSessions);
+    assert_eq!(outcome.intent, Some(PanelIntent::LoadSessions));
+    assert_eq!(state.panel(), &TuiPanel::Sessions);
+    state.apply_sessions(vec!["another-session".into()]);
+    assert!(
+        state
+            .handle_panel_key(KeyAction::Enter)
+            .note
+            .unwrap()
+            .contains("pending")
+    );
+    state.close_panel();
     let outcome = state.handle_key(KeyAction::Tab).await;
     assert_eq!(outcome.intent, None);
     assert_eq!(

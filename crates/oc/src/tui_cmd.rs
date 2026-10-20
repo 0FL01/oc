@@ -344,6 +344,7 @@ struct LoopState {
     read_only: bool,
     /// Linked child views are disposable; the real root deck is retained here.
     child_parent: Option<Box<TuiState>>,
+    child_parent_read_only: bool,
     child_views: std::collections::HashMap<SessionId, TuiState>,
 }
 
@@ -496,29 +497,39 @@ impl LoopState {
         self.tabs.len() < MAX_TABS - usize::from(self.home.is_some() || self.active_tab.is_none())
     }
 
-    fn can_park_busy_root(&self, state: &TuiState) -> bool {
-        state.active_turn().is_some()
-            && !state.has_pending_submission()
-            && state.parent_id.is_none()
-            && state.linked_child().is_none()
-            && state.auth_request().is_none()
-            && !self.read_only
-            && self.child_parent.is_none()
-            && self.active_tab.is_some()
-            && !self.save_disabled
-            && self
-                .location
-                .as_deref()
-                .is_some_and(|location| !location.is_empty())
-            && self.revision.is_some()
-            && self.conversation_job.is_none()
-            && self.conversation_recovery.is_none()
-            && self.recovery_job.is_none()
-            && self.reload_job.is_none()
-            && self.compaction_job.is_none()
-            && !self.authentication.pending()
-            && self.authentication.deadline().is_none()
-            && self.can_open_session()
+    fn root_navigation_allowed(&self, state: &TuiState) -> bool {
+        let root = self.child_parent.as_deref().unwrap_or(state);
+        let read_only = if self.child_parent.is_some() {
+            self.child_parent_read_only
+        } else {
+            self.read_only
+        };
+        !read_only && root.parent_id.is_none() && root.linked_child().is_none()
+    }
+
+    fn departure_ready(&self, state: &TuiState) -> Result<(), String> {
+        // Receipts are polled by the mounted view. An accepted turn, unlike
+        // its admission receipt, remains owned by the native session runner.
+        if std::iter::once(state)
+            .chain(self.tabs.iter().flatten())
+            .chain(self.home.iter())
+            .chain(self.child_parent.as_deref())
+            .any(|view| view.has_pending_submission() || view.has_pending_model_commit())
+        {
+            return Err("submission or model selection pending; session switch refused".into());
+        }
+        if self.conversation_job.is_some()
+            || self.conversation_recovery.is_some()
+            || self.recovery_job.is_some()
+            || self.reload_job.is_some()
+            || self.compaction_job.is_some()
+            || self.authentication.pending()
+            || self.authentication.deadline().is_some()
+            || state.auth_request().is_some()
+        {
+            return Err("session transition pending".into());
+        }
+        Ok(())
     }
 
     fn snapshot(&self, state: &TuiState) -> TabDeckSnapshot {
@@ -642,6 +653,7 @@ impl LoopState {
             home.set_service_feedback_visible(false);
         }
         let showing_child = self.child_parent.is_some();
+        state.set_root_navigation(self.root_navigation_allowed(state));
         if !showing_child && let Some(auto) = self.permission_auto {
             state.auto_accept = if auto {
                 oc_core::queries::AutoAcceptState::Enabled
@@ -711,10 +723,9 @@ impl LoopState {
             })
             .collect();
         let active = self.active_tab.unwrap_or(self.tabs.len());
-        let can_add = !showing_child
-            && !self.read_only
-            && (!state.is_busy() || self.can_park_busy_root(state))
-            && self.can_open_session();
+        let can_add = self.root_navigation_allowed(state)
+            && self.departure_ready(state).is_ok()
+            && (self.home.is_some() || self.can_open_session());
         let (shown, selected, allowed) = state.tab_presentation();
         // `set_tab_strip` cancels a pending mouse Down: never call it while
         // nothing painted has changed, even across the 50ms redraw loop.
@@ -733,12 +744,14 @@ impl LoopState {
         index: usize,
         preserve_pointer: bool,
     ) -> Result<(), String> {
-        if state.is_busy() {
-            return Err("turn active; session switch refused".into());
+        self.departure_ready(state)?;
+        if !self.root_navigation_allowed(state) {
+            return Err("child session: read-only history; saved tabs are unchanged".into());
         }
         if index >= self.tabs.len() {
             return Err("tab unavailable".into());
         }
+        child_controls::return_root(state, self);
         if self.active_tab == Some(index) {
             state.close_panel();
             return Ok(());
@@ -810,6 +823,7 @@ impl LoopState {
         if state.is_busy() {
             return Err("turn active; tab close refused".into());
         }
+        self.departure_ready(state)?;
         if index == self.tabs.len() {
             // Home is a synthetic slot, and cannot be closed when it is the
             // only route. When selected, activate the last real view before
@@ -913,6 +927,9 @@ impl LoopState {
     }
 
     fn reset_deck(&mut self) {
+        self.child_parent = None;
+        self.child_parent_read_only = false;
+        self.child_views.clear();
         self.tabs.clear();
         self.tab_cards_before.clear();
         self.active_tab = None;
@@ -2287,8 +2304,12 @@ async fn handle_event_ticks(
                 && !state.children_open()
                 && !state.shells_open()
                 && !state.terminals_open()
-                && dispatch(state.input().trim())
-                    .is_none_or(|a| a != CommandAction::Quit && !a.is_terminal())
+                && dispatch(state.input().trim()).is_none_or(|a| {
+                    a != CommandAction::Quit
+                        && !a.is_terminal()
+                        && !(loop_state.root_navigation_allowed(state)
+                            && matches!(a, CommandAction::NewSession | CommandAction::OpenSessions))
+                })
             {
                 state.push_note("child session: read-only history; saved tabs are unchanged");
                 return Ok(());
@@ -2525,7 +2546,18 @@ async fn apply_owned_intent(
     if loop_state.reload_job.is_some() && !terminal_control && !auth_control {
         return Err("configuration reload pending".into());
     }
+    let root_navigation = matches!(
+        intent,
+        PanelIntent::NewSession
+            | PanelIntent::AddSessionTab
+            | PanelIntent::SwitchSession { .. }
+            | PanelIntent::ActivateTab { .. }
+    );
+    if root_navigation {
+        loop_state.departure_ready(state)?;
+    }
     if loop_state.read_only
+        && !(root_navigation && loop_state.root_navigation_allowed(state))
         && matches!(
             intent,
             PanelIntent::NewSession
@@ -2898,6 +2930,9 @@ async fn apply_owned_intent(
                 });
             // Prepare the replacement before destructive acceptance. The
             // current view, draft and tab membership survive all refusals.
+            if index.is_some() && index == loop_state.active_tab {
+                loop_state.departure_ready(state)?;
+            }
             let home = if index == loop_state.active_tab
                 && index.is_some()
                 && loop_state.tabs.len() == 1
@@ -3088,16 +3123,16 @@ async fn apply_owned_intent(
             }
         }
         PanelIntent::NewSession | PanelIntent::AddSessionTab => {
-            let busy_add = intent == PanelIntent::AddSessionTab && state.is_busy();
-            if busy_add && !loop_state.can_park_busy_root(state) {
-                return Err("turn active; tab Add unavailable".into());
-            }
-            if !busy_add && state.is_busy() && state.approvals.active().is_none() {
-                return Err("turn active; action unavailable".into());
-            }
+            let guarded_departure = loop_state.child_parent.is_some()
+                || loop_state
+                    .child_parent
+                    .as_deref()
+                    .unwrap_or(state)
+                    .active_turn()
+                    .is_some();
             let before = loop_state.snapshot(state);
             if loop_state.home.is_some() {
-                if busy_add {
+                if guarded_departure {
                     let mut candidate = before.clone();
                     candidate.active = None;
                     loop_state
@@ -3108,8 +3143,9 @@ async fn apply_owned_intent(
                 if typed_new {
                     state.accept_intent();
                 }
+                child_controls::return_root(state, loop_state);
                 loop_state.restore_home(state);
-                if !busy_add {
+                if !guarded_departure {
                     loop_state.save_if_changed(app, state, &before).await;
                 }
                 return Ok(());
@@ -3124,7 +3160,14 @@ async fn apply_owned_intent(
             let action = if app.shares_workspace() && intent == PanelIntent::AddSessionTab {
                 SelectionAction::Current
             } else {
-                SelectionAction::New(state.active_agent().map(str::to_string))
+                SelectionAction::New(
+                    loop_state
+                        .child_parent
+                        .as_deref()
+                        .unwrap_or(state)
+                        .active_agent()
+                        .map(str::to_string),
+                )
             };
             let snapshot = app
                 .home_selection(action)
@@ -3132,7 +3175,7 @@ async fn apply_owned_intent(
                 .map_err(|e| e.to_string())?;
             let mut home = TuiState::new_home(app.clone());
             home.apply_catalog(snapshot);
-            if busy_add {
+            if guarded_departure {
                 if home.chrome.location.as_deref() != loop_state.location.as_deref() {
                     return Err("tab Add refused; Location binding changed".into());
                 }
@@ -3146,8 +3189,9 @@ async fn apply_owned_intent(
             if typed_new {
                 state.accept_intent();
             }
+            child_controls::return_root(state, loop_state);
             loop_state.open_home(state, home);
-            if !busy_add {
+            if !guarded_departure {
                 loop_state.save_if_changed(app, state, &before).await;
             }
         }
@@ -3285,11 +3329,6 @@ async fn apply_owned_intent(
             }
         }
         PanelIntent::SwitchSession { id } => {
-            // The worker is single-turn: refuse the switch while a turn runs
-            // instead of silently losing the active task.
-            if state.is_busy() || loop_state.conversation_job.is_some() {
-                return Err("turn active; session switch refused".to_string());
-            }
             let target = SessionId::new(id).ok_or_else(|| "bad session id".to_string())?;
             let index = loop_state
                 .tabs
@@ -3297,7 +3336,7 @@ async fn apply_owned_intent(
                 .enumerate()
                 .find_map(|(index, parked)| {
                     let view = if loop_state.active_tab == Some(index) {
-                        &*state
+                        loop_state.child_parent.as_deref().unwrap_or(state)
                     } else {
                         parked.as_ref().expect("parked tab")
                     };
@@ -3325,6 +3364,7 @@ async fn apply_owned_intent(
                 .await
                 .map_err(|e| e.to_string())?;
             if loop_state.location.as_deref().unwrap_or_default() != receipt.location {
+                child_controls::return_root(state, loop_state);
                 adopt_picker_open(app, state, loop_state, receipt).await;
                 return Ok(());
             }
@@ -3368,10 +3408,11 @@ async fn apply_owned_intent(
             next.apply_catalog(receipt.catalog);
             refresh_compactions(app, &mut next).await;
             shared::attach(app, &mut next).await?;
-            state.close_panel();
-            next.take_tab_clocks_from(state);
             next.apply_tab_rail_width(receipt.deck.rail_width)
                 .map_err(|error| error.to_string())?;
+            child_controls::return_root(state, loop_state);
+            state.close_panel();
+            next.take_tab_clocks_from(state);
             if let Some(old) = loop_state.active_tab.take() {
                 loop_state.tabs[old] = Some(std::mem::replace(state, next));
                 loop_state.tab_cards_before[old] = loop_state.cards_before;

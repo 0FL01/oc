@@ -793,6 +793,7 @@ pub struct TuiState {
     live_span: Option<(WorkerTurnId, String)>,
     live_projection_revision: Option<(WorkerTurnId, u64)>,
     projection_floor: u64,
+    root_navigation: bool,
     retry_due: Option<Instant>,
     foreground_hint: Option<foreground::Hint>,
     /// First Esc arms the running turn for five seconds; only a second press
@@ -1018,6 +1019,7 @@ impl TuiState {
             live_span: None,
             live_projection_revision: None,
             projection_floor: 0,
+            root_navigation: true,
             retry_due: None,
             foreground_hint: None,
             interrupt_armed_until: None,
@@ -1184,6 +1186,7 @@ impl TuiState {
         self.invalidate_submission();
         self.session = Some(session);
         self.projection_floor = 0;
+        self.root_navigation = true;
         self.input.clear();
         self.editor.clear();
         self.window = HistoryWindow::new();

@@ -612,9 +612,12 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
     assert_eq!(shown[0].session, job.parent);
     assert_eq!(shown[0].title.as_deref(), Some("Actual parent title"));
     assert_eq!(active, 0);
+    assert!(can_add, "linked read-only view can leave for root Home");
     assert!(
-        !can_add,
-        "projection does not widen readonly child controls"
+        child
+            .command_unavailable(&CommandAction::OpenAgents)
+            .is_some(),
+        "navigation does not authorize child mutation"
     );
     assert_eq!(deck.snapshot(&child), snapshot_before);
     assert_eq!(deck.child_parent.as_ref().unwrap().input(), "root draft α");

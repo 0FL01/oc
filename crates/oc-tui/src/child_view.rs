@@ -244,6 +244,7 @@ impl TuiState {
     }
 
     pub fn attach_linked_child(&mut self, selected: ChildJob) {
+        self.set_root_navigation(false);
         self.chrome.location = Some(selected.location.clone());
         self.chrome.selection_generation = selected.generation;
         self.children.linked = Some(selected);

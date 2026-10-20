@@ -1620,10 +1620,10 @@ async fn compact_search_and_half_rows_use_current_targets_and_guarded_sessions()
     let area = Rect::new(0, 0, 160, 48);
     state.begin_linked_turn(oc_core::core_app::WorkerTurnId("search-busy".into()));
     state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
-    let refused = state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area);
-    assert_eq!(refused.intent, None);
-    assert!(refused.note.as_deref().unwrap().contains("turn active"));
-    assert_eq!(state.panel(), &TuiPanel::None);
+    let opened = state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area);
+    assert_eq!(opened.intent, Some(PanelIntent::LoadSessions));
+    assert!(opened.note.is_none());
+    assert_eq!(state.panel(), &TuiPanel::Sessions);
     assert_eq!(state.input(), draft);
     assert_eq!(state.editor.cursor, caret);
 }

@@ -152,10 +152,8 @@ impl CommandSpec {
         if busy
             && matches!(
                 self.action,
-                CommandAction::NewSession
-                    | CommandAction::CloseTab
+                CommandAction::CloseTab
                     | CommandAction::RenameSession { .. }
-                    | CommandAction::OpenSessions
                     | CommandAction::OpenAgents
                     | CommandAction::SwitchLocation { .. }
                     | CommandAction::ReloadConfiguration

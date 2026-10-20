@@ -7,6 +7,8 @@ use oc_core::core_app::WorkerTurnId;
 use oc_core::queries::{AutoAcceptState, HistoryMessage, HistoryPage, ToolOpPage, ToolOpView};
 use oc_core::session::Role;
 
+mod navigation;
+
 fn catalog() -> CatalogSnapshot {
     CatalogSnapshot {
         chrome: Default::default(),

@@ -1,4 +1,46 @@
 use super::*;
+
+#[test]
+fn one_tui_new_and_tab_switch_keep_both_root_streams_progressing() {
+    let fixture = Fixture::new();
+    let mut tui = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "navigation-A"],
+        None,
+    );
+    wait_screen_row(&tui, READY, DEADLINE);
+    submit(&mut tui, "srv-progress NAV-A");
+    progress_after(&fixture, "NAV-A", 2);
+    wait_screen_row(&tui, "NAV-A tick:", DEADLINE);
+    let before = fixture.progress.lock().unwrap()["NAV-A"];
+    tui.send(b"/new\r");
+    wait_screen_row(&tui, "New session", DEADLINE);
+    progress_after(&fixture, "NAV-A", before);
+    submit(&mut tui, "srv-progress NAV-B");
+    progress_after(&fixture, "NAV-B", 2);
+    wait_screen_row(&tui, "NAV-B tick:", DEADLINE);
+    for (x, label) in [(10, "NAV-A"), (45, "NAV-B"), (10, "NAV-A")] {
+        let before = fixture.progress.lock().unwrap().clone();
+        click(&mut tui, x, 1);
+        wait_screen_row(&tui, &format!("{label} tick:"), DEADLINE);
+        for label in ["NAV-A", "NAV-B"] {
+            progress_after(&fixture, label, before[label]);
+        }
+    }
+    let requests = fixture.wait_requests(2);
+    assert_eq!(requests.len(), 2, "navigation cannot resubmit");
+    for prompt in ["srv-progress NAV-A", "srv-progress NAV-B"] {
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|body| last_user_text(body).as_deref() == Some(prompt))
+                .count(),
+            1
+        );
+    }
+    quit(&mut tui);
+}
 use oc_core::{core_app::CoreEvent, domain::SessionId};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
