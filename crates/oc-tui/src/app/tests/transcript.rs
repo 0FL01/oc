@@ -4144,6 +4144,7 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
         area: rect,
         rows: vec![crate::styled::Line::plain(&large)],
         user_targets: vec![],
+        child_targets: vec![],
         total: 1,
         scroll: 0,
     };

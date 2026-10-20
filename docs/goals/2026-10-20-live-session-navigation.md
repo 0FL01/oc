@@ -21,7 +21,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: actual child transcript и существующий нижний Subagents/Shell/Terminals открываются до completion и без Ctrl+B; selection/drag/resize/overlay/foreign launch остаются безопасны.
   - Primary evidence: deterministic pointer regression и pre-Ctrl+B actual capture.
   - Status: in_progress
-  - Evidence: deterministic running-click test RED на 80×24 spinner redraw, затем PASS на 80/120/160; 619 TUI tests PASS до дополнительного source-replacement regression. Selection/failed/error/drag/resize tests сохраняются. Дополнительный card→notice source fence реализован; его typed fixture ещё проверяется. Actual capture pending.
+  - Evidence: running-click RED на 80×24 spinner redraw → PASS на 80/120/160 (spinner, unpainted stream, current job facts, page replacement). Дополнительный actual indexed card→same-launch notice repaint в той же cell — PASS, pressed surface flag сохраняется. Full `oc-tui --lib` — 620 PASS (6.13s), strict affected-crate all-target Clippy PASS. Selection/failed/error/drag/resize guards зелёные. Actual capture pending.
 - R2: accepted execution не блокирует root tab/New/Add/Sessions navigation и независимый запуск B при работающем A.
   - Source: третий screenshot, требование параллельных вкладок, audit §C.
   - Acceptance: одна TUI переключает A/B и создаёт B; оба stream прогрессируют до release; нет Cancel/Background/repeated Submit; linked и standalone read-only provenance не расширяется.
@@ -106,17 +106,17 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 ## Current Checkpoint
 
-- Closes: R1 (R4 checked independently).
-- Smallest next action: finish exact card→notice replacement fixture and pointer gates, then native running-target picker regression.
-- Expected evidence: focused child pointer, full TUI and strict affected-crate Clippy; native picker RED on a genuinely running target.
+- Closes: R3, then R2 (R1 pointer implementation and R4 checked independently).
+- Smallest next action: run extended actual native picker test with both source and target genuinely streaming; fix target/removal reservations, then bounded capability/live adoption.
+- Expected evidence: native picker RED→GREEN, native client ordering and TUI live adoption tests.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
 ## Current State
 
-- Resolved: plan `5384c03a5` published; R4 tool guidance/schema/parser/runtime behavior checked. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
-- Last relevant evidence: 619 TUI PASS, actual advertised tool PASS, 3 parser PASS and actual asynchronous background overlap PASS. Extra source-replacement test under diagnosis; no full offline gate/capture claim yet.
+- Resolved: plan `5384c03a5`, R4 `e3f7bf150` published; R1 pointer implementation checked, including same-cell source replacement. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
+- Last relevant evidence: 620 TUI PASS, actual advertised tool PASS, 3 parser PASS, actual async background overlap PASS (Cargo target rerun 1.59s), strict `cargo clippy -p oc-tui -p oc-adapters --all-targets --locked -- -D warnings` PASS. No full offline gate/capture claim yet.
 - Blocker: none observed.
-- Next: R1 source-fence fixture → focused gates → checked pointer commit; R2/R3 and R5 remain unimplemented.
+- Next: native running-target picker RED→GREEN, live projection/capability adoption, root navigation; then native notice batch/owner continuation and actual captures. R2/R3/R5 remain unimplemented.
 
 ## Material Decisions
 
@@ -127,6 +127,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 - 2026-10-20: copied corrected plan and froze R1–R6 before implementation.
 - 2026-10-20: R4 verified: explicit TS-like async/no-poll guidance, optional Boolean/default and actual wire assertions; parser 3 PASS, advertised definition PASS, physical child/parent overlap PASS. No new launch engine or forced background default. R1 running redraw RED→GREEN; independent review found missing pressed surface flag, now retained; finish its typed notice replacement regression before pointer delivery.
+- 2026-10-20: R1 pointer checked: 620 TUI PASS + strict affected-crate all-target Clippy. Same-cell card→notice regression uses an actual started canonical window and Tail receipt; a legacy unowned footer in the initial test fixture correctly prevented notice movement and was corrected, not a production chronology change. Pointer capture no longer depends on unrelated paint/mutable job, but preserves Down surface/source and actual current link. Proceed R3/R2; visual proof remains pending.
 
 ## Completion
 

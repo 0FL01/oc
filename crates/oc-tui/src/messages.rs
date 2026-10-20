@@ -2039,7 +2039,7 @@ pub(crate) fn visible_transcript(
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _, _) = visible_transcript_indexed(
+    let (lines, total, _, _, _) = visible_transcript_indexed(
         rows,
         theme,
         (width, terminal_width),
@@ -2235,7 +2235,7 @@ pub(crate) fn visible_transcript_expanded(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _, _) = visible_transcript_indexed(
+    let (lines, total, _, _, _) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -2325,6 +2325,7 @@ fn hover_message_content(line: &Line, theme: &Theme, base: Color) -> Line {
     Line::new(spans).with_style(line.style().bg(hover))
 }
 
+#[cfg(test)]
 pub(crate) fn visible_transcript_user_targets(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -2334,7 +2335,26 @@ pub(crate) fn visible_transcript_user_targets(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize, Vec<Option<UserMessageTarget>>) {
-    let (lines, total, _, targets) = visible_transcript_indexed(
+    let (lines, total, targets, _) =
+        visible_transcript_targets(rows, theme, widths, viewport, agent_color, cache, expanded);
+    (lines, total, targets)
+}
+
+pub(crate) fn visible_transcript_targets(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    widths: (u16, u16),
+    viewport: (usize, usize, Option<usize>),
+    agent_color: impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    expanded: &impl Fn(ToolExpansion<'_>) -> bool,
+) -> (
+    Vec<Line>,
+    usize,
+    Vec<Option<UserMessageTarget>>,
+    Vec<ChildNavigationHit>,
+) {
+    let (lines, total, _, targets, children) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -2347,7 +2367,37 @@ pub(crate) fn visible_transcript_user_targets(
             retries: 2,
         },
     );
-    (lines, total, targets)
+    (lines, total, targets, children)
+}
+
+/// Only visible label cells, indexed during the same traversal as their pixels.
+/// Mutable lifecycle facts do not define a link's identity.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ChildNavigationHit {
+    pub job: Box<oc_core::queries::ChildJob>,
+    pub spans: Vec<(usize, std::ops::Range<usize>)>,
+    pub range: std::ops::Range<usize>,
+    pub tool: bool,
+}
+
+impl ChildNavigationHit {
+    pub fn contains(&self, x: usize, y: usize) -> bool {
+        self.spans
+            .iter()
+            .any(|(row, columns)| *row == y && columns.contains(&x))
+    }
+}
+
+pub(crate) fn same_child_launch(
+    a: &oc_core::queries::ChildJob,
+    b: &oc_core::queries::ChildJob,
+) -> bool {
+    a.parent == b.parent
+        && a.child == b.child
+        && a.operation == b.operation
+        && a.generation == b.generation
+        && a.location == b.location
+        && a.delivery_id == b.delivery_id
 }
 
 #[derive(Clone, Copy)]
@@ -2375,6 +2425,14 @@ enum TranscriptHit {
     ChildNotice(CapturedChildTarget, std::ops::Range<usize>, bool),
 }
 
+type IndexedTranscript = (
+    Vec<Line>,
+    usize,
+    Option<TranscriptHit>,
+    Vec<Option<UserMessageTarget>>,
+    Vec<ChildNavigationHit>,
+);
+
 fn visible_transcript_indexed(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -2383,12 +2441,7 @@ fn visible_transcript_indexed(
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     options: ExplorationOptions<'_>,
-) -> (
-    Vec<Line>,
-    usize,
-    Option<TranscriptHit>,
-    Vec<Option<UserMessageTarget>>,
-) {
+) -> IndexedTranscript {
     #[cfg(test)]
     INDEXED_TRAVERSALS.set(INDEXED_TRAVERSALS.get() + 1);
     let (width, terminal_width) = widths;
@@ -2406,6 +2459,7 @@ fn visible_transcript_indexed(
     let start = end.saturating_sub(height);
     let mut visible = Vec::with_capacity(height);
     let mut user_targets = vec![None; height];
+    let mut child_targets = Vec::new();
     if start == 0 {
         visible.push(Line::plain(""));
     }
@@ -2557,6 +2611,40 @@ fn visible_transcript_indexed(
             shell_leading_margin(rows, index),
         ) {
             let margin = usize::from(shell_leading_margin(rows, index));
+            if let Some(card) = &row.tool
+                && let crate::tools::ToolRender::Subagent(subagent) = &card.render
+                && !crate::tools::subagent_failed(card)
+                && let Some(job) = &card.child_job
+            {
+                let header =
+                    crate::tools::subagent_block_expanded(subagent, card, theme, width, false);
+                let spans = header
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(offset, line)| {
+                        let row = position + margin + offset;
+                        if row < start || row >= end {
+                            return None;
+                        }
+                        let text = line.plain_text();
+                        let leading = UnicodeWidthStr::width(text.as_str())
+                            - UnicodeWidthStr::width(text.trim_start());
+                        let last = UnicodeWidthStr::width(text.trim_end()).min(width as usize);
+                        (leading < last).then_some((row - start, leading..last))
+                    })
+                    .collect::<Vec<_>>();
+                if !spans.is_empty() {
+                    child_targets.push(ChildNavigationHit {
+                        job: job.clone(),
+                        spans,
+                        range: (position + margin).saturating_sub(start)
+                            ..(position + margin + header.len())
+                                .min(end)
+                                .saturating_sub(start),
+                        tool: true,
+                    });
+                }
+            }
             if let Some((x, y)) = options.point
                 && let Some(card) = &row.tool
                 && x < width as usize
@@ -2672,6 +2760,21 @@ fn visible_transcript_indexed(
                 Some(cache),
             );
             let header = position + usize::from(index > 0);
+            if let Some(job) = &row.child_notice
+                && header >= start
+                && header < end
+                && let Some(line) = lines.last()
+            {
+                let last = UnicodeWidthStr::width(line.plain_text().trim_end()).min(width as usize);
+                if MESSAGE_PADDING < last {
+                    child_targets.push(ChildNavigationHit {
+                        job: job.clone(),
+                        spans: vec![(header - start, MESSAGE_PADDING..last)],
+                        range: header - start..header - start + 1,
+                        tool: false,
+                    });
+                }
+            }
             if let Some((x, y)) = options.point
                 && let Some(job) = &row.child_notice
                 && header == start + y
@@ -2788,7 +2891,7 @@ fn visible_transcript_indexed(
         );
     }
     user_targets.resize(visible.len(), None);
-    (visible, total, hit, user_targets)
+    (visible, total, hit, user_targets, child_targets)
 }
 
 /// Count the same cached/grouped parts used by the painter, without materializing

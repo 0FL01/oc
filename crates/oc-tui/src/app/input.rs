@@ -1687,6 +1687,9 @@ impl TuiState {
         if self.approvals.active().is_some() {
             self.cancel_execute_pointer();
         }
+        if let Some(outcome) = self.release_child_navigation(event, area) {
+            return outcome;
+        }
         if self.continue_text_mouse(event, area) {
             return KeyOutcome::default();
         }

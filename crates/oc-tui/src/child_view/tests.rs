@@ -257,6 +257,201 @@ async fn captured_subagent_live_background_and_terminal_keep_one_graph_and_origi
 }
 
 #[tokio::test]
+async fn running_child_click_survives_redraw_and_uses_current_launch_facts() {
+    for (width, height) in [(80, 24), (120, 40), (160, 48)] {
+        for change in [
+            "spinner",
+            "unpainted-stream",
+            "job-facts",
+            "page-replacement",
+        ] {
+            let (app, mut inbox, _) = CoreApp::channel(8);
+            let mut state = TuiState::new(app, SessionId("parent".into()));
+            let turn = WorkerTurnId("parent-turn".into());
+            state.begin_linked_turn(turn.clone());
+            let mut current = job();
+            state.apply_child_jobs(vec![current.clone()]);
+            state.apply_tool_started(
+                &turn,
+                "launch",
+                "subagent",
+                r#"{"agent":"helper","description":"inspect configs"}"#,
+            );
+            state.restore_prompt("unchanged draft".into());
+            let now = std::time::Instant::now();
+            state.tick_subagents(now);
+            let frame = Rect::new(0, 0, width, height);
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+            let buffer = terminal.backend().buffer();
+            let y = (0..height)
+                .find(|&y| {
+                    (0..width)
+                        .map(|x| buffer[(x, y)].symbol())
+                        .collect::<String>()
+                        .contains("Helper Subagent")
+                })
+                .unwrap();
+            let x = (0..width)
+                .find(|&x| buffer[(x, y)].symbol() == "H")
+                .unwrap();
+            let event = |kind| MouseEvent {
+                kind,
+                column: x,
+                row: y,
+                modifiers: KeyModifiers::NONE,
+            };
+            state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left)), frame);
+            match change {
+                "spinner" => {
+                    assert!(state.tick_subagents(now + std::time::Duration::from_millis(80)));
+                    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+                }
+                "unpainted-stream" => state.apply_delta(&turn, "unrelated streaming output"),
+                "job-facts" => {
+                    current.background = true;
+                    state.apply_child_jobs(vec![current.clone()]);
+                    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+                }
+                "page-replacement" => {
+                    state.attach_page(&oc_core::queries::HistoryPage::default());
+                }
+                _ => unreachable!(),
+            }
+            let outcome = state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left)), frame);
+            if change == "page-replacement" {
+                assert!(outcome.intent.is_none());
+            } else {
+                assert!(
+                    matches!(outcome.intent, Some(PanelIntent::OpenChild {selected}) if selected == current),
+                    "{width}x{height}: {change}"
+                );
+            }
+            assert_eq!(state.input(), "unchanged draft");
+            assert!(inbox.try_recv().is_err());
+        }
+    }
+}
+
+#[tokio::test]
+async fn child_card_release_cannot_activate_a_notice_repainted_over_the_same_cell() {
+    use oc_core::queries::{
+        ChildHistory, HistoryMessage, HistoryNoticeOrder, HistoryNoticePlacement, HistoryPage,
+        HistoryTurn, NoticePlacement,
+    };
+    use oc_core::session::{MessageId, Role};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("parent".into()));
+    let turn = WorkerTurnId("parent-turn".into());
+    let mut prompt = HistoryMessage {
+        id: MessageId("prompt".into()),
+        seq: 1,
+        role: Role::User,
+        text: "task".into(),
+        images: vec![],
+        turn: Some(HistoryTurn {
+            id: turn.0.clone(),
+            revision: 1,
+            status: "started".into(),
+            window: Some(Default::default()),
+            notice_order: Some(HistoryNoticeOrder {
+                accepted_prompt: MessageId("prompt".into()),
+                notices: vec![],
+            }),
+            ..Default::default()
+        }),
+        model_switch: None,
+        user_shell: None,
+        child: None,
+        shell_notice: None,
+    };
+    state.attach_page(&HistoryPage {
+        rows: vec![prompt.clone()],
+        total: 1,
+        ..Default::default()
+    });
+    state.begin_linked_turn(turn.clone());
+    let mut captured = job();
+    captured.background = true;
+    state.apply_child_jobs(vec![captured.clone()]);
+    state.apply_delta(&turn, &"prefix\n".repeat(50));
+    state.apply_tool_started(
+        &turn,
+        "launch",
+        "subagent",
+        r#"{"agent":"helper","description":"inspect configs"}"#,
+    );
+    let frame = Rect::new(0, 0, 80, 24);
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let row_text = |buffer: &ratatui::buffer::Buffer, y| {
+        (0..80).map(|x| buffer[(x, y)].symbol()).collect::<String>()
+    };
+    let y = (0..24)
+        .find(|&y| row_text(terminal.backend().buffer(), y).contains("Helper Subagent"))
+        .unwrap();
+    let x = (0..80)
+        .find(|&x| terminal.backend().buffer()[(x, y)].symbol() == "H")
+        .unwrap();
+    let event = |kind| MouseEvent {
+        kind,
+        column: x,
+        row: y,
+        modifiers: KeyModifiers::NONE,
+    };
+    state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left)), frame);
+    captured.state = ChildState::Completed;
+    captured.message_id = Some("notice".into());
+    prompt.turn.as_mut().unwrap().revision = 2;
+    prompt
+        .turn
+        .as_mut()
+        .unwrap()
+        .notice_order
+        .as_mut()
+        .unwrap()
+        .notices
+        .push(HistoryNoticePlacement {
+            message: MessageId("notice".into()),
+            placement: NoticePlacement::Tail,
+        });
+    let notice = HistoryMessage {
+        id: MessageId("notice".into()),
+        seq: 2,
+        role: Role::User,
+        text: "native report".into(),
+        images: vec![],
+        turn: None,
+        model_switch: None,
+        user_shell: None,
+        child: Some(ChildHistory::Notice(Box::new(captured.clone()))),
+        shell_notice: None,
+    };
+    state.refresh_child_notice_page(&HistoryPage {
+        rows: vec![prompt, notice],
+        total: 2,
+        ..Default::default()
+    });
+    state.apply_child_notice(&captured);
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    assert!(
+        row_text(terminal.backend().buffer(), y).contains("Helper finished"),
+        "notice must replace the pressed card cell at {x},{y}:\n{}",
+        (0..24)
+            .map(|row| row_text(terminal.backend().buffer(), row))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(
+        state
+            .handle_mouse(event(MouseEventKind::Up(MouseButton::Left)), frame)
+            .intent
+            .is_none()
+    );
+    assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
 async fn subagent_card_pointer_uses_painted_generation_and_failed_card_expands_instead_of_navigating()
  {
     for (width, height) in [(80, 24), (120, 40), (160, 48)] {

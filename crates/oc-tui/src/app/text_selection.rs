@@ -224,6 +224,11 @@ impl TuiState {
         }
     }
 
+    pub(super) fn finish_transcript_click(&mut self) {
+        self.text_selection.held = false;
+        self.cancel_transcript_capture();
+    }
+
     pub(super) fn observe_transcript_gesture(&mut self, event: MouseEvent) {
         if event.kind == MouseEventKind::Down(MouseButton::Left) && self.selection_gesture {
             self.text_selection.held = true;

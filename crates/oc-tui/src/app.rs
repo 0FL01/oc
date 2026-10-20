@@ -367,6 +367,7 @@ struct PaintedTranscript {
     area: Rect,
     rows: Vec<Line>,
     user_targets: Vec<Option<crate::messages::UserMessageTarget>>,
+    child_targets: Vec<crate::messages::ChildNavigationHit>,
     total: usize,
     scroll: usize,
 }
@@ -587,6 +588,7 @@ struct VisibleTranscriptProjection {
     total: usize,
     scroll: usize,
     targets: Vec<Option<crate::messages::UserMessageTarget>>,
+    child_targets: Vec<crate::messages::ChildNavigationHit>,
 }
 
 /// Visible editor insertion stops and chip cells from the latest prompt paint.

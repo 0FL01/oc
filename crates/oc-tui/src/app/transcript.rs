@@ -4,6 +4,7 @@ use super::*;
 
 pub(super) struct ChildNoticePress {
     target: crate::messages::CapturedChildTarget,
+    tool: bool,
     frame: Rect,
     generation: u64,
     point: (u16, u16),
@@ -635,8 +636,21 @@ impl TuiState {
                 .map(|(_, range)| range)
         });
         // Derive child hover from this frame's unhovered geometry, including a
-        // just-expanded row. Input still validates the same paint generation.
+        // just-expanded row. Navigation captures only its painted label cells.
         {
+            let children = self
+                .visible_projection
+                .borrow()
+                .as_ref()
+                .filter(|view| {
+                    view.lines == rows
+                        && view.total == total
+                        && view.scroll == scroll
+                        && view.dimensions.0 == area.width
+                        && view.dimensions.2 == area.height
+                })
+                .map(|view| view.child_targets.clone())
+                .unwrap_or_default();
             let mut painted = self.painted_transcript.borrow_mut();
             if !painted.as_ref().is_some_and(|previous| {
                 previous.area == area
@@ -644,6 +658,7 @@ impl TuiState {
                     && previous.scroll == scroll
                     && previous.rows == rows
                     && previous.user_targets == user_targets
+                    && previous.child_targets == children
             }) {
                 self.paint_generation
                     .set(self.paint_generation.get().wrapping_add(1));
@@ -651,6 +666,7 @@ impl TuiState {
                     area,
                     rows: rows.to_vec(),
                     user_targets: user_targets.to_vec(),
+                    child_targets: children,
                     total,
                     scroll,
                 });
@@ -1061,13 +1077,18 @@ impl TuiState {
         }
         let (rows, total, scroll) =
             self.visible_transcript_at_viewport(current.width, area.width, current.height);
-        if !self
+        if !(self
             .painted_transcript
             .borrow()
             .as_ref()
             .is_some_and(|painted| {
                 painted.total == total && painted.scroll == scroll && painted.rows == rows
             })
+            || matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+                && event.modifiers.is_empty()
+                && self
+                    .child_navigation_hit(area, event.column, event.row)
+                    .is_some())
         {
             self.clear_transcript_selection();
             return;
@@ -1389,6 +1410,79 @@ impl TuiState {
             })
     }
 
+    fn child_navigation_hit(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<(
+        crate::messages::CapturedChildTarget,
+        std::ops::Range<usize>,
+        bool,
+    )> {
+        let rect = crate::shell::transcript_area(self, frame);
+        if self.panel != TuiPanel::None
+            || self.approvals.active().is_some()
+            || self.questions.active().is_some()
+            || self.composer_contains(frame, (x, y))
+            || self.shell_viewer().is_some()
+            || self.transcript_overpainted(frame, x, y)
+            || !rect.contains((x, y).into())
+        {
+            return None;
+        }
+        self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let painted = self.painted_transcript.borrow();
+        let painted = painted.as_ref().filter(|painted| painted.area == rect)?;
+        let point = ((x - rect.x) as usize, (y - rect.y) as usize);
+        let down = painted
+            .child_targets
+            .iter()
+            .find(|hit| hit.contains(point.0, point.1))?;
+        let current = self.visible_projection.borrow();
+        let hit = current.as_ref()?.child_targets.iter().find(|hit| {
+            hit.contains(point.0, point.1)
+                && hit.tool == down.tool
+                && crate::messages::same_child_launch(&hit.job, &down.job)
+        })?;
+        (self.attached_session() == Some(&hit.job.parent)).then(|| {
+            (
+                crate::messages::CapturedChildTarget::Navigate(hit.job.clone()),
+                hit.range.clone(),
+                hit.tool,
+            )
+        })
+    }
+
+    /// No-drag navigation owns its release before text selection rejects an
+    /// unrelated repaint. Drag/multiclick still belongs to selection.
+    pub(super) fn release_child_navigation(
+        &mut self,
+        event: MouseEvent,
+        frame: Rect,
+    ) -> Option<KeyOutcome> {
+        if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
+            && self.child_notice_down.as_ref().is_some_and(|pressed| {
+                matches!(
+                    pressed.target,
+                    crate::messages::CapturedChildTarget::Navigate(_)
+                )
+            })
+            && !self
+                .selection
+                .as_ref()
+                .is_some_and(|selection| selection.dragging)
+            && self.click.is_none_or(|click| click.count == 1)
+        {
+            let outcome = self.child_notice_mouse(event, frame);
+            if outcome.is_some() {
+                self.finish_transcript_click();
+            }
+            return outcome;
+        }
+        None
+    }
+
     fn child_notice_hit(
         &self,
         frame: Rect,
@@ -1467,28 +1561,47 @@ impl TuiState {
     ) -> Option<KeyOutcome> {
         match event.kind {
             MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
-                self.child_notice_down =
-                    self.child_notice_hit(frame, event.column, event.row)
-                        .map(|(target, _, _)| ChildNoticePress {
-                            target,
-                            frame,
-                            generation: self.paint_generation.get(),
-                            point: (event.column, event.row),
-                        });
+                self.child_notice_down = self
+                    .child_navigation_hit(frame, event.column, event.row)
+                    .or_else(|| self.child_notice_hit(frame, event.column, event.row))
+                    .map(|(target, _, tool)| ChildNoticePress {
+                        target,
+                        tool,
+                        frame,
+                        generation: self.paint_generation.get(),
+                        point: (event.column, event.row),
+                    });
             }
             MouseEventKind::Up(MouseButton::Left) => {
                 let pressed = self.child_notice_down.take()?;
                 if !event.modifiers.is_empty()
                     || pressed.frame != frame
                     || pressed.point != (event.column, event.row)
-                    || pressed.generation != self.paint_generation.get()
                     || self.click.is_some_and(|click| click.count != 1)
                     || !matches!(self.selection_text(), Ok(None))
                 {
                     return None;
                 }
-                let (target, _, _) = self.child_notice_hit(frame, event.column, event.row)?;
-                if target != pressed.target {
+                let navigation = matches!(
+                    pressed.target,
+                    crate::messages::CapturedChildTarget::Navigate(_)
+                );
+                if !navigation && pressed.generation != self.paint_generation.get() {
+                    return None;
+                }
+                let (target, _, tool) = if navigation {
+                    self.child_navigation_hit(frame, event.column, event.row)?
+                } else {
+                    self.child_notice_hit(frame, event.column, event.row)?
+                };
+                let same = match (&target, &pressed.target) {
+                    (
+                        crate::messages::CapturedChildTarget::Navigate(current),
+                        crate::messages::CapturedChildTarget::Navigate(previous),
+                    ) => crate::messages::same_child_launch(current, previous),
+                    _ => target == pressed.target,
+                };
+                if !same || tool != pressed.tool {
                     return None;
                 }
                 self.clear_transcript_selection();
@@ -2229,7 +2342,7 @@ impl TuiState {
             .set(self.visible_projection_builds.get() + 1);
         let (rows, live_row) = self.compose_transcript();
         let render = |height, scroll| {
-            crate::messages::visible_transcript_user_targets(
+            crate::messages::visible_transcript_targets(
                 &rows,
                 Theme::dark(),
                 (width, terminal_width),
@@ -2288,7 +2401,7 @@ impl TuiState {
         } else if resized && previous.is_some_and(|view| view.requested_scroll == self.scroll) {
             let view = previous.expect("resized viewport");
             // Count-only indexing is needed on resize, not on every draw.
-            let (_, total, _) = render(0, 0);
+            let (_, total, _, _) = render(0, 0);
             let top = view
                 .total
                 .saturating_sub(view.height as usize)
@@ -2299,7 +2412,7 @@ impl TuiState {
         } else {
             self.scroll
         };
-        let (mut lines, total, mut targets) = render(height as usize, scroll);
+        let (mut lines, total, mut targets, mut children) = render(height as usize, scroll);
         // A bottom-relative offset alone follows appended rows even when the
         // reader detached. Preserve the last painted top row during live tail
         // growth. Prepending deliberately clears the viewport: its new rows
@@ -2315,7 +2428,7 @@ impl TuiState {
                 .saturating_sub(view.height as usize)
                 .saturating_sub(view.displayed_scroll);
             let anchored = total.saturating_sub(height as usize).saturating_sub(top);
-            (lines, _, targets) = render(height as usize, anchored);
+            (lines, _, targets, children) = render(height as usize, anchored);
             anchored
         } else {
             scroll
@@ -2345,6 +2458,7 @@ impl TuiState {
             total,
             scroll,
             targets: targets.clone(),
+            child_targets: children,
         });
         (lines, total, scroll, targets)
     }
