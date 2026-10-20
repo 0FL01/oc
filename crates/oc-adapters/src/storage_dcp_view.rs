@@ -225,6 +225,7 @@ impl Db {
                  WHERE (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
                  AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),'[]')),
                'shell_notice_messages',json(CASE WHEN logs.id IN (SELECT value FROM json_each(?3)) THEN COALESCE(result->>'$.shell_notice_messages','[]') ELSE '[]' END),
+               'native_input',json_extract(result,'$.native_input'),
                'instruction_references',json(COALESCE((SELECT json_group_array(json_object(
                  'event',a.value->>'$.event',
                  'index',(SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<a.value->>'$.index'

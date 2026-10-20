@@ -1,5 +1,300 @@
 use super::*;
 
+fn native_report_fixture(db: &Db) -> (String, String) {
+    db.create_bound_session("s", "work").unwrap();
+    db.apply_dcp_schema().unwrap();
+    let first = seed(db, "first", "original genuine task");
+    db.create_child_session(
+        "s",
+        "child",
+        Some("helper"),
+        Some("fixture/m"),
+        Some("work"),
+    )
+    .unwrap();
+    db.record_tool_intent("launch", "s", None, "subagent", "{\"background\":true}")
+        .unwrap();
+    db.admit_child_job(&oc_core::queries::ChildJob {
+        parent: oc_core::domain::SessionId("s".into()),
+        child: oc_core::domain::SessionId("child".into()),
+        operation: "launch".into(),
+        generation: 1,
+        location: "work".into(),
+        agent: "helper".into(),
+        model: "fixture/m".into(),
+        description: "independent investigation".into(),
+        delivery_id: "delivery".into(),
+        state: oc_core::queries::ChildState::Admitted,
+        background: true,
+        turn: None,
+        result: None,
+        message_id: None,
+    })
+    .unwrap();
+    db.finish_child_job(
+        "launch",
+        oc_core::queries::ChildState::Completed,
+        "FULL_REPORT",
+    )
+    .unwrap();
+    let notice = db
+        .deliver_child_notices()
+        .unwrap()
+        .remove(0)
+        .job
+        .message_id
+        .unwrap();
+    (first, notice)
+}
+
+#[test]
+fn protected_checkpoint_report_is_assigned_only_when_emitted_and_never_duplicated() {
+    for native_batch in [false, true] {
+        let data = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        let db = Db::open(data.path()).unwrap();
+        let (_, notice) = native_report_fixture(&db);
+        let runtime = runtime(&db, project.path(), Generation::default());
+        runtime.update_execution(|view| view.dcp_config.protect_user_messages = true);
+        let before = runtime.active_projection("s").unwrap();
+        let facts = runtime
+            .selected_message_facts("s", &before.projected, &before.blocks)
+            .unwrap();
+        assert!(
+            facts
+                .iter()
+                .any(|fact| fact["protected_message"]["id"] == notice)
+        );
+        let compact = CompactionSnapshot {
+            model: None,
+            profile: None,
+            anchor: oc_core::compaction::CompactionAnchor::default(),
+            id: "checkpoint".into(),
+            session: "s".into(),
+            reason: CompactionReason::Manual,
+            state: CompactionState::Completed,
+            summary: "CHECKPOINT_SUMMARY".into(),
+            usage: None,
+            provider_native: false,
+            error: None,
+        };
+        db.save_compaction(&compact).unwrap();
+        db.commit_checkpoint_selected(&compact, &notice, None, &BTreeMap::new(), &facts, None)
+            .unwrap();
+        let selection = db.checkpoint_selection("s").unwrap();
+        let raw = db.read_history_full("s").unwrap();
+        let model = ModelRef {
+            provider: "fixture".into(),
+            id: "m".into(),
+            variant: None,
+        };
+        if native_batch {
+            let (ids, task) = db
+                .parent_notice_input("s", std::slice::from_ref(&notice))
+                .unwrap();
+            let mut log = TurnLog::new("native", "m", "fixture");
+            log.input.push(task);
+            let control = db
+                .accept_parent_notice_batch("s", "work", &ids, &model, None, &mut log)
+                .unwrap()
+                .unwrap()
+                .user_message;
+            let active = runtime.active_projection("s").unwrap();
+            let prior = active
+                .projected
+                .iter()
+                .filter(|row| row.0 != control && row.0 != notice)
+                .cloned()
+                .collect::<Vec<_>>();
+            let (mut wire, represented) = runtime
+                .wire_history_with_child_notices(
+                    "s",
+                    &prior,
+                    &active.blocks,
+                    "m",
+                    "fixture",
+                    None,
+                    active.after_seq,
+                    None,
+                    |id| ids.iter().any(|notice| notice == id),
+                )
+                .unwrap();
+            assert!(!represented.contains(&notice));
+            wire.extend(log.input.clone());
+            assert_eq!(
+                serde_json::to_string(&wire)
+                    .unwrap()
+                    .matches("FULL_REPORT")
+                    .count(),
+                1
+            );
+            log.input
+                .push(InputItem::message(InputRole::Assistant, "automatic answer"));
+            db.commit_turn(
+                "native",
+                "completed",
+                Some(&log.to_json().to_string()),
+                Some("automatic answer"),
+            )
+            .unwrap();
+            let active = runtime.active_projection("s").unwrap();
+            let future = runtime
+                .wire_history(
+                    "s",
+                    &active.projected,
+                    &active.blocks,
+                    "m",
+                    "fixture",
+                    None,
+                    active.after_seq,
+                )
+                .unwrap();
+            assert_eq!(
+                serde_json::to_string(&future)
+                    .unwrap()
+                    .matches("FULL_REPORT")
+                    .count(),
+                1
+            );
+        } else {
+            let active = runtime.active_projection("s").unwrap();
+            let (wire, represented) = runtime
+                .wire_history_with_child_notices(
+                    "s",
+                    &active.projected,
+                    &active.blocks,
+                    "m",
+                    "fixture",
+                    None,
+                    active.after_seq,
+                    None,
+                    |_| false,
+                )
+                .unwrap();
+            assert_eq!(
+                serde_json::to_string(&wire)
+                    .unwrap()
+                    .matches("FULL_REPORT")
+                    .count(),
+                1
+            );
+            assert_eq!(represented.as_slice(), std::slice::from_ref(&notice));
+            assert!(!db.parent_notice_assigned("s", &notice).unwrap());
+            let mut log = TurnLog::new("ordinary", "m", "fixture");
+            db.accept_turn_with_selection(
+                "ordinary",
+                "s",
+                "genuine followup",
+                "genuine followup",
+                &model,
+                None,
+                None,
+                None,
+                Some(&mut log),
+            )
+            .unwrap();
+            db.checkpoint_turn_with_child_notices(
+                "ordinary",
+                "s",
+                &log.to_json().to_string(),
+                &represented,
+            )
+            .unwrap();
+            assert!(db.parent_notice_assigned("s", &notice).unwrap());
+        }
+        assert_eq!(db.checkpoint_selection("s").unwrap(), selection);
+        assert_eq!(&db.read_history_full("s").unwrap()[..raw.len()], raw);
+    }
+}
+
+#[test]
+fn native_followup_after_old_notice_compression_keeps_its_new_tool_journal() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let (first, notice) = native_report_fixture(&db);
+    seed(
+        &db,
+        "tail",
+        "a later genuine task that did not prepare this report",
+    );
+    let mut generation = Generation::default();
+    generation
+        .permissions
+        .insert("compress".into(), Permission::Allow);
+    let runtime = runtime(&db, project.path(), generation);
+    runtime
+        .run_compress(
+            "s",
+            &serde_json::json!({"topic":"old work","content":[{
+                "startId":first,"endId":notice,"summary":"OLD_STANDALONE_SUMMARY"
+            }]}),
+            &oc_core::context_plan::ProtectedSpec::default(),
+        )
+        .unwrap();
+    let graph = db.active_compression_graph("s", 0).unwrap();
+    assert!(graph[0].hot.as_ref().unwrap()["standalone"] == true);
+    let raw_before = db.read_history_full("s").unwrap();
+    let (ids, task) = db
+        .parent_notice_input("s", std::slice::from_ref(&notice))
+        .unwrap();
+    let mut native = TurnLog::new("native", "m", "fixture");
+    native.input.push(task);
+    let control = db
+        .accept_parent_notice_batch(
+            "s",
+            "work",
+            &ids,
+            &ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+            None,
+            &mut native,
+        )
+        .unwrap()
+        .unwrap()
+        .user_message;
+    assert_ne!(control, notice);
+    native.input.extend([
+        InputItem::ProviderOutput(serde_json::json!({"type":"function_call","call_id":"new-tool","name":"read","arguments":"{}"})),
+        InputItem::FunctionCallOutput { call_id: "new-tool".into(), output: "NEW_NATIVE_TOOL_RESULT".into() },
+        InputItem::message(InputRole::Assistant, "automatic answer"),
+    ]);
+    db.commit_turn(
+        "native",
+        "completed",
+        Some(&native.to_json().to_string()),
+        Some("automatic answer"),
+    )
+    .unwrap();
+    let active = runtime.active_projection("s").unwrap();
+    let wire = runtime
+        .wire_history(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "m",
+            "fixture",
+            None,
+            active.after_seq,
+        )
+        .unwrap();
+    let wire = serde_json::to_string(&wire).unwrap();
+    assert!(wire.contains("OLD_STANDALONE_SUMMARY"), "{wire}");
+    assert!(wire.contains("NEW_NATIVE_TOOL_RESULT"), "{wire}");
+    assert_eq!(wire.matches("FULL_REPORT").count(), 1, "{wire}");
+    assert_eq!(
+        &db.read_history_full("s").unwrap()[..raw_before.len()],
+        raw_before
+    );
+    assert_eq!(
+        db.active_compression_graph("s", 0).unwrap()[0].summary,
+        graph[0].summary
+    );
+}
+
 #[test]
 fn repeated_standalone_renewal_releases_old_facts_and_preserves_literal_fork() {
     let data = tempfile::tempdir().unwrap();

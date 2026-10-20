@@ -44,8 +44,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: выбор «Полный background lifecycle», audit §E/§F.
   - Acceptance: durable report → one bounded assigned batch → real parent request; active/user race оставляет один runner; cancellation/last TUI/Run release/shutdown suppress; original Source и current committed parent selection; fork/DCP/Undo/Revert chronology сохранена.
   - Primary evidence: storage/runtime/authority regressions + existing actual background capture provider witnesses.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: native batch admission/history foundation checked: full adapters lib 865 PASS + 1 pre-existing ignored; full subagent integration 44 PASS; strict affected core/adapters/TUI all-target Clippy PASS. Atomic batch rollback/assignment, fresh tail chronology, recursive inert fork, Revert, >1MiB native report and old-DCP/new-journal regressions PASS. Protected checkpoint reports are assigned only when actually emitted and appear once in native admission and later history. Owner idle-wake wiring and actual lifecycle proof remain pending.
 - R6: проверенные изменения закоммичены и отправлены в verified origin.
   - Source: последний пользовательский запрос.
   - Acceptance: relevant tests, full offline gate, scoped current-TS paired qualification и diff review; normal commits/push, remote HEAD verified.
@@ -101,27 +101,29 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 
 - `oc-tui` app/messages/shell/commands/child presentation and nearest tests; `oc` tui_cmd/shared/child_controls and PTY fixtures.
 - `oc-adapters` native client/server, application/authority, runtime/children/context/turn, tools TurnLog/native representation, storage child/turn/conversation/fork/DCP direct consumers and tests.
+- Direct `oc-core` history/event DTO consumers: typed empty native-control classification and one session-scoped automatic-continuation refusal diagnostic; no new public request/admission API.
 - Existing capture scripts/fixtures/README; `docs/ARCHITECTURE.md`, this goal and root GOAL link. Bounded gitignored local evidence.
 - No production dependency/service, donor TS edits, paid live calls, schema migration or unrelated baseline changes.
 
 ## Current Checkpoint
 
 - Closes: R5 (R2/R3/R4 verified; R1 actual capture remains pending).
-- Smallest next action: add typed native-notice batch journal/atomic tail-control acceptance and exact prepared-request assignment, preserving history/fork/DCP/Revert consumers; then wire bounded existing child Work/owner handoff.
-- Expected evidence: storage/runtime final-gap, batch rollback, native representation and chronology regressions before owner idle-wake integration.
+- Smallest next action: reproduce actual Owner idle-root wake with a held physical child response, then wire the bounded existing child Work/owner handoff to the checked private native batch path.
+- Expected evidence: after original root has fully joined, child completion causes one real parent request with current committed parent selection, no second Submit/child execution; cancellation/settlement and capacity remain bounded.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
 ## Current State
 
-- Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b` published. R2 navigation and parked-child lifecycle checked, including actual one-TUI concurrency. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
-- Last relevant evidence: 120 binary TUI PASS; 621 TUI PASS; actual New/Sessions aliases PASS; actual two-stream A/B navigation PASS; strict affected all-target Clippy PASS. No full offline gate/capture claim yet.
+- Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b`, R2 `9420451d1` published. R5 native batch/history foundation checked. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
+- Last relevant evidence: 865 adapters lib PASS + 1 existing ignored; 44 subagent integration PASS; 23 runtime compaction PASS; native-control TUI regression PASS; strict affected all-target Clippy PASS. Prior actual navigation evidence remains; no full offline gate/capture claim yet.
 - Blocker: none observed.
-- Next: native notice batch/owner continuation and current-source captures. R5 remains unimplemented; R1/R6 captures and final full gate remain pending.
+- Next: bounded Owner continuation and current-source captures. Automatic idle-root scheduling is not implemented yet; R1/R6 actual captures and final full gate remain pending. Running-card current-reference capture preparation is a separate uncommitted script diff, not visual qualification.
 
 ## Material Decisions
 
 - 2026-10-20: user approved full root background lifecycle and commits/push. Root-only/no restart wake preserves native authority/recovery contracts; not full nested-session parity.
 - 2026-10-20: audit replaces unsafe old-notice anchor with one typed tail control per automatic batch; one assigned event kind, no wake queue/DDL.
+- 2026-10-20: R5 refusal before acceptance has no valid `TurnFailed` identity. The existing owner task result is an application-health failure, not a per-batch refusal channel. Use a private one-shot start receipt and one bounded typed session diagnostic event rather than fabricating a turn, poisoning the owner, or adding a store/queue. Coalesce live reports within their original parent/origin lineage; do not merge Run and Interactive cancellation ownership.
 
 ## Checkpoint History
 
@@ -131,6 +133,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - 2026-10-20: R3 native/projection checkpoint: actual busy picker RED→GREEN; final candidate prevents false removal of running fork adoption. Snapshot replies no longer consume shared wire events or clear unrelated controls; monotonic observations and exact owned request lifecycle include idle/reordered/old-epoch/gap/title cases within a bounded existing map. Target-only adoption and linked gap staging retain canonical windows/drafts, acknowledge truncation, and keep historical Source reads fenced without inferring idle from foreign snapshot absence. 9 bridge + 2 picker + 116 binary TUI + 621 TUI PASS; strict all-target affected Clippy PASS. Next R2, not a new runtime scheduler.
 
 - 2026-10-20: R2/R3 integrated: accepted turns no longer veto New/Add/tab/Sessions; exact parked child launch updates its parent before completion. Original standalone read-only provenance survives nested return. Review found close/delete post-commit activation and typed child command draft hazards; both corrected with explicit preflight/source consumption and regressions. Actual one-TUI A/B streams progress across New and repeated switches, no resubmits; actual held-turn slash/chord/palette/Sessions aliases PASS. Finite receipts, profile/destructive and ordinary Location guards remain. Next R5 native batch, not a scheduler rewrite.
+- 2026-10-20: R5 admission foundation: one typed empty tail control and atomic whole-batch assignment preserve final-gap fork/DCP chronology; ordinary requests assign only emitted report IDs at prepared checkpoint. Exact original input coordinates survive working/fork projections without granting wake authority. Review exposed protected-checkpoint metadata/exclusion holes; current-task and retained-journal dedup now have a direct regression. Full adapters lib 865 PASS + 1 existing ignored (133.77s suite), subagent integration 44 PASS (31.21s suite), affected strict Clippy PASS. No idle wake or paired capture claim: next existing Work/Owner wiring.
 
 ## Completion
 

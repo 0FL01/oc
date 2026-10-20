@@ -1504,6 +1504,7 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
             Arc::new(attached),
             None,
             None,
+            None,
             &mut |_, _| {},
             &mut |_, _| {},
             &mut |_, _| {},

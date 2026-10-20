@@ -1593,52 +1593,71 @@ impl<'a> Runtime<'a> {
         binding: Option<&oc_core::queries::WireProvenance>,
         project_instructions: bool,
     ) -> Result<Vec<InputItem>, RuntimeError> {
+        self.wire_history_materialized(
+            session,
+            projected,
+            blocks,
+            model,
+            provider,
+            agent_digest,
+            after_seq,
+            binding,
+            project_instructions,
+            |_| false,
+        )
+        .map(|(input, _)| input)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn wire_history_with_child_notices(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+        model: &str,
+        provider: &str,
+        agent_digest: Option<&str>,
+        after_seq: i64,
+        binding: Option<&oc_core::queries::WireProvenance>,
+        excluded: impl Fn(&str) -> bool,
+    ) -> Result<(Vec<InputItem>, Vec<String>), RuntimeError> {
+        self.wire_history_materialized(
+            session,
+            projected,
+            blocks,
+            model,
+            provider,
+            agent_digest,
+            after_seq,
+            binding,
+            true,
+            excluded,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn wire_history_materialized(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+        model: &str,
+        provider: &str,
+        agent_digest: Option<&str>,
+        after_seq: i64,
+        binding: Option<&oc_core::queries::WireProvenance>,
+        project_instructions: bool,
+        excluded: impl Fn(&str) -> bool,
+    ) -> Result<(Vec<InputItem>, Vec<String>), RuntimeError> {
         let mut turns = BTreeMap::new();
+        let mut bucket_notices: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut covered_child_notices = std::collections::BTreeSet::new();
         let mut changed_lane_prompts = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
         let move_epoch = self.db.session_move_epoch(session)?;
         let moved = move_epoch != 0;
         let instruction_facts = self.db.instruction_view(session)?.1;
         let logs = self.projected_wire_logs(session, after_seq, projected, blocks)?;
-        if projected.iter().any(|r| r.0 == "session-checkpoint")
-            && let Some(selection) = self.db.checkpoint_selection(session)?
-        {
-            let spec = self.history_protection_spec(session)?;
-            for value in selection {
-                if let Some(facts) = value.get("legacy_protected") {
-                    let chosen = crate::dcp::select_legacy_protection(
-                        facts.as_array().ok_or(RuntimeError::Storage)?,
-                        &spec,
-                    )
-                    .map_err(|_| RuntimeError::Storage)?;
-                    if !chosen.is_empty() {
-                        let mut text = String::new();
-                        crate::dcp::append_legacy_protection(&mut text, &chosen)
-                            .map_err(|_| RuntimeError::Storage)?;
-                        turns
-                            .entry("session-checkpoint".to_string())
-                            .or_insert_with(Vec::new)
-                            .push(InputItem::message(InputRole::Developer, text));
-                    }
-                }
-                if let Some(fact) = value.get("protected_message") {
-                    let message = protected_message(fact)?;
-                    if oc_core::context_plan::message_protected(&spec, &message) {
-                        turns
-                            .entry("session-checkpoint".to_string())
-                            .or_insert_with(Vec::new)
-                            .push(InputItem::message(
-                                if message.role == oc_core::session::Role::User {
-                                    InputRole::User
-                                } else {
-                                    InputRole::Assistant
-                                },
-                                message.text,
-                            ));
-                    }
-                }
-            }
-        }
         for raw in logs {
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
@@ -1700,6 +1719,7 @@ impl<'a> Runtime<'a> {
             // Legacy command records without a usable prepared prompt retain
             // their immutable public invocation, never today's expansion.
             if block_id.is_none()
+                && log.native_input.is_none()
                 && log.display.get("user_images").is_none()
                 && prompt.as_deref().is_none_or(str::is_empty)
                 && let Some((_, _, public)) = projected.iter().find(|row| row.0 == anchor)
@@ -1715,10 +1735,80 @@ impl<'a> Runtime<'a> {
             {
                 *user = InputItem::message(InputRole::User, public);
             }
+            let bucket = block_id.unwrap_or(anchor);
+            if projected.iter().any(|row| row.0 == bucket) {
+                if let Some(native) = &log.native_input {
+                    represented.extend(native.messages.iter().cloned());
+                    covered_child_notices.extend(native.messages.iter().cloned());
+                }
+                let notices = bucket_notices.entry(bucket.clone()).or_default();
+                notices.extend(log.represented_native_notices());
+                notices.extend(self.db.emitted_child_notices(
+                    session,
+                    &log.shell_notice_messages,
+                    &input,
+                )?);
+                covered_child_notices.extend(notices.iter().cloned());
+            }
+            turns.entry(bucket).or_insert_with(Vec::new).extend(input);
+        }
+        if projected.iter().any(|r| r.0 == "session-checkpoint")
+            && let Some(selection) = self.db.checkpoint_selection(session)?
+        {
+            // Protected facts precede the checkpoint's retained journals, but
+            // those journals/current task may already own the exact report.
+            let retained = turns.remove("session-checkpoint").unwrap_or_default();
+            let spec = self.history_protection_spec(session)?;
+            for value in selection {
+                if let Some(facts) = value.get("legacy_protected") {
+                    let chosen = crate::dcp::select_legacy_protection(
+                        facts.as_array().ok_or(RuntimeError::Storage)?,
+                        &spec,
+                    )
+                    .map_err(|_| RuntimeError::Storage)?;
+                    if !chosen.is_empty() {
+                        let mut text = String::new();
+                        crate::dcp::append_legacy_protection(&mut text, &chosen)
+                            .map_err(|_| RuntimeError::Storage)?;
+                        turns
+                            .entry("session-checkpoint".to_string())
+                            .or_insert_with(Vec::new)
+                            .push(InputItem::message(InputRole::Developer, text));
+                    }
+                }
+                if let Some(fact) = value.get("protected_message") {
+                    let message = protected_message(fact)?;
+                    if !excluded(&message.id.0)
+                        && !covered_child_notices.contains(&message.id.0)
+                        && oc_core::context_plan::message_protected(&spec, &message)
+                    {
+                        let item = InputItem::message(
+                            if message.role == Role::User {
+                                InputRole::User
+                            } else {
+                                InputRole::Assistant
+                            },
+                            message.text,
+                        );
+                        bucket_notices
+                            .entry("session-checkpoint".into())
+                            .or_default()
+                            .extend(self.db.emitted_child_notices(
+                                session,
+                                &[message.id.0],
+                                std::slice::from_ref(&item),
+                            )?);
+                        turns
+                            .entry("session-checkpoint".to_string())
+                            .or_insert_with(Vec::new)
+                            .push(item);
+                    }
+                }
+            }
             turns
-                .entry(block_id.unwrap_or(anchor))
-                .or_insert_with(Vec::new)
-                .extend(input);
+                .entry("session-checkpoint".into())
+                .or_default()
+                .extend(retained);
         }
         let effort_facts = self.db.effort_facts(session, 0)?;
         let represented_efforts = turns
@@ -1733,7 +1823,11 @@ impl<'a> Runtime<'a> {
             })
             .collect::<std::collections::BTreeSet<_>>();
         let mut input = Vec::new();
+        let mut emitted_notices = Vec::new();
         for (id, role, text) in projected {
+            if excluded(id) {
+                continue;
+            }
             input.extend(
                 effort_facts
                     .iter()
@@ -1758,11 +1852,13 @@ impl<'a> Runtime<'a> {
                     serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,
                 ));
                 if let Some(items) = turns.remove(id) {
+                    emitted_notices.extend(bucket_notices.remove(id).unwrap_or_default());
                     input.extend(items);
                 }
                 continue;
             }
             if let Some(items) = turns.remove(id) {
+                emitted_notices.extend(bucket_notices.remove(id).unwrap_or_default());
                 if id == "session-checkpoint" || blocks.iter().any(|block| &block.id == id) {
                     input.push(InputItem::message(InputRole::System, text));
                 }
@@ -1787,6 +1883,9 @@ impl<'a> Runtime<'a> {
                     text
                 };
                 input.push(InputItem::message(role, text));
+                if self.db.is_native_child_notice(session, id)? {
+                    emitted_notices.push(id.clone());
+                }
             }
         }
         input.extend(
@@ -1797,7 +1896,9 @@ impl<'a> Runtime<'a> {
                 })
                 .map(|fact| fact.item),
         );
-        Ok(input)
+        emitted_notices.sort();
+        emitted_notices.dedup();
+        Ok((input, emitted_notices))
     }
 
     /// Bounded public-content estimate used by `/dcp`. Includes independently

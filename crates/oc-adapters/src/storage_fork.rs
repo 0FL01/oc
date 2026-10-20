@@ -90,7 +90,7 @@ impl Db {
         let Some((mut cutoff, role, prompt)) = boundary else {
             return Err(refuse("invalid boundary").into());
         };
-        if role != "user" {
+        if role != "user" || Self::native_notice_data_in(&tx, source, before)? {
             return Err(refuse("boundary is not a user message").into());
         }
         let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
@@ -368,6 +368,8 @@ impl Db {
             let new = format!("{root}:turn:{}", turn_ids.len());
             log["turn_id"] = new.clone().into();
             log["user_message"] = anchor.clone().into();
+            crate::tools::turn_history::NativeNoticeInput::rebase(&mut log, &ids)
+                .map_err(|_| refuse("invalid native input identity"))?;
             if let Some(assistant) = log["assistant_message"].as_str() {
                 log["assistant_message"] = ids
                     .get(assistant)

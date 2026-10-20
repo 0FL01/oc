@@ -268,6 +268,8 @@ pub struct ShellHistoryNotice {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ChildHistory {
+    /// Empty native continuation anchor; retain its turn, not a user bubble.
+    NativeControl,
     /// Original structured subagent task, without native host/quoted context.
     Task { text: String, limited: bool },
     /// Delivered terminal background notice with its captured navigation fence.

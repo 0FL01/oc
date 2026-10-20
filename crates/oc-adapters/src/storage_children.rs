@@ -2,6 +2,9 @@
 use super::*;
 use oc_core::queries::{ChildHistory, ChildJob, ChildNotice, ChildState};
 
+#[path = "storage_children/parent.rs"]
+mod parent;
+
 #[cfg(test)]
 #[path = "storage_children/tests.rs"]
 mod tests;
@@ -133,6 +136,10 @@ impl Db {
         }
         if let Some(job) = Self::child_notice_in(&conn, session, &message.0)? {
             return Ok(Some(ChildHistory::Notice(Box::new(job))));
+        }
+        if Self::native_notice_data_in(&conn, session, &message.0)?
+            && conn.query_row("SELECT EXISTS(SELECT 1 FROM turn_acceptances WHERE session_id=?1 AND user_message=?2)",params![session,message.0],|row|row.get::<_,bool>(0))? {
+            return Ok(Some(ChildHistory::NativeControl));
         }
         // Read the original structured tool argument of this exact acceptance,
         // not delimiters inside its transformed native host/context-pack text.

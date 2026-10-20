@@ -1505,6 +1505,8 @@ pub struct TurnLog {
     pub input: Vec<crate::provider::InputItem>,
     /// Automatic history notices represented in this turn's captured input.
     pub shell_notice_messages: Vec<String>,
+    /// Inert native input classification; scheduling authority stays with live work.
+    pub(crate) native_input: Option<turn_history::NativeNoticeInput>,
     /// Primary-agent behavior digest pinned for this turn.
     pub agent_digest: Option<String>,
 }
@@ -1538,6 +1540,7 @@ impl TurnLog {
             user_message: None,
             input: Vec::new(),
             shell_notice_messages: Vec::new(),
+            native_input: None,
             agent_digest: None,
         }
     }
@@ -1581,6 +1584,9 @@ impl TurnLog {
         });
         if let Some(prefix) = &self.raw_prefix {
             value["raw_prefix"] = serde_json::to_value(prefix).expect("prefix serialization");
+        }
+        if let Some(native) = &self.native_input {
+            value["native_input"] = serde_json::to_value(native).expect("native input");
         }
         if let Some(working) = &self.working {
             value["working"] = working.clone();
@@ -1688,6 +1694,7 @@ impl TurnLog {
                 .transpose()
                 .map_err(|_| "invalid shell notice references")?
                 .unwrap_or_default(),
+            native_input: turn_history::NativeNoticeInput::parse(value.get("native_input"))?,
             agent_digest: value
                 .get("agent_digest")
                 .and_then(|value| value.as_str())

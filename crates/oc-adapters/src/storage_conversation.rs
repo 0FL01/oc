@@ -480,6 +480,7 @@ impl Db {
             if Self::user_shell_link_in(conn, session, &message)?.is_none()
                 && Self::child_notice_in(conn, session, &message)?.is_none()
                 && Self::model_shell_notice_in(conn, session, &message)?.is_none()
+                && !Self::native_notice_data_in(conn, session, &message)?
             {
                 return Ok(Some(message));
             }
@@ -498,6 +499,11 @@ impl Db {
             Self::require_session(&tx, session)?;
             let upper: i64 = tx.query_row("SELECT COALESCE((SELECT upper_seq FROM conversation_state WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM messages WHERE session_id=?1))",[session],|r|r.get(0))?;
             let user = Self::last_conversation_user_in(&tx, session, upper, true)?;
+            if let ConversationAction::Revert { message } = &action
+                && Self::native_notice_data_in(&tx, session, &message.0)?
+            {
+                return Err(unavailable("native report is not a user prompt"));
+            }
             let (turn, seq, context): (String,i64,String) = match action {
                 ConversationAction::Undo => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2",params![session,user],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
                 ConversationAction::Redo => tx.query_row("SELECT '',tip_seq,context FROM conversation_redo WHERE session_id=?1",[session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation redo boundary unavailable"))?,
@@ -607,6 +613,7 @@ impl Db {
             if Self::user_shell_link_in(conn, session, &id)?.is_none()
                 && Self::child_notice_in(conn, session, &id)?.is_none()
                 && Self::model_shell_notice_in(conn, session, &id)?.is_none()
+                && !Self::native_notice_data_in(conn, session, &id)?
             {
                 count = count.saturating_add(1);
                 message.get_or_insert(id);
@@ -685,6 +692,11 @@ impl Db {
                     "context message {id} is not a selectable user/assistant message of this session's active conversation"
                 )));
             };
+            if role == "user" && Self::native_notice_data_in(&tx, session, id)? {
+                return Ok(Err(format!(
+                    "context message {id} is native data, not a selectable task"
+                )));
+            }
             selected.push((seq, id.clone(), role, text));
         }
         selected.sort_by_key(|(seq, ..)| *seq);

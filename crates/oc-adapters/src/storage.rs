@@ -2560,6 +2560,9 @@ impl Db {
                 .filter(|fact| fact.before_message.as_deref() == Some(&user_message))
                 .map(|fact| fact.item)
                 .collect();
+            if let Some(native) = &mut log.native_input {
+                native.input_index += input.len();
+            }
             if let Some(metadata) = log.display.get_mut("user_images") {
                 metadata["input_index"] = input.len().into();
             }
@@ -2649,6 +2652,9 @@ impl Db {
             params![session, turn],
         )?;
         Self::conversation_complete(&tx, turn, &session)?;
+        if tx.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.native_input.kind')='subagent_notices' ELSE 0 END FROM turns WHERE id=?1", [turn], |row| row.get::<_, Option<bool>>(0))?.unwrap_or(false) {
+            Self::publish_settled_context(&tx, &session)?;
+        }
         tx.commit()?;
         Ok(())
     }

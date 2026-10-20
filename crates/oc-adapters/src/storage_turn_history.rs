@@ -233,6 +233,8 @@ impl Db {
         operations: &std::collections::HashMap<String, String>,
     ) -> Result<(), StorageError> {
         journal["turn_id"] = turn.into();
+        crate::tools::turn_history::NativeNoticeInput::rebase(journal, messages)
+            .map_err(|error| invalid(&error))?;
         for key in ["user_message", "assistant_message"] {
             if let Some(id) = journal[key].as_str() {
                 if let Some(new) = messages.get(id) {

@@ -305,6 +305,10 @@ impl Jobs {
         })
     }
 
+    pub(crate) fn notify(&self) {
+        self.wake.notify_one();
+    }
+
     pub(crate) async fn changed(&self) {
         let completions = self
             .work

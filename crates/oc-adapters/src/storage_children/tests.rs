@@ -3,6 +3,373 @@ use super::*;
 const LAUNCH_OUTPUT: &str = "{\"status\":\"running\",\"sessionID\":\"child\",\"jobGeneration\":\"launch\",\"deliveryID\":\"child-delivery:launch\"}";
 
 #[test]
+fn parent_notice_batch_uses_tail_control_and_assigns_the_whole_batch_atomically() {
+    use crate::provider::{InputItem, InputRole};
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    let first = admitted(&db);
+    Db::insert_location_binding(&db.conn.lock().unwrap(), "parent", "/original").unwrap();
+    let model = oc_core::queries::ModelRef {
+        provider: "fixture".into(),
+        id: "child".into(),
+        variant: None,
+    };
+    let mut original = crate::tools::TurnLog::new("original", "child", "fixture");
+    original
+        .input
+        .push(InputItem::message(InputRole::User, "original task"));
+    db.accept_turn_with_selection(
+        "original",
+        "parent",
+        "original task",
+        "original task",
+        &model,
+        None,
+        None,
+        None,
+        Some(&mut original),
+    )
+    .unwrap();
+    db.finish_child_job("launch", ChildState::Completed, "first result")
+        .unwrap();
+    let n1 = db
+        .deliver_child_notices()
+        .unwrap()
+        .remove(0)
+        .job
+        .message_id
+        .unwrap();
+    let mut second = first;
+    second.child.0 = "child-2".into();
+    second.operation = "launch-2".into();
+    second.delivery_id = "delivery-2".into();
+    db.create_child_session(
+        "parent",
+        "child-2",
+        Some("helper"),
+        Some("fixture/child"),
+        Some("work"),
+    )
+    .unwrap();
+    db.record_tool_intent(
+        "launch-2",
+        "parent",
+        None,
+        "subagent",
+        "{\"background\":true}",
+    )
+    .unwrap();
+    db.admit_child_job(&second).unwrap();
+    db.finish_child_job("launch-2", ChildState::Completed, "second result")
+        .unwrap();
+    let n2 = db
+        .deliver_child_notices()
+        .unwrap()
+        .remove(0)
+        .job
+        .message_id
+        .unwrap();
+    original
+        .input
+        .push(InputItem::message(InputRole::Assistant, "original answer"));
+    db.commit_turn(
+        "original",
+        "completed",
+        Some(&original.to_json().to_string()),
+        Some("original answer"),
+    )
+    .unwrap();
+    let raw = db.read_history_full("parent").unwrap();
+    let (ids, input) = db
+        .parent_notice_input("parent", &[n2.clone(), n1.clone(), n1.clone()])
+        .unwrap();
+    assert_eq!(ids, [n1.clone(), n2.clone()]);
+    let mut native = crate::tools::TurnLog::new("automatic", "child", "fixture");
+    native.input.push(input);
+    db.conn.lock().unwrap().execute_batch("CREATE TRIGGER reject_assignment BEFORE INSERT ON events WHEN NEW.kind='subagent_parent_notice_consumed' BEGIN SELECT RAISE(FAIL,'assignment fault'); END").unwrap();
+    assert!(
+        db.accept_parent_notice_batch("parent", "/original", &ids, &model, None, &mut native)
+            .is_err()
+    );
+    assert_eq!(db.read_history_full("parent").unwrap(), raw);
+    assert!(!db.parent_notice_assigned("parent", &n1).unwrap());
+    assert!(db.turn_result("automatic").is_err());
+    db.conn
+        .lock()
+        .unwrap()
+        .execute_batch("DROP TRIGGER reject_assignment")
+        .unwrap();
+    native.user_message = None;
+    let accepted = db
+        .accept_parent_notice_batch("parent", "/original", &ids, &model, None, &mut native)
+        .unwrap()
+        .unwrap();
+    assert_ne!(accepted.user_message, n1);
+    assert_ne!(accepted.user_message, n2);
+    let history = db.read_history_full("parent").unwrap();
+    assert_eq!(&history[..raw.len()], raw.as_slice());
+    assert_eq!(history.last().unwrap().2, "");
+    assert_eq!(history.last().unwrap().0, accepted.user_message);
+    for id in &ids {
+        assert!(db.parent_notice_assigned("parent", id).unwrap());
+    }
+    assert_eq!(
+        db.child_history(
+            "parent",
+            &oc_core::session::MessageId(accepted.user_message.clone())
+        )
+        .unwrap(),
+        Some(ChildHistory::NativeControl)
+    );
+    db.finish_turn("automatic", "failed", Some(&native.to_json().to_string()))
+        .unwrap();
+    let mut duplicate = crate::tools::TurnLog::new("duplicate", "child", "fixture");
+    assert!(
+        db.accept_parent_notice_batch("parent", "/original", &ids, &model, None, &mut duplicate)
+            .unwrap()
+            .is_none()
+    );
+    for id in ids.iter().chain(std::iter::once(&accepted.user_message)) {
+        assert!(
+            db.change_conversation(
+                "parent",
+                oc_core::queries::ConversationAction::Revert {
+                    message: oc_core::session::MessageId(id.clone())
+                }
+            )
+            .is_err()
+        );
+        assert!(
+            db.parent_context_messages("parent", "automatic", std::slice::from_ref(id))
+                .unwrap()
+                .is_err()
+        );
+    }
+    assert!(
+        db.change_conversation("parent", oc_core::queries::ConversationAction::Undo)
+            .unwrap()
+            .draft
+            .as_deref()
+            == Some("original task")
+    );
+}
+
+#[test]
+fn native_final_gap_control_keeps_fork_chronology_and_inert_recursive_provenance() {
+    use crate::provider::{InputItem, InputRole};
+    use oc_core::queries::ConversationAction;
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    admitted(&db);
+    Db::insert_location_binding(&db.conn.lock().unwrap(), "parent", "/original").unwrap();
+    let model = oc_core::queries::ModelRef {
+        provider: "fixture".into(),
+        id: "child".into(),
+        variant: None,
+    };
+    let accepted = db
+        .accept_turn("original", "parent", "delegate", "delegate", &model)
+        .unwrap();
+    let mut original = crate::tools::TurnLog::new("original", "child", "fixture");
+    original.user_message = Some(accepted.user_message);
+    original.input = vec![
+        InputItem::message(InputRole::User, "delegate"),
+        InputItem::ProviderOutput(
+            serde_json::json!({"type":"function_call","call_id":"bg","name":"subagent","arguments":"{}"}),
+        ),
+        InputItem::FunctionCallOutput {
+            call_id: "bg".into(),
+            output: LAUNCH_OUTPUT.into(),
+        },
+    ];
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE tool_operations SET turn_id='original' WHERE id='launch'",
+            [],
+        )
+        .unwrap();
+    db.finish_child_job("launch", ChildState::Completed, "final-gap report")
+        .unwrap();
+    let notice = db
+        .deliver_child_notices()
+        .unwrap()
+        .remove(0)
+        .job
+        .message_id
+        .unwrap();
+    original
+        .input
+        .push(InputItem::message(InputRole::Assistant, "original answer"));
+    original.display_parts = vec![
+        serde_json::json!({"tool":"launch"}),
+        serde_json::json!({"message":3}),
+    ];
+    db.commit_turn(
+        "original",
+        "completed",
+        Some(&original.to_json().to_string()),
+        Some("original answer"),
+    )
+    .unwrap();
+    let (ids, input) = db
+        .parent_notice_input("parent", std::slice::from_ref(&notice))
+        .unwrap();
+    let mut native = crate::tools::TurnLog::new("automatic", "child", "fixture");
+    native.input.push(input);
+    let control = db
+        .accept_parent_notice_batch("parent", "/original", &ids, &model, None, &mut native)
+        .unwrap()
+        .unwrap()
+        .user_message;
+    native
+        .input
+        .push(InputItem::message(InputRole::Assistant, "automatic answer"));
+    native.display_parts.push(serde_json::json!({"message":1}));
+    db.commit_turn(
+        "automatic",
+        "completed",
+        Some(&native.to_json().to_string()),
+        Some("automatic answer"),
+    )
+    .unwrap();
+    let raw = db.read_history_full("parent").unwrap();
+    let mut source = "parent".to_owned();
+    for depth in 0..2 {
+        let boundary = db.append_message(&source, "user", "next task").unwrap();
+        let fork = db
+            .fork_session(&source, &boundary, "/original", "fixture", "{}")
+            .unwrap();
+        assert!(db.child_jobs(&fork.session.0).unwrap().is_empty());
+        let conn = db.conn.lock().unwrap();
+        let copied: String = conn.query_row("SELECT result FROM turns WHERE session_id=?1 AND json_extract(result,'$.native_input.kind')='subagent_notices'",[&fork.session.0],|row|row.get(0)).unwrap();
+        let log =
+            crate::tools::TurnLog::from_json(&serde_json::from_str(&copied).unwrap()).unwrap();
+        let copied_control = log.user_message.unwrap();
+        let copied_notice = log.native_input.unwrap().messages.remove(0);
+        for id in [&copied_control, &copied_notice] {
+            assert!(
+                Db::native_notice_data_in(&conn, &fork.session.0, id).unwrap(),
+                "depth {depth}"
+            );
+        }
+        drop(conn);
+        for id in [&copied_control, &copied_notice] {
+            assert!(
+                db.fork_session(&fork.session.0, id, "/original", "fixture", "{}")
+                    .is_err()
+            );
+            assert!(
+                db.change_conversation(
+                    &fork.session.0,
+                    ConversationAction::Revert {
+                        message: oc_core::session::MessageId(id.clone())
+                    }
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            db.accept_parent_notice_batch(
+                &fork.session.0,
+                "/original",
+                &[copied_notice],
+                &model,
+                None,
+                &mut crate::tools::TurnLog::new("forged-wake", "child", "fixture")
+            )
+            .unwrap()
+            .is_none()
+        );
+        source = fork.session.0;
+    }
+    assert_eq!(
+        &db.read_history_full("parent").unwrap()[..raw.len()],
+        raw.as_slice()
+    );
+    assert_ne!(notice, control);
+}
+
+#[test]
+fn reverted_parent_does_not_admit_or_branch_and_native_reports_bypass_composer_size() {
+    use crate::provider::{InputItem, InputRole};
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    admitted(&db);
+    Db::insert_location_binding(&db.conn.lock().unwrap(), "parent", "/original").unwrap();
+    let model = oc_core::queries::ModelRef {
+        provider: "fixture".into(),
+        id: "child".into(),
+        variant: None,
+    };
+    let accepted = db
+        .accept_turn("original", "parent", "task", "task", &model)
+        .unwrap();
+    db.finish_turn("original", "completed", None).unwrap();
+    db.finish_child_job(
+        "launch",
+        ChildState::Completed,
+        &"x".repeat(oc_core::session::MAX_INPUT_BYTES + 1),
+    )
+    .unwrap();
+    let id = db
+        .deliver_child_notices()
+        .unwrap()
+        .remove(0)
+        .job
+        .message_id
+        .unwrap();
+    let (ids, input) = db
+        .parent_notice_input("parent", std::slice::from_ref(&id))
+        .unwrap();
+    assert!(serde_json::to_vec(&input).unwrap().len() > oc_core::session::MAX_INPUT_BYTES);
+    let mut seed = crate::tools::TurnLog::new("automatic", "child", "fixture");
+    seed.input.push(input);
+    db.change_conversation(
+        "parent",
+        oc_core::queries::ConversationAction::Revert {
+            message: oc_core::session::MessageId(accepted.user_message),
+        },
+    )
+    .unwrap();
+    let before = db.reverted_conversation("parent").unwrap();
+    assert!(
+        db.accept_parent_notice_batch("parent", "/original", &ids, &model, None, &mut seed)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(db.reverted_conversation("parent").unwrap(), before);
+    assert!(!db.parent_notice_assigned("parent", &id).unwrap());
+    assert!(db.turn_result("automatic").is_err());
+    let mut ordinary = crate::tools::TurnLog::new("ordinary", "child", "fixture");
+    ordinary
+        .input
+        .push(InputItem::message(InputRole::User, "new task"));
+    db.accept_turn_with_selection(
+        "ordinary",
+        "parent",
+        "new task",
+        "new task",
+        &model,
+        None,
+        None,
+        None,
+        Some(&mut ordinary),
+    )
+    .unwrap();
+    assert!(!db.parent_notice_assigned("parent", &id).unwrap());
+    db.checkpoint_turn_with_child_notices(
+        "ordinary",
+        "parent",
+        &ordinary.to_json().to_string(),
+        &[],
+    )
+    .unwrap();
+    assert!(!db.parent_notice_assigned("parent", &id).unwrap());
+}
+
+#[test]
 fn child_tool_projection_requires_exact_launch_and_keeps_each_continuation_generation() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();

@@ -5455,6 +5455,7 @@ async fn worker(
                                     params,
                                     manual_trigger,
                                     command_route.as_ref(),
+                                    None,
                                     on_accept,
                                     on_text,
                                     on_reasoning,

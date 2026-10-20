@@ -6,6 +6,44 @@ use oc_core::{
 };
 
 #[test]
+fn native_control_hides_only_its_user_bubble_not_turn_parts_or_cursors() {
+    let mut control = message(ChildState::Completed);
+    control.role = Role::User;
+    control.text.clear();
+    control.child = Some(ChildHistory::NativeControl);
+    control.turn = None;
+    assert!(rows_from_page(&control).is_empty());
+    control.turn = Some(HistoryTurn {
+        id: "automatic".into(),
+        status: "completed".into(),
+        parts: vec![oc_core::queries::TranscriptPart::Text(
+            "parent follow-up".into(),
+        )],
+        window: Some(oc_core::queries::HistoryPartWindow {
+            start: 0,
+            end: 2,
+            total: 2,
+        }),
+        ..Default::default()
+    });
+    let rows = rows_from_page(&control);
+    assert!(rows.iter().all(|row| row.role != "user"));
+    assert_eq!(rows[0].text, "parent follow-up");
+    assert_eq!(rows[0].position.as_ref().unwrap().turn, "automatic");
+    assert!(
+        rows.iter()
+            .all(|row| row.message_id.as_deref() == Some(&control.id))
+    );
+    control.child = None;
+    control.turn = None;
+    assert_eq!(
+        rows_from_page(&control)[0].role,
+        "user",
+        "empty prose is not native provenance"
+    );
+}
+
+#[test]
 fn notice_order_unknown_revision_survives_owner_eviction_and_stale_paging() {
     use oc_core::queries::{HistoryNoticeOrder, HistoryNoticePlacement, NoticePlacement};
     for rejected in [false, true] {

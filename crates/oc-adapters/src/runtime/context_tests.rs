@@ -242,6 +242,7 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
                 &budget,
                 Some(log),
                 None,
+                None,
                 false,
             )
             .await

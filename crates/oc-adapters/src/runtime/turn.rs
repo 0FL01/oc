@@ -589,6 +589,7 @@ impl TurnSubagent<'_, '_> {
             &budget,
             None,
             None,
+            None,
             true,
         ))
         .await
@@ -1265,6 +1266,7 @@ impl<'a> Runtime<'a> {
         attached: Arc<McpGeneration>,
         fresh_selection: Option<Option<(&str, &str)>>,
         command: Option<&NativeCommand>,
+        native_notices: Option<&[String]>,
         accepted: &mut (dyn FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
         reasoning_delta: &mut (dyn FnMut(&str, &str) + Send),
@@ -1321,6 +1323,7 @@ impl<'a> Runtime<'a> {
             &budget,
             None,
             command,
+            native_notices,
             false,
         ))
         .await?
@@ -1347,9 +1350,27 @@ impl<'a> Runtime<'a> {
         budget: &models::AdmissionBudget,
         resume: Option<TurnLog>,
         command: Option<&NativeCommand>,
+        native_notices: Option<&[String]>,
         probe: bool,
     ) -> Result<TurnExecution, RuntimeError> {
         let attached = initial_attached.as_ref();
+        if native_notices.is_some() && params.cancel.load(Ordering::Acquire) {
+            return Err(RuntimeError::Cancelled);
+        }
+        if native_notices.is_some()
+            && (fresh_selection.is_some()
+                || resume.is_some()
+                || command.is_some()
+                || lane.owning_operation.is_some()
+                || self.db.session_meta(&params.session)?.parent_id.is_some())
+        {
+            return Err(RuntimeError::InvalidArgs(
+                "native notice requires its canonical root owner".into(),
+            ));
+        }
+        let native_input = native_notices
+            .map(|messages| self.db.parent_notice_input(&params.session, messages))
+            .transpose()?;
         if fresh_selection.is_some() {
             if params.session.trim().is_empty() {
                 return Err(RuntimeError::InvalidArgs("empty session id".into()));
@@ -1371,8 +1392,7 @@ impl<'a> Runtime<'a> {
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let mut selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-        let new_prompt = resume
-            .is_none()
+        let new_prompt = (resume.is_none() && native_input.is_none())
             .then(|| crate::attachments::prepare_prompt(&params.prompt, params.cancel))
             .transpose()
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
@@ -1429,36 +1449,48 @@ impl<'a> Runtime<'a> {
             .map_or(0, |fact| fact.event_seq);
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
-        let (mut projected, mut history, history_scope) = if fresh_selection.is_some() {
-            (Vec::new(), Vec::new(), None)
-        } else {
-            let ActiveContext {
-                after_seq,
-                projected,
-                blocks,
-            } = self.active_projection(&params.session)?;
-            let prior = projected
-                .iter()
-                .filter(|row| {
-                    resume.as_ref().is_none_or(|log| {
-                        log.user_message.as_deref() != Some(row.0.as_str())
-                            && !log.represents_notice(&row.0)
+        let (mut projected, mut history, mut history_notices, history_scope) =
+            if fresh_selection.is_some() {
+                (Vec::new(), Vec::new(), Vec::new(), None)
+            } else {
+                let ActiveContext {
+                    after_seq,
+                    projected,
+                    blocks,
+                } = self.active_projection(&params.session)?;
+                let prior = projected
+                    .iter()
+                    .filter(|row| {
+                        native_input
+                            .as_ref()
+                            .is_none_or(|(ids, _)| !ids.contains(&row.0))
+                            && resume.as_ref().is_none_or(|log| {
+                                log.user_message.as_deref() != Some(row.0.as_str())
+                                    && !log.represents_notice(&row.0)
+                            })
                     })
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            let history = self.wire_history_bound(
-                &params.session,
-                &prior,
-                &blocks,
-                &selection.id,
-                &params.catalog.provider,
-                lane.agent_digest.as_deref(),
-                after_seq,
-                Some(&binding),
-            )?;
-            (projected, history, Some((after_seq, blocks)))
-        };
+                    .cloned()
+                    .collect::<Vec<_>>();
+                let (history, notices) = self.wire_history_with_child_notices(
+                    &params.session,
+                    &prior,
+                    &blocks,
+                    &selection.id,
+                    &params.catalog.provider,
+                    lane.agent_digest.as_deref(),
+                    after_seq,
+                    Some(&binding),
+                    |id| {
+                        native_input
+                            .as_ref()
+                            .is_some_and(|(ids, _)| ids.iter().any(|notice| notice == id))
+                            || resume.as_ref().is_some_and(|log| {
+                                log.user_message.as_deref() == Some(id) || log.represents_notice(id)
+                            })
+                    },
+                )?;
+                (projected, history, notices, Some((after_seq, blocks)))
+            };
         let dcp_config = published.dcp_config.clone();
         let compression_policy =
             RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
@@ -1567,7 +1599,9 @@ impl<'a> Runtime<'a> {
             ));
         }
         tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
-        let prompt_input = if let Some(log) = &resume {
+        let prompt_input = if let Some((_, input)) = &native_input {
+            vec![input.clone()]
+        } else if let Some(log) = &resume {
             log.input_for_bound(
                 &selection.id,
                 &params.catalog.provider,
@@ -1704,7 +1738,8 @@ impl<'a> Runtime<'a> {
         // Only explicit root input; child instructions/manual compression and
         // resumed accepted work must not populate or replay composer history.
         let history_input =
-            (!lane.manual_compression && lane.owning_operation.is_none()).then_some(user_text);
+            (!lane.manual_compression && lane.owning_operation.is_none() && native_input.is_none())
+                .then_some(user_text);
         let model_ref = oc_core::queries::ModelRef {
             provider: params.catalog.provider.clone(),
             id: selection.id.clone(),
@@ -1750,6 +1785,22 @@ impl<'a> Runtime<'a> {
                 user_message: turn_log.user_message.clone().ok_or(RuntimeError::Storage)?,
                 model_switch: None,
             }
+        } else if let Some((ids, _)) = &native_input {
+            if params.cancel.load(Ordering::Acquire) {
+                return Err(RuntimeError::Cancelled);
+            }
+            self.db
+                .accept_parent_notice_batch(
+                    &params.session,
+                    &self.location,
+                    ids,
+                    &model_ref,
+                    plan_reminder.as_deref(),
+                    &mut turn_log,
+                )?
+                .ok_or_else(|| {
+                    RuntimeError::InvalidArgs("native notice is no longer eligible".into())
+                })?
         } else if let Some(initial_selection) = fresh_selection {
             self.db.create_bound_session_and_accept_turn_with_reminder(
                 &params.session,
@@ -1789,6 +1840,9 @@ impl<'a> Runtime<'a> {
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
+        if native_input.is_some() {
+            self.child_jobs.notify();
+        }
         let user_message = accepted_turn.user_message;
         let mut anchors = {
             let mut rows = projected.clone();
@@ -1859,7 +1913,7 @@ impl<'a> Runtime<'a> {
                 .map(|report| TurnExecution::Report(Box::new(report)));
         }
         if let Some((after_seq, blocks)) = history_scope {
-            history = self.wire_history_bound(
+            (history, history_notices) = self.wire_history_with_child_notices(
                 &params.session,
                 &projected
                     .iter()
@@ -1875,6 +1929,7 @@ impl<'a> Runtime<'a> {
                 lane.agent_digest.as_deref(),
                 after_seq,
                 Some(&binding),
+                |id| turn_log.user_message.as_deref() == Some(id) || turn_log.represents_notice(id),
             )?;
         }
         let mut previous_instruction_input = self
@@ -2161,7 +2216,7 @@ impl<'a> Runtime<'a> {
                     })
                     .cloned()
                     .collect::<Vec<_>>();
-                history = self.wire_history_bound(
+                (history, history_notices) = self.wire_history_with_child_notices(
                     &params.session,
                     &prior,
                     &refreshed.blocks,
@@ -2170,6 +2225,11 @@ impl<'a> Runtime<'a> {
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
                     Some(&binding),
+                    |id| {
+                        turn_log.user_message.as_deref() == Some(id)
+                            || turn_log.represents_notice(id)
+                            || staged_notice_ids.iter().any(|notice| notice == id)
+                    },
                 )?;
                 projected = refreshed.projected;
                 prepared_model = selection.id.clone();
@@ -2478,7 +2538,7 @@ impl<'a> Runtime<'a> {
                     })
                     .cloned()
                     .collect::<Vec<_>>();
-                history = self.wire_history_bound(
+                (history, history_notices) = self.wire_history_with_child_notices(
                     &params.session,
                     &prior,
                     &refreshed.blocks,
@@ -2487,6 +2547,11 @@ impl<'a> Runtime<'a> {
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
                     Some(&binding),
+                    |id| {
+                        turn_log.user_message.as_deref() == Some(id)
+                            || turn_log.represents_notice(id)
+                            || staged_notice_ids.iter().any(|notice| notice == id)
+                    },
                 )?;
                 projected = refreshed.projected;
                 let raw_context: Vec<_> = history
@@ -2676,6 +2741,22 @@ impl<'a> Runtime<'a> {
                 report.diagnostic = Some(error.to_string());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
+            let mut represented_notices = history_notices.clone();
+            represented_notices.extend(staged_notice_ids.iter().cloned());
+            represented_notices.extend(self.db.emitted_child_notices(
+                &params.session,
+                &turn_log.shell_notice_messages,
+                &input,
+            )?);
+            represented_notices.extend(turn_log.represented_native_notices());
+            represented_notices.sort();
+            represented_notices.dedup();
+            let mut unassigned_notices = Vec::new();
+            for id in represented_notices {
+                if !self.db.parent_notice_assigned(&params.session, &id)? {
+                    unassigned_notices.push(id);
+                }
+            }
             turn_log.input.extend(staged_notice_input);
             turn_log.shell_notice_messages.extend(staged_notice_ids);
             shell_notice_seq = staged_notice_seq;
@@ -2772,8 +2853,15 @@ impl<'a> Runtime<'a> {
                     serde_json::json!(self.db.renewal_read_counters());
                 turn_log.spans.last_mut().expect("prepared span").request = Some(receipt.clone());
                 turn_log.requests.push(receipt);
-                self.db
-                    .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
+                self.db.checkpoint_turn_with_child_notices(
+                    &turn_id,
+                    &params.session,
+                    &turn_log.to_json().to_string(),
+                    &unassigned_notices,
+                )?;
+                if !unassigned_notices.is_empty() {
+                    self.child_jobs.notify();
+                }
                 if let Some(events) = self
                     .compaction_events
                     .lock()
@@ -3111,16 +3199,21 @@ impl<'a> Runtime<'a> {
                                             .map_or(refreshed.projected.as_slice(), |index| {
                                                 &refreshed.projected[..index]
                                             });
-                                        history = self.wire_history_bound(
-                                            &params.session,
-                                            prior,
-                                            &refreshed.blocks,
-                                            &selection.id,
-                                            &params.catalog.provider,
-                                            lane.agent_digest.as_deref(),
-                                            refreshed.after_seq,
-                                            Some(&binding),
-                                        )?;
+                                        (history, history_notices) = self
+                                            .wire_history_with_child_notices(
+                                                &params.session,
+                                                prior,
+                                                &refreshed.blocks,
+                                                &selection.id,
+                                                &params.catalog.provider,
+                                                lane.agent_digest.as_deref(),
+                                                refreshed.after_seq,
+                                                Some(&binding),
+                                                |id| {
+                                                    turn_log.user_message.as_deref() == Some(id)
+                                                        || turn_log.represents_notice(id)
+                                                },
+                                            )?;
                                         projected = refreshed.projected;
                                         let raw_context: Vec<_> = history
                                             .iter()
@@ -3570,7 +3663,7 @@ impl<'a> Runtime<'a> {
                     })
                     .cloned()
                     .collect::<Vec<_>>();
-                history = self.wire_history_bound(
+                (history, history_notices) = self.wire_history_with_child_notices(
                     &params.session,
                     &prior,
                     &refreshed.blocks,
@@ -3579,6 +3672,10 @@ impl<'a> Runtime<'a> {
                     lane.agent_digest.as_deref(),
                     refreshed.after_seq,
                     Some(&binding),
+                    |id| {
+                        turn_log.user_message.as_deref() == Some(id)
+                            || turn_log.represents_notice(id)
+                    },
                 )?;
                 anchors = dcp_config_input(&projected, dcp_config, compress_available);
             }
@@ -3888,6 +3985,7 @@ impl<'a> Runtime<'a> {
             &mut tools,
             &budget,
             resume,
+            None,
             None,
             false,
         );

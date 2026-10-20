@@ -1167,6 +1167,12 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         return vec![row_from_page(row, &message_id)];
     }
     let Some(turn) = &row.turn else {
+        if matches!(
+            row.child,
+            Some(oc_core::queries::ChildHistory::NativeControl)
+        ) {
+            return Vec::new();
+        }
         return vec![row_from_page(row, &message_id)];
     };
     let mut rows = Vec::new();
@@ -1178,7 +1184,13 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         rows.push(notice);
         return rows;
     }
-    if row.role == Role::User && turn.window.as_ref().is_none_or(|window| window.start == 0) {
+    if row.role == Role::User
+        && !matches!(
+            row.child,
+            Some(oc_core::queries::ChildHistory::NativeControl)
+        )
+        && turn.window.as_ref().is_none_or(|window| window.start == 0)
+    {
         rows.push(row_from_page(row, &message_id));
     }
     // Avoid cloning the aggregate message once per projected part.

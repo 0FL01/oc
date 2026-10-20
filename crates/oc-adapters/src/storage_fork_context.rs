@@ -114,6 +114,8 @@ impl Import<'_> {
             crate::tools::TurnLog::from_json(log)
                 .map_err(|_| refuse("invalid historical selected journal"))?;
             log["turn_id"] = mapped(self.turns, &log["turn_id"])?.into();
+            crate::tools::turn_history::NativeNoticeInput::rebase(log, self.messages)
+                .map_err(|_| refuse("invalid historical native input"))?;
             if !log["user_message"].is_null() {
                 log["user_message"] = mapped(self.messages, &log["user_message"])?.into();
             }
