@@ -21,7 +21,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: actual child transcript и существующий нижний Subagents/Shell/Terminals открываются до completion и без Ctrl+B; selection/drag/resize/overlay/foreign launch остаются безопасны.
   - Primary evidence: deterministic pointer regression и pre-Ctrl+B actual capture.
   - Status: in_progress
-  - Evidence: running-click RED на 80×24 spinner redraw → PASS на 80/120/160 (spinner, unpainted stream, current job facts, page replacement). Дополнительный actual indexed card→same-launch notice repaint в той же cell — PASS, pressed surface flag сохраняется. Full `oc-tui --lib` — 620 PASS (6.13s), strict affected-crate all-target Clippy PASS. Selection/failed/error/drag/resize guards зелёные. Actual capture pending.
+  - Evidence: running-click RED на 80×24 spinner redraw → PASS на 80/120/160 (spinner, unpainted stream, current job facts, page replacement). Дополнительный actual indexed card→same-launch notice repaint в той же cell — PASS, pressed surface flag сохраняется. Current-source actual 120×40 episode `live-navigation-r1-120-02`: both products pass 17 behavioral stages, natural Down→spinner change→Up opens child before conversion/completion; original graph/effects unchanged. This diagnostic capture exposed a legacy producer-commit label and 14 lower-pane styled-cell differences; corrected-provenance fresh captures and local surface verification remain pending. Whole frames are DIFFERENT, not pixel PASS.
 - R2: accepted execution не блокирует root tab/New/Add/Sessions navigation и независимый запуск B при работающем A.
   - Source: третий screenshot, требование параллельных вкладок, audit §C.
   - Acceptance: одна TUI переключает A/B и создаёт B; оба stream прогрессируют до release; нет Cancel/Background/repeated Submit; linked и standalone read-only provenance не расширяется.
@@ -51,7 +51,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: relevant tests, full offline gate, scoped current-TS paired qualification и diff review; normal commits/push, remote HEAD verified.
   - Primary evidence: команды/exit codes, capture witnesses, commit IDs и remote HEAD.
   - Status: in_progress
-  - Evidence: checked iterations through `2b198d7d5` published; first full-gate failures diagnosed and corrected with relevant green regressions. Final full gate and scoped paired captures remain pending.
+  - Evidence: checked iterations through `72db74abd` published; first full-gate failures diagnosed and corrected with relevant green regressions. Final full gate and scoped paired captures remain pending.
 
 ### Constraints
 
@@ -108,7 +108,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 ## Current Checkpoint
 
 - Closes: R1/R5/R6 (R2/R3/R4 verified).
-- Smallest next action: deliver the checked full-gate corrections, then run sealed current-TS/native foreground and idle-background captures at 120×40/80×24 and the full gate on the final source.
+- Smallest next action: verify the observed lower-composer border/background and hint-separator corrections, then fresh sealed current-TS/native foreground and idle-background captures at 120×40/80×24 with correct producer provenance, and the full gate on final source.
 - Expected evidence: natural pre-Ctrl+B redraw click opens the actual child in both products; provider-completed/idle/assignment witnesses qualify native idle continuation; scoped comparisons and full unmasked artifacts remain honest about whole-frame differences.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
@@ -117,7 +117,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b`, R2 `9420451d1`, R5 admission `4d676301d` and Owner integration `2b198d7d5` published. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
 - Last relevant evidence: first full offline gate 2188 PASS / 6 FAIL / 12 SKIP (433.734s test execution after cold workspace compilation), not a final PASS. Hidden-anchor RED→GREEN and full TUI 622 PASS; three revised navigation PTY/MCP checks PASS. VAR01 ACK regression PASS (3.51s). Held-gate move RED→GREEN: Owner 13 PASS (4.41s), legacy move guards 2 PASS (1.75s), actual scoped native move/picker 3 PASS (5.50s), binary TUI 120 PASS (4.48s), strict four-crate all-target Clippy PASS (39.76s). No deadlines, retries or test load changed.
 - Blocker: no external blocker; full-gate closure and paired qualification remain unresolved.
-- Next: current-source captures and full offline rerun after delivering the related corrections. Capture scripts have Node/Python checks and consistent causal settlement snapshots, not visual qualification yet.
+- Next: fresh current-source captures, then full offline rerun. Local raised-surface/separator regression RED→GREEN, full TUI 623 PASS (6.46s), strict TUI/oc2 all-target Clippy PASS (25.51s). Capture scripts have Node/Python checks and consistent causal settlement snapshots; the first successful foreground episode is behavioral evidence, not whole-frame visual qualification.
 
 ## Material Decisions
 
@@ -125,6 +125,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - 2026-10-20: audit replaces unsafe old-notice anchor with one typed tail control per automatic batch; one assigned event kind, no wake queue/DDL.
 - 2026-10-20: R5 refusal before acceptance has no valid `TurnFailed` identity. The existing owner task result is an application-health failure, not a per-batch refusal channel. Use a private one-shot start receipt and one bounded typed session diagnostic event rather than fabricating a turn, poisoning the owner, or adding a store/queue. Coalesce live reports within their original parent/origin lineage; do not merge Run and Interactive cancellation ownership.
 - 2026-10-20: full-gate evidence requires retaining zero-height typed native-control input boundaries, not dropping them. Native move selection must preserve the existing primary/Source ownership split: primaries consume only their prepared operations; Source fallback excludes a still-reserved issuing caller and rechecks canonical pending phase. No new move queue, claim table or lock.
+- 2026-10-20: actual running-child pane comparison found only its border background and bold separator spaces differed (14 styled cells at 120×40). Match the existing raised-surface role and TS `<b>label</b>` followed by a plain space; no general theme change, new widget or masked whole-frame claim.
 
 ## Checkpoint History
 
@@ -138,6 +139,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - 2026-10-20: R5 Owner handoff: original root fully joins before held child completion, then one actual parent request uses the newly committed parent selection. Existing Work holds its existing permit through execution/handoff; one original Origin and session reservation preserve cancellation/source/consumer authority. Review fixed idle-cancel/admission serialization and a failed-launch barrier notification. Owner 12, child 8 and actual shared-runtime 11 PASS, strict four-crate all-target Clippy PASS. Individual child interruption reports without cancelling its parent; foreground conversion keeps the original wake lineage. No new scheduler, queue, schema or startup scan. Next scoped paired capture/full gate.
 - 2026-10-20: first full gate found six failures, not completion. Three tests still asserted superseded busy navigation. A real hidden native boundary regression is fixed without a visible bubble or ownership-guard relaxation. VAR01 proved a finite ACK wake omission rather than a slow model; existing receipt polling now reconciles it. The scoped-move stream failure led to a held-gate actual-Owner RED proving competing move consumers; verify the minimal exclusion next. Cold unified test compilation was diagnosed separately from runtime deadlines; none were raised.
 - 2026-10-20: full-gate corrections checked: zero-height native input boundary preserves both predecessor and automatic-turn notice order; existing finite model-receipt wake fixes VAR01 without relaxing departure safety. Native primaries consume only their prepared moves; Source fallback checks the still-pending issuing caller under existing roots/Db synchronization. Held-gate Source/sibling and stale-list regressions, scoped actual streams/pickers and strict Clippy PASS. Deliver these corrections, then actual paired qualification/final gate; no whole-product readiness claim.
+- 2026-10-20: actual sealed foreground episode passes both products before Ctrl+B, including natural redraw, live child, original foreground ownership and later automatic parent settlement. Initial observer-before-admission snapshot now correctly reports no root as not idle. Producer provenance is corrected for fresh captures. Complete lower-pane comparison exposed 14 local styling differences; targeted raised-surface/separator regression is under verification, full scene differences remain disclosed.
 
 ## Completion
 

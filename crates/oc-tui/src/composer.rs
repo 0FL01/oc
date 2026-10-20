@@ -431,7 +431,11 @@ pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState, main: Rect, theme:
     );
     for y in area.y..area.bottom() {
         frame.render_widget(
-            Paragraph::new("┃").style(Style::default().fg(theme.border()).bg(theme.background())),
+            Paragraph::new("┃").style(
+                Style::default()
+                    .fg(theme.border())
+                    .bg(theme.background_panel()),
+            ),
             Rect::new(area.x, y, area.width.min(1), 1),
         );
     }
@@ -520,11 +524,12 @@ pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState, main: Rect, theme:
             hints.push(Span::raw("  "));
         }
         hints.push(Span::styled(
-            format!("{label} "),
+            label,
             Style::default()
                 .fg(theme.text())
                 .add_modifier(Modifier::BOLD),
         ));
+        hints.push(Span::styled(" ", Style::default().fg(theme.text())));
         hints.push(Span::styled(key, Style::default().fg(theme.text_muted())));
     }
     frame.render_widget(

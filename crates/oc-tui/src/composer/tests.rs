@@ -22,6 +22,40 @@ fn shell(id: &str, session: &str) -> ShellJob {
 }
 
 #[tokio::test]
+async fn composer_border_and_hint_separators_use_the_raised_surface_without_bold_padding() {
+    for (width, height) in [(80, 24), (120, 40)] {
+        let (app, _, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app, SessionId("source".into()));
+        state.apply_shell_jobs(vec![shell("job", "source")]);
+        state.handle_key(KeyAction::Shells).await;
+        let theme = Theme::load(crate::theme::ThemeMode::Dark).unwrap();
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(width, height)).unwrap();
+        terminal
+            .draw(|frame| render(frame, &state, frame.area(), &theme))
+            .unwrap();
+        let paint = state.composer.painted.borrow();
+        let area = paint.as_ref().unwrap().area;
+        let buffer = terminal.backend().buffer();
+        for y in area.y..area.bottom() {
+            assert_eq!(buffer[(area.x, y)].bg, theme.background_panel());
+            assert_eq!(buffer[(area.x, y)].fg, theme.border());
+        }
+        let y = area.bottom() - 2;
+        let text = (0..width)
+            .map(|x| buffer[(x, y)].symbol())
+            .collect::<String>();
+        for label in ["output", "kill", "tabs"] {
+            let x = text[..text.find(label).unwrap()].width() as u16;
+            assert!(buffer[(x, y)].modifier.contains(Modifier::BOLD));
+            let separator = &buffer[(x + label.len() as u16, y)];
+            assert_eq!(separator.symbol(), " ");
+            assert!(!separator.modifier.contains(Modifier::BOLD));
+        }
+    }
+}
+
+#[tokio::test]
 async fn one_composer_wraps_scoped_tabs_and_preserves_effect_identity_and_prompt() {
     let (app, mut inbox, _) = CoreApp::channel(8);
     let mut state = TuiState::new(app, SessionId("source".into()));
