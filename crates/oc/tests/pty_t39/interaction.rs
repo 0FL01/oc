@@ -2344,6 +2344,39 @@ fn sessions_selected_rename_and_confirmed_delete_reach_real_owner_without_provid
 }
 
 #[test]
+fn deleting_a_running_session_interrupts_it_before_removal() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "busy-delete", None);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "vis28 held stream");
+    fixture.wait_requests(1);
+    pty.send(b"/sessions\r");
+    wait_screen_row(&pty, "Sessions", DEADLINE);
+    pty.send(b"\x04");
+    wait_screen_row(&pty, "Press ctrl+d again to confirm", DEADLINE);
+    // OC2: the owner interrupts the held run, waits for idle, then deletes.
+    pty.send(b"\x04");
+    wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    let held = fixture
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|body| last_user_text(body).as_deref() == Some("vis28 held stream"))
+        .count();
+    assert_eq!(held, 1, "the interrupted request is not replayed");
+    pty.send(b"/quit\r");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+}
+
+#[test]
 fn v04_new_session_aliases_navigate_accepted_turns_without_enabling_profile_mutation() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "v04-new", None);

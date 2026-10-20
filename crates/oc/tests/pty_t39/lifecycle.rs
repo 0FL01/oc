@@ -479,10 +479,8 @@ fn vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee() {
         } else {
             assert_eq!(frames, ['⠋'].into_iter().collect());
         }
-        // The painted hover overlay does not grant busy-close authority.
-        // Click its actual one-based terminal cell while the response is held.
-        vis27_mouse(&mut pty, 0, 31, 1, 'M');
-        vis27_mouse(&mut pty, 0, 31, 1, 'm');
+        // OC2: the busy cross would close the tab (covered elsewhere); this
+        // scenario keeps the held tab mounted to observe its completion.
         assert!(!fixture.vis28_continue.load(Ordering::Relaxed));
         assert_eq!(
             fixture.requests.lock().unwrap().len(),

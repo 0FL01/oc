@@ -3008,10 +3008,8 @@ async fn query(
             before,
             ack,
         } => {
+            // OC2: a fork copies only the settled prefix; the source may run.
             let result = (|| {
-                if runtime.turn_active() {
-                    return Err(CoreError::TurnBusy);
-                }
                 runtime
                     .open_session(&source.0)
                     .map_err(|_| CoreError::SessionNotFound)?;
@@ -3048,13 +3046,10 @@ async fn query(
             ack,
         } => {
             let result = (|| -> Result<(), CoreError> {
+                // OC2: a title is metadata; a running session can be renamed.
+                // A generated title only lands over the title it started from.
                 let title = normalized_session_title(&title)
                     .ok_or_else(|| app_error("invalid session title"))?;
-                if runtime.turn_active()
-                    || db.session_family_running(&session.0).map_err(app_error)?
-                {
-                    return Err(CoreError::TurnBusy);
-                }
                 runtime
                     .open_session(&session.0)
                     .map_err(|error| match error {
@@ -3129,7 +3124,8 @@ async fn query(
             ack,
         } => {
             let result = (|| {
-                if runtime.turn_active() {
+                let delete = action == oc_core::queries::SessionPickerAction::Delete;
+                if delete && runtime.turn_active() {
                     return Err(CoreError::TurnBusy);
                 }
                 let scope = match db
@@ -3152,7 +3148,7 @@ async fn query(
                     .find(|entry| entry.id == session)
                     .and_then(|entry| entry.directory)
                     .ok_or(CoreError::SessionNotFound)?;
-                if db.session_family_running(&session.0).map_err(app_error)? {
+                if delete && db.session_family_running(&session.0).map_err(app_error)? {
                     return Err(CoreError::TurnBusy);
                 }
                 match action {

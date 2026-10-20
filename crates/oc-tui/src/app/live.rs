@@ -807,6 +807,13 @@ impl TuiState {
         Ok(())
     }
 
+    /// The staged next-send agent, if it differs from the session's own.
+    pub fn staged_agent(&self) -> Option<String> {
+        self.agent_draft
+            .as_ref()
+            .and_then(|draft| draft.agent_id.clone())
+    }
+
     /// Next-send agent: the staged draft, otherwise the session's own.
     pub fn composer_agent(&self) -> Option<&str> {
         match &self.agent_draft {
@@ -828,6 +835,10 @@ impl TuiState {
         let Some(session) = self.session.clone().filter(|_| !self.home) else {
             return Ok(());
         };
+        // The pending prompt's captured model scope names the old agent.
+        if self.pending.is_some() {
+            return Err("submission pending; the agent applies to the next send".into());
+        }
         let snapshot = self
             .app
             .session_selection(

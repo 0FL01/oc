@@ -511,10 +511,8 @@ async fn explicit_family_delete_is_atomic_busy_location_guarded_and_durable() {
         app.delete_session(id("root")).await,
         Err(CoreError::TurnBusy)
     );
-    assert_eq!(
-        app.rename_session(id("root"), "busy".into()).await,
-        Err(CoreError::TurnBusy)
-    );
+    // OC2: a running family's title is metadata and stays editable.
+    app.rename_session(id("root"), "busy".into()).await.unwrap();
     assert_eq!(app.tab_deck().await.unwrap(), saved);
     conn.execute(
         "UPDATE turns SET status='completed' WHERE id='child-turn'",

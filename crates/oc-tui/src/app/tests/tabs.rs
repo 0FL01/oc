@@ -770,11 +770,12 @@ async fn close_tab_home_last_and_busy_availability() {
         0,
         false,
     );
+    // OC2: closing a running tab is presentation only; the run continues.
+    assert_eq!(last.command_unavailable(&CommandAction::CloseTab), None);
     assert_eq!(
-        last.command_unavailable(&CommandAction::CloseTab),
-        Some("tab busy; action unavailable")
+        last.run_command(CommandAction::CloseTab).intent,
+        Some(PanelIntent::CloseTab { index: 0 })
     );
-    assert_eq!(last.run_command(CommandAction::CloseTab).intent, None);
     last.set_tab_strip(
         vec![TabPresentation {
             title: Some("Last".into()),
@@ -793,12 +794,16 @@ async fn close_tab_home_last_and_busy_availability() {
     };
     last.handle_key(KeyAction::Commands).await;
     last.handle_paste("Close tab");
-    assert!(last.modal_options()[0].footer.contains("turn active"));
+    assert!(
+        last.modal_options()[0]
+            .footer
+            .contains("submission or model selection pending")
+    );
     let refused = last.handle_panel_key(KeyAction::Enter);
     assert_eq!(refused.intent, None);
     assert_eq!(
         refused.note.as_deref(),
-        Some("turn active; action unavailable")
+        Some("submission or model selection pending")
     );
     assert_eq!(last.panel(), &TuiPanel::Commands);
     assert_eq!(last.input(), "pending draft");
@@ -1269,10 +1274,11 @@ async fn vis44_middle_down_closes_whole_visible_tab_once_without_activation() {
         None
     );
 
+    // OC2: a running tab closes like an idle one; its run continues.
     state.active_turn = Some(WorkerTurnId("accepted-busy".into()));
     assert_eq!(
         state.handle_mouse(mouse(down, 5, 0, plain), area).intent,
-        None
+        Some(PanelIntent::CloseTab { index: 0 })
     );
     state.active_turn = None;
     let mut busy = state.tabs.clone();
@@ -1280,7 +1286,7 @@ async fn vis44_middle_down_closes_whole_visible_tab_once_without_activation() {
     state.set_tab_strip(busy, 0, true);
     assert_eq!(
         state.handle_mouse(mouse(down, 5, 0, plain), area).intent,
-        None
+        Some(PanelIntent::CloseTab { index: 0 })
     );
     state.run_command(crate::commands::CommandAction::OpenCommands);
     assert_eq!(
@@ -1904,7 +1910,7 @@ async fn vertical_rail_drag_repaints_compact_geometry_without_tab_actions() {
 }
 
 #[tokio::test]
-async fn busy_and_clipped_tabs_never_emit_close() {
+async fn busy_tabs_close_like_idle_ones_and_clipped_tabs_never_emit_close() {
     use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;
     use ratatui::{Terminal, backend::TestBackend};
@@ -1949,19 +1955,19 @@ async fn busy_and_clipped_tabs_never_emit_close() {
         .draw(|frame| crate::shell::render(frame, &state))
         .unwrap();
     assert_eq!(terminal.backend().buffer()[(x, 0)].symbol(), "✕");
+    // OC2: closing a running tab is presentation only; the run continues.
     let busy_rect = crate::shell::tab_strip(&state, wide).unwrap().tabs[0].rect;
-    assert_eq!(state.tab_close_cell(wide, 0, busy_rect), None);
+    assert!(state.tab_close_cell(wide, 0, busy_rect).is_some());
     assert_eq!(
         state
             .handle_mouse(mouse(MouseEventKind::Down(MouseButton::Middle), x), wide)
             .intent,
-        None,
-        "a visual hover cross does not grant busy-close authority"
+        Some(PanelIntent::CloseTab { index: 0 }),
     );
     state.handle_mouse(mouse(down, x), wide);
     assert_eq!(
         state.handle_mouse(mouse(up, x), wide).intent,
-        Some(PanelIntent::ActivateTab { index: 0 })
+        Some(PanelIntent::CloseTab { index: 0 })
     );
     state.set_tab_strip(
         vec![TabPresentation {
@@ -1979,18 +1985,19 @@ async fn busy_and_clipped_tabs_never_emit_close() {
         .draw(|frame| crate::shell::render(frame, &state))
         .unwrap();
     assert_eq!(terminal.backend().buffer()[(x, 0)].symbol(), "✕");
-    assert_eq!(
-        state.tab_close_cell(
-            wide,
-            0,
-            crate::shell::tab_strip(&state, wide).unwrap().tabs[0].rect
-        ),
-        None
+    assert!(
+        state
+            .tab_close_cell(
+                wide,
+                0,
+                crate::shell::tab_strip(&state, wide).unwrap().tabs[0].rect
+            )
+            .is_some()
     );
     state.handle_mouse(mouse(down, x), wide);
     assert_eq!(
         state.handle_mouse(mouse(up, x), wide).intent,
-        Some(PanelIntent::ActivateTab { index: 0 })
+        Some(PanelIntent::CloseTab { index: 0 })
     );
     assert_eq!(state.active_turn, Some(WorkerTurnId("busy-close".into())));
     state.active_turn = None;

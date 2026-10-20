@@ -149,17 +149,10 @@ impl CommandSpec {
     }
     /// Availability is shared by palette, slash and bindings, checked again on activation.
     pub fn unavailable(&self, busy: bool, has_variants: bool) -> Option<&'static str> {
-        if busy
-            && matches!(
-                self.action,
-                CommandAction::CloseTab
-                    | CommandAction::RenameSession { .. }
-                    | CommandAction::SwitchLocation { .. }
-                    | CommandAction::ReloadConfiguration
-                    | CommandAction::DcpCompress { .. }
-            )
-        {
-            return Some("turn active; action unavailable");
+        // OC2 keeps session actions available while the agent works. Manual
+        // DCP compression is its own execution and has no OC2 counterpart.
+        if busy && matches!(self.action, CommandAction::DcpCompress { .. }) {
+            return Some("DCP compress waits until the agent is idle");
         }
         if self.action == CommandAction::OpenVariants && !has_variants {
             return Some("No variants available");
@@ -540,10 +533,15 @@ mod tests {
         assert_eq!(dispatch("/ren"), Some(CommandAction::Help(None)));
         assert_eq!(complete("/ren"), ["rename"]);
         assert!(super::spec(&CommandAction::ReloadConfiguration).in_palette(false));
-        assert_eq!(
-            super::spec(&CommandAction::ReloadConfiguration).unavailable(true, false),
-            Some("turn active; action unavailable")
-        );
+        // OC2 reloads, renames, closes and switches under a running turn.
+        for action in [
+            CommandAction::ReloadConfiguration,
+            CommandAction::OpenAgents,
+            CommandAction::CloseTab,
+            CommandAction::RenameSession { title: None },
+        ] {
+            assert_eq!(super::spec(&action).unavailable(true, false), None);
+        }
         assert_eq!(dispatch("/quit"), Some(CommandAction::Quit));
         assert_eq!(dispatch("/model"), Some(CommandAction::OpenModelPicker));
         assert_eq!(dispatch("/agents"), Some(CommandAction::OpenAgents));

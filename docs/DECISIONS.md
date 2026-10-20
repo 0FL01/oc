@@ -293,6 +293,21 @@ the devtools bar only for explicit `debug.devtools: true`, in debug and release
 alike; the build-channel concept is removed. Matches packaged TS defaults; a
 deliberate divergence from upstream's local developer channel. T44.
 
+### D30 — OC2 busy-time parity for agent and session actions (owner 2026-10-20)
+
+Owner asked to drop "turn active; action unavailable" and port OC2 TS behavior.
+Agent/profile is a composer draft like model/variant (owner `Preview`, no write);
+message/command preparation and blank Enter commit agent then model (OC2
+`prepareAgent`/`switchModel`). A busy commit is staged for the running root's next
+fresh request; the prepared request and tool batch keep their captured profile.
+Rename, fork (settled prefix), `/reload`, Location switch and tab close no longer wait
+for an accepted turn; closing a tab or switching Location never cancels the root.
+Deleting a running session interrupts it, waits for idle, then deletes; undo keeps
+its interrupt-first path. Unresolved submission/model receipts still block
+departure. Manual DCP compress and title regeneration stay idle-only. Messages while
+busy (steer/queue) are a separate follow-up. Supersedes the agent part of D23's
+busy refusal and the busy Location-switch refusal.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

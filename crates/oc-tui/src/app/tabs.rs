@@ -1073,9 +1073,9 @@ impl TuiState {
     fn tab_close_eligible(&self, index: usize) -> bool {
         !self.tabs.is_empty()
             && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
-            && !self.is_busy()
+            && !self.has_pending_submission()
+            && !self.has_pending_model_commit()
             && self.panel == TuiPanel::None
-            && !self.tabs.get(index).is_some_and(|tab| tab.busy)
     }
 
     fn tab_identity(&self, index: usize) -> Option<TabIdentity> {

@@ -820,9 +820,8 @@ impl LoopState {
         state: &mut TuiState,
         index: usize,
     ) -> Result<(), String> {
-        if state.is_busy() {
-            return Err("turn active; tab close refused".into());
-        }
+        // OC2: closing a tab never cancels its run; only unresolved receipts
+        // (their admission/commit outcome) keep a view open.
         self.departure_ready(state)?;
         if index == self.tabs.len() {
             // Home is a synthetic slot, and cannot be closed when it is the
@@ -848,9 +847,6 @@ impl LoopState {
         }
         if index >= self.tabs.len() {
             return Err("tab unavailable".into());
-        }
-        if self.tabs[index].as_ref().is_some_and(TuiState::is_busy) {
-            return Err("turn active; tab close refused".into());
         }
         // Fetch a replacement Home while the active tab and its draft still
         // exist. A failed query must not retire the pending-root marker or
@@ -2280,6 +2276,11 @@ async fn handle_event_ticks(
             Some(UiEvent::Key(KeyAction::Enter)) if state.input().trim() == "/quit" => {
                 state.handle_key(KeyAction::Quit).await;
             }
+            // A reload may run under a turn; its two-Esc interrupt stays live.
+            Some(UiEvent::Key(KeyAction::Cancel)) if state.is_busy() => {
+                let outcome = state.handle_key(KeyAction::Cancel).await;
+                apply_outcome(app, state, loop_state, outcome, false).await;
+            }
             Some(UiEvent::Resize) => {}
             _ => {}
         }
@@ -2816,9 +2817,6 @@ async fn apply_owned_intent(
             if loop_state.conversation_recovery.is_some() || loop_state.recovery_job.is_some() {
                 return Err("conversation refresh pending".into());
             }
-            if state.is_busy() {
-                return Err("turn active; fork unavailable".into());
-            }
             if !loop_state.can_open_session() {
                 return Err("tab limit reached".into());
             }
@@ -2849,13 +2847,8 @@ async fn apply_owned_intent(
             report_copy_request(state, loop_state);
         }
         PanelIntent::ReloadConfiguration => {
-            if state.is_busy()
-                || loop_state.tabs.iter().flatten().any(TuiState::is_busy)
-                || loop_state.home.as_ref().is_some_and(TuiState::is_busy)
-                || loop_state.title_job.is_some()
-            {
-                return Err("turn active; configuration reload refused".into());
-            }
+            // OC2 reloads under a running turn: its prepared request keeps the
+            // captured generation, the next fresh request uses the new one.
             let slash_draft = (state.input().trim() == "/reload").then(|| state.input().to_owned());
             state.push_transient_note_for(
                 "Reloading configuration…",
@@ -2896,7 +2889,7 @@ async fn apply_owned_intent(
         }
         PanelIntent::RenameSelectedSession { id, title } => {
             let target = SessionId::new(id.clone()).ok_or("bad session id")?;
-            let result = if loop_state.read_only || state.is_busy() {
+            let result = if loop_state.read_only {
                 Err(CoreError::TurnBusy)
             } else {
                 app.picker_session_action(
@@ -2920,9 +2913,10 @@ async fn apply_owned_intent(
             }
         }
         PanelIntent::DeleteSelectedSession { id } => {
-            if loop_state.read_only || state.is_busy() || loop_state.conversation_job.is_some() {
+            // OC2: the owner interrupts a running session before deleting it.
+            if loop_state.read_only || loop_state.conversation_job.is_some() {
                 state.session_delete_rejected(
-                    "turn active or read-only history; delete refused".into(),
+                    "conversation operation pending or read-only history; delete refused".into(),
                 );
                 return Ok(());
             }
@@ -3276,9 +3270,6 @@ async fn apply_owned_intent(
                     })
                     .cloned()
                     .ok_or("no active session; rename refused")?;
-                if state.is_busy() {
-                    return Err("turn active; rename refused");
-                }
                 app.rename_session(session, title.clone())
                     .await
                     .map_err(|error| match error {
@@ -3445,11 +3436,9 @@ async fn apply_owned_intent(
             loop_state.sync_tabs(state);
         }
         PanelIntent::SwitchLocation { path } => {
-            // The application refuses a switch during a turn; the view-model
-            // keeps the current Location and session until it is published.
-            if state.is_busy() {
-                return Err("turn active; location switch refused".to_string());
-            }
+            // OC2: a running root keeps running in its Location. Only an
+            // unresolved receipt keeps the current view until it is known.
+            loop_state.departure_ready(state)?;
             // Publish a sessionless generation first: even when switching
             // from a real tab, a saved Home route cannot mint a new root.
             let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
@@ -3680,13 +3669,18 @@ async fn finish_reload(
     // replace it with its brief service summary, not be hidden by a later toast.
     state.push_transient_note("Configuration reloaded", NoteVariant::Success);
     for (index, catalog) in catalogs.into_iter().enumerate() {
-        if deck.active_tab == Some(index) {
-            state.refresh_configuration(catalog);
+        let view = if deck.active_tab == Some(index) {
+            &mut *state
         } else {
-            deck.tabs[index]
-                .as_mut()
-                .expect("parked tab")
-                .refresh_configuration(catalog);
+            deck.tabs[index].as_mut().expect("parked tab")
+        };
+        // A staged next-send agent is re-resolved in the new generation.
+        let staged = view.staged_agent();
+        view.refresh_configuration(catalog);
+        if let Some(agent) = staged
+            && let Ok(preview) = selection(app, view, SelectionAction::Preview(agent)).await
+        {
+            let _ = view.apply_agent_preview(preview);
         }
     }
     if let Some(catalog) = home_catalog {

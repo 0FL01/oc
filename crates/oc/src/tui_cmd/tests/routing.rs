@@ -370,11 +370,7 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
         assert_eq!(parked.active_turn(), Some(&turn));
         assert_eq!(parked.input(), "unfinished accepted-root draft");
         assert_eq!(deck.revision.as_deref(), Some("after-add"));
-        assert!(deck.close_tab(&app, &mut state, 0).await.is_err());
-        assert!(
-            inbox.try_recv().is_err(),
-            "busy parked owner cannot be discarded"
-        );
+        assert!(inbox.try_recv().is_err());
         // Home is idle: the root's same mounted state can be selected and stopped.
         deck.activate(&mut state, 0).unwrap();
         assert_eq!(state.attached_session(), Some(&root));

@@ -3241,7 +3241,7 @@ async fn close_selected_or_parked_synthetic_home_never_creates_a_root() {
 }
 
 #[tokio::test]
-async fn close_refuses_pending_turn_and_preserves_deck() {
+async fn close_refuses_pending_admission_and_preserves_deck() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app.clone(), SessionId::new("busy").unwrap());
     let mut deck = LoopState::default();
@@ -3257,11 +3257,72 @@ async fn close_refuses_pending_turn_and_preserves_deck() {
     )
     .await
     .unwrap_err();
-    assert_eq!(error, "turn active; tab close refused");
+    assert_eq!(
+        error,
+        "submission or model selection pending; session switch refused"
+    );
     assert_eq!(state.input(), "pending draft");
     assert_eq!(state.session().0, "busy");
     assert_eq!(deck.tabs.len(), 1);
     assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn closing_a_running_tab_saves_the_deck_and_never_cancels_the_run() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId::new("running").unwrap());
+    let mut deck = LoopState {
+        location: Some("/fixture".into()),
+        ..LoopState::default()
+    };
+    deck.sync_tabs(&mut state);
+    state.handle_paste("long task");
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("submit")
+    };
+    ack.send(Ok(WorkerTurnId("running-turn".into()))).unwrap();
+    state.poll_submission();
+    assert!(state.active_turn().is_some());
+    // OC2 sessionTabs.close: presentation only, the owner keeps the run.
+    let owner = async {
+        let mut saves = 0;
+        while let Ok(Some(message)) =
+            tokio::time::timeout(std::time::Duration::from_millis(300), inbox.recv()).await
+        {
+            match message {
+                InboxMsg::HomeSelection { ack, .. } => {
+                    let mut home = catalog();
+                    home.chrome.location = Some("/fixture".into());
+                    ack.send(Ok(home)).unwrap();
+                }
+                InboxMsg::SaveTabDeck { deck, ack } => {
+                    saves += 1;
+                    ack.send(Ok(TabDeckSnapshot {
+                        revision: Some(format!("saved-{saves}")),
+                        ..deck
+                    }))
+                    .unwrap();
+                }
+                InboxMsg::Cancel { .. } => panic!("closing a tab must not cancel its run"),
+                _ => {}
+            }
+        }
+        saves
+    };
+    let (result, saves) = tokio::join!(
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 }
+        ),
+        owner
+    );
+    result.unwrap();
+    assert!(saves > 0);
+    assert!(state.attached_session().is_none(), "Home replaces the view");
+    assert!(deck.tabs.is_empty());
 }
 
 #[tokio::test]

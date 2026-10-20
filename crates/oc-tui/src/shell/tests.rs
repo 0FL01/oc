@@ -1720,7 +1720,7 @@ fn vis41_styled_fades_use_grapheme_ordinals_and_only_dim_the_generated_dot() {
 }
 
 #[tokio::test]
-async fn vis41_busy_hover_scrolls_without_close_and_vertical_compact_is_reachable() {
+async fn vis41_busy_hover_scrolls_and_closes_and_vertical_compact_is_reachable() {
     use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, SessionId("real-tab".into()));
@@ -1741,9 +1741,11 @@ async fn vis41_busy_hover_scrolls_without_close_and_vertical_compact_is_reachabl
     state.handle_mouse(moved(3, 0), area);
     terminal.draw(|f| render(f, &state)).unwrap();
     assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "⠋");
-    assert_eq!(
-        state.tab_close_cell(area, 0, tab_strip(&state, area).unwrap().tabs[0].rect),
-        None
+    // OC2: a running tab's cross closes it; the run continues.
+    assert!(
+        state
+            .tab_close_cell(area, 0, tab_strip(&state, area).unwrap().tabs[0].rect)
+            .is_some()
     );
     assert_eq!(terminal.backend().buffer()[(30, 0)].symbol(), "✕");
     let delay = state.next_ui_deadline().unwrap();
@@ -1923,7 +1925,7 @@ async fn retained_home_promotes_a_single_new_session_slot_and_consumes_a_row() {
 }
 
 #[tokio::test]
-async fn close_overlay_tracks_hover_without_relaxing_busy_close_and_title_fade_moves_left() {
+async fn close_overlay_tracks_hover_and_busy_close_and_title_fade_moves_left() {
     use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
     let mut state = golden_state().await;
     state.home = true;
@@ -2002,7 +2004,7 @@ async fn close_overlay_tracks_hover_without_relaxing_busy_close_and_title_fade_m
         terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
         "✕"
     );
-    assert_eq!(state.tab_close_cell(area, 0, first), None);
+    assert!(state.tab_close_cell(area, 0, first).is_some());
     state.set_tab_strip(
         vec![TabPresentation {
             title: Some("Long title".into()),

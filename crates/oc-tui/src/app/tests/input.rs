@@ -1320,10 +1320,9 @@ async fn rename_palette_slash_blank_cancel_and_refusal() {
         0,
         false,
     );
-    assert_eq!(
-        state.handle_key(KeyAction::Rename).await.note.as_deref(),
-        Some("tab busy; action unavailable")
-    );
+    // OC2: a running session's title is still editable.
+    assert_eq!(state.handle_key(KeyAction::Rename).await.note, None);
+    assert_eq!(state.panel(), &TuiPanel::Rename);
 }
 
 #[tokio::test]

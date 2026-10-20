@@ -2516,7 +2516,7 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
     tui.raw(&vec![0x7f; draft.len()]);
     let command = format!("/location {}", other.display());
     tui.send_line(&command);
-    tui.wait_screen("turn active; action unavailable", IO_TIMEOUT);
+    tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
     tui.raw(&vec![0x7f; command.len()]);
     tui.raw(draft.as_bytes());
     tui.wait_screen(draft, IO_TIMEOUT);

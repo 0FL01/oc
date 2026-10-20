@@ -730,15 +730,25 @@ fn execution(message: &Request) -> Option<&SessionId> {
 fn mutation(message: &Request) -> Option<&str> {
     match message {
         Request::Create { id } => Some(&id.0),
+        // OC2 renames/forks a running session; only removal and history
+        // rewrites exclude its execution.
         Request::ChangeConversation { session, .. }
-        | Request::RenameSession { session, .. }
-        | Request::DeleteSession { session }
-        | Request::PickerSessionAction { session, .. }
         | Request::OpenPickerSession { session, .. } => Some(&session.0),
-        Request::ForkSession { source, .. } => Some(&source.0),
+        Request::DeleteSession { .. } | Request::PickerSessionAction { .. } => deletion(message),
         Request::SessionSelection {
             session,
             action: SessionSelectionAction::New(_),
+            ..
+        } => Some(&session.0),
+        _ => None,
+    }
+}
+fn deletion(message: &Request) -> Option<&str> {
+    match message {
+        Request::DeleteSession { session }
+        | Request::PickerSessionAction {
+            session,
+            action: oc_core::queries::SessionPickerAction::Delete,
             ..
         } => Some(&session.0),
         _ => None,
@@ -905,6 +915,15 @@ async fn handle(
     let admission = execution(&request)
         .map(|session| owner.reserve_mutation(&session.0))
         .transpose()?;
+    // OC2 deletes a busy session by interrupting it and waiting for idle
+    // first; the owner's storage checks still refuse unsettled work.
+    if let Some(session) = deletion(&request)
+        && let Some(root) = owner.root(session)
+        && root.location.project == location.project
+    {
+        owner.cancel_root(&location, session, root.origin.id, None)?;
+        owner.settle_origin(root.origin.id).await;
+    }
     if let Request::Workspace { selected } = &request {
         let _deck = location.deck_gate.lock().await;
         let deck = location.app.tab_deck().await?;
@@ -1007,6 +1026,11 @@ async fn handle(
             .iter()
             .filter(|session| !deck.sessions.contains(session))
         {
+            // OC2: closing a tab is presentation; a running root keeps running
+            // and stays reachable through Sessions.
+            if owner.root(&session.0).is_some() {
+                continue;
+            }
             removals.push(owner.reserve_mutation(&session.0)?);
         }
     }

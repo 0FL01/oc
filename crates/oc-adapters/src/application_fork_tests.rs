@@ -82,7 +82,7 @@ async fn fork_owner_refuses_foreign_provider_without_request_or_durable_root() {
 }
 
 #[tokio::test]
-async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy() {
+async fn fork_owner_is_request_free_routes_rebased_tool_context_and_runs_beside_busy() {
     let tmp = tempfile::tempdir().unwrap();
     let project = tmp.path().join("project");
     let data = tmp.path().join("data");
@@ -204,10 +204,10 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(
-        app.fork_session(source.clone(), boundary).await,
-        Err(CoreError::TurnBusy)
-    );
+    // OC2: fork copies a settled prefix and rename is metadata; both stay
+    // available while a turn runs. Removal and navigation still wait.
+    let busy_fork = app.fork_session(source.clone(), boundary).await.unwrap();
+    assert_ne!(busy_fork.session, source);
     assert_eq!(
         app.delete_session(source.clone()).await,
         Err(CoreError::TurnBusy)
@@ -222,11 +222,9 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
         .await,
         Err(CoreError::TurnBusy)
     ));
-    assert_eq!(
-        app.rename_session(source.clone(), "busy rename".into())
-            .await,
-        Err(CoreError::TurnBusy)
-    );
+    app.rename_session(source.clone(), "busy rename".into())
+        .await
+        .unwrap();
     let mut request = Vec::new();
     let mut buf = [0; 4096];
     let body = loop {

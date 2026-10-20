@@ -371,7 +371,7 @@ impl TuiState {
         {
             return Some("child session: read-only history; saved tabs are unchanged");
         }
-        if *action == CommandAction::NewSession
+        if matches!(action, CommandAction::NewSession | CommandAction::CloseTab)
             && (self.has_pending_submission() || self.has_pending_model_commit())
         {
             return Some("submission or model selection pending");
@@ -438,9 +438,6 @@ impl TuiState {
             if tabs.is_empty() || (index >= tabs.len() && !self.home) {
                 return Some("no tab to close");
             }
-            if tabs.get(index).is_some_and(|tab| tab.busy) {
-                return Some("tab busy; action unavailable");
-            }
         }
         if matches!(action, CommandAction::RenameSession { .. }) {
             if self.home || self.session.is_none() {
@@ -448,9 +445,6 @@ impl TuiState {
             }
             if self.parent_id.is_some() {
                 return Some("child session is read-only");
-            }
-            if self.tabs.get(self.active_tab).is_some_and(|tab| tab.busy) {
-                return Some("tab busy; action unavailable");
             }
         }
         if self.session.is_none()
@@ -3450,8 +3444,11 @@ impl TuiState {
             };
         }
         if self.pending.is_some() {
-            if let Some(action @ (CommandAction::OpenModelPicker | CommandAction::OpenVariants)) =
-                dispatch(self.input.trim())
+            if let Some(
+                action @ (CommandAction::OpenModelPicker
+                | CommandAction::OpenVariants
+                | CommandAction::OpenAgents),
+            ) = dispatch(self.input.trim())
             {
                 if let Err(error) = self.remember_slash_input(&action).await {
                     return KeyOutcome {

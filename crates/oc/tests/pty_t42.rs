@@ -1639,7 +1639,7 @@ fn rename_storage_refusal_keeps_modal_value_draft_and_old_tab_until_retry() {
 }
 
 #[test]
-fn rename_refuses_home_child_foreign_and_busy_without_changing_titles() {
+fn rename_refuses_home_child_foreign_but_renames_a_running_root() {
     let fixture = Fixture::new();
     let alpha = fixture.project_a();
     let beta = fixture.project_b();
@@ -1667,14 +1667,15 @@ fn rename_refuses_home_child_foreign_and_busy_without_changing_titles() {
     fixture.wait_requests(1);
     root.send(b"unsent root draft");
     wait_screen_row(&root, "unsent root draft", DEADLINE);
+    // OC2: a running root is renamed like an idle one; a late generated
+    // title cannot overwrite the manual one.
     root.send(b"\x12");
-    wait_screen_row(&root, "tab busy; action unavailable", DEADLINE);
-    assert!(
-        !render_screen(&root.snapshot())
-            .rows()
-            .join("\n")
-            .contains("Rename session")
-    );
+    wait_screen_row(&root, "Rename session", DEADLINE);
+    root.send(&[0x7f; 64]);
+    root.send(b"Busy manual title");
+    wait_screen_row(&root, "Busy manual title", DEADLINE);
+    root.send(b"\r");
+    wait_dialog_closed(&root, "Rename session");
     wait_screen_row(&root, "answer:slow stream", DEADLINE);
     wait_idle(&root);
     assert!(
@@ -1685,7 +1686,7 @@ fn rename_refuses_home_child_foreign_and_busy_without_changing_titles() {
     );
     assert_eq!(
         stored_title(&fixture, "rename-parent").as_deref(),
-        Some("Fixture session title")
+        Some("Busy manual title")
     );
     root.send(&[0x7f; 100]);
     quit(&mut root);
@@ -1747,7 +1748,7 @@ fn rename_refuses_home_child_foreign_and_busy_without_changing_titles() {
     assert!(!foreign.wait_exit(DEADLINE).0.success());
     assert_eq!(
         stored_title(&fixture, "rename-parent").as_deref(),
-        Some("Fixture session title")
+        Some("Busy manual title")
     );
     assert_eq!(
         stored_title(&fixture, "rename-child").as_deref(),
@@ -2775,7 +2776,7 @@ fn keyboard_and_palette_close_tab_keep_the_root_durable_and_reopenable() {
 }
 
 #[test]
-fn keyboard_close_refuses_busy_turn_without_losing_draft() {
+fn keyboard_close_of_a_running_tab_keeps_the_turn_in_the_owner() {
     let fixture = Fixture::new();
     let project = fixture.project_a();
     let mut pty = PtySession::spawn(
@@ -2789,21 +2790,20 @@ fn keyboard_close_refuses_busy_turn_without_losing_draft() {
     fixture.wait_requests(1);
     pty.send(b"unsent draft");
     wait_screen_row(&pty, "unsent draft", DEADLINE);
-    let before = live_deck_record(&fixture, &project);
+    assert!(live_deck_record(&fixture, &project).contains("busy-close-root"));
+    // OC2 sessionTabs.close: only the view closes; the owner keeps the run.
     pty.send(b"\x18w");
-    wait_screen_row(&pty, "tab busy; action unavailable", DEADLINE);
-    wait_screen_row(&pty, "unsent draft", DEADLINE);
-    assert_eq!(live_deck_record(&fixture, &project), before);
-    wait_screen_row(&pty, "answer:slow stream", DEADLINE);
-    wait_idle(&pty);
-    assert_eq!(live_deck_record(&fixture, &project), before);
-    assert!(
-        render_screen(&pty.snapshot())
-            .rows()
-            .join("\n")
-            .contains("unsent draft")
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    assert!(!live_deck_record(&fixture, &project).contains("busy-close-root"));
+    let mut viewer = PtySession::spawn(
+        fixture.clone(),
+        &project,
+        &["tui", "--session", "busy-close-root"],
+        None,
     );
-    pty.send(&[0x7f; 64]);
+    wait_screen_row(&viewer, "answer:slow stream", DEADLINE);
+    wait_idle(&viewer);
+    quit(&mut viewer);
     quit(&mut pty);
     assert_eq!(journal_counts(&fixture).0, 1);
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
@@ -3201,7 +3201,7 @@ fn vis25_reload_rebuilds_real_config_on_home_and_session_without_losing_identity
 }
 
 #[test]
-fn reload_refuses_busy_turn_and_refreshes_parked_tab_after_owner_success() {
+fn reload_runs_under_a_busy_turn_and_refreshes_parked_tab_after_owner_success() {
     let fixture = Fixture::new();
     let metrics = fixture.root.path().join("reload-deck-metrics.json");
     let mut pty = PtySession::spawn(
@@ -3213,16 +3213,12 @@ fn reload_refuses_busy_turn_and_refreshes_parked_tab_after_owner_success() {
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "slow stream");
     fixture.wait_requests(1);
+    // OC2 reloads under a running turn; its issued request is not replayed.
     pty.send(b"/reload\r");
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
-    assert!(
-        render_screen(&pty.snapshot())
-            .rows()
-            .join("\n")
-            .contains("/reload")
-    );
+    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
     wait_screen_row(&pty, "answer:slow stream", DEADLINE);
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    assert_eq!(fixture.wait_requests(1).len(), 1);
     wait_idle(&pty); // New session is an idle-only action, not an echo barrier.
     pty.send(&[0x7f; 64]);
     pty.send(b"/new\r");
@@ -3660,7 +3656,6 @@ fn aud38_location_switch_is_one_lifecycle() {
     assert!(!first.contains(B_RULE));
     assert!(!tool_names(&requests[0]).contains(&B_MCP_TOOL.to_string()));
 
-    // A switch while a turn streams is refused, not raced.
     // The first answer/title can paint before its completion is adopted. This
     // phase starts a new turn, not a steering draft inside that earlier one.
     wait_idle(&pty);
@@ -3674,15 +3669,9 @@ fn aud38_location_switch_is_one_lifecycle() {
     // fragments raw byte needles (see `wait_screen_row`).
     wait_screen_row(&pty, &message_needle("┃  ", "slow stream"), DEADLINE);
     let beta = fixture.project_b().canonicalize().expect("b path");
-    pty.send(format!("/location {}\r", beta.display()).as_bytes());
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
-    pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
-    // The refused command keeps the typed input (nothing is lost): clear it
-    // before retrying with the same target.
-    pty.send(&[0x7f; 120]);
-    std::thread::sleep(Duration::from_millis(200));
-
-    // Switch to B: its rule, command, skill and MCP server are live.
+    let _ = off;
+    // OC2: switching while a turn streams leaves that root running in its
+    // own Location. Switch to B: its rule, command, skill and MCP are live.
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
     // The success note renders as the upstream toast; its long path may wrap
     // mid-word (`ui/toast.tsx:75` word wrap), so sync on the note's first
@@ -3726,6 +3715,9 @@ fn aud38_location_switch_is_one_lifecycle() {
     // Switching back reopens the recorded A session: its history returns to
     // the screen grid (the beta session's rows are replaced).
     wait_screen_row(&pty, &message_needle("┃  ", "alpha one"), DEADLINE);
+    // The alpha root kept running while B was attached; it settles here.
+    wait_screen_row(&pty, "answer:slow stream", DEADLINE);
+    wait_idle(&pty);
     let off = submit(&mut pty, "alpha two");
     pty.wait_visible_after(off, "echo: alpha two", DEADLINE);
     let requests = fixture.wait_requests(4);
