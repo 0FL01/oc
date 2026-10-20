@@ -31,6 +31,10 @@ def configure(spec, home, project, config, cli):
         return background_subagent_fixture.configure(spec, home, project, config, cli)
     if spec.get('history_completion'):
         return history_completion_fixture.configure(spec, home, project, config, cli)
+    if spec.get('current_subagent_cards'):
+        cli['animations'] = True
+        if spec['origin'] == 'oc':
+            config['animations'] = True
     if spec.get('subagent_pending'):
         if not spec.get('subagent_cards'):
             raise ValueError('Pending capture requires subagent cards')
@@ -135,6 +139,7 @@ def snapshot(home, project, spec):
             continue
         with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as conn:
             conn.row_factory = sqlite3.Row
+            conn.execute('BEGIN')
             tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             data = {}
             for table in ('sessions', 'child_jobs', 'shell_jobs', 'tool_operations', 'terminals', 'terminal_selection'):
@@ -147,7 +152,7 @@ def snapshot(home, project, spec):
                           EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id
                             AND e.kind='shell_background' AND e.payload=j.operation_id) AS converted_background
                            FROM shell_jobs j ORDER BY j.rowid LIMIT 12"""
-                    elif table == 'child_jobs' and spec.get('root_handoff'):
+                    elif table == 'child_jobs' and (spec.get('root_handoff') or spec.get('subagent_cards')):
                         query = """SELECT j.*, EXISTS(SELECT 1 FROM events e
                           WHERE e.session_id=j.parent_id AND e.kind='subagent_background'
                           AND e.payload=j.operation_id) AS converted_background
@@ -157,6 +162,26 @@ def snapshot(home, project, spec):
                 data['sessions'] = [dict(r) for r in conn.execute(
                     'SELECT id,parent_id,time_created FROM session_v2 '
                     'WHERE fork_session_id IS NULL ORDER BY time_created,id LIMIT 12')]
+            if spec.get('current_subagent_cards') and ('sessions' in data or 'session_v2' in tables):
+                roots = [row['id'] for row in data.get('sessions', []) if row.get('parent_id') is None]
+                if len(roots) > 1:
+                    raise AssertionError('One actual foreground parent required for settlement')
+                root = roots[0] if roots else None
+                if root is None:
+                    # The first observer can precede actual prompt admission.
+                    # Absence is not an idle/settlement witness.
+                    data['parent_execution'] = {'root': None, 'idle': False,
+                                                'assignments': [], 'delivered_children': []}
+                elif 'child_jobs' in tables:
+                    data['parent_execution'] = {'root': root,
+                        'idle': conn.execute("SELECT count(*) FROM turns WHERE session_id=? AND status='started'", (root,)).fetchone()[0] == 0,
+                        'assignments': [json.loads(row[0]) for row in conn.execute("SELECT payload FROM events WHERE session_id=? AND kind='subagent_parent_notice_consumed' ORDER BY seq LIMIT 12", (root,))]}
+                else:
+                    row = conn.execute('SELECT time_suspended,idle_outcome FROM session_v2 WHERE id=?', (root,)).fetchone()
+                    data['parent_execution'] = {'root': root,
+                        'idle': row['time_suspended'] is None and row['idle_outcome'] == 'succeeded',
+                        'delivered_children': [entry[0] for entry in conn.execute(
+                            "SELECT json_extract(data,'$.metadata.childID') FROM session_message WHERE session_id=? AND type='synthetic' AND json_extract(data,'$.metadata.source')='subagent' ORDER BY seq LIMIT 12", (root,))]}
             if spec.get('subagent_pending'):
                 if {'sessions', 'child_jobs', 'tool_operations', 'shell_jobs', 'terminals'} <= tables:
                     data['pending_schema'] = 'native'
@@ -240,7 +265,7 @@ def respond(handler, body, spec, emit):
         tool = not title and not any(i.get('call_id') == expected for i in results)
     valid = valid and (not tool or name in definitions)
     emit({'kind': 'provider', 'operation': 'title' if title else 'child' if child else 'parent',
-           'valid': valid, 'index': index, 'actual_results': results,
+           'valid': valid, 'request': number, 'index': index, 'actual_results': results,
            'user_texts': texts, 'registered_tools': list(definitions),
            **({'controlled_phase':'missing-agent' if missing_agent else 'continuation-parent'
                if continuation_parent else 'continuation-child' if continuation_worker
@@ -336,4 +361,4 @@ def respond(handler, body, spec, emit):
     else:
         handler.wfile.write(payload)
     handler.wfile.flush()
-    emit({'kind': 'provider_completed', 'operation': 'title' if title else 'child' if child else 'parent'})
+    emit({'kind': 'provider_completed', 'operation': 'title' if title else 'child' if child else 'parent', 'request': number})

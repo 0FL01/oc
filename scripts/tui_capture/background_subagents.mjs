@@ -58,7 +58,10 @@ export function backgroundFacts(snapshot) {
   }
   assert(Object.keys(children).length===2&&children.A.child!==children.B.child,'Independent child identities');
   assert(notices.length===new Set(notices.map(notice=>notice.id)).size&&notices.length===new Set(notices.map(notice=>notice.key)).size,'No duplicate completion notice');
-  return {root:data.root,children,notices:notices.sort((a,b)=>a.seq-b.seq)};
+  const assignments=(data.assignments||[]).map(event=>parse(event.payload));
+  assert(new Set(assignments.map(event=>event.message)).size===assignments.length,'One native assignment per exact report');
+  for(const event of assignments)assert(notices.some(notice=>notice.id===event.message)&&data.turns.some(turn=>turn.id===event.turn),'Assignment belongs to an actual parent execution and report');
+  return {root:data.root,children,notices:notices.sort((a,b)=>a.seq-b.seq),idle:data.root_idle===true,assignments};
 }
 
 export function backgroundComponent(frame,key) {
@@ -74,7 +77,7 @@ export function backgroundComponent(frame,key) {
   throw Error('Whole Background badge missing from original '+key+' card');
 }
 
-export async function finishBackgroundChildren({backgroundCase,command,observe,logs,shot}) {
+export async function finishBackgroundChildren({backgroundCase,command,observe,logs,shot,settle}) {
   let admitted;
   const sameBoundary=['terminal','wrap'].includes(backgroundCase);
   if(sameBoundary||backgroundCase==='consumed') {
@@ -91,7 +94,7 @@ export async function finishBackgroundChildren({backgroundCase,command,observe,l
   }
   if(!sameBoundary)await command('release-A');
   const finished=await observe('both-completed',facts=>facts.notices.length===2&&facts.notices.every(notice=>notice.location==='message'));
-  return {...finished,admitted};
+  return {...(settle?await settle(['A','B']):finished),admitted};
 }
 
 export async function probeBackgroundSubagents({origin,backgroundAnimation,backgroundCase,send,shot,waitFor,frame,logs,snapshot,control,slash,relaunch,visibleMatches}) {
@@ -112,6 +115,13 @@ export async function probeBackgroundSubagents({origin,backgroundAnimation,backg
     while(Date.now()<deadline){const snap=await snapshot('background-'+label+'-'+(++serial)),facts=backgroundFacts(snap);if(predicate(facts))return {snapshot:snap,facts};await sleep(40);}
     throw Error('Missing actual owned background state '+label);
   };
+  const settle=async keys=>observe('parent-settled-'+keys.join(''),facts=>facts.idle&&keys.every(key=>{
+    if(!facts.notices.some(notice=>notice.key===key&&notice.location==='message'))return false;
+    const requests=logs.filter(event=>event.kind==='provider'&&event.valid&&event.operation==='parent'&&event.step>2
+      &&event.consumed_notices.some(notice=>notice.child===facts.children[key].child));
+    return requests.some(request=>logs.some(event=>event.kind==='provider_completed'&&event.request===request.request))
+      &&(origin==='upstream'||facts.assignments.some(assignment=>assignment.message===facts.notices.find(notice=>notice.key===key)?.id));
+  }));
   const scene=(f,done)=>{
     try {
       for(const key of ['A','B']) {const component=backgroundComponent(f,key);if(done.includes(key)!==(component.glyph==='✓'))return false;}
@@ -123,6 +133,7 @@ export async function probeBackgroundSubagents({origin,backgroundAnimation,backg
   await shot('background-parent-step',f=>f.text.includes('PARENT-STEP')&&logs.filter(event=>event.kind==='provider'&&event.valid&&['A','B'].includes(event.operation)).length===2,{},true);
   assert(logs.filter(event=>event.kind==='provider'&&event.valid&&['A','B'].includes(event.operation)).length===2,'Both owned child requests actually dispatched');
   const running=await observe('running',facts=>facts.notices.length===0);
+  if(backgroundCase==='lifecycle')await observe('original-parent-idle',facts=>facts.idle);
   send('\x1b[200~preserved draft\x1b[201~','background_preserved_draft');
   // The original frontend applies bracketed paste asynchronously. Observe its
   // actual insertion before moving the caret; arrival in one PTY write is not
@@ -142,8 +153,9 @@ export async function probeBackgroundSubagents({origin,backgroundAnimation,backg
   await command('release-B');
   const mixed=await observe('B-completed',facts=>facts.notices.length===1&&facts.notices[0].key==='B');
   assert(mixed.facts.children.A.child===running.facts.children.A.child&&mixed.facts.children.B.child===running.facts.children.B.child,'Launch identities stable after B completion');
+  if(backgroundCase==='lifecycle')await settle(['B']);
   await shot('background-B-complete-A-running',f=>phase(f,'A',['B']),{},true);
-  const finished=await finishBackgroundChildren({backgroundCase,command,observe,logs,shot});
+  const finished=await finishBackgroundChildren({backgroundCase,command,observe,logs,shot,settle});
   assert(finished.facts.notices.map(notice=>notice.key).join(',')==='B,A','Durable completion delivery order B then A');
   const complete=await shot('background-completed',f=>scene(f,['A','B'])&&f.text.includes('preserved draft'),{},true);
   assert(JSON.stringify(caret)===JSON.stringify(complete.cursor),'Parent draft caret preserved through child notices');
@@ -198,5 +210,6 @@ export async function probeBackgroundSubagents({origin,backgroundAnimation,backg
     return hit&&f.cells[hit.y][hit.x].fg===noticeTones[key];
   }),{},true);
   return {status:'PASS_BEHAVIOR_ONLY',case:backgroundCase,animation:backgroundAnimation,cadence,isolated_application_tmpdir:isolatedTmpdir,project_files_unchanged:true,
-    running,mixed,finished,after,component_phases:'Independent A/B observations; full unmasked frames retained, not whole-scene equality'};
+    running,mixed,finished,after,parent_continuations:logs.filter(event=>event.kind==='provider'&&event.operation==='parent'&&event.step>2),
+    component_phases:'Independent A/B observations; full unmasked frames retained, not whole-scene equality'};
 }

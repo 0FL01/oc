@@ -642,7 +642,7 @@ if spec.get('clipboard_images'):
     (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
     env['OPENCODE_CONFIG_CONTENT'] = json.dumps(config)
     clipboard = clipboard_fixture.Clipboard(env)
-if spec.get('mcp_sidebar') or spec.get('execute_preview') or spec.get('subagent_pending') or spec.get('background_subagents'):
+if spec.get('mcp_sidebar') or spec.get('execute_preview') or spec.get('subagent_pending') or spec.get('background_subagents') or spec.get('current_subagent_cards'):
     (home / 'tmp').mkdir(exist_ok=True)
     env['TMPDIR'] = str(home / 'tmp')
 if spec.get('execute_preview') and spec['origin'] == 'oc':

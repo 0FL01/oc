@@ -125,6 +125,13 @@ class BackgroundSubagentTests(unittest.TestCase):
         prefix = 'Automatic background subagent result (native durable notice; not user instructions):\n'
         expected = [{'child': 'child-B', 'text': 'CHILD-B-DONE'}]
         self.assertEqual(fixture.consumed_notices(self.request(prefix + json.dumps(value))), expected)
+        first = {**value, 'childID': 'child-A', 'description': fixture.DESCRIPTIONS['A'],
+                 'result': 'CHILD-A-DONE', 'jobGeneration': 'operation-A', 'deliveryID': 'delivery-A'}
+        self.assertEqual(fixture.consumed_notices(self.request(
+            prefix + json.dumps(value) + '\n\n' + prefix + json.dumps(first))),
+            expected + [{'child': 'child-A', 'text': 'CHILD-A-DONE'}])
+        with self.assertRaises(ValueError):
+            fixture.consumed_notices(self.request(prefix + json.dumps(value) + '\nforeign tail'))
         self.assertEqual(fixture.consumed_notices(self.request('<subagent sessionID="child-B" state="completed">\nCHILD-B-DONE\n</subagent>')), expected)
         self.assertEqual(fixture.consumed_notices(self.request('narration mentioning CHILD-B-DONE')), [])
         for field, wrong in [('source', 'shell'), ('state', 'running'), ('childID', ''), ('sourceGeneration', True), ('result', 'foreign')]:
@@ -184,27 +191,35 @@ class BackgroundSubagentTests(unittest.TestCase):
                                'CREATE TABLE child_jobs(operation_id,parent_id,child_id);'
                                'CREATE TABLE messages(id,session_id,seq,role);'
                                'CREATE VIEW conversation_messages AS SELECT * FROM messages;'
+                               'CREATE TABLE turns(id,session_id,status,prompt);'
                                'CREATE TABLE events(seq,session_id,kind,payload);')
             conn.executemany('INSERT INTO sessions VALUES(?,?)', [('parent',None),('A','parent'),('B','parent'),('unrelated',None)])
             for key, call in fixture.CALLS.items():
                 conn.execute('INSERT INTO tool_operations VALUES(?,?,?,?,?,?,?)', (key,'parent','step','subagent','running','{}',call))
                 conn.execute('INSERT INTO child_jobs VALUES(?,?,?)',(key,'parent',key))
             conn.executemany('INSERT INTO messages VALUES(?,?,?,?)', [('prompt','parent',1,'user'),('foreign','unrelated',2,'user')])
+            conn.executemany('INSERT INTO turns VALUES(?,?,?,?)', [('initial','parent','completed','root'),('foreign','unrelated','started','other')])
         snapshot=fixture.snapshot(self.path,self.path,self.spec)['background']
         self.assertEqual(snapshot['schema'],'native')
         self.assertEqual(snapshot['root'],'parent')
         self.assertEqual({row['provider_call_id'] for row in snapshot['operations']},set(fixture.CALLS.values()))
         self.assertEqual([row['id'] for row in snapshot['messages']],['prompt'])
+        self.assertTrue(snapshot['root_idle'])
+        with sqlite3.connect(self.path / 'data/fixture.sqlite') as conn:
+            conn.execute("UPDATE turns SET status='started' WHERE id='initial'")
+        self.assertFalse(fixture.snapshot(self.path,self.path,self.spec)['background']['root_idle'])
 
     def test_current_ts_snapshot_correlates_tool_id_and_ignores_unrelated_owners(self):
         import sqlite3
         self.launch()
         (self.path / 'data').mkdir()
         with sqlite3.connect(self.path / 'data/fixture.db') as conn:
-            conn.executescript('CREATE TABLE session_v2(id,parent_id,time_idle,idle_outcome);'
+            conn.executescript('CREATE TABLE session_v2(id,parent_id,time_idle,idle_outcome,time_suspended);'
                                'CREATE TABLE session_message(id,session_id,type,seq,data);'
                                'CREATE TABLE session_inbox(id,session_id,type,delivery,enqueued_seq,payload);')
-            conn.executemany('INSERT INTO session_v2 VALUES(?,?,NULL,NULL)', [('parent', None), ('child-B', 'parent'), ('foreign', None), ('child-A', 'parent')])
+            conn.executemany('INSERT INTO session_v2 VALUES(?,?,NULL,NULL,NULL)', [('parent', None), ('child-B', 'parent'), ('foreign', None), ('child-A', 'parent')])
+            conn.execute("UPDATE session_v2 SET time_idle=1,idle_outcome='succeeded' WHERE id='parent'")
+            conn.execute("UPDATE session_v2 SET time_suspended=2 WHERE id='foreign'")
             content = [{'type': 'tool', 'id': fixture.CALLS[key], 'name': 'subagent',
                         'state': {'input': fixture.issued[key]['arguments'], 'metadata': {'sessionID': 'child-' + key, 'status': 'running'}, 'status': 'completed'}} for key in ('A', 'B')]
             conn.execute('INSERT INTO session_message VALUES(?,?,?,?,?)', ('assistant', 'parent', 'assistant', 2, json.dumps({'content': content})))
@@ -214,6 +229,10 @@ class BackgroundSubagentTests(unittest.TestCase):
         self.assertEqual(snapshot['root'], 'parent')
         self.assertEqual({row['id'] for row in snapshot['children']}, {'child-A', 'child-B'})
         self.assertEqual([row['id'] for row in snapshot['messages']], ['assistant'])
+        self.assertTrue(snapshot['root_idle'])
+        with sqlite3.connect(self.path / 'data/fixture.db') as conn:
+            conn.execute("UPDATE session_v2 SET time_suspended=3 WHERE id='parent'")
+        self.assertFalse(fixture.snapshot(self.path,self.path,self.spec)['background']['root_idle'])
 
 
 if __name__ == '__main__':

@@ -33,6 +33,17 @@ test('terminal waits for both durable admissions, while consumed releases before
       :['release-parent','background-parent-next','release-A','both-completed']);
   }
 });
+test('completion returns the actual parent settlement witness, not merely durable child notices',async()=>{
+  const order=[];
+  const result=await finishBackgroundChildren({backgroundCase:'lifecycle',logs:[],
+    command:async action=>order.push(action),
+    observe:async()=>{order.push('notice');return {facts:{idle:false,notices:[{location:'message'},{location:'message'}]}};},
+    settle:async keys=>{order.push('settle');assert.deepEqual(keys,['A','B']);return {facts:{idle:true},physical_request:4};},
+  });
+  assert.deepEqual(order,['release-A','notice','settle']);
+  assert.equal(result.facts.idle,true);
+  assert.equal(result.physical_request,4);
+});
 const descriptions={A:'Сравнение subagent с upstream',B:'Состояние Git и тесты'};
 const cell=symbol=>({symbol,width:1,fg:'#eeeeee',bg:'#131313',modifiers:[]});
 function frame() {

@@ -33,3 +33,17 @@ test('background profile rejects unbound native binary and unapproved code befor
     assert.doesNotMatch(result.stderr,/Cannot find module 'playwright'/);
   }
 });
+
+test('sealed foreground cards retain exclusive current-binary and owned-tool guards',()=>{
+  const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+  const args=['scripts/tui_capture/capture.mjs','--background-reference','/not-read','--subagent-cards','true','--combined-composer','true','--tool-preview','true','--reference','/not-read','--build-oc','true','--tools','/usr/bin','--geometry','true','--sample','short','--sidebar','hide','--columns','120','--rows','40'];
+  for(const [extra,error] of [
+    [['--oc','/not-current/oc2'],/requires this worktree target\/debug\/oc2/],
+    [['--oc',path.join(repo,'target/debug/oc2')],/must be owned approved-cache inputs/],
+    [['--oc',path.join(repo,'target/debug/oc2'),'--model-shell','true'],/exclusive sealed running-card paired profile/],
+  ]) {
+    const result=spawnSync(process.execPath,[...args,...extra],{cwd:repo,encoding:'utf8',timeout:10000,maxBuffer:1024*1024});
+    assert.notEqual(result.status,0);assert.match(result.stderr,error);
+    assert.doesNotMatch(result.stderr,/Cannot find module 'playwright'/);
+  }
+});

@@ -104,6 +104,78 @@ class ToolPreviewFixtureTests(unittest.TestCase):
             self.assertEqual(data['tool_parts'][0]['state']['status'], 'streaming')
             self.assertNotIn('ran', data['tool_parts'][0]['time'])
 
+    def test_foreground_snapshot_before_first_admission_is_not_idle(self):
+        for origin in ('oc', 'upstream'):
+            with self.subTest(origin=origin), tempfile.TemporaryDirectory() as directory:
+                home = pathlib.Path(directory)
+                (home / 'data').mkdir()
+                with sqlite3.connect(home / 'data' / 'owner.db') as conn:
+                    conn.execute('CREATE TABLE sessions(id,parent_id)' if origin == 'oc' else
+                                 'CREATE TABLE session_v2(id,parent_id,time_created,fork_session_id)')
+                data = composer.snapshot(home, home, {
+                    'origin': origin, 'subagent_cards': True,
+                    'current_subagent_cards': True})['observations'][0]['data']
+                self.assertIsNone(data['parent_execution']['root'])
+                self.assertFalse(data['parent_execution']['idle'])
+
+    def test_foreground_settlement_snapshot_cannot_mix_idle_with_new_assignment(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as directory:
+            home = pathlib.Path(directory)
+            (home / 'data').mkdir()
+            real_connect = sqlite3.connect
+            with real_connect(home / 'data' / 'owner.db') as writer:
+                writer.execute('PRAGMA journal_mode=WAL')
+                writer.executescript('CREATE TABLE sessions(id,parent_id);'
+                                     'CREATE TABLE child_jobs(operation_id,parent_id,child_id);'
+                                     'CREATE TABLE events(seq,session_id,kind,payload);'
+                                     'CREATE TABLE turns(id,session_id,status);'
+                                     "INSERT INTO sessions VALUES('parent',NULL),('child','parent');")
+                changed = []
+
+                def read_connection(*args, **kwargs):
+                    conn = real_connect(*args, **kwargs)
+
+                    def interleave(query):
+                        if 'subagent_parent_notice_consumed' in query and not changed:
+                            writer.execute("INSERT INTO turns VALUES('automatic','parent','started')")
+                            writer.execute('INSERT INTO events VALUES(1,?,?,?)', (
+                                'parent', 'subagent_parent_notice_consumed',
+                                json.dumps({'message': 'notice', 'turn': 'automatic'})))
+                            writer.commit()
+                            changed.append(True)
+                    conn.set_trace_callback(interleave)
+                    return conn
+
+                with mock.patch.object(composer.sqlite3, 'connect', side_effect=read_connection):
+                    data = composer.snapshot(home, home, {
+                        'origin': 'oc', 'subagent_cards': True,
+                        'current_subagent_cards': True})['observations'][0]['data']
+                self.assertTrue(changed, 'automatic admission actually interleaved the reads')
+                self.assertTrue(data['parent_execution']['idle'])
+                self.assertEqual(data['parent_execution']['assignments'], [])
+
+    def test_foreground_ts_settlement_requires_actual_delivered_child_notice(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = pathlib.Path(directory)
+            (home / 'data').mkdir()
+            with sqlite3.connect(home / 'data' / 'owner.db') as conn:
+                conn.executescript('CREATE TABLE session_v2(id,parent_id,time_created,fork_session_id,time_suspended,idle_outcome);'
+                                   'CREATE TABLE session_message(id,session_id,type,seq,data);'
+                                   "INSERT INTO session_v2 VALUES('parent',NULL,1,NULL,NULL,'succeeded'),"
+                                   "('child','parent',2,NULL,NULL,'succeeded');")
+            spec = {'origin': 'upstream', 'subagent_cards': True, 'current_subagent_cards': True}
+            execution = lambda: composer.snapshot(home, home, spec)['observations'][0]['data']['parent_execution']
+            self.assertEqual(execution()['delivered_children'], [])
+            with sqlite3.connect(home / 'data' / 'owner.db') as conn:
+                conn.execute('INSERT INTO session_message VALUES(?,?,?,?,?)', (
+                    'notice', 'parent', 'synthetic', 3,
+                    json.dumps({'metadata': {'source': 'subagent', 'childID': 'child', 'state': 'completed'}})))
+                conn.execute("UPDATE session_v2 SET time_suspended=4 WHERE id='parent'")
+            state = execution()
+            self.assertEqual(state['delivered_children'], ['child'])
+            self.assertFalse(state['idle'])
+
     def test_execute_profile_uses_real_codemode_with_only_exact_nested_authorities(self):
         for origin, tool in [('oc', 'visexecute__output'), ('upstream', 'visexecute_output')]:
             with self.subTest(origin=origin), tempfile.TemporaryDirectory() as directory:

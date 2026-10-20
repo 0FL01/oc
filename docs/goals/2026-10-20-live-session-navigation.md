@@ -20,8 +20,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: первый screenshot и исправленный audit §B.
   - Acceptance: actual child transcript и существующий нижний Subagents/Shell/Terminals открываются до completion и без Ctrl+B; selection/drag/resize/overlay/foreign launch остаются безопасны.
   - Primary evidence: deterministic pointer regression и pre-Ctrl+B actual capture.
-  - Status: in_progress
-  - Evidence: running-click RED на 80×24 spinner redraw → PASS на 80/120/160 (spinner, unpainted stream, current job facts, page replacement). Дополнительный actual indexed card→same-launch notice repaint в той же cell — PASS, pressed surface flag сохраняется. Current-source actual 120×40 episode `live-navigation-r1-120-02`: both products pass 17 behavioral stages, natural Down→spinner change→Up opens child before conversion/completion; original graph/effects unchanged. This diagnostic capture exposed a legacy producer-commit label and 14 lower-pane styled-cell differences; corrected-provenance fresh captures and local surface verification remain pending. Whole frames are DIFFERENT, not pixel PASS.
+  - Status: verified
+  - Evidence: running-click RED → deterministic PASS на 80/120/160, включая spinner/unpainted stream/current facts и same-cell card→notice source fence. Fresh current-source paired captures `.local/evidence/live-navigation-r1-120-03` и `live-navigation-r1-80-01`: both products pass all 17 stages; natural Down→spinner change→Up opens the real child before Ctrl+B/completion, original foreground/graph/effects preserved. Each `running-pane-qualification.json` is PASS_SCOPED_COMPONENT: complete 11-row lower pane, 1320/880 styled cells with zero differences, equal decoded RGBA pixels/geometry and hidden cursor shape/visibility. All frame producer commits verified (TS `bc5ebf00`, native `52a150cb`). Full unmasked scenes remain DIFFERENT; no whole-scene pixel claim.
 - R2: accepted execution не блокирует root tab/New/Add/Sessions navigation и независимый запуск B при работающем A.
   - Source: третий screenshot, требование параллельных вкладок, audit §C.
   - Acceptance: одна TUI переключает A/B и создаёт B; оба stream прогрессируют до release; нет Cancel/Background/repeated Submit; linked и standalone read-only provenance не расширяется.
@@ -44,14 +44,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: выбор «Полный background lifecycle», audit §E/§F.
   - Acceptance: durable report → one bounded assigned batch → real parent request; active/user race оставляет один runner; cancellation/last TUI/Run release/shutdown suppress; original Source и current committed parent selection; fork/DCP/Undo/Revert chronology сохранена.
   - Primary evidence: storage/runtime/authority regressions + existing actual background capture provider witnesses.
-  - Status: in_progress
-  - Evidence: admission/history foundation `4d676301d`: full adapters lib 865 PASS + 1 pre-existing ignored, subagent integration 44 PASS. Actual Owner idle-root RED (2 parent + 1 child requests) → GREEN (3 parent + 1 child, fresh committed beta selection, full report once, no new Submit). Owner 12 PASS covers mutation release, last-TUI/Run suppression, independent Run, finite refusal, error/cancelled child and foreground conversion; child resource 8 PASS covers retained cap and no ready-future spin. Actual shared-runtime PTY/native-owner 11 PASS; strict affected four-crate all-target Clippy PASS. Paired lifecycle qualification remains pending.
+  - Status: verified
+  - Evidence: foundation `4d676301d` (865 adapters + 44 subagent PASS), actual Owner idle-root RED→GREEN with fresh committed beta selection/no new Submit, Owner lifecycle 12 + child resource 8 + shared runtime 11 PASS. Fresh paired `.local/evidence/live-navigation-background-120-01` and `live-navigation-background-80-01`: both products pass 15 lifecycle stages. Original parent is idle before child release; B then A each causes a real parent request (steps 3/4), matching provider completion and causal idle/notice witnesses; native has exactly two assigned reports, no child/effect replay. Both `background-component-comparison.json` report TARGETED_COMPONENT_PASS for complete cards/notices, styled cells, pixels and relative parent anchors. Frame producer commits verified; whole scenes remain DIFFERENT.
 - R6: проверенные изменения закоммичены и отправлены в verified origin.
   - Source: последний пользовательский запрос.
   - Acceptance: relevant tests, full offline gate, scoped current-TS paired qualification и diff review; normal commits/push, remote HEAD verified.
   - Primary evidence: команды/exit codes, capture witnesses, commit IDs и remote HEAD.
   - Status: in_progress
-  - Evidence: checked iterations through `72db74abd` published; first full-gate failures diagnosed and corrected with relevant green regressions. Final full gate and scoped paired captures remain pending.
+  - Evidence: checked runtime/UI iterations through `52a150cb` published. Four scoped current-source paired episodes qualify R1/R5 at 120×40 and 80×24; capture guard/causal snapshot tests: Node 8, Python 9+8 PASS. First full-gate failures have relevant green corrections; final full offline gate and capture delivery remain pending.
 
 ### Constraints
 
@@ -108,16 +108,16 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 ## Current Checkpoint
 
 - Closes: R1/R5/R6 (R2/R3/R4 verified).
-- Smallest next action: verify the observed lower-composer border/background and hint-separator corrections, then fresh sealed current-TS/native foreground and idle-background captures at 120×40/80×24 with correct producer provenance, and the full gate on final source.
-- Expected evidence: natural pre-Ctrl+B redraw click opens the actual child in both products; provider-completed/idle/assignment witnesses qualify native idle continuation; scoped comparisons and full unmasked artifacts remain honest about whole-frame differences.
+- Smallest next action: deliver the checked capture guards/probes/causal snapshot tests, then run the full offline gate on final source and perform the frozen closure check.
+- Expected evidence: final fmt/strict workspace Clippy/nextest/doctests/debug build/help pass; scoped paired results retain correct provenance and full unmasked DIFFERENT scenes without a whole-product parity claim.
 - Stop or replan if: source/provenance/retention guard cannot be preserved; expand only the directly required consumer.
 
 ## Current State
 
 - Resolved: plan `5384c03a5`, R4 `e3f7bf150`, R1 pointer `f30f15f02`, R3 `0ef86762b`, R2 `9420451d1`, R5 admission `4d676301d` and Owner integration `2b198d7d5` published. Initial Rust HEAD `c70e1c9a7`, verified origin `git@github.com:0FL01/oc.git`, branch `master`.
-- Last relevant evidence: first full offline gate 2188 PASS / 6 FAIL / 12 SKIP (433.734s test execution after cold workspace compilation), not a final PASS. Hidden-anchor RED→GREEN and full TUI 622 PASS; three revised navigation PTY/MCP checks PASS. VAR01 ACK regression PASS (3.51s). Held-gate move RED→GREEN: Owner 13 PASS (4.41s), legacy move guards 2 PASS (1.75s), actual scoped native move/picker 3 PASS (5.50s), binary TUI 120 PASS (4.48s), strict four-crate all-target Clippy PASS (39.76s). No deadlines, retries or test load changed.
-- Blocker: no external blocker; full-gate closure and paired qualification remain unresolved.
-- Next: fresh current-source captures, then full offline rerun. Local raised-surface/separator regression RED→GREEN, full TUI 623 PASS (6.46s), strict TUI/oc2 all-target Clippy PASS (25.51s). Capture scripts have Node/Python checks and consistent causal settlement snapshots; the first successful foreground episode is behavioral evidence, not whole-frame visual qualification.
+- Last relevant evidence: Owner 13, legacy move guards 2, actual scoped move/picker 3, binary TUI 120, full TUI 623 PASS; strict affected all-target Clippy PASS. Correct-provenance foreground and idle-background captures both pass at 120×40/80×24, including complete lower-pane/card/notice scoped styled-cell/pixel equality. Node 8/Python 17 capture tests PASS. First full gate was 2188 PASS / 6 FAIL / 12 SKIP; its diagnosed corrections are checked, but this is not a final gate PASS. No deadlines, retries or test load changed.
+- Blocker: no external blocker; only final gate/delivery/closure remain.
+- Next: full offline rerun after capture delivery; finish when the frozen R1–R6 closure passes. Preserve historical captures and disclose whole-frame DIFFERENT results.
 
 ## Material Decisions
 
@@ -140,6 +140,7 @@ A/B independent; D before complete C; E before F. Existing test owners only. Poi
 - 2026-10-20: first full gate found six failures, not completion. Three tests still asserted superseded busy navigation. A real hidden native boundary regression is fixed without a visible bubble or ownership-guard relaxation. VAR01 proved a finite ACK wake omission rather than a slow model; existing receipt polling now reconciles it. The scoped-move stream failure led to a held-gate actual-Owner RED proving competing move consumers; verify the minimal exclusion next. Cold unified test compilation was diagnosed separately from runtime deadlines; none were raised.
 - 2026-10-20: full-gate corrections checked: zero-height native input boundary preserves both predecessor and automatic-turn notice order; existing finite model-receipt wake fixes VAR01 without relaxing departure safety. Native primaries consume only their prepared moves; Source fallback checks the still-pending issuing caller under existing roots/Db synchronization. Held-gate Source/sibling and stale-list regressions, scoped actual streams/pickers and strict Clippy PASS. Deliver these corrections, then actual paired qualification/final gate; no whole-product readiness claim.
 - 2026-10-20: actual sealed foreground episode passes both products before Ctrl+B, including natural redraw, live child, original foreground ownership and later automatic parent settlement. Initial observer-before-admission snapshot now correctly reports no root as not idle. Producer provenance is corrected for fresh captures. Complete lower-pane comparison exposed 14 local styling differences; targeted raised-surface/separator regression is under verification, full scene differences remain disclosed.
+- 2026-10-20: final scoped paired qualification: fresh foreground 120×40/80×24 has 17 behavioral stages per product and complete lower-pane styled-cell/RGBA equality after the local semantic fix. Idle-background 120×40/80×24 has 15 stages, two actual parent followups, exact assignments/no child replay, and complete card/notice component equality. Consistent read-only snapshots and delivered-message causality prevent false idle witnesses. Full unmasked scenes remain DIFFERENT; no generic harness, donor change or masked whole-scene PASS. Proceed only final offline gate/delivery/closure.
 
 ## Completion
 

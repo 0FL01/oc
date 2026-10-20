@@ -111,10 +111,13 @@ const subagentPending=args['subagent-pending']==='true';
 const backgroundSubagents=args['background-subagents']==='true';
 const backgroundAnimation=args['background-animation']==='true';
 const backgroundCase=args['background-case']||'lifecycle';
+const currentSubagentCards=!backgroundSubagents&&args['background-reference']!==undefined;
+const currentReference=backgroundSubagents||currentSubagentCards;
 if(args['background-subagents']!==undefined&&!backgroundSubagents)throw Error('--background-subagents must be true');
 if(backgroundSubagents&&(!subagentCards||subagentPending||args['root-handoff']||args['model-shell']||args['history-completion']||args['build-oc']!=='true'||!args['background-reference']||!['true','false'].includes(args['background-animation'])||!['lifecycle','wrap','terminal','consumed'].includes(backgroundCase)||![[80,24],[120,40]].some(([c,r])=>c===Number(args.columns)&&r===Number(args.rows))||Object.keys(args).some(k=>!['background-subagents','background-animation','background-case','background-reference','subagent-cards','combined-composer','tool-preview','reference','oc','build-oc','tools','geometry','sample','sidebar','columns','rows','output'].includes(k))))throw Error('Background qualification requires the exclusive two-child current-reference paired profile');
-if(!backgroundSubagents&&['background-animation','background-case','background-reference'].some(k=>args[k]!==undefined))throw Error('Background inputs require --background-subagents');
-if(backgroundSubagents&&path.resolve(args.oc||'')!==path.join(repo,'target/debug/oc2'))throw Error('Background qualification requires this worktree target/debug/oc2');
+if(currentSubagentCards&&(!subagentCards||subagentPending||args['build-oc']!=='true'||!args['background-reference']||![[80,24],[120,40]].some(([c,r])=>c===Number(args.columns)&&r===Number(args.rows))||Object.keys(args).some(k=>!['background-reference','subagent-cards','combined-composer','tool-preview','reference','oc','build-oc','tools','geometry','sample','sidebar','columns','rows','output'].includes(k))))throw Error('Current foreground qualification requires the exclusive sealed running-card paired profile');
+if(!backgroundSubagents&&['background-animation','background-case'].some(k=>args[k]!==undefined))throw Error('Background inputs require --background-subagents');
+if(currentReference&&path.resolve(args.oc||'')!==path.join(repo,'target/debug/oc2'))throw Error('Current-reference qualification requires this worktree target/debug/oc2');
 const pendingAnimation=args['pending-animation']==='true';
 if(args['subagent-pending']!==undefined&&(!subagentCards||!['true','false'].includes(args['subagent-pending'])))throw Error('--subagent-pending requires subagent-cards and true|false');
 if(args['pending-animation']!==undefined&&(!subagentPending||!['true','false'].includes(args['pending-animation'])))throw Error('--pending-animation requires subagent-pending and true|false');
@@ -197,7 +200,7 @@ if(boundedMode && (!['variants','shell','wheel'].includes(boundedMode) || args.g
     Object.entries(args).some(([k,v])=>v==='true' && !['geometry','build-oc'].includes(k))))
   throw Error('--bounded-mode variants|shell|wheel requires exclusive paired short 120x40 geometry sidebar hide');
 const tools = path.resolve(args.tools || '/home/opencode/.cache/opencode-tmp/opencode/t44-reference');
-if(backgroundSubagents) {
+if(currentReference) {
   for(const name of [tools,process.env.TMPDIR,process.env.FONTCONFIG_FILE])if(!name||!path.isAbsolute(name)||!fs.realpathSync(name).startsWith(path.join(os.homedir(),'.cache/opencode-tmp/opencode')+path.sep)||fs.statSync(name).uid!==process.getuid()||process.getuid()===0)throw Error('Background tools/TMPDIR/fonts must be owned approved-cache inputs');
 }
 const executeCacheRoot=executePreview?path.join(os.homedir(),'.cache/opencode-tmp/opencode'):undefined;
@@ -453,7 +456,7 @@ const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 't
     ...(toolPreviewSmall?{tool_preview_small:true,small_probe:sha(fs.readFileSync(path.join(here,'tool_preview_small.mjs'))),real_response_barrier_ms:5500}:{}),
     ...(executePreview?{execute_preview:true,execute_fixture_port:executeFixturePort,probe:sha(fs.readFileSync(path.join(here,'execute_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'execute_fixture.py')))}:{}),
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
-    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,subagent_pending:subagentPending,pending_animation:pendingAnimation,...(backgroundSubagents?{background_subagents:true,background_animation:backgroundAnimation,background_case:backgroundCase,background_probe:sha(fs.readFileSync(path.join(here,'background_subagents.mjs'))),background_fixture:sha(fs.readFileSync(path.join(here,'background_subagent_fixture.py')))}:{}),root_handoff:rootHandoff,history_completion:historyCompletion,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
+    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,current_subagent_cards:currentSubagentCards,subagent_pending:subagentPending,pending_animation:pendingAnimation,...(backgroundSubagents?{background_subagents:true,background_animation:backgroundAnimation,background_case:backgroundCase,background_probe:sha(fs.readFileSync(path.join(here,'background_subagents.mjs'))),background_fixture:sha(fs.readFileSync(path.join(here,'background_subagent_fixture.py')))}:{}),root_handoff:rootHandoff,history_completion:historyCompletion,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(syntaxCache?{syntax_cache:true,...(executePreview?{execute_syntax:executeReference.syntax}: {syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json')))}),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
     ...(syntaxInventory?{syntax_inventory:true}:{}),
     ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,mcp_footer:mcpFooter||null,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{}),...(mcpFooter?{footer_probe:sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')))}:{})} : {}),
@@ -538,8 +541,9 @@ if(promptHistory)for(const n of ['prompt_history.mjs','prompt_history_fixture.py
 if(questionForms)for(const n of ['question_forms.mjs','question_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(userShell)for(const n of ['user_shell.mjs','user_shell_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(combinedComposer)for(const n of ['composer.mjs','composer_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
-if(backgroundSubagents) {
+if(currentReference) {
   lock.sources.current_background_runtime=verifyBackgroundReference(args['background-reference'],args.reference,path.join(repo,'.local/opencode'));
+  lock.sources.upstream_commit=lock.sources.current_background_runtime.commit;
   json('current-background-reference.json',lock.sources.current_background_runtime);
   for(const n of ['background_subagents.mjs','background_subagent_fixture.py','background_reference.mjs','background_compare.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 }
@@ -554,11 +558,11 @@ if(cursorRenderer==='webgl') {
   fs.copyFileSync(path.join(cursorRendererRoot,'package-lock.json'),path.join(output,'cursor-renderer.package-lock.json'));
 }
 if(args['build-oc'] === 'true') {
-   const buildCommand=executePreview||subagentPending||backgroundSubagents?['cargo','build','-p','oc2','--bin','oc2','--locked']:['cargo','build','--locked'];
+   const buildCommand=executePreview||subagentPending||currentReference?['cargo','build','-p','oc2','--bin','oc2','--locked']:['cargo','build','--locked'];
   const build = execute(buildCommand);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
   lock.oc.build_command = buildCommand;
-   if(leaderPending||executePreview||subagentPending||backgroundSubagents) {
+   if(leaderPending||executePreview||subagentPending||currentReference) {
     lock.oc.source_inputs_unchanged_after_build=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
     if(!lock.oc.source_inputs_unchanged_after_build)throw Error('Source inputs changed during capture build');
   }
@@ -568,13 +572,13 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // These stateful probes must be new even when fresh output trees share a
 // basename. Reusing a home mixes prior operations/cache/history into proof.
-const freshRoot = leaderPending || syntaxCache || executePreview || subagentPending || backgroundSubagents || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
+const freshRoot = leaderPending || syntaxCache || executePreview || subagentPending || currentReference || tabMiddleClose || promptHistory || promptCaret || questionForms || mcpSidebar || clipboardImages;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
   LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', TZ: 'UTC', PLAYWRIGHT_BROWSERS_PATH: path.join(tools, 'browsers'),
-  ...((mcpSidebar||executePreview||subagentPending||backgroundSubagents) && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
-if ((mcpSidebar||executePreview||subagentPending||backgroundSubagents) && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
+  ...((mcpSidebar||executePreview||subagentPending||currentReference) && process.env.FONTCONFIG_FILE ? {FONTCONFIG_FILE:process.env.FONTCONFIG_FILE} : {})};
+if ((mcpSidebar||executePreview||subagentPending||currentReference) && process.env.TMPDIR) cleanEnv.TMPDIR = process.env.TMPDIR;
 fs.mkdirSync(cleanEnv.HOME, {recursive: true});
 process.env.PLAYWRIGHT_BROWSERS_PATH = cleanEnv.PLAYWRIGHT_BROWSERS_PATH;
 let browser;
@@ -615,7 +619,7 @@ try {
   browser = await chromium.launch({headless: true, env: cleanEnv});
   const profile = {frontend: '@xterm/xterm', frontend_version: require('@xterm/xterm/package.json').version,
     vt_parser: 'xterm.js 6.0.0', chromium_version: browser.version(), playwright_version: require('playwright/package.json').version,
-    font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono'],executePreview||subagentPending||backgroundSubagents?{env:cleanEnv}:{}).stdout,
+    font_family: 'DejaVu Sans Mono', font_match: execute(['fc-match','-f','%{family}|%{style}|%{file}|%{fontversion}', 'DejaVu Sans Mono'],executePreview||subagentPending||currentReference?{env:cleanEnv}:{}).stdout,
     fallback_fonts: null,
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
@@ -628,7 +632,7 @@ try {
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
-           animations: backgroundSubagents ? backgroundAnimation : subagentPending ? pendingAnimation : compaction ? compactionAnimation : scanner ? scannerAnimation : `original supported animations=false; completed states only; terminal cursorBlink=${cursorTemporal==='blink'}`,
+           animations: currentSubagentCards ? true : backgroundSubagents ? backgroundAnimation : subagentPending ? pendingAnimation : compaction ? compactionAnimation : scanner ? scannerAnimation : `original supported animations=false; completed states only; terminal cursorBlink=${cursorTemporal==='blink'}`,
           ...(compaction ? {compaction_tps:compactionTps} : {}),
        ...(scanner ? {scanner_cancel:scannerCancel} : {}),
        ...(modelsInteraction ? {models_interaction:true,catalog_extension:'fixture-scroll-00..11'} : {})}};
@@ -649,7 +653,7 @@ try {
     }
     lock.sources.pending_component_oracle.identical_release_and_current_blobs=identical;
   }
-  if(backgroundSubagents) {
+  if(currentReference) {
     profile.background_animation=backgroundAnimation;profile.background_case=backgroundCase;
     profile.fontconfig_sha256=sha(fs.readFileSync(cleanEnv.FONTCONFIG_FILE));
     profile.font_file_sha256=sha(fs.readFileSync(profile.font_match.split('|')[2]));
@@ -661,7 +665,7 @@ try {
     if (!binary) { lock.attempts.push({origin, status: 'SKIPPED', reason: 'No explicit binary supplied'}); continue; }
     if (!path.isAbsolute(binary)) throw Error('Binary must be an explicit absolute path');
     const hash = sha(fs.readFileSync(binary));
-    if (origin === 'upstream' && hash !== (backgroundSubagents?lock.sources.current_background_runtime.binary_sha256:executePreview?executeReference.binary_sha256:mcpSidebar || clipboardImages ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
+    if (origin === 'upstream' && hash !== (currentReference?lock.sources.current_background_runtime.binary_sha256:executePreview?executeReference.binary_sha256:mcpSidebar || clipboardImages ? args['supplementary-reference-sha256'] : '2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a')) throw Error('Reference binary SHA mismatch');
     const dir = path.join(output, origin);
     fs.mkdirSync(dir);
     const spec = {binary, origin, columns: profile.columns, rows: profile.rows, isolated_root: isolated, fixture,
@@ -689,7 +693,7 @@ try {
                        model_shell:modelShell,
                          subagent_cards:subagentCards,
                           subagent_pending:subagentPending,pending_animation:pendingAnimation,
-                          background_subagents:backgroundSubagents,background_animation:backgroundAnimation,background_case:backgroundCase,
+                          background_subagents:backgroundSubagents,background_animation:backgroundAnimation,background_case:backgroundCase,current_subagent_cards:currentSubagentCards,
                         root_handoff:rootHandoff,
                         history_completion:historyCompletion,
                         syntax_cache:syntaxCache,
@@ -733,7 +737,7 @@ try {
         const bytes=Buffer.from(event.data, 'base64');
         const n=event.generation || 0;
          chunks[n].push(bytes);
-           if(boundedMode==='wheel'||compactionAnimation||leaderPending||cursorTemporal||backgroundSubagents||subagentPending&&pendingAnimation) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
+           if(boundedMode==='wheel'||compactionAnimation||leaderPending||cursorTemporal||currentReference||subagentPending&&pendingAnimation) {outputTimeline.push({...(compactionAnimation?{generation:n}:{}),at_ns:event.at_ns,received_ms:performance.now(),bytes:bytes.length,base64:event.data});fs.appendFileSync(path.join(dir,'output-timeline.jsonl'),JSON.stringify(outputTimeline.at(-1))+'\n');}
         // Keep a diagnostic VT prefix if the capture process is interrupted
         // before the normal per-generation teardown writes its sealed copy.
         fs.appendFileSync(path.join(dir,'raw.vt'),bytes);
@@ -947,7 +951,7 @@ try {
                  questionProbe:questionForms?probeQuestionForms:null,
                  historyProbe:promptHistory?args=>probePromptHistory({...args,mode:promptHistory}):null,
                   userShellProbe:userShell?probeUserShell:null,
-                       composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,subagentPending,pendingAnimation,backgroundSubagents,backgroundAnimation,backgroundCase,rootHandoff,historyCompletion}):null,
+                       composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,subagentPending,pendingAnimation,currentSubagentCards,backgroundSubagents,backgroundAnimation,backgroundCase,rootHandoff,historyCompletion}):null,
                mcpProbe:mcpStatus?args=>(mcpFooter?probeMcpFooter({...args,mode:mcpFooter}):probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')})):null,
                cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,writeFrame,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
@@ -3413,10 +3417,10 @@ print(json.dumps(result))
 } catch(e) {lock.attempts.push({status:'BLOCKED',reason:e.stack});result=2;}
 finally {
   if(browser)await browser.close();
-  if(leaderPending||executePreview||subagentPending||backgroundSubagents) {
+  if(leaderPending||executePreview||subagentPending||currentReference) {
     lock.oc.source_inputs_unchanged_after_capture=Object.entries(sourceManifest).every(([name,hash])=>fs.existsSync(path.join(repo,name))&&sha(fs.readFileSync(path.join(repo,name)))===hash);
      if(!lock.oc.source_inputs_unchanged_after_capture){lock.attempts.push({status:'BLOCKED',reason:'Source inputs changed during capture'});result=2;}
-     if(backgroundSubagents)verifyBackgroundReference(args['background-reference'],args.reference,path.join(repo,'.local/opencode'));
+     if(currentReference)verifyBackgroundReference(args['background-reference'],args.reference,path.join(repo,'.local/opencode'));
   }
   lock.finished=new Date().toISOString(); lock.exit_code=result;
   commands[0].exit_code=result;

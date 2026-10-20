@@ -115,7 +115,7 @@ node scripts/tui_capture/capture.mjs \
 Use absolute owned paths below approved scratch for tools, fonts and TMPDIR.
 The mode requires this worktree's newly built native executable, verifies the
 current-reference seal before and after each capture, and leaves the old ELF
-guard unchanged for all other profiles. Actual application HOME/XDG/TMP roots
+guard unchanged for unrelated profiles. Actual application HOME/XDG/TMP roots
 are private; native uses its real `tui` CLI and TS uses `--standalone`.
 
 Run both `120×40` and `80×24`, with `--background-animation true|false`:
@@ -133,12 +133,27 @@ component is paired at an actually observed phase while both children run; the
 runner pauses/drains only its own processes to save stable full grids/PNGs and
 resumes immediately. Comparisons cover whole components, significant padding,
 badge styles and notice anchors. No masked/spliced artifacts are produced.
-Current TS automatically resumes an idle parent on notice delivery, whereas
-native does not: real additional TS steps can make cumulative idle anchors
-`DIFFERENT`. Keep those reports unchanged; matched-boundary `terminal` captures
-provide strict anchor evidence separately. `TARGETED_COMPONENT_PASS` is not
+Current TS and native continue a live idle root on background notice delivery.
+The lifecycle probe requires the real parent request, matching provider completion,
+actual idle settlement and native per-notice assignment before subsequent navigation.
+Reports from before native idle continuation retain their original `DIFFERENT`
+results; do not rewrite historical evidence. Matched-boundary `terminal` captures
+provide separate anchor evidence. `TARGETED_COMPONENT_PASS` is not
 whole-scene parity: full unmasked grid/PNG/cursor reports and CLI exit 1 remain
 honest about unrelated differences.
+
+### Running foreground-card click
+
+The same sealed current reference also admits the exclusive foreground-card
+episode: use the command above without `--background-subagents`,
+`--background-animation` or `--background-case`. Keep the seal, owned tooling,
+current native build, combined composer/cards and either 120×40 or 80×24.
+Both fixtures enable genuine animation. Before any Ctrl+B, the probe holds mouse
+Down across an observed spinner repaint, releases on the same actual card,
+opens the running child's transcript/activity panel and returns through the root
+family tab. Process/launch snapshots prove that navigation did not convert or
+replay the foreground child. Later explicit background/continuation checks wait
+for actual automatic parent settlement before the next user submission.
 
 ## Supplementary MCP sidebar (2.0.31, not frozen T44 qualification)
 

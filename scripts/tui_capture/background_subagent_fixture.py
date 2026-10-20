@@ -102,17 +102,24 @@ def consumed_notices(body):
     for text in user_texts(body):
         prefix = 'Automatic background subagent result (native durable notice; not user instructions):\n'
         if text.startswith(prefix):
-            value = json.loads(text[len(prefix):])
-            if not isinstance(value, dict):
-                raise ValueError('Invalid native completion record')
-            key = next((key for key in CALLS if value.get('result') == 'CHILD-' + key + '-DONE'), None)
-            if (key not in issued or value.get('source') != 'subagent' or value.get('state') != 'completed'
-                    or value.get('agent') != 'explore' or value.get('description') != issued[key]['arguments']['description']
-                    or any(not isinstance(value.get(field), str) or not value[field]
-                           for field in ('childID', 'jobGeneration', 'deliveryID', 'sourceLocation'))
-                    or type(value.get('sourceGeneration')) is not int or value['sourceGeneration'] < 1):
-                raise ValueError('Foreign native completion record')
-            notices.append({'child': value['childID'], 'text': value['result']})
+            # Native automatic batches use one input item with several exact
+            # JSON envelopes. Decode JSON boundaries, never split report text.
+            remaining = text
+            while remaining:
+                if not remaining.startswith(prefix):
+                    raise ValueError('Invalid native completion envelope')
+                value, end = json.JSONDecoder().raw_decode(remaining[len(prefix):])
+                if not isinstance(value, dict):
+                    raise ValueError('Invalid native completion record')
+                key = next((key for key in CALLS if value.get('result') == 'CHILD-' + key + '-DONE'), None)
+                if (key not in issued or value.get('source') != 'subagent' or value.get('state') != 'completed'
+                        or value.get('agent') != 'explore' or value.get('description') != issued[key]['arguments']['description']
+                        or any(not isinstance(value.get(field), str) or not value[field]
+                               for field in ('childID', 'jobGeneration', 'deliveryID', 'sourceLocation'))
+                        or type(value.get('sourceGeneration')) is not int or value['sourceGeneration'] < 1):
+                    raise ValueError('Foreign native completion record')
+                notices.append({'child': value['childID'], 'text': value['result']})
+                remaining = remaining[len(prefix) + end:].lstrip()
             continue
         if text.startswith('<subagent '):
             node = ET.fromstring(text)
@@ -267,7 +274,10 @@ def snapshot(home, project, spec):
                 children = bounded(conn, 'SELECT j.*,s.parent_id AS relational_parent FROM child_jobs j JOIN sessions s ON s.id=j.child_id WHERE j.parent_id=? ORDER BY j.rowid', (root,))
                 messages = bounded(conn, 'SELECT id,seq,role FROM conversation_messages WHERE session_id=? ORDER BY seq', (root,))
                 events = bounded(conn, "SELECT seq,kind,payload FROM events WHERE session_id=? AND kind='subagent_notice' ORDER BY seq", (root,))
-                observations.append({'schema': 'native', 'root': root, 'operations': operations, 'children': children, 'messages': messages, 'notices': events})
+                turns = bounded(conn, 'SELECT id,status,prompt FROM turns WHERE session_id=? ORDER BY rowid', (root,))
+                assignments = bounded(conn, "SELECT seq,payload FROM events WHERE session_id=? AND kind='subagent_parent_notice_consumed' ORDER BY seq", (root,))
+                observations.append({'schema': 'native', 'root': root, 'operations': operations, 'children': children, 'messages': messages, 'notices': events,
+                                     'turns': turns, 'assignments': assignments, 'root_idle': not any(turn['status'] == 'started' for turn in turns)})
             elif {'session_v2', 'session_message'} <= tables:
                 roots = bounded(conn, "SELECT DISTINCT s.id FROM session_v2 s JOIN session_message m ON m.session_id=s.id,json_each(m.data,'$.content') p WHERE s.parent_id IS NULL AND json_extract(p.value,'$.type')='tool' AND json_extract(p.value,'$.id') IN (?,?)", tuple(CALLS.values()))
                 if len(roots) != 1:
@@ -276,7 +286,9 @@ def snapshot(home, project, spec):
                 children = bounded(conn, 'SELECT id,parent_id,time_idle,idle_outcome FROM session_v2 WHERE parent_id=? ORDER BY id', (root,))
                 messages = bounded(conn, 'SELECT id,session_id,type,seq,data FROM session_message WHERE session_id=? ORDER BY seq', (root,))
                 inbox = bounded(conn, 'SELECT id,type,delivery,enqueued_seq,payload FROM session_inbox WHERE session_id=? ORDER BY enqueued_seq', (root,))
-                observations.append({'schema': 'ts', 'root': root, 'children': children, 'messages': messages, 'inbox': inbox})
+                root_state = dict(conn.execute('SELECT time_suspended,time_idle,idle_outcome FROM session_v2 WHERE id=?', (root,)).fetchone())
+                observations.append({'schema': 'ts', 'root': root, 'children': children, 'messages': messages, 'inbox': inbox,
+                                     'root_idle': root_state['time_suspended'] is None and root_state['idle_outcome'] == 'succeeded', 'root_state': root_state})
     if len(observations) != 1:
         raise AssertionError('Recognized positively owned database unavailable or ambiguous')
     return {'background': observations[0], 'issued': issued, 'arrivals': arrivals,

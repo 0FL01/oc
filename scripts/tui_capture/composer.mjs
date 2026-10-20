@@ -249,7 +249,14 @@ async function probePendingSubagent({origin,pendingAnimation,send,shot,waitFor,f
     no_pre_admission_effects:true,inert_pending_click:true,one_real_child:true,whole_frame_parity:'NOT_PASS; compare full unmasked artifacts separately'};
 }
 
-async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,control,resize}) {
+async function probeSubagentCards({origin,send,shot:captureShot,waitFor:stableWaitFor,frame,logs,snapshot,control,resize,currentSubagentCards=false}) {
+  const shot=(stage,predicate)=>captureShot(stage,predicate,{},currentSubagentCards);
+  const waitFor=async(predicate,label,timeout=15000)=>{
+    if(!currentSubagentCards)return stableWaitFor(predicate,label,timeout);
+    const deadline=Date.now()+timeout;
+    while(Date.now()<deadline){const f=await frame();if(predicate(f))return f;await new Promise(r=>setTimeout(r,25));}
+    throw Error('Timed out animated Subagent condition '+label);
+  };
   const rows=(s,table)=>s.composer.observations.flatMap(o=>o.data[table]||[]);
   const caption=f=>f.text.includes('Helper Subagent')&&f.text.includes('Inspect captured child shell')&&f.text.includes('Fixture Caption Model');
   const observe=async(label,predicate)=>{
@@ -284,6 +291,26 @@ async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,
   send('\x1b[200~VIS39_ROOT_TASK\x1b[201~\r','subagent_card_submit');
   const started=await observe('first-ready',s=>s.ready.first&&s.effects.started.lines.length===1);
   await shot('subagent-foreground-120',caption);
+  let runningClick=null;
+  if(currentSubagentCards) {
+    const before=await frame(),point=headerPoint(before);
+    const prefix=glyphs(before.cells[point.y-1].slice(0,point.x-1));
+    send(`\x1b[<0;${point.x};${point.y}M`,'subagent_running_press');
+    // No capture/pause/control between Down and Up: observe a genuine repaint
+    // of this still-foreground card's spinner, not an unrelated footer tick.
+    const redrawn=await waitFor(f=>caption(f)&&headerPoint(f).y===point.y&&glyphs(f.cells[point.y-1].slice(0,point.x-1))!==prefix,'running card spinner redraw',6000);
+    send(`\x1b[<0;${point.x};${point.y}m`,'subagent_running_release_after_redraw');
+    await shot('subagent-running-click-child',f=>activeTab(f,'Subagents')&&(f.text.includes('VIS39_CHILD_TASK')||f.text.includes('VIS39-ROW-079')));
+    send('\x1b[<0;10;1M\x1b[<0;10;1m','subagent_running_return_root_family');
+    await shot('subagent-running-click-parent',f=>caption(f)&&!f.text.includes('VIS39-PARENT-DONE'));
+    const after=await snapshot('subagent_running_click_returned');
+    if(after.composer.effects.started.lines.length!==1||after.composer.effects.completed.lines.length!==0)throw Error('Running click replayed or completed the child');
+    if(origin==='oc') {
+      const original=rows(started,'child_jobs'),current=rows(after,'child_jobs');
+      if(original.length!==1||current.length!==1||current[0].identity!==original[0].identity||current[0].converted_background||JSON.parse(current[0].identity).background)throw Error('Running click changed the original foreground launch');
+    }
+    runningClick={point,before_prefix:prefix,after_prefix:glyphs(redrawn.cells[point.y-1].slice(0,point.x-1)),before_conversion:true,actual_child_opened:true,original_foreground_preserved:true};
+  }
   if(origin==='oc') {
     send('\x07','subagent_card_native_foreground_scope');
     await waitFor(f=>activeTab(f,'Subagents'),'actual foreground child selector',6000);
@@ -329,12 +356,25 @@ async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,
   await waitFor(f=>activeTab(f,'Subagents')&&f.text.includes('VIS39-ROW-079'),'captured child source',6000);
   send('\x1b[C','subagent_card_source_shell_tab');
   await waitFor(f=>activeTab(f,'Shell')&&f.text.includes('python3 composer-probe.py second'),'selected actual second process',6000);
+  const parentRequestsBeforeTerminal=new Set(logs.filter(e=>e.kind==='provider'&&e.operation==='parent').map(e=>e.request));
   send('\x04','subagent_card_cancel_second_only');
   await waitFor(f=>f.text.includes('VIS39-CHILD-DONE'),'actual child settled',15000);
   send('\x1b','subagent_card_settled_parent');
   await resize(40,120);
   await shot('subagent-completed',f=>caption(f)&&f.text.includes('VIS39 parent unsent draft')&&f.text.includes('↳ Helper finished'));
   const settled=await snapshot('subagent_card_settled');
+  let parentFollowup;
+  if(currentSubagentCards)parentFollowup=await observe('subagent-parent-followup-settled',s=>{
+    const owners=s.observations.map(o=>o.data.parent_execution).filter(Boolean);
+    const requests=logs.filter(e=>e.kind==='provider'&&e.operation==='parent'&&!parentRequestsBeforeTerminal.has(e.request));
+    if(owners.length!==1||!owners[0].idle||!requests.some(request=>logs.some(e=>e.kind==='provider_completed'&&e.request===request.request)))return false;
+    if(origin==='oc') {
+      const job=s.observations.flatMap(o=>o.data.child_jobs||[])[0];
+      return job?.message_id&&owners[0].assignments.some(event=>event.message===job.message_id);
+    }
+    const child=s.observations.flatMap(o=>o.data.sessions||[]).find(session=>session.parent_id===owners[0].root);
+    return child&&owners[0].delivered_children.includes(child.id);
+  });
   const capture=await command('capture-continuation');
    send('\x03','subagent_card_clear_draft_for_next_user');
    await waitFor(f=>!f.text.includes('VIS39 parent unsent draft'),'actual parent draft cleared',6000);
@@ -369,7 +409,8 @@ async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,
     const shells=rows(final,'shell_jobs').map(j=>({...j,outcome:JSON.parse(j.outcome)}));
     if(shells.length!==2||shells[0].outcome.state!=='completed'||shells[0].outcome.exit!==0||!shells[0].outcome.display_recent.includes('VIS39-FINAL-FLUSH-first')||shells[1].outcome.state!=='cancelled')throw Error('Original child process final flush/cancellation not frozen');
   }
-  return {status:'OBSERVED_SUBAGENT_CARDS',started,converted,settled,running,final,hover_facts:hoverFacts,
+  return {status:'OBSERVED_SUBAGENT_CARDS',started,converted,settled,running,final,hover_facts:hoverFacts,running_click:runningClick,
+    ...(currentSubagentCards?{automatic_parent_settled:!!parentFollowup}:{}),
     actual_continuation_child:capture.captured_child,geometries:[[120,40],[80,24],[160,48]],
     actual_tool_calls:5,actual_requests:logs.filter(e=>e.kind==='provider').length,
     same_child_distinct_operation:true,missing_agent_no_owner:true,original_graph_unchanged:true,
