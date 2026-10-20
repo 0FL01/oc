@@ -2038,6 +2038,49 @@ async fn vis11_pending_interrupt_consumed_then_normal_exit_remains_available() {
 }
 
 #[tokio::test]
+async fn vis11_idle_escape_is_noop_and_preserves_draft() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use oc_core::core_app::InboxMsg;
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let (submits_tx, mut submits) = tokio::sync::mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        while let Some(message) = inbox.recv().await {
+            match message {
+                InboxMsg::Cancel { ack, .. } => {
+                    let _ = ack.send(Err(CoreError::TurnNotActive));
+                }
+                InboxMsg::Submit { text, .. } => submits_tx.send(text.text).unwrap(),
+                _ => {}
+            }
+        }
+    });
+    let mut state = TuiState::new(app.clone(), sid("idle-esc"));
+    type_text(&mut state, "keep me").await;
+    state.handle_key(KeyAction::Left).await;
+    let caret = state.editor.cursor;
+    for _ in 0..3 {
+        let esc = state
+            .terminal_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE))
+            .unwrap();
+        assert_eq!(esc, KeyAction::Cancel);
+        let outcome = state.handle_key(esc).await;
+        assert_eq!(outcome.note, None);
+        assert_eq!(state.status(), &TuiStatus::Idle, "idle Esc must not exit");
+        assert_eq!(state.input(), "keep me");
+        assert_eq!(state.editor.cursor, caret);
+    }
+    state.handle_key(KeyAction::Enter).await;
+    assert_eq!(submits.recv().await.as_deref(), Some("keep me"));
+    assert!(submits.try_recv().is_err(), "Esc created no submission");
+
+    // Home has no session: Esc is equally inert there.
+    let mut home = TuiState::new_home(app);
+    home.handle_key(KeyAction::Cancel).await;
+    assert_eq!(home.status(), &TuiStatus::Idle);
+    assert!(submits.try_recv().is_err());
+}
+
+#[tokio::test]
 async fn vis11_leader_pending_lifecycle_preserves_editor_and_expires_without_input() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     let (app, mut inbox, _) = CoreApp::channel(4);

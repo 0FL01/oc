@@ -3328,25 +3328,22 @@ impl TuiState {
                         },
                     }
                 } else {
-                    if let Some(session) = self.session.clone() {
-                        match self.app.cancel(session).await {
-                            Ok(()) => {
-                                return KeyOutcome {
-                                    note: Some("background shell cancellation requested".into()),
-                                    ..KeyOutcome::default()
-                                };
-                            }
-                            Err(CoreError::TurnNotActive) => {}
-                            Err(error) => {
-                                return KeyOutcome {
-                                    note: Some(format!("cancel: {error}")),
-                                    ..KeyOutcome::default()
-                                };
-                            }
-                        }
+                    // The original binds Esc only to `session.interrupt`, enabled
+                    // while running: idle Esc never exits or edits the draft.
+                    let Some(session) = self.session.clone() else {
+                        return KeyOutcome::default();
+                    };
+                    match self.app.cancel(session).await {
+                        Ok(()) => KeyOutcome {
+                            note: Some("background shell cancellation requested".into()),
+                            ..KeyOutcome::default()
+                        },
+                        Err(CoreError::TurnNotActive) => KeyOutcome::default(),
+                        Err(error) => KeyOutcome {
+                            note: Some(format!("cancel: {error}")),
+                            ..KeyOutcome::default()
+                        },
                     }
-                    self.status = TuiStatus::Quit;
-                    KeyOutcome::default()
                 }
             }
             KeyAction::Enter => self.handle_enter().await,

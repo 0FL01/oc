@@ -2604,6 +2604,10 @@ async fn cancel_releases_turn() {
         "{:?}",
         state.viewport()
     );
+    // Esc after the interrupted turn is idle Esc: it neither exits nor re-arms.
+    state.handle_key(KeyAction::Cancel).await;
+    assert_eq!(state.status(), &TuiStatus::Cancelled);
+    assert!(!state.interrupt_armed());
 
     // The same handle accepts the next prompt.
     type_text(&mut state, "after").await;

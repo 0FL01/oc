@@ -124,7 +124,7 @@ pub enum UiEvent {
 
 /// Map a Crossterm key event to an action.
 ///
-/// `Esc` cancels a stream (or quits when idle — resolved by `TuiState`);
+/// `Esc` cancels a stream (idle Esc never exits — resolved by `TuiState`);
 /// Root Ctrl+C clears a nonempty draft or exits when empty; Ctrl+D deletes
 /// at the editor or exits at an empty root.
 pub fn map_key(event: KeyEvent) -> Option<KeyAction> {

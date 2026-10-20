@@ -33,7 +33,7 @@ full-frame pixel PASS и не возобновляет остальные TUI qu
 - Нужны pinned-original/native full styled-cell, PNG, cursor, temporal/effect/resource проверки; собственные goldens или fixture-only PASS не заменяют paired qualification.
 - **Idle Esc (T44/R5/V05/VIS11):** один или несколько Esc в обычном idle Home/session prompt не завершают приложение, не очищают draft и не создают submission/provider request, включая после completed/interrupted turn.
 - Idle Esc сохраняет cursor, paste chips, focus, session и agent/model/variant selection; затем можно редактировать и отправить ровно один обычный запрос. Modal/autocomplete/leader/permission/question priority, busy double-Esc с 5s окном, pending/compaction/cancel/cleanup, background-shell cancellation и explicit exit bindings сохраняются.
-- Idle Esc требует focused regression, raw-Esc PTY effects и paired qualification; подробный исходный RECON — Git `cd3e867a3`. Перенос этого требования не является implementation PASS.
+- Idle Esc реализован с focused regression (`vis11_idle_escape_is_noop_and_preserves_draft`, `cancel_releases_turn`); raw-Esc PTY effects и paired qualification остаются открытыми. Подробный исходный RECON — Git `cd3e867a3`.
 - [Phantom caret / prompt blink](tui-recovery/T44_CONTRACT_AMENDMENT.md#tool-output-phantom-caret-and-prompt-blink--vis16vis31-2026-10-01) относится к VIS16/VIS31; VIS44 — Middle Click close. Shape/default/nonblinking/focus/restoration и temporal checks не отменены.
 
 ### Hot reload и client settings — отложено
