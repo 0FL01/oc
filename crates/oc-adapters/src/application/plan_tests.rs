@@ -38,6 +38,16 @@ async fn plan_scoped_selection_reminder_atomic_failure_and_restart() {
     let original = rows();
     assert_eq!(original.len(), 1);
     assert!(original[0].2.contains("You are in Plan mode."));
+    let visible = app
+        .transcript_page(session.clone(), None, None, 20)
+        .await
+        .unwrap();
+    assert!(
+        visible.rows.is_empty(),
+        "plan reminder leaked into the transcript"
+    );
+    assert_eq!(visible.total, 0);
+    assert_eq!(rows(), original, "display read must not reinsert reminders");
     app.session_selection(session.clone(), false, Action::Agent("plan".into()))
         .await
         .unwrap();
@@ -82,6 +92,14 @@ async fn plan_scoped_selection_reminder_atomic_failure_and_restart() {
     assert_eq!(&after[..1], original.as_slice());
     assert_eq!(after.len(), 2);
     assert_eq!(after[1].2, crate::plan::LEAVE);
+    let visible = app
+        .transcript_page(session.clone(), None, None, 20)
+        .await
+        .unwrap();
+    assert!(
+        visible.rows.is_empty(),
+        "plan-leave reminder leaked into the transcript"
+    );
     app.select_agent("plan".into()).await.unwrap();
     let legacy = rows();
     assert_eq!(legacy.len(), 3);

@@ -1289,12 +1289,13 @@ impl Db {
         Ok(out)
     }
 
-    /// Count committed messages (UI03 pager total).
+    /// Count visible committed messages (UI03 pager total). Harness system
+    /// reminders stay in raw/active history but are not transcript rows.
     pub fn history_len(&self, session: &str) -> Result<usize, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let count: Option<i64> = conn
             .query_row(
-                "SELECT COUNT(*) FROM conversation_messages WHERE session_id = ?1",
+                "SELECT COUNT(*) FROM conversation_messages WHERE session_id = ?1 AND role != 'system'",
                 params![session],
                 |row| row.get(0),
             )
@@ -1331,7 +1332,7 @@ impl Db {
         Self::require_session(&conn, session)?;
         let mut remaining = HISTORY_PAGE_ID_BYTES;
         conn.query_row(
-            "SELECT seq,role,text,id FROM conversation_messages WHERE session_id=?1 AND id=?2",
+            "SELECT seq,role,text,id FROM conversation_messages WHERE session_id=?1 AND id=?2 AND role!='system'",
             params![session, message.0],
             |row| {
                 Ok(HistoryPageRow {
@@ -1357,7 +1358,8 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
             "SELECT seq, role, text, id FROM conversation_messages
-             WHERE session_id = ?1 AND (?2 IS NULL OR seq < ?2)
+             WHERE session_id = ?1 AND role != 'system'
+               AND (?2 IS NULL OR seq < ?2)
              ORDER BY seq DESC LIMIT ?3",
         )?;
         let mut remaining = HISTORY_PAGE_ID_BYTES;
@@ -1408,7 +1410,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
             "SELECT seq, role, text, id FROM conversation_messages
-                   WHERE session_id = ?1 AND seq > ?2
+                   WHERE session_id = ?1 AND role != 'system' AND seq > ?2
              ORDER BY seq ASC LIMIT ?3",
         )?;
         let mut remaining = HISTORY_PAGE_ID_BYTES;
@@ -1460,7 +1462,8 @@ impl Db {
         .transpose()
     }
 
-    /// Committed message seq bounds `(min, max)`; `None` for an empty session.
+    /// Visible committed message seq bounds `(min, max)`; `None` for empty
+    /// visible history. Harness system reminders are not transcript rows.
     pub fn history_bounds(
         &self,
         session: &str,
@@ -1468,7 +1471,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let bounds: Option<(Option<i64>, Option<i64>)> = conn
             .query_row(
-                "SELECT MIN(seq), MAX(seq) FROM conversation_messages WHERE session_id = ?1",
+                "SELECT MIN(seq), MAX(seq) FROM conversation_messages WHERE session_id = ?1 AND role != 'system'",
                 params![session],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )

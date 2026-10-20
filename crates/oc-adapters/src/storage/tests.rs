@@ -1012,6 +1012,115 @@ fn typed_history_ids_are_exact_bounded_and_stable_across_paging_and_reopen() {
 }
 
 #[test]
+fn system_reminders_stay_in_active_history_but_not_public_history() {
+    let tmp = tmp_root("system-reminder-history");
+    let db = Db::open(&tmp.path().join("data")).expect("open");
+    db.apply_dcp_schema().expect("dcp schema");
+    db.create_session("s").expect("session");
+    let leading = db
+        .append_message(
+            "s",
+            "system",
+            "<system-reminder>\nplan entry\n</system-reminder>",
+        )
+        .expect("leading reminder");
+    let user = db.append_message("s", "user", "prompt").expect("user");
+    let assistant = db
+        .append_message("s", "assistant", "answer")
+        .expect("assistant");
+    let trailing = db
+        .append_message(
+            "s",
+            "system",
+            "<system-reminder>\nplan repair\n</system-reminder>",
+        )
+        .expect("trailing reminder");
+
+    let raw = db.read_history_full("s").expect("raw history");
+    assert_eq!(
+        raw.iter().map(|row| row.1.as_str()).collect::<Vec<_>>(),
+        ["system", "user", "assistant", "system"]
+    );
+    let active = db.active_history("s", 0, 1_000_000).expect("active");
+    assert!(
+        active
+            .rows
+            .iter()
+            .any(|(_, role, text)| role == "system" && text.contains("plan entry")),
+        "provider active history must retain the leading reminder"
+    );
+    assert!(
+        active
+            .rows
+            .iter()
+            .any(|(_, role, text)| role == "system" && text.contains("plan repair")),
+        "provider active history must retain the trailing reminder"
+    );
+
+    assert_eq!(db.history_len("s").expect("len"), 2);
+    let newest = db
+        .read_history_page_typed("s", 1, None)
+        .expect("newest visible");
+    assert_eq!(newest.len(), 1);
+    assert_eq!(newest[0].id, oc_core::session::MessageId(assistant));
+    assert_eq!(newest[0].role, "assistant");
+    let page = db
+        .read_history_page_typed("s", 10, None)
+        .expect("visible page");
+    assert_eq!(
+        page.iter().map(|row| row.role.as_str()).collect::<Vec<_>>(),
+        ["assistant", "user"]
+    );
+    assert_eq!(
+        db.history_bounds("s").expect("bounds"),
+        (Some(page[1].seq), Some(page[0].seq))
+    );
+    let forward = db
+        .read_history_after_typed("s", 10, 0)
+        .expect("visible forward");
+    assert_eq!(
+        forward
+            .iter()
+            .map(|row| row.role.as_str())
+            .collect::<Vec<_>>(),
+        ["user", "assistant"]
+    );
+    assert!(
+        db.read_history_after_typed("s", 10, forward.last().unwrap().seq)
+            .expect("after visible tail")
+            .is_empty(),
+        "trailing system row must not surface"
+    );
+    let window = db
+        .read_transcript_rows("s", &Default::default(), 10)
+        .expect("transcript window");
+    assert_eq!(
+        window
+            .iter()
+            .map(|row| row.role.as_str())
+            .collect::<Vec<_>>(),
+        ["assistant", "user"]
+    );
+    assert!(
+        db.read_history_message_typed("s", &oc_core::session::MessageId(leading))
+            .expect("leading lookup")
+            .is_none()
+    );
+    assert!(
+        db.read_history_message_typed("s", &oc_core::session::MessageId(trailing))
+            .expect("trailing lookup")
+            .is_none()
+    );
+    assert_eq!(
+        db.read_history_message_typed("s", &oc_core::session::MessageId(user))
+            .expect("user lookup")
+            .expect("visible user")
+            .role,
+        "user"
+    );
+}
+
+#[test]
 fn prefs_roundtrip() {
     let tmp = tmp_root("prefs");
     let db = Db::open(&tmp.path().join("data")).expect("open");

@@ -63,6 +63,7 @@ impl Db {
     /// Canonical transcript reads do not copy the potentially archive-sized
     /// aggregate assistant answer in addition to its ordered, pageable parts.
     /// Ordinary message readers retain their existing complete-text contract.
+    /// System reminders remain raw/active provider data, never public transcript rows.
     pub(crate) fn read_transcript_rows(
         &self,
         session: &str,
@@ -85,6 +86,7 @@ impl Db {
                   AND json_type(t.result,'$.display_parts')='array') THEN ''
                 WHEN length(CAST(m.text AS BLOB))<=?6 THEN m.text END AS text
               FROM conversation_messages m WHERE m.session_id=?1
+                AND m.role!='system'
                 AND (?2 IS NULL OR m.seq<?2) AND (?3 IS NULL OR m.seq>?3)
                 AND (?4 IS NULL OR m.id=?4) ORDER BY m.seq {order} LIMIT ?5
             ), bounded AS (

@@ -562,7 +562,7 @@ pub struct HistoryPage {
     pub title: Option<String>,
     /// Rows in render order.
     pub rows: Vec<HistoryMessage>,
-    /// Total committed messages in the session.
+    /// Total visible committed messages in the session.
     pub total: usize,
     /// Older rows exist before the first row of this page.
     pub has_older: bool,
