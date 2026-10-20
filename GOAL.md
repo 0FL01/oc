@@ -17,6 +17,8 @@ Scope текущей работы задаёт пользователь; workflo
 
 ### TUI parity — отложено, не отменено
 
+Текущий явно запрошенный срез: [live session navigation и полный root background lifecycle](docs/goals/2026-10-20-live-session-navigation.md). Исправленный после аудита план и frozen outcomes сохранены там; это не возобновляет остальной backlog.
+
 Полная visual/interactive qualification ещё не завершена. Частные исправления не закрывают весь контракт:
 [R1–R6](docs/goals/2026-09-21-tui-pixel-parity.md),
 [дополнения VIS01–VIS46](tui-recovery/T44_CONTRACT_AMENDMENT.md),
