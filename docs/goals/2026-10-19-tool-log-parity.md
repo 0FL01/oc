@@ -175,7 +175,7 @@ required outcome is resolved and affected constraints remain satisfied.
 ### D — Existing capture profile and oracle
 
 - Owner: scripts/tui_capture Execute fixture/probe/guards/bootstrap and narrow
-  README/T44 contract updates; old seals and general 2.0.12 pin stay unchanged.
+  README/T44 contract updates; old seals below stay as provenance of their own runs.
 - Official 2.0.31 release 22728d67461260d56bb9796b9b8f36e1de47202e,
   source checkout bc5ebf00a4c169ece10f276e6ce02eaf18c326e6. Record narrow source
   equivalence/manifests, not whole-tree equality. Establish only TS/JSON cache

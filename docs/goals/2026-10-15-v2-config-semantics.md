@@ -13,7 +13,8 @@ Last updated: 2026-10-16
 Task: T65 / M8
 Configuration oracle: V2 revision `b4f19bfe74a972c2919aa4c9d7445fa61f41b226`,
 read-only source cache `/home/opencode/.cache/opencode-tmp/opencode/t65-ts-oracle`.
-TUI oracle remains local V2.0.12/`2670273`; it is not updated by this task.
+TUI reference follows the current TypeScript OpenCode 2 rule; the historical
+V2.0.12/`2670273` records below remain provenance of that earlier check.
 
 ## Objective
 
@@ -150,7 +151,8 @@ application, built-in-agent or TUI parity. V1 remains fail-closed.
   provider compatibility, shared cache-key opt-out, the same Auto cache policy
   and four provider-only settings with both HTTP defaults300000ms. Correct the
   configuration oracle to that parent and rerun the shared tests unchanged in
-  intent. Do not weaken the owner's deadline requirements or change the TUI pin.
+  intent. Do not weaken the owner's deadline requirements. The historical TUI records
+  below are provenance, not a freeze on the current reference.
   Earlier f16 receipts remain historical evidence, not rewritten qualifications.
 - R3: the runtime request policy exposes the supported AI `cache:auto|none`
   subset, not a new JSON `settings` switch. Replace the obsolete SDK cache flag
@@ -164,7 +166,7 @@ application, built-in-agent or TUI parity. V1 remains fail-closed.
   branch `4617210` predate provider defaults and cache-key opt-out; latest stable
   tag V2.0.30 established the compatibility/cache features. The later R4 check
   above corrects its timeout-era mismatch; use the exact matching revision, not
-  a moving branch. Keep the separate frozen TUI oracle untouched.
+  a moving branch. Historical TUI records stay as provenance of that check.
 - User's `cargo test -p oc` means the current native binary package `oc2` after
   T64's rename; use its real Cargo name, not a new compatibility package.
 - Ordinary configured precedence and saved grants must both satisfy R5; inspect

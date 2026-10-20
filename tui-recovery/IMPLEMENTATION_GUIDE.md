@@ -1,7 +1,9 @@
 # T44 — пошаговый план доведения TUI до проверяемого pixel parity
 
 Снимок аудита: `d232baa481ed6e4fc844359855d5f419f88b8a8e`.
-UI reference: `anomalyco/opencode@2670273ff17da96f85c5826ced57aa1b368754fa`
+UI reference: актуальный TypeScript OpenCode 2 (`.local/opencode`; ревизию фиксируй
+для конкретного прогона). Исторический аудит выполнялся на
+`anomalyco/opencode@2670273ff17da96f85c5826ced57aa1b368754fa`
 (`v2.0.12`). Ссылки Pxx/Uxx раскрыты в `SOURCES.json`.
 Это задания исполнителю, а не описание уже работающих исправлений.
 

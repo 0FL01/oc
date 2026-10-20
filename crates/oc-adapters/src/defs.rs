@@ -145,6 +145,8 @@ impl AgentDef {
 
 /// Pinned core/plugin/agent.ts default Build registration. Config transforms
 /// remain authoritative; this profile adds no model or permission override.
+/// The explicit color pins the upstream categorical slot (build → blue) so the
+/// frame, footer and user stripe agree regardless of catalog order.
 pub(crate) fn builtin_build() -> AgentDef {
     AgentDef {
         id: "build".into(),
@@ -157,12 +159,14 @@ pub(crate) fn builtin_build() -> AgentDef {
         hidden: false,
         mode: Some("primary".into()),
         request: Default::default(),
-        color: None,
+        color: Some("#5c9cf5".into()),
         origin: "builtin".into(),
     }
 }
 
 /// One registration path; the ordinary supplied-field merge applies afterward.
+/// Explicit colors mirror the upstream visible order
+/// (build → blue, general → purple, explore → green, plan → orange).
 pub(crate) fn builtin_agents() -> [AgentDef; 4] {
     let build = builtin_build();
     let mut plan = build.clone();
@@ -170,15 +174,18 @@ pub(crate) fn builtin_agents() -> [AgentDef; 4] {
     plan.description =
         "Read-only agent for exploring and planning; explicitly requested plan files only.".into();
     plan.permission_rules = crate::permissions::PermissionRules::plan_defaults();
+    plan.color = Some("#fab283".into());
     let mut general = build.clone();
     general.id = "general".into();
     general.mode = Some("subagent".into());
     general.description = "General-purpose agent for complex tasks and research.".into();
+    general.color = Some("#9d7cd8".into());
     let mut explore = general.clone();
     explore.id = "explore".into();
     explore.description = "Search specialist for exploring codebases.".into();
     explore.body = "You are Explore, a search specialist for exploring codebases. Find files, search their contents and explain relevant code. Use the available search/read tools and permitted MCP tools; do not modify files. Adapt to the requested quick, medium, or very thorough level of exploration. Include useful file paths and concise findings.".into();
     explore.permission_rules = crate::permissions::PermissionRules::explore_defaults();
+    explore.color = Some("#7fd88f".into());
     let mut agents = [build, plan, general, explore];
     for agent in &mut agents {
         agent.permission_rules.extend(profile_ceiling(&agent.id));

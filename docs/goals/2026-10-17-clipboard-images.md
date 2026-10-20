@@ -66,7 +66,8 @@ This is a T44 slice, not whole-task parity/READY.
   remote clipboard protocol, image deduplication, CLI `--image`, Shell/command
   attachments, structured durable Up/Down input history, global parity repinning.
 - Donor `.local/opencode` is 2.0.31 `bc5ebf00a4c169ece10f276e6ce02eaf18c326e6`;
-  it is supplementary evidence, not a replacement of pinned 2.0.12 acceptance.
+  it is supplementary evidence for that scoped check. Old seals below remain
+  provenance of their own runs.
 
 ## Material Decisions
 
@@ -76,4 +77,4 @@ This is a T44 slice, not whole-task parity/READY.
 - 2026-10-17: supplementary 2.0.31 capture uses a fixture-private headless KWin
   and PNG owner, never the user's desktop clipboard. Clipboard/prompt/attachment
   release sources match the supplied donor; session-route delta is only unrelated
-  copy commands. Global pinned 2.0.12 capture admission is unchanged.
+  copy commands. Old capture admission records below are historical provenance.

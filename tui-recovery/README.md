@@ -1,8 +1,10 @@
 # OpenCode Rust — TUI parity recovery kit
 
 Аудит снимка `d232baa481ed6e4fc844359855d5f419f88b8a8e` ветки `agent/oc-rust-port`.
-UI-эталон, выбранный текущим T44: OpenCode `v2.0.12`, commit
-`2670273ff17da96f85c5826ced57aa1b368754fa`.
+UI-эталон: актуальный TypeScript OpenCode 2 (исследуется в `.local/opencode`).
+Исторический аудит выполнялся на OpenCode `v2.0.12`, commit
+`2670273ff17da96f85c5826ced57aa1b368754fa`; этот commit фиксирует происхождение
+старого исследования, а не текущий lock продукта.
 
 ## Начало работы
 

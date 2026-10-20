@@ -1,7 +1,8 @@
 {
   "port_commit": "d232baa481ed6e4fc844359855d5f419f88b8a8e",
-  "ui_reference_tag": "v2.0.12",
-  "ui_reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "ui_reference_policy": "current TypeScript OpenCode 2 (.local/opencode); revision pinned per run, not a global tag lock",
+  "historical_ui_reference_tag": "v2.0.12",
+  "historical_ui_reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
   "note": "The value formerly described as a tree SHA is a commit SHA according to the tag ref. User screenshot version/terminal metadata are not supplied.",
   "sources": [
     {

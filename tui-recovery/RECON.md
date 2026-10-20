@@ -3,8 +3,10 @@
 ## Снимок и ограничения
 
 Порт: `d232baa481ed6e4fc844359855d5f419f88b8a8e`.
-Текущий UI reference: upstream `v2.0.12` → **commit**
+Исторический UI reference аудита: upstream `v2.0.12` → **commit**
 `2670273ff17da96f85c5826ced57aa1b368754fa`, не «tree SHA».
+Текущий ориентир — актуальный TypeScript OpenCode 2; старый commit остаётся
+происхождением этого аудита, а не действующим lock.
 Все локаторы в этом документе относятся к этим снимкам; каталог ссылок — `SOURCES.json`.
 
 Проверены текущий T44, selected source paths, progress и четыре PNG пользователя.

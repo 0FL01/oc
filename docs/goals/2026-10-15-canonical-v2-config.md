@@ -12,7 +12,7 @@ Task: T62 / M8; detailed acceptance CFG11–CFG13 только T62.
 
 ## Objective
 
-`oc2` принимает только канонический schema OpenCode 2 v2.0.12: `Info` из
+`oc2` принимает только канонический schema актуального OpenCode 2: `Info` из
 `packages/schema/src/config.ts` с `packages/schema/src/config/*.ts` и отдельный
 `cli.json` schema (`packages/cli/src/config/schema.ts`). Всё, что upstream принимает
 только через `packages/core/src/v1/**` (`ConfigNormalize` в `core/src/config/normalize.ts`,

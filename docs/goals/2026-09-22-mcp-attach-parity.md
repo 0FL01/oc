@@ -1,17 +1,19 @@
-# Goal: MCP attach parity с opencode v2.0.12
+# Goal: MCP attach parity с актуальным OpenCode 2
 
 > Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
 > Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+> Ориентир — актуальный TypeScript OpenCode 2; ссылки на `v2.0.12` ниже — происхождение
+> старого исследования, не действующий lock.
 
 Status: complete (assigned T46 backend baseline; additive MCP08/MCP09 pending; T44/product qualification separate)
-Source: инструкция владельца 2026-09-22 и утверждённый после RECON план 2026-09-27 (MCP config/startup/failure parity), reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Additional source: owner-approved OC1-shaped MCP/permissions and audited MCP modal configured-name plans, 2026-10-02; pinned OC2 remains the oracle, not OC1 OCR. Existing completed backend baseline/status/evidence are unchanged; additive MCP08/MCP09 qualification below is pending.
+Source: инструкция владельца 2026-09-22 и утверждённый после RECON план 2026-09-27 (MCP config/startup/failure parity), historical reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`).
+Additional source: owner-approved OC1-shaped MCP/permissions and audited MCP modal configured-name plans, 2026-10-02; current TypeScript OpenCode 2 remains the oracle, not OC1 OCR. Existing completed backend baseline/status/evidence are unchanged; additive MCP08/MCP09 qualification below is pending.
 Last updated: 2026-10-02
 
 ## Objective
 
 Сбой одного MCP-сервера не отменяет пользовательский turn. Native `oc` повторяет поведение
-upstream v2.0.12: сервер получает статус failed с санитизированными stage/code, его инструменты
+актуального upstream: сервер получает статус failed с санитизированными stage/code, его инструменты
 не публикуются в generation, turn выполняется дальше, а деградация видима пользователю.
 Дополнительно outbound HTTP-клиенты отправляют `User-Agent`: JS runtime upstream всегда его
 отправляет, `reqwest` по умолчанию — нет, из-за чего Cloudflare перед настроенным crw endpoint

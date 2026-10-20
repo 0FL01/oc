@@ -178,6 +178,9 @@ async fn r6_explicit_profile_color_reaches_tui_chrome_and_skips_slot_pin() {
         snapshot.chrome.agent_colors,
         BTreeMap::from([
             ("build".to_string(), "#12ab34".to_string()),
+            ("explore".to_string(), "#7fd88f".to_string()),
+            ("general".to_string(), "#9d7cd8".to_string()),
+            ("plan".to_string(), "#fab283".to_string()),
             ("worker".to_string(), "#654321".to_string()),
             ("z-first".to_string(), "#123456".to_string()),
         ])
@@ -185,5 +188,7 @@ async fn r6_explicit_profile_color_reaches_tui_chrome_and_skips_slot_pin() {
     let catalog = subagent_catalog(&c).unwrap();
     assert_eq!(catalog.agents["worker"].color.as_deref(), Some("#654321"));
     assert_eq!(catalog.agents["build"].color.as_deref(), Some("#12ab34"));
-    assert!(catalog.agents["general"].color.is_none());
+    assert_eq!(catalog.agents["plan"].color.as_deref(), Some("#fab283"));
+    assert_eq!(catalog.agents["general"].color.as_deref(), Some("#9d7cd8"));
+    assert_eq!(catalog.agents["explore"].color.as_deref(), Some("#7fd88f"));
 }

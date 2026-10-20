@@ -1,10 +1,13 @@
-# Goal: TUI pixel parity with opencode v2.0.12
+# Goal: TUI pixel parity with current TypeScript OpenCode 2
 
 > Предметный справочник, не execution-инструкция. Исторические labels/status не задают очередь работ.
 > Текущий scope/workflow — [AGENTS](../../AGENTS.md); открытые outcomes — [GOAL](../../GOAL.md).
+> Поведенческий ориентир — актуальный TypeScript OpenCode 2 (`.local/opencode`);
+> нижеследующие ссылки на `v2.0.12`/`2670273…` фиксируют происхождение старого
+> исследования, а не действующий lock.
 
 Status: blocked
-Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
+Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, historical reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
 Additional source: owner-approved canonical effort ordering after RECON, 2026-09-27.
 Additional source: owner-reported missing Middle Click tab close and explicit request to add the detailed work plan, 2026-09-30.
 Additional source: owner-reported Shift+Tab opens the agent picker instead of cycling, Tab/OC1 binding investigation and approval of the detailed T44/T45 fix plan, 2026-09-30.
@@ -19,7 +22,7 @@ Last updated: 2026-10-16
 
 ## Objective
 
-The `oc` TUI renders the upstream opencode v2.0.12 interface: same layout regions, same theme colors, same component inventory (message stream, tool cards, dialogs, command palette, session list, status/footer), same keybindings and visible strings, verified against the running pinned original using identical fixtures, state and terminal profile. Rust's own goldens are regression tests, not proof of external pixel parity.
+The `oc` TUI renders the upstream current TypeScript OpenCode 2 interface: same layout regions, same theme colors, same component inventory (message stream, tool cards, dialogs, command palette, session list, status/footer), same keybindings and visible strings, verified against the running current reference using identical fixtures, state and terminal profile. Rust's own goldens are regression tests, not proof of external pixel parity.
 
 ## Дополнительные поведенческие требования
 

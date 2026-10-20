@@ -262,7 +262,7 @@ T61 R3/HOT03 is not restored and whole T61/T44 remains incomplete.
 
 ### D27 — canonical OpenCode 2 config only (owner 2026-10-15)
 
-No OpenCode 1 config compatibility. Only the canonical v2.0.12 schema
+No OpenCode 1 config compatibility. Only the canonical OpenCode 2 schema
 (`packages/schema` config `Info` + cli.json schema) is accepted; anything upstream
 accepts only through `packages/core/src/v1/**` or tui.json/kv.json migration fails
 closed with one complete report of offending keys, sources and canonical replacements.

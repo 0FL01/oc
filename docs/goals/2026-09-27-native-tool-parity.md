@@ -349,7 +349,8 @@ NOT_RUN, not PASS from approval or the historical direct-tool report.
 
 Comparison starts from native HEAD `8a4291d13457a1641529dd6fa80d97d43d22066d`
 with existing live-switch/runtime/TUI/R8/CODE_MAP work dirty, not a clean runtime
-qualification. Donor remains OC2 v2.0.12 at the pinned commit above. RECON was
+qualification. That RECON used the then-current OC2 donor revision; its records below
+are provenance of that check. RECON was
 read-only: no builds, tests, live requests, secret/config extraction or source edits.
 
 | Surface | Pinned OC2 TS | Native source at RECON / missing work |
@@ -534,9 +535,9 @@ for those slices, not whole T45/T44/T46/T56 completion. T44 remains PAUSED and o
 existing presentation gates separately. R10 is pending/NOT_RUN; historical T40/AUD34
 and initial shell retention evidence do not prove the new filesystem/provider path.
 
-## Pinned References
+## Historical References
 
-All links point to the admitted OC2 v2.0.12 commit; current native restrictions are compared explicitly rather than copied from V1 docs.
+Links below point to the OC2 revision used by that RECON; they are provenance of that check. Current native restrictions are compared explicitly rather than copied from V1 docs.
 
 - [Registration and scope](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/plugin/internal.ts#L208-L242), [direct/CodeMode snapshots](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool.ts#L225-L262).
 - [Shell schema/defaults](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/shell.ts#L22-L73), [owned execution/background/notifications](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/tool/plugin/shell.ts#L153-L278), [source shell after movement](https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/session/shell.ts#L10-L26).

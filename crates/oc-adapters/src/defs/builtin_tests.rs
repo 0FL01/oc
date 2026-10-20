@@ -20,6 +20,10 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
         assert!(!defs.agents[id].primary_capable());
         assert!(defs.agents[id].subagent_capable());
     }
+    assert_eq!(defs.agents["build"].color.as_deref(), Some("#5c9cf5"));
+    assert_eq!(defs.agents["plan"].color.as_deref(), Some("#fab283"));
+    assert_eq!(defs.agents["general"].color.as_deref(), Some("#9d7cd8"));
+    assert_eq!(defs.agents["explore"].color.as_deref(), Some("#7fd88f"));
     assert!(defs.agents["general"].body.is_empty());
     assert!(defs.agents["explore"].body.contains("very thorough"));
     let original = agent_digest(&defs.agents["explore"]);

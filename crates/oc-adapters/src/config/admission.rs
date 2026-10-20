@@ -1,7 +1,7 @@
 //! Fail-closed OpenCode 2 key allowlist (T66, D28).
 //!
 //! Only keys of the canonical OpenCode 2 schema are admitted: config `Info` of
-//! `packages/schema` v2.0.12 (plus the T65-oracle provider `compatibility`), the
+//! `packages/schema` (plus the T65-oracle provider `compatibility`), the
 //! cli.json `Config.Info` of `packages/tui` and its keybind names, and declared
 //! native extensions. Any other key is reported and the configuration refused; it
 //! is never migrated, ignored or mapped to a replacement. Open records (`settings`,

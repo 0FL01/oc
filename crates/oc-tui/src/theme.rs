@@ -1,8 +1,8 @@
-//! Upstream OpenCode v2.0.12 theme palette.
+//! Upstream OpenCode 2 theme palette.
 //!
 //! The vendored asset is `assets/upstream/v2/opencode.json`, copied
-//! byte-for-byte from `packages/tui/src/theme/assets/v2/opencode.json` at tag
-//! `v2.0.12` (see `assets/upstream/PROVENANCE.md`). Upstream defaults are
+//! byte-for-byte from `packages/tui/src/theme/assets/v2/opencode.json` (see
+//! `assets/upstream/PROVENANCE.md` for the exact source revision). Upstream defaults are
 //! theme name `opencode` and mode `dark`
 //! (`evidence/tui/upstream-inventory.md` §2).
 //!

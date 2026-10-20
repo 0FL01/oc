@@ -2,8 +2,8 @@
   "schema_version": 1,
   "status": "UNFILLED_TEMPLATE_NOT_EVIDENCE",
   "upstream": {
-    "source_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
-    "tag": "v2.0.12",
+    "source_commit": null,
+    "tag": null,
     "executable_path": null,
     "executable_sha256": null,
     "actual_version_output": null

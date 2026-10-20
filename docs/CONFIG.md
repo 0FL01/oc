@@ -15,7 +15,7 @@ Discovery native enabled для ludka2; static ludka можно включить
 
 ## Только канонический OpenCode 2 config — T62/T66 (owner 2026-10-15, D28 2026-10-16)
 
-`oc2` знает только канонический schema OpenCode 2 v2.0.12 (`packages/schema` config
+`oc2` знает только канонический schema актуального OpenCode 2 (`packages/schema` config
 `Info` и `cli.json` `Config.Info`). Словаря OpenCode 1 в коде нет ([D28](DECISIONS.md),
 [T66](goals/2026-10-16-v2-allowlist.md)): каждый admitted `opencode.json(c)`, `cli.json(c)`
 и frontmatter Markdown-агента проверяется по OC2 allowlist
@@ -190,7 +190,7 @@ catalog. Нет periodic /models polling, environment mutation живого пр
 
 ## MCP/permissions compatibility — approved 2026-10-02
 
-Only canonical OC2 v2.0.12 MCP config is admitted (T66): direct `mcp.<name>`
+Only canonical OC2 MCP config is admitted (T66): direct `mcp.<name>`
 entries, `enabled` and camelCase OAuth keys are unknown keys and fail closed with the
 `unknown_config_key` report; numeric timeouts are malformed values. Canonical root `mcp.servers` uses `disabled`; timeout is
 `{startup, catalog, execution}` in positive ms with defaults 30,000/30,000/43,200,000.
