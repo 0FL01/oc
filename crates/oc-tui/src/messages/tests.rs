@@ -1173,12 +1173,7 @@ fn exploration_boundaries_do_not_hide_uncertain_or_unrelated_operations() {
     ] {
         separators.push(exploration_tool(name, "completed", false));
     }
-    for state in [
-        "permission_pending",
-        "argument_stream",
-        "unknown",
-        "no_gain",
-    ] {
+    for state in ["permission_pending", "unknown", "no_gain"] {
         separators.push(exploration_tool("read", state, false));
     }
     for separator in separators {
@@ -1462,6 +1457,54 @@ fn failed_exploration_preserves_styles_error_click_and_indexed_geometry() {
             }
         }
     }
+}
+
+#[test]
+fn streaming_exploration_arguments_join_the_group_as_pending_members() {
+    let theme = Theme::dark();
+    // Live argument streams carry no input (`index.tsx:2416`).
+    let streaming = |name: &str, op: &str| {
+        let mut row = exploration_tool(name, "argument_stream", false);
+        let card = row.tool.as_mut().unwrap();
+        card.op = op.into();
+        card.render = crate::tools::ToolRender::parse(name, None, None, "argument_stream");
+        card.output_preview.clear();
+        row
+    };
+    let rows = [
+        streaming("read", "a"),
+        streaming("grep", "b"),
+        streaming("read", "c"),
+    ];
+    let (collapsed, _) = render(&rows, 80, 6);
+    assert_eq!(collapsed[1], "   ⋯ Exploring: 2 reads, 1 search");
+    assert!(collapsed[2..].iter().all(String::is_empty), "{collapsed:?}");
+    let expanded = transcript_with_expansion(&rows, theme, 80, 80, |_| theme.text(), None, &|op| {
+        op == ToolExpansion::Operation("a")
+    })
+    .iter()
+    .map(|line| line.plain_text().trim_end().to_string())
+    .collect::<Vec<_>>();
+    assert_eq!(
+        expanded,
+        [
+            "",
+            "   ⋯ Exploring: 2 reads, 1 search",
+            "   ⋯ Reading file…",
+            "   ⋯ Searching content…",
+            "   ⋯ Reading file…",
+        ]
+    );
+    // A finished member does not settle a group with streaming members.
+    let (mixed, _) = render(
+        &[
+            exploration_tool("read", "completed", false),
+            streaming("glob", "d"),
+        ],
+        80,
+        5,
+    );
+    assert_eq!(mixed[1], "   ⋯ Exploring: 1 read, 1 search");
 }
 
 #[test]

@@ -2217,6 +2217,94 @@ async fn pending_delegation_uses_typed_inline_opaque_presentation() {
 }
 
 #[tokio::test]
+async fn argument_stream_exploration_groups_like_upstream_and_survives_admission() {
+    use oc_core::tool_stream::{ToolStreamEvent as Event, ToolStreamIdentity as Identity};
+    let mut state = fresh_state("s-streaming-exploration").await;
+    let turn = WorkerTurnId("t-streaming-exploration".into());
+    state.active_turn = Some(turn.clone());
+    state.status = TuiStatus::Streaming;
+    let identity = |call: &str| Identity {
+        round: 1,
+        item_id: format!("item-{call}"),
+        call_id: call.into(),
+    };
+    for (call, name) in [("a", "read"), ("b", "grep"), ("c", "read"), ("d", "shell")] {
+        state.apply_tool_argument_stream(
+            &turn,
+            &Event::Pending {
+                output_presentation: None,
+                identity: identity(call),
+                name: name.into(),
+                preview: "{\"path\":\"leak.txt\",\"command\":\"leak".into(),
+                truncated: false,
+            },
+        );
+    }
+    let shown = |state: &TuiState| {
+        state
+            .visible_transcript(80, 80, 40)
+            .0
+            .iter()
+            .map(|line| line.plain_text().trim_end().to_string())
+            .collect::<Vec<_>>()
+    };
+    let collapsed = shown(&state);
+    assert!(
+        collapsed.contains(&"   ⋯ Exploring: 2 reads, 1 search".to_string()),
+        "{collapsed:?}"
+    );
+    assert!(!collapsed.iter().any(|line| line.contains("Reading file…")));
+    // Shell keeps its own BlockTool, never an empty `$` command.
+    assert!(
+        collapsed.contains(&"┃  ⋯ Writing command…".to_string()),
+        "{collapsed:?}"
+    );
+    assert!(collapsed.iter().all(|line| !line.contains("leak")
+        && !line.contains('$')
+        && !line.contains("arguments streaming")));
+    let first = state
+        .transcript_rows()
+        .into_iter()
+        .find_map(|row| row.tool)
+        .unwrap()
+        .op;
+    state.exploration_expanded.insert(first);
+    state.invalidate_transcript();
+    let members = [
+        "   ⋯ Exploring: 2 reads, 1 search",
+        "   ⋯ Reading file…",
+        "   ⋯ Searching content…",
+        "   ⋯ Reading file…",
+    ];
+    let expanded = shown(&state);
+    assert!(
+        expanded.windows(members.len()).any(|rows| rows == members),
+        "{expanded:?}"
+    );
+    // Admission renames the first member; its group stays expanded and open.
+    state.apply_tool_argument_stream(
+        &turn,
+        &Event::Linked {
+            identity: identity("a"),
+            op: "durable-a".into(),
+        },
+    );
+    let admitted = shown(&state);
+    assert!(
+        admitted.windows(members.len()).any(|rows| rows == members),
+        "{admitted:?}"
+    );
+    assert_eq!(
+        state
+            .transcript_rows()
+            .iter()
+            .filter(|row| row.tool.is_some())
+            .count(),
+        4
+    );
+}
+
+#[tokio::test]
 async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
     use oc_core::tool_stream::{
         PENDING_TOOL_MAX, ToolStreamEvent as Event, ToolStreamIdentity as Identity,
@@ -2246,10 +2334,9 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
         ),
     );
     let shown = state.viewport().join("\n");
-    assert!(
-        shown.contains("Patch · arguments streaming · no effects yet"),
-        "{shown}"
-    );
+    // ApplyPatch's streaming BlockTool title (`index.tsx:3440`).
+    assert!(shown.contains("┃  ⋯ Patching"), "{shown}");
+    assert!(!shown.contains("arguments streaming") && !shown.contains("no effects yet"));
     assert!(!shown.contains("Created") && !shown.contains("fake"));
     let card = state
         .transcript_rows()
@@ -2329,11 +2416,18 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
     }
     assert_eq!(state.pending_tool_seen.len(), PENDING_TOOL_MAX);
     assert!(state.live_parts.len() <= super::LIVE_PARTS_MAX);
+    // GenericTool's streaming row is the inline spinner and bare tool name.
+    let shown = state.viewport();
     assert!(
-        state
-            .viewport()
-            .join("\n")
-            .contains("unknown-tool · arguments streaming · no effects yet")
+        shown
+            .iter()
+            .any(|line| line.trim_end() == "   ⋯ unknown-tool"),
+        "{shown:?}"
+    );
+    assert!(
+        !shown
+            .iter()
+            .any(|line| line.contains('┃') || line.contains('界'))
     );
     // Evicted identity snapshots cannot resurrect a second live card.
     for i in 0..super::LIVE_PARTS_MAX {

@@ -649,33 +649,13 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
             frame.row(&[]),
         ];
     }
+    if card.state == "argument_stream" {
+        return argument_stream_block(card, theme, width);
+    }
     if card.question.is_none()
         && let ToolRender::Inline(inline @ InlineRender::Question { .. }) = &card.render
     {
         return inline_rows(inline, card, theme);
-    }
-    if card.state == "argument_stream" {
-        if let ToolRender::Subagent(subagent) = &card.render {
-            return subagent_block(subagent, card, theme, width);
-        }
-        let frame = BlockFrame::new(theme, width);
-        let name = if card.name == "apply_patch" {
-            "Patch".to_string()
-        } else {
-            card.display_name()
-                .chars()
-                .filter(|c| !c.is_control())
-                .take(80)
-                .collect()
-        };
-        return vec![
-            frame.row(&[]),
-            frame.row(&[Span::styled(
-                format!("{SPINNER} {name} · arguments streaming · no effects yet"),
-                frame.body_style(),
-            )]),
-            frame.row(&[]),
-        ];
     }
     if let Some(result) = &card.question {
         let mut frame = BlockFrame::new(theme, width);
@@ -752,6 +732,47 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
     }
 }
 
+/// Streaming arguments: upstream ToolPart passes an empty input until the call
+/// is complete (`index.tsx:2416`), so each kind shows only its pending label.
+/// The bounded raw argument preview is never displayed or parsed.
+fn argument_stream_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
+    let title = match &card.render {
+        ToolRender::Subagent(subagent) => return subagent_block(subagent, card, theme, width),
+        ToolRender::Shell(shell) => return shell_block(shell, card, theme, width),
+        // GenericTool fallback: spinner and the bare tool name (`index.tsx:2567`).
+        ToolRender::Dcp(_) => {
+            let generic = InlineRender::Generic {
+                args: Vec::new(),
+                summary: String::new(),
+                arguments_limited: false,
+            };
+            return generic_block_expanded(&generic, card, theme, width, false);
+        }
+        ToolRender::Inline(inline) => return inline_rows(inline, card, theme),
+        // Write (`index.tsx:3016`) is an InlineTool without a path.
+        ToolRender::Patch(_) if card.name == "write" => {
+            let style = ratatui::style::Style::default().fg(theme.text_muted());
+            return vec![Line::new(vec![
+                Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
+                Span::styled(format!("{SPINNER:<TOOL_ICON_WIDTH$}"), style),
+                Span::styled("Preparing write…", style),
+            ])];
+        }
+        // Edit and ApplyPatch are spinner-titled BlockTools (`index.tsx:3327,3440`).
+        ToolRender::Patch(_) if card.name == "edit" => "Preparing edit…",
+        ToolRender::Patch(_) => "Patching",
+    };
+    let frame = BlockFrame::new(theme, width);
+    vec![
+        frame.row(&[]),
+        frame.row(&[Span::styled(
+            format!("{SPINNER} {title}"),
+            frame.body_style(),
+        )]),
+        frame.row(&[]),
+    ]
+}
+
 /// Block frame: left `┃` border, raised background, padding 1/2
 /// (`index.tsx:2784-2866`).
 struct BlockFrame<'t> {
@@ -822,6 +843,21 @@ pub(crate) fn shell_block_expanded(
     frame.padding = ratatui::style::Style::default().bg(frame.bg);
     let mut out = vec![frame.row(&[])];
     let running = is_running(&card.state) && shell.process_state.is_none() || shell.live_running;
+    let admitted =
+        is_running(&card.state) && shell.process_state.is_none() && card.output_preview.is_empty();
+    if shell.command.is_empty() && (card.state == "argument_stream" || admitted) {
+        // ShellDisplay's commandless fallback (`index.tsx:2941-2947`).
+        let text = ratatui::style::Style::default()
+            .fg(theme.text())
+            .bg(frame.bg);
+        out.push(frame.row(&[
+            Span::styled(SPINNER, text),
+            Span::styled(" ", frame.padding),
+            Span::styled("Writing command…", text),
+        ]));
+        out.push(frame.row(&[]));
+        return out;
+    }
     let mut header = vec![Span::styled(
         if running {
             format!("{SPINNER} ")
@@ -1510,9 +1546,12 @@ fn inline_rows_expanded(
         return generic_block_expanded(inline, card, theme, 0, false);
     }
     let pad = Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING));
-    let running = is_running(&card.state) || card.state == "running";
+    // Streaming arguments render as the pending spinner label (`index.tsx:2416`).
+    let running =
+        is_running(&card.state) || matches!(card.state.as_str(), "running" | "argument_stream");
     let waiting = card.state == "permission_pending";
-    let question = matches!(inline, InlineRender::Question { .. });
+    let question =
+        matches!(inline, InlineRender::Question { .. }) && card.state != "argument_stream";
     let cancelled_question =
         card.state == "cancelled" && matches!(inline, InlineRender::Question { count: Some(_) });
     let exploration = matches!(
@@ -1754,7 +1793,11 @@ pub(crate) fn generic_block_expanded(
     } else {
         style
     };
-    let icon = if is_running(&card.state) || card.state == "permission_pending" {
+    let icon = if is_running(&card.state)
+        || matches!(
+            card.state.as_str(),
+            "permission_pending" | "argument_stream"
+        ) {
         SPINNER
     } else if failed {
         "✗"

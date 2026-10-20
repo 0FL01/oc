@@ -2197,18 +2197,8 @@ impl TuiState {
                     dcp: None,
                     dcp_topic: None,
                 });
-                if !matches!(
-                    card.render,
-                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)
-                        | crate::tools::ToolRender::Subagent(_)
-                ) {
-                    card.render =
-                        crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
-                            args: Vec::new(),
-                            summary: String::new(),
-                            arguments_limited: false,
-                        });
-                }
+                // The name-derived kind has no arguments (`input: None`), like
+                // upstream ToolPart's empty streaming input (`index.tsx:2416`).
                 // Bounded raw prefix is presentation text only, not input JSON.
                 let mut end = preview
                     .len()
@@ -2265,6 +2255,11 @@ impl TuiState {
                             && detail.operation == key
                         {
                             detail.operation.clone_from(op);
+                        }
+                        // A streaming exploration group is keyed by its first
+                        // operation; admission must not collapse it.
+                        if self.exploration_expanded.remove(&key) {
+                            self.exploration_expanded.insert(op.clone());
                         }
                         card.op.clone_from(op);
                         card.state = "started".into();

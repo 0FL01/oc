@@ -590,17 +590,19 @@ fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_re
         assert_eq!(visible[1..], styled::wrap_lines(&full, 80));
     }
     assert_eq!(operation, before, "RAW and operation binding are unchanged");
-    for (state, input) in [
-        ("argument_stream", input.as_str()),
-        ("started", "{\"questions\":["),
-        ("started", "{\"questions\":[{}]}"),
+    // Streaming input is empty upstream (`index.tsx:2416`): InlineToolRow's
+    // spinner fallback, never a count parsed from fragments.
+    for (state, input, expected) in [
+        ("argument_stream", input.as_str(), "   ⋯ Asking questions…"),
+        ("started", "{\"questions\":[", "   → Asking questions…"),
+        ("started", "{\"questions\":[{}]}", "   → Asking questions…"),
     ] {
         operation.state = state.into();
         operation.input = Some(input.into());
         let card = card_from_row(&operation);
         let lines = tool_block(&card, theme, 80);
         assert_eq!(lines.len(), 1);
-        assert_eq!(lines[0].plain_text(), "   → Asking questions…");
+        assert_eq!(lines[0].plain_text(), expected);
         assert!(card.question.is_none());
         assert!(!generic_expandable(&card));
     }
@@ -1398,6 +1400,81 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
                         assert_eq!(range, 2..2 + header.len());
                     }
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn argument_stream_renders_each_kind_as_its_upstream_pending_view() {
+    // Upstream ToolPart passes an empty input while arguments stream
+    // (`index.tsx:2416`). Rows: (name, text row, raised block).
+    let cases = [
+        ("read", "   ⋯ Reading file…", false),
+        ("glob", "   ⋯ Finding files…", false),
+        ("grep", "   ⋯ Searching content…", false),
+        ("webfetch", "   ⋯ Fetching from the web…", false),
+        ("skill", "   ⋯ Loading skill…", false),
+        ("question", "   ⋯ Asking questions…", false),
+        ("write", "   ⋯ Preparing write…", false),
+        ("unknown-tool", "   ⋯ unknown-tool", false),
+        ("compress", "   ⋯ compress", false),
+        ("edit", "┃  ⋯ Preparing edit…", true),
+        ("apply_patch", "┃  ⋯ Patching", true),
+        ("shell", "┃  ⋯ Writing command…", true),
+        ("bash", "┃  ⋯ Writing command…", true),
+    ];
+    for theme in [Theme::dark(), Theme::light()] {
+        for (name, expected, raised) in cases {
+            for preview in [
+                "",
+                "{\"path\":\"leak",
+                "{\"path\":\"leak\",\"command\":\"leak\"}",
+            ] {
+                let mut card = card_from_row(&ToolOpView {
+                    child_job: None,
+                    question: None,
+                    rowid: 0,
+                    op: format!("pending:1:{name}"),
+                    name: name.into(),
+                    state: "argument_stream".into(),
+                    input: None,
+                    output: None,
+                    output_bytes: 0,
+                    output_truncated: false,
+                    output_presentation: None,
+                    patch_effects: None,
+                    dcp: None,
+                    dcp_topic: None,
+                });
+                card.input_preview = preview.into();
+                let lines = tool_block(&card, theme, 60);
+                let text = lines.iter().map(Line::plain_text).collect::<Vec<_>>();
+                let label = if raised { 1 } else { 0 };
+                assert_eq!(lines.len(), if raised { 3 } else { 1 }, "{name}: {text:?}");
+                assert_eq!(text[label].trim_end(), expected, "{name}");
+                assert!(
+                    text.iter().all(|line| !line.contains("leak")
+                        && !line.contains("arguments streaming")
+                        && !line.contains("no effects yet")),
+                    "{name}: {text:?}"
+                );
+                assert_eq!(
+                    lines[label].style().bg == Some(theme.background_raised()),
+                    raised,
+                    "{name}"
+                );
+                let glyph = lines[label]
+                    .spans()
+                    .iter()
+                    .find(|span| span.content().starts_with(SPINNER))
+                    .expect("spinner");
+                let fg = if name == "shell" || name == "bash" {
+                    theme.text()
+                } else {
+                    theme.text_muted()
+                };
+                assert_eq!(glyph.style().fg, Some(fg), "{name}");
             }
         }
     }

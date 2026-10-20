@@ -962,15 +962,22 @@ fn reasoning_group_header(group: &ReasoningGroup<'_>, theme: &Theme, width: u16)
     clipped_line(sanitize_line(Line::new(spans)), width)
 }
 
-/// Upstream groups direct exploration parts in their first-seen order.
-/// Terminal errors and bounded
-/// output previews remain real members. Unknown recovery outcomes stay explicit.
+/// Upstream groups direct exploration parts in their first-seen order, streaming
+/// arguments included (`grouping/session.ts:78-89`). Terminal errors and bounded
+/// output previews remain real members. Permission waits and unknown recovery
+/// outcomes stay explicit.
 fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
     let card = row.tool.as_ref()?;
     if row.role != "tool"
         || !matches!(
             card.state.as_str(),
-            "completed" | "started" | "running" | "failed" | "denied" | "cancelled"
+            "argument_stream"
+                | "completed"
+                | "started"
+                | "running"
+                | "failed"
+                | "denied"
+                | "cancelled"
         )
     {
         return None;
@@ -987,7 +994,8 @@ fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
     }?;
     Some((
         name,
-        !crate::tools::is_running(&card.state) && card.state != "running",
+        !crate::tools::is_running(&card.state)
+            && !matches!(card.state.as_str(), "running" | "argument_stream"),
     ))
 }
 
