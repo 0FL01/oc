@@ -212,6 +212,31 @@ impl Runtime<'_> {
         Ok(())
     }
 
+    /// A committed agent switch while this root runs. Unlike a between-turn
+    /// publication it takes no execution reservation: the prepared request and
+    /// its tools keep their captured Arc, the next fresh request reads this one.
+    /// Shared (non-root) runtimes have no single session to retarget.
+    pub(crate) fn stage_primary_workspace(
+        &self,
+        input: WorkspacePublication,
+        profile: crate::application::Effective,
+    ) -> Result<(), RuntimeError> {
+        let Some(primary) = &self.primary else {
+            return Ok(());
+        };
+        let workspace = self.prepare_workspace(input)?;
+        let _commit = self.publication_commit.lock().expect("publication commit");
+        if primary.source_id.load(Ordering::SeqCst) != self.generation_id() {
+            return Err(RuntimeError::InvalidArgs(
+                "source changed; the agent applies to the next run".into(),
+            ));
+        }
+        *primary.profile.write().expect("primary profile") = profile;
+        let mut current = self.current.write().expect("generation lock");
+        Arc::make_mut(&mut current).workspace = workspace;
+        Ok(())
+    }
+
     /// All construction/validation precedes the supervisor-owned atomic commit.
     /// Only the serialized source owner calls this; issued requests retain their
     /// immutable leases instead of acquiring the foreground execution reservation.

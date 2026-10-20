@@ -124,6 +124,15 @@ impl TuiState {
                 self.panel = TuiPanel::None;
             }
         }
+        // A staged next-send agent is client-owned composer state. Re-stage it
+        // first so its per-agent model drafts below match the same binding.
+        if let Some(draft) = previous.agent_draft.take()
+            && self.agent_draft.is_none()
+            && self.session == previous.session
+            && self.active_agent.as_deref() != draft.agent_id.as_deref()
+        {
+            let _ = self.apply_agent_preview(draft);
+        }
         if self.model_selection.binding == previous.model_selection.binding {
             let preserve_picker = !previous.model_selection.drafts.is_empty()
                 || matches!(previous.panel, TuiPanel::Model | TuiPanel::Variant);

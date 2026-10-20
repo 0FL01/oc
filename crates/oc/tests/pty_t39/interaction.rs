@@ -2410,10 +2410,9 @@ fn v04_new_session_aliases_navigate_accepted_turns_without_enabling_profile_muta
     let off = submit(&mut pty, "vis28 held stream");
     fixture.wait_requests(6);
     // Slash, chord and palette routes all consult the same availability policy.
-    pty.send(b"/agents\r");
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
-    pty.send(&[0x7f; "/agents".len()]);
+    // OC2: agent/model/effort selectors are local next-send drafts while busy.
     for (command, panel) in [
+        ("/agents", "Select agent"),
         ("/model", "Select model"),
         ("/variants", "Select variant"),
         ("/thinking", "Select variant"),
@@ -2434,7 +2433,9 @@ fn v04_new_session_aliases_navigate_accepted_turns_without_enabling_profile_muta
     pty.send(b"\x1b");
     dismissed(&pty, "Select model");
     pty.send(b"\x18a");
-    wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
+    wait_screen_row(&pty, "Select agent", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Select agent");
     for route in [
         b"/new\r".as_slice(),
         b"/clear\r",

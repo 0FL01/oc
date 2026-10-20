@@ -277,6 +277,13 @@ T45/PRM01 consumes the view, T44/VIS35/VIS36 qualifies separate cards/previews.
   The same rule applies to admitted retry/compaction request rebuilds; finite allowances
   and no unknown-effect replay are unchanged. No continuation means commit alone does
   not create a request; subsequent work uses the committed selection.
+- Agent/profile follows OC2 `switchAgent`: in an existing session the picker/Tab choice
+  is a composer draft (owner `Preview`, no write) and the running turn keeps its profile.
+  Message/command preparation and blank Enter commit the agent before the captured model
+  commit. A commit while busy is staged for the running root's next fresh request
+  (prompt, tools, permissions, request overlay); the prepared request and its tool
+  batch keep their captured profile. A child session cannot switch. Home persists its
+  own agent choice immediately.
 - The prepared request captures actual route/model/variant/context/tools and keeps
   them through stream and settled tool batch/approval. Do not abort/restart it from a
   later choice. Its call allowset is its advertised view, not the latest preference:
@@ -291,10 +298,10 @@ T45/PRM01 consumes the view, T44/VIS35/VIS36 qualifies separate cards/previews.
   work or imply that a multi-request turn used one model. Restart restores committed
   selection and truthful stored attribution, not an unconfirmed draft or tool replay.
 
-Superseded only model/variant busy refusal and whole-turn model capture in the prior
-file-tools plan. Immutable config/Location/agent generations, child/read-only authority,
+Superseded model/variant/agent busy refusal and whole-turn model/agent capture in the
+prior file-tools plan. Immutable config/Location generations, child/read-only authority,
 explicit provider/credential admission, one execution owner and request revisions hold.
-This is not general steer/agent-switch/config-reload parity. T50 owns TOOL12, T45/PRM01
+This is not general steer/config-reload parity. T50 owns TOOL12, T45/PRM01
 consumes prompt/draft lifecycle, T47 owns VAR01 ordering and T44 separately qualifies
 VIS09/VIS29/VIS17/VIS35/VIS36 after explicit resume. No new selector tool/store/framework.
 Detailed implementation slices: [T50 live switching](goals/2026-09-27-native-tool-parity.md#live-model-switching--r1tool12-approved-2026-10-01-pending).

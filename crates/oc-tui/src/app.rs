@@ -825,6 +825,9 @@ pub struct TuiState {
     /// Effective agent id from the catalog snapshot (the metadata row shows
     /// the active agent, never the picker cursor).
     active_agent: Option<String>,
+    /// Owner preview of the composer's next-send agent while it differs from
+    /// the session's committed one; committed right before the next send.
+    agent_draft: Option<CatalogSnapshot>,
     /// Agents cursor.
     pub(crate) agents_cursor: usize,
     /// Session ids for the Sessions panel.
@@ -1044,6 +1047,7 @@ impl TuiState {
             catalog_loaded: false,
             agents: Vec::new(),
             active_agent: None,
+            agent_draft: None,
             agents_cursor: 0,
             sessions: Vec::new(),
             session_entries: Vec::new(),
@@ -1125,6 +1129,7 @@ impl TuiState {
         self.catalog_loaded = false;
         self.agents.clear();
         self.active_agent = None;
+        self.agent_draft = None;
         self.agents_cursor = 0;
         self.sessions.clear();
         self.sessions_cursor = 0;

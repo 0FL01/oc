@@ -3686,14 +3686,10 @@ async fn query(
             ack,
         } => {
             let result = (|| {
+                // Only a new Home route replaces the running owner's session.
+                // Agent/model/effort choices apply from the next fresh request.
                 if runtime.turn_active()
-                    && !matches!(
-                        action,
-                        oc_core::queries::SessionSelectionAction::Current
-                            | oc_core::queries::SessionSelectionAction::Model(_)
-                            | oc_core::queries::SessionSelectionAction::Variant(_)
-                            | oc_core::queries::SessionSelectionAction::Commit(_)
-                    )
+                    && matches!(action, oc_core::queries::SessionSelectionAction::New(_))
                 {
                     return Err(CoreError::TurnBusy);
                 }
@@ -3705,6 +3701,7 @@ async fn query(
                         action,
                         oc_core::queries::SessionSelectionAction::Model(_)
                             | oc_core::queries::SessionSelectionAction::Variant(_)
+                            | oc_core::queries::SessionSelectionAction::Agent(_)
                     )
                     && db
                         .session_meta(&session.0)
@@ -3724,6 +3721,19 @@ async fn query(
                     action.clone(),
                     location_epoch.load(Ordering::SeqCst),
                 )?;
+                if matches!(action, oc_core::queries::SessionSelectionAction::Agent(_))
+                    && runtime.turn_active()
+                    && previous.agent_id != selected.agent_id
+                {
+                    // The prepared request and its tool batch keep their
+                    // captured profile; the next fresh request uses this one.
+                    runtime
+                        .stage_primary_workspace(
+                            workspace_publication(composition, &selected),
+                            selected.clone(),
+                        )
+                        .map_err(app_error)?;
+                }
                 if matches!(
                     action,
                     oc_core::queries::SessionSelectionAction::Model(_)

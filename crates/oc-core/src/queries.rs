@@ -203,6 +203,9 @@ pub enum SessionSelectionAction {
     Variant(Option<String>),
     /// Select an agent and restore that session/agent's model draft.
     Agent(String),
+    /// Read-only: the choice this session would resolve for an agent. The
+    /// composer stages it as a draft; `Agent` commits it before the next send.
+    Preview(String),
     /// Initialize a new Home route for the current agent.
     New(Option<String>),
 }

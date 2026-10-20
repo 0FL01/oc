@@ -306,7 +306,7 @@ impl TuiState {
                         a.id.clone(),
                         "Agents",
                         a.description.clone(),
-                        self.active_agent.as_ref() == Some(&a.id),
+                        self.composer_agent() == Some(a.id.as_str()),
                     )
                 }));
                 options
@@ -3373,7 +3373,7 @@ impl TuiState {
         let Some(index) = self
             .agents
             .iter()
-            .position(|agent| Some(agent.id.as_str()) == self.active_agent())
+            .position(|agent| Some(agent.id.as_str()) == self.composer_agent())
         else {
             return KeyOutcome::default();
         };
@@ -3434,6 +3434,13 @@ impl TuiState {
             };
         }
         if self.input.trim().is_empty() {
+            // OC2 blank Enter commits the composer's agent, then its model.
+            if let Err(error) = self.commit_agent_draft().await {
+                return KeyOutcome {
+                    note: Some(error),
+                    ..Default::default()
+                };
+            }
             return match self.commit_composer_model() {
                 Ok(()) => KeyOutcome::default(),
                 Err(error) => KeyOutcome {
@@ -3536,6 +3543,14 @@ impl TuiState {
         if self.active_turn.is_some() {
             return KeyOutcome {
                 note: Some("turn busy".into()),
+                ..KeyOutcome::default()
+            };
+        }
+        // OC2 prepareAgent: a staged agent is committed before the captured
+        // model commit, so this send (not the running turn) carries it.
+        if let Err(error) = self.commit_agent_draft().await {
+            return KeyOutcome {
+                note: Some(error),
                 ..KeyOutcome::default()
             };
         }
@@ -4318,11 +4333,6 @@ impl TuiState {
             }
             TuiPanel::Rename => return self.handle_rename_key(KeyAction::Enter),
             TuiPanel::Accounts => return self.accounts_key(KeyAction::Enter),
-            TuiPanel::Agents if self.is_busy() => {
-                outcome.note = self
-                    .command_unavailable(&CommandAction::OpenAgents)
-                    .map(str::to_string)
-            }
             TuiPanel::Sessions
                 if self.has_pending_submission() || self.has_pending_model_commit() =>
             {

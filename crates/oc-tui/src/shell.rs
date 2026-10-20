@@ -2103,7 +2103,7 @@ fn render_prompt(
             .unwrap_or(theme.border_active())
     } else {
         state
-            .active_agent()
+            .composer_agent()
             .map_or(theme.border(), |a| state.agent_color(Some(a)))
     });
     let input_fg = if state.leader_pending() {
@@ -2317,7 +2317,7 @@ fn metadata_line(
         )]));
     }
     let agent = layout::shows_agent_metadata(terminal_width)
-        .then(|| state.active_agent())
+        .then(|| state.composer_agent())
         .flatten();
     let agent_label = agent.map(crate::messages::Locale::titlecase);
     let display_agent = agent_label.as_deref();

@@ -154,7 +154,6 @@ impl CommandSpec {
                 self.action,
                 CommandAction::CloseTab
                     | CommandAction::RenameSession { .. }
-                    | CommandAction::OpenAgents
                     | CommandAction::SwitchLocation { .. }
                     | CommandAction::ReloadConfiguration
                     | CommandAction::DcpCompress { .. }

@@ -703,6 +703,11 @@ pub(super) fn home(
             Ok(selected)
         }
         Action::Current => Ok(current.clone()),
+        Action::Preview(agent) => {
+            let selected = home_for_agent(db, c, fallback, Some(&agent))?;
+            selected.admit_selection(c)?;
+            Ok(selected)
+        }
         Action::Agent(agent) | Action::New(Some(agent)) => {
             let selected = home_for_agent(db, c, fallback, Some(&agent))?;
             selected.admit_selection(c)?;
@@ -833,6 +838,15 @@ pub(super) fn apply(
     }
     if action == Action::Current {
         return resolve(db, c, fallback, &choice);
+    }
+    if let Action::Preview(agent) = &action {
+        // The composer's next-send draft: resolve on a copy, persist nothing.
+        choice.agent = Some(agent.clone());
+        choice.inline_command = None;
+        choice.command_parents.clear();
+        let selected = resolve(db, c, fallback, &choice)?;
+        selected.admit_selection(c)?;
+        return Ok(selected);
     }
     if let Action::Agent(agent) = &action {
         choice.agent = Some(agent.clone());

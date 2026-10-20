@@ -720,3 +720,106 @@ async fn srv04_independent_primary_profiles_overlap_and_same_session_reserves_be
     drop(owner);
     Db::open(&data).unwrap();
 }
+
+#[tokio::test]
+async fn busy_agent_commit_applies_from_the_next_request_of_the_running_root() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(project.join("note"), "note body").unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut source = config(&format!("http://{}/v1", listener.local_addr().unwrap()));
+    source["agents"]["alpha"] = json!({"system":"ALPHA_PRIMARY_SENTINEL"});
+    source["agents"]["beta"] = json!({"system":"BETA_PRIMARY_SENTINEL"});
+    source["default_agent"] = json!("alpha");
+    source["permissions"] = json!([{"action": "*", "resource": "*", "effect": "allow"}]);
+    std::fs::write(project.join("opencode.json"), source.to_string()).unwrap();
+    let (held, mut held_rx) = mpsc::channel(1);
+    let (release, gate) = tokio::sync::oneshot::channel::<()>();
+    let server = tokio::spawn(async move {
+        let mut bodies = Vec::new();
+        let mut gate = Some(gate);
+        for step in 0..2 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            bodies.push(request(&mut socket).await);
+            if step == 0 {
+                held.send(()).await.unwrap();
+                gate.take().unwrap().await.unwrap();
+                respond(&mut socket, json!([{"type":"function_call","id":"read-item","call_id":"read-call","name":"read","arguments":"{\"path\":\"note\"}"}])).await;
+            } else {
+                respond(&mut socket, json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"settled"}]}])).await;
+            }
+        }
+        bodies
+    });
+    let owner = Owner::new(Db::open(&data).unwrap(), env(root.path())).unwrap();
+    let location = owner.location(&project, false).await.unwrap();
+    let session = SessionId("R".into());
+    location.app.create_session(session.clone()).await.unwrap();
+    location
+        .app
+        .rename_session(session.clone(), "fixed".into())
+        .await
+        .unwrap();
+    // A preview resolves the other agent's choice without committing it.
+    let preview = location
+        .app
+        .session_selection(
+            session.clone(),
+            false,
+            SessionSelectionAction::Preview("beta".into()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(preview.agent_id.as_deref(), Some("beta"));
+    let current = location
+        .app
+        .session_selection(session.clone(), false, SessionSelectionAction::Current)
+        .await
+        .unwrap();
+    assert_eq!(current.agent_id.as_deref(), Some("alpha"));
+    let run = owner
+        .begin(
+            location,
+            "R".into(),
+            Arc::new(Origin::new(Kind::Run, false)),
+            0,
+            false,
+            None,
+        )
+        .unwrap();
+    run.app
+        .submit(session.clone(), "R prompt".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), held_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    // OC2 switchAgent while busy: accepted, never relabels the issued request.
+    let switched = run
+        .app
+        .session_selection(
+            session.clone(),
+            false,
+            SessionSelectionAction::Agent("beta".into()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(switched.agent_id.as_deref(), Some("beta"));
+    release.send(()).unwrap();
+    let bodies = tokio::time::timeout(Duration::from_secs(5), server)
+        .await
+        .unwrap()
+        .unwrap();
+    let (issued, next) = (bodies[0].to_string(), bodies[1].to_string());
+    assert!(issued.contains("ALPHA_PRIMARY_SENTINEL") && !issued.contains("BETA_PRIMARY_SENTINEL"));
+    assert!(next.contains("BETA_PRIMARY_SENTINEL") && !next.contains("ALPHA_PRIMARY_SENTINEL"));
+    assert!(
+        next.contains("note body"),
+        "the issued tool result is retained"
+    );
+    owner.next_root().await.unwrap();
+    owner.shutdown().await.unwrap();
+}

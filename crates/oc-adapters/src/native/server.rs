@@ -737,17 +737,10 @@ fn mutation(message: &Request) -> Option<&str> {
         | Request::OpenPickerSession { session, .. } => Some(&session.0),
         Request::ForkSession { source, .. } => Some(&source.0),
         Request::SessionSelection {
-            session, action, ..
-        } if !matches!(
-            action,
-            SessionSelectionAction::Current
-                | SessionSelectionAction::Model(_)
-                | SessionSelectionAction::Variant(_)
-                | SessionSelectionAction::Commit(_)
-        ) =>
-        {
-            Some(&session.0)
-        }
+            session,
+            action: SessionSelectionAction::New(_),
+            ..
+        } => Some(&session.0),
         _ => None,
     }
 }
@@ -876,11 +869,9 @@ async fn handle(
     if let Request::SessionSelection {
         session, action, ..
     } = &request
-        && matches!(
+        && !matches!(
             action,
-            SessionSelectionAction::Model(_)
-                | SessionSelectionAction::Variant(_)
-                | SessionSelectionAction::Commit(_)
+            SessionSelectionAction::Current | SessionSelectionAction::New(_)
         )
         && let Some(root) = owner.root(&session.0)
     {

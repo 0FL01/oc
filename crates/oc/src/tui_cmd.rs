@@ -3176,7 +3176,7 @@ async fn apply_owned_intent(
                         .child_parent
                         .as_deref()
                         .unwrap_or(state)
-                        .active_agent()
+                        .composer_agent()
                         .map(str::to_string),
                 )
             };
@@ -3333,8 +3333,15 @@ async fn apply_owned_intent(
             }
         }
         PanelIntent::SelectAgent { id } => {
-            let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
-            state.apply_catalog(snapshot);
+            // OC2: a session's agent is a composer draft until the next send;
+            // the running turn keeps its profile. Home persists its own choice.
+            if state.home || state.attached_session().is_none() {
+                let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
+                state.apply_catalog(snapshot);
+            } else {
+                let snapshot = selection(app, state, SelectionAction::Preview(id)).await?;
+                state.apply_agent_preview(snapshot)?;
+            }
             if *state.panel() != TuiPanel::None {
                 state.close_panel();
             }

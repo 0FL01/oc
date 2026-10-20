@@ -2092,7 +2092,7 @@ async fn home_model_pick_outlives_a_restart_over_the_configured_model() {
 }
 
 #[tokio::test]
-async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
+async fn selecting_agent_stages_a_next_send_draft_without_selection_toast() {
     use oc_core::queries::{AgentEntry, ModelEntry};
     for (open_picker, existing_note) in [
         (true, None),
@@ -2168,7 +2168,8 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
             let Some(InboxMsg::SessionSelection { action, ack, .. }) = inbox.recv().await else {
                 panic!("selection")
             };
-            assert_eq!(action, SelectionAction::Agent("build-yolo".into()));
+            // A session's agent is an OC2 composer draft: preview, no commit.
+            assert_eq!(action, SelectionAction::Preview("build-yolo".into()));
             selected.agent_id = Some("build-yolo".into());
             ack.send(Ok(selected)).unwrap();
             assert!(inbox.try_recv().is_err());
@@ -2183,7 +2184,8 @@ async fn selecting_agent_updates_owner_and_draft_without_selection_toast() {
         )
         .await
         .unwrap();
-        assert_eq!(state.active_agent(), Some("build-yolo"));
+        assert_eq!(state.composer_agent(), Some("build-yolo"));
+        assert_eq!(state.active_agent(), Some("build"));
         assert_eq!(state.input(), "preserved draft");
         assert_eq!(state.panel(), &oc_tui::app::TuiPanel::None);
         assert_eq!(state.note(), existing_note);

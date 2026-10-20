@@ -2620,12 +2620,10 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
     state.handle_panel_key(KeyAction::Cancel);
     assert_eq!(state.input(), "pending prompt");
     assert_eq!(state.status(), &TuiStatus::PendingSubmission);
-    for action in [CommandAction::NewSession, CommandAction::OpenAgents] {
-        let outcome = state.run_command(action);
-        assert_eq!(outcome.intent, None);
-        assert!(outcome.note.is_some());
-        assert_eq!(state.panel(), &TuiPanel::None);
-    }
+    let outcome = state.run_command(CommandAction::NewSession);
+    assert_eq!(outcome.intent, None);
+    assert!(outcome.note.is_some());
+    assert_eq!(state.panel(), &TuiPanel::None);
     let outcome = state.run_command(CommandAction::OpenSessions);
     assert_eq!(outcome.intent, Some(PanelIntent::LoadSessions));
     assert_eq!(state.panel(), &TuiPanel::Sessions);
@@ -2638,13 +2636,11 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
             .contains("pending")
     );
     state.close_panel();
+    // OC2: agent choice is a local next-send draft, never a busy refusal.
     let outcome = state.handle_key(KeyAction::Tab).await;
-    assert_eq!(outcome.intent, None);
-    assert_eq!(
-        outcome.note.as_deref(),
-        Some("turn active; action unavailable")
-    );
+    assert_eq!(outcome.note, None);
     for (action, panel, intent) in [
+        (CommandAction::OpenAgents, TuiPanel::Agents, None),
         // DialogModel re-reads provider views/preferences on every open (read-only).
         (
             CommandAction::OpenModelPicker,
@@ -3203,6 +3199,106 @@ async fn vis07_submit_pointer_in_unpainted_transcript_space_is_inert() {
         );
         assert!(state.exploration_expanded.is_empty());
     }
+}
+
+#[tokio::test]
+async fn busy_agent_choice_is_a_next_send_draft_committed_before_the_model() {
+    use oc_core::core_app::InboxMsg;
+    use oc_core::queries::SessionSelectionAction;
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("agent-draft"));
+    let mut catalog = snapshot();
+    catalog.agents = ["build", "plan"]
+        .into_iter()
+        .enumerate()
+        .map(|(color_index, id)| AgentEntry {
+            id: id.into(),
+            color_index,
+            description: String::new(),
+            model: None,
+            variant: None,
+        })
+        .collect();
+    catalog.agent_id = Some("build".into());
+    state.apply_catalog(catalog.clone());
+    type_text(&mut state, "first").await;
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("submit")
+    };
+    ack.send(Ok(WorkerTurnId("running".into()))).unwrap();
+    state.poll_submission();
+    assert!(state.active_turn().is_some());
+
+    // OC2: switching while the agent works stages the next send's agent.
+    let outcome = state.handle_key(KeyAction::Tab).await;
+    assert_eq!(outcome.note, None);
+    assert_eq!(
+        outcome.intent,
+        Some(PanelIntent::SelectAgent { id: "plan".into() })
+    );
+    let mut preview = catalog.clone();
+    preview.agent_id = Some("plan".into());
+    preview.model_id = "b".into();
+    state.apply_agent_preview(preview.clone()).unwrap();
+    assert_eq!(state.composer_agent(), Some("plan"));
+    assert_eq!(state.active_agent(), Some("build"));
+    let staged = state.captured_model_commit().unwrap();
+    assert_eq!(staged.binding.agent_id.as_deref(), Some("plan"));
+    assert_eq!(staged.model_id, "b");
+    // A canonical refresh of the running session keeps the staged choice.
+    state.apply_catalog(catalog.clone());
+    assert_eq!(state.composer_agent(), Some("plan"));
+    assert_eq!(state.active_agent(), Some("build"));
+    assert!(inbox.try_recv().is_err(), "staging writes nothing");
+
+    // Blank Enter commits the agent first, then the model under its binding.
+    let responder = async {
+        let Some(InboxMsg::SessionSelection { action, ack, .. }) = inbox.recv().await else {
+            panic!("agent commit")
+        };
+        assert_eq!(action, SessionSelectionAction::Agent("plan".into()));
+        ack.send(Ok(preview.clone())).unwrap();
+    };
+    let (outcome, ()) = tokio::join!(state.handle_key(KeyAction::Enter), responder);
+    assert_eq!(outcome.note, None);
+    assert_eq!(state.active_agent(), Some("plan"));
+    assert_eq!(state.composer_agent(), Some("plan"));
+    let Some(InboxMsg::SessionSelection {
+        action: SessionSelectionAction::Commit(commit),
+        ..
+    }) = inbox.recv().await
+    else {
+        panic!("model commit")
+    };
+    assert_eq!(commit.binding.agent_id.as_deref(), Some("plan"));
+    assert_eq!(commit.model_id, "b");
+}
+
+#[tokio::test]
+async fn refused_agent_commit_keeps_the_prompt_and_the_draft() {
+    use oc_core::core_app::InboxMsg;
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("agent-refused"));
+    let mut catalog = snapshot();
+    catalog.agent_id = Some("build".into());
+    state.apply_catalog(catalog.clone());
+    let mut preview = catalog;
+    preview.agent_id = Some("plan".into());
+    state.apply_agent_preview(preview).unwrap();
+    type_text(&mut state, "keep me").await;
+    let responder = async {
+        let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+            panic!("agent commit")
+        };
+        ack.send(Err(oc_core::session::CoreError::TurnBusy))
+            .unwrap();
+    };
+    let (outcome, ()) = tokio::join!(state.handle_key(KeyAction::Enter), responder);
+    assert!(outcome.note.unwrap().starts_with("agent switch:"));
+    assert_eq!(state.input(), "keep me");
+    assert_eq!(state.composer_agent(), Some("plan"));
+    assert!(inbox.try_recv().is_err(), "no submit after a refused agent");
 }
 
 #[tokio::test]

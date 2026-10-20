@@ -725,8 +725,39 @@ impl TuiState {
             self.mcp_action_down = None;
         }
         self.auto_accept = snapshot.auto_accept;
-        let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
-        let draft = self.composer_catalog(&snapshot);
+        // A staged next-send agent survives canonical refreshes of this view;
+        // the composer keeps showing it until the owner reports it committed.
+        let agent_draft = self.agent_draft.take().filter(|draft| {
+            draft.agent_id != snapshot.agent_id
+                && draft.chrome.location == snapshot.chrome.location
+                && draft.chrome.selection_generation == snapshot.chrome.selection_generation
+        });
+        let picker = self.composer_picker(agent_draft.as_ref().unwrap_or(&snapshot));
+        self.reconcile_service_feedback(previous_issues);
+        self.picker = Some(picker);
+        self.commands = snapshot.commands;
+        self.command_descriptions = snapshot.command_descriptions;
+        self.active_agent = snapshot.agent_id.clone().map(|id| {
+            if snapshot.chrome.selection.as_ref().is_some_and(|issue| {
+                issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
+            }) {
+                format!("{id} (unavailable)")
+            } else {
+                id
+            }
+        });
+        self.agents = snapshot.agents;
+        self.agent_draft = agent_draft;
+        self.sync_agents_cursor();
+        self.catalog_loaded = true;
+        self.sync_modal_cursor();
+        self.refresh_subagent_cards();
+    }
+
+    /// Composer picker and model binding for one (canonical or staged) agent.
+    fn composer_picker(&mut self, snapshot: &CatalogSnapshot) -> ModelPicker {
+        let mut picker = ModelPicker::new(catalog_from_snapshot(snapshot));
+        let draft = self.composer_catalog(snapshot);
         if !snapshot.model_id.is_empty() {
             let record = serde_json::json!({
                 "provider": snapshot.provider,
@@ -750,28 +781,64 @@ impl TuiState {
         {
             self.push_note(error);
         }
-        self.reconcile_service_feedback(previous_issues);
-        self.picker = Some(picker);
-        self.commands = snapshot.commands;
-        self.command_descriptions = snapshot.command_descriptions;
-        self.active_agent = snapshot.agent_id.clone().map(|id| {
-            if snapshot.chrome.selection.as_ref().is_some_and(|issue| {
-                issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
-            }) {
-                format!("{id} (unavailable)")
-            } else {
-                id
-            }
-        });
-        self.agents = snapshot.agents;
-        self.agents_cursor = snapshot
-            .agent_id
-            .as_ref()
-            .and_then(|id| self.agents.iter().position(|agent| &agent.id == id))
+        picker
+    }
+
+    fn sync_agents_cursor(&mut self) {
+        self.agents_cursor = self
+            .composer_agent()
+            .and_then(|id| self.agents.iter().position(|agent| agent.id == id))
             .unwrap_or(usize::MAX);
-        self.catalog_loaded = true;
+    }
+
+    /// Stage an owner `Preview` as the composer's next-send agent (OC2 local
+    /// agent draft). The running turn keeps its profile; nothing is committed.
+    pub fn apply_agent_preview(&mut self, snapshot: CatalogSnapshot) -> Result<(), String> {
+        if snapshot.chrome.location != self.chrome.location
+            || snapshot.chrome.selection_generation != self.chrome.selection_generation
+        {
+            return Err("agent preview is stale; try again".into());
+        }
+        self.picker = Some(self.composer_picker(&snapshot));
+        self.agent_draft =
+            (self.active_agent.as_deref() != snapshot.agent_id.as_deref()).then_some(snapshot);
+        self.sync_agents_cursor();
         self.sync_modal_cursor();
-        self.refresh_subagent_cards();
+        Ok(())
+    }
+
+    /// Next-send agent: the staged draft, otherwise the session's own.
+    pub fn composer_agent(&self) -> Option<&str> {
+        match &self.agent_draft {
+            Some(draft) => draft.agent_id.as_deref(),
+            None => self.active_agent.as_deref(),
+        }
+    }
+
+    /// OC2 `prepareAgent`: commit a staged agent before the next send, so the
+    /// captured model commit carries its binding. A refusal keeps every draft.
+    pub(super) async fn commit_agent_draft(&mut self) -> Result<(), String> {
+        let Some(agent) = self
+            .agent_draft
+            .as_ref()
+            .and_then(|draft| draft.agent_id.clone())
+        else {
+            return Ok(());
+        };
+        let Some(session) = self.session.clone().filter(|_| !self.home) else {
+            return Ok(());
+        };
+        let snapshot = self
+            .app
+            .session_selection(
+                session,
+                false,
+                oc_core::queries::SessionSelectionAction::Agent(agent),
+            )
+            .await
+            .map_err(|error| format!("agent switch: {error}"))?;
+        self.apply_catalog(snapshot);
+        Ok(())
     }
 
     /// Apply the session list snapshot.

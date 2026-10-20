@@ -24,7 +24,7 @@
 ## Границы продукта
 
 - Один native UID/data-root authority и Db/recovery owner; клиенты используют private UDS. Второй сырой Db, `oc service`, public TCP и privileged broker запрещены.
-- Prepared request и полный tool batch сохраняют captured model/config/authority; committed model switch принимается перед следующим request той же задачи. Picker draft не commit.
+- Prepared request и полный tool batch сохраняют captured model/config/authority; committed model/agent switch принимается перед следующим request той же задачи. Picker draft (model/agent) не commit.
 - OC2 predicate выбирает `apply_patch` либо `edit`/`write`; это не permission grant и не разрешение routing по имени модели. Не зашивай model IDs, reasoning allowlists и vendor routes.
 - Config — OC2 allowlist, fail-closed; нижний trust/child/Plan не расширяет authority. Raw history неизменна, DCP меняет HOT/provider projection, не effects.
 - Нет искусственного общего round/step stop; finite failure retries, bounded resources, cancellation/cleanup и no unknown-effect replay сохраняются. Shell не sandbox; production Node/Bun/JS-plugin host нет.
