@@ -438,6 +438,17 @@ impl Db {
         Ok(notices)
     }
 
+    pub(crate) fn shell_notice_message(
+        &self,
+        session: &str,
+        operation: &str,
+    ) -> Result<Option<String>, StorageError> {
+        Ok(self.conn.lock().expect("db mutex").query_row(
+            "SELECT message_id FROM shell_jobs WHERE session_id=?1 AND operation_id=?2 AND phase='terminal'",
+            params![session,operation], |row| row.get::<_,Option<String>>(0),
+        ).optional()?.flatten())
+    }
+
     /// Exact model notice identity shared by display and conversation selection.
     /// Read bounded structured fields, not the RAW envelope or captured output.
     pub(super) fn model_shell_notice_in(

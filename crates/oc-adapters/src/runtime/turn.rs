@@ -2811,7 +2811,7 @@ impl<'a> Runtime<'a> {
             }
             let mut represented_notices = history_notices.clone();
             represented_notices.extend(staged_notice_ids.iter().cloned());
-            represented_notices.extend(self.db.emitted_child_notices(
+            represented_notices.extend(self.db.emitted_native_notices(
                 &params.session,
                 &turn_log.shell_notice_messages,
                 &input,

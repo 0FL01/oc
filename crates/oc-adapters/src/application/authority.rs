@@ -477,7 +477,7 @@ impl Owner {
         origin: Arc<crate::runtime::origin::Origin>,
         consumers: (u8, bool),
         reservation: Option<&Mutation>,
-        batch: Option<crate::runtime::children::ParentBatch>,
+        batch: Option<ParentBatch>,
     ) -> Result<Arc<Root>, CoreError> {
         let (approval_mode, question_consumer) = consumers;
         let mut roots = self.roots.lock().expect("primary roots");
@@ -494,11 +494,7 @@ impl Owner {
             return Err(CoreError::QueueFull);
         }
         if let Some(batch) = &batch
-            && !self
-                .resources
-                .children
-                .batch_current(batch)
-                .map_err(app_error)?
+            && !batch.current(&self.resources).map_err(app_error)?
         {
             return Err(CoreError::TurnNotActive);
         }
@@ -526,7 +522,7 @@ impl Owner {
         let events = self.events.clone();
         let db = self.db.shared_handle();
         let origin_work = origin.work();
-        let children = self.resources.children.clone();
+        let resources = self.resources.clone();
         self.root_tasks
             .lock()
             .expect("primary tasks")
@@ -545,7 +541,7 @@ impl Owner {
                     prepared.send_replace(Some(Ok(())));
                     let (initial, reply) = if let Some(batch) = &batch {
                         let (ack, reply) = oneshot::channel();
-                        (Some(ParentNotices { session:SessionId(session.clone()), messages:batch.messages.clone(), ack }), Some(reply))
+                        (Some(ParentNotices { session:SessionId(session.clone()), messages:batch.data().2.to_vec(), ack }), Some(reply))
                     } else { (None,None) };
                     let result = seed.run(
                         &db,
@@ -566,12 +562,12 @@ impl Owner {
                 }
                 .await;
                 if let Some(batch) = &batch {
-                    children.finish_batch(batch);
+                    batch.finish(&resources);
                     if let Some(error) = refused
                         && !running.origin.flag.load(Ordering::Acquire) && !running.cancel.load(Ordering::Acquire) {
                         let diagnostic = match error {
                             CoreError::Diagnostic(diagnostic) | CoreError::ProviderUnavailable(diagnostic) => diagnostic,
-                            _ => runtime_issue(&running.location.project.to_string_lossy(), &["subagent","continuation"], &RuntimeError::InvalidArgs("native continuation refused".into())).diagnostic,
+                            _ => runtime_issue(&running.location.project.to_string_lossy(), &[batch.source(),"continuation"], &RuntimeError::InvalidArgs("native continuation refused".into())).diagnostic,
                         };
                         let _ = events.send(CoreEvent::ParentContinuationRefused { session:SessionId(session.clone()), diagnostic });
                     }
@@ -600,17 +596,29 @@ impl Owner {
         if self.closing.load(Ordering::Acquire) {
             return Ok(());
         }
-        for batch in self
+        let children = self
             .resources
             .children
             .parent_batches()
-            .map_err(|error| storage_diagnostic(self.db.root(), &error))?
+            .map_err(|error| storage_diagnostic(self.db.root(), &error))?;
+        let shells = self
+            .resources
+            .shell
+            .parent_batches()
+            .map_err(|error| storage_diagnostic(self.db.root(), &error))?;
+        for batch in children
+            .into_iter()
+            .map(ParentBatch::Children)
+            .chain(shells.into_iter().map(ParentBatch::Shell))
         {
-            let Some(location) = batch.origin.location() else {
-                self.resources.children.finish_batch(&batch);
+            let (parent, origin, _) = batch.data();
+            let Some(location) = origin.location() else {
+                batch.finish(&self.resources);
                 continue;
             };
-            let origin = batch.origin.clone();
+            let parent = parent.to_owned();
+            let origin = origin.clone();
+            let source = batch.source();
             let approval = if origin.approval_consumer.load(Ordering::Acquire) {
                 if origin.auto_once.load(Ordering::Acquire) {
                     2
@@ -623,7 +631,7 @@ impl Owner {
             let questions = origin.question_consumer.load(Ordering::Acquire);
             match self.begin_inner(
                 location.clone(),
-                batch.parent.clone(),
+                parent,
                 origin,
                 (approval, questions),
                 None,
@@ -639,7 +647,7 @@ impl Owner {
                 Err(_) => {
                     return Err(runtime_issue(
                         "native owner",
-                        &["subagent", "continuation"],
+                        &[source, "continuation"],
                         &RuntimeError::Storage,
                     )
                     .diagnostic);
@@ -653,6 +661,7 @@ impl Owner {
         let _roots = self.roots.lock().expect("primary roots");
         origin.cancel();
         self.resources.children.suppress_origin(origin.id);
+        self.resources.shell.suppress_origin(origin.id);
     }
 
     /// Session cancellation and automatic root admission share one decision
@@ -743,6 +752,7 @@ impl Owner {
             let roots = self.roots.lock().expect("primary roots");
             self.closing.store(true, Ordering::Release);
             self.resources.children.suppress_wakes();
+            self.resources.shell.suppress_wakes();
             roots
                 .iter()
                 .filter_map(|(session, entry)| match entry {
@@ -820,6 +830,43 @@ impl Owner {
             .diagnostic));
         }
         result
+    }
+}
+
+/// Both sources use the same root reservation/admission, while each job owner
+/// retains its own live lineage and terminal handoff lifecycle.
+enum ParentBatch {
+    Children(crate::runtime::children::ParentBatch),
+    Shell(crate::shell::jobs::ParentBatch),
+}
+
+impl ParentBatch {
+    fn data(&self) -> (&str, &Arc<crate::runtime::origin::Origin>, &[String]) {
+        match self {
+            Self::Children(batch) => (&batch.parent, &batch.origin, &batch.messages),
+            Self::Shell(batch) => (&batch.parent, &batch.origin, &batch.messages),
+        }
+    }
+
+    fn source(&self) -> &'static str {
+        match self {
+            Self::Children(_) => "subagent",
+            Self::Shell(_) => "shell",
+        }
+    }
+
+    fn current(&self, resources: &Resources) -> Result<bool, crate::storage::StorageError> {
+        match self {
+            Self::Children(batch) => resources.children.batch_current(batch),
+            Self::Shell(batch) => resources.shell.batch_current(batch),
+        }
+    }
+
+    fn finish(&self, resources: &Resources) {
+        match self {
+            Self::Children(batch) => resources.children.finish_batch(batch),
+            Self::Shell(batch) => resources.shell.finish_batch(batch),
+        }
     }
 }
 

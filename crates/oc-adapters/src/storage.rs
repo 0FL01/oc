@@ -2694,7 +2694,7 @@ impl Db {
             params![session, turn],
         )?;
         Self::conversation_complete(&tx, turn, &session)?;
-        if tx.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.native_input.kind')='subagent_notices' ELSE 0 END FROM turns WHERE id=?1", [turn], |row| row.get::<_, Option<bool>>(0))?.unwrap_or(false) {
+        if tx.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.native_input.kind') IN ('subagent_notices','shell_notices') ELSE 0 END FROM turns WHERE id=?1", [turn], |row| row.get::<_, Option<bool>>(0))?.unwrap_or(false) {
             Self::publish_settled_context(&tx, &session)?;
         }
         tx.commit()?;

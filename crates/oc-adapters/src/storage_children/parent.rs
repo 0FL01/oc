@@ -1,6 +1,9 @@
-//! Root continuation admission from exact native child reports, not UI hints.
+//! Root continuation admission from exact native reports, not UI hints.
 use super::*;
-use crate::tools::{TurnLog, turn_history::NativeNoticeInput};
+use crate::tools::{
+    TurnLog,
+    turn_history::{NativeNoticeInput, NativeNoticeKind},
+};
 
 impl Db {
     pub(in crate::storage) fn native_child_notice_in(
@@ -17,10 +20,24 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<bool, StorageError> {
-        if Self::native_child_notice_in(conn, session, message)? {
+        if Self::native_notice_kind_in(conn, session, message)?.is_some() {
             return Ok(true);
         }
-        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_extract(t.result,'$.native_input.kind')='subagent_notices' AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=?3 AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)",params![session,message,crate::runtime::children::JOB_CAP as i64],|row|row.get(0))?)
+        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=CASE json_extract(t.result,'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 ELSE -1 END AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)",params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
+    }
+
+    fn native_notice_kind_in(
+        conn: &Connection,
+        session: &str,
+        message: &str,
+    ) -> Result<Option<NativeNoticeKind>, StorageError> {
+        if Self::native_child_notice_in(conn, session, message)? {
+            Ok(Some(NativeNoticeKind::SubagentNotices))
+        } else if Self::model_shell_notice_in(conn, session, message)?.is_some() {
+            Ok(Some(NativeNoticeKind::ShellNotices))
+        } else {
+            Ok(None)
+        }
     }
 
     pub(crate) fn parent_notice_assigned(
@@ -31,17 +48,20 @@ impl Db {
         Self::parent_notice_assigned_in(&self.conn.lock().expect("db mutex"), session, message)
     }
 
-    pub(crate) fn is_native_child_notice(
+    pub(crate) fn is_native_notice(
         &self,
         session: &str,
         message: &str,
     ) -> Result<bool, StorageError> {
-        Self::native_child_notice_in(&self.conn.lock().expect("db mutex"), session, message)
+        Ok(
+            Self::native_notice_kind_in(&self.conn.lock().expect("db mutex"), session, message)?
+                .is_some(),
+        )
     }
 
     /// A journal identity is not enough: the exact canonical report must still
     /// be an emitted user item, rather than a HOT summary or a loaded-only log.
-    pub(crate) fn emitted_child_notices(
+    pub(crate) fn emitted_native_notices(
         &self,
         session: &str,
         messages: &[String],
@@ -50,7 +70,9 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let mut represented = Vec::new();
         for id in messages {
-            if represented.contains(id) || !Self::native_child_notice_in(&conn, session, id)? {
+            if represented.contains(id)
+                || Self::native_notice_kind_in(&conn, session, id)?.is_none()
+            {
                 continue;
             }
             let body: Option<String> = conn.query_row("SELECT text FROM messages WHERE session_id=?1 AND id=?2 AND length(CAST(text AS BLOB))<=?3",params![session,id,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|row|row.get(0)).optional()?;
@@ -71,7 +93,7 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<bool, StorageError> {
-        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind='subagent_parent_notice_consumed' AND CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message')=?2 ELSE 0 END)",params![session,message],|row|row.get(0))?)
+        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed') AND CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message')=?2 ELSE 0 END)",params![session,message],|row|row.get(0))?)
     }
 
     fn assign_parent_notice_in(
@@ -81,7 +103,19 @@ impl Db {
         turn: &str,
     ) -> Result<(), StorageError> {
         if !Self::parent_notice_assigned_in(conn, session, message)? {
-            conn.execute("INSERT INTO events(session_id,kind,payload) VALUES(?1,'subagent_parent_notice_consumed',?2)",params![session,serde_json::json!({"message":message,"turn":turn}).to_string()])?;
+            let kind = match Self::native_notice_kind_in(conn, session, message)? {
+                Some(NativeNoticeKind::SubagentNotices) => "subagent_parent_notice_consumed",
+                Some(NativeNoticeKind::ShellNotices) => "shell_parent_notice_consumed",
+                None => return Err(StorageError::OperationNotFound),
+            };
+            conn.execute(
+                "INSERT INTO events(session_id,kind,payload) VALUES(?1,?2,?3)",
+                params![
+                    session,
+                    kind,
+                    serde_json::json!({"message":message,"turn":turn}).to_string()
+                ],
+            )?;
         }
         Ok(())
     }
@@ -94,17 +128,13 @@ impl Db {
         messages: &[String],
     ) -> Result<(Vec<String>, crate::provider::InputItem), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        if messages.is_empty() || messages.len() > crate::runtime::children::JOB_CAP {
-            return Err(StorageError::OperationNotFound);
-        }
+        Self::notice_batch_kind_in(&conn, session, messages)?
+            .ok_or(StorageError::OperationNotFound)?;
         let mut ordered = Vec::new();
         let mut bytes = 0usize;
         for message in messages {
             if ordered.iter().any(|(_, id, _)| id == message) {
                 continue;
-            }
-            if !Self::native_child_notice_in(&conn, session, message)? {
-                return Err(StorageError::OperationNotFound);
             }
             let (seq, length): (i64, i64) = conn.query_row("SELECT seq,length(CAST(text AS BLOB)) FROM conversation_messages WHERE session_id=?1 AND id=?2",params![session,message],|row|Ok((row.get(0)?,row.get(1)?)))?;
             let length = usize::try_from(length).map_err(|_| StorageError::OperationNotFound)?;
@@ -146,17 +176,17 @@ impl Db {
     ) -> Result<Option<AcceptedTurn>, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        if messages.is_empty() || messages.len() > crate::runtime::children::JOB_CAP {
-            return Err(StorageError::OperationNotFound);
-        }
+        let Some(kind) = Self::notice_batch_kind_in(&tx, session, messages)? else {
+            return Ok(None);
+        };
         let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2) AND NOT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM turns WHERE session_id=?1 AND status='started')",params![session,location],|row|row.get(0))?;
         if !valid {
             return Ok(None);
         }
         for (index, message) in messages.iter().enumerate() {
-            if messages[..index].contains(message) || !Self::native_child_notice_in(&tx, session, message)? || Self::parent_notice_assigned_in(&tx, session, message)? || !tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",params![session,message],|row|row.get::<_,bool>(0))? { return Ok(None) }
+            if messages[..index].contains(message) || Self::parent_notice_assigned_in(&tx, session, message)? || !tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",params![session,message],|row|row.get::<_,bool>(0))? { return Ok(None) }
         }
-        seed.native_input = Some(NativeNoticeInput::new(messages.to_vec()));
+        seed.native_input = Some(NativeNoticeInput::new(kind, messages.to_vec()));
         let accepted = Self::insert_accepted_turn(
             &tx,
             &seed.turn_id.clone(),
@@ -173,6 +203,33 @@ impl Db {
         }
         tx.commit()?;
         Ok(Some(accepted))
+    }
+
+    /// Source is authenticated from durable identities, never notice text or a
+    /// caller's claimed kind. Each admission remains a homogeneous finite batch.
+    fn notice_batch_kind_in(
+        conn: &Connection,
+        session: &str,
+        messages: &[String],
+    ) -> Result<Option<NativeNoticeKind>, StorageError> {
+        let first = messages.first().ok_or(StorageError::OperationNotFound)?;
+        if messages.len()
+            > crate::runtime::children::JOB_CAP.max(crate::shell::jobs::ACTIVE_JOB_CAP)
+        {
+            return Err(StorageError::OperationNotFound);
+        }
+        let Some(kind) = Self::native_notice_kind_in(conn, session, first)? else {
+            return Ok(None);
+        };
+        if messages.len() > kind.batch_cap() {
+            return Err(StorageError::OperationNotFound);
+        }
+        for message in &messages[1..] {
+            if Self::native_notice_kind_in(conn, session, message)? != Some(kind) {
+                return Ok(None);
+            }
+        }
+        Ok(Some(kind))
     }
 
     /// Assignment means durable request admission, never remote exactly-once.
@@ -194,7 +251,7 @@ impl Db {
             return Err(StorageError::OperationNotFound);
         }
         for message in represented {
-            if Self::native_child_notice_in(&tx, session, message)? {
+            if Self::native_notice_kind_in(&tx, session, message)?.is_some() {
                 Self::assign_parent_notice_in(&tx, session, message, turn)?;
             }
         }
@@ -227,7 +284,7 @@ impl Db {
             return Err(StorageError::OperationNotFound);
         }
         for message in represented {
-            if Self::native_child_notice_in(&tx, session, message)? {
+            if Self::native_notice_kind_in(&tx, session, message)?.is_some() {
                 Self::assign_parent_notice_in(&tx, session, message, &turn)?;
             }
         }

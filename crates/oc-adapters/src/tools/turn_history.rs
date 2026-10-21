@@ -15,17 +15,28 @@ pub(crate) struct NativeNoticeInput {
     pub(crate) input_index: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum NativeNoticeKind {
     #[serde(rename = "subagent_notices")]
     SubagentNotices,
+    #[serde(rename = "shell_notices")]
+    ShellNotices,
+}
+
+impl NativeNoticeKind {
+    pub(crate) fn batch_cap(self) -> usize {
+        match self {
+            Self::SubagentNotices => crate::runtime::children::JOB_CAP,
+            Self::ShellNotices => crate::shell::jobs::ACTIVE_JOB_CAP,
+        }
+    }
 }
 
 impl NativeNoticeInput {
-    pub(crate) fn new(messages: Vec<String>) -> Self {
+    pub(crate) fn new(kind: NativeNoticeKind, messages: Vec<String>) -> Self {
         Self {
             version: 1,
-            kind: NativeNoticeKind::SubagentNotices,
+            kind,
             messages,
             input_index: 0,
         }
@@ -38,7 +49,7 @@ impl NativeNoticeInput {
         let input: Self =
             serde_json::from_value(value.clone()).map_err(|_| "invalid native input")?;
         if input.version != 1
-            || input.messages.len() > crate::runtime::children::JOB_CAP
+            || input.messages.len() > input.kind.batch_cap()
             || i64::try_from(input.input_index).is_err()
             || input
                 .messages
@@ -573,7 +584,10 @@ mod native_tests {
     #[test]
     fn native_input_keeps_original_coordinates_without_claiming_a_working_summary() {
         let mut log = TurnLog::new("native", "model", "fixture");
-        let mut native = NativeNoticeInput::new(vec!["m1".into(), "m2".into()]);
+        let mut native = NativeNoticeInput::new(
+            NativeNoticeKind::SubagentNotices,
+            vec!["m1".into(), "m2".into()],
+        );
         native.input_index = 1;
         log.native_input = Some(native);
         log.input = vec![

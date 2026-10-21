@@ -349,6 +349,20 @@ struct Work {
     capture: Arc<Capture>,
     control: Arc<Mutex<Control>>,
     converted: Arc<tokio::sync::Notify>,
+    parent_wake: Option<ParentWake>,
+}
+
+struct ParentWake {
+    session: String,
+    origin: Arc<crate::runtime::origin::Origin>,
+    _work: crate::runtime::origin::Work,
+}
+
+pub(crate) struct ParentBatch {
+    pub(crate) parent: String,
+    pub(crate) origin: Arc<crate::runtime::origin::Origin>,
+    pub(crate) messages: Vec<String>,
+    operations: Vec<String>,
 }
 
 #[derive(Default)]
@@ -427,6 +441,7 @@ pub(crate) struct Jobs {
     slots: Arc<tokio::sync::Semaphore>,
     db: Db,
     work: Mutex<BTreeMap<String, Work>>,
+    pending_wakes: Mutex<BTreeMap<String, ParentWake>>,
     wake: Arc<tokio::sync::Notify>,
     failed: Arc<AtomicBool>,
 }
@@ -437,12 +452,19 @@ impl Jobs {
             slots: Arc::new(tokio::sync::Semaphore::new(ACTIVE_JOB_CAP)),
             db: db.shared_handle(),
             work: Mutex::new(BTreeMap::new()),
+            pending_wakes: Mutex::new(BTreeMap::new()),
             wake: Arc::new(tokio::sync::Notify::new()),
             failed: Arc::new(AtomicBool::new(false)),
         })
     }
 
     pub(crate) fn reserve(&self) -> Option<tokio::sync::OwnedSemaphorePermit> {
+        // Completed handoffs retain neither execution permits nor buffers, but
+        // active/reserved jobs plus pending handoffs still share one finite cap.
+        let pending = self.pending_wakes.lock().expect("shell handoffs");
+        if self.slots.available_permits() <= pending.len() {
+            return None;
+        }
         self.slots.clone().try_acquire_owned().ok()
     }
 
@@ -460,6 +482,27 @@ impl Jobs {
         foreground: bool,
         output_secrets: Vec<String>,
     ) -> Result<String, StorageError> {
+        // Capture foreground launches too: conversion must keep the original
+        // lineage. User commands, nested jobs and recovered history cannot wake
+        // a primary. Only this model-tool admission creates a live handoff.
+        let parent_wake = if self
+            .db
+            .session_meta(&provenance.session)?
+            .parent_id
+            .is_none()
+        {
+            shell
+                .native_origin
+                .as_ref()
+                .filter(|origin| origin.location().is_some())
+                .map(|origin| ParentWake {
+                    session: provenance.session.clone(),
+                    origin: origin.clone(),
+                    _work: origin.work(),
+                })
+        } else {
+            None
+        };
         self.db.admit_shell_job_mode(&provenance, foreground)?;
         self.launch_admitted(
             shell,
@@ -472,6 +515,7 @@ impl Jobs {
             slot,
             foreground,
             output_secrets,
+            parent_wake,
         )
         .await
     }
@@ -500,6 +544,7 @@ impl Jobs {
             slot,
             false,
             output_secrets,
+            None,
         )
         .await
     }
@@ -517,6 +562,7 @@ impl Jobs {
         slot: tokio::sync::OwnedSemaphorePermit,
         foreground: bool,
         output_secrets: Vec<String>,
+        parent_wake: Option<ParentWake>,
     ) -> Result<String, StorageError> {
         let id = provenance.operation.clone();
         let cancel = Arc::new(AtomicBool::new(false));
@@ -722,6 +768,7 @@ impl Jobs {
                 capture,
                 control,
                 converted: Arc::new(tokio::sync::Notify::new()),
+                parent_wake,
             },
         );
         // Refresh an idle owner's join set when a new worker is admitted.
@@ -999,12 +1046,13 @@ impl Jobs {
     }
 
     pub(crate) fn cancel_session(&self, session: &str) -> bool {
-        let work = self.work.lock().expect("shell jobs");
-        let mut cancelled = false;
-        for job in work
-            .values()
-            .filter(|job| job.session == session && job.completion.peek().is_none())
-        {
+        let mut work = self.work.lock().expect("shell jobs");
+        let mut pending = self.pending_wakes.lock().expect("shell handoffs");
+        let before = pending.len();
+        pending.retain(|_, wake| wake.session != session);
+        let mut cancelled = before != pending.len();
+        for job in work.values_mut().filter(|job| job.session == session) {
+            cancelled |= job.parent_wake.take().is_some();
             let control = job.control.lock().expect("shell control");
             if control.finished {
                 continue;
@@ -1014,6 +1062,106 @@ impl Jobs {
             cancelled = true;
         }
         cancelled
+    }
+
+    pub(crate) fn suppress_origin(&self, origin: u64) {
+        let mut work = self.work.lock().expect("shell jobs");
+        let mut pending = self.pending_wakes.lock().expect("shell handoffs");
+        for job in work.values_mut() {
+            if job
+                .parent_wake
+                .as_ref()
+                .is_some_and(|wake| wake.origin.id == origin)
+            {
+                job.parent_wake = None;
+            }
+        }
+        pending.retain(|_, wake| wake.origin.id != origin);
+        self.wake.notify_one();
+    }
+
+    pub(crate) fn suppress_wakes(&self) {
+        let mut work = self.work.lock().expect("shell jobs");
+        let mut pending = self.pending_wakes.lock().expect("shell handoffs");
+        let mut changed = !pending.is_empty();
+        for job in work.values_mut() {
+            changed |= job.parent_wake.take().is_some();
+        }
+        pending.clear();
+        if changed {
+            self.wake.notify_one();
+        }
+    }
+
+    pub(crate) fn finish_batch(&self, batch: &ParentBatch) {
+        let mut pending = self.pending_wakes.lock().expect("shell handoffs");
+        for operation in &batch.operations {
+            if pending
+                .get(operation)
+                .is_some_and(|wake| wake.origin.id == batch.origin.id)
+            {
+                pending.remove(operation);
+            }
+        }
+        self.wake.notify_one();
+    }
+
+    pub(crate) fn batch_current(&self, batch: &ParentBatch) -> Result<bool, StorageError> {
+        let pending = self.pending_wakes.lock().expect("shell handoffs");
+        if batch.origin.flag.load(Ordering::Acquire)
+            || batch.origin.foreground.load(Ordering::Acquire)
+        {
+            return Ok(false);
+        }
+        for (operation, message) in batch.operations.iter().zip(&batch.messages) {
+            if pending
+                .get(operation)
+                .is_none_or(|wake| wake.origin.id != batch.origin.id)
+                || self.db.parent_notice_assigned(&batch.parent, message)?
+            {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    /// Persisted notices supply data only; only reaped live launch handoffs can
+    /// schedule. Consumption by an already-running request retires the handoff.
+    pub(crate) fn parent_batches(&self) -> Result<Vec<ParentBatch>, StorageError> {
+        let mut pending = self.pending_wakes.lock().expect("shell handoffs");
+        let mut groups: BTreeMap<(String, u64), ParentBatch> = BTreeMap::new();
+        let mut retired = Vec::new();
+        for (operation, wake) in pending.iter() {
+            let message = self.db.shell_notice_message(&wake.session, operation)?;
+            if wake.origin.flag.load(Ordering::Acquire)
+                || wake.origin.foreground.load(Ordering::Acquire)
+                || message
+                    .as_ref()
+                    .map(|message| self.db.parent_notice_assigned(&wake.session, message))
+                    .transpose()?
+                    .unwrap_or(false)
+            {
+                retired.push(operation.clone());
+                continue;
+            }
+            let Some(message) = message else {
+                continue;
+            };
+            let batch = groups
+                .entry((wake.session.clone(), wake.origin.id))
+                .or_insert_with(|| ParentBatch {
+                    parent: wake.session.clone(),
+                    origin: wake.origin.clone(),
+                    messages: Vec::new(),
+                    operations: Vec::new(),
+                });
+            batch.messages.push(message);
+            batch.operations.push(operation.clone());
+        }
+        for operation in retired {
+            pending.remove(&operation);
+        }
+        Ok(groups.into_values().collect())
     }
 
     pub(crate) fn cancel_job(&self, session: &str, id: &str) -> bool {
@@ -1063,6 +1211,7 @@ impl Jobs {
         // Workers freeze terminal outcomes before this history admission.
         let completed = {
             let mut work = self.work.lock().expect("shell jobs");
+            let mut pending = self.pending_wakes.lock().expect("shell handoffs");
             let ids = work
                 .iter()
                 .filter(|(_, job)| {
@@ -1073,7 +1222,12 @@ impl Jobs {
                 .collect::<Vec<_>>();
             ids.into_iter()
                 .map(|id| {
-                    let job = work.remove(&id).expect("finished job");
+                    let mut job = work.remove(&id).expect("finished job");
+                    if job.control.lock().expect("shell control").background
+                        && let Some(wake) = job.parent_wake.take()
+                    {
+                        pending.insert(id.clone(), wake);
+                    }
                     (id, job)
                 })
                 .collect::<Vec<_>>()
@@ -1108,6 +1262,7 @@ impl Jobs {
     }
 
     pub(crate) async fn shutdown(&self) -> Result<(), StorageError> {
+        self.suppress_wakes();
         let tasks = {
             let work = self.work.lock().expect("shell jobs");
             for job in work.values() {

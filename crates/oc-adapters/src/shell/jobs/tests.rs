@@ -536,6 +536,7 @@ async fn tool13_early_wake_cannot_strand_join_or_capacity_when_owner_returns_idl
                 ..Control::default()
             })),
             converted: Arc::default(),
+            parent_wake: None,
         },
     );
     let remaining = slots.collect::<Vec<_>>();
@@ -612,6 +613,7 @@ async fn tool13_cancelled_owner_wait_keeps_worker_then_failed_join_is_durable_an
                 ..Control::default()
             })),
             converted: Arc::default(),
+            parent_wake: None,
         },
     );
     // Abort the actual teardown wait after it arms cancellation. Work and its

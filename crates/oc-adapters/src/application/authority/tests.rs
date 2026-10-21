@@ -4,6 +4,7 @@ use crate::runtime::origin::{Kind, Origin};
 use oc_core::queries::SessionSelectionAction;
 use serde_json::json;
 use std::time::Duration;
+mod shell;
 
 #[tokio::test]
 async fn idle_root_child_report_starts_one_parent_request_with_current_selection() {

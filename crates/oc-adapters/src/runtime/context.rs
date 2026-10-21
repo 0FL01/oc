@@ -1774,7 +1774,7 @@ impl<'a> Runtime<'a> {
                 }
                 let notices = bucket_notices.entry(bucket.clone()).or_default();
                 notices.extend(log.represented_native_notices());
-                notices.extend(self.db.emitted_child_notices(
+                notices.extend(self.db.emitted_native_notices(
                     session,
                     &log.shell_notice_messages,
                     &input,
@@ -1824,7 +1824,7 @@ impl<'a> Runtime<'a> {
                         bucket_notices
                             .entry("session-checkpoint".into())
                             .or_default()
-                            .extend(self.db.emitted_child_notices(
+                            .extend(self.db.emitted_native_notices(
                                 session,
                                 &[message.id.0],
                                 std::slice::from_ref(&item),
@@ -1914,7 +1914,7 @@ impl<'a> Runtime<'a> {
                     text
                 };
                 input.push(InputItem::message(role, text));
-                if self.db.is_native_child_notice(session, id)? {
+                if self.db.is_native_notice(session, id)? {
                     emitted_notices.push(id.clone());
                 }
             }
