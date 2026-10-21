@@ -2664,12 +2664,6 @@ fn footer_projection(
     }
     let service_start = hints.len();
     let issues = state.service_issue_count();
-    if state.preview_limited() {
-        if !hints.is_empty() {
-            hints.push(Span::raw("  "));
-        }
-        hints.push(Span::styled("Preview limited", muted));
-    }
     if issues > 0 {
         if !hints.is_empty() {
             hints.push(Span::raw("  "));

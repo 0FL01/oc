@@ -1247,7 +1247,7 @@ async fn live_parts_stay_bounded_under_tool_flood() {
         );
     }
     assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
-    assert!(state.preview_limited());
+    assert!(state.live_preview_truncated);
     assert!(
         !state
             .viewport()
@@ -1256,10 +1256,10 @@ async fn live_parts_stay_bounded_under_tool_flood() {
     );
     assert!(state.retained_bytes() <= 2 * WINDOW_BYTES + MAX_INPUT_BYTES);
     assert!(state.viewport().len() <= VIEWPORT_LINES);
-    state.active_turn = None;
+    state.reset_live_projection();
     assert!(
-        !state.preview_limited(),
-        "a completed answer does not retain a live viewing alert"
+        !state.live_preview_truncated,
+        "a replaced live projection does not retain old viewing loss"
     );
 }
 
@@ -1454,7 +1454,7 @@ async fn live_snapshot_replacement_keeps_canonical_window_and_private_draft() {
     assert!(state.live_parts.is_empty());
     assert!(state.live_text.is_empty() && state.live_reasoning.is_empty());
     assert!(state.pending_tool_seen.is_empty());
-    assert!(!state.preview_limited());
+    assert!(!state.live_preview_truncated);
     assert_eq!(state.input, "private draft");
     assert_eq!(state.scroll, 3);
     assert_eq!(state.window.rows(), original);
@@ -1465,7 +1465,7 @@ async fn live_snapshot_replacement_keeps_canonical_window_and_private_draft() {
     state.cover_projection(9, true);
     state.cover_projection(8, false);
     assert_eq!(state.projection_floor(), 9);
-    assert!(state.preview_limited());
+    assert!(state.live_preview_truncated);
     assert_eq!(state.live_text, "available prefix");
     state.reset_live_projection();
     state.begin_linked_turn(current.clone());

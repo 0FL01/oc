@@ -426,9 +426,7 @@ impl Peer {
                             );
                             continue;
                         }
-                        let is_title = texts(&body)
-                            .iter()
-                            .any(|s| s.contains("Generate a short session title"));
+                        let is_title = is_title_request(&body);
                         captured.lock().expect("requests").push(json!({
                             "model": body["model"], "reasoning": body["reasoning"],
                             "max_output_tokens": body["max_output_tokens"],
@@ -705,6 +703,9 @@ fn sse_calls(calls: &[(&str, &str, Value)]) -> String {
 /// Deterministic dry-run script, keyed on the prompt and the request state
 /// (never on a global counter, so a blocked step cannot shift the script).
 fn dry_run_reply(index: usize, body: &Value) -> String {
+    if is_title_request(body) {
+        return sse_text("Offline fixture title");
+    }
     let prompt = last_user_text(body).unwrap_or_default();
     let answered = body["input"]
         .as_array()
@@ -768,6 +769,29 @@ fn dry_run_reply(index: usize, body: &Value) -> String {
         )]);
     }
     sse_text("dry-run acknowledged")
+}
+
+fn is_title_request(body: &Value) -> bool {
+    texts(body)
+        .iter()
+        .any(|text| text.contains("Generate a short session title"))
+}
+
+#[test]
+fn dry_run_titles_do_not_execute_the_user_tool_script() {
+    for prompt in [
+        "Fix the `add` function",
+        "MCP search",
+        "Compress the closed",
+    ] {
+        let mut body = json!({"input": [
+            {"role": "system", "content": [{"text": "Generate a short session title"}]},
+            {"role": "user", "content": [{"text": prompt}]}
+        ]});
+        assert_eq!(dry_run_reply(0, &body), sse_text("Offline fixture title"));
+        body["input"].as_array_mut().unwrap().remove(0);
+        assert_ne!(dry_run_reply(0, &body), sse_text("Offline fixture title"));
+    }
 }
 
 /// True when the request already carries the tool result for `call_id`.

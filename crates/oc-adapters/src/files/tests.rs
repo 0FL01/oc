@@ -230,7 +230,7 @@ fn repository_root_query_retains_actual_preview_locations_with_native_caps() {
     let result = files
         .grep_search(
             &GrepOptions {
-                pattern: "Preview limited",
+                pattern: "preview_limited",
                 path: root.to_str().unwrap(),
                 include: None,
                 literal: false,
@@ -243,8 +243,8 @@ fn repository_root_query_retains_actual_preview_locations_with_native_caps() {
         )
         .unwrap();
     for path in [
-        "crates/oc-tui/src/shell.rs",
-        "crates/oc-tui/src/shell/tests.rs",
+        "crates/oc-tui/src/app/live.rs",
+        "crates/oc-tui/src/history.rs",
     ] {
         assert!(
             result.hits.iter().any(|hit| hit.path == path),

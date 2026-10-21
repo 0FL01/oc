@@ -310,7 +310,12 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
         None,
         original.output_presentation.clone(),
     );
-    assert!(state.preview_limited());
+    assert!(
+        state
+            .live_parts
+            .iter()
+            .any(|part| matches!(part, LivePart::Tool { card, .. } if card.preview_limited()))
+    );
     let frame = Rect::new(0, 0, 120, 48);
     let (collapsed, x, y) = paint(&mut state, frame);
     let text = collapsed
@@ -427,7 +432,6 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
             state.exploration_expanded.is_empty(),
             "page replacement has no hidden stale expansion"
         );
-        assert!(state.preview_limited());
         let (rows, _, _) = paint(&mut state, Rect::new(0, 0, width, 48));
         let text = rows
             .iter()
@@ -443,6 +447,7 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
             .iter()
             .find_map(|row| row.tool.as_ref())
             .unwrap();
+        assert!(card.preview_limited());
         assert!(
             super::super::transcript::card_row(card)
                 .text
@@ -464,7 +469,7 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
     );
     state.attach_page(&page(vec![], 0, false, false));
     assert!(
-        !state.preview_limited(),
+        state.window.rows().is_empty(),
         "ordinary empty view does not inherit old limitation"
     );
     let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 48)).unwrap();
@@ -544,7 +549,10 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
         state.attach_page(&page(vec![message], 1, false, false));
         assert!(state.window.rows().iter().any(|row| row.tool.is_some()));
         assert!(
-            !state.preview_limited(),
+            state.window.rows().iter().all(|row| {
+                row.meta.as_ref().is_none_or(|meta| !meta.preview_limited)
+                    && row.tool.as_ref().is_none_or(|card| !card.preview_limited())
+            }),
             "complete body must not inherit RAW guidance loss through {role:?} anchor"
         );
     }

@@ -253,9 +253,15 @@ fn bounded_actual_peer_rejects_twenty_fifth_and_fifth() {
 
 #[test]
 fn bounded_durable_envelope_direct_socket_process_suite() {
+    let diagnostics = tempfile::tempdir().unwrap();
+    let report = diagnostics.path().join("offline-unittest.txt");
     let mut command = Command::new("python3");
     command.args([
         "-B",
+        "-c",
+        "import os, runpy, sys; sys.stderr = open(sys.argv.pop(1), 'w'); sys.argv = sys.argv[1:]; sys.path.insert(0, os.path.dirname(sys.argv[0])); runpy.run_path(sys.argv[0], run_name='__main__')",
+    ]);
+    command.arg(&report).args([
         concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../../scripts/test_bounded_live.py"
@@ -263,7 +269,13 @@ fn bounded_durable_envelope_direct_socket_process_suite() {
         "-v",
     ]);
     let (ok, detail) = run_bounded(&mut command, CALL_TIMEOUT);
-    assert!(ok, "direct envelope socket/process suite: {detail}");
+    // Only this owned offline unittest suite is captured, never a live payload
+    // or a product subprocess's output.
+    assert!(
+        ok,
+        "direct envelope socket/process suite: {detail}; offline diagnostics: {}",
+        std::fs::read_to_string(&report).unwrap_or_default()
+    );
 }
 
 #[test]
@@ -363,10 +375,41 @@ fn bounded_guarded_five_step_campaign_preserves_offline_gates() {
         mcp.calls().len()
     );
     require_complete(&campaign);
-    let state = inspect(&id).unwrap();
+    // Main-turn completion can precede the two roots' automatic titles. The
+    // journal reserves before dispatch, so compare peer receipts only after
+    // both title exchanges and all generation/search exchanges have settled.
+    // MCP startup control messages may return 202 or be cancelled at shutdown;
+    // they are not the generation/search receipts compared below.
+    let until = Instant::now() + campaign.remaining().min(CALL_TIMEOUT);
+    let state = loop {
+        let titles = peer
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|request| request["is_title"] == true)
+            .count();
+        let state = inspect(&id).unwrap();
+        assert!(titles <= 2, "each campaign root gets one automatic title");
+        let settled = state["attempts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|attempt| attempt["kind"] == "generation" || attempt["kind"] == "mcp")
+            .all(|attempt| attempt["outcome"] == "complete" && attempt["http_status"] == 200);
+        if titles == 2 && settled {
+            break state;
+        }
+        assert!(
+            Instant::now() < until,
+            "unsettled campaign exchanges: {state}"
+        );
+        std::thread::sleep(POLL);
+    };
     assert_eq!(
         state["counts"]["generation"],
-        peer.requests.lock().unwrap().len()
+        peer.requests.lock().unwrap().len(),
+        "campaign accounting: {state}"
     );
     assert_eq!(state["counts"]["mcp"], mcp.calls().len());
     assert_eq!(mcp.calls().len(), 1);

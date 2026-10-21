@@ -2353,7 +2353,7 @@ async fn v03_rendered_row_scroll_and_chrome_conditions() {
 
 #[tokio::test]
 async fn context_footer_uses_reported_generation_without_billing_missing_rounds() {
-    use oc_core::queries::{HistoryTurn, TranscriptPart};
+    use oc_core::queries::{HistoryTurn, PartState, TranscriptPart};
 
     let mut state = golden_state().await;
     let mut snapshot = catalog();
@@ -2365,9 +2365,14 @@ async fn context_footer_uses_reported_generation_without_billing_missing_rounds(
     answer.turn = Some(HistoryTurn {
         model_label: "fixture".into(),
         parts: vec![TranscriptPart::Text("answer".into())],
+        part_states: vec![PartState {
+            truncated: true,
+            ..Default::default()
+        }],
         usage: None,
         context_usage: Some((6000, 763)),
         streamed_ms: Some(1000),
+        truncated: true,
         ..Default::default()
     });
     state.attach_page(&page(vec![answer.clone()]));
@@ -2385,6 +2390,15 @@ async fn context_footer_uses_reported_generation_without_billing_missing_rounds(
         .unwrap();
     assert_eq!(meta.input_tokens, None);
     assert_eq!(meta.output_tokens, None);
+    assert!(meta.preview_limited);
+    for width in [43, 116] {
+        let footer = footer_line(&state, Theme::dark(), width, width + 4).to_string();
+        assert!(!footer.contains("Preview limited"), "{footer}");
+        assert!(footer.contains("6.8K (3%)"), "{footer}");
+        if width == 116 {
+            assert!(footer.contains("commands"), "{footer}");
+        }
+    }
     assert!(
         !state
             .transcript_lines(116, 120)
@@ -2423,7 +2437,7 @@ async fn context_footer_uses_reported_generation_without_billing_missing_rounds(
     );
     for width in [43, 116] {
         let footer = footer_line(&state, Theme::dark(), width, width + 4).to_string();
-        assert!(footer.contains("Preview limited"), "{footer}");
+        assert!(!footer.contains("Preview limited"), "{footer}");
         assert!(footer.contains("interrupt"), "{footer}");
         if width == 116 {
             assert!(footer.contains("6.8K (3%)"), "{footer}");
