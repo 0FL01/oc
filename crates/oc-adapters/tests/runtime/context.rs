@@ -1160,7 +1160,8 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
         .find(|op| op.op.ends_with("-error-old"))
         .and_then(|op| op.output)
         .expect("durable old error output");
-    assert!(exact_error.starts_with("error:"));
+    let error: serde_json::Value = serde_json::from_str(&exact_error).unwrap();
+    assert_eq!(error["error"]["code"], "invalid_args");
 
     let first_projection = runtime
         .run_turn(params(

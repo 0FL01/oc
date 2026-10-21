@@ -1,6 +1,52 @@
 use super::*;
 
 #[test]
+fn structured_clipping_never_reassigns_match_text_and_keeps_diagnostic_facts() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("s").unwrap();
+    db.record_tool_intent("grep", "s", None, "grep", "{}")
+        .unwrap();
+    let context = Context {
+        db: &db,
+        operation: "grep",
+        session: "s",
+        location: "/p",
+        generation: 1,
+        source: "fixture",
+        limits: Limits {
+            max_bytes: 8,
+            max_lines: 2,
+        },
+        secrets: vec!["secret-crossing-boundary".into()],
+    };
+    let result = context.prepare_envelope(serde_json::json!({"matches":[{"path":"a","line":1,"text":"AAAA"},{"path":"b","line":2,"text":"BBBB"}]}).to_string(), false, None);
+    let value: serde_json::Value = serde_json::from_str(&result.text).unwrap();
+    assert_eq!(value["matches"][0]["text"], "AAAA");
+    assert_eq!(value["matches"][1]["text"], "BBBB");
+    assert_eq!(value["matches"][1]["path"], "b");
+    let mut tiny = context.clone();
+    tiny.limits.max_bytes = 1;
+    db.record_tool_intent("diag", "s", None, "grep", "{}")
+        .unwrap();
+    tiny.operation = "diag";
+    let diagnostic = crate::tools::diagnostic::Diagnostic::new(
+        "grep",
+        "budget_exhausted",
+        "Scan stopped secret-crossing-boundary",
+    )
+    .detail(serde_json::json!({"budget":"scan_bytes","bytes":16777216,"limit":16777216}))
+    .hint("Narrow path or include");
+    let result = tiny.prepare_envelope(diagnostic.output("failed"), false, None);
+    assert!(!result.logging_failed);
+    assert!(!result.text.contains("secret-crossing"));
+    let value: serde_json::Value = serde_json::from_str(&result.text).unwrap();
+    assert_eq!(value["error"]["code"], "budget_exhausted");
+    assert_eq!(value["error"]["detail"]["bytes"], 16777216);
+    assert_eq!(value["error"]["message"], "Scan stopped [redacted]");
+}
+
+#[test]
 fn write_preview_redacts_complete_content_before_byte_and_row_limits() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();

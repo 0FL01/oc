@@ -31,7 +31,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: bug report shared builtins concern; audited plan step 3.
   - Acceptance: tool/code/message/detail/hint survive safe redaction/limiting; assembly keeps announced name; state does not depend on text; DCP uses exact durable operation identity and does not purge successful error-looking content; match text remains associated with its own path/line. Existing rich shell/media/effect semantics remain intact.
   - Primary evidence: tools/output/context tests and fake-provider continuation.
-  - Status: pending
+  - Status: in_progress
+  - Evidence: tools owner suite (38 tests), output suite (9), exact-occurrence storage/planner regressions and runtime DCP strategy/root-read tests PASS. Detailed file error mapping follows in R2.
 - R4: Subagent failure/cancellation retains session ID and evidence-based cause across terminal commit/reopen.
   - Source: bug report and audited plan step 5.
   - Acceptance: policy refusal, cancellation, provider/admission/storage failure remain distinct; unknown provenance stays unknown; reason precedes signal and terminal freeze; exact terminal TurnLog is authority, no duplicate diagnostic store; background notices/recovery preserve available facts; cleanup failure remains sticky/fatal; no unknown-effect replay.
@@ -77,17 +78,17 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R3 (prerequisite for R2/R4).
-- Smallest next action: carry explicit execution state and announced tool identity, then preserve JSON field association and trusted DCP states.
-- Expected evidence: owner tests for error-looking success, associated JSON clipping and exact occurrence classification.
+- Closes: R2 and remaining file mappings in R3.
+- Smallest next action: typed budget facts, early binary termination and explicit incomplete search preserving verified hits.
+- Expected evidence: file-owner budget/partial/cancel regressions, exact root query and runtime projection.
 - Stop or replan if: concurrent edits touch owned files, or a required outcome needs a material envelope expansion.
 
 ## Current State
 
 - Resolved: R1, audited source/contract and repository/origin/resource preflight.
-- Last relevant evidence: root aliases and external admission runtime tests PASS (1.36s / 6.72s).
+- Last relevant evidence: R3 transport/output/DCP tests PASS; root-read remains green.
 - Blocker: none.
-- Next: R3 typed outcome and safe publication.
+- Next: R2 bounded useful search.
 
 ## Material Decisions
 
@@ -97,6 +98,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 - 2026-10-21: Goal frozen from user-approved audited plan; clean current HEAD and origin verified.
 - 2026-10-21: R1 runtime regression reproduced `error: read requires a bounded path`; nonempty normalized root fix passes all aliases, original RAW arguments and external approval regression.
+- 2026-10-21: R3 explicit state survives dispatch/foreground; assembly retains names, JSON clipping retains associations, DCP uses indexed exact operation states. Initial build timeout left corrupt incremental objects (undefined hidden linker symbols); verified with nonincremental Cargo, without deleting target or changing target directory. Remaining file mappings belong to R2.
 
 ## Completion
 

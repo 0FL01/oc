@@ -634,8 +634,8 @@ impl Context<'_> {
         if !value.is_object() {
             return self.prepare(text, tail, false, existing);
         }
-        // Never slice serialized JSON. Free-text leaves share one logical joined
-        // text budget; scalar status/exit/control/identity and typed effects survive.
+        // Never slice serialized JSON or move text between associated fields.
+        // Free-text leaves share a budget; status/identity/effects survive.
         let changed = redact_value(&mut value, &self.secrets);
         if !preview(&text, self.limits, tail).1 {
             let limited = value["truncated"].as_bool();
@@ -650,17 +650,31 @@ impl Context<'_> {
         drop(text);
         let body_bytes = value.to_string().len() as u64;
         let mut prose = String::new();
-        collect_prose(&mut value, None, &mut prose);
+        let mut structural_value = value.clone();
+        collect_prose(&mut structural_value, None, &mut prose);
+        let structural = structural_value.to_string().len();
+        drop(structural_value);
         let producer_limited = value.get("truncated") == Some(&serde_json::Value::Bool(true));
         let mut prepared = self.prepare(prose, tail, producer_limited, existing);
+        let mut limits = self.limits;
+        let mut escaped_room = SERVED_CAP.saturating_sub(structural + NOTICE_RESERVE);
+        let essential_message = value
+            .get("error")
+            .filter(|error| error["tool"].is_string() && error["code"].is_string())
+            .and_then(|error| error["message"].as_str())
+            .map(|text| text[..text.floor_char_boundary(text.len().min(1024))].to_owned());
+        clip_prose(&mut value, None, &mut limits, &mut escaped_room, tail);
+        if let Some(message) = essential_message {
+            // Bounded guidance uses the independent control allowance, not a
+            // minimum imposed on the user's free-text preview setting.
+            value["error"]["message"] = message.into();
+        }
+        value["text_fields_limited"] = true.into();
+        if let Some((_, notice)) = prepared.text.rsplit_once("\n[tool output:") {
+            value["tool_output"] = format!("[tool output:{notice}").into();
+        }
         if let Some(presentation) = &mut prepared.presentation {
-            let mut body_value = value.clone();
-            let mut body = Some(presentation.body.clone());
-            replace_prose(&mut body_value, None, &mut body);
-            if let Some(body) = body {
-                body_value["tool_output_preview"] = body.into();
-            }
-            let body = body_value.to_string();
+            let body = value.to_string();
             let mut envelope = oc_core::tool_output::Presentation::new(
                 &body,
                 body_bytes.max(body.len() as u64),
@@ -669,16 +683,6 @@ impl Context<'_> {
             envelope.producer_limited = value["truncated"].as_bool();
             envelope.capture = presentation.capture.take();
             **presentation = envelope;
-        }
-        let structural = value.to_string().len();
-        let mut replacement = Some(json_preview(
-            prepared.text,
-            SERVED_CAP.saturating_sub(structural + 256),
-            tail,
-        ));
-        replace_prose(&mut value, None, &mut replacement);
-        if let Some(prose) = replacement {
-            value["tool_output_preview"] = prose.into();
         }
         let result = value.to_string();
         if result.len() > SERVED_CAP {
@@ -728,6 +732,7 @@ fn prose_key(key: Option<&str>) -> bool {
                 | "content"
                 | "description"
                 | "message"
+                | "hint"
                 | "diff"
         )
     )
@@ -798,23 +803,61 @@ pub(crate) fn redact_string(text: &mut String, secrets: &[String]) -> bool {
     }
     changed
 }
-fn replace_prose(
+fn clip_prose(
     value: &mut serde_json::Value,
     key: Option<&str>,
-    replacement: &mut Option<String>,
+    remaining: &mut Limits,
+    escaped_room: &mut usize,
+    tail: bool,
 ) {
     match value {
         serde_json::Value::String(text) if prose_key(key) => {
-            *text = replacement.take().unwrap_or_default()
+            let (part, _) = preview(text, *remaining, tail);
+            let cost = |c: char| match c {
+                '"' | '\\' | '\n' | '\r' | '\t' | '\u{8}' | '\u{c}' => 2,
+                c if c < ' ' => 6,
+                c => c.len_utf8(),
+            };
+            let mut used = 0;
+            let mut start = 0;
+            let mut end = part.len();
+            if tail {
+                for (i, c) in part.char_indices().rev() {
+                    if used + cost(c) > *escaped_room {
+                        start = i + c.len_utf8();
+                        break;
+                    }
+                    used += cost(c);
+                }
+            } else {
+                for (i, c) in part.char_indices() {
+                    if used + cost(c) > *escaped_room {
+                        end = i;
+                        break;
+                    }
+                    used += cost(c);
+                }
+            }
+            let part = part[start..end].to_owned();
+            *escaped_room = escaped_room.saturating_sub(used);
+            remaining.max_bytes = remaining.max_bytes.saturating_sub(part.len());
+            remaining.max_lines = remaining.max_lines.saturating_sub(lines(&part) as usize);
+            *text = part;
         }
         serde_json::Value::Array(items) => {
-            for item in items {
-                replace_prose(item, key, replacement);
+            if tail {
+                items.reverse();
+            }
+            for item in items.iter_mut() {
+                clip_prose(item, key, remaining, escaped_room, tail);
+            }
+            if tail {
+                items.reverse();
             }
         }
         serde_json::Value::Object(map) => {
             for (key, value) in map {
-                replace_prose(value, Some(key), replacement);
+                clip_prose(value, Some(key), remaining, escaped_room, tail);
             }
         }
         _ => {}

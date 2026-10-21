@@ -14,6 +14,33 @@ pub(super) fn decode(raw: Option<String>) -> Option<DcpRunSnapshot> {
 }
 
 impl Db {
+    /// Only active, exact occurrences are consulted. Text resembling an error
+    /// is not execution evidence; missing/ambiguous legacy facts never purge.
+    pub(crate) fn dcp_errored_call_keys(
+        &self,
+        session: &str,
+        identities: &BTreeMap<DcpCallKey, DcpCallIdentity>,
+    ) -> Result<std::collections::BTreeSet<DcpCallKey>, StorageError> {
+        if identities.len() > 4096 {
+            return Err(StorageError::CompressionConflict);
+        }
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare("SELECT state FROM tool_operations WHERE session_id=?1 AND turn_id=?2 AND provider_call_id=?3 AND call_occurrence=?4 LIMIT 2")?;
+        let mut result = std::collections::BTreeSet::new();
+        for (key, (turn, call, occurrence)) in identities {
+            let occurrence =
+                i64::try_from(*occurrence).map_err(|_| StorageError::CompressionConflict)?;
+            let states = stmt
+                .query_map(params![session, turn, call, occurrence], |r| {
+                    r.get::<_, String>(0)
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            if states.len() == 1 && matches!(states[0].as_str(), "failed" | "denied") {
+                result.insert(key.clone());
+            }
+        }
+        Ok(result)
+    }
     pub(crate) fn renewal_read_counters(&self) -> [u64; 4] {
         std::array::from_fn(|i| {
             self.history_reads[i + 6].load(std::sync::atomic::Ordering::Relaxed)

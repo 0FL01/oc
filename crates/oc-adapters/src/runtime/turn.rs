@@ -666,16 +666,6 @@ fn units_have_calls(units: &[Assembled]) -> bool {
     units.iter().any(|unit| matches!(unit, Assembled::Call(_)))
 }
 
-fn output_state(output: &str) -> &'static str {
-    if output == "error: cancelled" {
-        "cancelled"
-    } else if output.starts_with("error: ") {
-        "failed"
-    } else {
-        "completed"
-    }
-}
-
 /// Forward one terminal tool-call state to the live event sink, bounded
 /// exactly like the turn report.
 fn emit_tool_finish(
@@ -4282,7 +4272,9 @@ impl<'a> Runtime<'a> {
             }
             let (id, name, input) = match unit {
                 Assembled::Call(call) => (&call.id, call.name.as_str(), call.arguments.to_string()),
-                Assembled::Failed(failure) => (&failure.id, "unknown", "{}".to_string()),
+                Assembled::Failed(failure) => {
+                    (&failure.id, failure.name.as_str(), "{}".to_string())
+                }
             };
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
@@ -4331,6 +4323,7 @@ impl<'a> Runtime<'a> {
                         }
                         Err(error) => {
                             guarded = Assembled::Failed(CallFailure {
+                                name: call.name.clone(),
                                 id: call.id.clone(),
                                 error: error.to_string(),
                             })
@@ -4338,6 +4331,7 @@ impl<'a> Runtime<'a> {
                     },
                     None => {
                         guarded = Assembled::Failed(CallFailure {
+                            name: call.name.clone(),
                             id: call.id.clone(),
                             error: "product HOME unavailable".into(),
                         })
@@ -4362,6 +4356,7 @@ impl<'a> Runtime<'a> {
                 && !request_tools.iter().any(|tool| tool.name == call.name)
             {
                 guarded = Assembled::Failed(CallFailure {
+                    name: call.name.clone(),
                     id: call.id.clone(),
                     error: if policy.effect(&call.name, "*") == Permission::Deny {
                         format!("denied {}", call.name)
@@ -4676,17 +4671,11 @@ impl<'a> Runtime<'a> {
             };
             let ctx = &invocation_ctx;
             let mut rejection = match &guarded {
-                Assembled::Failed(failure) => Some(("failed", format!("error: {}", failure.error))),
+                Assembled::Failed(failure) => Some(crate::tools::diagnostic::Diagnostic::new(name, "invalid_args", &failure.error).failed()),
                 Assembled::Call(call)
                     if is_builtin(&call.name) && self.validate_tool_call(call).is_err() =>
                 {
-                    Some((
-                        "failed",
-                        format!(
-                            "error: {}",
-                            self.validate_tool_call(call).expect_err("invalid shape")
-                        ),
-                    ))
+                    Some(crate::tools::diagnostic::Diagnostic::new(name, "invalid_args", self.validate_tool_call(call).expect_err("invalid shape").to_string()).failed())
                 }
                 Assembled::Call(call)
                     if call.name == COMPRESS_TOOL
@@ -4694,7 +4683,7 @@ impl<'a> Runtime<'a> {
                 {
                     Some((
                         "failed",
-                        "error: compress excluded by issuing request".to_string(),
+                        crate::tools::diagnostic::Diagnostic::new(name,"permission_denied","compress excluded by issuing request").output("failed"),
                     ))
                 }
                 Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Rejected(_))) => {
@@ -4703,28 +4692,25 @@ impl<'a> Runtime<'a> {
                     };
                     Some((
                         "denied",
-                        serde_json::json!({"status":"permission_rejected", "feedback":feedback})
+                        serde_json::json!({"status":"permission_rejected", "feedback":feedback,"error":admission.as_ref().err().expect("rejected").diagnostic(name)})
                             .to_string(),
                     ))
                 }
                 Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Cancelled)) => {
                     Some((
                         "cancelled",
-                        serde_json::json!({"status":"permission_cancelled"}).to_string(),
+                        serde_json::json!({"status":"permission_cancelled","error":admission.as_ref().err().expect("cancelled").diagnostic(name)}).to_string(),
                     ))
                 }
                 Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Reloaded)) => {
                     Some((
                         "failed",
-                        serde_json::json!({"status":"reloaded"}).to_string(),
+                        serde_json::json!({"status":"reloaded","error":admission.as_ref().err().expect("reloaded").diagnostic(name)}).to_string(),
                     ))
                 }
                 Assembled::Call(_) if admission.is_err() => Some((
                     if is_builtin(name) { "failed" } else { "denied" },
-                    format!(
-                        "error: {}",
-                        admission.as_ref().err().expect("admission error")
-                    ),
+                    admission.as_ref().err().expect("admission error").diagnostic(name).output("failed"),
                 )),
                 Assembled::Call(call) if invocation_policy.check_call(call).is_err() => {
                     let state = if is_builtin(&call.name) {
@@ -4734,14 +4720,11 @@ impl<'a> Runtime<'a> {
                     };
                     Some((
                         state,
-                        format!(
-                            "error: {}",
-                            invocation_policy.check_call(call).expect_err("rejected")
-                        ),
+                        invocation_policy.check_call(call).expect_err("rejected").diagnostic(name).output(state),
                     ))
                 }
                 _ if permission_rejected || cancel.load(Ordering::Relaxed) => {
-                    Some(("cancelled", "error: cancelled".to_string()))
+                    Some(crate::tools::diagnostic::Diagnostic::cancelled(name))
                 }
                 _ => None,
             };
@@ -4753,7 +4736,13 @@ impl<'a> Runtime<'a> {
                 if shell_slot.is_none() {
                     rejection = Some((
                         "failed",
-                        "error: active shell resource ceiling (8 jobs)".into(),
+                        crate::tools::diagnostic::Diagnostic::new(
+                            name,
+                            "budget_exhausted",
+                            "active shell resource ceiling",
+                        )
+                        .detail(serde_json::json!({"budget":"jobs","limit":8}))
+                        .output("failed"),
                     ));
                 }
             }
@@ -4789,11 +4778,29 @@ impl<'a> Runtime<'a> {
             if let Some(index) = call_positions[i] {
                 positioned.push((index, position));
             }
-            if let Some((state, output)) = &rejection {
+            if let Some((state, output)) = rejection {
+                let source = crate::config::mcp::safe_source_id(
+                    issuing
+                        .config
+                        .provenance
+                        .get("tool_output")
+                        .map_or("native defaults", String::as_str),
+                );
+                let preparation = crate::tools::output::Context {
+                    db: &self.db,
+                    operation: &op,
+                    session,
+                    location: &self.location,
+                    generation: issuing.id,
+                    source: &source,
+                    limits: issuing.config.tool_output,
+                    secrets: output_secrets.clone(),
+                };
+                let output = preparation.prepare_envelope(output, false, None).text;
                 let refusal_presentation = code_mode::refusal_presentation(
                     &op,
                     intent_presentation.clone(),
-                    output,
+                    &output,
                     &output_secrets,
                 );
                 turn_log.input.push(InputItem::FunctionCallOutput {
@@ -4807,7 +4814,7 @@ impl<'a> Runtime<'a> {
                     name,
                     &input,
                     state,
-                    output,
+                    &output,
                     &turn_log.to_json().to_string(),
                     refusal_presentation.as_deref(),
                 )?;
@@ -4828,7 +4835,7 @@ impl<'a> Runtime<'a> {
                     &op,
                     name,
                     state,
-                    output,
+                    &output,
                     None,
                     None,
                     refusal_presentation,
@@ -4836,7 +4843,7 @@ impl<'a> Runtime<'a> {
                 records.push(CallRecord {
                     name: name.to_string(),
                     state: state.to_string(),
-                    output: truncate(output, REPORT_OUTPUT_CAP),
+                    output: truncate(&output, REPORT_OUTPUT_CAP),
                 });
                 continue;
             }
@@ -5363,18 +5370,19 @@ impl<'a> Runtime<'a> {
                         let Assembled::Call(prepared_call) = &guarded else {
                             unreachable!("admitted patch")
                         };
-                        let (output, effects) = crate::tools::tool_patch_typed(ctx, prepared_call);
+                        let (state, output, effects) =
+                            crate::tools::tool_patch_typed(ctx, prepared_call);
                         patch_effects = effects;
-                        (output_state(&output), output)
+                        (state, output)
                     }
                     Assembled::Call(call) if matches!(call.name.as_str(), "edit" | "write") => {
                         let Assembled::Call(prepared_call) = &guarded else {
                             unreachable!("admitted mutation")
                         };
-                        let (output, effects) =
+                        let (state, output, effects) =
                             crate::tools::tool_mutation_typed(ctx, prepared_call);
                         patch_effects = effects;
-                        (output_state(&output), output)
+                        (state, output)
                     }
                     Assembled::Call(call)
                         if matches!(call.name.as_str(), "read" | "grep")
@@ -5619,8 +5627,8 @@ impl<'a> Runtime<'a> {
                         (state, output)
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {
-                        let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;
-                        (output_state(&output), output)
+                        let result = execute_batch(ctx, vec![guarded]).await.remove(0);
+                        (result.state, result.output)
                     }
                     Assembled::Call(call) => {
                         self.execute_mcp(
@@ -5893,6 +5901,7 @@ impl<'a> Runtime<'a> {
                 )
             {
                 return Assembled::Failed(CallFailure {
+                    name: call.name.clone(),
                     id: call.id.clone(),
                     error: "mutation refused: protected path".into(),
                 });
@@ -5908,6 +5917,7 @@ impl<'a> Runtime<'a> {
         match violations {
             Ok(_) => unit,
             Err(error) => Assembled::Failed(CallFailure {
+                name: call.name.clone(),
                 id: call.id.clone(),
                 error: format!("patch refused: {error}"),
             }),

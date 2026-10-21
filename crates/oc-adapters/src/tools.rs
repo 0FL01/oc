@@ -30,8 +30,10 @@ use crate::provider::StreamItem;
 use crate::shell::{Shell, ShellLimits};
 use crate::storage::Db;
 
+pub(crate) mod diagnostic;
 pub mod read;
 pub(crate) mod shell_call;
+use diagnostic::Diagnostic;
 
 /// Executable built-ins; the model-selected request view narrows file tools.
 pub const MODEL_TOOL_NAMES: &[&str] = &[
@@ -268,6 +270,8 @@ pub struct ToolCall {
 /// Assembled-but-unrunnable call (invalid JSON, unknown item, stale skill).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallFailure {
+    /// Announced tool name, or `unknown` for an unannounced item.
+    pub name: String,
     /// Provider item id (or `unknown` when unannounced).
     pub id: String,
     /// Human reason.
@@ -333,12 +337,14 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
                         }));
                     }
                     _ => units.push(Assembled::Failed(CallFailure {
+                        name,
                         id: call_id,
                         error: "invalid JSON arguments".to_string(),
                     })),
                 }
             }
             None => units.push(Assembled::Failed(CallFailure {
+                name: "unknown".into(),
                 id,
                 error: "arguments for unannounced item".to_string(),
             })),
@@ -350,6 +356,8 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
 /// Durable tool-call output keyed to the original call id.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionCallOutput {
+    /// Trusted execution state, independent of model-visible content.
+    pub state: &'static str,
     /// Original provider function call_id.
     pub call_id: String,
     /// Bounded result text (or visible error).
@@ -591,19 +599,27 @@ pub async fn execute_batch(
             };
             outputs.push(FunctionCallOutput {
                 call_id: id,
-                output: "error: cancelled".to_string(),
+                state: "cancelled",
+                output: Diagnostic::cancelled(match &unit {
+                    Assembled::Call(c) => &c.name,
+                    Assembled::Failed(f) => &f.name,
+                })
+                .1,
             });
             continue;
         }
         match unit {
             Assembled::Failed(failure) => outputs.push(FunctionCallOutput {
                 call_id: failure.id,
-                output: format!("error: {}", failure.error),
+                state: "failed",
+                output: Diagnostic::new(&failure.name, "invalid_args", &failure.error)
+                    .output("failed"),
             }),
             Assembled::Call(call) => {
                 let id = call.id.clone();
-                let output = execute_call(ctx, &call).await;
+                let (state, output) = execute_call(ctx, &call).await;
                 outputs.push(FunctionCallOutput {
+                    state,
                     call_id: id,
                     output,
                 });
@@ -613,20 +629,31 @@ pub async fn execute_batch(
     outputs
 }
 
-async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) {
     if let Err(e) = ctx.policy.check_call(call) {
-        return format!("error: {e}");
+        return e.diagnostic(&call.name).failed();
     }
     match call.name.as_str() {
-        "read" => tool_read(ctx, call),
-        "glob" | "grep" => execute_search(ctx.files, ctx.policy, ctx.cancel, call).1,
-        "apply_patch" => tool_patch(ctx, call),
-        "edit" | "write" => tool_mutation_typed(ctx, call).0,
-        "shell" | "bash" => execute_shell_typed(ctx, call).await.1,
+        "read" => {
+            let result = read::execute(ctx.files, ctx.policy, ctx.cancel, call, false);
+            (result.state, result.output)
+        }
+        "glob" | "grep" => execute_search(ctx.files, ctx.policy, ctx.cancel, call),
+        "apply_patch" => {
+            let (state, output, _) = tool_patch_typed(ctx, call);
+            (state, output)
+        }
+        "edit" | "write" => {
+            let (state, output, _) = tool_mutation_typed(ctx, call);
+            (state, output)
+        }
+        "shell" | "bash" => execute_shell_typed(ctx, call).await,
         "webfetch" => tool_webfetch(ctx, call).await,
         "skill" => tool_skill(ctx, call),
         "subagent" => tool_subagent(ctx, call).await,
-        other => format!("error: unknown tool {other}"),
+        other => ToolError::UnknownTool { tool: other.into() }
+            .diagnostic(other)
+            .failed(),
     }
 }
 
@@ -951,10 +978,6 @@ fn parse_search_page_with_offset_cap(
     ))
 }
 
-fn tool_read(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    read::execute(ctx.files, ctx.policy, ctx.cancel, call, false).output
-}
-
 /// The same typed search path is used by direct batches and the runtime's
 /// owned blocking dispatch. Its cancellation token is never inferred from policy.
 pub(crate) fn execute_search(
@@ -1078,19 +1101,15 @@ fn pagination(offset: usize, limit: usize, returned: usize, truncated: bool) -> 
     })
 }
 
-fn tool_patch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
-    tool_patch_impl(ctx, call).0
-}
-
 pub(crate) fn tool_patch_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
-) -> (String, Option<oc_core::patch::PatchEffects>) {
+) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     if ctx.cancel.load(std::sync::atomic::Ordering::Relaxed) {
-        return ("error: cancelled".into(), None);
+        return ("cancelled", Diagnostic::cancelled(&call.name).1, None);
     }
     if let Err(e) = ctx.policy.check_call(call) {
-        return (format!("error: {e}"), None);
+        return ("failed", e.diagnostic(&call.name).output("failed"), None);
     }
     tool_patch_impl(ctx, call)
 }
@@ -1098,7 +1117,7 @@ pub(crate) fn tool_patch_typed(
 fn tool_patch_impl(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
-) -> (String, Option<oc_core::patch::PatchEffects>) {
+) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     let patch = call
         .arguments
         .as_object()
@@ -1108,13 +1127,23 @@ fn tool_patch_impl(
         .unwrap_or("");
     if patch.is_empty() {
         return (
-            "error: invalid arguments for apply_patch: expected only nonempty patchText"
-                .to_string(),
+            "failed",
+            Diagnostic::new(
+                &call.name,
+                "invalid_args",
+                "expected only nonempty patchText",
+            )
+            .output("failed"),
             None,
         );
     }
     let Some(roots) = ctx.roots.as_ref() else {
-        return ("error: tool apply_patch failed: no roots".to_string(), None);
+        return (
+            "failed",
+            Diagnostic::new(&call.name, "infra_error", "mutation roots unavailable")
+                .output("failed"),
+            None,
+        );
     };
     let bridge = PolicyBridge(ctx.policy, &call.name);
     let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
@@ -1124,25 +1153,53 @@ fn tool_patch_impl(
         &bridge,
         ctx.policy.approved_patch_preimage(),
     );
-    (patch_outcome(result), Some(effects))
+    let state = if result.is_ok() {
+        "completed"
+    } else {
+        "failed"
+    };
+    let output = patch_outcome(result);
+    let output = if state == "failed" {
+        Diagnostic::new(&call.name, "execution_failed", &output)
+            .hint("Some operations may have committed; inspect recorded effects before any retry.")
+            .output(state)
+    } else {
+        output
+    };
+    (state, output, Some(effects))
 }
 
 pub(crate) fn tool_mutation_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
-) -> (String, Option<oc_core::patch::PatchEffects>) {
+) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) {
-        return ("error: cancelled".into(), None);
+        return ("cancelled", Diagnostic::cancelled(&call.name).1, None);
     }
     if let Err(error) = ctx.policy.check_call(call) {
-        return (format!("error: {error}"), None);
+        return (
+            "failed",
+            error.diagnostic(&call.name).output("failed"),
+            None,
+        );
     }
     let input = match crate::patch::mutation::Input::parse(&call.name, &call.arguments) {
         Ok(input) => input,
-        Err(error) => return (format!("error: {error}"), None),
+        Err(error) => {
+            return (
+                "failed",
+                Diagnostic::new(&call.name, "invalid_args", error).output("failed"),
+                None,
+            );
+        }
     };
     let Some(roots) = &ctx.roots else {
-        return ("error: mutation roots missing".into(), None);
+        return (
+            "failed",
+            Diagnostic::new(&call.name, "infra_error", "mutation roots unavailable")
+                .output("failed"),
+            None,
+        );
     };
     let (result, effects) = crate::patch::mutation::execute(
         &roots.project,
@@ -1152,9 +1209,16 @@ pub(crate) fn tool_mutation_typed(
         ctx.policy.approved_patch_preimage(),
     );
     (
+        if result.is_ok() {
+            "completed"
+        } else {
+            "failed"
+        },
         match result {
             Ok(output) => output.to_string(),
-            Err(error) => format!("error: {error}"),
+            Err(error) => Diagnostic::new(&call.name, "execution_failed", error.to_string())
+                .hint("Inspect recorded effects before retrying a mutation.")
+                .output("failed"),
         },
         Some(effects),
     )
@@ -1303,10 +1367,10 @@ pub(crate) async fn execute_shell_typed(
     }
 }
 
-async fn tool_webfetch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+async fn tool_webfetch(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) {
     let input = match crate::webfetch::invocation(&call.arguments) {
         Ok(input) => input,
-        Err(error) => return format!("error: {error}"),
+        Err(error) => return Diagnostic::new(&call.name, "invalid_args", error).failed(),
     };
     let opts = crate::webfetch::FetchOptions {
         timeout: input.timeout,
@@ -1336,14 +1400,25 @@ async fn tool_webfetch(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
             }
             let output = format!("{metadata}\n\n{}", result.text);
             if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) {
-                "error: cancelled".into()
+                Diagnostic::cancelled(&call.name)
             } else if started.elapsed() >= input.timeout {
-                "error: deadline exceeded".into()
+                Diagnostic::new(&call.name, "budget_exhausted", "Webfetch deadline exceeded").detail(serde_json::json!({"budget":"time","limit_ms":input.timeout.as_millis(),"elapsed_ms":started.elapsed().as_millis()})).failed()
             } else {
-                output
+                ("completed", output)
             }
         }
-        Err(e) => format!("error: {e}"),
+        Err(crate::webfetch::FetchError::Cancelled) => Diagnostic::cancelled(&call.name),
+        Err(e) => {
+            let code = if matches!(
+                e,
+                crate::webfetch::FetchError::Deadline | crate::webfetch::FetchError::TooLarge
+            ) {
+                "budget_exhausted"
+            } else {
+                "execution_failed"
+            };
+            Diagnostic::new(&call.name, code, e.to_string()).failed()
+        }
     }
 }
 
@@ -1359,23 +1434,28 @@ pub(crate) fn preflight_skill(snapshot: &SkillSnapshot, id: &str) -> Result<(), 
     }
 }
 
-fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) {
     let id = call
         .arguments
         .get("id")
         .and_then(|v| v.as_str())
         .unwrap_or("");
     if id.is_empty() {
-        return "error: invalid arguments for skill: missing id".to_string();
+        return Diagnostic::new(&call.name, "invalid_args", "missing skill id").failed();
     }
     if let Err(e) = ctx.policy.check_call(call) {
-        return format!("error: {e}");
+        return e.diagnostic(&call.name).failed();
     }
     match ctx.snapshot.entries.get(id) {
-        Some(entry) => entry.body.clone(),
+        Some(entry) => ("completed", entry.body.clone()),
         None => match ctx.snapshot.errors.get(id) {
-            Some(error) => format!("error: {error}"),
-            None => format!("error: unknown skill {id} (not in pinned snapshot)"),
+            Some(error) => Diagnostic::new(&call.name, "execution_failed", error).failed(),
+            None => Diagnostic::new(
+                &call.name,
+                "invalid_args",
+                format!("unknown skill {id} (not in pinned snapshot)"),
+            )
+            .failed(),
         },
     }
 }
@@ -1385,31 +1465,36 @@ fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
 /// Result shape mirrors upstream: completed children are wrapped as
 /// `<subagent sessionID="…" state="completed">`; request failures surface as
 /// their upstream message; an in-flight cancellation is `error: cancelled`.
-async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> String {
+async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) {
     let Some(runner) = ctx.subagent else {
-        return "error: subagent tool is unavailable in this session".to_string();
+        return Diagnostic::new(
+            &call.name,
+            "unsupported",
+            "subagent tool is unavailable in this session",
+        )
+        .failed();
     };
     let request = match subagent_request(call) {
         Ok(request) => request,
-        Err(error) => return format!("error: {error}"),
+        Err(error) => return error.diagnostic(&call.name).failed(),
     };
     match runner.spawn(request).await {
-        Ok(SubagentOutcome::Running { session_id, operation, generation, delivery_id }) => serde_json::json!({"sessionID":&session_id,"status":"running","jobGeneration":operation,"sourceGeneration":generation,"deliveryID":delivery_id,"output":format!("The subagent is working in the background (sessionID: {session_id}). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.")}).to_string(),
+        Ok(SubagentOutcome::Running { session_id, operation, generation, delivery_id }) => ("running", serde_json::json!({"sessionID":&session_id,"status":"running","jobGeneration":operation,"sourceGeneration":generation,"deliveryID":delivery_id,"output":format!("The subagent is working in the background (sessionID: {session_id}). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.")}).to_string()),
         Ok(SubagentOutcome::Completed { session_id, text }) => {
-            format!(
+            ("completed", format!(
                 "<subagent sessionID=\"{session_id}\" state=\"completed\">\n{text}\n</subagent>"
-            )
+            ))
         }
         Ok(SubagentOutcome::Failed {
             session_id: Some(session_id),
             reason,
-        }) => format!("error: subagent failed (sessionID: {session_id}): {reason}"),
+        }) => Diagnostic::new(&call.name, "execution_failed", reason).detail(serde_json::json!({"sessionID":session_id})).failed(),
         Ok(SubagentOutcome::Failed {
             session_id: None,
             reason,
-        }) => format!("error: {reason}"),
-        Ok(SubagentOutcome::Cancelled { .. }) => "error: cancelled".to_string(),
-        Err(error) => format!("error: {error}"),
+        }) => Diagnostic::new(&call.name, "execution_failed", reason).failed(),
+        Ok(SubagentOutcome::Cancelled { session_id }) => ("cancelled", Diagnostic::new(&call.name, "cancelled", "Subagent cancelled").detail(serde_json::json!({"sessionID":session_id,"by":"unknown","reason":"cancellation_requested"})).output("cancelled")),
+        Err(error) => error.diagnostic(&call.name).failed(),
     }
 }
 
@@ -1957,6 +2042,9 @@ mod tests {
             outputs[1].output
         );
         assert_eq!(outputs[2].call_id, "c3");
+        assert_eq!(outputs[2].state, "failed");
+        let failure: serde_json::Value = serde_json::from_str(&outputs[2].output).unwrap();
+        assert_eq!(failure["error"]["tool"], "read");
         assert!(
             outputs[2].output.contains("invalid JSON"),
             "got: {}",
@@ -1966,6 +2054,38 @@ mod tests {
         let input = to_input_items(&outputs);
         assert_eq!(input[0]["call_id"], "c1");
         assert_eq!(input[0]["type"], "function_call_output");
+    }
+
+    #[tokio::test]
+    async fn successful_skill_error_looking_content_keeps_explicit_completed_state() {
+        let mut env = setup();
+        let policy = AllowAllPolicy;
+        for body in [
+            "error: this is documentation",
+            r#"{"status":"failed","error":{"tool":"skill","code":"execution_failed","message":"example"}}"#,
+        ] {
+            env.snapshot.entries.insert(
+                "example".into(),
+                super::SkillEntry {
+                    name: "Example".into(),
+                    description: "Example".into(),
+                    body: body.into(),
+                    autoinvoke: false,
+                },
+            );
+            let context = ctx(&env, &policy, false);
+            let outputs = execute_batch(
+                &context,
+                vec![Assembled::Call(ToolCall {
+                    id: "skill".into(),
+                    name: "skill".into(),
+                    arguments: serde_json::json!({"id":"example"}),
+                })],
+            )
+            .await;
+            assert_eq!(outputs[0].state, "completed");
+            assert_eq!(outputs[0].output, body);
+        }
     }
 
     #[tokio::test]
@@ -2103,8 +2223,12 @@ mod tests {
             ],
         )
         .await;
-        assert_eq!(outputs[0].output, "error: denied glob");
-        assert_eq!(outputs[1].output, "error: denied grep");
+        for (output, tool) in outputs.iter().zip(["glob", "grep"]) {
+            let value: serde_json::Value = serde_json::from_str(&output.output).unwrap();
+            assert_eq!(output.state, "failed");
+            assert_eq!(value["error"]["tool"], tool);
+            assert_eq!(value["error"]["code"], "permission_denied");
+        }
     }
 
     #[tokio::test]
@@ -2136,7 +2260,9 @@ mod tests {
                 })],
             )
             .await;
-            assert!(output[0].output.starts_with("error: invalid arguments"));
+            let failure: serde_json::Value = serde_json::from_str(&output[0].output).unwrap();
+            assert_eq!(failure["error"]["code"], "invalid_args");
+            assert_eq!(output[0].state, "failed");
             assert!(!env.project.join("canonical.txt").exists());
         }
         let output = execute_batch(

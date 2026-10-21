@@ -298,6 +298,19 @@ impl std::fmt::Display for AdmissionFailure {
     }
 }
 
+impl AdmissionFailure {
+    fn diagnostic(&self, tool: &str) -> crate::tools::diagnostic::Diagnostic {
+        let code = match self {
+            Self::Required => "approval_required",
+            Self::Denied(_) | Self::Rejected(_) => "permission_denied",
+            Self::Reloaded => "reloaded",
+            Self::Cancelled => "cancelled",
+            Self::Invalid(_) => "invalid_args",
+        };
+        crate::tools::diagnostic::Diagnostic::new(tool, code, self.to_string())
+    }
+}
+
 impl<'a> RuntimePolicy<'a> {
     fn tool_visible(&self, tool: &str) -> bool {
         let alias = self.mcp_alias(tool);

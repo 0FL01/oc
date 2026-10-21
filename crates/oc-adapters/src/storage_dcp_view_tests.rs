@@ -2,6 +2,44 @@ use super::*;
 use crate::tools::TurnLog;
 use oc_core::queries::{ConversationAction, ModelRef, TranscriptPart};
 
+#[test]
+fn dcp_errors_resolve_only_exact_unambiguous_active_occurrence() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("s").unwrap();
+    db.create_session("other").unwrap();
+    let mut log = accepted(&db, "s", "t", "tools");
+    for (occurrence, state) in ["completed", "failed", "unknown"].into_iter().enumerate() {
+        let op = format!("t-r0-c{occurrence}-reused");
+        let index = log.input.len();
+        log.input.push(crate::provider::InputItem::ProviderOutput(serde_json::json!({"type":"function_call","call_id":"reused","name":"skill","arguments":"{}"})));
+        log.call_occurrences.insert(index, occurrence as u64);
+        log.display_parts
+            .push(serde_json::json!({"tool":op,"call_input_index":index}));
+        db.record_turn_tool_intent(&op, "s", "t", "skill", "{}", &log.to_json().to_string())
+            .unwrap();
+        db.record_tool_outcome(&op, state, Some("error: deliberately misleading text"))
+            .unwrap();
+    }
+    let identities = (0..4)
+        .map(|n| {
+            (
+                ("reused".to_owned(), n),
+                ("t".to_owned(), "reused".to_owned(), n),
+            )
+        })
+        .collect();
+    assert_eq!(
+        db.dcp_errored_call_keys("s", &identities).unwrap(),
+        [("reused".to_owned(), 1)].into_iter().collect()
+    );
+    assert!(
+        db.dcp_errored_call_keys("other", &identities)
+            .unwrap()
+            .is_empty()
+    );
+}
+
 fn accepted(db: &Db, session: &str, turn: &str, text: &str) -> TurnLog {
     let model = ModelRef {
         provider: "fixture".into(),

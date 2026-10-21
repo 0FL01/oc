@@ -71,19 +71,19 @@ impl Runtime<'_> {
             let refusal = match &admission {
                 Err(AdmissionFailure::Rejected(feedback)) => Some((
                     "denied",
-                    serde_json::json!({"status":"permission_rejected","feedback":feedback})
+                    serde_json::json!({"status":"permission_rejected","feedback":feedback,"error":admission.as_ref().err().expect("rejected").diagnostic(SUBAGENT_TOOL)})
                         .to_string(),
                 )),
-                Err(AdmissionFailure::Cancelled) => Some(("cancelled", "error: cancelled".into())),
+                Err(AdmissionFailure::Cancelled) => Some(crate::tools::diagnostic::Diagnostic::cancelled(SUBAGENT_TOOL)),
                 Err(AdmissionFailure::Reloaded) => Some((
                     "failed",
-                    serde_json::json!({"status":"reloaded"}).to_string(),
+                    serde_json::json!({"status":"reloaded","error":admission.as_ref().err().expect("reloaded").diagnostic(SUBAGENT_TOOL)}).to_string(),
                 )),
-                Err(error) => Some(("failed", format!("error: {error}"))),
+                Err(error) => Some(error.diagnostic(SUBAGENT_TOOL).failed()),
                 Ok(permitted) => permitted
                     .check_call(call)
                     .err()
-                    .map(|error| ("failed", format!("error: {error}"))),
+                    .map(|error| error.diagnostic(SUBAGENT_TOOL).failed()),
             };
             let position = positions[i]
                 .and_then(|index| {
@@ -147,7 +147,10 @@ impl Runtime<'_> {
         }
         // Batch waiters borrow this owner. Execution lives in owned Jobs; an
         // explicit same-child successor joins execution even after conversion.
-        let mut previous: BTreeMap<String, Shared<BoxFuture<'_, String>>> = BTreeMap::new();
+        let mut previous: BTreeMap<
+            String,
+            Shared<BoxFuture<'_, crate::tools::FunctionCallOutput>>,
+        > = BTreeMap::new();
         let mut work = Vec::new();
         for (call, _, permitted, refusal) in &admitted {
             // Refused leaves must not join or replace an admitted predecessor.
@@ -166,12 +169,24 @@ impl Runtime<'_> {
                     if let Some(child) = continuation
                         && !self.child_jobs.join_child(&child, cancel).await
                     {
-                        return serde_json::json!({"status":"failed","reason":"child_join_failed"})
-                            .to_string();
+                        return crate::tools::FunctionCallOutput {
+                            call_id: call.id.clone(),
+                            state: "failed",
+                            output: crate::tools::diagnostic::Diagnostic::new(
+                                SUBAGENT_TOOL,
+                                "infra_error",
+                                "child join failed",
+                            )
+                            .output("failed"),
+                        };
                     }
                 }
-                if let Some((_, output)) = refusal {
-                    return output.clone();
+                if let Some((state, output)) = refusal {
+                    return crate::tools::FunctionCallOutput {
+                        call_id: call.id.clone(),
+                        state,
+                        output: output.clone(),
+                    };
                 }
                 let context = ToolContext {
                     policy: permitted.as_ref().expect("admitted child"),
@@ -188,7 +203,6 @@ impl Runtime<'_> {
                 execute_batch(&context, vec![Assembled::Call((*call).clone())])
                     .await
                     .remove(0)
-                    .output
             }
             .boxed()
             .shared();
@@ -202,20 +216,8 @@ impl Runtime<'_> {
         let outputs = join_all(work).await;
         drop(previous);
         let mut records = Vec::new();
-        for ((call, op, _, refusal), output) in admitted.into_iter().zip(outputs) {
-            let mut state = refusal
-                .as_ref()
-                .map_or_else(|| output_state(&output), |(state, _)| *state);
-            if refusal.is_none()
-                && let Ok(value) = serde_json::from_str::<serde_json::Value>(&output)
-            {
-                state = match value["status"].as_str() {
-                    Some("running") => "running",
-                    Some("failed") => "failed",
-                    Some("cancelled") => "cancelled",
-                    _ => state,
-                };
-            }
+        for ((call, op, _, refusal), result) in admitted.into_iter().zip(outputs) {
+            let mut state = result.state;
             let source = crate::config::mcp::safe_source_id(
                 published
                     .config
@@ -233,7 +235,7 @@ impl Runtime<'_> {
                 limits: published.config.tool_output,
                 secrets: secrets.clone(),
             };
-            let prepared = preparation.prepare_envelope(output, false, None);
+            let prepared = preparation.prepare_envelope(result.output, false, None);
             if prepared.logging_failed {
                 self.db.record_output_execution(&op, state)?;
                 state = "failed";

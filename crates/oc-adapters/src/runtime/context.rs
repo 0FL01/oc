@@ -79,6 +79,7 @@ fn plan_dcp_strategies(
     input: &[InputItem],
     config: &DcpConfig,
     existing: &crate::storage::DcpToolProjection,
+    errored: &std::collections::BTreeSet<crate::storage::DcpCallKey>,
 ) -> crate::storage::DcpToolProjection {
     let mut projection = crate::storage::DcpToolProjection::default();
     if !config.enabled || (config.manual_mode && !config.automatic_strategies) {
@@ -96,15 +97,6 @@ fn plan_dcp_strategies(
             )
         })
         .count() as u64;
-    let mut outputs: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for item in input {
-        if let Some((call_id, output)) = item.call_output() {
-            outputs
-                .entry(call_id.to_owned())
-                .or_default()
-                .push(output.to_owned());
-        }
-    }
     let mut users_seen = 0u64;
     let mut calls = Vec::new();
     let mut occurrences: BTreeMap<String, u64> = BTreeMap::new();
@@ -152,10 +144,7 @@ fn plan_dcp_strategies(
             && !purge_protected
             && arguments.len() > crate::dcp_auto::LARGE_INPUT_BYTES
             && age >= config.purge_after_turns
-            && outputs
-                .get(&call_id)
-                .and_then(|values| values.get(call_key.1 as usize))
-                .is_some_and(|output| output.starts_with("error:"))
+            && errored.contains(&call_key)
         {
             projection.purged.insert(call_key.clone());
         }
@@ -182,6 +171,47 @@ fn plan_dcp_strategies(
         .map(|(_, call_key, _, _, _)| call_key)
         .collect();
     projection
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    #[test]
+    fn purge_uses_exact_trusted_state_not_error_looking_output() {
+        let mut input = Vec::new();
+        for text in [
+            "error: example",
+            r#"{"status":"failed","error":{"code":"invalid_args"}}"#,
+            "plain failure",
+        ] {
+            input.push(InputItem::ProviderOutput(serde_json::json!({"type":"function_call","call_id":"reused","name":"skill","arguments":serde_json::json!({"id":"x".repeat(5000)}).to_string()})));
+            input.push(InputItem::FunctionCallOutput {
+                call_id: "reused".into(),
+                output: text.into(),
+            });
+        }
+        let config = DcpConfig {
+            purge_errors: true,
+            purge_after_turns: 0,
+            turn_protection: false,
+            deduplication: false,
+            ..Default::default()
+        };
+        let key = ("reused".to_owned(), 2);
+        let projection = plan_dcp_strategies(
+            &input,
+            &config,
+            &Default::default(),
+            &[key.clone()].into_iter().collect(),
+        );
+        assert_eq!(projection.purged, [key].into_iter().collect());
+        assert!(
+            plan_dcp_strategies(&input, &config, &Default::default(), &Default::default())
+                .purged
+                .is_empty()
+        );
+    }
 }
 
 fn apply_turn_protection(
@@ -1344,7 +1374,15 @@ impl<'a> Runtime<'a> {
         let existing_projection = self
             .db
             .dcp_tool_projection_for_input(session, &raw_before)?;
-        let delta = plan_dcp_strategies(&raw_before, config, &existing_projection);
+        let before_logs = self.projected_wire_logs(
+            session,
+            context.after_seq,
+            &prior(before_rows),
+            &context.blocks,
+        )?;
+        let identities = dcp_call_identities(&before_logs, current)?;
+        let errored = self.db.dcp_errored_call_keys(session, &identities)?;
+        let delta = plan_dcp_strategies(&raw_before, config, &existing_projection, &errored);
         let mut candidate_projection = existing_projection.clone();
         candidate_projection
             .hidden
@@ -1358,12 +1396,6 @@ impl<'a> Runtime<'a> {
                 block.members.clear();
             }
         }
-        let before_logs = self.projected_wire_logs(
-            session,
-            context.after_seq,
-            &prior(before_rows),
-            &context.blocks,
-        )?;
         for block in &mut plan.blocks {
             let start = self
                 .db
@@ -1429,7 +1461,6 @@ impl<'a> Runtime<'a> {
             .chain(current_input)
             .cloned()
             .collect::<Vec<_>>();
-        let identities = dcp_call_identities(&before_logs, current)?;
         let after_logs =
             self.projected_wire_logs(session, context.after_seq, &prior(&after_rows), &candidate)?;
         let after_identities = dcp_call_identities(&after_logs, current)?;
