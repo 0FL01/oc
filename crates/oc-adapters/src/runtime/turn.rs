@@ -4320,6 +4320,13 @@ impl<'a> Runtime<'a> {
                                 } else {
                                     &path
                                 };
+                            // The project root has an empty descriptor-relative
+                            // suffix, not an empty model-facing read argument.
+                            let resource = if resource.as_os_str().is_empty() {
+                                std::path::Path::new(".")
+                            } else {
+                                resource
+                            };
                             call.arguments["path"] = resource.to_string_lossy().into_owned().into();
                         }
                         Err(error) => {

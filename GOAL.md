@@ -15,6 +15,11 @@ Scope текущей работы задаёт пользователь; workflo
 
 ## Незавершённые outcomes
 
+### Native tool diagnostics — текущий запрошенный фикс
+
+Исправленный после аудита план и frozen outcomes: [read/grep/subagent](docs/goals/2026-10-21-native-tool-diagnostics.md).
+Scope — полезный bounded search, root directory read, достоверные tool states и причины child failure/cancellation; не полная Long Horizon qualification.
+
 ### TUI parity — отложено, не отменено
 
 Текущий явно запрошенный срез: [live session navigation и полный root background lifecycle](docs/goals/2026-10-20-live-session-navigation.md). Исправленный после аудита план и frozen outcomes сохранены там; это не возобновляет остальной backlog.

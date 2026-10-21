@@ -1,6 +1,73 @@
 use super::*;
 use oc_core::approval::{ApprovalDecision, ApprovalPreview, ApprovalReply, ApprovalRequest};
 
+#[tokio::test]
+async fn root_read_aliases_keep_nonempty_resource_and_original_provider_arguments() {
+    let (harness, generation) = make_harness(allow_all());
+    let root = harness._project.path();
+    std::fs::create_dir(root.join("nested")).unwrap();
+    std::fs::write(root.join("fact.txt"), "root fact").unwrap();
+    let paths = [
+        ".".to_owned(),
+        "./".to_owned(),
+        root.to_string_lossy().into_owned(),
+        format!("{}/", root.display()),
+        "nested/..".to_owned(),
+    ];
+    let mut script = Vec::new();
+    for (index, path) in paths.iter().enumerate() {
+        script.push(
+            sse_tool_call(
+                &format!("root-{index}"),
+                "read",
+                &serde_json::json!({"path":path}),
+            ) + &sse_completed(),
+        );
+    }
+    script.push(
+        sse_tool_call("invalid-empty", "read", &serde_json::json!({"path":""})) + &sse_completed(),
+    );
+    script.push(sse_delta("done") + &sse_completed());
+    let (base, _, requests) = Fake::start_recording(script, Duration::ZERO);
+    let runtime = runtime_of(&harness, generation, vec![]);
+    runtime.create_session("root").unwrap();
+    let report = runtime
+        .run_turn(params(
+            "root",
+            "list root",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    for call in &report.calls[..paths.len()] {
+        assert_eq!(call.state, "completed", "{}", call.output);
+        assert!(call.output.contains("nested/"), "{}", call.output);
+        assert!(call.output.contains("fact.txt"), "{}", call.output);
+        assert!(call.output.find("nested/") < call.output.find("fact.txt"));
+    }
+    assert_eq!(report.calls[paths.len()].state, "failed");
+    let requests = requests.lock().unwrap();
+    let final_input = requests.last().unwrap()["input"].as_array().unwrap();
+    for (index, path) in paths.iter().enumerate() {
+        let call = final_input
+            .iter()
+            .find(|item| {
+                item["call_id"] == format!("root-{index}") && item["type"] == "function_call"
+            })
+            .unwrap();
+        let arguments: serde_json::Value =
+            serde_json::from_str(call["arguments"].as_str().unwrap()).unwrap();
+        assert_eq!(arguments["path"], *path);
+    }
+    assert_eq!(
+        harness.db.list_tool_ops("root").unwrap().len(),
+        paths.len() + 1
+    );
+}
+
 pub(super) async fn next_request(runtime: &Runtime<'_>) -> ApprovalRequest {
     tokio::time::timeout(Duration::from_secs(4), async {
         loop {
