@@ -143,6 +143,14 @@ fstat читаются только regular; FIFO/device не блокируют
 ordinary1 MiB file admission without relaxing ordinary project scans, aggregate/time/
 hit budgets or no-follow/session/policy checks.
 
+Native search amendment 2026-10-21: resource-limited grep is explicitly `failed`
+with `coverage:incomplete`, verified `matches`, typed budget facts and no
+`next_offset`. Oversized content candidates are unsearched omissions, not absence;
+mandatory ignore files cannot be omitted. Admitted binary content stops at the
+first NUL-containing chunk and charges actual bytes. Cancellation discards all
+partial matches and joins the worker. Complete pages retain stable pagination;
+an incomplete result does not claim a global sorted prefix or exhaustive absence.
+
 `compress` — ordinary function tool из DCP.md; файл на диске не меняет. Schema
 точно `{topic,content:[{startId,endId,summary}]}`. Он использует тот же permission
 и durable dispatcher, что остальные built-ins; model call atomically сохраняет

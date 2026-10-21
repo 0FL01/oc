@@ -1147,7 +1147,10 @@ impl<'a> Runtime<'a> {
         Ok(permitted)
     }
 
-    fn validate_tool_call(&self, call: &crate::tools::ToolCall) -> Result<(), String> {
+    fn validate_tool_call(
+        &self,
+        call: &crate::tools::ToolCall,
+    ) -> Result<(), crate::tools::diagnostic::Diagnostic> {
         if matches!(call.name.as_str(), "read" | "grep")
             && call.arguments["path"]
                 .as_str()
@@ -1159,15 +1162,25 @@ impl<'a> Runtime<'a> {
                     crate::storage::tool_output::CAP + 1,
                 )
                 .map(|_| ())
+                .map_err(|reason| {
+                    crate::tools::diagnostic::Diagnostic::new(&call.name, "invalid_args", reason)
+                })
             } else {
                 crate::tools::parse_grep_args_with_offset_cap(
                     call,
                     crate::storage::tool_output::CAP,
                 )
-                .map(|_| ())
+                .map_err(|reason| {
+                    crate::tools::diagnostic::Diagnostic::new(&call.name, "invalid_args", reason)
+                })
+                .and_then(|options| {
+                    options
+                        .validate()
+                        .map_err(|error| error.diagnostic(&call.name))
+                })
             }
         } else {
-            crate::tools::validate_call(call)
+            crate::tools::validate_call_diagnostic(call)
         }
     }
 
@@ -4675,7 +4688,7 @@ impl<'a> Runtime<'a> {
                 Assembled::Call(call)
                     if is_builtin(&call.name) && self.validate_tool_call(call).is_err() =>
                 {
-                    Some(crate::tools::diagnostic::Diagnostic::new(name, "invalid_args", self.validate_tool_call(call).expect_err("invalid shape").to_string()).failed())
+                    Some(self.validate_tool_call(call).expect_err("invalid shape").failed())
                 }
                 Assembled::Call(call)
                     if call.name == COMPRESS_TOOL
@@ -5468,15 +5481,7 @@ impl<'a> Runtime<'a> {
                                     read_images,
                                 )
                             } else {
-                                let (state, output) =
-                                    crate::tools::execute_search(&files, &policy, &token, &call);
-                                crate::tools::read::Outcome {
-                                    state,
-                                    output,
-                                    image: None,
-                                    directory: false,
-                                    producer_limited: None,
-                                }
+                                crate::tools::execute_search(&files, &policy, &token, &call)
                             }
                         });
                         let result = loop {
@@ -5490,7 +5495,7 @@ impl<'a> Runtime<'a> {
                         // A cancellation racing the final worker checkpoint must
                         // also discard its result. Join precedes durable finish.
                         if ctx.cancel.load(Ordering::Acquire) {
-                            ("cancelled", "error: cancelled".into())
+                            crate::tools::diagnostic::Diagnostic::cancelled(name)
                         } else {
                             let mut result = result.unwrap_or_else(|_| {
                                 crate::tools::read::Outcome::error(

@@ -638,7 +638,10 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, 
             let result = read::execute(ctx.files, ctx.policy, ctx.cancel, call, false);
             (result.state, result.output)
         }
-        "glob" | "grep" => execute_search(ctx.files, ctx.policy, ctx.cancel, call),
+        "glob" | "grep" => {
+            let result = execute_search(ctx.files, ctx.policy, ctx.cancel, call);
+            (result.state, result.output)
+        }
         "apply_patch" => {
             let (state, output, _) = tool_patch_typed(ctx, call);
             (state, output)
@@ -660,6 +663,21 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, 
 /// Required argument shape before the runtime commits an execution intent.
 /// Filesystem, URL and command-policy checks remain with their owning tools.
 pub(crate) fn validate_call(call: &ToolCall) -> Result<(), String> {
+    validate_call_diagnostic(call).map_err(|error| error.message)
+}
+
+pub(crate) fn validate_call_diagnostic(call: &ToolCall) -> Result<(), Diagnostic> {
+    validate_call_shape(call)
+        .map_err(|reason| Diagnostic::new(&call.name, "invalid_args", reason))?;
+    let validation = match call.name.as_str() {
+        "glob" => parse_glob_args(call).expect("validated shape").validate(),
+        "grep" => parse_grep_args(call).expect("validated shape").validate(),
+        _ => Ok(()),
+    };
+    validation.map_err(|error| error.diagnostic(&call.name))
+}
+
+fn validate_call_shape(call: &ToolCall) -> Result<(), String> {
     let args = &call.arguments;
     let nonempty = |key| {
         args.get(key)
@@ -847,7 +865,6 @@ fn parse_glob_args(call: &ToolCall) -> Result<crate::files::search::GlobOptions<
         offset,
         limit,
     };
-    options.validate().map_err(|error| error.to_string())?;
     Ok(options)
 }
 
@@ -889,7 +906,6 @@ pub(crate) fn parse_grep_args_with_offset_cap(
         offset,
         limit,
     };
-    options.validate().map_err(|error| error.to_string())?;
     Ok(options)
 }
 
@@ -985,24 +1001,35 @@ pub(crate) fn execute_search(
     policy: &dyn ToolPolicy,
     cancel: &AtomicBool,
     call: &ToolCall,
-) -> (&'static str, String) {
+) -> read::Outcome {
     if let Err(error) = policy.check_call(call) {
-        return ("failed", format!("error: {error}"));
+        return read::Outcome::diagnostic("failed", error.diagnostic(&call.name));
     }
     if cancel.load(std::sync::atomic::Ordering::Acquire) {
-        return ("cancelled", "error: cancelled".into());
+        return read::Outcome::diagnostic(
+            "cancelled",
+            Diagnostic::new(&call.name, "cancelled", "Search cancelled"),
+        );
+    }
+    if let Err(error) = validate_call_diagnostic(call) {
+        return read::Outcome::diagnostic("failed", error);
     }
     let output = if call.name == "glob" {
         tool_glob(files, policy, cancel, call)
     } else {
         tool_grep(files, policy, cancel, call)
     };
-    if cancel.load(std::sync::atomic::Ordering::Acquire) || output == "error: cancelled" {
-        ("cancelled", "error: cancelled".into())
-    } else if output.starts_with("error:") {
-        ("failed", output)
+    if cancel.load(std::sync::atomic::Ordering::Acquire) {
+        read::Outcome::diagnostic(
+            "cancelled",
+            Diagnostic::new(
+                &call.name,
+                "cancelled",
+                "Search cancelled; partial results discarded",
+            ),
+        )
     } else {
-        ("completed", output)
+        output
     }
 }
 
@@ -1011,13 +1038,25 @@ fn tool_glob(
     policy: &dyn ToolPolicy,
     cancel: &AtomicBool,
     call: &ToolCall,
-) -> String {
+) -> read::Outcome {
     let mut options = match parse_glob_args(call) {
         Ok(args) => args,
-        Err(reason) => return format!("error: invalid arguments for glob: {reason}"),
+        Err(reason) => {
+            return read::Outcome::diagnostic(
+                "failed",
+                Diagnostic::new("glob", "invalid_args", reason),
+            );
+        }
     };
-    if let Err(error) = search_preflight_for(files, policy, call) {
-        return format!("error: {error}");
+    let scope = match files.search_scope(options.path) {
+        Ok(scope) => scope,
+        Err(error) => return read::Outcome::diagnostic("failed", error.diagnostic("glob")),
+    };
+    if !search_path_allowed(policy, &scope) {
+        return read::Outcome::diagnostic(
+            "failed",
+            Diagnostic::new("glob", "permission_denied", "Read scope denied"),
+        );
     }
     let (offset, limit) = (options.offset, options.limit);
     options.limit = limit + 1;
@@ -1030,13 +1069,27 @@ fn tool_glob(
             let truncated = items.len() > limit;
             items.truncate(limit);
             let returned = items.len();
-            serde_json::json!({
+            let output = serde_json::json!({
                 "items": items,
                 "pagination": pagination(offset, limit, returned, truncated),
             })
-            .to_string()
+            .to_string();
+            read::Outcome {
+                state: "completed",
+                output,
+                image: None,
+                directory: false,
+                producer_limited: Some(truncated),
+            }
         }
-        Err(error) => format!("error: {error}"),
+        Err(error) => read::Outcome::diagnostic(
+            if error == crate::files::FileToolError::Cancelled {
+                "cancelled"
+            } else {
+                "failed"
+            },
+            error.diagnostic("glob"),
+        ),
     }
 }
 
@@ -1045,13 +1098,25 @@ fn tool_grep(
     policy: &dyn ToolPolicy,
     cancel: &AtomicBool,
     call: &ToolCall,
-) -> String {
+) -> read::Outcome {
     let mut options = match parse_grep_args(call) {
         Ok(args) => args,
-        Err(reason) => return format!("error: invalid arguments for grep: {reason}"),
+        Err(reason) => {
+            return read::Outcome::diagnostic(
+                "failed",
+                Diagnostic::new("grep", "invalid_args", reason),
+            );
+        }
     };
-    if let Err(error) = search_preflight_for(files, policy, call) {
-        return format!("error: {error}");
+    let scope = match files.search_scope(options.path) {
+        Ok(scope) => scope,
+        Err(error) => return read::Outcome::diagnostic("failed", error.diagnostic("grep")),
+    };
+    if !search_path_allowed(policy, &scope) {
+        return read::Outcome::diagnostic(
+            "failed",
+            Diagnostic::new("grep", "permission_denied", "Read scope denied"),
+        );
     }
     let (offset, limit) = (options.offset, options.limit);
     options.limit = limit + 1;
@@ -1060,7 +1125,8 @@ fn tool_grep(
         |path| search_path_allowed(policy, path),
         Some(cancel),
     ) {
-        Ok(mut hits) => {
+        Ok(result) => {
+            let mut hits = result.hits;
             let truncated = hits.len() > limit;
             hits.truncate(limit);
             let returned = hits.len();
@@ -1075,14 +1141,39 @@ fn tool_grep(
                     })
                 })
                 .collect::<Vec<_>>();
-            serde_json::json!({
+            let mut output = serde_json::json!({
                 "matches": matches,
                 "diagnostics": {"truncated_line_previews": truncated_line_previews},
                 "pagination": pagination(offset, limit, returned, truncated),
-            })
-            .to_string()
+            });
+            let state = if let Some(error) = result.incomplete {
+                output["status"] = "failed".into();
+                output["error"] =
+                    serde_json::to_value(error.diagnostic("grep")).expect("diagnostic");
+                output["coverage"] = "incomplete".into();
+                output["diagnostics"]["unsearched_files"] = result.unsearched_files.into();
+                output["pagination"]["next_offset"] = serde_json::Value::Null;
+                output["pagination"]["truncated"] = true.into();
+                "failed"
+            } else {
+                "completed"
+            };
+            read::Outcome {
+                state,
+                output: output.to_string(),
+                image: None,
+                directory: false,
+                producer_limited: Some(truncated || state == "failed"),
+            }
         }
-        Err(error) => format!("error: {error}"),
+        Err(error) => read::Outcome::diagnostic(
+            if error == crate::files::FileToolError::Cancelled {
+                "cancelled"
+            } else {
+                "failed"
+            },
+            error.diagnostic("grep"),
+        ),
     }
 }
 
@@ -2155,11 +2246,10 @@ mod tests {
         assert_eq!(grep["pagination"]["returned"], 3);
         assert_eq!(grep["pagination"]["truncated"], false);
         assert_eq!(grep["pagination"]["next_offset"], serde_json::Value::Null);
-        assert!(
-            outputs[2]
-                .output
-                .starts_with("error: invalid arguments for glob")
-        );
+        let invalid: serde_json::Value = serde_json::from_str(&outputs[2].output).unwrap();
+        assert_eq!(outputs[2].state, "failed");
+        assert_eq!(invalid["error"]["tool"], "glob");
+        assert_eq!(invalid["error"]["code"], "invalid_args");
     }
 
     #[test]

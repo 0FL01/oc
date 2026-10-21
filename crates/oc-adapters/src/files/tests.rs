@@ -11,7 +11,7 @@ fn fixture() -> (tempfile::TempDir, Files) {
 }
 
 fn grep(files: &Files, path: &str, include: Option<&str>) -> Result<Vec<GrepHit>, FileToolError> {
-    files.grep_search(
+    let result = files.grep_search(
         &GrepOptions {
             pattern: "NEEDLE",
             path,
@@ -23,7 +23,11 @@ fn grep(files: &Files, path: &str, include: Option<&str>) -> Result<Vec<GrepHit>
         },
         |_| true,
         None,
-    )
+    )?;
+    match result.incomplete {
+        Some(error) => Err(error),
+        None => Ok(result.hits),
+    }
 }
 
 #[test]
@@ -128,10 +132,130 @@ fn tool14_invalid_patterns_before_scan_and_resource_outcomes() {
         vec![b'x'; GREP_FILE_BYTES_CAP as usize + 1],
     )
     .unwrap();
-    assert_eq!(grep(&files, ".", None), Err(FileToolError::BudgetExhausted));
+    assert!(
+        matches!(grep(&files, ".", None), Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "file_bytes")
+    );
     let mut budget = Budget::new(None);
     budget.start = std::time::Instant::now() - std::time::Duration::from_secs(31);
-    assert_eq!(budget.check(), Err(FileToolError::BudgetExhausted));
+    assert!(
+        matches!(budget.check(), Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "time" && facts.elapsed_ms >= 31000)
+    );
+}
+
+#[test]
+fn incomplete_search_retains_verified_hits_and_binary_reads_charge_only_inspected_chunks() {
+    let (_tmp, files) = fixture();
+    fs::write(
+        files.root.join("a.bin"),
+        vec![0; GREP_FILE_BYTES_CAP as usize],
+    )
+    .unwrap();
+    fs::write(files.root.join("b.txt"), "NEEDLE\n").unwrap();
+    fs::write(
+        files.root.join("c.large"),
+        vec![b'x'; GREP_FILE_BYTES_CAP as usize + 1],
+    )
+    .unwrap();
+    fs::write(files.root.join("d.txt"), "NEEDLE\n").unwrap();
+    let result = files
+        .grep_search(
+            &GrepOptions {
+                pattern: "NEEDLE",
+                path: ".",
+                include: None,
+                literal: true,
+                case_sensitive: true,
+                offset: 0,
+                limit: 100,
+            },
+            |_| true,
+            None,
+        )
+        .unwrap();
+    assert_eq!(
+        result
+            .hits
+            .iter()
+            .map(|h| h.path.as_str())
+            .collect::<Vec<_>>(),
+        ["b.txt", "d.txt"]
+    );
+    assert_eq!(result.unsearched_files, 1);
+    assert!(
+        matches!(result.incomplete, Some(FileToolError::BudgetExhausted(facts)) if facts.budget == "file_bytes" && facts.bytes < 16384)
+    );
+    let mut budget = Budget::new(None);
+    assert!(
+        budget
+            .read(File::open(files.root.join("a.bin")).unwrap(), true)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(budget.bytes, 8192);
+    fs::write(
+        files.root.join(".ignore"),
+        "x".repeat(SEARCH_PATTERN_BYTES_CAP + 1),
+    )
+    .unwrap();
+    let result = files
+        .grep_search(
+            &GrepOptions {
+                pattern: "NEEDLE",
+                path: ".",
+                include: None,
+                literal: true,
+                case_sensitive: true,
+                offset: 0,
+                limit: 100,
+            },
+            |_| true,
+            None,
+        )
+        .unwrap();
+    assert!(result.hits.is_empty());
+    assert!(
+        matches!(result.incomplete, Some(FileToolError::BudgetExhausted(facts)) if facts.budget == "ignore_rule_bytes")
+    );
+}
+
+#[test]
+fn repository_root_query_retains_actual_preview_locations_with_native_caps() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let files = Files::new(root, data.path()).unwrap();
+    let result = files
+        .grep_search(
+            &GrepOptions {
+                pattern: "Preview limited",
+                path: root.to_str().unwrap(),
+                include: None,
+                literal: false,
+                case_sensitive: true,
+                offset: 0,
+                limit: 101,
+            },
+            |_| true,
+            None,
+        )
+        .unwrap();
+    for path in [
+        "crates/oc-tui/src/shell.rs",
+        "crates/oc-tui/src/shell/tests.rs",
+    ] {
+        assert!(
+            result.hits.iter().any(|hit| hit.path == path),
+            "missing {path}: {:?}",
+            result.incomplete
+        );
+    }
+    if let Some(FileToolError::BudgetExhausted(facts)) = result.incomplete {
+        assert!(facts.bytes <= GREP_SCAN_BYTES_CAP + 1);
+        assert!(facts.scanned_entries <= WALK_FILES_CAP as u64);
+    }
 }
 
 #[test]
@@ -388,7 +512,11 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
         let report = report.unwrap();
         assert_eq!(report.status, TurnStatus::Cancelled);
         assert_eq!(report.calls[0].state, "cancelled");
-        assert_eq!(report.calls[0].output, "error: cancelled");
+        let cancelled: serde_json::Value = serde_json::from_str(&report.calls[0].output).unwrap();
+        assert_eq!(cancelled["status"], "cancelled");
+        assert_eq!(cancelled["error"]["tool"], name);
+        assert_eq!(cancelled["error"]["code"], "cancelled");
+        assert!(cancelled.get("matches").is_none());
         assert_eq!(
             finishes,
             [
@@ -400,7 +528,7 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
         let (_, raw) = db.turn_result(&report.turn_id).unwrap();
         let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw.unwrap()).unwrap())
             .unwrap();
-        assert!(log.input.iter().any(|item|matches!(item,InputItem::FunctionCallOutput{call_id,output} if call_id=="active"&&output=="error: cancelled")));
+        assert!(log.input.iter().any(|item|matches!(item,InputItem::FunctionCallOutput{call_id,output} if call_id=="active"&&output==&report.calls[0].output)));
         assert_eq!(
             requests.lock().unwrap().len(),
             1,

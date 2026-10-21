@@ -44,7 +44,7 @@ fn tool16_text_pages_default_full_tail_and_legacy_compatibility() {
     .unwrap();
     assert!(matches!(
         read(&files, "oversize", 1, 1),
-        Err(FileToolError::BudgetExhausted)
+        Err(FileToolError::BudgetExhausted(_))
     ));
 }
 

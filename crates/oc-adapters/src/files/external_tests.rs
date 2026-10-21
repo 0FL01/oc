@@ -52,6 +52,7 @@ fn external_descriptor_is_invocation_only_nofollow_and_data_bounded() {
                 None
             )
             .unwrap()
+            .hits
             .is_empty()
     );
     let cancelled = AtomicBool::new(true);

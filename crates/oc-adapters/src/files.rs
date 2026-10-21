@@ -18,7 +18,7 @@ pub(crate) mod search;
 pub const READ_BYTES_CAP: usize = 65536;
 /// Max lines returned per read call.
 pub const READ_LINES_CAP: usize = 2000;
-/// Max files walked per glob/grep call.
+/// Max directory entries enumerated per glob/grep call (including skipped entries).
 pub const WALK_FILES_CAP: usize = 10000;
 /// Per-file grep scan cap (bytes).
 pub const GREP_FILE_BYTES_CAP: u64 = 1024 * 1024;
@@ -62,14 +62,33 @@ pub enum FileToolError {
     #[error("invalid pattern: {0}")]
     InvalidPattern(String),
     /// Walk/scan budget exhausted.
-    #[error("search budget exhausted")]
-    BudgetExhausted,
+    #[error("{0:?} budget exhausted")]
+    BudgetExhausted(FileBudget),
     /// Current invocation was cancelled; partial search results are discarded.
     #[error("cancelled")]
     Cancelled,
     /// Underlying I/O failure (kind only).
     #[error("io error")]
     Io,
+}
+
+/// Resource facts only: never patterns, file contents or denied locations.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct FileBudget {
+    pub budget: &'static str,
+    pub phase: &'static str,
+    pub limit: u64,
+    pub observed: u64,
+    pub scanned_entries: u64,
+    pub bytes: u64,
+    pub elapsed_ms: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct GrepResult {
+    pub hits: Vec<GrepHit>,
+    pub incomplete: Option<FileToolError>,
+    pub unsearched_files: usize,
 }
 
 /// Bounded read result with pagination cursor.
@@ -231,7 +250,7 @@ fn suggest_dir_names(
         if entry.is_null() {
             // SAFETY: errno points to this thread's live error slot.
             if unsafe { *errno } != 0 {
-                *truncated = true;
+                return Err(FileToolError::Io);
             }
             break;
         }
@@ -458,7 +477,7 @@ impl Files {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<GrepHit>, FileToolError> {
-        self.grep_search(
+        let result = self.grep_search(
             &search::GrepOptions {
                 pattern,
                 path: ".",
@@ -470,7 +489,11 @@ impl Files {
             },
             |_| true,
             None,
-        )
+        )?;
+        match result.incomplete {
+            Some(error) => Err(error),
+            None => Ok(result.hits),
+        }
     }
 
     /// Public path resolution for sibling tools (e.g. `apply_patch`).
@@ -1052,10 +1075,10 @@ mod tests {
             )
             .unwrap();
         }
-        assert_eq!(
+        assert!(matches!(
             files.grep("absent", true, 0, 1),
-            Err(FileToolError::BudgetExhausted)
-        );
+            Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "scan_bytes" && facts.bytes > super::GREP_SCAN_BYTES_CAP
+        ));
     }
 
     #[test]
@@ -1065,7 +1088,9 @@ mod tests {
         for index in 0..=super::WALK_FILES_CAP {
             fs::write(root.join(format!("wide-{index:05}")), b"").unwrap();
         }
-        assert_eq!(files.glob("*", 0, 1), Err(FileToolError::BudgetExhausted));
+        assert!(
+            matches!(files.glob("*", 0, 1), Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "entries")
+        );
     }
 
     #[test]

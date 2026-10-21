@@ -14,6 +14,12 @@ pub(crate) struct Diagnostic {
     pub hint: Option<String>,
 }
 
+impl std::fmt::Display for Diagnostic {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
 impl Diagnostic {
     pub fn new(tool: &str, code: &str, message: impl AsRef<str>) -> Self {
         Self {
@@ -68,5 +74,34 @@ impl super::ToolError {
             Self::Cancelled => "cancelled",
         };
         Diagnostic::new(tool, code, self.to_string())
+    }
+}
+
+impl crate::files::FileToolError {
+    pub(crate) fn diagnostic(&self, tool: &str) -> Diagnostic {
+        use crate::files::FileToolError;
+        let (code, detail) = match self {
+            FileToolError::BudgetExhausted(facts) => ("budget_exhausted", json!(facts)),
+            FileToolError::OutsideRoot => ("out_of_bounds", json!({"bound":"trusted_root"})),
+            FileToolError::OwnDataRoot => ("out_of_bounds", json!({"bound":"data_root"})),
+            FileToolError::SymlinkEscape => ("out_of_bounds", json!({"bound":"no_follow"})),
+            FileToolError::InvalidPattern(_) => ("invalid_pattern", Value::Null),
+            FileToolError::Cancelled => (
+                "cancelled",
+                json!({"by":"unknown","reason":"cancellation_requested"}),
+            ),
+            FileToolError::NotFound => ("not_found", Value::Null),
+            FileToolError::Binary => ("unsupported_content", Value::Null),
+            FileToolError::Io => ("io_error", Value::Null),
+        };
+        let mut diagnostic = Diagnostic::new(tool, code, self.to_string()).detail(detail);
+        if matches!(self, FileToolError::BudgetExhausted(_)) {
+            diagnostic = diagnostic.hint(if tool == "read" {
+                "Read a smaller file or directory; line pagination does not bypass whole-file admission."
+            } else {
+                "Narrow path or include. Match limit does not bound directory discovery. Incomplete coverage is not exhaustive absence."
+            });
+        }
+        diagnostic
     }
 }

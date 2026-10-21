@@ -48,7 +48,12 @@ impl Files {
                 || budget.check(),
             )?;
             if truncated {
-                return Err(FileToolError::BudgetExhausted);
+                return Err(budget.exhausted(
+                    "entries",
+                    "read_directory",
+                    WALK_FILES_CAP as u64,
+                    inspected as u64 + 1,
+                ));
             }
             let mut entries = Vec::new();
             for name in names {
@@ -89,7 +94,12 @@ impl Files {
             ));
         }
         if meta.len() > GREP_FILE_BYTES_CAP {
-            return Err(FileToolError::BudgetExhausted);
+            return Err(budget.exhausted(
+                "file_bytes",
+                "read_file",
+                GREP_FILE_BYTES_CAP,
+                meta.len(),
+            ));
         }
         let mut bytes = Vec::new();
         let mut chunk = [0u8; 8192];
@@ -101,7 +111,12 @@ impl Files {
                 break;
             }
             if bytes.len() + n > GREP_FILE_BYTES_CAP as usize {
-                return Err(FileToolError::BudgetExhausted);
+                return Err(budget.exhausted(
+                    "file_bytes",
+                    "read_file",
+                    GREP_FILE_BYTES_CAP,
+                    (bytes.len() + n) as u64,
+                ));
             }
             bytes.extend_from_slice(&chunk[..n]);
             #[cfg(test)]
@@ -160,7 +175,10 @@ fn page<'a>(
     limit: usize,
 ) -> Result<ReadResult, FileToolError> {
     let mut source = lines
-        .skip(usize::try_from(offset - 1).map_err(|_| FileToolError::BudgetExhausted)?)
+        .skip(
+            usize::try_from(offset - 1)
+                .map_err(|_| FileToolError::InvalidPattern("offset is too large".into()))?,
+        )
         .peekable();
     if offset != 1 && source.peek().is_none() {
         return Err(FileToolError::InvalidPattern(

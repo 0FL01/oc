@@ -563,7 +563,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
                 .to_string(),
             parameters: schema(
                 serde_json::json!({
-                    "path": {"type": "string"},
+                    "path": {"type": "string", "minLength":1, "description":"Use '.' for the project root. Nonempty, at most 4096 UTF-8 bytes, no control characters. Pagination does not bypass whole-file admission."},
                     "offset": {"type": "integer", "minimum":1, "maximum":crate::storage::tool_output::CAP+1, "default":1,"description":"Ordinary files: at most 1000000; exact registered tool-output artifacts: bounded by the 16 MiB capture extent."},
                     "limit": {"type": "integer", "minimum":1, "maximum":2000, "default":2000},
                 }),
@@ -583,7 +583,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "grep".to_string(),
-            description: "Search text with ripgrep's default Rust regex syntax (no look-around/backreferences); `literal:true` searches exact text. `path` scopes an admitted project file/directory; `include` is a ripgrep glob filter. caseSensitive defaults true; hidden files are searched, .git excluded, positive include overrides ignore files. Results are Location-relative, sorted by path/line and paginated; default limit 100. Native trust/no-follow/data-root and compile/entry/byte/30-second budgets apply.".to_string(),
+            description: "Search text with ripgrep's default Rust regex syntax (no look-around/backreferences); `literal:true` searches exact text. `path` scopes an admitted project file/directory; `include` is a ripgrep glob filter. caseSensitive defaults true; hidden files are searched, .git excluded, positive include overrides ignore files. Complete pages are Location-relative, sorted by path/line; default limit 100. Native limits: 10000 enumerated entries, 64 levels, 1 MiB per file, 16 MiB scanned including ignore files, 30 seconds, bounded regex compilation. Result limit does not bound discovery. Resource omissions return failed with verified matches, coverage:incomplete and no next_offset; narrow path/include to complete coverage.".to_string(),
             parameters: serde_json::json!({"type":"object", "properties": {
                     "pattern": {"type": "string"},
                     "path": {"type": "string"},

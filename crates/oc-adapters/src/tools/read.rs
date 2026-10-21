@@ -117,9 +117,21 @@ pub(crate) struct Outcome {
 }
 impl Outcome {
     pub fn error(state: &'static str, error: impl std::fmt::Display) -> Self {
+        let diagnostic = Diagnostic::new(
+            "read",
+            if state == "cancelled" {
+                "cancelled"
+            } else {
+                "execution_failed"
+            },
+            error.to_string(),
+        );
+        Self::diagnostic(state, diagnostic)
+    }
+    pub fn diagnostic(state: &'static str, diagnostic: Diagnostic) -> Self {
         Self {
             state,
-            output: format!("error: {error}"),
+            output: diagnostic.output(state),
             image: None,
             directory: false,
             producer_limited: None,
@@ -146,8 +158,16 @@ pub(crate) fn parse_with_offset_cap(
     let path = args
         .get("path")
         .and_then(Value::as_str)
-        .filter(|s| !s.is_empty() && s.len() <= 4096 && !s.chars().any(char::is_control))
-        .ok_or("read requires a bounded path")?;
+        .ok_or("read path must be a string; use '.' for the project root")?;
+    if path.is_empty() {
+        return Err("read path must not be empty; use '.' for the project root".into());
+    }
+    if path.len() > 4096 {
+        return Err("read path exceeds 4096 UTF-8 bytes".into());
+    }
+    if path.chars().any(char::is_control) {
+        return Err("read path must not contain control characters".into());
+    }
     let offset = match args.get("offset") {
         Some(n) => n
             .as_u64()
@@ -174,10 +194,10 @@ pub(crate) fn execute(
 ) -> Outcome {
     let (path, offset, limit) = match parse(call) {
         Ok(args) => args,
-        Err(e) => return Outcome::error("failed", e),
+        Err(e) => return Outcome::diagnostic("failed", Diagnostic::new("read", "invalid_args", e)),
     };
     if let Err(e) = policy.check_call(call) {
-        return Outcome::error("failed", e);
+        return Outcome::diagnostic("failed", e.diagnostic("read"));
     }
     let result = files.read_admitted(
         path,
@@ -258,6 +278,13 @@ pub(crate) fn execute(
                 producer_limited: Some(page.next_offset.is_some()),
             }
         }
-        Err(e) => Outcome::error("failed", e),
+        Err(e) => Outcome::diagnostic(
+            if e == crate::files::FileToolError::Cancelled {
+                "cancelled"
+            } else {
+                "failed"
+            },
+            e.diagnostic("read"),
+        ),
     }
 }

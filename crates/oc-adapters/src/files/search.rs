@@ -77,10 +77,14 @@ fn regex(options: &GrepOptions<'_>) -> Result<regex::Regex, FileToolError> {
         .dfa_size_limit(REGEX_COMPILE_BYTES_CAP)
         .build()
         // Library diagnostics echo the expression, which can contain secrets.
-        .map_err(|_| {
-            FileToolError::InvalidPattern(
-                "invalid/unsupported regex or compile budget exhausted".into(),
-            )
+        .map_err(|error| match error {
+            regex::Error::CompiledTooBig(limit) => Budget::new(None).exhausted(
+                "regex_compile",
+                "compile",
+                limit as u64,
+                limit as u64 + 1,
+            ),
+            _ => FileToolError::InvalidPattern("invalid or unsupported regex".into()),
         })
 }
 
@@ -114,6 +118,23 @@ pub(super) fn read_checkpoint(files: &Files, cancel: &AtomicBool) -> Result<(), 
 }
 
 impl<'a> Budget<'a> {
+    pub(super) fn exhausted(
+        &self,
+        budget: &'static str,
+        phase: &'static str,
+        limit: u64,
+        observed: u64,
+    ) -> FileToolError {
+        FileToolError::BudgetExhausted(FileBudget {
+            budget,
+            phase,
+            limit,
+            observed,
+            scanned_entries: self.entries as u64,
+            bytes: self.bytes,
+            elapsed_ms: self.start.elapsed().as_millis().min(u64::MAX as u128) as u64,
+        })
+    }
     pub(super) fn new(cancel: Option<&'a AtomicBool>) -> Self {
         Self {
             start: Instant::now(),
@@ -131,8 +152,20 @@ impl<'a> Budget<'a> {
         {
             return Err(FileToolError::Cancelled);
         }
-        if self.start.elapsed() >= SEARCH_TIMEOUT || self.entries > WALK_FILES_CAP {
-            Err(FileToolError::BudgetExhausted)
+        if self.start.elapsed() >= SEARCH_TIMEOUT {
+            Err(self.exhausted(
+                "time",
+                "scan",
+                SEARCH_TIMEOUT.as_millis() as u64,
+                self.start.elapsed().as_millis() as u64,
+            ))
+        } else if self.entries > WALK_FILES_CAP {
+            Err(self.exhausted(
+                "entries",
+                "discovery",
+                WALK_FILES_CAP as u64,
+                self.entries as u64,
+            ))
         } else {
             Ok(())
         }
@@ -165,19 +198,24 @@ impl<'a> Budget<'a> {
                 .released
                 .store(released, std::sync::atomic::Ordering::Release);
             if !released {
-                return Err(FileToolError::BudgetExhausted);
+                return Err(self.exhausted("time", "test_checkpoint", 2000, 2000));
             }
         }
         self.check()
     }
-    fn read(&mut self, file: File) -> Result<Option<Vec<u8>>, FileToolError> {
+    fn read(&mut self, file: File, content: bool) -> Result<Option<Vec<u8>>, FileToolError> {
         self.check()?;
         let meta = file.metadata().map_err(|_| FileToolError::Io)?;
         if !meta.is_file() {
             return Ok(None);
         }
         if meta.len() > GREP_FILE_BYTES_CAP {
-            return Err(FileToolError::BudgetExhausted);
+            return Err(self.exhausted(
+                "file_bytes",
+                if content { "content" } else { "ignore_file" },
+                GREP_FILE_BYTES_CAP,
+                meta.len(),
+            ));
         }
         let remaining = GREP_SCAN_BYTES_CAP.saturating_sub(self.bytes);
         let mut bytes = Vec::new();
@@ -186,15 +224,33 @@ impl<'a> Budget<'a> {
         loop {
             self.check()?;
             let read = file.read(&mut chunk).map_err(|_| FileToolError::Io)?;
+            self.bytes += read as u64;
             self.check()?;
             if read == 0 {
                 break;
             }
+            if self.bytes > GREP_SCAN_BYTES_CAP {
+                return Err(self.exhausted(
+                    "scan_bytes",
+                    if content { "content" } else { "ignore_file" },
+                    GREP_SCAN_BYTES_CAP,
+                    self.bytes,
+                ));
+            }
+            if bytes.len() as u64 + read as u64 > GREP_FILE_BYTES_CAP {
+                return Err(self.exhausted(
+                    "file_bytes",
+                    if content { "content" } else { "ignore_file" },
+                    GREP_FILE_BYTES_CAP,
+                    bytes.len() as u64 + read as u64,
+                ));
+            }
+            // Binary candidates cannot contribute text hits. Stop within the
+            // existing chunk budget; ignore files must still be fully parsed.
+            if content && chunk[..read].contains(&0) {
+                return Ok(None);
+            }
             bytes.extend_from_slice(&chunk[..read]);
-        }
-        self.bytes += bytes.len() as u64;
-        if bytes.len() as u64 > remaining || bytes.len() as u64 > GREP_FILE_BYTES_CAP {
-            return Err(FileToolError::BudgetExhausted);
         }
         self.check()?;
         Ok(Some(bytes))
@@ -228,7 +284,7 @@ fn ignore_level(
                 _ => true,
             }
             && let Ok(file) = open_relative(dir, Path::new(name), budget)
-            && let Some(bytes) = budget.read(file)?
+            && let Some(bytes) = budget.read(file, false)?
         {
             let text = std::str::from_utf8(&bytes).map_err(|_| {
                 FileToolError::InvalidPattern("invalid ignore file encoding".into())
@@ -236,7 +292,12 @@ fn ignore_level(
             for line in text.lines() {
                 budget.check()?;
                 if line.len() > SEARCH_PATTERN_BYTES_CAP {
-                    return Err(FileToolError::BudgetExhausted);
+                    return Err(budget.exhausted(
+                        "ignore_rule_bytes",
+                        "ignore_rule",
+                        SEARCH_PATTERN_BYTES_CAP as u64,
+                        line.len() as u64,
+                    ));
                 }
                 builder
                     .add_line(None, line)
@@ -313,7 +374,12 @@ impl Files {
         for component in relative.components() {
             budget.check()?;
             if levels.len() >= SEARCH_DEPTH_CAP {
-                return Err(FileToolError::BudgetExhausted);
+                return Err(budget.exhausted(
+                    "depth",
+                    "ancestors",
+                    SEARCH_DEPTH_CAP as u64,
+                    levels.len() as u64,
+                ));
             }
             let inherited = levels
                 .last()
@@ -392,7 +458,7 @@ impl Files {
         options: &GrepOptions<'_>,
         allowed: impl Fn(&Path) -> bool,
         cancel: Option<&AtomicBool>,
-    ) -> Result<Vec<GrepHit>, FileToolError> {
+    ) -> Result<GrepResult, FileToolError> {
         let regex = regex(options)?;
         let overrides = overrides(options.include, true)?;
         let mut budget = Budget::new(cancel);
@@ -418,7 +484,7 @@ impl Files {
             let root = parent_fd;
             let mut paths = Vec::new();
             let mut levels = self.search_ancestors(&scope, &mut budget, &allowed)?;
-            self.search_walk(
+            let discovery = self.search_walk(
                 &root,
                 &scope,
                 Path::new(""),
@@ -427,7 +493,17 @@ impl Files {
                 &mut budget,
                 &allowed,
                 &mut paths,
-            )?;
+            );
+            if let Err(error) = discovery {
+                if error == FileToolError::Cancelled {
+                    return Err(error);
+                }
+                return Ok(GrepResult {
+                    hits: Vec::new(),
+                    incomplete: Some(error),
+                    unsearched_files: 0,
+                });
+            }
             (root, scope, paths)
         } else if meta.is_file() && allowed(&scope) {
             (
@@ -436,24 +512,55 @@ impl Files {
                 vec![PathBuf::from(scope.file_name().expect("scope name"))],
             )
         } else {
-            return Ok(Vec::new());
+            return Ok(GrepResult {
+                hits: Vec::new(),
+                incomplete: None,
+                unsearched_files: 0,
+            });
         };
         paths.sort();
         budget.check()?;
         let mut hits = Vec::new();
         let mut skipped = 0;
+        let mut incomplete = None;
+        let mut unsearched_files = 0;
         for path in paths {
-            budget.check()?;
-            let file = open_relative(&root, &path, &budget)?;
-            let Some(bytes) = budget.read(file)? else {
+            let bytes = match budget
+                .check()
+                .and_then(|()| open_relative(&root, &path, &budget))
+                .and_then(|file| budget.read(file, true))
+            {
+                Ok(bytes) => bytes,
+                Err(FileToolError::Cancelled) => return Err(FileToolError::Cancelled),
+                Err(error) => {
+                    let oversized = matches!(&error, FileToolError::BudgetExhausted(facts) if facts.budget == "file_bytes");
+                    if oversized {
+                        unsearched_files += 1;
+                    }
+                    if incomplete.is_none() || !oversized {
+                        incomplete = Some(error);
+                    }
+                    if oversized {
+                        continue;
+                    }
+                    break;
+                }
+            };
+            let Some(bytes) = bytes else {
                 continue;
             };
-            if bytes.contains(&0) {
-                continue;
-            }
             let text = String::from_utf8_lossy(&bytes);
             for (index, line) in text.lines().enumerate() {
-                budget.check()?;
+                if let Err(error) = budget.check() {
+                    if error == FileToolError::Cancelled {
+                        return Err(error);
+                    }
+                    return Ok(GrepResult {
+                        hits,
+                        incomplete: Some(error),
+                        unsearched_files,
+                    });
+                }
                 if !regex.is_match(line) {
                     continue;
                 }
@@ -471,14 +578,36 @@ impl Files {
                     text: line[..end].into(),
                     text_truncated: end < line.len(),
                 });
-                budget.checkpoint("hit")?;
+                if let Err(error) = budget.checkpoint("hit") {
+                    if error == FileToolError::Cancelled {
+                        return Err(error);
+                    }
+                    return Ok(GrepResult {
+                        hits,
+                        incomplete: Some(error),
+                        unsearched_files,
+                    });
+                }
                 if hits.len() >= options.limit {
-                    return Ok(hits);
+                    return Ok(GrepResult {
+                        hits,
+                        incomplete,
+                        unsearched_files,
+                    });
                 }
             }
         }
-        budget.check()?;
-        Ok(hits)
+        if let Err(error) = budget.check() {
+            if error == FileToolError::Cancelled {
+                return Err(error);
+            }
+            incomplete = Some(error);
+        }
+        Ok(GrepResult {
+            hits,
+            incomplete,
+            unsearched_files,
+        })
     }
 
     fn relative_hit(&self, scope: &Path, path: &Path) -> String {
@@ -504,7 +633,12 @@ impl Files {
     ) -> Result<(), FileToolError> {
         budget.check()?;
         if levels.len() >= SEARCH_DEPTH_CAP {
-            return Err(FileToolError::BudgetExhausted);
+            return Err(budget.exhausted(
+                "depth",
+                "discovery",
+                SEARCH_DEPTH_CAP as u64,
+                levels.len() as u64,
+            ));
         }
         let repository = levels.last().is_some_and(|level| level.repository);
         levels.push(ignore_level(
@@ -522,7 +656,12 @@ impl Files {
             })?;
         budget.entries = inspected;
         if truncated {
-            return Err(FileToolError::BudgetExhausted);
+            return Err(budget.exhausted(
+                "entries",
+                "discovery",
+                WALK_FILES_CAP as u64,
+                inspected as u64 + 1,
+            ));
         }
         names.sort();
         budget.check()?;
