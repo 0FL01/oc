@@ -186,14 +186,15 @@ for line in sys.stdin:
     let captured = requests.lock().unwrap();
     assert_eq!(captured.len(), 10);
     for (index, prefix) in [(1, "startup"), (6, "child"), (7, "review"), (9, "restored")] {
-        assert_eq!(
-            function_output(&captured[index], &format!("{prefix}-bash")),
-            Some("error: denied bash")
-        );
-        assert_eq!(
-            function_output(&captured[index], &format!("{prefix}-mcp")),
-            Some("error: denied fixture__query")
-        );
+        for (suffix, tool) in [("bash", "bash"), ("mcp", "fixture__query")] {
+            let diagnostic: serde_json::Value = serde_json::from_str(
+                function_output(&captured[index], &format!("{prefix}-{suffix}")).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(diagnostic["status"], "failed");
+            assert_eq!(diagnostic["error"]["tool"], tool);
+            assert_eq!(diagnostic["error"]["code"], "permission_denied");
+        }
     }
     assert!(
         function_output(&captured[3], "build-bash")

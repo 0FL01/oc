@@ -32,23 +32,26 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: bug report shared builtins concern; audited plan step 3.
   - Acceptance: tool/code/message/detail/hint survive safe redaction/limiting; assembly keeps announced name; state does not depend on text; DCP uses exact durable operation identity and does not purge successful error-looking content; match text remains associated with its own path/line. Existing rich shell/media/effect semantics remain intact.
   - Primary evidence: tools/output/context tests and fake-provider continuation.
-  - Status: in_progress
-  - Evidence: tools owner suite (38 tests), output suite (9), exact-occurrence storage/planner regressions and runtime DCP strategy/root-read tests PASS. Detailed file error mapping follows in R2.
+  - Status: verified
+  - Evidence: final tools owner suite 39 PASS, artifact budget/cancellation regression PASS, exact-occurrence storage/planner and runtime DCP/root-read regressions PASS. File mappings and provider continuation are covered by R2/R5.
 - R4: Subagent failure/cancellation retains session ID and evidence-based cause across terminal commit/reopen.
   - Source: bug report and audited plan step 5.
   - Acceptance: policy refusal, cancellation, provider/admission/storage failure remain distinct; unknown provenance stays unknown; reason precedes signal and terminal freeze; exact terminal TurnLog is authority, no duplicate diagnostic store; background notices/recovery preserve available facts; cleanup failure remains sticky/fatal; no unknown-effect replay.
   - Primary evidence: child/runtime/storage/authority regressions, committed-turn/reopen and cancellation race fixtures.
-  - Status: in_progress
+  - Status: verified
+  - Evidence: final child owner 8, stop provenance 1, storage child 21 and subagent integration 45 tests PASS, including terminal commit/reopen, child identity, parent cancellation and sticky cleanup.
 - R5: Original composed workflow succeeds and parent can continue after recoverable tool failure.
   - Source: audited plan step 1.
   - Acceptance: admission/execution/persistence/next-provider-request exercise root grep, read-only Explore and root read, with no cancellation solely due to Plan mode.
   - Primary evidence: composed deterministic runtime/subagent integration fixture.
-  - Status: in_progress
+  - Status: verified
+  - Evidence: `plan_root_grep_explore_and_read_continue_after_verified_incomplete_search` PASS through actual Plan/Explore composition, next provider requests and persisted operation states.
 - R6: Deliver verified commits, ordinary push to verified origin, and release binary.
   - Source: user implementation request.
   - Acceptance: relevant tests + full offline gate green, commits pushed without force, `target/release/oc2` built from delivered source; no live owner restart.
   - Primary evidence: command receipts and Git remote/HEAD agreement.
-  - Status: pending
+  - Status: in_progress
+  - Evidence: full `bash scripts/test.sh` PASS (2252 passed, 12 existing opt-in skips; fmt, strict workspace Clippy, doctests, debug build/help/version). Release build/help/version PASS at `target/release/oc2`. Final test-contract commit/push remains.
 
 ### Constraints
 
@@ -79,17 +82,17 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R3/R4/R5.
-- Smallest next action: verify final child/source/terminal and composed Plan workflow changes, then run the required full offline gate.
-- Expected evidence: child stop/foreground/storage/reopen regressions and composed workflow.
+- Closes: R6.
+- Smallest next action: commit/push the final structured-output consumer assertions, verify remote HEAD, then close the goal.
+- Expected evidence: clean worktree and remote/HEAD agreement for the verified source.
 - Stop or replan if: concurrent edits touch owned files, or a required outcome needs a material envelope expansion.
 
 ## Current State
 
-- Resolved: R1/R2; commits through `549a96f4f` pushed and remote HEAD verified.
-- Last relevant evidence: child owner 8, stop 1, storage child 21 tests PASS; first integration run 43/45 PASS, exposing a legacy error-prefix assertion and an independently generated title request. Both fixtures corrected without relaxing workflow behavior; strict affected-crate all-target Clippy PASS. Final targeted rerun pending.
+- Resolved: R1–R5; commits through `795be060d` pushed and remote HEAD verified.
+- Last relevant evidence: full offline gate PASS: 2252/2252 tests, 12 existing opt-in skips, strict Clippy/doctests/debug build/help/version. Release build/help/version PASS. Four first-gate legacy string assertions were migrated to the required structured status/tool/code checks without weakening refusal/effects/replay guarantees. Cold compilation was 10m22s; the successful warmed test phase was 400.991s. Only the existing approved discovery-deadline case exceeded 30s (32.809s, below its 40s bound).
 - Blocker: none.
-- Next: final targeted suites, full offline gate and release build.
+- Next: final ordinary commit/push and closure.
 
 ## Material Decisions
 
@@ -102,6 +105,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-21: R3 explicit state survives dispatch/foreground; assembly retains names, JSON clipping retains associations, DCP uses indexed exact operation states. Initial build timeout left corrupt incremental objects (undefined hidden linker symbols); verified with nonincremental Cargo, without deleting target or changing target directory. Remaining file mappings belong to R2.
 - 2026-10-21: R2 file budgets now identify phase/cap/counters; admitted binaries stop early, oversized candidates are explicit omissions, failed incomplete grep retains verified matches with no continuation. Actual root query finds both requested locations. Files (28), tools (39), runtime root-alias regression PASS; cancellation assertions migrated to structured output without weakening drain/no-replay checks.
 - 2026-10-21: R4 implementation commits exact terminal diagnosis before report construction; preserves child ID/cause and separates sticky cleanup health. Storage recovery/notice test covers failed/cancelled/interrupted and mismatched ownership. R3 exact-artifact errors now retain typed budget/cancellation facts. Strict Clippy required shrinking the diagnostic's optional detail allocation, not suppressing the lint.
+- 2026-10-21: R3/R4/R5 final targeted suites green, including actual Plan -> incomplete grep -> Explore -> root read -> continued parent. Commit `795be060d` pushed normally; complete offline gate and release delivery remain.
+- 2026-10-21: Full offline gate green after updating exact legacy error-string consumers; 2252 PASS and 12 existing opt-in skips, no tests/guards/deadlines/load disabled. Release `target/release/oc2` built successfully, help/version PASS. Final diff review confirms no dependency, core/UI, SQL schema, test scheduler or gate changes.
 
 ## Completion
 

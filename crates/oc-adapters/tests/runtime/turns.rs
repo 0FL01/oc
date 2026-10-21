@@ -305,13 +305,16 @@ async fn fresh_turn_commits_root_binding_selection_before_ack_and_streams_normal
         std::slice::from_ref(&report.turn_id)
     );
     assert_eq!(deltas, [(report.turn_id.clone(), "answer".into())]);
-    assert_eq!(report.calls[0].output, "error: denied read");
+    let diagnostic: serde_json::Value = serde_json::from_str(&report.calls[0].output).unwrap();
+    assert_eq!(diagnostic["status"], "failed");
+    assert_eq!(diagnostic["error"]["tool"], "read");
+    assert_eq!(diagnostic["error"]["code"], "permission_denied");
     assert_eq!(*callback_order.lock().unwrap(), ["accepted", "finished"]);
     assert_eq!(*hits.lock().unwrap(), 2);
     assert_eq!(requests.lock().unwrap()[0]["model"], "gpt-fixture");
     assert_eq!(
         function_output(&requests.lock().unwrap()[1], "denied-read"),
-        Some("error: denied read")
+        Some(report.calls[0].output.as_str())
     );
     assert_eq!(harness.db.session_meta("fresh").unwrap().parent_id, None);
     assert_eq!(harness.db.read_history("fresh").unwrap().len(), 2);

@@ -178,7 +178,8 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
         screen
             .rows()
             .iter()
-            .all(|row| !row.contains("error: question dismissed"))
+            .all(|row| !row.contains("error: question dismissed")
+                && !row.contains("Execution cancelled"))
     );
     assert_eq!(fixture.wait_requests(1), requests);
     pty.send(b"\x03");
@@ -188,10 +189,12 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
     let operations = db.list_tool_ops(SESSION).unwrap();
     assert_eq!(operations.len(), 1);
     assert_eq!(operations[0].state, "cancelled");
-    assert_eq!(
-        operations[0].output.as_deref(),
-        Some("error: question dismissed")
-    );
+    let diagnostic: serde_json::Value =
+        serde_json::from_str(operations[0].output.as_deref().unwrap()).unwrap();
+    assert_eq!(diagnostic["status"], "cancelled");
+    assert_eq!(diagnostic["error"]["tool"], "question");
+    assert_eq!(diagnostic["error"]["code"], "cancelled");
+    assert_eq!(diagnostic["error"]["detail"]["by"], "unknown");
     assert!(operations[0].question.is_none());
     drop(db);
     let mut restarted = spawn_auto(fixture.clone());
@@ -206,11 +209,11 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
             .iter()
             .any(|row| row.contains("Asked 2 questions"))
     );
-    assert!(
-        screen.rows().iter().all(|row| {
-            !row.contains("# Questions") && !row.contains("error: question dismissed")
-        })
-    );
+    assert!(screen.rows().iter().all(|row| {
+        !row.contains("# Questions")
+            && !row.contains("error: question dismissed")
+            && !row.contains("Execution cancelled")
+    }));
     restarted.send(b"\x03");
     assert!(restarted.wait_exit(DEADLINE).0.success() && restarted.restored());
     assert_eq!(raw_rows(&fixture), before);

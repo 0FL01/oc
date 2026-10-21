@@ -192,8 +192,13 @@ async fn resource_permissions_gate_real_dispatch_before_side_effects() {
     );
     assert!(report.calls[3].output.contains("approval required"));
     assert!(report.calls[5].output.contains("approval required"));
-    assert_eq!(report.calls[6].output, "error: denied read");
-    assert_eq!(report.calls[7].output, "error: denied apply_patch");
+    for (index, tool) in [(6, "read"), (7, "apply_patch")] {
+        let diagnostic: serde_json::Value =
+            serde_json::from_str(&report.calls[index].output).unwrap();
+        assert_eq!(diagnostic["status"], "failed");
+        assert_eq!(diagnostic["error"]["tool"], tool);
+        assert_eq!(diagnostic["error"]["code"], "permission_denied");
+    }
     assert_eq!(
         std::fs::read_to_string(harness._project.path().join("safe/secret*keys")).unwrap(),
         "star canary\n"
