@@ -154,7 +154,8 @@ impl WorkspaceRegistry {
         let mut records = additional.to_vec();
         records.push((PREF_PRIMARY_AGENT.into(), raw));
         let result = if let Some((session, text)) = reminder {
-            db.commit_session_agent_choice(&records, session, Some(text))
+            db.commit_session_agent_choice(&records, session, Some(text), None, None)
+                .map(|_| ())
         } else {
             db.set_prefs(&records)
         };

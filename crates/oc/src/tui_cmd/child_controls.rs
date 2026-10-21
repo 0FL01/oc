@@ -263,6 +263,7 @@ pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::TurnFailed { session, .. }
         | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::SessionModelSelected { session, .. }
+        | CoreEvent::SelectionNoticeCommitted { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::ShellChanged { session }
         | CoreEvent::TerminalChanged { session }

@@ -1232,10 +1232,9 @@ mod reload_tests {
         };
         let projected = project_model_switch(notice.clone(), &catalog);
         assert_eq!(projected.display_name.as_deref(), Some("PublicName"));
-        assert!(
-            !serde_json::to_string(&projected)
-                .unwrap()
-                .contains("display_name")
+        assert_eq!(
+            serde_json::to_value(&projected).unwrap()["display_name"],
+            "PublicName"
         );
         catalog
             .models
@@ -1275,6 +1274,11 @@ mod reload_tests {
             serde_json::from_str(&config("old", &base, true)).unwrap();
         config["providers"]["fixture"]["models"]["new"] =
             serde_json::json!({"name": "Readable New"});
+        config["agents"] = serde_json::json!({
+            "build": {"mode":"primary", "system":"BUILD_PRIMARY"},
+            "review": {"mode":"primary", "system":"REVIEW_PRIMARY"}
+        });
+        config["default_agent"] = "build".into();
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let server = tokio::spawn(async move {
             // First turn, its real title generation, and the second turn.
@@ -1312,6 +1316,24 @@ mod reload_tests {
         let mut live_switch = None;
         for prompt in ["first", "second"] {
             if prompt == "second" {
+                app.session_selection(session.clone(), false, Action::Preview("review".into()))
+                    .await
+                    .unwrap();
+                assert!(
+                    app.history_page(session.clone(), None, None, 10)
+                        .await
+                        .unwrap()
+                        .rows
+                        .iter()
+                        .all(|r| r.agent_switch.is_none() && r.model_switch.is_none())
+                );
+                app.session_selection(session.clone(), false, Action::Agent("review".into()))
+                    .await
+                    .unwrap();
+                // Repeating committed choices cannot add success/history noise.
+                app.session_selection(session.clone(), false, Action::Agent("review".into()))
+                    .await
+                    .unwrap();
                 app.session_selection(session.clone(), false, Action::Model("new".into()))
                     .await
                     .unwrap();
@@ -1321,7 +1343,7 @@ mod reload_tests {
                         .unwrap()
                         .rows
                         .iter()
-                        .all(|r| r.model_switch.is_none())
+                        .any(|r| r.model_switch.is_some())
                 );
             }
             app.submit(session.clone(), prompt.into()).await.unwrap();
@@ -1333,7 +1355,21 @@ mod reload_tests {
                 {
                     CoreEvent::TurnStarted { model_switch, .. } => {
                         if prompt == "second" {
-                            live_switch = model_switch;
+                            assert!(
+                                model_switch.is_none(),
+                                "commit already published the notice"
+                            );
+                        }
+                    }
+                    CoreEvent::SelectionNoticeCommitted {
+                        session: owner,
+                        message,
+                    } => {
+                        let page = app.history_message(owner, message).await.unwrap();
+                        if let Some(notice) =
+                            page.rows.iter().find_map(|row| row.model_switch.clone())
+                        {
+                            live_switch = Some(notice);
                         }
                     }
                     CoreEvent::TurnFinished { .. } => break,
@@ -1358,6 +1394,13 @@ mod reload_tests {
             .unwrap();
         let switch = marker.rows[0].model_switch.as_ref().unwrap();
         assert_eq!(switch.display_name.as_deref(), Some("Readable New"));
+        let transported: HistoryMessage =
+            serde_json::from_slice(&serde_json::to_vec(&marker.rows[0]).unwrap()).unwrap();
+        assert_eq!(
+            transported.model_switch.as_ref(),
+            Some(switch),
+            "native history responses retain the public catalog label"
+        );
         assert_eq!(live_switch.as_ref(), Some(switch));
         assert_eq!(
             (&switch.previous.id, &switch.current.id),
@@ -1373,7 +1416,7 @@ mod reload_tests {
         assert_eq!(
             all.rows
                 .iter()
-                .filter(|r| r.model_switch.is_none())
+                .filter(|r| r.model_switch.is_none() && r.agent_switch.is_none())
                 .map(|r| &r.id)
                 .collect::<Vec<_>>(),
             durable.iter().map(|r| &r.id).collect::<Vec<_>>()
@@ -1386,6 +1429,14 @@ mod reload_tests {
             forward.rows,
             vec![user.rows[0].clone(), newer.rows[0].clone()]
         );
+        let agents = all
+            .rows
+            .iter()
+            .filter_map(|row| row.agent_switch.as_ref())
+            .collect::<Vec<_>>();
+        assert_eq!(agents.len(), 1);
+        assert_eq!(agents[0].previous.as_deref(), Some("build"));
+        assert_eq!(agents[0].current, "review");
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
         config["providers"]["fixture"]["models"]["new"]["name"] =
@@ -1409,6 +1460,14 @@ mod reload_tests {
                 .rows
                 .iter()
                 .filter(|r| r.model_switch.is_some())
+                .count(),
+            1
+        );
+        assert_eq!(
+            replay
+                .rows
+                .iter()
+                .filter(|row| row.agent_switch.is_some())
                 .count(),
             1
         );

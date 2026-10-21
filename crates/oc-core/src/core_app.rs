@@ -207,6 +207,11 @@ pub enum CoreEvent {
         session: SessionId,
         commit: crate::queries::ModelCommit,
     },
+    /// A public selection notice is durable; read its current-branch projection.
+    SelectionNoticeCommitted {
+        session: SessionId,
+        message: crate::session::MessageId,
+    },
     /// Same-ID placement already committed at a durable terminal boundary.
     SessionMoved {
         operation: String,
@@ -3134,6 +3139,7 @@ mod tests {
                 .expect("event channel");
             match ev {
                 CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::SelectionNoticeCommitted { .. }
                 | CoreEvent::InboxChanged { .. }
                 | CoreEvent::RetryScheduled { .. }
                 | CoreEvent::WorkspaceChanged { .. }
@@ -3459,6 +3465,7 @@ mod tests {
                 .expect("event");
             match ev {
                 CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::SelectionNoticeCommitted { .. }
                 | CoreEvent::InboxChanged { .. }
                 | CoreEvent::RetryScheduled { .. }
                 | CoreEvent::WorkspaceChanged { .. }

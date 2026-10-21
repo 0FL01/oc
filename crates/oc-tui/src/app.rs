@@ -712,6 +712,7 @@ pub struct TuiState {
     /// Only operation IDs whose exploration headers were explicitly opened.
     exploration_expanded: BTreeSet<String>,
     inline_errors_expanded: BTreeSet<String>,
+    instructions_expanded: BTreeSet<String>,
     execute_calls_expanded: BTreeMap<String, BTreeSet<usize>>,
     pub(crate) execute_detail: Option<execute::Detail>,
     exploration_down: Option<(String, u16, u16)>,
@@ -970,6 +971,7 @@ impl TuiState {
             can_add_tab: false,
             exploration_expanded: BTreeSet::new(),
             inline_errors_expanded: BTreeSet::new(),
+            instructions_expanded: BTreeSet::new(),
             execute_calls_expanded: BTreeMap::new(),
             execute_detail: None,
             exploration_down: None,
@@ -1127,6 +1129,7 @@ impl TuiState {
         self.exploration_expanded.clear();
         self.execute_calls_expanded.clear();
         self.inline_errors_expanded.clear();
+        self.instructions_expanded.clear();
         self.reasoning_expanded.clear();
         self.reasoning_down = None;
         self.chrome = Default::default();
@@ -1185,6 +1188,7 @@ impl TuiState {
         self.exploration_expanded.clear();
         self.execute_calls_expanded.clear();
         self.inline_errors_expanded.clear();
+        self.instructions_expanded.clear();
         self.reasoning_expanded.clear();
         self.reasoning_down = None;
         self.cards.clear();

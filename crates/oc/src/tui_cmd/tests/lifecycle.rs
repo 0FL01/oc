@@ -214,6 +214,7 @@ fn sampled_view_metrics_include_parked_routes_and_preserve_peaks() {
             text: "# cached markdown".into(),
             turn: None,
             model_switch: None,
+            agent_switch: None,
             child: None,
             shell_notice: None,
             user_shell: None,
@@ -1513,6 +1514,7 @@ async fn interrupted_first_prompt_opens_message_actions_without_shared_refresh()
             ..Default::default()
         }),
         model_switch: None,
+        agent_switch: None,
         child: None,
         shell_notice: None,
         user_shell: None,
@@ -1631,6 +1633,7 @@ async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure(
             text: "COPY STORED PROMPT".into(),
             turn: None,
             model_switch: None,
+            agent_switch: None,
             child: None,
             shell_notice: None,
             user_shell: None,

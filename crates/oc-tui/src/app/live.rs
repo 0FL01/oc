@@ -110,6 +110,19 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::SessionModelSelected { session, commit })) => {
                     state.apply_session_model_selected(&session, &commit)
                 }
+                Ok(Ok(CoreEvent::SelectionNoticeCommitted { session, message })) => {
+                    if state.attached_session() == Some(&session)
+                        && let Ok(exact) = state.app.history_message(session.clone(), message).await
+                        && !exact.rows.is_empty()
+                    {
+                        if let Ok(recent) =
+                            state.app.transcript_page(session, None, None, 100).await
+                        {
+                            state.refresh_child_notice_page(&recent);
+                        }
+                        state.refresh_child_notice_page(&exact);
+                    }
+                }
                 Ok(Ok(CoreEvent::InboxChanged { session, items, .. })) => {
                     state.apply_inbox(&session, items)
                 }

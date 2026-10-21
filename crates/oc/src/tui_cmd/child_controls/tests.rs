@@ -359,6 +359,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
                 text: "aggregate must not be replayed".into(),
                 images: Vec::new(),
                 model_switch: None,
+                agent_switch: None,
                 user_shell: None,
                 child: None,
                 shell_notice: None,
@@ -648,6 +649,7 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
                 text: "late captured-source RAW result".into(),
                 turn: None,
                 model_switch: None,
+                agent_switch: None,
                 user_shell: None,
                 child: None,
                 shell_notice: Some(oc_core::queries::ShellHistoryNotice {

@@ -177,13 +177,16 @@ pub(crate) fn after_read(
     policy: &RuntimePolicy<'_>,
     cancel: &AtomicBool,
 ) -> Result<Vec<Source>, String> {
-    let Some(root) = roots.iter().find(|r| r.origin == Origin::Project) else {
+    let Some(location) = roots.iter().find(|r| r.origin == Origin::Project) else {
         return Ok(Vec::new());
     };
     if cancel.load(Ordering::Acquire) || policy.search_path_denied(path) {
         return Err("read instructions not admitted".into());
     }
-    let resolved = files.resolve_path(path).map_err(|e| e.to_string())?;
+    let resolved = files.concrete_scope(path).map_err(|e| e.to_string())?;
+    if !files.is_internal_read_scope(&resolved) {
+        return Ok(Vec::new());
+    }
     if policy.instruction_path_denied(&resolved.to_string_lossy()) {
         return Err("read instructions not admitted".into());
     }
@@ -192,18 +195,31 @@ pub(crate) fn after_read(
     } else {
         resolved.parent().ok_or("read has no scope")?
     };
+    let Some(root) = roots
+        .iter()
+        .filter(|r| r.origin == Origin::Project && scope.starts_with(&r.path))
+        .max_by_key(|r| r.path.components().count())
+    else {
+        return Ok(Vec::new());
+    };
     let relative = scope
         .strip_prefix(&root.path)
         .map_err(|_| "outside instruction root")?;
-    // Nearest first, matching pinned donor discovery, stopping at Location.
+    // Nearest first. Location and its ancestors belong to initial instruction
+    // admission, including a walk from a sibling elsewhere in this checkout.
     let mut result = Vec::new();
-    for ancestor in relative.ancestors().filter(|p| !p.as_os_str().is_empty()) {
+    for ancestor in relative.ancestors() {
+        let directory = root.path.join(ancestor);
+        let candidate = ancestor.join("AGENTS.md");
+        if location.path.starts_with(directory) || root.path.join(&candidate) == resolved {
+            continue;
+        }
         if result.len() >= SOURCES_CAP {
             return Err("instructions source budget exceeded".into());
         }
         let source = read_source(
             root,
-            &ancestor.join("AGENTS.md"),
+            &candidate,
             Origin::Nested,
             generation,
             data_root,

@@ -86,6 +86,7 @@ fn tps_page() -> oc_core::queries::HistoryPage {
             role: Role::Assistant,
             text: "cached body".into(),
             model_switch: None,
+            agent_switch: None,
             child: None,
             shell_notice: None,
             user_shell: None,

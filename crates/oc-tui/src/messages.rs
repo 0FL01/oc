@@ -551,6 +551,7 @@ pub(crate) fn transcript_with_cache(
 pub(crate) enum ToolExpansion<'a> {
     Operation(&'a str),
     InlineError(&'a str),
+    Instructions(&'a str),
     ExecuteCall(&'a str, usize),
 }
 
@@ -581,10 +582,16 @@ pub(crate) fn transcript_with_expansion(
             let op = &row.tool.as_ref().expect("group has tool").op;
             out.extend(group.header);
             if expanded(ToolExpansion::Operation(op)) {
-                for member in group.members {
+                for &member in &group.members {
                     out.extend(exploration_member(&rows[member], theme, width, expanded));
                 }
             }
+            out.extend(instruction_entry(
+                rows,
+                &group.members,
+                theme,
+                expanded(ToolExpansion::Instructions(op)),
+            ));
         } else if let Some(lines) = expandable_tool_entry(
             row,
             theme,
@@ -1117,6 +1124,55 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
     })
 }
 
+fn instruction_entry(
+    rows: &[HistoryRow],
+    members: &[usize],
+    theme: &Theme,
+    expanded: bool,
+) -> Vec<Line> {
+    let mut paths = Vec::new();
+    let mut omitted = 0;
+    for &member in members {
+        if let Some(loads) = rows[member]
+            .tool
+            .as_ref()
+            .and_then(|card| card.output_presentation.as_ref())
+            .and_then(|presentation| presentation.instructions.as_ref())
+        {
+            for path in &loads.paths {
+                if !paths.contains(path) {
+                    paths.push(path.clone());
+                }
+            }
+            omitted += loads.total.saturating_sub(loads.paths.len());
+        }
+    }
+    let total = paths.len() + omitted;
+    if total == 0 {
+        return Vec::new();
+    }
+    let style = Style::default().fg(theme.text_muted());
+    let mut lines = vec![Line::new(vec![
+        Span::plain(" ".repeat(MESSAGE_PADDING)),
+        Span::styled(format!("◈ Instructions: {total} files"), style),
+    ])];
+    if expanded {
+        for path in paths {
+            lines.push(Line::new(vec![
+                Span::plain(" ".repeat(MESSAGE_PADDING + 2)),
+                Span::styled(format!("◈ Loaded {}", safe_text(&path)), style),
+            ]));
+        }
+        if omitted != 0 {
+            lines.push(Line::new(vec![
+                Span::plain(" ".repeat(MESSAGE_PADDING + 2)),
+                Span::styled(format!("… {omitted} more files"), style),
+            ]));
+        }
+    }
+    lines
+}
+
 fn render_row(
     row: &HistoryRow,
     identity: (usize, bool),
@@ -1216,7 +1272,7 @@ fn render_row(
         }
         // SessionRowView supplies one top margin; the notice itself has
         // paddingLeft=3 and muted text (session/index.tsx:1433, 1999-2013).
-        "model_switch" => vec![
+        "model_switch" | "agent_switch" => vec![
             Line::plain(""),
             Line::new(vec![
                 Span::plain(" ".repeat(MESSAGE_PADDING)),
@@ -2462,6 +2518,7 @@ pub(crate) enum CapturedChildTarget {
     Navigate(Box<oc_core::queries::ChildJob>),
     ErrorDetails(String),
     InlineError(String),
+    Instructions(String),
     Execute {
         operation: String,
         call: Option<usize>,
@@ -2614,7 +2671,7 @@ fn visible_transcript_indexed(
                 &mut visible,
             );
             if is_expanded {
-                for member in group.members {
+                for &member in &group.members {
                     let member = &rows[member];
                     let card = member.tool.as_ref().expect("group has tool");
                     if crate::tools::inline_error_expandable(card)
@@ -2653,6 +2710,40 @@ fn visible_transcript_indexed(
                     );
                 }
             }
+            let op = &row.tool.as_ref().expect("group has tool").op;
+            let instructions = instruction_entry(
+                rows,
+                &group.members,
+                theme,
+                (options.expanded)(ToolExpansion::Instructions(op)),
+            );
+            if let Some(header) = instructions.first()
+                && let Some((x, y)) = options.point
+            {
+                let wrapped = styled::wrap_line_limited(header, width as usize, MAX_MARKDOWN_ROWS);
+                for (offset, line) in wrapped.iter().enumerate() {
+                    if position + offset == start + y && position + offset < end {
+                        let text = line.plain_text();
+                        let leading = UnicodeWidthStr::width(text.as_str())
+                            - UnicodeWidthStr::width(text.trim_start());
+                        if x >= leading && x < UnicodeWidthStr::width(text.trim_end()) {
+                            hit = Some(TranscriptHit::ChildNotice(
+                                CapturedChildTarget::Instructions(op.clone()),
+                                position.saturating_sub(start)
+                                    ..(position + wrapped.len()).min(end).saturating_sub(start),
+                                false,
+                            ));
+                        }
+                    }
+                }
+            }
+            add_visible_lines(
+                instructions,
+                Some(width),
+                (start, end),
+                &mut position,
+                &mut visible,
+            );
         } else if let Some(lines) = expandable_tool_entry(
             row,
             theme,
@@ -2980,13 +3071,22 @@ pub(crate) fn transcript_part_positions(
                 total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }
             if is_expanded {
-                for member in group.members {
+                for &member in &group.members {
                     for line in exploration_member(&rows[member], theme, width, expanded) {
                         total +=
                             styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
                                 .len();
                     }
                 }
+            }
+            let op = &row.tool.as_ref().expect("group has tool").op;
+            for line in instruction_entry(
+                rows,
+                &group.members,
+                theme,
+                expanded(ToolExpansion::Instructions(op)),
+            ) {
+                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }
             part(index, start, total);
             for absorbed in index + 1..grouped_until {

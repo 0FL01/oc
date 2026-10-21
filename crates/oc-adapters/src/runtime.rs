@@ -2341,6 +2341,26 @@ impl<'a> Runtime<'a> {
         }
     }
 
+    pub(crate) fn publish_selection_notices(
+        &self,
+        session: &oc_core::domain::SessionId,
+        messages: Vec<oc_core::session::MessageId>,
+    ) {
+        if let Some(events) = self
+            .compaction_events
+            .lock()
+            .expect("event publisher")
+            .as_ref()
+        {
+            for message in messages {
+                let _ = events.send(oc_core::core_app::CoreEvent::SelectionNoticeCommitted {
+                    session: session.clone(),
+                    message,
+                });
+            }
+        }
+    }
+
     /// Per-session DCP turn counters, if the session ever ran a turn.
     pub fn dcp_turn_state(&self, session: &str) -> Option<NudgeState> {
         let prefix = format!("dcp.nudge.{session}\0");

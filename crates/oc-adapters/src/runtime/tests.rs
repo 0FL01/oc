@@ -335,6 +335,7 @@ mod vis38_review_tests {
             &[],
             "s",
             &serde_json::json!({"effort_update":{"effort":"low","previous":null}}).to_string(),
+            None,
         )
         .unwrap();
         let (first, _) = seed(&db, "first", "first user", "first answer");
@@ -342,6 +343,7 @@ mod vis38_review_tests {
             &[],
             "s",
             &serde_json::json!({"effort_update":{"effort":null,"previous":"low"}}).to_string(),
+            None,
         )
         .unwrap();
         let (second, _) = seed(&db, "second", "second user", "second answer");

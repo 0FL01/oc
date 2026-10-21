@@ -290,6 +290,22 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
     )
     .unwrap();
     assert_eq!(sources, file_sources);
+    // Reading an AGENTS file as ordinary data must not inject that same source;
+    // other ancestors still apply (the TS read leaf's exact-file exclusion).
+    files.read("one/two/AGENTS.md", 1, 2).unwrap();
+    let direct = after_read(
+        std::slice::from_ref(&root),
+        &files,
+        "one/two/AGENTS.md",
+        false,
+        7,
+        &data,
+        &policy,
+        &cancel,
+    )
+    .unwrap();
+    assert_eq!(direct.len(), 1);
+    assert_eq!(direct[0].content.as_deref(), Some("outer"));
     let missing = BTreeMap::new();
     let no_authority = RuntimePolicy::new(&missing).with_root(&project);
     assert!(

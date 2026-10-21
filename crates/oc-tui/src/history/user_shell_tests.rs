@@ -27,6 +27,7 @@ fn message(state: &str, exit: Option<i32>, stdout: &str) -> HistoryMessage {
         text: "RAW data-only notice is preserved, not parsed by the UI".into(),
         turn: None,
         model_switch: None,
+        agent_switch: None,
         child: None,
         shell_notice: None,
         user_shell: Some(UserShellResult {
@@ -238,6 +239,7 @@ fn direct_user_shell_separate_pages_and_live_refresh_retire_only_matching_input(
         text: "ordinary prompt".into(),
         turn: None,
         model_switch: None,
+        agent_switch: None,
         child: None,
         shell_notice: None,
         user_shell: None,

@@ -112,8 +112,14 @@ fn plan_creation_and_selection_commit_with_immutable_reminder_rows() {
     db.create_bound_session_with_reminder("s", "/location", Some(&text))
         .unwrap();
     assert_eq!(db.read_history_full("s").unwrap(), original);
-    db.commit_session_agent_choice(&[("choice".into(), "build".into())], "s", Some(LEAVE))
-        .unwrap();
+    db.commit_session_agent_choice(
+        &[("choice".into(), "build".into())],
+        "s",
+        Some(LEAVE),
+        None,
+        None,
+    )
+    .unwrap();
     let raw = db.read_history_full("s").unwrap();
     assert_eq!(&raw[..1], original.as_slice());
     assert_eq!(raw.len(), 2);

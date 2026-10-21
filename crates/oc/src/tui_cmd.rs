@@ -1493,7 +1493,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     loop_state.shared_refresh = true;
                     continue;
                 }
-                CoreEvent::SessionModelSelected { .. } if app.shares_workspace() => {
+                CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::SelectionNoticeCommitted { .. }
+                    if app.shares_workspace() =>
+                {
                     // The committed choice is common; only an unmatched local
                     // picker draft is private. Reconcile its receipt first.
                     loop_state.shared_refresh = true;
@@ -4144,6 +4147,7 @@ async fn handle_worker_event_at(
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::SessionModelSelected { session, .. }
+        | CoreEvent::SelectionNoticeCommitted { session, .. }
         | CoreEvent::InboxChanged { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
@@ -4234,6 +4238,20 @@ async fn handle_worker_event_at(
         CoreEvent::TerminalChanged { .. } => {}
         CoreEvent::SessionModelSelected { session, commit } => {
             state.apply_session_model_selected(&session, &commit)
+        }
+        CoreEvent::SelectionNoticeCommitted { session, message } => {
+            let exact = app
+                .history_message(session.clone(), message)
+                .await
+                .map_err(|error| error.to_string())?;
+            if !exact.rows.is_empty() {
+                let recent = app
+                    .transcript_page(session, None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|error| error.to_string())?;
+                state.refresh_child_notice_page(&recent);
+                state.refresh_child_notice_page(&exact);
+            }
         }
         CoreEvent::InboxChanged {
             session,

@@ -1387,12 +1387,23 @@ fn saved_selection_record(
 /// Footer row of the connected model dialog; its scoped title is a provider name.
 const SCOPED_MODEL_DIALOG: &str = "Connect an integration ctrl+a";
 
-/// A dialog title row: the title, then only padding up to the muted `esc`.
+/// The 80×24 fixture's modal title band; transcript outside it remains visible.
 fn wait_dialog_title(pty: &PtySession, title: &str) {
+    let area = oc_tui::dialog::DialogFrame::rect(
+        ratatui::layout::Rect::new(0, 0, 80, 24),
+        oc_tui::dialog::DialogSize::Medium,
+        24,
+    );
     let start = Instant::now();
     loop {
         let rows = render_screen(&pty.snapshot()).rows();
-        if rows.iter().any(|row| {
+        let band = rows.get(usize::from(area.y + 1)).map(|row| {
+            row.chars()
+                .skip(usize::from(area.x))
+                .take(usize::from(area.width))
+                .collect::<String>()
+        });
+        if band.as_ref().is_some_and(|row| {
             row.trim()
                 .strip_prefix(title)
                 .is_some_and(|rest| rest.trim() == "esc")

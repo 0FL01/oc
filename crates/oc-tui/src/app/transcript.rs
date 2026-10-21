@@ -224,6 +224,7 @@ impl TuiState {
         self.exploration_down = None;
         self.exploration_expanded.clear();
         self.inline_errors_expanded.clear();
+        self.instructions_expanded.clear();
         self.reasoning_down = None;
         self.reasoning_expanded.clear();
         self.viewport.set(None);
@@ -757,7 +758,8 @@ impl TuiState {
                                 crate::messages::hover_child_notice(line, theme, job)
                             }
                             crate::messages::CapturedChildTarget::ErrorDetails(_)
-                            | crate::messages::CapturedChildTarget::InlineError(_) => line.clone(),
+                            | crate::messages::CapturedChildTarget::InlineError(_)
+                            | crate::messages::CapturedChildTarget::Instructions(_) => line.clone(),
                             crate::messages::CapturedChildTarget::Execute { .. } => {
                                 crate::tools::execute::hover(line, theme)
                             }
@@ -1501,11 +1503,11 @@ impl TuiState {
                 || row
                     .tool
                     .as_ref()
-                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)) || crate::tools::inline_error_expandable(card))
+                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)) || crate::tools::inline_error_expandable(card) || card.output_presentation.as_ref().is_some_and(|p| p.instructions.is_some()))
         }) && !self
             .live_parts
             .iter()
-            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)) || crate::tools::inline_error_expandable(card)))
+            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_) | crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)) || crate::tools::inline_error_expandable(card) || card.output_presentation.as_ref().is_some_and(|p| p.instructions.is_some())))
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
             || self.questions.active().is_some()
@@ -1553,6 +1555,7 @@ impl TuiState {
             }
             crate::messages::CapturedChildTarget::ErrorDetails(_) => true,
             crate::messages::CapturedChildTarget::InlineError(_) => true,
+            crate::messages::CapturedChildTarget::Instructions(_) => true,
             crate::messages::CapturedChildTarget::Execute { .. } => true,
         })
     }
@@ -1621,6 +1624,10 @@ impl TuiState {
                         self.toggle_inline_error_at(&operation, frame);
                         KeyOutcome::default()
                     }
+                    crate::messages::CapturedChildTarget::Instructions(operation) => {
+                        self.toggle_instructions_at(&operation, frame);
+                        KeyOutcome::default()
+                    }
                     crate::messages::CapturedChildTarget::Execute { operation, call } => {
                         self.activate_execute(&operation, call, frame);
                         KeyOutcome::default()
@@ -1637,6 +1644,9 @@ impl TuiState {
             crate::messages::ToolExpansion::Operation(op) => self.exploration_expanded.contains(op),
             crate::messages::ToolExpansion::InlineError(op) => {
                 self.inline_errors_expanded.contains(op)
+            }
+            crate::messages::ToolExpansion::Instructions(op) => {
+                self.instructions_expanded.contains(op)
             }
             crate::messages::ToolExpansion::ExecuteCall(op, index) => self
                 .execute_calls_expanded
@@ -1659,6 +1669,33 @@ impl TuiState {
         });
         if !self.inline_errors_expanded.insert(operation.to_owned()) {
             self.inline_errors_expanded.remove(operation);
+        }
+        self.invalidate_transcript();
+        let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
+        self.scroll = if displayed == 0 && !self.window.has_newer() {
+            0
+        } else {
+            after
+                .saturating_sub(usize::from(rect.height))
+                .saturating_sub(first)
+        };
+        self.observe_transcript_viewport(rect.width, frame.width, rect.height, after, self.scroll);
+    }
+
+    fn toggle_instructions_at(&mut self, operation: &str, frame: Rect) {
+        let rect = crate::shell::transcript_area(self, frame);
+        let (_, before, displayed) =
+            self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let first = before
+            .saturating_sub(usize::from(rect.height))
+            .saturating_sub(displayed);
+        let rows = self.transcript_rows();
+        self.instructions_expanded.retain(|id| {
+            rows.iter()
+                .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
+        });
+        if !self.instructions_expanded.insert(operation.to_owned()) {
+            self.instructions_expanded.remove(operation);
         }
         self.invalidate_transcript();
         let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
@@ -2082,7 +2119,7 @@ impl TuiState {
                 .find_map(|(i, (row, _, _))| {
                     ((matches!(
                         row.role.as_str(),
-                        "user" | "native_control" | "model_switch"
+                        "user" | "native_control" | "model_switch" | "agent_switch"
                     ) || row.shell_notice.is_some())
                         && !placed(row))
                     .then_some(i)

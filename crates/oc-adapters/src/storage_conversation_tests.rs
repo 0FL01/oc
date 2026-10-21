@@ -424,6 +424,56 @@ fn turn(db: &Db, id: &str, text: &str, selected: &str) -> String {
 }
 
 #[test]
+fn selection_notices_preserve_staged_redo_and_do_not_reappear_on_a_new_branch() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    db.create_bound_session("s", "/project").unwrap();
+    turn(&db, "first", "one", "old");
+    turn(&db, "second", "two", "old");
+    assert!(
+        db.change_conversation("s", ConversationAction::Undo)
+            .unwrap()
+            .can_redo
+    );
+    let notice = oc_core::queries::ModelSwitchNotice {
+        previous: model("old"),
+        current: model("new"),
+        display_name: None,
+    };
+    let agent = oc_core::queries::AgentSwitchNotice {
+        previous: Some("build".into()),
+        current: "plan".into(),
+    };
+    let ids = db
+        .commit_session_agent_choice(&[], "s", None, Some(&agent), Some(&notice))
+        .unwrap();
+    for id in &ids {
+        assert!(db.read_history_message_typed("s", id).unwrap().is_none());
+    }
+    db.change_conversation("s", ConversationAction::Redo)
+        .unwrap();
+    for id in &ids {
+        assert!(db.read_history_message_typed("s", id).unwrap().is_some());
+    }
+    db.change_conversation("s", ConversationAction::Undo)
+        .unwrap();
+    turn(&db, "branch", "replacement", "new");
+    for id in &ids {
+        assert!(db.read_history_message_typed("s", id).unwrap().is_none());
+    }
+    let visible = db.read_history_page_typed("s", 20, None).unwrap();
+    assert_eq!(
+        visible
+            .iter()
+            .filter(|row| row.role == "model_switch")
+            .count(),
+        1,
+        "new admission supplies its own current-branch fallback"
+    );
+    assert!(visible.iter().all(|row| row.role != "agent_switch"));
+}
+
+#[test]
 fn direct_user_shell_admission_after_undo_or_revert_atomically_opens_the_new_branch() {
     for revert in [false, true] {
         let root = tempfile::tempdir().unwrap();

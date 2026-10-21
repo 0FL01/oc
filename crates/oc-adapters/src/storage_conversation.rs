@@ -561,9 +561,11 @@ impl Db {
                 |r| r.get(0),
             )?;
             // Head must admit future rows (manual DCP or the next accepted turn).
+            // Selection-only tail data needs no historical execution context;
+            // clearing staged revert exposes those notices just like the tip.
             if !can_redo && matches!(action, ConversationAction::Redo) {
                 tx.execute(
-                    "UPDATE conversation_state SET upper_seq=NULL WHERE session_id=?1 AND NOT EXISTS(SELECT 1 FROM messages m WHERE m.session_id=?1 AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq))",
+                    "UPDATE conversation_state SET upper_seq=NULL WHERE session_id=?1 AND NOT EXISTS(SELECT 1 FROM messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.role NOT IN ('model_switch','agent_switch') AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq))",
                     params![session,seq],
                 )?;
             }

@@ -171,6 +171,7 @@ fn answered_question_metadata_is_charged_without_turn_preview_loss() {
                 role: Role::Assistant,
                 text: String::new(),
                 model_switch: None,
+                agent_switch: None,
                 child: None,
                 shell_notice: None,
                 user_shell: None,

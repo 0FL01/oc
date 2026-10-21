@@ -172,17 +172,33 @@ async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
             });
             let catalog = catalog();
             let cancel = AtomicBool::new(false);
-            let turn = runtime.run_turn(TurnParams {
-                session: "s".into(),
-                prompt: "read".into(),
-                invocation: None,
-                catalog: &catalog,
-                model_id: "m".into(),
-                variant: None,
-                max_output: 1024,
-                provider,
-                cancel: &cancel,
-            });
+            let mut finished = Vec::new();
+            let turn = runtime.run_turn_with_tool_events(
+                TurnParams {
+                    session: "s".into(),
+                    prompt: "read".into(),
+                    invocation: None,
+                    catalog: &catalog,
+                    model_id: "m".into(),
+                    variant: None,
+                    max_output: 1024,
+                    provider,
+                    cancel: &cancel,
+                },
+                |_| {},
+                |_, _| {},
+                |_, _| {},
+                |_, event| {
+                    if let ToolCallEvent::Finished {
+                        op,
+                        output_presentation,
+                        ..
+                    } = event
+                    {
+                        finished.push((op.clone(), output_presentation.clone()));
+                    }
+                },
+            );
             let approve = async {
                 let request = tokio::time::timeout(Duration::from_secs(4), async {
                     loop {
@@ -207,6 +223,24 @@ async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
             peer.await.unwrap();
             assert_eq!(report.unwrap().status, TurnStatus::Completed);
             assert_eq!(db.list_tool_ops("s").unwrap()[0].state, "completed");
+            assert_eq!(finished.len(), 1);
+            let presentation = finished[0].1.as_ref().unwrap();
+            assert_eq!(
+                presentation.instructions,
+                (source_effect == "allow").then(|| oc_core::tool_output::InstructionLoads {
+                    paths: vec!["nested/AGENTS.md".into()],
+                    total: 1
+                })
+            );
+            let conn = rusqlite::Connection::open_with_flags(
+                data.path().join("oc.sqlite"),
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )
+            .unwrap();
+            assert_eq!(
+                Db::tool_presentation_in(&conn, "s", &finished[0].0).unwrap(),
+                finished[0].1
+            );
             assert_eq!(
                 db.instruction_view("s").unwrap().1.len(),
                 usize::from(source_effect == "allow")
@@ -215,6 +249,219 @@ async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
             runtime.shutdown_mcp().await.unwrap();
         }
     }
+}
+
+#[tokio::test]
+async fn prm01_nested_repository_and_worktree_reads_publish_only_new_committed_receipts() {
+    let data = tempfile::tempdir().unwrap();
+    let checkout = tempfile::tempdir().unwrap();
+    let external = tempfile::tempdir().unwrap();
+    let location = checkout.path().join("location");
+    std::fs::create_dir_all(location.join(".local/opencode")).unwrap();
+    std::fs::create_dir(checkout.path().join("sibling")).unwrap();
+    // A linked-worktree marker belongs to this checkout, not its gitdir target.
+    std::fs::write(checkout.path().join(".git"), "gitdir: /not-this-checkout\n").unwrap();
+    std::fs::write(location.join(".local/opencode/.git"), "nested repository\n").unwrap();
+    std::fs::write(location.join(".local/opencode/file.txt"), "nested read\n").unwrap();
+    std::fs::write(
+        location.join(".local/opencode/AGENTS.md"),
+        "NESTED_INSTRUCTION_BODY\n",
+    )
+    .unwrap();
+    std::fs::write(checkout.path().join("sibling/file.txt"), "sibling read\n").unwrap();
+    std::fs::write(
+        checkout.path().join("sibling/AGENTS.md"),
+        "SIBLING_INSTRUCTION_BODY\n",
+    )
+    .unwrap();
+    std::fs::write(
+        checkout.path().join("AGENTS.md"),
+        "ANCESTOR_MUST_NOT_AUTO_LOAD\n",
+    )
+    .unwrap();
+    std::fs::write(external.path().join("file.txt"), "external approved read\n").unwrap();
+    std::fs::write(
+        external.path().join("AGENTS.md"),
+        "EXTERNAL_MUST_NOT_AUTO_LOAD\n",
+    )
+    .unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let mut generation = Generation::default();
+    generation
+        .permissions
+        .insert("read".into(), Permission::Allow);
+    generation
+        .permissions
+        .insert("external_directory".into(), Permission::Allow);
+    generation.compaction.auto = false;
+    let runtime = runtime(&db, &location, generation);
+    let (path, dir) = crate::files::Files::enclosing_worktree(&location).unwrap();
+    assert_eq!(path, checkout.path());
+    runtime.update_execution(|view| {
+        view.workspace.instruction_roots = vec![
+            crate::instructions::Root {
+                path: location.clone(),
+                dir: Arc::new(std::fs::File::open(&location).unwrap()),
+                origin: crate::instructions::Origin::Project,
+                baseline: None,
+            },
+            crate::instructions::Root {
+                path,
+                dir,
+                origin: crate::instructions::Origin::Project,
+                baseline: None,
+            },
+        ];
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let external_path = external
+        .path()
+        .join("file.txt")
+        .to_string_lossy()
+        .into_owned();
+    let peer = tokio::spawn(async move {
+        let (mut socket, request) = read_request(&listener).await;
+        assert!(
+            !request["input"]
+                .to_string()
+                .contains("NESTED_INSTRUCTION_BODY")
+        );
+        let items = [
+            ("nested", ".local/opencode/file.txt"),
+            ("repeat", ".local/opencode/file.txt"),
+            ("direct", ".local/opencode/AGENTS.md"),
+            ("sibling", "../sibling/file.txt"),
+            ("external", external_path.as_str()),
+        ].map(|(id, path)| serde_json::json!({"type":"function_call","id":id,"call_id":id,"name":"read","arguments":serde_json::json!({"path":path,"limit":2}).to_string(),"status":"completed"}));
+        let mut script = String::new();
+        for item in &items {
+            for kind in ["response.output_item.added", "response.output_item.done"] {
+                script.push_str(&format!(
+                    "data: {}\n\n",
+                    serde_json::json!({"type":kind,"item":item})
+                ));
+            }
+        }
+        script.push_str(&format!("data: {}\n\n", serde_json::json!({"type":"response.completed","response":{"status":"completed","output":items}})));
+        respond(&mut socket, &script).await;
+        let (mut socket, request) = read_request(&listener).await;
+        let input = request["input"].as_array().unwrap();
+        for (body, call) in [
+            ("NESTED_INSTRUCTION_BODY", "nested"),
+            ("SIBLING_INSTRUCTION_BODY", "sibling"),
+        ] {
+            let instructions = input
+                .iter()
+                .enumerate()
+                .filter(|(_, item)| {
+                    item["role"] == "developer" && item["content"].to_string().contains(body)
+                })
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            assert_eq!(instructions.len(), 1);
+            let output = input
+                .iter()
+                .position(|item| item["type"] == "function_call_output" && item["call_id"] == call)
+                .unwrap();
+            assert!(
+                instructions[0] > output,
+                "instructions must follow their successful read output"
+            );
+        }
+        assert!(!input.iter().any(|item| {
+            item["role"] == "developer"
+                && (item["content"]
+                    .to_string()
+                    .contains("EXTERNAL_MUST_NOT_AUTO_LOAD")
+                    || item["content"]
+                        .to_string()
+                        .contains("ANCESTOR_MUST_NOT_AUTO_LOAD"))
+        }));
+        assert!(input.iter().any(|item| {
+            item["call_id"] == "external"
+                && item["output"]
+                    .as_str()
+                    .is_some_and(|output| output.contains("external approved read"))
+        }));
+        respond(&mut socket, &sse("done")).await;
+    });
+    let catalog = catalog();
+    let cancel = AtomicBool::new(false);
+    let mut finished = Vec::new();
+    let report = tokio::time::timeout(
+        Duration::from_secs(4),
+        runtime.run_turn_with_tool_events(
+            TurnParams {
+                session: "s".into(),
+                prompt: "read".into(),
+                invocation: None,
+                catalog: &catalog,
+                model_id: "m".into(),
+                variant: None,
+                max_output: 1024,
+                provider,
+                cancel: &cancel,
+            },
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| {
+                if let ToolCallEvent::Finished {
+                    op,
+                    state,
+                    output_presentation,
+                    ..
+                } = event
+                {
+                    assert_eq!(state, "completed");
+                    let conn = rusqlite::Connection::open_with_flags(
+                        data.path().join("oc.sqlite"),
+                        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+                    )
+                    .unwrap();
+                    assert_eq!(
+                        Db::tool_presentation_in(&conn, "s", op).unwrap(),
+                        *output_presentation
+                    );
+                    finished.push(output_presentation.clone().unwrap());
+                }
+            },
+        ),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    peer.await.unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(finished.len(), 5);
+    assert_eq!(
+        finished[0].instructions,
+        Some(oc_core::tool_output::InstructionLoads {
+            paths: vec![".local/opencode/AGENTS.md".into()],
+            total: 1
+        })
+    );
+    assert!(finished[1].instructions.is_none());
+    assert!(finished[2].instructions.is_none());
+    assert_eq!(
+        finished[3].instructions,
+        Some(oc_core::tool_output::InstructionLoads {
+            paths: vec!["sibling/AGENTS.md".into()],
+            total: 1
+        })
+    );
+    assert!(finished[4].instructions.is_none());
+    let facts = db.instruction_view("s").unwrap().1;
+    assert_eq!(facts.len(), 2);
+    assert!(
+        facts
+            .iter()
+            .all(|fact| fact.source.origin == crate::instructions::Origin::Nested)
+    );
+    assert!(runtime.pending_approvals().is_empty());
+    runtime.shutdown_mcp().await.unwrap();
 }
 
 fn seed_instructions(runtime: &Runtime<'_>, turn: &str, text: &str) -> String {
@@ -254,6 +501,7 @@ fn seed_instructions(runtime: &Runtime<'_>, turn: &str, text: &str) -> String {
             revision,
             &sources,
             usize::from(revision != 0),
+            &[],
             None,
         )
         .unwrap();

@@ -2722,7 +2722,9 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             .expect("event timeout")
             .expect("event channel");
         match event {
-            CoreEvent::SessionModelSelected { .. } | CoreEvent::InboxChanged { .. } => {}
+            CoreEvent::SessionModelSelected { .. }
+            | CoreEvent::SelectionNoticeCommitted { .. }
+            | CoreEvent::InboxChanged { .. } => {}
             CoreEvent::RetryScheduled { .. } => {}
             CoreEvent::ReasoningDelta { delta, .. } => reasoning.push_str(&delta),
             CoreEvent::TurnContextUsage {

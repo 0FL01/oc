@@ -132,6 +132,9 @@ pub struct Files {
     root: PathBuf,
     data_root: PathBuf,
     read_root: Result<std::sync::Arc<File>, FileToolError>,
+    // Enclosing checkout of the Location, pinned once. A nested repository under
+    // the Location never changes this boundary or makes its descendants external.
+    worktree: Option<(PathBuf, std::sync::Arc<File>)>,
     // Exact invocation-only external directory. Never a Location/discovery root.
     external: Option<(PathBuf, std::sync::Arc<File>)>,
     #[cfg(test)]
@@ -283,6 +286,7 @@ impl Files {
             data_root: data_root.to_path_buf(),
             read_root: open_suggest_root(&normalize_suggest_root(project_root))
                 .map(std::sync::Arc::new),
+            worktree: Self::enclosing_worktree(project_root),
             external: None,
             #[cfg(test)]
             scan_barrier: None,
@@ -534,6 +538,34 @@ impl Files {
         path.starts_with(normalize_suggest_root(&self.root))
     }
 
+    /// TS FileAccess internal-read boundary: Location OR its enclosing checkout,
+    /// never the main checkout of a linked worktree or a target's own repository.
+    pub(crate) fn is_internal_read_scope(&self, path: &Path) -> bool {
+        self.is_project_scope(path)
+            || self
+                .worktree
+                .as_ref()
+                .is_some_and(|(root, _)| path.starts_with(root))
+    }
+
+    /// Resolve only from the admitted Location, not from a model-supplied target.
+    /// Marker contents/config are not read and filesystem root is never a project.
+    pub(crate) fn enclosing_worktree(location: &Path) -> Option<(PathBuf, std::sync::Arc<File>)> {
+        let location = normalize_suggest_root(location);
+        let root = location.ancestors().take(256).find(|ancestor| {
+            [".git", ".hg"]
+                .iter()
+                .any(|marker| ancestor.join(marker).symlink_metadata().is_ok())
+        })?;
+        if root == location || root.parent().is_none() {
+            return None;
+        }
+        Some((
+            root.to_path_buf(),
+            std::sync::Arc::new(open_suggest_root(root).ok()?),
+        ))
+    }
+
     /// Pin all ancestors with O_PATH only. Boundary authorization and the actual
     /// tool admission must precede opening directory entries or file bytes.
     pub(crate) fn pin_external(&self, path: &Path, directory: bool) -> Result<Self, FileToolError> {
@@ -581,6 +613,10 @@ impl Files {
     fn open_read_scope(&self, path: &Path, flags: i32) -> Result<File, FileToolError> {
         let (root, pinned) = if self.is_project_scope(path) {
             (&self.root, self.read_root.as_ref().map_err(Clone::clone)?)
+        } else if let Some((root, pinned)) = &self.worktree
+            && path.starts_with(root)
+        {
+            (root, pinned)
         } else {
             let (root, pinned) = self.external.as_ref().ok_or(FileToolError::OutsideRoot)?;
             (root, pinned)
@@ -606,6 +642,12 @@ impl Files {
 
     /// Read/search-only use of the explicitly pinned invocation directory.
     fn resolve_read(&self, path: &str) -> Result<PathBuf, FileToolError> {
+        if self.worktree.is_some() {
+            let abs = self.concrete_scope(path)?;
+            if self.is_internal_read_scope(&abs) {
+                return Ok(abs);
+            }
+        }
         if let Some((external, _)) = &self.external {
             let abs = self.concrete_scope(path)?;
             if abs.starts_with(external) {

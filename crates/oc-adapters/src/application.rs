@@ -2773,7 +2773,7 @@ async fn prepare_picker_open(
     {
         return Err(CoreError::SessionNotFound);
     }
-    let selected = selection::apply(
+    let (selected, _) = selection::apply(
         db,
         composition,
         effective,
@@ -3514,6 +3514,15 @@ async fn query(
                     } else {
                         None
                     };
+                    let agent_switch = if role == "agent_switch" {
+                        Some(serde_json::from_str(&text).map_err(|_| {
+                            CoreError::Diagnostic(
+                                saved_selection_issue(db, &["history", "agent"]).diagnostic,
+                            )
+                        })?)
+                    } else {
+                        None
+                    };
                     let user_shell = db
                         .user_shell_result(&session.0, &id)
                         .map_err(|error| query_storage_error(db, error))?;
@@ -3531,7 +3540,7 @@ async fn query(
                         user_shell,
                         child,
                         shell_notice,
-                        turn: if model_switch.is_some() {
+                        turn: if model_switch.is_some() || agent_switch.is_some() {
                             None
                         } else {
                             db.history_turn_window(
@@ -3549,13 +3558,14 @@ async fn query(
                             })
                         },
                         model_switch,
+                        agent_switch,
                         seq,
                         role: if role == "user" {
                             Role::User
                         } else {
                             Role::Assistant
                         },
-                        text: if role == "model_switch" {
+                        text: if matches!(role.as_str(), "model_switch" | "agent_switch") {
                             String::new()
                         } else {
                             text
@@ -3848,7 +3858,7 @@ async fn query(
                     return Err(CoreError::TurnBusy);
                 }
                 let previous = selection::for_turn(db, composition, effective, &session.0)?;
-                let selected = selection::apply(
+                let (selected, notices) = selection::apply(
                     db,
                     composition,
                     effective,
@@ -3857,6 +3867,7 @@ async fn query(
                     action.clone(),
                     location_epoch.load(Ordering::SeqCst),
                 )?;
+                runtime.publish_selection_notices(&session, notices);
                 if matches!(action, oc_core::queries::SessionSelectionAction::Agent(_))
                     && runtime.turn_active()
                     && previous.agent_id != selected.agent_id
@@ -4253,6 +4264,27 @@ async fn query(
                     let shell_notice = db
                         .model_shell_notice(child, &row.id)
                         .map_err(|error| query_storage_error(db, error))?;
+                    let selection_notice =
+                        matches!(row.role.as_str(), "model_switch" | "agent_switch");
+                    let model_switch = if row.role == "model_switch" {
+                        let notice = serde_json::from_str(&row.text).map_err(|_| {
+                            CoreError::Diagnostic(
+                                saved_selection_issue(db, &["history", "model"]).diagnostic,
+                            )
+                        })?;
+                        Some(project_model_switch(notice, &composition.catalog))
+                    } else {
+                        None
+                    };
+                    let agent_switch = if row.role == "agent_switch" {
+                        Some(serde_json::from_str(&row.text).map_err(|_| {
+                            CoreError::Diagnostic(
+                                saved_selection_issue(db, &["history", "agent"]).diagnostic,
+                            )
+                        })?)
+                    } else {
+                        None
+                    };
                     let message = HistoryMessage {
                         images: db
                             .user_images(child, &row.id.0, &row.text)
@@ -4266,17 +4298,25 @@ async fn query(
                         } else {
                             Role::Assistant
                         },
-                        text: row.text,
+                        text: if selection_notice {
+                            String::new()
+                        } else {
+                            row.text
+                        },
                         user_shell: None,
-                        model_switch: None,
-                        turn: db
-                            .history_turn_window(
+                        model_switch,
+                        agent_switch,
+                        turn: if selection_notice {
+                            None
+                        } else {
+                            db.history_turn_window(
                                 child,
                                 row.seq,
                                 window.as_ref().and_then(|w| w.part.as_ref()),
                                 window.is_some() && ascending,
                             )
-                            .map_err(|e| query_storage_error(db, e))?,
+                            .map_err(|e| query_storage_error(db, e))?
+                        },
                     };
                     if window.is_some() {
                         let bytes = serde_json::to_vec(&message)
@@ -5313,7 +5353,7 @@ async fn worker(
                                             oc_core::queries::SessionSelectionAction::Commit(
                                                 commit,
                                             );
-                                        let selected = selection::apply(
+                                        let (selected, notices) = selection::apply(
                                             db,
                                             composition,
                                             effective,
@@ -5322,6 +5362,7 @@ async fn worker(
                                             action.clone(),
                                             location_epoch.load(Ordering::SeqCst),
                                         )?;
+                                        runtime.publish_selection_notices(&session, notices);
                                         if previous.provider_id != selected.provider_id
                                             || previous.model_id != selected.model_id
                                             || previous

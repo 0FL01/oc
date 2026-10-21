@@ -36,17 +36,20 @@ async fn plan_scoped_selection_reminder_atomic_failure_and_restart() {
             .unwrap()
     };
     let original = rows();
-    assert_eq!(original.len(), 1);
+    assert_eq!(original.len(), 2);
     assert!(original[0].2.contains("You are in Plan mode."));
+    assert_eq!(original[1].1, "agent_switch");
     let visible = app
         .transcript_page(session.clone(), None, None, 20)
         .await
         .unwrap();
-    assert!(
-        visible.rows.is_empty(),
-        "plan reminder leaked into the transcript"
+    assert_eq!(visible.rows.len(), 1);
+    assert_eq!(
+        visible.rows[0].agent_switch.as_ref().unwrap().current,
+        "plan"
     );
-    assert_eq!(visible.total, 0);
+    assert!(visible.rows[0].text.is_empty(), "plan reminder leaked");
+    assert_eq!(visible.total, 1);
     assert_eq!(rows(), original, "display read must not reinsert reminders");
     app.session_selection(session.clone(), false, Action::Agent("plan".into()))
         .await
@@ -89,21 +92,27 @@ async fn plan_scoped_selection_reminder_atomic_failure_and_restart() {
         .await
         .unwrap();
     let after = rows();
-    assert_eq!(&after[..1], original.as_slice());
-    assert_eq!(after.len(), 2);
-    assert_eq!(after[1].2, crate::plan::LEAVE);
+    assert_eq!(&after[..2], original.as_slice());
+    assert_eq!(after.len(), 4);
+    assert_eq!(after[2].2, crate::plan::LEAVE);
+    assert_eq!(after[3].1, "agent_switch");
     let visible = app
         .transcript_page(session.clone(), None, None, 20)
         .await
         .unwrap();
+    assert_eq!(visible.rows.len(), 2);
+    assert_eq!(visible.total, 2);
     assert!(
-        visible.rows.is_empty(),
+        visible
+            .rows
+            .iter()
+            .all(|row| { row.agent_switch.is_some() && row.text.is_empty() }),
         "plan-leave reminder leaked into the transcript"
     );
     app.select_agent("plan".into()).await.unwrap();
     let legacy = rows();
-    assert_eq!(legacy.len(), 3);
-    assert!(legacy[2].2.contains("You are in Plan mode."));
+    assert_eq!(legacy.len(), 5);
+    assert!(legacy[4].2.contains("You are in Plan mode."));
     app.select_agent("plan".into()).await.unwrap();
     assert_eq!(rows(), legacy);
     app.select_agent("build".into()).await.unwrap();

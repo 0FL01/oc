@@ -361,6 +361,7 @@ async fn child_card_release_cannot_activate_a_notice_repainted_over_the_same_cel
             ..Default::default()
         }),
         model_switch: None,
+        agent_switch: None,
         user_shell: None,
         child: None,
         shell_notice: None,
@@ -423,6 +424,7 @@ async fn child_card_release_cannot_activate_a_notice_repainted_over_the_same_cel
         images: vec![],
         turn: None,
         model_switch: None,
+        agent_switch: None,
         user_shell: None,
         child: Some(ChildHistory::Notice(Box::new(captured.clone()))),
         shell_notice: None,

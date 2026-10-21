@@ -117,9 +117,14 @@ impl Db {
             return Err(refuse("boundary is not a user message").into());
         }
         let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
-        // A switch notice belongs to the selected prompt, not its preceding turn.
-        if let Some((seq, role)) = tx.query_row("SELECT seq,role FROM conversation_messages WHERE session_id=?1 AND seq<?2 ORDER BY seq DESC LIMIT 1", params![source,cutoff], |r| Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?))).optional()?
-            && role == "model_switch" { cutoff = seq; }
+        // The adjacent selection notices belong to the selected prompt, not
+        // its preceding turn. A profile change can also change the model.
+        while let Some((seq, role)) = tx.query_row("SELECT seq,role FROM conversation_messages WHERE session_id=?1 AND seq<?2 ORDER BY seq DESC LIMIT 1", params![source,cutoff], |r| Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?))).optional()? {
+            if !matches!(role.as_str(), "model_switch" | "agent_switch") {
+                break;
+            }
+            cutoff = seq;
+        }
         let stored =
             match Self::get_pref_bounded_in(&tx, &tab_deck_key(location), MAX_TAB_DECK_BYTES)? {
                 BoundedPref::Missing => parse_stored_deck(None)?,
@@ -1549,6 +1554,14 @@ mod tests {
         let mut boundary = String::new();
         for n in 0..2 {
             let turn = format!("turn-{n}");
+            if n == 1 {
+                db.append_message(
+                    "source",
+                    "agent_switch",
+                    r#"{"previous":"build","current":"plan"}"#,
+                )
+                .unwrap();
+            }
             let user = db
                 .accept_turn(&turn, "source", "prompt", "prompt", &model)
                 .unwrap()
@@ -1576,7 +1589,10 @@ mod tests {
             .read_history_page_typed(&fork.session.0, 100, None)
             .unwrap();
         assert_eq!(rows.len(), 2);
-        assert!(rows.iter().all(|r| r.role != "model_switch"));
+        assert!(
+            rows.iter()
+                .all(|r| !matches!(r.role.as_str(), "model_switch" | "agent_switch"))
+        );
         let accepted: String = db
             .conn
             .lock()

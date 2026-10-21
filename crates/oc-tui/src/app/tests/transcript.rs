@@ -3062,6 +3062,106 @@ async fn exploration_and_its_failure_are_clickable_above_an_open_child_composer(
 }
 
 #[tokio::test]
+async fn instructions_click_opens_recloses_and_does_not_steal_text_selection() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend};
+    let mut state = fresh_state("instructions-click").await;
+    let mut output = oc_core::tool_output::Presentation::new("read result", 11, false);
+    output.instructions = Some(oc_core::tool_output::InstructionLoads {
+        paths: vec![".local/opencode/AGENTS.md".into()],
+        total: 1,
+    });
+    state.window.push_row(crate::history::HistoryRow {
+        role: "tool".into(),
+        tool: Some(crate::history::card_from_row(
+            &oc_core::queries::ToolOpView {
+                child_job: None,
+                output_presentation: Some(Box::new(output)),
+                question: None,
+                rowid: 1,
+                op: "instruction-read".into(),
+                name: "read".into(),
+                state: "completed".into(),
+                input: Some(r#"{"path":".local/opencode/package.json"}"#.into()),
+                output: Some("read result".into()),
+                output_bytes: 11,
+                output_truncated: false,
+                patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
+            },
+        )),
+        ..Default::default()
+    });
+    let area = ratatui::layout::Rect::new(0, 0, 100, 30);
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    for open in [true, false] {
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let y = (0..area.height)
+            .find(|y| {
+                (0..area.width)
+                    .map(|x| buffer[(x, *y)].symbol())
+                    .collect::<String>()
+                    .contains("Instructions:")
+            })
+            .unwrap();
+        let x = 5;
+        assert_eq!(
+            state
+                .viewport()
+                .join("\n")
+                .contains("Loaded .local/opencode/AGENTS.md"),
+            !open
+        );
+        // A drag changes selection, not disclosure. Then make a separate click.
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            area,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Drag(MouseButton::Left), x + 1, y),
+            area,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x + 1, y),
+            area,
+        );
+        assert_eq!(
+            state.instructions_expanded.contains("instruction-read"),
+            !open
+        );
+        state.clear_transcript_selection();
+        state.click = None;
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            state.handle_mouse(selection_mouse(kind, x, y), area);
+        }
+        assert_eq!(
+            state.instructions_expanded.contains("instruction-read"),
+            open
+        );
+        assert!(state.exploration_expanded.is_empty());
+        assert_eq!(
+            state
+                .viewport()
+                .join("\n")
+                .contains("Loaded .local/opencode/AGENTS.md"),
+            open
+        );
+    }
+    state.set_session(sid("different-instructions-session"));
+    assert!(state.instructions_expanded.is_empty());
+}
+
+#[tokio::test]
 async fn scroll_edges_request_pages() {
     let mut state = fresh_state("s-scroll").await;
 

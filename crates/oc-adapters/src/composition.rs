@@ -963,6 +963,16 @@ async fn load_stages(
             });
         }
     }
+    if let Some((path, dir)) = crate::files::Files::enclosing_worktree(&project) {
+        // Capability for live Nested sources outside Location but inside this
+        // checkout. It supplies no baseline/config inputs or permission grants.
+        instruction_roots.push(crate::instructions::Root {
+            path,
+            dir,
+            origin: crate::instructions::Origin::Project,
+            baseline: None,
+        });
+    }
     let (instructions, instruction_diagnostics) = defs::load_instruction_texts(&instruction_files);
 
     if reload

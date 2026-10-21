@@ -957,7 +957,7 @@ impl Db {
     pub fn read_history(&self, session: &str) -> Result<Vec<(String, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT role, text FROM messages WHERE session_id = ?1 AND role != 'model_switch' ORDER BY seq ASC",
+            "SELECT role, text FROM messages WHERE session_id = ?1 AND role NOT IN ('model_switch','agent_switch') ORDER BY seq ASC",
         )?;
         let rows = stmt.query_map(params![session], |row| {
             let role: String = row.get(0)?;
@@ -1873,7 +1873,7 @@ impl Db {
             }
             let mut stmt = conn.prepare_cached(
                 "SELECT id, role, seq, length(CAST(text AS BLOB)), CASE WHEN SUM(length(CAST(text AS BLOB))) OVER(ORDER BY seq)<=?4 THEN text ELSE '' END FROM conversation_messages
-                       WHERE session_id = ?1 AND seq > ?2 AND seq<?5 AND role != 'model_switch'
+                       WHERE session_id = ?1 AND seq > ?2 AND seq<?5 AND role NOT IN ('model_switch','agent_switch')
                      AND NOT EXISTS (SELECT 1 FROM compression_members cm JOIN compression_blocks cb ON cb.id=cm.block_id
                                       WHERE cm.message_id = conversation_messages.id AND (cb.hot IS NULL OR json_extract(cb.hot,'$.active')=1))
                      AND NOT EXISTS(SELECT 1 FROM compression_blocks cb JOIN messages a ON a.id=cb.start_msg JOIN messages z ON z.id=cb.end_msg WHERE cb.session_id=conversation_messages.session_id AND cb.hot IS NOT NULL AND json_valid(cb.hot) AND json_extract(cb.hot,'$.active')=1 AND json_extract(cb.hot,'$.standalone')=1 AND conversation_messages.seq BETWEEN a.seq AND z.seq)
@@ -1993,7 +1993,7 @@ impl Db {
     ) -> Result<Vec<(String, String, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt = conn.prepare_cached(
-            "SELECT id, role, text FROM messages WHERE session_id = ?1 AND role != 'model_switch' ORDER BY seq ASC",
+            "SELECT id, role, text FROM messages WHERE session_id = ?1 AND role NOT IN ('model_switch','agent_switch') ORDER BY seq ASC",
         )?;
         let rows = stmt.query_map(params![session], |row| {
             let id: String = row.get(0)?;
@@ -2019,7 +2019,7 @@ impl Db {
     ) -> Result<Vec<(String, String, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
-        let mut stmt = conn.prepare_cached("SELECT id,role,text FROM conversation_messages WHERE session_id=?1 AND role!='model_switch' ORDER BY seq")?;
+        let mut stmt = conn.prepare_cached("SELECT id,role,text FROM conversation_messages WHERE session_id=?1 AND role NOT IN ('model_switch','agent_switch') ORDER BY seq")?;
         Ok(stmt
             .query_map([session], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
             .collect::<Result<Vec<_>, _>>()?)
@@ -2229,7 +2229,8 @@ impl Db {
         values: &[(String, String)],
         session: &str,
         payload: &str,
-    ) -> Result<(), StorageError> {
+        notice: Option<&oc_core::queries::ModelSwitchNotice>,
+    ) -> Result<Vec<oc_core::session::MessageId>, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         for (key, value) in values {
@@ -2239,8 +2240,9 @@ impl Db {
             "INSERT INTO events(session_id,kind,payload) VALUES(?1,'session_model_selected',?2)",
             params![session, payload],
         )?;
+        let messages = Self::insert_selection_notices(&tx, session, None, notice)?;
         tx.commit()?;
-        Ok(())
+        Ok(messages)
     }
 
     fn upsert_pref(conn: &Connection, key: &str, value: &str) -> Result<(), StorageError> {
@@ -2257,7 +2259,9 @@ impl Db {
         values: &[(String, String)],
         session: &str,
         reminder: Option<&str>,
-    ) -> Result<(), StorageError> {
+        agent: Option<&oc_core::queries::AgentSwitchNotice>,
+        model: Option<&oc_core::queries::ModelSwitchNotice>,
+    ) -> Result<Vec<oc_core::session::MessageId>, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         for (key, value) in values {
@@ -2266,8 +2270,39 @@ impl Db {
         if let Some(text) = reminder {
             Self::insert_message(&tx, session, "system", text)?;
         }
+        let messages = Self::insert_selection_notices(&tx, session, agent, model)?;
         tx.commit()?;
-        Ok(())
+        Ok(messages)
+    }
+
+    fn insert_selection_notices(
+        conn: &Connection,
+        session: &str,
+        agent: Option<&oc_core::queries::AgentSwitchNotice>,
+        model: Option<&oc_core::queries::ModelSwitchNotice>,
+    ) -> Result<Vec<oc_core::session::MessageId>, StorageError> {
+        let mut messages = Vec::new();
+        // Informational commits do not admit a branch or discard staged redo.
+        if let Some(agent) = agent {
+            let text = serde_json::to_string(agent).map_err(std::io::Error::other)?;
+            messages.push(oc_core::session::MessageId(Self::insert_message(
+                conn,
+                session,
+                "agent_switch",
+                &text,
+            )?));
+        }
+        if let Some(model) = model {
+            // Catalog labels belong to the public projection, never the journal.
+            let text = serde_json::json!({"previous": model.previous, "current": model.current});
+            messages.push(oc_core::session::MessageId(Self::insert_message(
+                conn,
+                session,
+                "model_switch",
+                &text.to_string(),
+            )?));
+        }
+        Ok(messages)
     }
 
     /// Read a UI preference, if set.
@@ -2556,12 +2591,22 @@ impl Db {
             Self::insert_message(conn, session, "system", text)?;
         }
         Self::insert_turn(conn, turn, session, prompt)?;
-        // The event journal, unlike the picker preference or later turn
-        // checkpoint, records the model of the last *accepted* prompt.
-        let prior: Option<String> = conn.query_row(
-            "SELECT a.model_ref FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message WHERE a.session_id=?1 ORDER BY m.seq DESC LIMIT 1",
-            [session], |row| row.get(0),
-        ).optional()?;
+        // A committed selection may already have announced this model since the
+        // last accepted prompt. Keep acceptance as a fallback for direct runtime
+        // and command routes, without duplicating that public notice.
+        let prior: Option<String> = conn
+            .query_row(
+                "SELECT model_ref FROM (
+                SELECT a.model_ref, m.seq FROM turn_acceptances a
+                  JOIN conversation_messages m ON m.id=a.user_message WHERE a.session_id=?1
+                UNION ALL
+                SELECT json_extract(text,'$.current'), seq FROM conversation_messages
+                  WHERE session_id=?1 AND role='model_switch'
+             ) ORDER BY seq DESC LIMIT 1",
+                [session],
+                |row| row.get(0),
+            )
+            .optional()?;
         let mut switch = None;
         if let Some(previous) = prior {
             let previous: ModelRef = serde_json::from_str(&previous).map_err(|_| {
@@ -2576,8 +2621,7 @@ impl Db {
                     current: model.clone(),
                     display_name: None,
                 };
-                let text = serde_json::to_string(&notice).map_err(std::io::Error::other)?;
-                Self::insert_message(conn, session, "model_switch", &text)?;
+                Self::insert_selection_notices(conn, session, None, Some(&notice))?;
                 switch = Some(notice);
             }
         }

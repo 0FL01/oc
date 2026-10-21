@@ -725,5 +725,5 @@ async fn tool12_exact_commit_scope_noop_retired_variant_and_atomic_storage_refus
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
     assert_eq!(snapshot, after);
-    assert_eq!(counts, (1, 0, 0));
+    assert_eq!(counts, (1, 0, 1)); // committed public notice, not a prompt/request
 }

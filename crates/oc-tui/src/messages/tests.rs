@@ -1310,6 +1310,72 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
 }
 
 #[test]
+fn instructions_disclosure_is_distinct_from_exploration_and_matches_indexed_geometry() {
+    let theme = Theme::dark();
+    let mut rows = [
+        exploration_tool("read", "completed", false),
+        exploration_tool("read", "completed", false),
+    ];
+    for row in &mut rows {
+        let mut presentation = oc_core::tool_output::Presentation::new("fixture result", 14, false);
+        presentation.instructions = Some(oc_core::tool_output::InstructionLoads {
+            paths: vec![
+                ".local/opencode/AGENTS.md".into(),
+                ".local/opencode/packages/core/AGENTS.md".into(),
+            ],
+            total: 2,
+        });
+        row.tool.as_mut().unwrap().output_presentation = Some(Box::new(presentation));
+    }
+    let cache = RefCell::new(MarkdownCache::default());
+    for open in [false, true] {
+        let expanded =
+            |target: ToolExpansion<'_>| open && target == ToolExpansion::Instructions("read");
+        let full = transcript_with_expansion(
+            &rows,
+            theme,
+            24,
+            24,
+            |_| theme.text(),
+            Some(&cache),
+            &expanded,
+        );
+        let text = full
+            .iter()
+            .map(Line::plain_text)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            text.contains("◈ Instructions: 2 files"),
+            "paths are distinct, not summed per operation"
+        );
+        assert_eq!(text.contains("◈ Loaded .local/opencode/AGENTS.md"), open);
+        assert_eq!(
+            text.matches("◈ Loaded .local/opencode/AGENTS.md").count(),
+            usize::from(open)
+        );
+        assert!(
+            !text.contains("Read fixture-note.txt"),
+            "Instructions does not open Explored"
+        );
+        let (visible, total) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (24, 24),
+            (100, 0, None),
+            |_| theme.text(),
+            &cache,
+            &expanded,
+        );
+        let expected = std::iter::once(Line::plain(""))
+            .chain(styled::wrap_lines(&full, 24))
+            .collect::<Vec<_>>();
+        assert_eq!(visible, expected);
+        assert_eq!(total, expected.len());
+    }
+}
+
+#[test]
 fn exploration_keeps_unknown_explicit_and_groups_real_terminal_results() {
     let rows = [
         exploration_tool("read", "completed", false),

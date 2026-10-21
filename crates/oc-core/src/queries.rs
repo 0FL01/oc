@@ -314,8 +314,10 @@ pub struct HistoryMessage {
     pub images: Vec<crate::prompt::ImageMark>,
     /// Safe projection of this row's turn; absent for legacy text-only rows.
     pub turn: Option<HistoryTurn>,
-    /// Public model transition committed with the following accepted prompt.
+    /// Public model transition, independent of provider/request history.
     pub model_switch: Option<ModelSwitchNotice>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_switch: Option<AgentSwitchNotice>,
     /// Direct-user Shell input/result, projected by its exact durable
     /// message/operation association. Never an assistant tool call or turn.
     pub user_shell: Option<UserShellResult>,
@@ -378,8 +380,15 @@ pub struct ModelSwitchNotice {
     pub previous: ModelRef,
     pub current: ModelRef,
     /// Query/live projection from the current catalog; never written to history.
-    #[serde(skip_serializing, default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentSwitchNotice {
+    pub previous: Option<String>,
+    pub current: String,
 }
 
 /// Exclusive durable continuation, scoped by the owning history query/session.

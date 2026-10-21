@@ -82,6 +82,7 @@ impl TuiState {
                 .min(self.skills.len().saturating_sub(1));
             self.exploration_expanded = previous.exploration_expanded;
             self.inline_errors_expanded = previous.inline_errors_expanded;
+            self.instructions_expanded = previous.instructions_expanded;
             self.execute_calls_expanded = previous.execute_calls_expanded;
             self.execute_detail = previous.execute_detail;
             self.reasoning_expanded = previous.reasoning_expanded;

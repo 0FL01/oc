@@ -10,6 +10,7 @@ fn page(start: usize, end: usize, total: usize) -> HistoryPage {
             text: "aggregate must not be replayed".into(),
             images: Vec::new(),
             model_switch: None,
+            agent_switch: None,
             user_shell: None,
             child: None,
             shell_notice: None,

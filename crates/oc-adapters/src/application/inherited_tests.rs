@@ -181,6 +181,10 @@ async fn r4a_retired_pinned_model_and_variant_refuse_before_effects_then_repair_
         ),
     ];
     for (session, code, field, action) in scenarios {
+        let history_before = app
+            .history_page(session.clone(), None, None, 10)
+            .await
+            .unwrap();
         let snapshot = app
             .session_selection(session.clone(), false, Action::Current)
             .await
@@ -217,9 +221,9 @@ async fn r4a_retired_pinned_model_and_variant_refuse_before_effects_then_repair_
         assert_eq!(
             app.history_page(session.clone(), None, None, 10)
                 .await
-                .unwrap()
-                .total,
-            0
+                .unwrap(),
+            history_before,
+            "refused submission cannot alter committed selection notices"
         );
     }
     assert_eq!(

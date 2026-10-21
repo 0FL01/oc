@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// Existing operation-preview byte ceiling, shared by live and durable views.
 pub const PREVIEW_BYTES: usize = 2_048;
-/// Two bounded text previews at worst-case JSON escaping, plus reference/fields.
+/// Existing serialized envelope ceiling for previews, references and fields.
 pub const RECORD_BYTES: usize = PREVIEW_BYTES * 12 + 8192;
 
 pub const EXECUTE_CALLS_CAP: usize = 16;
@@ -195,6 +195,35 @@ impl McpLabel {
     }
 }
 
+/// Newly committed automatic instruction loads, never their source bodies.
+/// Paths are safe ordered unique project-relative (or absolute) display labels,
+/// not grants or filesystem lookup keys.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InstructionLoads {
+    /// A bounded subset; omitted labels are disclosed by `total`.
+    pub paths: Vec<String>,
+    pub total: usize,
+}
+
+impl InstructionLoads {
+    pub fn retained_bytes(&self) -> usize {
+        self.paths.iter().map(String::len).sum()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.total > 0
+            && self.total <= 128
+            && self.total >= self.paths.len()
+            && self.paths.len() <= 128
+            && self.retained_bytes() <= PREVIEW_BYTES
+            && self.paths.iter().enumerate().all(|(index, path)| {
+                !path.trim().is_empty()
+                    && !path.chars().any(char::is_control)
+                    && !self.paths[..index].contains(path)
+            })
+    }
+}
+
 fn is_false(value: &bool) -> bool {
     !value
 }
@@ -223,6 +252,8 @@ pub struct Presentation {
     pub write: Option<Write>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execute: Option<Execute>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<InstructionLoads>,
 }
 
 impl Presentation {
@@ -243,6 +274,10 @@ impl Presentation {
                 .as_ref()
                 .map_or(0, |write| write.path.len() + write.content.len())
             + self.execute.as_ref().map_or(0, Execute::retained_bytes)
+            + self
+                .instructions
+                .as_ref()
+                .map_or(0, InstructionLoads::retained_bytes)
     }
 
     /// Retain the already admitted/redacted body at the existing preview limit.
@@ -260,6 +295,7 @@ impl Presentation {
             shell: None,
             write: None,
             execute: None,
+            instructions: None,
         }
     }
 
@@ -274,6 +310,10 @@ impl Presentation {
     /// their producer. Invalid/unknown records fall back to unknown provenance.
     pub fn is_valid(&self) -> bool {
         self.body.len() <= PREVIEW_BYTES
+            && self
+                .instructions
+                .as_ref()
+                .is_none_or(InstructionLoads::is_valid)
             && self.execute.as_ref().is_none_or(|execute| {
                 execute.is_valid()
                     && self.mcp_label.is_none()
@@ -293,7 +333,8 @@ impl Presentation {
                     && !self.body_limited
                     && !self.generated_guidance
                     && self.producer_limited.is_none()
-                    && self.capture.is_none()))
+                    && self.capture.is_none()
+                    && self.instructions.is_none()))
             && self.body_bytes >= self.body.len() as u64
             && self.capture.as_ref().is_none_or(|capture| {
                 capture

@@ -232,8 +232,8 @@ impl Request {
     }
 }
 
-/// Durable history intentionally omits this live catalog label. Keep that
-/// encoding unchanged while preserving the label at the private live boundary.
+/// Private event envelope. Catalog labels are public projection data; storage
+/// writes only model references, independently of this live encoding.
 #[derive(Serialize, Deserialize)]
 pub(super) struct Event {
     pub event: CoreEvent,

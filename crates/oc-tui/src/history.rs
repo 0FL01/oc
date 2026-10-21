@@ -740,6 +740,8 @@ impl HistoryWindow {
             let shell = message.user_shell.as_ref();
             if shell.is_none()
                 && message.shell_notice.is_none()
+                && message.model_switch.is_none()
+                && message.agent_switch.is_none()
                 && !matches!(
                     message.child,
                     Some(oc_core::queries::ChildHistory::Notice(_))
@@ -799,6 +801,8 @@ impl HistoryWindow {
                             && between.seq < message.seq
                             && between.user_shell.is_none()
                             && between.shell_notice.is_none()
+                            && between.model_switch.is_none()
+                            && between.agent_switch.is_none()
                             && !matches!(
                                 between.child,
                                 Some(oc_core::queries::ChildHistory::Notice(_))
@@ -1077,6 +1081,8 @@ fn row_from_page(
         seq: row.seq,
         role: if row.model_switch.is_some() {
             "model_switch".into()
+        } else if row.agent_switch.is_some() {
+            "agent_switch".into()
         } else {
             match row.role {
                 Role::User => "user".to_string(),
@@ -1096,7 +1102,9 @@ fn row_from_page(
             .unwrap_or_else(|| {
                 row.model_switch
                     .as_ref()
-                    .map_or_else(|| row.text.clone(), model_switch_text)
+                    .map(model_switch_text)
+                    .or_else(|| row.agent_switch.as_ref().map(agent_switch_text))
+                    .unwrap_or_else(|| row.text.clone())
             }),
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
@@ -1150,6 +1158,22 @@ pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) ->
     text.chars().filter(|c| !c.is_control()).take(512).collect()
 }
 
+fn agent_switch_text(notice: &oc_core::queries::AgentSwitchNotice) -> String {
+    let current = crate::messages::Locale::titlecase(&notice.current);
+    let text = match notice
+        .previous
+        .as_deref()
+        .filter(|previous| *previous != notice.current)
+    {
+        Some(previous) => format!(
+            "Switched agent from {} to {current}",
+            crate::messages::Locale::titlecase(previous)
+        ),
+        None => format!("Switched agent to {current}"),
+    };
+    text.chars().filter(|c| !c.is_control()).take(512).collect()
+}
+
 fn same_component(a: &HistoryRow, b: &HistoryRow) -> bool {
     a.message_id.is_some()
         && a.message_id == b.message_id
@@ -1195,7 +1219,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         result.tool = Some(user_shell_card(shell));
         return vec![result];
     }
-    if row.model_switch.is_some() {
+    if row.model_switch.is_some() || row.agent_switch.is_some() {
         return vec![row_from_page(row, &message_id)];
     }
     // Keep the real accepted-input boundary for notice ordering and paging,
@@ -2041,6 +2065,7 @@ mod tests {
             id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,
+            agent_switch: None,
             child: None,
             shell_notice: None,
             user_shell: None,
@@ -2093,6 +2118,29 @@ mod tests {
             "Switched model to Catalog Name (high)"
         );
         assert_eq!(window.rows()[3].text, "next");
+        let earlier = row(10, Role::User, "earlier");
+        let mut agent = row(11, Role::Assistant, "");
+        agent.agent_switch = Some(oc_core::queries::AgentSwitchNotice {
+            previous: Some("plan".into()),
+            current: "build-eternal".into(),
+        });
+        window.reset(&page(vec![earlier.clone()], 1, false, false));
+        let committed = page(vec![earlier, agent.clone(), marker], 3, false, false);
+        assert!(window.refresh_owner_notices(&committed));
+        assert!(
+            !window.refresh_owner_notices(&committed),
+            "duplicate durable receipts are idempotent"
+        );
+        assert_eq!(window.rows().len(), 3);
+        assert_eq!(window.rows()[1].role, "agent_switch");
+        assert_eq!(
+            window.rows()[1].text,
+            "Switched agent from Plan to Build-Eternal"
+        );
+        assert_eq!(window.rows()[2].role, "model_switch");
+        let mut reopened = super::HistoryWindow::new();
+        reopened.reset(&committed);
+        assert_eq!(reopened.rows(), window.rows());
     }
 
     #[test]

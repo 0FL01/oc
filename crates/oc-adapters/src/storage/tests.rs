@@ -1904,6 +1904,53 @@ fn model_switch_is_atomic_scoped_replayable_and_excluded_from_context() {
     db.accept_turn("unchanged", "a", "four", "four", &new)
         .unwrap();
     assert!(db.latest_model_switch("a").unwrap().is_none());
+    let agent = oc_core::queries::AgentSwitchNotice {
+        previous: Some("build".into()),
+        current: "plan".into(),
+    };
+    let notice = oc_core::queries::ModelSwitchNotice {
+        previous: new.clone(),
+        current: old,
+        display_name: Some("projection only".into()),
+    };
+    db.conn
+        .lock()
+        .unwrap()
+        .execute_batch(
+            "CREATE TRIGGER refuse_notice BEFORE INSERT ON messages WHEN NEW.role='model_switch'
+         BEGIN SELECT RAISE(ABORT, 'refused'); END;",
+        )
+        .unwrap();
+    let prefs = [("atomic-choice".into(), "changed".into())];
+    assert!(
+        db.commit_session_agent_choice(&prefs, "a", None, Some(&agent), Some(&notice))
+            .is_err()
+    );
+    assert!(db.get_pref("atomic-choice").unwrap().is_none());
+    assert_eq!(db.read_history_after("a", 20, 0).unwrap().len(), 5);
+    db.conn
+        .lock()
+        .unwrap()
+        .execute_batch("DROP TRIGGER refuse_notice")
+        .unwrap();
+    let receipts = db
+        .commit_session_agent_choice(&prefs, "a", None, Some(&agent), Some(&notice))
+        .unwrap();
+    assert_eq!(receipts.len(), 2);
+    let public = db.read_history_page_typed("a", 20, None).unwrap();
+    assert_eq!(
+        (public[0].role.as_str(), public[1].role.as_str()),
+        ("model_switch", "agent_switch")
+    );
+    assert_eq!((&public[1].id, &public[0].id), (&receipts[0], &receipts[1]));
+    assert!(!public[0].text.contains("display_name"));
+    assert_eq!(db.read_history_full("a").unwrap().len(), 4);
+    assert_eq!(db.conversation_history_full("a").unwrap().len(), 4);
+    let accepted = db
+        .accept_turn("already-announced", "a", "five", "five", &notice.current)
+        .unwrap();
+    assert!(accepted.model_switch.is_none());
+    assert_eq!(db.read_history_after("a", 20, 0).unwrap().len(), 8);
 }
 
 #[test]

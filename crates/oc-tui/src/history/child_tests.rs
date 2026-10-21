@@ -215,6 +215,7 @@ fn message(state: ChildState) -> HistoryMessage {
         text: "RAW technical notice is immutable data, not its UI label".into(),
         turn: None,
         model_switch: None,
+        agent_switch: None,
         user_shell: None,
         child: Some(ChildHistory::Notice(Box::new(job(state)))),
         shell_notice: None,

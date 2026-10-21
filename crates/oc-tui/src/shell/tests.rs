@@ -19,6 +19,7 @@ fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         id: oc_core::session::MessageId(format!("fixture-{seq}")),
         turn: None,
         model_switch: None,
+        agent_switch: None,
         child: None,
         shell_notice: None,
         user_shell: None,

@@ -801,7 +801,7 @@ pub(super) fn apply(
     home: bool,
     action: Action,
     generation: u64,
-) -> Result<Effective, CoreError> {
+) -> Result<(Effective, Vec<oc_core::session::MessageId>), CoreError> {
     let previous = for_turn(db, c, fallback, session)?;
     if let Action::Commit(commit) = &action {
         validate_commit(db, c, &previous, session, generation, commit)?;
@@ -814,13 +814,13 @@ pub(super) fn apply(
             // identity. Keep its original owner cause/admission, never treat
             // that display identity as a replacement model or silent fallback.
             previous.admit_selection(c)?;
-            return Ok(previous);
+            return Ok((previous, Vec::new()));
         }
     }
     let key = session_key(c, session);
     let existing = load_session(db, c, session)?;
     if existing.is_none() && action == Action::Current && fallback.legacy_epoch != 0 {
-        return Ok(fallback.clone());
+        return Ok((fallback.clone(), Vec::new()));
     }
     let mut choice = existing.unwrap_or_else(|| SessionChoice {
         agent: fallback.agent_id.clone(),
@@ -831,13 +831,13 @@ pub(super) fn apply(
     });
     if choice.epoch < fallback.legacy_epoch {
         if action == Action::Current {
-            return Ok(fallback.clone());
+            return Ok((fallback.clone(), Vec::new()));
         }
         choice.agent = fallback.agent_id.clone();
         choice.models.clear();
     }
     if action == Action::Current {
-        return resolve(db, c, fallback, &choice);
+        return resolve(db, c, fallback, &choice).map(|selected| (selected, Vec::new()));
     }
     if let Action::Preview(agent) = &action {
         // The composer's next-send draft: resolve on a copy, persist nothing.
@@ -846,7 +846,7 @@ pub(super) fn apply(
         choice.command_parents.clear();
         let selected = resolve(db, c, fallback, &choice)?;
         selected.admit_selection(c)?;
-        return Ok(selected);
+        return Ok((selected, Vec::new()));
     }
     if let Action::Agent(agent) = &action {
         choice.agent = Some(agent.clone());
@@ -958,7 +958,7 @@ pub(super) fn apply(
         && selected.agent_id == previous.agent_id
         && normalized_variant(&selected.variant) == normalized_variant(&previous.variant)
     {
-        return Ok(selected);
+        return Ok((selected, Vec::new()));
     }
     choice
         .models
@@ -971,6 +971,32 @@ pub(super) fn apply(
         )?);
     }
     records.push(record(key, &choice)?);
+    let model_ref = |choice: &Effective| oc_core::queries::ModelRef {
+        provider: choice.provider_id.clone(),
+        id: choice.model_id.clone(),
+        variant: choice.variant.clone().filter(|name| name != "default"),
+    };
+    let previous_model = model_ref(&previous);
+    let current_model = model_ref(&selected);
+    let initial = matches!(action, Action::New(_));
+    let model_notice = (!initial && previous_model != current_model).then_some(
+        oc_core::queries::ModelSwitchNotice {
+            previous: previous_model,
+            current: current_model,
+            display_name: None,
+        },
+    );
+    let agent_notice = if !initial && previous.agent_id != selected.agent_id {
+        selected
+            .agent_id
+            .as_ref()
+            .map(|current| oc_core::queries::AgentSwitchNotice {
+                previous: previous.agent_id.clone(),
+                current: current.clone(),
+            })
+    } else {
+        None
+    };
     let persisted = if model_action {
         let commit = publication(c, &selected, generation, &action);
         let effort = |choice: &Effective| {
@@ -1003,17 +1029,29 @@ pub(super) fn apply(
             payload["effort_update"] =
                 serde_json::json!({"previous":old_effort,"effort":new_effort});
         }
-        db.commit_session_model_choice(&records, session, &payload.to_string())
+        db.commit_session_model_choice(
+            &records,
+            session,
+            &payload.to_string(),
+            model_notice.as_ref(),
+        )
     } else {
         let reminder = crate::plan::switched(
             previous.agent_id.as_deref(),
             selected.agent_id.as_deref(),
             c.parent_env.get("HOME").map(String::as_str),
         );
-        db.commit_session_agent_choice(&records, session, reminder.as_deref())
+        db.commit_session_agent_choice(
+            &records,
+            session,
+            reminder.as_deref(),
+            agent_notice.as_ref(),
+            model_notice.as_ref(),
+        )
     };
-    persisted.map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
-    Ok(selected)
+    let notices =
+        persisted.map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
+    Ok((selected, notices))
 }
 
 /// Read-only command selection; the acceptance owner commits the encoded pair.

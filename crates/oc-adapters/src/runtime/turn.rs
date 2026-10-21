@@ -1847,6 +1847,7 @@ impl<'a> Runtime<'a> {
                 instruction_revision,
                 &instruction_sources,
                 instruction_position,
+                &[],
                 None,
             )?;
         }
@@ -2365,6 +2366,7 @@ impl<'a> Runtime<'a> {
                     revision,
                     &sources,
                     position,
+                    &[],
                     None,
                 )?;
                 prepared_publication = published.clone();
@@ -4646,6 +4648,7 @@ impl<'a> Runtime<'a> {
                 let absolute = ctx.files.concrete_scope(path).map_err(|e| e.to_string());
                 if let Ok(absolute) = absolute
                     && !ctx.files.is_project_scope(&absolute)
+                    && !(call.name == "read" && ctx.files.is_internal_read_scope(&absolute))
                 {
                     // An action Deny cannot cause protected reads or directory scans.
                     let denied = crate::tools::permission_resources(call)
@@ -5934,7 +5937,7 @@ impl<'a> Runtime<'a> {
                 let path = read_path.as_deref().expect("validated read path");
                 let admitted = crate::instructions::after_read(
                     roots,
-                    &self.files,
+                    &invocation_files,
                     path,
                     read_directory,
                     instruction_generation,
@@ -5942,7 +5945,7 @@ impl<'a> Runtime<'a> {
                     invocation_policy,
                     cancel,
                 )
-                .map_err(RuntimeError::InvalidArgs)?;
+                .unwrap_or_default(); // discovery never invalidates a completed read
                 for mut source in admitted {
                     if let Some(old) = desired.iter_mut().find(|s| s.path == source.path) {
                         // A canonical root alias may also be discovered by a
@@ -5958,19 +5961,23 @@ impl<'a> Runtime<'a> {
                 }
                 let index = turn_log.input.len();
                 self.check_issued_turn(turn_log, session)?;
-                self.db.checkpoint_instructions(
-                    turn_id,
-                    turn_log,
-                    revision,
-                    &desired,
-                    index,
-                    Some(crate::storage::RecordedToolOutcome {
-                        operation: &op,
-                        state,
-                        output: &output,
-                        presentation: output_presentation.as_deref(),
-                    }),
-                )?;
+                output_presentation = self
+                    .db
+                    .checkpoint_instructions(
+                        turn_id,
+                        turn_log,
+                        revision,
+                        &desired,
+                        index,
+                        &output_secrets,
+                        Some(crate::storage::RecordedToolOutcome {
+                            operation: &op,
+                            state,
+                            output: &output,
+                            presentation: output_presentation.as_deref(),
+                        }),
+                    )?
+                    .map(Box::new);
             } else {
                 self.db.tool_outcome_with_log_and_effects(
                     &op,

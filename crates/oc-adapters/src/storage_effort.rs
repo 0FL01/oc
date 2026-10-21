@@ -28,7 +28,7 @@ impl Db {
             "SELECT e.seq, json_extract(e.payload, '$.effort_update'),
                (SELECT m.payload FROM events m JOIN messages text ON text.id=m.payload
                 WHERE m.session_id=e.session_id AND m.kind='message' AND m.seq>e.seq
-                AND text.role!='model_switch' ORDER BY m.seq LIMIT 1)
+                AND text.role NOT IN ('model_switch','agent_switch') ORDER BY m.seq LIMIT 1)
              FROM events e WHERE e.session_id=?1 AND e.kind='session_model_selected'
              AND e.seq>?2 AND json_valid(e.payload)
              AND json_type(e.payload,'$.effort_update')='object' ORDER BY e.seq",

@@ -1,6 +1,7 @@
 //! Current instruction descriptors and immutable source facts in existing Db.
 use super::*;
-use crate::instructions::{Fact, Reference, Source};
+use crate::instructions::{Fact, Origin, Reference, Source};
+use oc_core::tool_output::{InstructionLoads, PREVIEW_BYTES, Presentation, RECORD_BYTES};
 
 #[derive(Default, Serialize, Deserialize)]
 struct State {
@@ -60,6 +61,7 @@ impl Db {
 
     /// Source IO is already complete. CAS, facts, descriptor update, positions,
     /// optional read outcome and the normal journal checkpoint commit together.
+    /// Return the same bounded presentation committed here for live publication.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn checkpoint_instructions(
         &self,
@@ -68,8 +70,9 @@ impl Db {
         expected: u64,
         desired: &[Source],
         index: usize,
+        redactions: &[String],
         outcome: Option<RecordedToolOutcome<'_>>,
-    ) -> Result<(), StorageError> {
+    ) -> Result<Option<Presentation>, StorageError> {
         crate::instructions::validate_sources(desired).map_err(std::io::Error::other)?;
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
@@ -87,6 +90,10 @@ impl Db {
         let mut next = Vec::new();
         let mut references = Vec::new();
         let mut removed_sources = Vec::new();
+        let mut loads = InstructionLoads {
+            paths: Vec::new(),
+            total: 0,
+        };
         for old in &previous {
             if !desired.iter().any(|s| s.path == old.source.path) && old.source.content.is_some() {
                 let mut removed = old.source.clone();
@@ -133,6 +140,33 @@ impl Db {
             let event = tx.last_insert_rowid();
             next.push(event);
             references.push(Reference { event, index });
+            if source.origin == Origin::Nested
+                && source.content.is_some()
+                && outcome
+                    .as_ref()
+                    .is_some_and(|outcome| outcome.state == "completed")
+            {
+                loads.total += 1;
+                let path = std::path::Path::new(&source.path);
+                let mut label = path
+                    .strip_prefix(&source.root)
+                    .unwrap_or(path)
+                    .to_string_lossy()
+                    .into_owned();
+                // Redact complete labels before bounding, just like Write facts.
+                crate::tools::output::redact_string(&mut label, redactions);
+                let label: String = label
+                    .chars()
+                    .map(|c| if c.is_control() { ' ' } else { c })
+                    .collect();
+                if !label.trim().is_empty()
+                    && loads.paths.len() < 128
+                    && loads.retained_bytes() + label.len() <= PREVIEW_BYTES
+                    && !loads.paths.contains(&label)
+                {
+                    loads.paths.push(label);
+                }
+            }
         }
         let mut staged = log.to_json();
         staged["instruction_references"] = serde_json::to_value(
@@ -163,12 +197,52 @@ impl Db {
             "UPDATE turns SET result=?1 WHERE id=?2 AND status='started'",
             params![staged.to_string(), turn],
         )?;
-        if let Some(outcome) = outcome {
-            Self::record_tool_presentation_in(&tx, outcome.operation, outcome.presentation)?;
+        let mut presentation = outcome
+            .as_ref()
+            .and_then(|outcome| outcome.presentation.cloned());
+        if let Some(facts) = &mut presentation {
+            // A caller's earlier snapshot is not evidence of loads in this CAS.
+            facts.instructions = None;
+        }
+        if loads.total > 0 {
+            let facts = presentation.get_or_insert_with(|| {
+                // No second read or reconstruction from model-facing output.
+                Presentation::new(
+                    "",
+                    outcome.as_ref().map_or(0, |o| o.output.len() as u64),
+                    false,
+                )
+            });
+            facts.instructions = Some(loads);
+        }
+        if let Some(outcome) = &outcome {
+            presentation =
+                Self::bounded_mcp_presentation(outcome.operation, presentation.map(Box::new))
+                    .map(|facts| *facts);
+            // Include the real escaped operation ID. Optional receipts must not
+            // turn a successful read into an uncommitted/unknown effect.
+            while presentation.as_ref().is_some_and(|facts| {
+                serde_json::json!({"operation":outcome.operation,"presentation":facts})
+                    .to_string()
+                    .len()
+                    > RECORD_BYTES
+            }) {
+                let facts = presentation.as_mut().expect("presentation");
+                if let Some(loads) = &mut facts.instructions
+                    && loads.paths.pop().is_some()
+                {
+                    continue;
+                }
+                if facts.instructions.take().is_some() {
+                    continue;
+                }
+                presentation = None;
+            }
+            Self::record_tool_presentation_in(&tx, outcome.operation, presentation.as_ref())?;
         }
         tx.commit()?;
         log.instruction_references.extend(references);
-        Ok(())
+        Ok(presentation)
     }
 }
 

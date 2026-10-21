@@ -221,6 +221,7 @@ async fn model_shell_live_capture_preserves_tool_graph_and_actual_background_con
                 ..Default::default()
             }),
             model_switch: None,
+            agent_switch: None,
             user_shell: None,
             child: None,
             shell_notice: None,
@@ -297,6 +298,7 @@ async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachm
             text: "unchanged RAW admission".into(),
             turn: None,
             model_switch: None,
+            agent_switch: None,
             child: None,
             shell_notice: None,
             user_shell: Some(UserShellResult {
