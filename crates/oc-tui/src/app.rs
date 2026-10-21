@@ -139,6 +139,8 @@ pub enum TuiPanel {
     Dcp,
     /// Tool cards from the runtime (newest first, paged).
     Cards,
+    /// OC2 queued prompts of the running session.
+    QueuedPrompts,
 }
 
 /// Work the panel asked the binary to apply through the application API.
@@ -230,6 +232,12 @@ pub enum PanelIntent {
     },
     /// Rebuild the current Location without replacing the session or draft.
     ReloadConfiguration,
+    /// OC2 steer/queue: change the attached session's pending inbox.
+    Inbox {
+        action: oc_core::queries::InboxAction,
+        /// Undo: put the withdrawn text back into the composer.
+        restore: bool,
+    },
     /// Load the session list snapshot.
     LoadSessions,
     /// Load the skill card snapshot.
@@ -841,6 +849,9 @@ pub struct TuiState {
     pub(crate) skills: Vec<SkillCard>,
     /// Skills cursor.
     pub(crate) skills_cursor: usize,
+    /// OC2 steer/queue input still pending for the attached session.
+    inbox: Vec<oc_core::queries::InboxItem>,
+    pub(crate) queued_cursor: usize,
     skills_loaded: bool,
     mcp_snapshot: Option<oc_core::queries::McpSnapshot>,
     mcp_detail: Option<mcp::McpDetail>,
@@ -1056,6 +1067,8 @@ impl TuiState {
             sessions_loaded: false,
             skills: Vec::new(),
             skills_cursor: 0,
+            inbox: Vec::new(),
+            queued_cursor: 0,
             skills_loaded: false,
             mcp_snapshot: None,
             mcp_detail: None,
@@ -1713,6 +1726,7 @@ pub(crate) use accounts::AccountSurface;
 mod execute;
 pub use accounts::AuthRequest;
 mod foreground;
+mod inbox;
 mod input;
 pub use foreground::ForegroundWork;
 pub use input::ClipboardTarget;

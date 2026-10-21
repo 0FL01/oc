@@ -1340,6 +1340,7 @@ impl Runtime<'_> {
             child_launch: None,
             explicit_reload_generation: self.explicit_reload_generation.clone(),
             active: AtomicBool::new(false),
+            inbox_driver: Mutex::new(None),
             protected: self.protected.clone(),
             files: self.files.clone(),
             shell: self.shell.clone(),

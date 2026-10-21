@@ -115,7 +115,14 @@ struct Peer {
     auth: Mutex<Vec<String>>,
     disconnected: AtomicBool,
     switch_gate: tokio::sync::Mutex<()>,
-    admissions: Mutex<BTreeMap<u64, (String, Arc<AtomicBool>)>>,
+    admissions: Mutex<BTreeMap<u64, Admission>>,
+}
+
+#[derive(Clone)]
+struct Admission {
+    session: String,
+    cancel: Arc<AtomicBool>,
+    root: Option<u64>,
 }
 struct LeaseGuard {
     id: u64,
@@ -509,9 +516,14 @@ async fn connection(
                         control_sequence = control_id;
                         let result = if peer.epoch() != location_epoch { Err(CoreError::TabDeckConflict) }
                         else if let Some(Expected::Pending(request)) = expected {
-                            if let Some((owned_session, cancel)) = peer.admissions.lock().expect("peer admissions").get(&request) {
-                                if owned_session == &session.0 { cancel.store(true, Ordering::Release); Ok(()) }
-                                else { Err(CoreError::TurnNotActive) }
+                            let admission = peer.admissions.lock().expect("peer admissions").get(&request).cloned();
+                            if let Some(Admission {session:owned_session,cancel,root}) = admission {
+                                if owned_session != session.0 { Err(CoreError::TurnNotActive) }
+                                else if let Some(origin) = root {
+                                    let result = cancel_operation(&owner,&state,&peer,&session,Some(Expected::Origin(origin)),turn.as_ref());
+                                    if result.is_ok() { cancel.store(true,Ordering::Release); }
+                                    result
+                                } else { cancel.store(true, Ordering::Release); Ok(()) }
                             } else if request > sequence && request - sequence <= (oc_core::session::MAX_QUEUE_ITEMS + 16) as u64 && overtaken.len() < oc_core::session::MAX_QUEUE_ITEMS {
                                 overtaken.insert(request, session.0.clone()); Ok(())
                             } else { cancel_operation(&owner, &state, &peer, &session, expected, turn.as_ref()) }
@@ -535,7 +547,7 @@ async fn connection(
                                 if cancelled_session != session.0 { break; }
                                 cancel.store(true, Ordering::Release);
                             }
-                            peer.admissions.lock().expect("peer admissions").insert(request_id, (session.0.clone(), cancel));
+                            peer.admissions.lock().expect("peer admissions").insert(request_id, Admission {session:session.0.clone(),cancel,root:None});
                         }
                         if let Some(flag) = request.cancellation() { cancellation.insert(request_id, (flag, matches!(request, Request::UserShell { .. }))); }
                         let output = pipes.outgoing.clone(); let request_budget = budget.clone(); let request_owner = owner.clone(); let request_peer = peer.clone(); let request_state = state.clone();
@@ -719,11 +731,20 @@ fn publish(
 fn execution(message: &Request) -> Option<&SessionId> {
     match message {
         Request::Submit { session, .. }
+        | Request::SubmitInbox { session, .. }
         | Request::SubmitFresh { session, .. }
         | Request::UserShell { session, .. }
         | Request::Compress { session, .. }
         | Request::CompactSession { session }
         | Request::RegenerateTitle { session } => Some(session),
+        Request::Inbox {
+            session,
+            action:
+                oc_core::queries::InboxAction::Deliver {
+                    delivery: oc_core::queries::InboxDelivery::Steer,
+                    ..
+                },
+        } => Some(session),
         _ => None,
     }
 }
@@ -876,17 +897,56 @@ async fn handle(
     }
     let location = captured
         .ok_or_else(|| CoreError::Application("operation requires a project attachment".into()))?;
-    if let Request::SessionSelection {
-        session, action, ..
-    } = &request
-        && !matches!(
+    let joined_shell = matches!(
+        &request,
+        Request::UserShell {
+            selection: oc_core::core_app::UserShellSelection::Existing(_),
+            ..
+        }
+    );
+    let root_input = match &request {
+        // OC2 steer/queue joins the running root that owns the session.
+        Request::Enqueue { session, .. } | Request::Inbox { session, .. } => Some(session),
+        Request::UserShell {
+            session,
+            selection: oc_core::core_app::UserShellSelection::Existing(_),
+            ..
+        } => Some(session),
+        Request::SessionSelection {
+            session, action, ..
+        } if !matches!(
             action,
             SessionSelectionAction::Current | SessionSelectionAction::New(_)
-        )
+        ) =>
+        {
+            Some(session)
+        }
+        _ => None,
+    };
+    if let Some(session) = root_input
         && let Some(root) = owner.root(&session.0)
     {
         if root.location.project != location.project {
             return Err(CoreError::SessionNotFound);
+        }
+        if joined_shell {
+            // Readiness precedes initial input acceptance: a joining Shell must
+            // not overtake the root's original Submit and become its first job.
+            let deck = location.app.tab_deck().await?;
+            let live = owner.resources.live.snapshot(deck, Some(session));
+            if !live
+                .turns
+                .iter()
+                .any(|turn| turn.session == *session && turn.origin == Some(root.origin.id))
+            {
+                return Err(CoreError::TurnBusy);
+            }
+            peer.admissions
+                .lock()
+                .expect("peer admissions")
+                .get_mut(&id)
+                .ok_or(CoreError::Shutdown)?
+                .root = Some(root.origin.id);
         }
         let (message, reply) = request.into_local();
         root.ready().await?;
@@ -927,10 +987,14 @@ async fn handle(
     if let Request::Workspace { selected } = &request {
         let _deck = location.deck_gate.lock().await;
         let deck = location.app.tab_deck().await?;
-        return serde_json::to_value(Ok::<_, CoreError>(
-            owner.resources.live.snapshot(deck, selected.as_ref()),
-        ))
-        .map_err(|_| wire::unknown());
+        let mut snapshot = owner.resources.live.snapshot(deck, selected.as_ref());
+        if let Some(session) = selected {
+            snapshot.inbox = owner
+                .db
+                .inbox_pending(&session.0)
+                .map_err(|_| CoreError::Application("inbox storage unavailable".into()))?;
+        }
+        return serde_json::to_value(Ok::<_, CoreError>(snapshot)).map_err(|_| wire::unknown());
     }
     let fresh = match &request {
         Request::SubmitFresh { session, .. }
@@ -1043,7 +1107,7 @@ async fn handle(
             .lock()
             .expect("peer admissions")
             .get(&id)
-            .map(|(_, cancel)| cancel.clone())
+            .map(|admission| admission.cancel.clone())
             .ok_or(CoreError::Shutdown)?;
         let origin = Arc::new(
             Origin::with_foreground(

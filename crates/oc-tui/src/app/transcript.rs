@@ -1960,6 +1960,9 @@ impl TuiState {
             });
         }
         self.interleave_compactions(&mut rows, &mut live_row);
+        if !self.window.has_newer() {
+            rows.extend(self.inbox_rows());
+        }
         if let Some(key) = self.background_hint_key() {
             rows.push(HistoryRow {
                 position: None,
@@ -2058,15 +2061,26 @@ impl TuiState {
             }) else {
                 continue;
             };
+            // An OC2 steered prompt is a placed user row of this turn, not a
+            // turn boundary: the owner lists it among the turn's notices.
+            let placed = |row: &HistoryRow| {
+                row.child_notice.is_some()
+                    || row.role == "user"
+                        && order
+                            .notices
+                            .iter()
+                            .any(|notice| row.message_id.as_deref() == Some(&notice.message))
+            };
             let end = tagged
                 .iter()
                 .enumerate()
                 .skip(prompt + 1)
                 .find_map(|(i, (row, _, _))| {
-                    (matches!(
+                    ((matches!(
                         row.role.as_str(),
                         "user" | "native_control" | "model_switch"
                     ) || row.shell_notice.is_some())
+                        && !placed(row))
                     .then_some(i)
                 })
                 .unwrap_or(tagged.len());
@@ -2086,7 +2100,7 @@ impl TuiState {
             // to skip over. No prose, child turn id or screen position is proof.
             if tagged[prompt + 1..end]
                 .iter()
-                .any(|entry| entry.0.child_notice.is_none() && !own(entry))
+                .any(|entry| !placed(&entry.0) && !own(entry))
             {
                 continue;
             }
@@ -2097,9 +2111,8 @@ impl TuiState {
                     .take(end)
                     .skip(prompt + 1)
                     .find_map(|(i, (row, _, _))| {
-                        (row.child_notice.is_some()
-                            && row.message_id.as_deref() == Some(&notice.message))
-                        .then_some(i)
+                        (placed(row) && row.message_id.as_deref() == Some(&notice.message))
+                            .then_some(i)
                     })
                 else {
                     continue;
@@ -2167,7 +2180,7 @@ impl TuiState {
                 let Some(mut target) = target else { continue };
                 if matches!(notice.placement, NoticePlacement::Tail) {
                     while target < end
-                        && tagged[target].0.child_notice.is_some()
+                        && placed(&tagged[target].0)
                         && tagged[target].0.seq < tagged[from].0.seq
                     {
                         target += 1;

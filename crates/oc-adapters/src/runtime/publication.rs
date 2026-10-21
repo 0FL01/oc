@@ -135,7 +135,7 @@ impl Runtime<'_> {
         Arc::ptr_eq(&self.current.read().expect("generation lock"), &stamp.0)
     }
 
-    fn prepare_workspace(
+    pub(super) fn prepare_workspace(
         &self,
         mut input: WorkspacePublication,
     ) -> Result<RuntimeWorkspace, RuntimeError> {

@@ -176,6 +176,7 @@ impl Db {
     }
 
     /// Assignment means durable request admission, never remote exactly-once.
+    #[cfg(test)]
     pub(crate) fn checkpoint_turn_with_child_notices(
         &self,
         turn: &str,
@@ -199,5 +200,49 @@ impl Db {
         }
         tx.commit()?;
         Ok(())
+    }
+
+    pub(crate) fn checkpoint_turn_with_inbox(
+        &self,
+        session: &str,
+        log: &mut TurnLog,
+        represented: &[String],
+        steer: Option<&crate::storage::inbox::InboxSteer>,
+        selection: Option<(&str, &str, Option<&str>)>,
+    ) -> Result<Vec<oc_core::queries::InboxDelivered>, StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let mut next = log.clone();
+        let turn = next.turn_id.clone();
+        let delivered = steer
+            .map(|steer| Self::deliver_inbox_in(&tx, session, &turn, &mut next, steer))
+            .transpose()?
+            .into_iter()
+            .collect();
+        if tx.execute(
+            "UPDATE turns SET result=?1 WHERE id=?2 AND session_id=?3 AND status='started'",
+            params![next.to_json().to_string(), turn, session],
+        )? != 1
+        {
+            return Err(StorageError::OperationNotFound);
+        }
+        for message in represented {
+            if Self::native_child_notice_in(&tx, session, message)? {
+                Self::assign_parent_notice_in(&tx, session, message, &turn)?;
+            }
+        }
+        if let Some((key, value, expected)) = selection {
+            let current: Option<String> = tx
+                .query_row("SELECT value FROM prefs WHERE key=?1", [key], |r| r.get(0))
+                .optional()?;
+            // A newer explicit commit wins for subsequent fresh requests. The
+            // request being checkpointed still uses its captured command view.
+            if current.as_deref() == expected {
+                Self::upsert_pref(&tx, key, value)?;
+            }
+        }
+        tx.commit()?;
+        *log = next;
+        Ok(delivered)
     }
 }

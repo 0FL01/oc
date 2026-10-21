@@ -48,6 +48,7 @@ mod fatal_tests;
 #[cfg(test)]
 #[path = "application_fork_tests.rs"]
 mod fork_tests;
+mod inbox;
 #[cfg(test)]
 #[path = "application/inherited_tests.rs"]
 mod inherited_tests;
@@ -536,6 +537,39 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
     issue
 }
 
+/// Inbox input belongs to an existing root in this Location; children are read-only.
+fn inbox_session(db: &Db, runtime: &Runtime<'_>, session: &SessionId) -> Result<(), CoreError> {
+    runtime
+        .open_session(&session.0)
+        .map_err(|error| runtime_query_error(db, error))?;
+    if db
+        .session_meta(&session.0)
+        .map_err(|error| query_storage_error(db, error))?
+        .parent_id
+        .is_some()
+    {
+        return Err(CoreError::SessionNotFound);
+    }
+    Ok(())
+}
+
+fn publish_inbox(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    session: &SessionId,
+    removed: Option<oc_core::queries::InboxItem>,
+) -> Result<oc_core::queries::InboxSnapshot, CoreError> {
+    let items = db
+        .inbox_pending(&session.0)
+        .map_err(|error| query_storage_error(db, error))?;
+    runtime.publish_inbox(&session.0, items.clone(), Vec::new());
+    Ok(oc_core::queries::InboxSnapshot {
+        items,
+        removed,
+        prompt: None,
+    })
+}
+
 fn storage_class(error: &StorageError) -> &'static str {
     match error {
         StorageError::DataRootBusy => "DataRootBusy",
@@ -549,6 +583,7 @@ fn storage_class(error: &StorageError) -> &'static str {
         StorageError::InvalidCredential => "InvalidCredential",
         StorageError::CredentialNotFound => "CredentialNotFound",
         StorageError::CredentialStorage => "CredentialStorage",
+        StorageError::InboxFull => "InboxFull",
         StorageError::Sqlite(_) => "Sqlite",
         StorageError::Io(_) => "Io",
     }
@@ -2425,8 +2460,10 @@ fn publish_workspace(
 }
 
 fn command_digest(composition: &Composition) -> String {
-    crate::compaction::fingerprint(
-        &composition
+    // Generation counters are process-local. Include routing profiles so a
+    // reopened pending command cannot adopt a different inline/child route.
+    crate::compaction::fingerprint(&(
+        composition
             .command_defs
             .values()
             .map(|def| {
@@ -2441,7 +2478,12 @@ fn command_digest(composition: &Composition) -> String {
                 )
             })
             .collect::<Vec<_>>(),
-    )
+        composition
+            .agents
+            .iter()
+            .map(|(id, agent)| (id, crate::defs::agent_digest(agent)))
+            .collect::<Vec<_>>(),
+    ))
 }
 
 fn workspace_publication(
@@ -2519,7 +2561,7 @@ fn app_error(error: impl std::fmt::Display) -> CoreError {
     CoreError::Application(error.to_string())
 }
 
-fn runtime_error(error: RuntimeError) -> CoreError {
+pub(crate) fn runtime_error(error: RuntimeError) -> CoreError {
     match error {
         RuntimeError::ProviderUnavailable(diagnostic) => CoreError::ProviderUnavailable(diagnostic),
         other => {
@@ -2868,6 +2910,104 @@ async fn query(
             let _ = ack.send(Err(CoreError::Application(
                 "shared workspace requires native attachment".into(),
             )));
+        }
+        InboxMsg::Enqueue {
+            session,
+            text,
+            delivery,
+            selection: commit,
+            ack,
+        } => {
+            // OC2 steer/queue: input waits for the running turn's next fresh
+            // request (steer) or for the session to settle (queue).
+            let result = (|| {
+                if !runtime.inbox_running(&session.0) {
+                    return Err(CoreError::TurnNotActive);
+                }
+                inbox_session(db, runtime, &session)?;
+                let payload = inbox::payload(composition, runtime.generation_id(), text)?;
+                let current = selection::for_turn(db, composition, effective, &session.0)?;
+                let selected = if let Some(commit) = &commit {
+                    selection::command_commit(
+                        db,
+                        composition,
+                        &current,
+                        &session.0,
+                        location_epoch.load(Ordering::SeqCst),
+                        commit,
+                    )?
+                } else {
+                    current
+                };
+                let record = commit
+                    .as_ref()
+                    .map(|_| selection::command_record(db, composition, &session.0, &selected))
+                    .transpose()?;
+                let workspace = commit
+                    .as_ref()
+                    .map(|_| (workspace_publication(composition, &selected), selected));
+                let item = runtime.enqueue_pending(
+                    &session.0,
+                    delivery,
+                    &payload,
+                    record.as_ref().map(|(k, v)| (k.as_str(), v.as_str())),
+                    workspace,
+                )?;
+                if let Some(commit) = commit {
+                    runtime.publish_model_selection(session.clone(), commit);
+                }
+                Ok(item)
+            })();
+            let _ = ack.send(result);
+        }
+        InboxMsg::Inbox {
+            session,
+            action,
+            ack,
+        } => {
+            let result = (|| {
+                inbox_session(db, runtime, &session)?;
+                let mut prompt = None;
+                let removed = match action {
+                    oc_core::queries::InboxAction::List => None,
+                    oc_core::queries::InboxAction::Read { id } => {
+                        prompt = Some(
+                            db.inbox_read(&session.0, &id)
+                                .map_err(|e| query_storage_error(db, e))?
+                                .ok_or_else(|| app_error("input already delivered"))?
+                                .payload
+                                .original(),
+                        );
+                        None
+                    }
+                    oc_core::queries::InboxAction::Deliver { id, delivery } => {
+                        if !db
+                            .inbox_set_delivery(&session.0, &id, delivery)
+                            .map_err(|error| query_storage_error(db, error))?
+                        {
+                            return Err(app_error("input already delivered"));
+                        }
+                        None
+                    }
+                    oc_core::queries::InboxAction::Remove { id } => {
+                        let (removed, items) = db
+                            .inbox_remove_snapshot(&session.0, &id)
+                            .map_err(|error| query_storage_error(db, error))?;
+                        let removed =
+                            removed.ok_or_else(|| app_error("input already delivered"))?;
+                        runtime.publish_inbox(&session.0, items.clone(), Vec::new());
+                        return Ok(oc_core::queries::InboxSnapshot {
+                            items,
+                            removed: Some(removed),
+                            prompt: None,
+                        });
+                    }
+                };
+                let mut snapshot = publish_inbox(db, runtime, &session, removed)?;
+                snapshot.prompt = prompt;
+                Ok(snapshot)
+            })();
+            let _ = ack.send(result);
         }
         InboxMsg::UserShell { ack, .. } => {
             // Active operations keep one admission owner. Ask must be pumped
@@ -4238,7 +4378,7 @@ async fn query(
             };
             let _ = ack.send(result);
         }
-        InboxMsg::Submit { ack, .. } => {
+        InboxMsg::Submit { ack, .. } | InboxMsg::SubmitInbox { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));
         }
         InboxMsg::SubmitFresh { ack, .. } => {
@@ -4510,6 +4650,7 @@ async fn worker(
                 && matches!(
                     &message,
                     InboxMsg::Submit { .. }
+                        | InboxMsg::SubmitInbox { .. }
                         | InboxMsg::SubmitFresh { .. }
                         | InboxMsg::UserShell { .. }
                 )
@@ -4553,6 +4694,7 @@ async fn worker(
             primary_started |= matches!(
                 message,
                 InboxMsg::Submit { .. }
+                    | InboxMsg::SubmitInbox { .. }
                     | InboxMsg::SubmitFresh { .. }
                     | InboxMsg::UserShell { .. }
                     | InboxMsg::Compress { .. }
@@ -4987,37 +5129,103 @@ async fn worker(
                     break 'worker;
                 }
             }
-            message @ ((Some(InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }), None)
+            (
+                Some(InboxMsg::Inbox {
+                    session,
+                    action:
+                        oc_core::queries::InboxAction::Deliver {
+                            id,
+                            delivery: oc_core::queries::InboxDelivery::Steer,
+                        },
+                    ack,
+                }),
+                None,
+            ) => {
+                let result = (|| {
+                    inbox_session(db, runtime, &session)?;
+                    if !db
+                        .inbox_set_delivery(&session.0, &id, oc_core::queries::InboxDelivery::Steer)
+                        .map_err(app_error)?
+                    {
+                        return Err(app_error("input already delivered"));
+                    }
+                    publish_inbox(db, runtime, &session, None)
+                })();
+                if result.is_ok() {
+                    pending_inputs.push_back(InboxMsg::SubmitInbox {
+                        session,
+                        id,
+                        ack: oneshot::channel().0,
+                    });
+                }
+                let _ = ack.send(result);
+            }
+            message @ ((
+                Some(
+                    InboxMsg::Submit { .. }
+                    | InboxMsg::SubmitFresh { .. }
+                    | InboxMsg::SubmitInbox { .. },
+                ),
+                None,
+            )
             | (None, Some(_))) => {
-                let (session, text, fresh, captured_selection, ack, native_notices) = match message
-                {
-                    (
-                        Some(InboxMsg::Submit {
-                            session,
-                            text,
-                            selection,
-                            ack,
-                        }),
-                        None,
-                    ) => (session, text, None, selection, ack, None),
-                    (
-                        Some(InboxMsg::SubmitFresh {
-                            session,
-                            text,
-                            selection,
-                            ack,
-                        }),
-                        None,
-                    ) => (session, text, Some(selection), None, ack, None),
-                    (None, Some(initial)) => (
-                        initial.session,
-                        "".into(),
-                        None,
-                        None,
-                        initial.ack,
-                        Some(initial.messages),
-                    ),
-                    _ => unreachable!(),
+                let (session, text, fresh, captured_selection, ack, native_notices, pending) =
+                    match message {
+                        (
+                            Some(InboxMsg::Submit {
+                                session,
+                                text,
+                                selection,
+                                ack,
+                            }),
+                            None,
+                        ) => (session, text, None, selection, ack, None, None),
+                        (
+                            Some(InboxMsg::SubmitFresh {
+                                session,
+                                text,
+                                selection,
+                                ack,
+                            }),
+                            None,
+                        ) => (session, text, Some(selection), None, ack, None, None),
+                        (Some(InboxMsg::SubmitInbox { session, id, ack }), None) => {
+                            match db.inbox_read(&session.0, &id) {
+                                Ok(Some(pending)) if pending.item.error.is_none() => (
+                                    session,
+                                    pending.payload.prompt.clone(),
+                                    None,
+                                    None,
+                                    ack,
+                                    None,
+                                    Some(pending),
+                                ),
+                                Ok(_) => {
+                                    let _ = ack.send(Err(app_error("pending input unavailable")));
+                                    continue;
+                                }
+                                Err(error) => {
+                                    let _ = ack.send(Err(query_storage_error(db, error)));
+                                    continue;
+                                }
+                            }
+                        }
+                        (None, Some(initial)) => (
+                            initial.session,
+                            "".into(),
+                            None,
+                            None,
+                            initial.ack,
+                            Some(initial.messages),
+                            None,
+                        ),
+                        _ => unreachable!(),
+                    };
+                let ack = inbox::AcceptanceAck {
+                    sender: ack,
+                    runtime,
+                    session: &session.0,
+                    pending: pending.as_ref().map(|p| p.item.id.clone()),
                 };
                 if native_notices.is_none() && text.trim().is_empty() {
                     let _ = ack.send(Err(app_error("empty prompt")));
@@ -5028,7 +5236,12 @@ async fn worker(
                     continue;
                 }
                 let images = text.images;
-                let (prompt, invocation) = match if native_notices.is_some() {
+                let (prompt, invocation) = match if let Some(pending) = &pending {
+                    Ok((
+                        pending.payload.prompt.text.clone(),
+                        pending.payload.command.as_ref().map(|c| c.original.clone()),
+                    ))
+                } else if native_notices.is_some() {
                     Ok((String::new(), None))
                 } else {
                     resolve_submission(composition, text.text)
@@ -5138,7 +5351,16 @@ async fn worker(
                                 (selected, None)
                             }
                         };
-                        let (selected, command_route) = if let Some(def) = command_def {
+                        let (selected, command_route) = if let Some(pending) = &pending {
+                            inbox::route(
+                                db,
+                                composition,
+                                runtime.generation_id(),
+                                &session.0,
+                                &selected,
+                                pending,
+                            )?
+                        } else if let Some(def) = command_def {
                             let (selected, mut route) =
                                 commands::prepare(composition, &selected, def)?;
                             if route.child.is_none() {
@@ -5260,6 +5482,13 @@ async fn worker(
                 let mut conversation_change = None;
                 let result;
                 {
+                    let (boundary_tx, mut boundary_rx) =
+                        mpsc::channel::<crate::runtime::inbox::InboxBoundary>(1);
+                    let _inbox_guard = runtime.drive_inbox(
+                        &session.0,
+                        pending.as_ref().map(|p| p.item.id.clone()),
+                        boundary_tx,
+                    );
                     // Keep the execution state machine off the actor's inline
                     // future and worker stacks when independent service jobs wake.
                     let mut operation = Box::pin(async {
@@ -5530,16 +5759,31 @@ async fn worker(
                         report.warnings.extend(title_warnings);
                         Ok::<_, RuntimeError>(report)
                     });
+                    let mut model_result = None;
+                    let mut side_shell: Option<user_shell::SideAdmission<'_>> = None;
                     result = loop {
+                        if model_result.is_some() && side_shell.is_none() {
+                            break model_result.take().expect("settled model result");
+                        }
                         reload_work.start(db, runtime, composition);
                         tokio::select! {
+                            Some(boundary) = boundary_rx.recv(), if !shutdown => {
+                                let prepared = inbox::prepare(db,runtime,composition,effective,&boundary.session,boundary.pending);
+                                let _ = boundary.reply.send(prepared);
+                            }
                             ready = reload_work.wait(), if !shutdown => {
                                 if let Some(ready) = ready? && let Some(receipt) = reload_work.finish(
                                     ready, db, runtime, composition, effective, registry, sessions,
                                     location_epoch, provider_work, events, Some((&session.0, &turn_selection)),
                                 ).await? { receipt.reply(); }
                             }
-                            result = &mut operation => break result,
+                            settled = &mut operation, if model_result.is_none() => { model_result = Some(settled); }
+                            admitted = async { side_shell.as_mut().expect("side admission").as_mut().await }, if side_shell.is_some() => {
+                                side_shell = None;
+                                if admitted {
+                                    let _ = events.send(CoreEvent::ShellChanged { session:session.clone() });
+                                }
+                            }
                             () = runtime.shell_jobs.changed(), if runtime.native_owner.is_none() => {
                                 runtime.shell_jobs.deliver(events).map_err(|_| runtime_issue(runtime.location(), &["shell", "delivery"], &RuntimeError::Storage).diagnostic)?;
                             }
@@ -5592,6 +5836,10 @@ async fn worker(
                                     }
                                 }
                                 Some(InboxMsg::ReloadLocation { ack }) => reload_work.request(ack),
+                                Some(message @ InboxMsg::UserShell { .. }) if side_shell.is_none() && conversation_change.is_none() => {
+                                    side_shell = user_shell::start_side(db,runtime,composition,effective,&session,&cancel,location_epoch.load(Ordering::SeqCst),message);
+                                }
+                                Some(InboxMsg::UserShell { ack, .. }) => { let _ = ack.send(Err(CoreError::TurnBusy)); }
                                 Some(command) => query(
                                     db,
                                     runtime,
@@ -5707,7 +5955,24 @@ async fn worker(
                                 service_warning_range,
                             },
                         };
+                    // OC2 inbox: a leftover steer, or after a settled turn the
+                    // oldest queued input, starts the next turn of this root.
+                    let settled = matches!(event, CoreEvent::TurnFinished { .. });
                     runtime.emit(events, event);
+                    if !shutdown
+                        && conversation_change.is_none()
+                        && !cancel.load(Ordering::Acquire)
+                        && pending_inputs.len() < MAX_QUEUE_ITEMS
+                        && let Some(pending) = db
+                            .inbox_next(&session.0, settled)
+                            .map_err(|e| storage_diagnostic(db.root(), &e))?
+                    {
+                        pending_inputs.push_back(InboxMsg::SubmitInbox {
+                            session: session.clone(),
+                            id: pending.item.id,
+                            ack: oneshot::channel().0,
+                        });
+                    }
                 }
                 if let Some(command) = conversation_change {
                     query(
@@ -5755,7 +6020,9 @@ async fn worker(
     runtime.cancel_all_compactions();
     for pending in pending_inputs {
         match pending {
-            InboxMsg::Submit { ack, .. } | InboxMsg::SubmitFresh { ack, .. } => {
+            InboxMsg::Submit { ack, .. }
+            | InboxMsg::SubmitFresh { ack, .. }
+            | InboxMsg::SubmitInbox { ack, .. } => {
                 let _ = ack.send(Err(CoreError::Shutdown));
             }
             _ => unreachable!(),

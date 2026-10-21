@@ -44,6 +44,8 @@ pub enum KeyAction {
     Delete,
     /// Ctrl+D: editor delete when nonempty, root exit otherwise.
     DeleteOrQuit,
+    /// Queued-prompts dialog: withdraw the item back into the composer.
+    QueuedUndo,
     /// Move/delete one word.
     WordLeft,
     WordRight,

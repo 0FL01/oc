@@ -31,7 +31,13 @@ impl Db {
         // Do not transfer/decode an image-bearing journal for a visible row.
         let row: Option<(String, String)> = conn.query_row(
             "SELECT t.id,CASE WHEN length(CAST(json_extract(t.result,'$.display.user_images') AS BLOB))<=?3 THEN json_object('user_images',json_extract(t.result,'$.display.user_images')) ELSE '{}' END FROM turns t JOIN turn_acceptances a ON a.turn_id=t.id WHERE a.session_id=?1 AND a.user_message=?2 AND json_valid(t.result) AND json_type(t.result,'$.display.user_images') IS NOT NULL",
-            params![session, message, oc_core::session::MAX_INPUT_BYTES as i64], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+             params![session, message, oc_core::session::MAX_INPUT_BYTES as i64], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+        let row = match row {
+            Some(row) => Some(row),
+            None => conn.query_row(
+                "SELECT turn_id,CASE WHEN length(CAST(user_images AS BLOB))<=?3 AND json_valid(user_images) THEN json_object('user_images',json(user_images)) ELSE '{}' END FROM session_inbox WHERE session_id=?1 AND message_id=?2 AND images>0 AND turn_id IS NOT NULL",
+                params![session,message,oc_core::session::MAX_INPUT_BYTES as i64],|r|Ok((r.get(0)?,r.get(1)?))).optional()?,
+        };
         row.map(|(turn, raw)| {
             let value = serde_json::from_str(&raw).map_err(|_| invalid())?;
             let metadata = crate::attachments::image_metadata(text, &value)

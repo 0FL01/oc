@@ -1383,7 +1383,7 @@ fn direct_rename_invalid_titles_keep_slash_draft_and_existing_title() {
         Some("Fixture session title")
     );
     assert_eq!(journal_counts(&fixture), counts);
-    pty.send(b"\x1b");
+    pty.send(b"\x03\x03");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
 
@@ -1419,7 +1419,7 @@ fn direct_rename_invalid_titles_keep_slash_draft_and_existing_title() {
             .iter()
             .any(|row| row.contains("Rename session"))
     );
-    pty.send(b"\x1b");
+    pty.send(b"\x03\x03");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
 }
@@ -3038,12 +3038,12 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
         assert!(start.elapsed() < DEADLINE, "new Home was not acknowledged");
         std::thread::sleep(POLL);
     }
-    // Blank submissions are refused, and Esc with an unsubmitted draft
-    // abandons Home without accepting a first turn.
+    // Blank submissions are refused. Explicit quit abandons an unsubmitted
+    // Home draft without accepting a first turn; idle Esc is not quit.
     pty.send(b" \r");
     pty.send(b"draft never submitted");
     wait_screen_row(&pty, "draft never submitted", DEADLINE);
-    pty.send(b"\x1b");
+    pty.send(b"\x03\x03");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success(), "Home exits cleanly");
     assert!(contains(&output, ALT_LEAVE), "alternate screen left");
@@ -3213,11 +3213,19 @@ fn reload_runs_under_a_busy_turn_and_refreshes_parked_tab_after_owner_success() 
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "slow stream");
     fixture.wait_requests(1);
+    // Explicit reload retires unfinished automatic-title work. Let that
+    // ancillary request settle first, while the main response is still held.
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    assert!(
+        render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("esc interrupt"))
+    );
     // OC2 reloads under a running turn; its issued request is not replayed.
     pty.send(b"/reload\r");
     wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
     wait_screen_row(&pty, "answer:slow stream", DEADLINE);
-    wait_screen_row(&pty, "Fixture session title", DEADLINE);
     assert_eq!(fixture.wait_requests(1).len(), 1);
     wait_idle(&pty); // New session is an idle-only action, not an echo barrier.
     pty.send(&[0x7f; 64]);
@@ -3233,8 +3241,14 @@ fn reload_runs_under_a_busy_turn_and_refreshes_parked_tab_after_owner_success() 
     std::fs::write(config, edited).unwrap();
     pty.send(b"/reload\r");
     wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    // The earlier reload's toast may still be visible. The changed catalog
+    // proves this reload finished before navigation is admitted again.
+    wait_screen_row(&pty, "Reloaded T42 model", DEADLINE);
     // A parked tab must not retain the former catalog on reactivation.
     click(&mut pty, 10, 1);
+    // Home already has the new model footer. Wait for the root transcript,
+    // not that shared label, before quitting and checking the committed deck.
+    wait_screen_row(&pty, "answer:slow stream", DEADLINE);
     wait_screen_row(&pty, "Reloaded T42 model", DEADLINE);
     pty.send(b"/quit\r");
     let (status, _) = pty.wait_exit(DEADLINE);

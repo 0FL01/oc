@@ -261,6 +261,7 @@ mod clipboard_images;
 mod dcp_controls;
 mod execute;
 mod foreground;
+mod inbox;
 mod input;
 mod lifecycle;
 mod mcp;

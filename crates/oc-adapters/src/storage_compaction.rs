@@ -99,14 +99,32 @@ impl Db {
         raw.map(|raw| serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict))
             .transpose()
     }
-    pub(crate) fn save_usage_anchor(
+    /// The measurement and completed generation share the same durable boundary,
+    /// before any tool can run; neither may survive a failed checkpoint alone.
+    pub(crate) fn checkpoint_turn_usage(
         &self,
+        turn: &str,
         session: &str,
-        anchor: &crate::compaction::UsageAnchor,
+        result: &str,
+        anchor: Option<&crate::compaction::UsageAnchor>,
     ) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        let raw = serde_json::to_string(anchor).map_err(|_| StorageError::CompressionConflict)?;
-        conn.execute("INSERT INTO session_usage_anchor VALUES(?1,?2) ON CONFLICT(session_id) DO UPDATE SET anchor=excluded.anchor", params![session,raw])?;
+        let raw = anchor
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|_| StorageError::CompressionConflict)?;
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        if tx.execute(
+            "UPDATE turns SET result=?1 WHERE id=?2 AND session_id=?3 AND status='started'",
+            params![result, turn, session],
+        )? != 1
+        {
+            return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
+        }
+        if let Some(raw) = raw {
+            tx.execute("INSERT INTO session_usage_anchor VALUES(?1,?2) ON CONFLICT(session_id) DO UPDATE SET anchor=excluded.anchor", params![session,raw])?;
+        }
+        tx.commit()?;
         Ok(())
     }
     pub fn compaction_history(
@@ -463,6 +481,58 @@ impl Db {
 mod tests {
     use super::*;
     use oc_core::compaction::{CompactionAnchor, CompactionReason};
+
+    #[test]
+    fn completed_generation_and_usage_checkpoint_rollback_and_reopen_together() {
+        let data = tempfile::tempdir().unwrap();
+        let db = Db::open(data.path()).unwrap();
+        db.create_session("s").unwrap();
+        let model = oc_core::queries::ModelRef {
+            provider: "fixture".into(),
+            id: "m".into(),
+            variant: None,
+        };
+        db.accept_turn("t", "s", "prompt", "prompt", &model)
+            .unwrap();
+        let anchor = crate::compaction::UsageAnchor {
+            scope: "route".into(),
+            prefix: "completed-prefix".into(),
+            items: 2,
+            tokens: 123,
+        };
+        let before = db.turn_result("t").unwrap();
+        db.conn.lock().unwrap().execute_batch("CREATE TRIGGER refuse_usage BEFORE INSERT ON session_usage_anchor BEGIN SELECT RAISE(ABORT,'usage checkpoint refused'); END;").unwrap();
+        assert!(
+            db.checkpoint_turn_usage("t", "s", r#"{"completed":true}"#, Some(&anchor))
+                .is_err()
+        );
+        assert_eq!(db.turn_result("t").unwrap(), before);
+        assert!(db.usage_anchor("s").unwrap().is_none());
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER refuse_usage;")
+            .unwrap();
+        assert!(
+            db.checkpoint_turn_usage("t", "other-session", "{}", Some(&anchor))
+                .is_err()
+        );
+        db.checkpoint_turn_usage("t", "s", r#"{"completed":true}"#, Some(&anchor))
+            .unwrap();
+        db.checkpoint_turn_usage("t", "s", r#"{"completed":true,"tools":[]}"#, None)
+            .unwrap();
+        drop(db);
+        let db = Db::open(data.path()).unwrap();
+        assert_eq!(
+            db.turn_result("t").unwrap().1.as_deref(),
+            Some(r#"{"completed":true,"tools":[]}"#)
+        );
+        assert_eq!(
+            serde_json::to_value(db.usage_anchor("s").unwrap().unwrap()).unwrap(),
+            serde_json::to_value(anchor).unwrap()
+        );
+    }
+
     #[test]
     fn compaction_checkpoint_rebases_dcp_occurrences_atomically_and_undo_restores_them() {
         let data = tempfile::tempdir().unwrap();

@@ -301,7 +301,22 @@ T45/PRM01 consumes the view, T44/VIS35/VIS36 qualifies separate cards/previews.
 Superseded model/variant/agent busy refusal and whole-turn model/agent capture in the
 prior file-tools plan. Immutable config/Location generations, child/read-only authority,
 explicit provider/credential admission, one execution owner and request revisions hold.
-This is not general steer/config-reload parity. T50 owns TOOL12, T45/PRM01
+Messages sent while busy follow OC2 steer/queue (D30): Enter steers into the running
+turn at its next fresh request, `<leader>Enter` queues for after it. Both retain the
+full rich prompt, not just visible text. Pending acceptance and delivery acceptance
+are distinct: delivery consumes its row atomically with the prepared request, new
+turn or native-command intent. Refusal retains original input with a visible error;
+snapshots contain bounded previews/image counts, full PNGs are read individually.
+Configured commands expand once under the enqueue generation and command/routing-profile
+digest; stale sources refuse delivery without re-expansion or effects, including
+after restart when numeric generation IDs repeat. Inline/background routing retains
+the ordinary command authority and selection semantics. Direct user Shell uses one
+separate admission future under the active root, with normal Ask and supervised jobs;
+receipt cancellation is local, root cancellation includes it. It is not chat input
+or a second model turn. Reopen does not execute pending input without a new explicit
+promotion. The inbox schema is forward-upgraded; private native wire is version 4.
+Not general
+config-reload parity. T50 owns TOOL12, T45/PRM01
 consumes prompt/draft lifecycle, T47 owns VAR01 ordering and T44 separately qualifies
 VIS09/VIS29/VIS17/VIS35/VIS36 after explicit resume. No new selector tool/store/framework.
 Detailed implementation slices: [T50 live switching](goals/2026-09-27-native-tool-parity.md#live-model-switching--r1tool12-approved-2026-10-01-pending).

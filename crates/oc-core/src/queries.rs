@@ -44,6 +44,71 @@ pub struct SessionPickerContext {
     pub canonical: Option<String>,
 }
 
+/// OC2 delivery of input submitted while a turn runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum InboxDelivery {
+    /// Joins the running turn at its next fresh request.
+    Steer,
+    /// Starts its own turn once the session is idle.
+    Queue,
+}
+
+impl InboxDelivery {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Steer => "steer",
+            Self::Queue => "queue",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "steer" => Some(Self::Steer),
+            "queue" => Some(Self::Queue),
+            _ => None,
+        }
+    }
+}
+
+/// One pending (not yet delivered) inbox input.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InboxItem {
+    pub id: String,
+    pub delivery: InboxDelivery,
+    pub text: String,
+    /// Metadata-only projection; original bytes are read explicitly for restore.
+    pub images: usize,
+    pub error: Option<crate::session::CoreError>,
+}
+
+/// A steer that joined the running turn as this durable user message.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InboxDelivered {
+    pub item: InboxItem,
+    pub message: crate::session::MessageId,
+}
+
+/// Pending inbox after a read or change; `removed` carries a withdrawn item.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InboxSnapshot {
+    pub items: Vec<InboxItem>,
+    pub removed: Option<InboxItem>,
+    pub prompt: Option<crate::prompt::PromptInput>,
+}
+
+/// Explicit change of one pending inbox item.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum InboxAction {
+    /// Read the pending items.
+    List,
+    /// Read the original draft of one pending item without consuming it.
+    Read { id: String },
+    /// Change delivery (queue → steer promotes it into the running turn).
+    Deliver { id: String, delivery: InboxDelivery },
+    /// Withdraw the item; the reply carries it for an undo into the composer.
+    Remove { id: String },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionPickerAction {
     Rename(String),

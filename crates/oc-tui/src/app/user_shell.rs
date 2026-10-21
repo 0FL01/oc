@@ -78,7 +78,7 @@ impl TuiState {
         if self.input.trim().is_empty() {
             return KeyOutcome::default();
         }
-        if self.pending.is_some() || self.user_shell_pending() || self.active_turn.is_some() {
+        if self.pending.is_some() || self.user_shell_pending() {
             return KeyOutcome {
                 note: Some("submission pending; Esc to cancel".into()),
                 ..Default::default()
@@ -112,7 +112,9 @@ impl TuiState {
                     receipt,
                     cancelling: false,
                 });
-                self.status = TuiStatus::PendingSubmission;
+                if self.active_turn.is_none() {
+                    self.status = TuiStatus::PendingSubmission;
+                }
                 self.push_note("shell admission pending; Esc to cancel");
                 KeyOutcome::default()
             }
@@ -168,7 +170,7 @@ impl TuiState {
         {
             return;
         }
-        if !exiting {
+        if !exiting && self.active_turn.is_none() {
             self.status = TuiStatus::Idle;
         }
         match result {

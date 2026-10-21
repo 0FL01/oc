@@ -14,6 +14,26 @@ fn refuse(reason: &str) -> CoreError {
     CoreError::Application(format!("fork refused: {reason}"))
 }
 
+fn rebase_commands(
+    log: &mut serde_json::Value,
+    operations: &HashMap<String, String>,
+) -> Result<(), ForkError> {
+    if let Some(commands) = log["display"].get_mut("commands") {
+        let commands = commands
+            .as_object_mut()
+            .ok_or_else(|| refuse("invalid command receipts"))?;
+        let mut rebased = serde_json::Map::new();
+        for (operation, fact) in std::mem::take(commands) {
+            let target = operations
+                .get(&operation)
+                .ok_or_else(|| refuse("foreign command receipt"))?;
+            rebased.insert(target.clone(), fact);
+        }
+        *commands = rebased;
+    }
+    Ok(())
+}
+
 fn accepted_model_for_user(
     conn: &Connection,
     source: &str,
@@ -90,7 +110,10 @@ impl Db {
         let Some((mut cutoff, role, prompt)) = boundary else {
             return Err(refuse("invalid boundary").into());
         };
-        if role != "user" || Self::native_notice_data_in(&tx, source, before)? {
+        if role != "user"
+            || Self::native_notice_data_in(&tx, source, before)?
+            || Self::inbox_message_in(&tx, source, before)?
+        {
             return Err(refuse("boundary is not a user message").into());
         }
         let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
@@ -118,7 +141,8 @@ impl Db {
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(turn_id AS BLOB))+length(CAST(user_message AS BLOB))+length(CAST(model_ref AS BLOB))),0) FROM turn_acceptances WHERE turn_id IN (SELECT id FROM prefix)
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id IN (SELECT id FROM tool_operations WHERE session_id=?1 AND (turn_id IN (SELECT id FROM prefix) OR turn_id IS NULL))
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(payload AS BLOB))+length(CAST(descriptor AS BLOB))+length(CAST(base_descriptor AS BLOB))),0) FROM turn_raw_segments WHERE turn_id IN (SELECT id FROM prefix)
-              UNION ALL SELECT 0,coalesce(length(CAST(title AS BLOB)),0) FROM sessions WHERE id=?1)",
+                UNION ALL SELECT count(*),coalesce(sum(length(CAST(i.id AS BLOB))+length(CAST(i.text AS BLOB))+coalesce(length(CAST(i.user_images AS BLOB)),0)+coalesce(length(CAST(i.command AS BLOB)),0)),0) FROM session_inbox i JOIN conversation_messages m ON m.id=i.message_id AND m.session_id=i.session_id WHERE i.session_id=?1 AND m.seq<?2
+               UNION ALL SELECT 0,coalesce(length(CAST(title AS BLOB)),0) FROM sessions WHERE id=?1)",
             params![source,cutoff], |r| Ok((r.get(0)?,r.get(1)?)))?;
         if rows > MAX_ROWS || bytes > MAX_BYTES || choice.len() as i64 > MAX_BYTES {
             return Err(refuse("copy budget exceeded").into());
@@ -436,6 +460,7 @@ impl Db {
                     }
                 }
             }
+            rebase_commands(&mut log, &op_ids)?;
             tx.execute(
                 "INSERT INTO turns(id,session_id,status,prompt,result) VALUES (?1,?2,?3,?4,?5)",
                 params![new, root, status, prompt, log.to_string()],
@@ -443,6 +468,18 @@ impl Db {
             tx.execute("INSERT INTO turn_acceptances(turn_id,session_id,user_message,model_ref) VALUES (?1,?2,?3,?4)",params![new,root,anchor,model])?;
             Self::copy_turn_raw_prefix(&tx, &old, &new, &ids, &op_ids, &seqs)?;
             turn_ids.insert(old, new);
+        }
+        let delivered = tx.prepare("SELECT i.id,i.delivery,i.text,i.message_id,i.images,i.turn_id,i.user_images,i.command FROM session_inbox i JOIN conversation_messages m ON m.id=i.message_id AND m.session_id=i.session_id WHERE i.session_id=?1 AND m.seq<?2 ORDER BY m.seq")?
+            .query_map(params![source,cutoff],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,i64>(4)?,r.get::<_,Option<String>>(5)?,r.get::<_,Option<String>>(6)?,r.get::<_,Option<String>>(7)?)))?.collect::<Result<Vec<_>,_>>()?;
+        for (id, delivery, text, message, images, turn, metadata, command) in delivered {
+            let message = ids
+                .get(&message)
+                .ok_or_else(|| refuse("foreign inbox message"))?;
+            let turn = turn
+                .as_ref()
+                .map(|id| turn_ids.get(id).ok_or_else(|| refuse("foreign inbox turn")))
+                .transpose()?;
+            tx.execute("INSERT INTO session_inbox(id,session_id,delivery,text,message_id,images,turn_id,user_images,command) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",params![format!("{root}:{id}"),root,delivery,text,message,images,turn,metadata,command])?;
         }
         context::copy(
             &tx,

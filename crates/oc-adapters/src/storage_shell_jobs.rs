@@ -94,6 +94,16 @@ impl Db {
         fresh: bool,
         selection: Option<(&str, &str)>,
     ) -> Result<AdmittedUserShell, StorageError> {
+        self.admit_user_shell_job_captured(provenance, fresh, selection, None)
+    }
+
+    pub(crate) fn admit_user_shell_job_captured(
+        &self,
+        provenance: &Provenance,
+        fresh: bool,
+        selection: Option<(&str, &str)>,
+        expected: Option<Option<&str>>,
+    ) -> Result<AdmittedUserShell, StorageError> {
         if provenance.version != 1 || !provenance.turn.is_empty() {
             return Err(StorageError::OperationNotFound);
         }
@@ -133,7 +143,12 @@ impl Db {
             params![provenance.session, provenance.operation],
         )?;
         if let Some((key, value)) = selection {
-            Self::upsert_pref(&tx, key, value)?;
+            let current: Option<String> = tx
+                .query_row("SELECT value FROM prefs WHERE key=?1", [key], |r| r.get(0))
+                .optional()?;
+            if expected.is_none_or(|expected| current.as_deref() == expected) {
+                Self::upsert_pref(&tx, key, value)?;
+            }
         }
         if fresh {
             tx.execute(
@@ -603,7 +618,7 @@ impl Db {
         // Native notice admission follows the same branch visibility as every
         // other input. Size the whole page before transferring any bodies; a
         // fitting suffix must not skip an oversized first notice or advance IDs.
-        let mut stmt = conn.prepare("SELECT m.id,m.role,length(CAST(m.text AS BLOB)) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND (EXISTS(SELECT 1 FROM shell_jobs j WHERE j.message_id=m.id AND j.session_id=m.session_id) OR EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id)) ORDER BY m.seq LIMIT 8")?;
+        let mut stmt = conn.prepare("SELECT m.id,m.role,length(CAST(m.text AS BLOB)) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND (EXISTS(SELECT 1 FROM shell_jobs j WHERE j.message_id=m.id AND j.session_id=m.session_id) OR EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id) OR EXISTS(SELECT 1 FROM session_inbox i WHERE i.message_id=m.id AND i.session_id=m.session_id)) ORDER BY m.seq LIMIT 8")?;
         let page = stmt
             .query_map(params![session, after], |r| {
                 Ok((

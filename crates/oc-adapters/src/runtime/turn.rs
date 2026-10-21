@@ -1736,7 +1736,7 @@ impl<'a> Runtime<'a> {
                 Some(&mut turn_log),
             )?
         } else {
-            self.db.accept_turn_with_selection(
+            self.db.accept_inbox_turn(
                 &turn_id,
                 &params.session,
                 &params.prompt,
@@ -1751,9 +1751,19 @@ impl<'a> Runtime<'a> {
                 }),
                 history_input,
                 Some(&mut turn_log),
+                self.inbox_initial().as_deref(),
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
+        if self.inbox_initial().is_some() {
+            // The activation only selected an ID. This committed acceptance is
+            // the point at which the queue dock may remove the pending input.
+            self.publish_inbox(
+                &params.session,
+                self.db.inbox_pending(&params.session)?,
+                Vec::new(),
+            );
+        }
         if native_input.is_some() {
             self.child_jobs.notify();
         }
@@ -1887,6 +1897,7 @@ impl<'a> Runtime<'a> {
             &params.session,
         )?
         .for_operation(&turn_id);
+        let mut inbox_only_continuation = false;
         'step: loop {
             self.child_jobs.reap().await?;
             self.child_jobs
@@ -1969,7 +1980,26 @@ impl<'a> Runtime<'a> {
                 refreshed?;
             }
             refresh_mcp_catalog = true;
-            let (published, current_mcp) = if primary_request || self.child_launch.is_some() {
+            let pending = if primary_request {
+                self.pending_steer(&params.session, params.cancel).await?
+            } else {
+                None
+            };
+            if inbox_only_continuation
+                && pending.is_none()
+                && !params.cancel.load(Ordering::Acquire)
+            {
+                if self.db.inbox_has_steer(&params.session)? {
+                    continue 'step;
+                }
+                break 'step;
+            }
+            let (published, current_mcp) = if let Some(prepared) = &pending {
+                (
+                    prepared.published.clone(),
+                    self.mcp_view_in(&prepared.published)?,
+                )
+            } else if primary_request || self.child_launch.is_some() {
                 self.fresh_request_view()?
             } else {
                 (published.clone(), self.mcp_view_in(&published)?)
@@ -1998,30 +2028,33 @@ impl<'a> Runtime<'a> {
                 .request_provider
                 .as_ref()
                 .unwrap_or(&params.provider);
-            let choice = if primary_request {
-                crate::application::request_choice(
-                    &self.db,
-                    &self.roots.project,
-                    source_provider
-                        .wire
-                        .selection_scope
-                        .as_deref()
-                        .unwrap_or(&params.catalog.provider),
-                    &params.session,
-                    lane.agent_id.as_deref(),
-                )?
-                .unwrap_or_else(|| oc_core::queries::ModelRef {
-                    provider: params.catalog.provider.clone(),
-                    id: params.model_id.clone(),
-                    variant: params.variant.clone(),
-                })
-            } else {
-                oc_core::queries::ModelRef {
-                    provider: params.catalog.provider.clone(),
-                    id: params.model_id.clone(),
-                    variant: params.variant.clone(),
-                }
-            };
+            let choice =
+                if let Some(prepared) = pending.as_ref().filter(|p| !p.choice.id.is_empty()) {
+                    prepared.choice.clone()
+                } else if primary_request {
+                    crate::application::request_choice(
+                        &self.db,
+                        &self.roots.project,
+                        source_provider
+                            .wire
+                            .selection_scope
+                            .as_deref()
+                            .unwrap_or(&params.catalog.provider),
+                        &params.session,
+                        lane.agent_id.as_deref(),
+                    )?
+                    .unwrap_or_else(|| oc_core::queries::ModelRef {
+                        provider: params.catalog.provider.clone(),
+                        id: params.model_id.clone(),
+                        variant: params.variant.clone(),
+                    })
+                } else {
+                    oc_core::queries::ModelRef {
+                        provider: params.catalog.provider.clone(),
+                        id: params.model_id.clone(),
+                        variant: params.variant.clone(),
+                    }
+                };
             // All work issued by this attempt shares one frozen provider view.
             // The shadow ends at the iteration boundary; a later commit cannot
             // mutate its transport, tools, receipts or issued child batch.
@@ -2197,6 +2230,80 @@ impl<'a> Runtime<'a> {
             // execution context then stay leased through that request's tools.
             // Notification relists still occur at the outer turn boundary.
             let attached = current_mcp.as_ref();
+            if let Some(prepared) = &pending
+                && let Some(command) = prepared.command.as_ref().filter(|c| c.child.is_some())
+            {
+                let command_params = TurnParams {
+                    prompt: prepared.pending.payload.prompt.clone(),
+                    invocation: prepared
+                        .pending
+                        .payload
+                        .command
+                        .as_ref()
+                        .map(|c| c.original.clone()),
+                    session: params.session.clone(),
+                    catalog: params.catalog,
+                    model_id: params.model_id.clone(),
+                    variant: params.variant.clone(),
+                    max_output: params.max_output,
+                    provider: params.provider.clone(),
+                    cancel: params.cancel,
+                };
+                match self
+                    .admit_command(&published, &command_params, lane, attached, false, command)
+                    .await
+                {
+                    Ok(Some(admission)) => {
+                        if params.cancel.load(Ordering::Acquire) {
+                            continue 'step;
+                        }
+                        let rollback = turn_log.clone();
+                        let steer = crate::storage::inbox::InboxSteer {
+                            pending: prepared.pending.clone(),
+                            input_index: turn_log.original_input_index(turn_log.input.len()),
+                        };
+                        turn_log.input.push(InputItem::message(
+                            InputRole::User,
+                            prepared.pending.payload.original().text,
+                        ));
+                        let op = format!("{turn_id}:command:{}", prepared.pending.item.id);
+                        match self
+                            .launch_command_operation(
+                                &command_params,
+                                lane,
+                                attached,
+                                &mut turn_log,
+                                admission,
+                                tool_event,
+                                &published,
+                                &op,
+                                Some(&steer),
+                                Some(command),
+                            )
+                            .await
+                        {
+                            Ok(Some(call)) => {
+                                calls.push(call);
+                                inbox_only_continuation = false;
+                            }
+                            Ok(None) => turn_log = rollback,
+                            Err(error) => return Err(error),
+                        }
+                        continue 'step;
+                    }
+                    Ok(None) => return Err(RuntimeError::Storage),
+                    Err(error) => {
+                        if !params.cancel.load(Ordering::Acquire) {
+                            self.fail_pending(
+                                &params.session,
+                                &prepared.pending.item.id,
+                                &crate::application::runtime_error(error),
+                            )?;
+                        }
+                        continue 'step;
+                    }
+                }
+            }
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
                 .with_root(&self.roots.project)
                 .with_mcp(&attached.entries);
@@ -2309,6 +2416,14 @@ impl<'a> Runtime<'a> {
                 Some(&lane.request_profile()),
             );
             current_instruction_input.extend(staged_notice_input.iter().cloned());
+            let rich_input = pending
+                .as_ref()
+                .map(|p| {
+                    crate::attachments::prepare_prompt(&p.pending.payload.prompt, params.cancel)
+                })
+                .transpose()
+                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            current_instruction_input.extend(rich_input.iter().cloned());
             let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
             if let Some(text) = crate::plan::missing(
@@ -2607,8 +2722,17 @@ impl<'a> Runtime<'a> {
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             let input: Vec<InputItem> = input.into_iter().cloned().collect();
-            crate::attachments::admit_images(&selection.entry, &input, &[])
-                .map_err(RuntimeError::InvalidArgs)?;
+            if let Err(error) = crate::attachments::admit_images(&selection.entry, &input, &[]) {
+                if let Some(prepared) = &pending {
+                    self.fail_pending(
+                        &params.session,
+                        &prepared.pending.item.id,
+                        &oc_core::session::CoreError::Application(error),
+                    )?;
+                    continue 'step;
+                }
+                return Err(RuntimeError::InvalidArgs(error));
+            }
             let request_estimate = estimate_input_tokens(
                 &serde_json::to_string(&(&input, &tool_defs)).map_err(|_| RuntimeError::Storage)?,
                 input.iter(),
@@ -2628,6 +2752,14 @@ impl<'a> Runtime<'a> {
                         .sum::<usize>(),
                 );
             if let Err(error) = models::admit_budget(&selection, request_estimate, budget) {
+                if let Some(prepared) = &pending {
+                    self.fail_pending(
+                        &params.session,
+                        &prepared.pending.item.id,
+                        &oc_core::session::CoreError::Application(error.to_string()),
+                    )?;
+                    continue 'step;
+                }
                 let mut report = self.commit_turn(
                     &turn_log,
                     turn_id,
@@ -2661,8 +2793,16 @@ impl<'a> Runtime<'a> {
                     unassigned_notices.push(id);
                 }
             }
+            let mut inbox_rollback = pending
+                .as_ref()
+                .map(|_| (turn_log.clone(), shell_notice_seq));
             turn_log.input.extend(staged_notice_input);
             turn_log.shell_notice_messages.extend(staged_notice_ids);
+            let mut steer = pending.as_ref().map(|p| crate::storage::inbox::InboxSteer {
+                pending: p.pending.clone(),
+                input_index: turn_log.original_input_index(turn_log.input.len()),
+            });
+            turn_log.input.extend(rich_input);
             shell_notice_seq = staged_notice_seq;
             let read_log_base = turn_log.to_json().to_string().len();
             // A retry with no committed output reuses the complete prepared
@@ -2757,12 +2897,47 @@ impl<'a> Runtime<'a> {
                     serde_json::json!(self.db.renewal_read_counters());
                 turn_log.spans.last_mut().expect("prepared span").request = Some(receipt.clone());
                 turn_log.requests.push(receipt);
-                self.db.checkpoint_turn_with_child_notices(
-                    &turn_id,
+                if params.cancel.load(Ordering::Acquire) {
+                    if let Some((log, seq)) = inbox_rollback.take() {
+                        turn_log = log;
+                        shell_notice_seq = seq;
+                    }
+                    continue 'step;
+                }
+                let selected = steer
+                    .as_ref()
+                    .and(pending.as_ref())
+                    .and_then(|p| self.pending_selection(p));
+                let delivered = match self.db.checkpoint_turn_with_inbox(
                     &params.session,
-                    &turn_log.to_json().to_string(),
+                    &mut turn_log,
                     &unassigned_notices,
-                )?;
+                    steer.as_ref(),
+                    selected,
+                ) {
+                    Ok(delivered) => delivered,
+                    Err(StorageError::CompressionConflict) => {
+                        if let Some((log, seq)) = inbox_rollback.take() {
+                            turn_log = log;
+                            shell_notice_seq = seq;
+                        }
+                        continue 'step;
+                    }
+                    Err(error) => return Err(error.into()),
+                };
+                if steer.take().is_some()
+                    && let Some(prepared) = &pending
+                {
+                    self.adopt_pending_profile(prepared)?;
+                }
+                inbox_rollback = None;
+                if !delivered.is_empty() {
+                    self.publish_inbox(
+                        &params.session,
+                        self.db.inbox_pending(&params.session)?,
+                        delivered,
+                    );
+                }
                 if !unassigned_notices.is_empty() {
                     self.child_jobs.notify();
                 }
@@ -3364,20 +3539,19 @@ impl<'a> Runtime<'a> {
             // Responses input totals already include cached input; output totals
             // already include reasoning. Count each exactly once. Never use the
             // accumulated billing/display turn total as the next context size.
-            if let Some((input, output)) = generation.usage
+            let measured_usage = if let Some((input, output)) = generation.usage
                 && input > 0
             {
                 let measured_prefix = dcp_continuation(&history, &turn_log.input, &tool_projection);
-                self.db.save_usage_anchor(
-                    &params.session,
-                    &crate::compaction::UsageAnchor {
-                        scope: usage_scope.clone(),
-                        prefix: crate::compaction::fingerprint(&measured_prefix),
-                        items: measured_prefix.len(),
-                        tokens: input.saturating_add(output),
-                    },
-                )?;
-            }
+                Some(crate::compaction::UsageAnchor {
+                    scope: usage_scope.clone(),
+                    prefix: crate::compaction::fingerprint(&measured_prefix),
+                    items: measured_prefix.len(),
+                    tokens: input.saturating_add(output),
+                })
+            } else {
+                None
+            };
             let mut assigned = vec![false; messages.len()];
             let mut positioned = reasoning_anchors
                 .iter()
@@ -3459,8 +3633,12 @@ impl<'a> Runtime<'a> {
                     positioned.push((index, position));
                 }
             }
-            self.db
-                .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
+            self.db.checkpoint_turn_usage(
+                &turn_id,
+                &params.session,
+                &turn_log.to_json().to_string(),
+                measured_usage.as_ref(),
+            )?;
             let executed = self
                 .execute_units(
                     &published,
@@ -3592,7 +3770,11 @@ impl<'a> Runtime<'a> {
                 text.clear();
                 calls.clear();
             }
-            if !units_have_calls(&units) {
+            // A final answer with steered input waiting is not the end of the
+            // turn: the model answers that input in the next request.
+            let steered = primary_request && self.db.inbox_has_steer(&params.session)?;
+            inbox_only_continuation = !units_have_calls(&units) && steered;
+            if !units_have_calls(&units) && !steered {
                 break;
             }
         }

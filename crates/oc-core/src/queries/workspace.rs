@@ -11,6 +11,9 @@ pub struct WorkspaceSnapshot {
     pub revision: u64,
     pub deck: TabDeckSnapshot,
     pub turns: Vec<LiveTurnSnapshot>,
+    /// OC2 steer/queue input pending for the selected session.
+    #[serde(default)]
+    pub inbox: Vec<super::InboxItem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

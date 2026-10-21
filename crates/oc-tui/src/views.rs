@@ -38,6 +38,7 @@ pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
                 | TuiPanel::Agents
                 | TuiPanel::Sessions
                 | TuiPanel::Skills
+                | TuiPanel::QueuedPrompts
                 | TuiPanel::Mcps
         ))
         && state.approvals.active().is_none()
@@ -230,6 +231,15 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
             for (i, option) in state.modal_options().iter().take(ROWS).enumerate() {
                 let mark = if i == state.sessions_cursor { ">" } else { " " };
                 out.push(format!("{mark} {} — {}", option.title, option.category));
+            }
+            out
+        }
+        TuiPanel::QueuedPrompts => {
+            let mut out =
+                vec!["queued prompts | enter steers, ctrl+d deletes, ctrl+u undoes".to_string()];
+            for (i, option) in state.modal_options().iter().take(ROWS).enumerate() {
+                let mark = if i == state.queued_cursor { ">" } else { " " };
+                out.push(format!("{mark} {}", option.title));
             }
             out
         }

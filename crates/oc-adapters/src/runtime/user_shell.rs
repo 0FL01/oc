@@ -13,13 +13,68 @@ pub(crate) struct UserShellParams<'a> {
     pub cancel: &'a AtomicBool,
 }
 
+pub(crate) struct UserShellCapture(Arc<ExecutionGeneration>, Option<String>);
+
 impl Runtime<'_> {
+    /// Build a private admission view, without replacing the conversational lane.
+    pub(crate) fn capture_user_shell(
+        &self,
+        input: WorkspacePublication,
+        selection_key: &str,
+    ) -> Result<UserShellCapture, RuntimeError> {
+        let workspace = self.prepare_workspace(input)?;
+        let _commit = self.publication_commit.lock().expect("publication commit");
+        let mut published = self.current.read().expect("generation lock").clone();
+        if self
+            .primary
+            .as_ref()
+            .is_some_and(|state| state.source_id.load(Ordering::SeqCst) != published.id)
+        {
+            return Err(RuntimeError::InvalidArgs(
+                "source changed; refresh before submitting".into(),
+            ));
+        }
+        Arc::make_mut(&mut published).workspace = workspace;
+        self.admit_primary_profile(&published)?;
+        Ok(UserShellCapture(
+            published,
+            self.db.get_pref(selection_key)?,
+        ))
+    }
+
     pub(crate) async fn run_user_shell(
         &self,
         params: UserShellParams<'_>,
-        mut accepted: impl FnMut(&str) + Send,
+        accepted: impl FnMut(&str) + Send,
     ) -> Result<String, RuntimeError> {
         let _lease = self.begin_active()?;
+        let published = self.current.read().expect("generation lock").clone();
+        self.run_user_shell_captured(params, published, None, accepted)
+            .await
+    }
+
+    pub(crate) async fn run_existing_user_shell(
+        &self,
+        params: UserShellParams<'_>,
+        capture: UserShellCapture,
+        accepted: impl FnMut(&str) + Send,
+    ) -> Result<String, RuntimeError> {
+        if params.fresh {
+            return Err(RuntimeError::InvalidArgs(
+                "side shell requires an existing session".into(),
+            ));
+        }
+        self.run_user_shell_captured(params, capture.0, Some(capture.1.as_deref()), accepted)
+            .await
+    }
+
+    async fn run_user_shell_captured(
+        &self,
+        params: UserShellParams<'_>,
+        published: Arc<ExecutionGeneration>,
+        expected_selection: Option<Option<&str>>,
+        mut accepted: impl FnMut(&str) + Send,
+    ) -> Result<String, RuntimeError> {
         if params.command.trim().is_empty()
             || params.command.len() > oc_core::session::MAX_INPUT_BYTES
         {
@@ -48,7 +103,6 @@ impl Runtime<'_> {
         let model = models::select_model(params.catalog, params.model)
             .and_then(|model| models::select_variant(&model, params.variant))
             .map_err(|_| RuntimeError::InvalidArgs("user shell selection unavailable".into()))?;
-        let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
         let workspace = published.workspace.clone();
         let operation = format!("user-shell:{}", next_turn_id(params.session, millis()));
@@ -142,9 +196,17 @@ impl Runtime<'_> {
             cwd: pinned.path.to_string_lossy().into(),
             selected_shell: invocation.argv[0].clone(),
         };
-        let admission =
-            self.db
-                .admit_user_shell_job(&provenance, params.fresh, params.selection)?;
+        let admission = match expected_selection {
+            None => self
+                .db
+                .admit_user_shell_job(&provenance, params.fresh, params.selection)?,
+            Some(expected) => self.db.admit_user_shell_job_captured(
+                &provenance,
+                params.fresh,
+                params.selection,
+                Some(expected),
+            )?,
+        };
         // From here a launch failure is an admitted operation's honest outcome,
         // not a pre-effect rejection or an invitation to replay unknown work.
         accepted(&admission.provenance().operation);

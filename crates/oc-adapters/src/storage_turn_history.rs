@@ -763,7 +763,7 @@ impl Db {
         let Some((prompt, prompt_seq)) = accepted else {
             return Ok(None);
         };
-        let mut candidates = conn.prepare("SELECT m.id,m.seq FROM conversation_messages m JOIN child_jobs j ON j.message_id=m.id AND j.parent_id=m.session_id WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<COALESCE((SELECT MIN(n.seq) FROM conversation_messages n WHERE n.session_id=?1 AND n.seq>?2 AND (n.id=(SELECT json_extract(result,'$.assistant_message') FROM turns WHERE id=?3) OR EXISTS(SELECT 1 FROM turn_acceptances a WHERE a.user_message=n.id AND a.session_id=n.session_id))),9223372036854775807) ORDER BY m.seq LIMIT 241")?;
+        let mut candidates = conn.prepare("SELECT m.id,m.seq FROM conversation_messages m WHERE (EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id) OR EXISTS(SELECT 1 FROM session_inbox i WHERE i.message_id=m.id AND i.session_id=m.session_id)) AND m.session_id=?1 AND m.seq>?2 AND m.seq<COALESCE((SELECT MIN(n.seq) FROM conversation_messages n WHERE n.session_id=?1 AND n.seq>?2 AND (n.id=(SELECT json_extract(result,'$.assistant_message') FROM turns WHERE id=?3) OR EXISTS(SELECT 1 FROM turn_acceptances a WHERE a.user_message=n.id AND a.session_id=n.session_id))),9223372036854775807) ORDER BY m.seq LIMIT 241")?;
         let candidates = candidates
             .query_map(params![session, prompt_seq, turn], |r| {
                 Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?))

@@ -695,6 +695,38 @@ impl HistoryWindow {
     }
 
     /// Selective typed data rows, never an executing model turn projection.
+    /// Append steered user rows that follow the retained tail. A detached
+    /// window only learns it has newer rows; never jump over unseen records.
+    pub(crate) fn insert_steered(
+        &mut self,
+        page: &HistoryPage,
+        ids: &[oc_core::session::MessageId],
+    ) -> bool {
+        let mut changed = false;
+        for message in &page.rows {
+            if !ids.contains(&message.id)
+                || message.role != oc_core::session::Role::User
+                || self
+                    .rows
+                    .iter()
+                    .any(|row| row.message_id.as_deref() == Some(&message.id))
+            {
+                continue;
+            }
+            let tail = self
+                .rows
+                .iter()
+                .rev()
+                .find_map(|row| row.message_id.is_some().then_some(row.seq));
+            if self.has_newer || tail.is_some_and(|seq| message.seq < seq) {
+                continue;
+            }
+            self.insert_durable(rows_from_page(message).remove(0));
+            changed = true;
+        }
+        changed
+    }
+
     pub(crate) fn refresh_owner_notices(&mut self, page: &HistoryPage) -> bool {
         let mut changed = false;
         let tail = self.rows.iter().rev().find(|row| row.message_id.is_some());

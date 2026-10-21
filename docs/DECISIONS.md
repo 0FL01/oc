@@ -304,9 +304,31 @@ Rename, fork (settled prefix), `/reload`, Location switch and tab close no longe
 for an accepted turn; closing a tab or switching Location never cancels the root.
 Deleting a running session interrupts it, waits for idle, then deletes; undo keeps
 its interrupt-first path. Unresolved submission/model receipts still block
-departure. Manual DCP compress and title regeneration stay idle-only. Messages while
-busy (steer/queue) are a separate follow-up. Supersedes the agent part of D23's
-busy refusal and the busy Location-switch refusal.
+departure. Manual DCP compress and title regeneration stay idle-only.
+
+Messages while busy follow OC2 `SessionInbox`. Enter steers a full `PromptInput`
+(text and images) at the next fresh request after the issued tool batch settles.
+`<leader>Enter` queues one new turn after successful settlement. Interruption parks
+pending work and cannot restart a cancelled Origin. Blank Enter or dialog promotion
+can explicitly start a retained item on idle; startup never scans/resumes the queue.
+`<leader>q` lists queued prompts (Enter steer, ctrl+d delete, ctrl+u restore the full
+original into the composer, with budgets and image ranges checked before withdrawal).
+Executable workspace/native commands expand once at enqueue and retain their
+original invocation, source generation and command/routing-profile digest. Numeric
+generation reuse after restart cannot admit a changed command source. Inline routing applies to the next fresh
+request; background routing launches uniquely identified real children without
+closing the current turn. A changed command generation fails visibly and remains
+restorable, never silently re-expands. Local UI commands stay local; command images
+and queued Shell retain their existing restrictions. Direct `!shell` admits during
+a model run through that root's one independent Shell admission slot, with normal
+Ask/policy/cwd provenance and isolated receipt cancellation; it creates no model turn.
+Pending inbox payloads are bounded (256 items, 256 MiB serialized bytes per session);
+events/snapshots carry only 2 KiB previews/image counts, not PNGs. Delivery consumes
+pending input in its accepted-turn/request/command-intent transaction. Refused input
+stays visible and is not automatically retried. The additive SQL table has an explicit
+forward upgrade from text-only rows, preserving delivered links; native protocol v4
+rejects incompatible owners without restarting them. Supersedes the agent part of D23's busy refusal, the busy
+submission ("turn busy") refusal and the busy Location-switch refusal.
 
 ## Остаточные prerequisites, не новые Q
 

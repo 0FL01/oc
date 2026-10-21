@@ -26,9 +26,12 @@ impl Runtime<'_> {
         let value: serde_json::Value =
             serde_json::from_str(&log).map_err(|_| RuntimeError::Storage)?;
         let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
-        Ok(log.display["command"]["source"] == "native_command"
-            && log.display["command"]["background"] == true
-            && log.display["command"]["child_agent"] == identity.agent
+        let fact = log.display["commands"]
+            .get(&identity.operation)
+            .unwrap_or(&log.display["command"]);
+        Ok(fact["source"] == "native_command"
+            && fact["background"] == true
+            && fact["child_agent"] == identity.agent
             && log.display_parts.iter().any(|part| {
                 part["tool"] == identity.operation && part["source"] == "native_command"
             }))
@@ -187,7 +190,7 @@ impl Runtime<'_> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn launch_command<'x>(
+    pub(super) fn launch_command_operation<'x>(
         &'x self,
         params: &'x TurnParams<'x>,
         lane: &'x TurnLane,
@@ -196,13 +199,15 @@ impl Runtime<'_> {
         admission: CommandAdmission,
         events: &'x mut (dyn FnMut(&str, &ToolCallEvent) + Send),
         published: &'x ExecutionGeneration,
+        op: &'x str,
+        steer: Option<&'x crate::storage::inbox::InboxSteer>,
+        command: Option<&'x NativeCommand>,
     ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<TurnReport, RuntimeError>> + Send + 'x>,
+        Box<dyn std::future::Future<Output = Result<Option<CallRecord>, RuntimeError>> + Send + 'x>,
     > {
         Box::pin(async move {
             let turn = log.turn_id.clone();
             let request = admission.request;
-            let op = format!("{turn}:command");
             let input = serde_json::json!({"agent":request.agent,"description":request.description,"prompt":request.prompt,"model":request.model,"background":true}).to_string();
             let index = log.input.len();
             log.input.push(InputItem::ProviderOutput(serde_json::json!({"type":"function_call","id":request.call_id,"call_id":request.call_id,"name":SUBAGENT_TOOL,"arguments":input,"status":"completed"})));
@@ -213,19 +218,39 @@ impl Runtime<'_> {
             log.display_parts.push(
                 serde_json::json!({"tool":op,"call_input_index":index,"source":"native_command"}),
             );
-            self.db.record_turn_tool_intent(
-                &op,
-                &params.session,
-                &turn,
-                SUBAGENT_TOOL,
-                &input,
-                &log.to_json().to_string(),
-            )?;
+            if let Some(command) = command {
+                if !log.display["commands"].is_object() {
+                    log.display["commands"] = serde_json::json!({});
+                }
+                log.display["commands"][op] = serde_json::json!({"id":command.id,"source":"native_command","background":true,"child_agent":request.agent});
+            }
+            if let Some(steer) = steer {
+                let Some(delivered) =
+                    self.db
+                        .admit_inbox_command(op, &params.session, &input, log, steer)?
+                else {
+                    return Ok(None);
+                };
+                self.publish_inbox(
+                    &params.session,
+                    self.db.inbox_pending(&params.session)?,
+                    vec![delivered],
+                );
+            } else {
+                self.db.record_turn_tool_intent(
+                    op,
+                    &params.session,
+                    &turn,
+                    SUBAGENT_TOOL,
+                    &input,
+                    &log.to_json().to_string(),
+                )?;
+            }
             events(
                 &turn,
                 &ToolCallEvent::Started {
                     output_presentation: None,
-                    op: op.clone(),
+                    op: op.to_owned(),
                     name: SUBAGENT_TOOL.into(),
                     input,
                     dcp_topic: None,
@@ -276,35 +301,57 @@ impl Runtime<'_> {
             record_tool_finish(
                 &self.db,
                 events,
-                &op,
+                op,
                 SUBAGENT_TOOL,
                 state,
                 &output,
                 &turn,
                 log,
             )?;
-            self.commit_turn(
-                log,
-                turn,
-                &params.session,
-                if state == "running" {
-                    TurnStatus::Completed
-                } else {
-                    TurnStatus::Failed
-                },
-                String::new(),
-                0,
-                0,
-                None,
-                None,
-                vec![CallRecord {
-                    name: SUBAGENT_TOOL.into(),
-                    state: state.into(),
-                    output,
-                }],
-                None,
-                published,
-            )
+            Ok(Some(CallRecord {
+                name: SUBAGENT_TOOL.into(),
+                state: state.into(),
+                output,
+            }))
         })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) async fn launch_command(
+        &self,
+        params: &TurnParams<'_>,
+        lane: &TurnLane,
+        attached: &McpGeneration,
+        log: &mut TurnLog,
+        admission: CommandAdmission,
+        events: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
+        published: &ExecutionGeneration,
+    ) -> Result<TurnReport, RuntimeError> {
+        let turn = log.turn_id.clone();
+        let op = format!("{turn}:command");
+        let call = self
+            .launch_command_operation(
+                params, lane, attached, log, admission, events, published, &op, None, None,
+            )
+            .await?
+            .ok_or(RuntimeError::Storage)?;
+        self.commit_turn(
+            log,
+            turn,
+            &params.session,
+            if call.state == "running" {
+                TurnStatus::Completed
+            } else {
+                TurnStatus::Failed
+            },
+            String::new(),
+            0,
+            0,
+            None,
+            None,
+            vec![call],
+            None,
+            published,
+        )
     }
 }

@@ -1146,6 +1146,7 @@ pub struct Runtime<'a> {
     // unresolved interactions; explicit publication retires older admission.
     explicit_reload_generation: Arc<AtomicU64>,
     active: AtomicBool,
+    inbox_driver: Mutex<Option<inbox::InboxDriver>>,
     protected: ProtectedGlobs,
     files: crate::files::Files,
     shell: crate::shell::Shell,
@@ -1235,6 +1236,7 @@ mod user_images_tests;
 #[cfg(test)]
 mod media_tests;
 
+pub(crate) mod inbox;
 pub(crate) mod origin;
 mod publication;
 pub(crate) use publication::{SourcePublication, SourceStamp, WorkspacePublication};
@@ -1294,6 +1296,7 @@ impl<'a> Runtime<'a> {
             child_launch: None,
             explicit_reload_generation: Arc::new(AtomicU64::new(0)),
             active: AtomicBool::new(false),
+            inbox_driver: Mutex::new(None),
             protected,
             files,
             shell,
@@ -2273,6 +2276,37 @@ impl<'a> Runtime<'a> {
     /// True while conversational or standalone compaction execution owns the route.
     pub fn turn_active(&self) -> bool {
         self.active.load(Ordering::Relaxed) || self.compaction_active()
+    }
+
+    pub(crate) fn inbox_running(&self, session: &str) -> bool {
+        self.inbox_driver
+            .lock()
+            .expect("inbox driver")
+            .as_ref()
+            .is_some_and(|driver| driver.session == session)
+    }
+
+    pub(crate) fn publish_inbox(
+        &self,
+        session: &str,
+        items: Vec<oc_core::queries::InboxItem>,
+        delivered: Vec<oc_core::queries::InboxDelivered>,
+    ) {
+        if let Some(events) = self
+            .compaction_events
+            .lock()
+            .expect("event publisher")
+            .as_ref()
+        {
+            self.emit(
+                events,
+                oc_core::core_app::CoreEvent::InboxChanged {
+                    session: oc_core::domain::SessionId(session.into()),
+                    items,
+                    delivered,
+                },
+            );
+        }
     }
 
     pub(crate) fn publish_model_selection(

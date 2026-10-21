@@ -823,3 +823,827 @@ async fn busy_agent_commit_applies_from_the_next_request_of_the_running_root() {
     owner.next_root().await.unwrap();
     owner.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn steer_joins_the_running_turn_and_queue_runs_after_it_settles() {
+    use oc_core::queries::InboxDelivery;
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let source = config(&format!("http://{}/v1", listener.local_addr().unwrap()));
+    std::fs::write(project.join("opencode.json"), source.to_string()).unwrap();
+    let (held, mut held_rx) = mpsc::channel(1);
+    let (release, gate) = tokio::sync::oneshot::channel::<()>();
+    let server = tokio::spawn(async move {
+        let mut bodies = Vec::new();
+        let mut gate = Some(gate);
+        for step in 0..3 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            bodies.push(request(&mut socket).await);
+            if step == 0 {
+                held.send(()).await.unwrap();
+                gate.take().unwrap().await.unwrap();
+            }
+            // Every answer is final: only pending input continues the work.
+            respond(&mut socket, json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":format!("answer {step}")}]}])).await;
+        }
+        bodies
+    });
+    let owner = Owner::new(Db::open(&data).unwrap(), env(root.path())).unwrap();
+    let location = owner.location(&project, false).await.unwrap();
+    let session = SessionId("R".into());
+    location.app.create_session(session.clone()).await.unwrap();
+    location
+        .app
+        .rename_session(session.clone(), "fixed".into())
+        .await
+        .unwrap();
+    // Idle sessions take an ordinary submission, not inbox input.
+    assert_eq!(
+        location
+            .app
+            .enqueue(session.clone(), "idle".into(), InboxDelivery::Steer)
+            .await,
+        Err(CoreError::TurnNotActive)
+    );
+    let run = owner
+        .begin(
+            location,
+            "R".into(),
+            Arc::new(Origin::new(Kind::Run, false)),
+            0,
+            false,
+            None,
+        )
+        .unwrap();
+    run.app
+        .submit(session.clone(), "first prompt".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), held_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    let queued = run
+        .app
+        .enqueue(
+            session.clone(),
+            "queued prompt".into(),
+            InboxDelivery::Queue,
+        )
+        .await
+        .unwrap();
+    run.app
+        .enqueue(session.clone(), "steer prompt".into(), InboxDelivery::Steer)
+        .await
+        .unwrap();
+    let pending = run
+        .app
+        .inbox(session.clone(), oc_core::queries::InboxAction::List)
+        .await
+        .unwrap();
+    assert_eq!(pending.items.len(), 2);
+    assert_eq!(pending.items[0], queued);
+    release.send(()).unwrap();
+    let bodies = tokio::time::timeout(Duration::from_secs(10), server)
+        .await
+        .unwrap()
+        .unwrap();
+    let users = |body: &serde_json::Value| {
+        body["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["role"] == "user")
+            .map(|item| item.to_string())
+            .collect::<Vec<_>>()
+    };
+    // Request 2 continues turn 1 after its final answer, with the steer last.
+    let second = users(&bodies[1]);
+    assert!(second.last().unwrap().contains("steer prompt"));
+    assert!(bodies[1].to_string().contains("answer 0"));
+    assert!(!bodies[1].to_string().contains("queued prompt"));
+    // Request 3 is the queued input's own turn, after the settled turn 1.
+    let third = users(&bodies[2]);
+    assert!(third.last().unwrap().contains("queued prompt"));
+    assert!(bodies[2].to_string().contains("answer 1"));
+    owner.next_root().await.unwrap();
+    owner.shutdown().await.unwrap();
+    drop(owner);
+    let history = Db::open(&data).unwrap().read_history("R").unwrap();
+    assert_eq!(
+        history,
+        [
+            ("user".into(), "first prompt".into()),
+            ("user".into(), "steer prompt".into()),
+            ("assistant".into(), "answer 0answer 1".into()),
+            ("user".into(), "queued prompt".into()),
+            ("assistant".into(), "answer 2".into()),
+        ]
+    );
+}
+
+struct RunningInputFixture {
+    _root: tempfile::TempDir,
+    project: PathBuf,
+    owner: Arc<Owner>,
+    run: Arc<Root>,
+    listener: tokio::net::TcpListener,
+    turn: oc_core::core_app::WorkerTurnId,
+}
+
+impl RunningInputFixture {
+    async fn new(configure: impl FnOnce(&mut serde_json::Value)) -> Self {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        std::fs::create_dir(&project).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let mut source = config(&format!("http://{}/v1", listener.local_addr().unwrap()));
+        configure(&mut source);
+        std::fs::write(project.join("opencode.json"), source.to_string()).unwrap();
+        let owner = Owner::new(
+            Db::open(&root.path().join("data")).unwrap(),
+            env(root.path()),
+        )
+        .unwrap();
+        let location = owner.location(&project, false).await.unwrap();
+        location
+            .app
+            .create_session(SessionId("R".into()))
+            .await
+            .unwrap();
+        location
+            .app
+            .rename_session(SessionId("R".into()), "fixed".into())
+            .await
+            .unwrap();
+        let run = owner
+            .begin(
+                location,
+                "R".into(),
+                Arc::new(Origin::new(Kind::Run, false)),
+                1,
+                false,
+                None,
+            )
+            .unwrap();
+        let turn = run
+            .app
+            .submit(SessionId("R".into()), "original".into())
+            .await
+            .unwrap();
+        Self {
+            _root: root,
+            project,
+            owner,
+            run,
+            listener,
+            turn,
+        }
+    }
+
+    async fn request(&self) -> (tokio::net::TcpStream, serde_json::Value) {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            let (mut socket, _) = self.listener.accept().await.unwrap();
+            let body = request(&mut socket).await;
+            (socket, body)
+        })
+        .await
+        .unwrap()
+    }
+
+    async fn finish(&self) {
+        tokio::time::timeout(Duration::from_secs(5), self.owner.next_root())
+            .await
+            .unwrap()
+            .unwrap();
+        self.owner.shutdown().await.unwrap();
+    }
+}
+
+fn image_prompt(label: &str) -> oc_core::prompt::PromptInput {
+    let pixels = image::RgbaImage::from_pixel(1, 1, image::Rgba([1, 2, 3, 255]));
+    let mut png = std::io::Cursor::new(Vec::new());
+    pixels.write_to(&mut png, image::ImageFormat::Png).unwrap();
+    let prefix = format!("{label} Ω ");
+    oc_core::prompt::PromptInput {
+        text: format!("{prefix}[Image 1]"),
+        images: vec![oc_core::prompt::PromptImage {
+            mark: oc_core::prompt::ImageMark {
+                start: prefix.len(),
+                end: prefix.len() + 9,
+                ordinal: 1,
+            },
+            png: png.into_inner().into(),
+        }],
+    }
+}
+
+async fn final_answer(socket: &mut tokio::net::TcpStream) {
+    respond(socket,json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}])).await;
+}
+
+#[tokio::test]
+async fn running_rich_images_steer_and_queue_reach_real_wire_and_keep_distinct_message_metadata() {
+    use oc_core::queries::InboxDelivery;
+    let f = RunningInputFixture::new(|c| {
+        c["providers"]["fixture"]["models"]["m"]["capabilities"] = json!({"input":["text","image"]})
+    })
+    .await;
+    let (mut first, _) = f.request().await;
+    let steer = image_prompt("steered");
+    let queued = image_prompt("queued");
+    f.run
+        .app
+        .enqueue(SessionId("R".into()), queued.clone(), InboxDelivery::Queue)
+        .await
+        .unwrap();
+    let item = f
+        .run
+        .app
+        .enqueue(SessionId("R".into()), steer.clone(), InboxDelivery::Steer)
+        .await
+        .unwrap();
+    assert_eq!(item.images, 1);
+    final_answer(&mut first).await;
+    let (mut second, body) = f.request().await;
+    assert!(body["input"].to_string().contains("steered"));
+    assert!(!body["input"].to_string().contains("queued"));
+    let images = |body: &serde_json::Value| {
+        body["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|i| i["content"].as_array().into_iter().flatten())
+            .filter(|c| c["type"] == "input_image")
+            .count()
+    };
+    assert_eq!(images(&body), 1);
+    final_answer(&mut second).await;
+    let (mut third, body) = f.request().await;
+    assert_eq!(images(&body), 2);
+    assert!(body["input"].to_string().contains("queued"));
+    final_answer(&mut third).await;
+    f.finish().await;
+    let history = f.owner.db.read_history("R").unwrap();
+    assert_eq!(history.iter().filter(|(role, _)| role == "user").count(), 3);
+    let log: serde_json::Value =
+        serde_json::from_str(&f.owner.db.turn_result(&f.turn.0).unwrap().1.unwrap()).unwrap();
+    assert_eq!(log["requests"].as_array().unwrap().len(), 2);
+    assert!(f.owner.db.inbox_pending("R").unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn running_rich_steer_retry_keeps_one_delivery_and_does_not_adopt_a_later_input() {
+    use oc_core::queries::InboxDelivery;
+    use tokio::io::AsyncWriteExt;
+    let f = RunningInputFixture::new(|c| {
+        c["providers"]["fixture"]["models"]["m"]["capabilities"] =
+            json!({"input":["text","image"]});
+    })
+    .await;
+    let (mut first, _) = f.request().await;
+    let prompt = image_prompt("retry image");
+    f.run
+        .app
+        .enqueue(SessionId("R".into()), prompt.clone(), InboxDelivery::Steer)
+        .await
+        .unwrap();
+    final_answer(&mut first).await;
+    let (mut second, issued) = f.request().await;
+    second.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.unwrap();
+    drop(second);
+    f.run
+        .app
+        .enqueue(
+            SessionId("R".into()),
+            "LATER_INPUT".into(),
+            InboxDelivery::Steer,
+        )
+        .await
+        .unwrap();
+    let (mut retry, retried) = f.request().await;
+    assert_eq!(issued["input"], retried["input"]);
+    assert!(!retried["input"].to_string().contains("LATER_INPUT"));
+    final_answer(&mut retry).await;
+    let (mut next, body) = f.request().await;
+    assert!(body["input"].to_string().contains("LATER_INPUT"));
+    final_answer(&mut next).await;
+    f.finish().await;
+    let history = f.owner.db.read_history("R").unwrap();
+    assert_eq!(history.iter().filter(|(role, _)| role == "user").count(), 3);
+    assert_eq!(
+        history
+            .iter()
+            .filter(|(_, text)| text == &prompt.text)
+            .count(),
+        1
+    );
+    assert!(f.owner.db.inbox_pending("R").unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn running_inline_commands_preserve_expansion_original_and_agent_model_routing_for_both_deliveries()
+ {
+    use oc_core::queries::InboxDelivery;
+    for delivery in [InboxDelivery::Steer, InboxDelivery::Queue] {
+        let f = RunningInputFixture::new(|c| {
+            c["agents"]["reviewer"]=json!({"mode":"subagent","system":"INLINE_REVIEWER"});
+            c["providers"]["fixture"]["models"]["override"]=json!({"limit":{"context":100000,"output":2048}});
+            c["commands"]=json!({"review":{"template":"EXPANDED $1","agent":"reviewer","subagent":false,"model":"fixture/override"}});
+        }).await;
+        let (mut first, _) = f.request().await;
+        f.run
+            .app
+            .enqueue(SessionId("R".into()), "/review ARG".into(), delivery)
+            .await
+            .unwrap();
+        final_answer(&mut first).await;
+        let (mut next, body) = f.request().await;
+        assert_eq!(body["model"], "override");
+        let input = body["input"].to_string();
+        assert!(input.contains("INLINE_REVIEWER") && input.contains("EXPANDED ARG"));
+        assert!(!input.contains("EXPANDED EXPANDED"));
+        final_answer(&mut next).await;
+        f.finish().await;
+        assert!(
+            f.owner
+                .db
+                .read_history("R")
+                .unwrap()
+                .contains(&("user".into(), "/review ARG".into()))
+        );
+        let log: serde_json::Value =
+            serde_json::from_str(&f.owner.db.turn_result(&f.turn.0).unwrap().1.unwrap()).unwrap();
+        assert_eq!(
+            log["requests"].as_array().unwrap().len(),
+            if delivery == InboxDelivery::Steer {
+                2
+            } else {
+                1
+            }
+        );
+    }
+}
+
+#[tokio::test]
+async fn running_background_commands_have_unique_real_child_operations_without_finishing_parent_early()
+ {
+    use oc_core::queries::InboxDelivery;
+    for delivery in [InboxDelivery::Steer, InboxDelivery::Queue] {
+        let f = RunningInputFixture::new(|c| {
+            c["agents"]["helper"] = json!({"mode":"subagent","model":"fixture/child"});
+            c["providers"]["fixture"]["models"]["child"] =
+                json!({"limit":{"context":100000,"output":2048}});
+            c["commands"] =
+                json!({"bg":{"template":"CHILD_EXPANDED $1","agent":"helper","subagent":true}});
+            c["permissions"] = json!([{"action":"subagent","resource":"*","effect":"allow"}]);
+        })
+        .await;
+        let (mut first, _) = f.request().await;
+        for invocation in ["/bg one", "/bg two"] {
+            f.run
+                .app
+                .enqueue(SessionId("R".into()), invocation.into(), delivery)
+                .await
+                .unwrap();
+        }
+        final_answer(&mut first).await;
+        let mut children = Vec::new();
+        let mut parent = None;
+        for _ in 0..if delivery == InboxDelivery::Steer {
+            3
+        } else {
+            2
+        } {
+            let (socket, body) = f.request().await;
+            if body["model"] == "child" {
+                assert!(body["input"].to_string().contains("CHILD_EXPANDED"));
+                children.push(socket);
+            } else {
+                assert!(body["input"].to_string().contains("function_call_output"));
+                parent = Some(socket);
+            }
+        }
+        assert_eq!(children.len(), 2);
+        if let Some(mut parent) = parent {
+            final_answer(&mut parent).await;
+        }
+        tokio::time::timeout(Duration::from_secs(5), f.owner.next_root())
+            .await
+            .unwrap()
+            .unwrap();
+        let jobs = f.owner.db.child_jobs("R").unwrap();
+        assert_eq!(jobs.len(), 2);
+        assert_ne!(jobs[0].operation, jobs[1].operation);
+        if delivery == InboxDelivery::Steer {
+            let log: serde_json::Value =
+                serde_json::from_str(&f.owner.db.turn_result(&f.turn.0).unwrap().1.unwrap())
+                    .unwrap();
+            assert_eq!(log["display"]["commands"].as_object().unwrap().len(), 2);
+        }
+        f.owner.cancel_origin(&f.run.origin);
+        drop(children);
+        f.owner.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn running_shell_ask_remains_pumped_after_model_finishes_and_receipt_cancel_does_not_cancel_model()
+ {
+    use oc_core::{
+        approval::{ApprovalDecision, ApprovalReply},
+        core_app::UserShellSelection,
+    };
+    let f = RunningInputFixture::new(|c| {
+        c["permissions"] = json!([{"action":"shell","resource":"*","effect":"ask"}])
+    })
+    .await;
+    let (mut first, _) = f.request().await;
+    let mut events = f.run.app.subscribe();
+    let mut cancelled = f
+        .run
+        .app
+        .request_user_shell(
+            SessionId("R".into()),
+            "printf no > cancelled.effect".into(),
+            UserShellSelection::Existing(None),
+        )
+        .unwrap();
+    let approval = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap() {
+                break request;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(approval.binding.operation.starts_with("user-shell:"));
+    cancelled.cancel();
+    assert!(
+        tokio::time::timeout(Duration::from_secs(5), cancelled.wait())
+            .await
+            .unwrap()
+            .is_err()
+    );
+    assert!(!f.run.cancel.load(Ordering::Acquire));
+    assert!(!f.project.join("cancelled.effect").exists());
+    let mut shell = f
+        .run
+        .app
+        .request_user_shell(
+            SessionId("R".into()),
+            "printf yes > allowed.effect".into(),
+            UserShellSelection::Existing(None),
+        )
+        .unwrap();
+    let approval = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap() {
+                break request;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    final_answer(&mut first).await;
+    // Model completion cannot retire its actor while the independent Ask waits.
+    assert!(!f.run.app.pending_approvals().await.unwrap().is_empty());
+    f.run
+        .app
+        .reply_approval(ApprovalReply {
+            id: approval.id,
+            binding: approval.binding,
+            decision: ApprovalDecision::Once,
+        })
+        .await
+        .unwrap();
+    let operation = tokio::time::timeout(Duration::from_secs(5), shell.wait())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(operation.starts_with("user-shell:"));
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !f.project.join("allowed.effect").exists() {
+            events.recv().await.unwrap();
+        }
+    })
+    .await
+    .unwrap();
+    f.finish().await;
+    assert_eq!(
+        std::fs::read_to_string(f.project.join("allowed.effect")).unwrap(),
+        "yes"
+    );
+    assert!(
+        tokio::time::timeout(Duration::from_millis(20), f.listener.accept())
+            .await
+            .is_err(),
+        "no provider request merely to execute shell"
+    );
+}
+
+#[tokio::test]
+async fn running_stale_command_is_visible_restorable_and_does_not_reexpand_or_request_again() {
+    use oc_core::queries::InboxDelivery;
+    let f = RunningInputFixture::new(|c| {
+        c["commands"] = json!({"check":{"template":"ORIGINAL_EXPANSION $1"}})
+    })
+    .await;
+    let (mut first, _) = f.request().await;
+    let item = f
+        .run
+        .app
+        .enqueue(
+            SessionId("R".into()),
+            "/check ARG".into(),
+            InboxDelivery::Steer,
+        )
+        .await
+        .unwrap();
+    let path = f.project.join("opencode.json");
+    let mut source: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    source["commands"]["check"]["template"] = json!("CHANGED_EXPANSION $1");
+    std::fs::write(path, source.to_string()).unwrap();
+    // Reload belongs to the Location owner, not its running source follower.
+    let location = f.owner.location(&f.project, false).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(5), location.app.reload_location())
+        .await
+        .unwrap()
+        .unwrap();
+    final_answer(&mut first).await;
+    f.finish().await;
+    let pending = f.owner.db.inbox_read("R", &item.id).unwrap().unwrap();
+    assert!(pending.item.error.is_some());
+    assert_eq!(pending.payload.original().text, "/check ARG");
+    assert_eq!(pending.payload.prompt.text, "ORIGINAL_EXPANSION ARG");
+    assert!(
+        tokio::time::timeout(Duration::from_millis(20), f.listener.accept())
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn running_command_reopen_rejects_changed_sources_even_when_generation_numbers_repeat() {
+    use oc_core::queries::InboxDelivery;
+    for changed in 0..3 {
+        let f = RunningInputFixture::new(|c| {
+            c["agents"]["alpha"] = json!({"system":"REOPEN_PARENT"});
+            c["agents"]["reviewer"] = json!({"mode":"primary","system":"REOPEN_TARGET"});
+            c["default_agent"] = json!("alpha");
+            c["commands"] = json!({"reopen":{"template":"REOPEN_EXPANSION $1","agent":"reviewer"}});
+        })
+        .await;
+        let (first, _) = f.request().await;
+        let item = f
+            .run
+            .app
+            .enqueue(
+                SessionId("R".into()),
+                "/reopen ARG".into(),
+                InboxDelivery::Queue,
+            )
+            .await
+            .unwrap();
+        let generation = f
+            .owner
+            .db
+            .inbox_read("R", &item.id)
+            .unwrap()
+            .unwrap()
+            .payload
+            .command
+            .unwrap()
+            .generation;
+        f.run.app.cancel(SessionId("R".into())).await.unwrap();
+        drop(first);
+        f.finish().await;
+        let RunningInputFixture {
+            _root,
+            project,
+            owner,
+            run,
+            listener,
+            ..
+        } = f;
+        drop(run);
+        drop(owner);
+
+        let path = project.join("opencode.json");
+        let mut source: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        match changed {
+            1 => source["commands"]["reopen"]["template"] = json!("DIFFERENT_EXPANSION $1"),
+            2 => source["agents"]["reviewer"]["mode"] = json!("subagent"),
+            _ => {}
+        }
+        std::fs::write(path, source.to_string()).unwrap();
+        let owner = Owner::new(
+            Db::open(&_root.path().join("data")).unwrap(),
+            env(_root.path()),
+        )
+        .unwrap();
+        let location = owner.location(&project, false).await.unwrap();
+        assert_eq!(
+            location
+                .app
+                .catalog()
+                .await
+                .unwrap()
+                .chrome
+                .selection_generation,
+            generation
+        );
+        let run = owner
+            .begin(
+                location,
+                "R".into(),
+                Arc::new(Origin::new(Kind::Run, false)),
+                1,
+                false,
+                None,
+            )
+            .unwrap();
+        let (ack, receipt) = oneshot::channel();
+        run.app
+            .dispatch(InboxMsg::SubmitInbox {
+                session: SessionId("R".into()),
+                id: item.id.clone(),
+                ack,
+            })
+            .await
+            .unwrap();
+        let result = tokio::time::timeout(Duration::from_secs(5), receipt)
+            .await
+            .unwrap()
+            .unwrap();
+        if changed == 0 {
+            result.unwrap();
+            let (mut socket, _) = tokio::time::timeout(Duration::from_secs(5), listener.accept())
+                .await
+                .unwrap()
+                .unwrap();
+            let body = request(&mut socket).await;
+            let input = body["input"].to_string();
+            assert!(input.contains("REOPEN_TARGET") && input.contains("REOPEN_EXPANSION ARG"));
+            final_answer(&mut socket).await;
+        } else {
+            assert!(result.is_err());
+            let pending = owner.db.inbox_read("R", &item.id).unwrap().unwrap();
+            assert!(pending.item.error.is_some());
+            assert_eq!(pending.payload.original().text, "/reopen ARG");
+            assert_eq!(pending.payload.prompt.text, "REOPEN_EXPANSION ARG");
+            assert!(
+                tokio::time::timeout(Duration::from_millis(20), listener.accept())
+                    .await
+                    .is_err()
+            );
+        }
+        tokio::time::timeout(Duration::from_secs(5), owner.next_root())
+            .await
+            .unwrap()
+            .unwrap();
+        owner.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn running_shell_one_slot_and_root_cancel_preserve_pending_prompts_without_launch() {
+    use oc_core::{core_app::UserShellSelection, queries::InboxDelivery};
+    let f = RunningInputFixture::new(|c| {
+        c["permissions"] = json!([{"action":"shell","resource":"*","effect":"ask"}])
+    })
+    .await;
+    let (_first, _) = f.request().await;
+    let mut events = f.run.app.subscribe();
+    let mut shell = f
+        .run
+        .app
+        .request_user_shell(
+            SessionId("R".into()),
+            "printf no > cancelled-root.effect".into(),
+            UserShellSelection::Existing(None),
+        )
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::PermissionAsked(_)) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    let mut second = f
+        .run
+        .app
+        .request_user_shell(
+            SessionId("R".into()),
+            "printf duplicate".into(),
+            UserShellSelection::Existing(None),
+        )
+        .unwrap();
+    assert_eq!(second.wait().await, Err(CoreError::TurnBusy));
+    f.run
+        .app
+        .enqueue(
+            SessionId("R".into()),
+            "retained after cancel".into(),
+            InboxDelivery::Queue,
+        )
+        .await
+        .unwrap();
+    f.run.app.cancel(SessionId("R".into())).await.unwrap();
+    assert!(
+        tokio::time::timeout(Duration::from_secs(5), shell.wait())
+            .await
+            .unwrap()
+            .is_err()
+    );
+    f.finish().await;
+    assert!(!f.project.join("cancelled-root.effect").exists());
+    assert_eq!(f.owner.db.inbox_pending("R").unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn running_shell_capture_does_not_overwrite_a_later_committed_agent() {
+    use oc_core::{
+        approval::{ApprovalDecision, ApprovalReply},
+        core_app::UserShellSelection,
+    };
+    let f = RunningInputFixture::new(|c| {
+        c["agents"]["alpha"] = json!({"system":"ALPHA"});
+        c["agents"]["beta"] = json!({"system":"BETA"});
+        c["default_agent"] = json!("alpha");
+        c["permissions"] = json!([{"action":"shell","resource":"*","effect":"ask"}]);
+    })
+    .await;
+    let (mut first, _) = f.request().await;
+    let mut events = f.run.app.subscribe();
+    let mut shell = f
+        .run
+        .app
+        .request_user_shell(
+            SessionId("R".into()),
+            "printf captured > captured.effect".into(),
+            UserShellSelection::Existing(None),
+        )
+        .unwrap();
+    let approval = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap() {
+                break request;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(approval.binding.agent.as_deref(), Some("alpha"));
+    f.run
+        .app
+        .session_selection(
+            SessionId("R".into()),
+            false,
+            SessionSelectionAction::Agent("beta".into()),
+        )
+        .await
+        .unwrap();
+    f.run
+        .app
+        .reply_approval(ApprovalReply {
+            id: approval.id,
+            binding: approval.binding,
+            decision: ApprovalDecision::Once,
+        })
+        .await
+        .unwrap();
+    shell.wait().await.unwrap();
+    assert_eq!(
+        f.run
+            .app
+            .session_selection(
+                SessionId("R".into()),
+                false,
+                SessionSelectionAction::Current
+            )
+            .await
+            .unwrap()
+            .agent_id
+            .as_deref(),
+        Some("beta")
+    );
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !f.project.join("captured.effect").exists() {
+            events.recv().await.unwrap();
+        }
+    })
+    .await
+    .unwrap();
+    final_answer(&mut first).await;
+    f.finish().await;
+}

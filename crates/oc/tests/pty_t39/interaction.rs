@@ -2344,6 +2344,66 @@ fn sessions_selected_rename_and_confirmed_delete_reach_real_owner_without_provid
 }
 
 #[test]
+fn messages_sent_while_busy_steer_the_turn_and_queue_after_it() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn(fixture.clone(), "busy-inbox", None);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "vis28 held stream");
+    fixture.wait_requests(1);
+    // OC2: Enter while the agent works steers; ctrl+x Enter queues.
+    pty.send(b"steer this in\r");
+    wait_screen_row(&pty, "steer this in", DEADLINE);
+    pty.send(b"run me after");
+    wait_screen_row(&pty, "run me after", DEADLINE);
+    pty.send(b"\x18\r");
+    wait_screen_row(&pty, "1 queued · run me after", DEADLINE);
+    fixture.vis28_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&pty, "echo: steer this in", DEADLINE);
+    wait_screen_row(&pty, "echo: run me after", DEADLINE);
+    wait_idle(&pty);
+    let rows = render_screen(&pty.snapshot()).rows();
+    let at = |needle: &str| {
+        rows.iter()
+            .position(|row| row.contains(needle))
+            .unwrap_or_else(|| panic!("{needle} missing: {rows:?}"))
+    };
+    assert!(
+        at("┃  steer this in") < at("echo: steer this in")
+            && at("echo: steer this in") < at("┃  run me after"),
+        "steer and queue keep their delivery order: {rows:?}"
+    );
+    let requests = fixture.requests.lock().unwrap().clone();
+    let users = requests
+        .iter()
+        .filter_map(last_user_text)
+        .filter(|text| text != "vis28 held stream")
+        .collect::<Vec<_>>();
+    assert!(users.contains(&"steer this in".to_string()));
+    assert!(users.contains(&"run me after".to_string()));
+    let conn = rusqlite::Connection::open(pty.data_dir().join("oc.sqlite")).unwrap();
+    let turns: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM turns WHERE session_id='busy-inbox'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        turns, 2,
+        "the steer joined turn 1; the queued prompt ran turn 2"
+    );
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .join("\n")
+            .contains("queued ·")
+    );
+    pty.send(b"/quit\r");
+    let (status, out) = pty.wait_exit(DEADLINE);
+    assert!(status.success() && contains(&out, ALT_LEAVE) && pty.restored());
+}
+
+#[test]
 fn deleting_a_running_session_interrupts_it_before_removal() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "busy-delete", None);
@@ -2368,6 +2428,7 @@ fn deleting_a_running_session_interrupts_it_before_removal() {
         .lock()
         .unwrap()
         .iter()
+        .filter(|body| !title::is_title(body))
         .filter(|body| last_user_text(body).as_deref() == Some("vis28 held stream"))
         .count();
     assert_eq!(held, 1, "the interrupted request is not replayed");

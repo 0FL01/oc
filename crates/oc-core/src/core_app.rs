@@ -195,6 +195,13 @@ pub enum CoreEvent {
     ProjectionGap,
     /// The owner disappeared. This is not evidence that a mutation failed.
     OwnerDisconnected,
+    /// The session's pending inbox changed. `delivered` names steer items
+    /// that just joined the running turn as user messages.
+    InboxChanged {
+        session: SessionId,
+        items: Vec<crate::queries::InboxItem>,
+        delivered: Vec<crate::queries::InboxDelivered>,
+    },
     /// Durable scoped choice changed; this is not a request/assistant identity.
     SessionModelSelected {
         session: SessionId,
@@ -649,6 +656,27 @@ pub enum InboxMsg {
         /// Durable acceptance or rejection.
         ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
     },
+    /// OC2 steer/queue: hold input for the session's running turn.
+    Enqueue {
+        session: SessionId,
+        text: crate::prompt::PromptInput,
+        delivery: crate::queries::InboxDelivery,
+        selection: Option<crate::queries::ModelCommit>,
+        ack: oneshot::Sender<Result<crate::queries::InboxItem, CoreError>>,
+    },
+    /// Explicit activation of already durable pending input. The owning
+    /// application resolves the payload; callers cannot supply prepared authority.
+    SubmitInbox {
+        session: SessionId,
+        id: String,
+        ack: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
+    },
+    /// Read or change the session's pending inbox.
+    Inbox {
+        session: SessionId,
+        action: crate::queries::InboxAction,
+        ack: oneshot::Sender<Result<crate::queries::InboxSnapshot, CoreError>>,
+    },
     /// Atomically accept the first turn and create its Location-bound root.
     /// A refusal must not create a session; acknowledgement follows durable
     /// acceptance of the root, selection, turn and user message.
@@ -1005,6 +1033,7 @@ impl InboxSender {
         if let Some(mut entries) = entries {
             let session = match &message {
                 InboxMsg::Submit { session, .. }
+                | InboxMsg::SubmitInbox { session, .. }
                 | InboxMsg::SubmitFresh { session, .. }
                 | InboxMsg::UserShell { session, .. }
                 | InboxMsg::Compress { session, .. }
@@ -2304,6 +2333,55 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// OC2 steer/queue input for a session whose turn is running.
+    pub async fn enqueue(
+        &self,
+        session: SessionId,
+        text: crate::prompt::PromptInput,
+        delivery: crate::queries::InboxDelivery,
+    ) -> Result<crate::queries::InboxItem, CoreError> {
+        self.enqueue_selected(session, text, delivery, None).await
+    }
+
+    pub async fn enqueue_selected(
+        &self,
+        session: SessionId,
+        text: crate::prompt::PromptInput,
+        delivery: crate::queries::InboxDelivery,
+        selection: Option<crate::queries::ModelCommit>,
+    ) -> Result<crate::queries::InboxItem, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Enqueue {
+                session,
+                text,
+                delivery,
+                selection,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Read or change the session's pending inbox.
+    pub async fn inbox(
+        &self,
+        session: SessionId,
+        action: crate::queries::InboxAction,
+    ) -> Result<crate::queries::InboxSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Inbox {
+                session,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read/change the durable session/agent selection. Home model choices also
     /// remember the Location/agent draft; no transcript is copied or modified.
     pub async fn session_selection(
@@ -2811,6 +2889,9 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::Workspace { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::SubmitInbox { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::UserShell { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -2963,6 +3044,12 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::SelectAgent { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::Enqueue { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Inbox { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::SwitchLocation { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -3047,6 +3134,7 @@ mod tests {
                 .expect("event channel");
             match ev {
                 CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::InboxChanged { .. }
                 | CoreEvent::RetryScheduled { .. }
                 | CoreEvent::WorkspaceChanged { .. }
                 | CoreEvent::ProjectionGap
@@ -3371,6 +3459,7 @@ mod tests {
                 .expect("event");
             match ev {
                 CoreEvent::SessionModelSelected { .. }
+                | CoreEvent::InboxChanged { .. }
                 | CoreEvent::RetryScheduled { .. }
                 | CoreEvent::WorkspaceChanged { .. }
                 | CoreEvent::ProjectionGap

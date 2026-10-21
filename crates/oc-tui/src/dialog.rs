@@ -964,6 +964,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Sessions => "Sessions",
         TuiPanel::Rename | TuiPanel::Accounts | TuiPanel::Execute => unreachable!("rendered above"),
         TuiPanel::Skills => "Skills",
+        TuiPanel::QueuedPrompts => "Queued prompts",
         TuiPanel::Mcps => "MCP servers",
         TuiPanel::Cards => "Tool cards",
         TuiPanel::Help(_) => "Help",

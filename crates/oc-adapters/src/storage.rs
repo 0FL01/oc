@@ -43,6 +43,8 @@ mod dcp_view;
 mod fork;
 #[path = "storage_grants.rs"]
 mod grants;
+#[path = "storage_inbox.rs"]
+pub(crate) mod inbox;
 #[path = "storage_instructions.rs"]
 mod instructions;
 mod prompt_history;
@@ -264,6 +266,9 @@ pub enum StorageError {
     /// Credential persistence failed; SQLite diagnostics may contain material.
     #[error("credential storage failure")]
     CredentialStorage,
+    /// The session already holds the bounded number of pending inputs.
+    #[error("too many pending inputs")]
+    InboxFull,
     /// Underlying SQLite failure.
     #[error("sqlite: {0}")]
     Sqlite(#[from] rusqlite::Error),
@@ -577,6 +582,7 @@ impl Db {
         Self::credentials_schema(&conn)?;
         Self::custom_provider_schema(&conn)?;
         Self::terminals_schema(&conn)?;
+        Self::inbox_schema(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {
             Ok(()) => {}
@@ -1196,6 +1202,7 @@ impl Db {
             "tool_output_resources",
             "shell_jobs",
             "child_jobs",
+            "session_inbox",
             "tool_operations",
             "events",
             "messages",
@@ -2457,6 +2464,7 @@ impl Db {
         )
     }
 
+    #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn accept_turn_with_selection(
         &self,
@@ -2470,6 +2478,34 @@ impl Db {
         history_input: Option<&str>,
         seed: Option<&mut crate::tools::TurnLog>,
     ) -> Result<AcceptedTurn, StorageError> {
+        self.accept_inbox_turn(
+            turn,
+            session,
+            prompt,
+            user_text,
+            model,
+            reminder,
+            selection,
+            history_input,
+            seed,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn accept_inbox_turn(
+        &self,
+        turn: &str,
+        session: &str,
+        prompt: &str,
+        user_text: &str,
+        model: &oc_core::queries::ModelRef,
+        reminder: Option<&str>,
+        selection: Option<(&str, &str)>,
+        history_input: Option<&str>,
+        seed: Option<&mut crate::tools::TurnLog>,
+        pending: Option<&str>,
+    ) -> Result<AcceptedTurn, StorageError> {
         if let Some((key, _)) = selection {
             let valid = key
                 .strip_prefix("tui.selection.session:")
@@ -2481,6 +2517,9 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
+        if let Some(id) = pending {
+            Self::consume_inbox_turn_in(&tx, session, id)?;
+        }
         let accepted = Self::insert_accepted_turn(
             &tx,
             turn,

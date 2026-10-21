@@ -162,6 +162,10 @@ pub(super) async fn attach(app: &CoreApp, view: &mut TuiState) -> Result<(), Str
     if let Some(projection) = prepare_projection(app, view, &snapshot).await? {
         apply_projection(app, view, projection).await;
     }
+    // OC2 steer/queue input pending for this session survives a reattach.
+    if let Some(session) = view.attached_session().cloned() {
+        view.apply_inbox(&session, snapshot.inbox);
+    }
     Ok(())
 }
 

@@ -122,6 +122,9 @@ rpc! {
     RegenerateTitle { session: SessionId } -> String;
     CancelTitle { session: SessionId } -> ();
     Submit { session: SessionId, text: oc_core::prompt::PromptInput, selection: Option<ModelCommit> } -> WorkerTurnId;
+    Enqueue { session: SessionId, text: oc_core::prompt::PromptInput, delivery: InboxDelivery, selection: Option<ModelCommit> } -> InboxItem;
+    SubmitInbox { session: SessionId, id: String } -> WorkerTurnId;
+    Inbox { session: SessionId, action: InboxAction } -> InboxSnapshot;
     SubmitFresh { session: SessionId, text: oc_core::prompt::PromptInput, selection: Option<FreshSelection> } -> WorkerTurnId;
     Cancel { session: SessionId } -> ();
     List {} -> Vec<SessionId>;
@@ -192,6 +195,10 @@ impl Request {
     pub(super) fn bind_attachment(&mut self, attachment: u64) {
         let commit = match self {
             Self::Submit {
+                selection: Some(commit),
+                ..
+            }
+            | Self::Enqueue {
                 selection: Some(commit),
                 ..
             }

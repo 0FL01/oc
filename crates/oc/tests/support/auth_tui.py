@@ -118,12 +118,13 @@ class View:
         assert b'\x1b]52;' not in self.output[mark:], 'auth clipboard must be explicit'
 
     def quit(self):
-        # One Esc unmounts auth; idle Home's following Esc is native quit.
+        # Esc unmounts auth but is inert on idle Home. Ctrl+C clears any
+        # retained draft, then the second press performs joined native quit.
         titles = ('Connect an integration', 'Connect OpenAI', 'Connected accounts', 'ChatGPT Pro/Plus', 'Custom provider')
         if any(any(title in row for title in titles) for row in self.screen()):
             self.send(b'\x1b')
             wait(lambda: not any(any(title in row for title in titles) for row in self.screen()), 'auth surface unmounted')
-        self.send(b'\x1b')
+        self.send(b'\x03\x03')
         def exited():
             self.drain(); return self.proc.poll() is not None
         wait(exited, 'native joined quit')

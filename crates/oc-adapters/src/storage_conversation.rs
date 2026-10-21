@@ -481,6 +481,7 @@ impl Db {
                 && Self::child_notice_in(conn, session, &message)?.is_none()
                 && Self::model_shell_notice_in(conn, session, &message)?.is_none()
                 && !Self::native_notice_data_in(conn, session, &message)?
+                && !Self::inbox_message_in(conn, session, &message)?
             {
                 return Ok(Some(message));
             }
@@ -614,6 +615,7 @@ impl Db {
                 && Self::child_notice_in(conn, session, &id)?.is_none()
                 && Self::model_shell_notice_in(conn, session, &id)?.is_none()
                 && !Self::native_notice_data_in(conn, session, &id)?
+                && !Self::inbox_message_in(conn, session, &id)?
             {
                 count = count.saturating_add(1);
                 message.get_or_insert(id);

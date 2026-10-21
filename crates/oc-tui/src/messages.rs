@@ -1115,6 +1115,29 @@ fn render_row(
         "shell_input_delivered" | "native_control" => Vec::new(),
         "child_notice" => child_notice_block(row, index, theme, width),
         "shell_notice" => shell_notice_block(row, index, theme, width),
+        "queued" => {
+            // OC2 queued-prompts dock: `N queued · first prompt`, one line.
+            let (count, preview) = row.text.split_once(" · ").unwrap_or((&row.text, ""));
+            let padding = usize::from(width).min(3);
+            let mut spans = vec![
+                Span::plain(" ".repeat(padding)),
+                Span::styled(count.to_string(), Style::default().fg(theme.text())),
+            ];
+            if !preview.is_empty() {
+                spans.push(Span::styled(
+                    format!(" · {preview}"),
+                    Style::default().fg(theme.text_muted()),
+                ));
+            }
+            let line = Line::new(spans);
+            vec![
+                Line::plain(""),
+                crate::styled::wrap_line(&line, usize::from(width))
+                    .into_iter()
+                    .next()
+                    .unwrap_or_default(),
+            ]
+        }
         "background_hint" => {
             let line = Line::new(vec![
                 Span::styled("Press ", Style::default().fg(theme.text_muted())),

@@ -4013,6 +4013,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
             panic!("WorkspaceChanged reconciliation")
         };
         ack.send(Ok(oc_core::queries::WorkspaceSnapshot {
+            inbox: Vec::new(),
             revision: 10,
             deck: accepted,
             turns: Vec::new(),

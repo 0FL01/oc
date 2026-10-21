@@ -3323,6 +3323,27 @@ async fn apply_owned_intent(
                     .regenerated_title(Err("title generation unavailable for this session".into())),
             }
         }
+        PanelIntent::Inbox { action, restore } => {
+            let session = require_session(state)?;
+            let prompt = if restore && let oc_core::queries::InboxAction::Remove { id } = &action {
+                let peek = app
+                    .inbox(
+                        session.clone(),
+                        oc_core::queries::InboxAction::Read { id: id.clone() },
+                    )
+                    .await
+                    .map_err(|error| error.to_string())?;
+                Some(state.prepare_inbox_restore(peek.prompt.ok_or("input already delivered")?)?)
+            } else {
+                None
+            };
+            let mut snapshot = app
+                .inbox(session.clone(), action)
+                .await
+                .map_err(|error| error.to_string())?;
+            snapshot.prompt = prompt;
+            state.applied_inbox(&session, snapshot, restore);
+        }
         PanelIntent::SelectAgent { id } => {
             // OC2: a session's agent is a composer draft until the next send;
             // the running turn keeps its profile. Home persists its own choice.
@@ -4123,6 +4144,7 @@ async fn handle_worker_event_at(
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::SessionModelSelected { session, .. }
+        | CoreEvent::InboxChanged { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
         | CoreEvent::TurnStarted { session, .. }
@@ -4212,6 +4234,27 @@ async fn handle_worker_event_at(
         CoreEvent::TerminalChanged { .. } => {}
         CoreEvent::SessionModelSelected { session, commit } => {
             state.apply_session_model_selected(&session, &commit)
+        }
+        CoreEvent::InboxChanged {
+            session,
+            items,
+            delivered,
+        } => {
+            state.apply_inbox(&session, items);
+            // A steer joined the running turn: correlate the live prompt, then
+            // show its durable user row placed by the turn's notice order.
+            if !delivered.is_empty() {
+                let recent = app
+                    .transcript_page(session, None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|error| error.to_string())?;
+                state.refresh_child_notice_page(&recent);
+                let ids = delivered
+                    .into_iter()
+                    .map(|delivered| delivered.message)
+                    .collect::<Vec<_>>();
+                state.insert_steered_rows(&recent, &ids);
+            }
         }
         CoreEvent::ShellNotice(notice) => {
             if notice.user_requested {

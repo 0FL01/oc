@@ -110,6 +110,9 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::SessionModelSelected { session, commit })) => {
                     state.apply_session_model_selected(&session, &commit)
                 }
+                Ok(Ok(CoreEvent::InboxChanged { session, items, .. })) => {
+                    state.apply_inbox(&session, items)
+                }
                 Ok(Ok(CoreEvent::PermissionAsked(_)))
                 | Ok(Ok(CoreEvent::PermissionResolved { .. })) => {
                     if let Ok(pending) = state.app.pending_approvals().await {

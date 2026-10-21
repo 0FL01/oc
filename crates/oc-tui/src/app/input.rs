@@ -336,6 +336,7 @@ impl TuiState {
                     option
                 })
                 .collect(),
+            TuiPanel::QueuedPrompts => self.queued_prompt_options(),
             TuiPanel::Skills => self
                 .skills
                 .iter()
@@ -969,6 +970,7 @@ impl TuiState {
                 | TuiPanel::Agents
                 | TuiPanel::Sessions
                 | TuiPanel::Skills
+                | TuiPanel::QueuedPrompts
                 | TuiPanel::Mcps
                 | TuiPanel::MessageActions { .. }
         ) && self.mcp_detail.is_none()
@@ -1014,6 +1016,9 @@ impl TuiState {
         }
         let raw = crate::events::binding(event)?;
         let raw = if raw == " " { "space".to_owned() } else { raw };
+        if self.panel == TuiPanel::QueuedPrompts && self.leader.is_none() && raw == "ctrl+u" {
+            return Some(KeyAction::QueuedUndo);
+        }
         let candidate = if self.leader.is_some() {
             format!("{} {raw}", self.leader_key)
         } else {
@@ -1095,6 +1100,7 @@ impl TuiState {
                     | KeyAction::SelectWordRight
             ) || self.panel == TuiPanel::Sessions
                 && matches!(action, KeyAction::Rename | KeyAction::DeleteOrQuit)
+                || self.panel == TuiPanel::QueuedPrompts && *action == KeyAction::DeleteOrQuit
         })
     }
 
@@ -1245,6 +1251,13 @@ impl TuiState {
                     .iter()
                     .position(|s| s.id == option.value)
                     .unwrap_or(0)
+            }
+            TuiPanel::QueuedPrompts => {
+                let cursor = self
+                    .queued()
+                    .position(|item| item.id == option.value)
+                    .unwrap_or(0);
+                self.queued_cursor = cursor;
             }
             TuiPanel::Mcps => self.mcp_focused = Some(option.value.clone()),
             _ => {}
@@ -2823,6 +2836,14 @@ impl TuiState {
                 _ => String::new(),
             };
             let binding = format!("{} {key}", self.leader_key);
+            // OC2 `prompt.queue` (<leader>return) and `session.queued_prompts`
+            // (<leader>q, while prompts are queued; otherwise it stays exit).
+            if self.panel == TuiPanel::None && (key == "enter" || action == KeyAction::Enter) {
+                return self.queue_prompt().await;
+            }
+            if self.panel == TuiPanel::None && key == "q" && self.queued().next().is_some() {
+                return self.open_queued_prompts();
+            }
             let command = if self.panel == TuiPanel::None {
                 [
                     CommandAction::UndoConversation,
@@ -3157,6 +3178,7 @@ impl TuiState {
                 self.status = TuiStatus::Quit;
                 KeyOutcome::default()
             }
+            KeyAction::QueuedUndo => KeyOutcome::default(),
             KeyAction::Delete
             | KeyAction::DeleteOrQuit
             | KeyAction::WordBackspace
@@ -3406,7 +3428,7 @@ impl TuiState {
         Ok(changed)
     }
 
-    async fn handle_enter(&mut self) -> KeyOutcome {
+    pub(super) async fn handle_enter(&mut self) -> KeyOutcome {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
@@ -3436,7 +3458,11 @@ impl TuiState {
                 };
             }
             return match self.commit_composer_model() {
-                Ok(()) => KeyOutcome::default(),
+                // OC2 onEmptySubmit: the first queued prompt joins the turn.
+                Ok(()) => KeyOutcome {
+                    intent: self.promote_first_queued(),
+                    ..Default::default()
+                },
                 Err(error) => KeyOutcome {
                     note: Some(format!("model commit: {error}")),
                     ..Default::default()
@@ -3537,11 +3563,13 @@ impl TuiState {
                 return outcome;
             }
         }
-        if self.active_turn.is_some() {
-            return KeyOutcome {
-                note: Some("turn busy".into()),
-                ..KeyOutcome::default()
-            };
+        // OC2 steer: input sent while the agent works joins the running turn.
+        if self.active_turn.is_some()
+            && let Some(outcome) = self
+                .enqueue_input(oc_core::queries::InboxDelivery::Steer)
+                .await
+        {
+            return outcome;
         }
         // OC2 prepareAgent: a staged agent is committed before the captured
         // model commit, so this send (not the running turn) carries it.
@@ -3902,6 +3930,11 @@ impl TuiState {
                 ..Default::default()
             };
         }
+        if matches!(action, KeyAction::DeleteOrQuit | KeyAction::QueuedUndo)
+            && let Some(outcome) = self.queued_prompt_key(&action)
+        {
+            return outcome;
+        }
         if self.panel == TuiPanel::Sessions {
             if matches!(action, KeyAction::Rename | KeyAction::DeleteOrQuit) {
                 let Some(id) = self.sessions.get(self.sessions_cursor).cloned() else {
@@ -4063,6 +4096,7 @@ impl TuiState {
                         | TuiPanel::Agents
                         | TuiPanel::Sessions
                         | TuiPanel::Skills
+                        | TuiPanel::QueuedPrompts
                         | TuiPanel::Mcps
                         | TuiPanel::MessageActions { .. }
                 ) =>
@@ -4278,6 +4312,9 @@ impl TuiState {
             TuiPanel::Skills => {
                 self.skills_cursor = clamp_cursor(self.skills_cursor, delta, self.skills.len());
             }
+            TuiPanel::QueuedPrompts => {
+                self.queued_cursor = clamp_cursor(self.queued_cursor, delta, self.queued().count());
+            }
             TuiPanel::Cards => {
                 self.cards_cursor = clamp_cursor(self.cards_cursor, delta, self.cards.len());
             }
@@ -4400,6 +4437,11 @@ impl TuiState {
             },
             TuiPanel::Skills => {
                 self.panel = TuiPanel::None;
+            }
+            TuiPanel::QueuedPrompts => {
+                return self
+                    .queued_prompt_key(&KeyAction::Enter)
+                    .unwrap_or_default();
             }
             TuiPanel::Mcps => return self.mcp_enter(),
             TuiPanel::Cards => {

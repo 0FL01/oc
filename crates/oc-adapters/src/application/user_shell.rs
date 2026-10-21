@@ -3,6 +3,113 @@
 use super::*;
 use oc_core::core_app::UserShellSelection;
 
+pub(super) type SideAdmission<'a> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = bool> + Send + 'a>>;
+
+/// One actor-owned side future borrows no mutable application state across Ask.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn start_side<'a>(
+    db: &Db,
+    runtime: &'a Runtime<'_>,
+    composition: &Composition,
+    effective: &Effective,
+    root_session: &SessionId,
+    root_cancel: &'a AtomicBool,
+    location_epoch: u64,
+    message: InboxMsg,
+) -> Option<SideAdmission<'a>> {
+    let InboxMsg::UserShell {
+        session,
+        command,
+        selection: choice,
+        cancel,
+        ack,
+    } = message
+    else {
+        unreachable!("structured Shell input")
+    };
+    let prepared = (|| -> Result<_, CoreError> {
+        if &session != root_session {
+            return Err(CoreError::TurnBusy);
+        }
+        let UserShellSelection::Existing(commit) = choice else {
+            return Err(CoreError::TurnBusy);
+        };
+        if root_cancel.load(Ordering::Acquire) || cancel.load(Ordering::Acquire) {
+            return Err(app_error("user shell admission cancelled"));
+        }
+        runtime.open_session(&session.0).map_err(runtime_error)?;
+        let current = selection::for_turn(db, composition, effective, &session.0)?;
+        let selected = match commit {
+            Some(commit) => selection::command_commit(
+                db,
+                composition,
+                &current,
+                &session.0,
+                location_epoch,
+                &commit,
+            )?,
+            None => current,
+        };
+        selected.admit_selection(composition)?;
+        let record = selection::command_record(db, composition, &session.0, &selected)?;
+        let catalog = composition
+            .catalog_for(&selected.provider_id)
+            .ok_or_else(|| app_error("selected provider unavailable"))?
+            .clone();
+        let capture = runtime
+            .capture_user_shell(workspace_publication(composition, &selected), &record.0)
+            .map_err(runtime_error)?;
+        Ok((selected, record, catalog, capture))
+    })();
+    let (selected, record, catalog, capture) = match prepared {
+        Ok(prepared) => prepared,
+        Err(error) => {
+            let _ = ack.send(Err(error));
+            return None;
+        }
+    };
+    Some(Box::pin(async move {
+        let mut ack = Some(ack);
+        let mut admitted = false;
+        let result = {
+            let operation = runtime.run_existing_user_shell(
+                crate::runtime::UserShellParams {
+                    session: &session.0,
+                    command: &command,
+                    catalog: &catalog,
+                    model: &selected.model_id,
+                    variant: selected.variant.as_deref(),
+                    fresh: false,
+                    selection: Some((&record.0, &record.1)),
+                    cancel: &cancel,
+                },
+                capture,
+                |operation| {
+                    admitted = true;
+                    if let Some(ack) = ack.take() {
+                        let _ = ack.send(Ok(operation.to_owned()));
+                    }
+                },
+            );
+            tokio::pin!(operation);
+            tokio::select! { biased;
+                () = crate::provider::wait_cancel(root_cancel) => {
+                    cancel.store(true,Ordering::Release);
+                    operation.await
+                }
+                result = &mut operation => result,
+            }
+        };
+        if let Some(ack) = ack {
+            let _ = ack.send(Err(runtime_error(
+                result.err().unwrap_or(RuntimeError::Storage),
+            )));
+        }
+        admitted
+    }))
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn run(
     db: &Db,

@@ -1644,10 +1644,8 @@ fn pty_escape_cancels_heartbeat_request() {
     submit_turn(&mut pty, "cancel heartbeat probe");
     pty.fixture.wait_requests(1);
     wait_screen_row(&pty, &message_needle("   ", "partial"), DEADLINE);
-    pty.send(b"rejected busy input\r");
-    wait_screen_row(&pty, "turn busy", DEADLINE);
-    // Rejected input stays in the editor; remove it before issuing /quit.
-    pty.send(&[127; 19]);
+    pty.send(b"steered busy input\r");
+    wait_screen_row(&pty, "steered busy input", DEADLINE);
     pty.send(b"\x1b");
     wait_screen_row(&pty, "esc again to interrupt", DEADLINE);
     // The first Esc arms the guarded interrupt; the held turn and durable
@@ -1663,6 +1661,22 @@ fn pty_escape_cancels_heartbeat_request() {
         persisted(pty.data_dir(), "s-cancel"),
         vec![("user".to_string(), "cancel heartbeat probe".to_string())],
         "cancelled turn preserves input without a completed assistant answer"
+    );
+    let db = rusqlite::Connection::open_with_flags(
+        pty.data_dir().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let pending: String = db
+        .query_row(
+            "SELECT text FROM session_inbox WHERE session_id='s-cancel' AND message_id IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        pending, "steered busy input",
+        "interrupt parks the accepted steer instead of replaying it"
     );
 }
 

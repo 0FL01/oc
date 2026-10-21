@@ -27,6 +27,7 @@ fn live(session: &str, turn: &str, text: &str) -> LiveTurnSnapshot {
 
 fn workspace(selected: &str, turns: Vec<LiveTurnSnapshot>) -> WorkspaceSnapshot {
     WorkspaceSnapshot {
+        inbox: Vec::new(),
         revision: 10,
         deck: TabDeckSnapshot {
             location: "/fixture".into(),
