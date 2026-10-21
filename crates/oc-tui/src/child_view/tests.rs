@@ -279,7 +279,7 @@ async fn running_child_click_survives_redraw_and_uses_current_launch_facts() {
             );
             state.restore_prompt("unchanged draft".into());
             let now = std::time::Instant::now();
-            state.tick_subagents(now);
+            state.tick_tool_spinners(now);
             let frame = Rect::new(0, 0, width, height);
             let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
             terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
@@ -304,7 +304,7 @@ async fn running_child_click_survives_redraw_and_uses_current_launch_facts() {
             state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left)), frame);
             match change {
                 "spinner" => {
-                    assert!(state.tick_subagents(now + std::time::Duration::from_millis(80)));
+                    assert!(state.tick_tool_spinners(now + std::time::Duration::from_millis(80)));
                     terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
                 }
                 "unpainted-stream" => state.apply_delta(&turn, "unrelated streaming output"),

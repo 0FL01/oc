@@ -571,6 +571,49 @@ pub fn is_error_state(state: &str) -> bool {
     )
 }
 
+/// Clock membership follows the renderer's spinner branches, not just the
+/// operation state: live shells/children may outlive their original call.
+pub(crate) fn tool_spinner_animated(card: &ToolCard) -> bool {
+    if matches!(card.render, ToolRender::Subagent(_)) {
+        return subagent_animated(card);
+    }
+    if card.state == "permission_pending" {
+        return match &card.render {
+            ToolRender::Inline(
+                InlineRender::Read { .. }
+                | InlineRender::Glob { .. }
+                | InlineRender::Grep { .. }
+                | InlineRender::WebFetch { .. }
+                | InlineRender::Question { .. },
+            ) => false,
+            ToolRender::Inline(InlineRender::Execute) => execute::facts(card).is_some(),
+            _ => true,
+        };
+    }
+    if card.state == "argument_stream" {
+        return !matches!(card.render, ToolRender::Inline(InlineRender::Execute))
+            || execute::facts(card).is_some();
+    }
+    if card.question.is_some() {
+        return false;
+    }
+    match &card.render {
+        ToolRender::Shell(shell) => {
+            is_running(&card.state) && shell.process_state.is_none() || shell.live_running
+        }
+        ToolRender::Patch(patch) => {
+            card.patch_effects.is_none() && !patch.failed && is_running(&card.state)
+        }
+        ToolRender::Inline(InlineRender::Question { .. }) | ToolRender::Dcp(_) => false,
+        ToolRender::Inline(InlineRender::Execute) => {
+            execute::facts(card).is_some() && execute::running(card)
+        }
+        ToolRender::Inline(InlineRender::Generic { .. }) => is_running(&card.state),
+        ToolRender::Inline(_) => is_running(&card.state) || card.state == "running",
+        ToolRender::Subagent(_) => unreachable!("handled above"),
+    }
+}
+
 /// Render one tool card as transcript rows. `width == 0` is the unbounded
 /// text projection (no background padding).
 pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
@@ -626,7 +669,7 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
             return vec![
                 frame.row(&[]),
                 frame.row(&[Span::styled(
-                    format!("{SPINNER} Patching{path}"),
+                    format!("{} Patching{path}", card.spinner()),
                     frame.body_style().fg(theme.warning()),
                 )]),
                 frame.row(&[]),
@@ -643,7 +686,7 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         return vec![
             frame.row(&[]),
             frame.row(&[Span::styled(
-                format!("{SPINNER} {label}"),
+                format!("{} {label}", card.spinner()),
                 frame.body_style().fg(theme.warning()),
             )]),
             frame.row(&[]),
@@ -754,7 +797,7 @@ fn argument_stream_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line
             let style = ratatui::style::Style::default().fg(theme.text_muted());
             return vec![Line::new(vec![
                 Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
-                Span::styled(format!("{SPINNER:<TOOL_ICON_WIDTH$}"), style),
+                Span::styled(format!("{:<TOOL_ICON_WIDTH$}", card.spinner()), style),
                 Span::styled("Preparing write…", style),
             ])];
         }
@@ -766,7 +809,7 @@ fn argument_stream_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line
     vec![
         frame.row(&[]),
         frame.row(&[Span::styled(
-            format!("{SPINNER} {title}"),
+            format!("{} {title}", card.spinner()),
             frame.body_style(),
         )]),
         frame.row(&[]),
@@ -851,7 +894,7 @@ pub(crate) fn shell_block_expanded(
             .fg(theme.text())
             .bg(frame.bg);
         out.push(frame.row(&[
-            Span::styled(SPINNER, text),
+            Span::styled(card.spinner(), text),
             Span::styled(" ", frame.padding),
             Span::styled("Writing command…", text),
         ]));
@@ -860,7 +903,7 @@ pub(crate) fn shell_block_expanded(
     }
     let mut header = vec![Span::styled(
         if running {
-            format!("{SPINNER} ")
+            format!("{} ", card.spinner())
         } else {
             "$ ".to_string()
         },
@@ -918,14 +961,16 @@ pub(crate) fn shell_block_expanded(
                 && running
                 && raw_index == 0
                 && wrapped_index == 0
-                && let Some(command) = line.plain_text().strip_prefix(&format!("{SPINNER} "))
+                && let Some(command) = line
+                    .plain_text()
+                    .strip_prefix(&format!("{} ", card.spinner()))
             {
                 // Spinner and command are separate children; their layout gap
                 // inherits the block foreground, not the command's text color.
                 out.push(
                     frame.row(&[
                         Span::styled(
-                            SPINNER,
+                            card.spinner(),
                             ratatui::style::Style::default()
                                 .fg(theme.text())
                                 .bg(frame.bg),
@@ -1204,7 +1249,7 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
         // Upstream running label (`index.tsx:3496`, §6).
         out.push(
             frame.row(&[Span::styled(
-                "⋯ Patching",
+                format!("{} Patching", card.spinner()),
                 ratatui::style::Style::default()
                     .fg(theme.text())
                     .bg(frame.bg),
@@ -1584,11 +1629,11 @@ fn inline_rows_expanded(
             InlineRender::Read { .. } => "→",
             InlineRender::Glob { .. } | InlineRender::Grep { .. } => "✱",
             InlineRender::WebFetch { .. } => "⊙",
-            _ => SPINNER,
+            _ => card.spinner(),
         }
         .to_string()
     } else if running {
-        SPINNER.to_string()
+        card.spinner().to_string()
     } else if exploration || matches!(inline, InlineRender::Skill { .. }) {
         inline.icon().to_string()
     } else if generic {
@@ -1632,7 +1677,8 @@ fn inline_rows_expanded(
         label
     };
     let mut spans = vec![pad.clone()];
-    if icon != SPINNER {
+    let spinning = !question && (running || waiting && !exploration);
+    if !spinning {
         // A named glyph's remaining icon-column cell is layout, not FG/strike.
         spans.push(Span::styled(icon, style));
         spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH - 1)));
@@ -1798,7 +1844,7 @@ pub(crate) fn generic_block_expanded(
             card.state.as_str(),
             "permission_pending" | "argument_stream"
         ) {
-        SPINNER
+        card.spinner()
     } else if failed {
         "✗"
     } else {

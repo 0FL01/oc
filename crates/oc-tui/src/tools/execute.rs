@@ -97,7 +97,7 @@ pub(crate) fn block(
             Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
             Span::styled(
                 if running(card) {
-                    SPINNER
+                    card.spinner()
                 } else if failed {
                     "✗"
                 } else {

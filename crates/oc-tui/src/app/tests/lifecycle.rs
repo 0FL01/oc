@@ -1520,8 +1520,8 @@ async fn actual_subagent_clock_uses_the_winning_canonical_or_live_card() {
     state.begin_linked_turn(turn.clone());
     state.apply_presentation(&turn, &projection);
     let now = Instant::now();
-    state.tick_subagents(now);
-    assert_eq!(state.subagent_clocks.len(), 1);
+    state.tick_tool_spinners(now);
+    assert_eq!(state.tool_spinner_clocks.len(), 1);
     state.apply_tool_finished(
         &turn,
         "one-child",
@@ -1531,14 +1531,14 @@ async fn actual_subagent_clock_uses_the_winning_canonical_or_live_card() {
         4,
         false,
     );
-    state.tick_subagents(now + Duration::from_millis(80));
+    state.tick_tool_spinners(now + Duration::from_millis(80));
     assert!(
-        state.subagent_clocks.is_empty(),
+        state.tool_spinner_clocks.is_empty(),
         "terminal live replacement defeats stale canonical running"
     );
     state.apply_tool_started(&turn, "one-child", "subagent", card.input.as_ref().unwrap());
-    state.tick_subagents(now + Duration::from_millis(90));
-    assert_eq!(state.subagent_clocks.len(), 1);
+    state.tick_tool_spinners(now + Duration::from_millis(90));
+    assert_eq!(state.tool_spinner_clocks.len(), 1);
     let mut terminal = card;
     terminal.state = "completed".into();
     projection.parts = vec![
@@ -1557,12 +1557,12 @@ async fn actual_subagent_clock_uses_the_winning_canonical_or_live_card() {
     accepted.turn = Some(projection);
     state.window.reset(&page(vec![accepted], 1, false, false));
     assert!(state.canonical_history_ahead());
-    state.tick_subagents(now + Duration::from_millis(170));
+    state.tick_tool_spinners(now + Duration::from_millis(170));
     assert!(
-        state.subagent_clocks.is_empty(),
+        state.tool_spinner_clocks.is_empty(),
         "terminal canonical-ahead defeats stale running live copy"
     );
-    assert_eq!(state.next_subagent_deadline(), None);
+    assert_eq!(state.next_tool_spinner_deadline(), None);
 }
 
 #[tokio::test]
@@ -1605,35 +1605,35 @@ async fn actual_subagent_clocks_survive_parent_completion_and_shared_refresh() {
     launch(&mut state, "A");
     state.apply_child_jobs(vec![a.clone()]);
     let now = Instant::now();
-    assert!(!state.tick_subagents(now));
-    assert!(state.tick_subagents(now + Duration::from_millis(80)));
+    assert!(!state.tick_tool_spinners(now));
+    assert!(state.tick_tool_spinners(now + Duration::from_millis(80)));
     launch(&mut state, "B");
     state.apply_child_jobs(vec![a.clone(), b.clone()]);
-    state.tick_subagents(now + Duration::from_millis(90));
-    assert_eq!(state.subagent_clocks["A"].frame, 1);
-    assert_eq!(state.subagent_clocks["B"].frame, 0);
+    state.tick_tool_spinners(now + Duration::from_millis(90));
+    assert_eq!(state.tool_spinner_clocks["A"].frame, 1);
+    assert_eq!(state.tool_spinner_clocks["B"].frame, 0);
     state.apply_finished(&turn, "Parent anchor", 10);
     assert!(state.active_turn.is_none());
-    state.tick_subagents(now + Duration::from_millis(160));
+    state.tick_tool_spinners(now + Duration::from_millis(160));
     assert_eq!(
-        state.subagent_clocks["A"].frame, 2,
+        state.tool_spinner_clocks["A"].frame, 2,
         "parent completion does not retire child clocks"
     );
-    assert_eq!(state.subagent_clocks["B"].frame, 0);
+    assert_eq!(state.tool_spinner_clocks["B"].frame, 0);
     assert!(state.window.rows().iter().filter_map(|row| row.tool.as_ref()).all(|card|
         matches!(&card.render, crate::tools::ToolRender::Subagent(view) if view.spinner.is_none())));
     let mut refreshed = TuiState::new(app, sid("actual-clocks"));
     refreshed.window = state.window.clone();
     refreshed.preserve_shared_composer(state);
-    assert_eq!(refreshed.subagent_clocks["A"].frame, 2);
+    assert_eq!(refreshed.tool_spinner_clocks["A"].frame, 2);
     assert_eq!(
-        refreshed.subagent_clocks["B"].at,
+        refreshed.tool_spinner_clocks["B"].at,
         Some(now + Duration::from_millis(90))
     );
     b.state = ChildState::Completed;
     refreshed.apply_child_jobs(vec![a.clone(), b.clone()]);
-    refreshed.tick_subagents(now + Duration::from_millis(170));
-    assert!(!refreshed.subagent_clocks.contains_key("B"));
+    refreshed.tick_tool_spinners(now + Duration::from_millis(170));
+    assert!(!refreshed.tool_spinner_clocks.contains_key("B"));
     let shown = refreshed
         .transcript_lines(120, 120)
         .iter()
@@ -1652,25 +1652,25 @@ async fn actual_subagent_clocks_survive_parent_completion_and_shared_refresh() {
     catalog.chrome = refreshed.chrome.clone();
     catalog.chrome.animations = Some(true);
     refreshed.apply_catalog(catalog.clone());
-    assert_eq!(refreshed.subagent_clocks["A"].frame, 2);
+    assert_eq!(refreshed.tool_spinner_clocks["A"].frame, 2);
     catalog.chrome.animations = Some(false);
     refreshed.apply_catalog(catalog.clone());
-    assert_eq!(refreshed.next_subagent_deadline(), None);
+    assert_eq!(refreshed.next_tool_spinner_deadline(), None);
     catalog.chrome.animations = Some(true);
     refreshed.apply_catalog(catalog);
-    assert_eq!(refreshed.subagent_clocks["A"].frame, 0);
-    refreshed.tick_subagents(now + Duration::from_secs(1));
+    assert_eq!(refreshed.tool_spinner_clocks["A"].frame, 0);
+    refreshed.tick_tool_spinners(now + Duration::from_secs(1));
     assert_eq!(
-        refreshed.next_subagent_deadline(),
+        refreshed.next_tool_spinner_deadline(),
         Some(now + Duration::from_millis(1080))
     );
     refreshed.reset_workspace();
-    refreshed.tick_subagents(now + Duration::from_secs(2));
+    refreshed.tick_tool_spinners(now + Duration::from_secs(2));
     assert!(
-        refreshed.subagent_clocks.is_empty(),
+        refreshed.tool_spinner_clocks.is_empty(),
         "reset must not rearm stale retained rows"
     );
-    assert_eq!(refreshed.next_subagent_deadline(), None);
+    assert_eq!(refreshed.next_tool_spinner_deadline(), None);
 }
 
 #[tokio::test]
@@ -1683,9 +1683,9 @@ async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
         state.apply_tool_started(&turn, &format!("op-{index}"), "subagent", r#"{"agent":"explore","description":"Controlled description","prompt":"Read-only fixture"}"#);
     }
     let now = Instant::now();
-    state.tick_subagents(now);
+    state.tick_tool_spinners(now);
     assert_eq!(
-        state.subagent_clocks.len(),
+        state.tool_spinner_clocks.len(),
         20,
         "not limited by child inventory16"
     );
@@ -1699,37 +1699,116 @@ async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
     paint(&state);
     let copies = state.transcript_row_copies.get();
     let builds = state.visible_projection_builds.get();
-    assert!(!state.tick_subagents(now + Duration::from_millis(79)));
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(79)));
     paint(&state);
     assert_eq!(state.transcript_row_copies.get(), copies);
     assert_eq!(state.visible_projection_builds.get(), builds);
     for step in 1..=10 {
+        assert!(state.tick_tool_spinners(
+            now + Duration::from_millis(step * 80) + Duration::from_nanos(123)
+        ));
         assert!(
             state
-                .tick_subagents(now + Duration::from_millis(step * 80) + Duration::from_nanos(123))
-        );
-        assert!(
-            state
-                .subagent_clocks
+                .tool_spinner_clocks
                 .values()
                 .all(|clock| clock.frame == step as usize % 10)
         );
         assert_eq!(
-            state.next_subagent_deadline(),
+            state.next_tool_spinner_deadline(),
             Some(now + Duration::from_millis((step + 1) * 80))
         );
     }
     paint(&state);
     let builds = state.visible_projection_builds.get();
-    assert!(!state.tick_subagents(now + Duration::from_millis(1600)));
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(1600)));
     paint(&state);
     assert_eq!(state.visible_projection_builds.get(), builds);
     state.live_parts[0] = LivePart::Text("Non-tool replacement".into());
-    state.tick_subagents(now + Duration::from_millis(1610));
-    assert!(!state.subagent_clocks.contains_key("op-0"));
+    state.tick_tool_spinners(now + Duration::from_millis(1610));
+    assert!(!state.tool_spinner_clocks.contains_key("op-0"));
     state.set_session(sid("other"));
-    state.tick_subagents(now + Duration::from_secs(2));
-    assert!(state.subagent_clocks.is_empty());
+    state.tick_tool_spinners(now + Duration::from_secs(2));
+    assert!(state.tool_spinner_clocks.is_empty());
+}
+
+#[tokio::test]
+async fn ordinary_tool_spinner_animates_without_events_and_retires_when_settled() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("tool-spinner"));
+    let turn = WorkerTurnId("shell-turn".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_tool_started(
+        &turn,
+        "shell-op",
+        "shell",
+        r#"{"command":"sleep 300 && echo 'hello ⋯'"}"#,
+    );
+    let now = Instant::now();
+    assert!(!state.tick_tool_spinners(now));
+    assert_eq!(
+        state.next_tool_spinner_deadline(),
+        Some(now + Duration::from_millis(80))
+    );
+    let frame = |state: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(100, 30)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, state))
+            .unwrap();
+        state
+            .visible_projection
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lines
+            .iter()
+            .find(|line| line.plain_text().contains("sleep 300"))
+            .unwrap()
+            .plain_text()
+            .trim_end()
+            .to_string()
+    };
+    assert_eq!(frame(&state), "┃  ⠋ sleep 300 && echo 'hello ⋯'");
+    let builds = state.visible_projection_builds.get();
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(79)));
+    frame(&state);
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    // Only the UI deadline advances: there are no input/provider/tool events.
+    assert!(state.tick_ui(now + Duration::from_millis(80)));
+    assert_eq!(frame(&state), "┃  ⠙ sleep 300 && echo 'hello ⋯'");
+    assert!(
+        state
+            .live_parts
+            .iter()
+            .all(|part| !matches!(part, LivePart::Tool { card, .. } if card.spinner.is_some()))
+    );
+
+    let mut catalog = snapshot();
+    catalog.chrome = state.chrome.clone();
+    catalog.chrome.animations = Some(false);
+    state.apply_catalog(catalog.clone());
+    assert_eq!(frame(&state), "┃  ⋯ sleep 300 && echo 'hello ⋯'");
+    assert_eq!(state.next_tool_spinner_deadline(), None);
+    catalog.chrome.animations = Some(true);
+    state.apply_catalog(catalog);
+    assert_eq!(frame(&state), "┃  ⠋ sleep 300 && echo 'hello ⋯'");
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(100)));
+    assert!(state.tick_tool_spinners(now + Duration::from_millis(180)));
+    assert_eq!(frame(&state), "┃  ⠙ sleep 300 && echo 'hello ⋯'");
+
+    state.apply_tool_finished(
+        &turn,
+        "shell-op",
+        "shell",
+        "completed",
+        "exit 0\nhello ⋯\n",
+        19,
+        false,
+    );
+    state.tick_tool_spinners(now + Duration::from_millis(260));
+    assert_eq!(frame(&state), "┃  $ sleep 300 && echo 'hello ⋯'");
+    assert!(state.tool_spinner_clocks.is_empty());
+    assert_eq!(state.next_tool_spinner_deadline(), None);
 }
 
 #[tokio::test]
@@ -2250,18 +2329,22 @@ async fn argument_stream_exploration_groups_like_upstream_and_survives_admission
     };
     let collapsed = shown(&state);
     assert!(
-        collapsed.contains(&"   ⋯ Exploring: 2 reads, 1 search".to_string()),
+        collapsed.contains(&"   ⠋ Exploring: 2 reads, 1 search".to_string()),
         "{collapsed:?}"
     );
     assert!(!collapsed.iter().any(|line| line.contains("Reading file…")));
     // Shell keeps its own BlockTool, never an empty `$` command.
     assert!(
-        collapsed.contains(&"┃  ⋯ Writing command…".to_string()),
+        collapsed.contains(&"┃  ⠋ Writing command…".to_string()),
         "{collapsed:?}"
     );
     assert!(collapsed.iter().all(|line| !line.contains("leak")
         && !line.contains('$')
         && !line.contains("arguments streaming")));
+    let now = Instant::now();
+    assert!(!state.tick_tool_spinners(now));
+    assert!(state.tick_tool_spinners(now + Duration::from_millis(80)));
+    assert!(shown(&state).contains(&"   ⠙ Exploring: 2 reads, 1 search".to_string()));
     let first = state
         .transcript_rows()
         .into_iter()
@@ -2271,10 +2354,10 @@ async fn argument_stream_exploration_groups_like_upstream_and_survives_admission
     state.exploration_expanded.insert(first);
     state.invalidate_transcript();
     let members = [
-        "   ⋯ Exploring: 2 reads, 1 search",
-        "   ⋯ Reading file…",
-        "   ⋯ Searching content…",
-        "   ⋯ Reading file…",
+        "   ⠙ Exploring: 2 reads, 1 search",
+        "   ⠙ Reading file…",
+        "   ⠙ Searching content…",
+        "   ⠙ Reading file…",
     ];
     let expanded = shown(&state);
     assert!(
@@ -2290,6 +2373,7 @@ async fn argument_stream_exploration_groups_like_upstream_and_survives_admission
         },
     );
     let admitted = shown(&state);
+    // Linking changes operation identity but must keep the animation alive.
     assert!(
         admitted.windows(members.len()).any(|rows| rows == members),
         "{admitted:?}"
@@ -2335,7 +2419,7 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
     );
     let shown = state.viewport().join("\n");
     // ApplyPatch's streaming BlockTool title (`index.tsx:3440`).
-    assert!(shown.contains("┃  ⋯ Patching"), "{shown}");
+    assert!(shown.contains("┃  ⠋ Patching"), "{shown}");
     assert!(!shown.contains("arguments streaming") && !shown.contains("no effects yet"));
     assert!(!shown.contains("Created") && !shown.contains("fake"));
     let card = state
@@ -2421,7 +2505,7 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
     assert!(
         shown
             .iter()
-            .any(|line| line.trim_end() == "   ⋯ unknown-tool"),
+            .any(|line| line.trim_end() == "   ⠋ unknown-tool"),
         "{shown:?}"
     );
     assert!(

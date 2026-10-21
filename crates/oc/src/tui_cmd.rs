@@ -1317,7 +1317,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= job_lanes != loop_state.job_lanes();
         dirty |= state.tick_scanner(Instant::now());
         dirty |= state.tick_delegations(Instant::now());
-        dirty |= state.tick_subagents(Instant::now());
+        dirty |= state.tick_tool_spinners(Instant::now());
         if dirty && Instant::now() >= paint_at {
             let draw_start = frame_metrics
                 .as_ref()

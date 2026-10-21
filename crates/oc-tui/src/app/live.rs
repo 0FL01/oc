@@ -708,8 +708,8 @@ impl TuiState {
             self.tab_view.get_mut().cancel_rail_drag();
         }
         if (self.chrome.animations != Some(false)) != (snapshot.chrome.animations != Some(false)) {
-            for clock in self.subagent_clocks.values_mut() {
-                *clock = SubagentClock::default();
+            for clock in self.tool_spinner_clocks.values_mut() {
+                *clock = ToolSpinnerClock::default();
             }
             for part in &mut self.live_parts {
                 if let LivePart::Tool {
@@ -2340,6 +2340,9 @@ impl TuiState {
                         // operation; admission must not collapse it.
                         if self.exploration_expanded.remove(&key) {
                             self.exploration_expanded.insert(op.clone());
+                        }
+                        if let Some(clock) = self.tool_spinner_clocks.remove(&key) {
+                            self.tool_spinner_clocks.entry(op.clone()).or_insert(clock);
                         }
                         card.op.clone_from(op);
                         card.state = "started".into();

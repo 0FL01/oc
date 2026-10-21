@@ -413,7 +413,7 @@ struct DelegationSpinner {
 }
 
 #[derive(Debug, Clone, Default)]
-struct SubagentClock {
+struct ToolSpinnerClock {
     frame: usize,
     at: Option<Instant>,
 }
@@ -693,9 +693,9 @@ pub struct TuiState {
     compaction_frame: usize,
     compaction_turn_messages: std::collections::BTreeMap<String, String>,
     scanner_at: Option<Instant>,
-    subagent_clocks: BTreeMap<String, SubagentClock>,
+    tool_spinner_clocks: BTreeMap<String, ToolSpinnerClock>,
     /// Workspace reset retains old rows until the next owner page arrives.
-    subagent_clocks_attached: bool,
+    tool_spinner_clocks_attached: bool,
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
@@ -954,8 +954,8 @@ impl TuiState {
             compaction_frame: 0,
             compaction_turn_messages: Default::default(),
             scanner_at: None,
-            subagent_clocks: BTreeMap::new(),
-            subagent_clocks_attached: true,
+            tool_spinner_clocks: BTreeMap::new(),
+            tool_spinner_clocks_attached: true,
             panel: TuiPanel::None,
             select: Default::default(),
             mouse_down: None,
@@ -1109,8 +1109,8 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
-        self.subagent_clocks_attached = false;
-        self.subagent_clocks.clear();
+        self.tool_spinner_clocks_attached = false;
+        self.tool_spinner_clocks.clear();
         self.invalidate_transcript();
         self.close_panel();
         self.editor.forget_accepted_mentions();
@@ -1165,8 +1165,8 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
-        self.subagent_clocks_attached = true;
-        self.subagent_clocks.clear();
+        self.tool_spinner_clocks_attached = true;
+        self.tool_spinner_clocks.clear();
         self.terminals = Default::default();
         self.invalidate_transcript();
         *self.tab_view.get_mut() = TabView::default();
@@ -1275,7 +1275,7 @@ impl TuiState {
         [
             scanner,
             self.next_delegation_deadline(),
-            self.next_subagent_deadline(),
+            self.next_tool_spinner_deadline(),
             self.compaction_at
                 .filter(|_| self.chrome.animations != Some(false))
                 .map(|at| at + Duration::from_millis(80)),
@@ -1307,7 +1307,7 @@ impl TuiState {
         self.tick_toast(now);
         let scanner = self.tick_scanner(now);
         let delegation = self.tick_delegations(now);
-        let subagents = self.tick_subagents(now);
+        let tools = self.tick_tool_spinners(now);
         let wheel = self.tick_scroll_animation(now);
         let compaction = self.tick_compaction(now);
         let tabs = self.tick_tabs(now);
@@ -1319,7 +1319,7 @@ impl TuiState {
         expired
             || scanner
             || delegation
-            || subagents
+            || tools
             || wheel
             || compaction
             || leader
@@ -1394,45 +1394,45 @@ impl TuiState {
         }
     }
 
-    fn sync_subagent_clocks(&mut self) {
-        let mut clocks = std::mem::take(&mut self.subagent_clocks);
-        if self.subagent_clocks_attached {
-            let cards = self.effective_subagent_cards();
+    fn sync_tool_spinner_clocks(&mut self) {
+        let mut clocks = std::mem::take(&mut self.tool_spinner_clocks);
+        if self.tool_spinner_clocks_attached {
+            let cards = self.effective_tool_cards();
             clocks.retain(|op, _| {
                 cards
                     .get(op.as_str())
-                    .is_some_and(|card| crate::tools::subagent_animated(card))
+                    .is_some_and(|card| crate::tools::tool_spinner_animated(card))
             });
             for (op, card) in cards {
-                if crate::tools::subagent_animated(card) && !clocks.contains_key(op) {
-                    clocks.insert(op.to_string(), SubagentClock::default());
+                if crate::tools::tool_spinner_animated(card) && !clocks.contains_key(op) {
+                    clocks.insert(op.to_string(), ToolSpinnerClock::default());
                 }
             }
         } else {
             clocks.clear();
         }
-        self.subagent_clocks = clocks;
+        self.tool_spinner_clocks = clocks;
     }
 
-    fn next_subagent_deadline(&self) -> Option<Instant> {
-        if !self.subagent_clocks_attached || self.chrome.animations == Some(false) {
+    fn next_tool_spinner_deadline(&self) -> Option<Instant> {
+        if !self.tool_spinner_clocks_attached || self.chrome.animations == Some(false) {
             return None;
         }
-        self.subagent_clocks
+        self.tool_spinner_clocks
             .values()
             .filter_map(|clock| clock.at.map(|at| at + Duration::from_millis(80)))
             .min()
     }
 
-    /// Real child activity survives parent completion; retained cards, not the
-    /// child-picker inventory, define this bounded presentation membership.
-    pub fn tick_subagents(&mut self, now: Instant) -> bool {
-        self.sync_subagent_clocks();
+    /// Retained running tool cards own their clocks, including shells and child
+    /// activity that outlive the parent turn. Arm before the first paint.
+    pub fn tick_tool_spinners(&mut self, now: Instant) -> bool {
+        self.sync_tool_spinner_clocks();
         if self.chrome.animations == Some(false) {
             return false;
         }
         let mut changed = false;
-        for clock in self.subagent_clocks.values_mut() {
+        for clock in self.tool_spinner_clocks.values_mut() {
             let Some(at) = clock.at else {
                 clock.at = Some(now);
                 continue;
@@ -1544,7 +1544,11 @@ impl TuiState {
             })
             + self.live_text.len()
             + self.live_reasoning.len()
-            + self.subagent_clocks.keys().map(String::len).sum::<usize>()
+            + self
+                .tool_spinner_clocks
+                .keys()
+                .map(String::len)
+                .sum::<usize>()
             + self
                 .pending_tool_seen
                 .iter()

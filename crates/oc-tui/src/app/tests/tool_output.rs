@@ -297,6 +297,23 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
         &original.name,
         original.input.as_deref().unwrap(),
     );
+    let now = Instant::now();
+    state.tick_tool_spinners(now);
+    state.tick_tool_spinners(now + Duration::from_millis(80));
+    let pending_frame = Rect::new(0, 0, 120, 48);
+    let (pending, x, y) = paint(&mut state, pending_frame);
+    assert!(
+        pending
+            .iter()
+            .any(|line| line.plain_text().contains("⠙ mcp_fixture"))
+    );
+    state.handle_mouse(mouse(MouseEventKind::Moved, x, y), pending_frame);
+    assert_ne!(
+        paint(&mut state, pending_frame).0,
+        pending,
+        "animated tool headers retain hover feedback"
+    );
+    state.last_mouse = None;
     state.apply_tool_finished_with_output_presentation(
         &turn,
         &original.op,

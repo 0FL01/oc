@@ -1450,6 +1450,7 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
     // TranscriptPart::Tool or provider ToolCallResult.
     ToolCard {
         op: shell.operation.clone(),
+        spinner: None,
         started_at: None,
         child_job: None,
         name: "shell".into(),
@@ -1472,6 +1473,8 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
 /// One tool card: intent + outcome + bounded previews.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolCard {
+    /// UI-selected frame on a render copy; absent from canonical/live history.
+    pub spinner: Option<&'static str>,
     /// Observed admission instant of a live call; absent for cold/missed starts.
     pub started_at: Option<std::time::Instant>,
     /// Original positively owned child-generation fence, never output prose.
@@ -1509,6 +1512,10 @@ pub struct ToolCard {
 }
 
 impl ToolCard {
+    pub(crate) fn spinner(&self) -> &'static str {
+        self.spinner.unwrap_or(crate::tools::SPINNER)
+    }
+
     /// Exact durable completion can outlive the bounded inventory. Apply it
     /// only to its captured launch; current continuation activity is separate.
     pub(crate) fn apply_subagent_notice(
@@ -1920,6 +1927,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
                 && job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES
         }),
         started_at: None,
+        spinner: None,
         op: row.op.clone(),
         name: row.name.clone(),
         state: row.state.clone(),

@@ -19,7 +19,9 @@ fn exploration_named_inline_glyphs_styles_and_spacers_are_semantic() {
             for state in ["completed", "failed", "cancelled", "denied", "unknown"] {
                 let mut row = operation(name, "error: actual failure", None);
                 row.state = state.into();
-                let card = card_from_row(&row);
+                let mut card = card_from_row(&row);
+                card.spinner = Some("⠙");
+                assert!(!tool_spinner_animated(&card), "{name}/{state}");
                 let block = tool_block(&card, theme, 80);
                 let spans = block[0].spans();
                 assert_eq!(spans[1].content(), glyph, "{name}/{state}");
@@ -1474,6 +1476,19 @@ fn argument_stream_renders_each_kind_as_its_upstream_pending_view() {
                 } else {
                     theme.text_muted()
                 };
+                assert_eq!(glyph.style().fg, Some(fg), "{name}");
+                assert!(tool_spinner_animated(&card), "{name}");
+                card.spinner = Some("⠙");
+                let animated = tool_block(&card, theme, 60);
+                assert_eq!(
+                    animated[label].plain_text().trim_end(),
+                    expected.replacen(SPINNER, "⠙", 1)
+                );
+                let glyph = animated[label]
+                    .spans()
+                    .iter()
+                    .find(|span| span.content().starts_with("⠙"))
+                    .unwrap();
                 assert_eq!(glyph.style().fg, Some(fg), "{name}");
             }
         }

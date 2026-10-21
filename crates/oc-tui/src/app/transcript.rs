@@ -209,7 +209,7 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
-        self.subagent_clocks_attached = true;
+        self.tool_spinner_clocks_attached = true;
         let _ = self.execute_capture();
         if let Some(job) = page.child_job.as_deref()
             && self.attached_session() == Some(&job.child)
@@ -375,7 +375,7 @@ impl TuiState {
     /// resets use attach_page. Preserve a painted part, not a total-row delta:
     /// durable projection may replace synthetic parts and the paging window.
     pub fn refresh_completed_page(&mut self, page: &HistoryPage) {
-        self.subagent_clocks_attached = true;
+        self.tool_spinner_clocks_attached = true;
         let _ = self.execute_capture();
         if let Some(job) = page.child_job.as_deref()
             && self.attached_session() == Some(&job.child)
@@ -629,6 +629,9 @@ impl TuiState {
                 && !header.trim_start().starts_with("→ Explored")
                 && !header.trim_start().starts_with("⋯ Exploring")
                 && !header.trim_start().starts_with(['✓', '✗', '⋯', '│', '↳'])
+                && !crate::compaction::FRAMES
+                    .iter()
+                    .any(|glyph| header.trim_start().starts_with(glyph))
             {
                 return None;
             }
@@ -1752,7 +1755,7 @@ impl TuiState {
 
     /// Borrow canonical/live winners, including non-tool replacements, before
     /// applying actual-running eligibility. This never clones transcript rows.
-    pub(super) fn effective_subagent_cards(&self) -> BTreeMap<&str, &ToolCard> {
+    pub(super) fn effective_tool_cards(&self) -> BTreeMap<&str, &ToolCard> {
         let mut cards: Vec<_> = self
             .window
             .rows()
@@ -1993,17 +1996,18 @@ impl TuiState {
                 row.agent_color_index = None;
             }
             if let Some(card) = &mut row.tool {
-                if self.subagent_clocks_attached && crate::tools::subagent_animated(card) {
+                if self.tool_spinner_clocks_attached && crate::tools::tool_spinner_animated(card) {
                     let frame = self
-                        .subagent_clocks
+                        .tool_spinner_clocks
                         .get(&card.op)
                         .map_or(0, |clock| clock.frame);
+                    card.spinner = Some(if self.chrome.animations == Some(false) {
+                        crate::tools::SPINNER
+                    } else {
+                        crate::compaction::FRAMES[frame]
+                    });
                     if let crate::tools::ToolRender::Subagent(view) = &mut card.render {
-                        view.spinner = Some(if self.chrome.animations == Some(false) {
-                            "⋯"
-                        } else {
-                            crate::compaction::FRAMES[frame]
-                        });
+                        view.spinner = card.spinner;
                     }
                 }
                 card.diff_settings = self.chrome.diffs;

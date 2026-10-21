@@ -699,7 +699,12 @@ pub(crate) fn tool_hover_range(rows: &[Line], theme: &Theme, row: usize) -> std:
         }
         while end < rows.len() {
             let text = rows[end].plain_text();
-            if text.trim().is_empty() || text.trim_start().starts_with(['→', '⋯']) {
+            if text.trim().is_empty()
+                || text.trim_start().starts_with(['→', '⋯'])
+                || crate::compaction::FRAMES
+                    .iter()
+                    .any(|glyph| text.trim_start().starts_with(glyph))
+            {
                 break;
             }
             end += 1;
@@ -1045,6 +1050,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
     let mut members = Vec::new();
     let mut counts = Vec::<(&str, usize)>::new();
     let mut completed = true;
+    let mut spinner = None;
     for (member, row) in rows.iter().enumerate().skip(index) {
         let Some((name, done)) = exploration_kind(row) else {
             if exploration_transparent(row) {
@@ -1056,6 +1062,9 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
         end = member + 1;
         members.push(member);
         completed &= done;
+        if !done && spinner.is_none() {
+            spinner = row.tool.as_ref().map(crate::history::ToolCard::spinner);
+        }
         if let Some((_, count)) = counts.iter_mut().find(|(known, _)| *known == name) {
             *count += 1;
         } else {
@@ -1083,7 +1092,14 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
         Line::plain(""),
         Line::new(vec![
             Span::plain(" ".repeat(MESSAGE_PADDING)),
-            Span::styled(if completed { "→" } else { "⋯" }, muted),
+            Span::styled(
+                if completed {
+                    "→"
+                } else {
+                    spinner.unwrap_or(crate::tools::SPINNER)
+                },
+                muted,
+            ),
             Span::plain(" "),
             Span::styled(
                 format!(

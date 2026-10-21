@@ -163,6 +163,17 @@ async fn vis12_user_shell_mode_captures_receipt_without_model_turn_and_preserves
             "user-shell:owned"
         );
         assert!(inbox.try_recv().is_err());
+        let now = Instant::now();
+        assert!(!state.tick_tool_spinners(now));
+        assert!(state.tick_tool_spinners(now + Duration::from_millis(80)));
+        let rows = state.transcript_rows();
+        let card = rows.last().unwrap().tool.as_ref().unwrap();
+        assert_eq!(card.spinner(), "⠙");
+        assert!(
+            crate::tools::tool_block(card, Theme::dark(), 120)
+                .iter()
+                .any(|line| line.plain_text().contains(&format!("⠙ {command}")))
+        );
     }
 }
 
