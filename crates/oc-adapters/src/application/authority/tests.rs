@@ -1,7 +1,7 @@
 use super::*;
 use crate::application::dcp_controls_tests::{config, env, request, respond};
 use crate::runtime::origin::{Kind, Origin};
-use oc_core::queries::SessionSelectionAction;
+use oc_core::queries::{ConversationAction, SessionSelectionAction};
 use serde_json::json;
 use std::time::Duration;
 mod shell;
@@ -56,6 +56,21 @@ async fn foreground_conversion_keeps_original_parent_wake_lineage() {
     parent_notice_episode(ParentEpisode::ConvertedForeground).await;
 }
 
+#[tokio::test]
+async fn active_undo_holds_child_report_until_redo_without_replaying_child() {
+    parent_notice_episode(ParentEpisode::UndoRedo).await;
+}
+
+#[tokio::test]
+async fn undo_new_prompt_discards_already_queued_child_report() {
+    parent_notice_episode(ParentEpisode::UndoCommit).await;
+}
+
+#[tokio::test]
+async fn undo_new_prompt_keeps_child_that_completes_after_branch_commit() {
+    parent_notice_episode(ParentEpisode::UndoLate).await;
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ParentEpisode {
     CurrentSelection,
@@ -68,6 +83,9 @@ enum ParentEpisode {
     ChildError,
     ChildInterrupted,
     ConvertedForeground,
+    UndoRedo,
+    UndoCommit,
+    UndoLate,
 }
 
 async fn parent_notice_episode(case: ParentEpisode) {
@@ -103,7 +121,7 @@ async fn parent_notice_episode(case: ParentEpisode) {
         let child_posts = child_posts.clone();
         tokio::spawn(async move {
             let mut clients = tokio::task::JoinSet::new();
-            for _ in 0..4 {
+            for _ in 0..5 {
                 let (mut socket, _) = listener.accept().await.unwrap();
                 let entered = entered.clone();
                 let release = release.clone();
@@ -127,6 +145,11 @@ async fn parent_notice_episode(case: ParentEpisode) {
                     } else if parent_posts.fetch_add(1, Ordering::AcqRel) == 0 {
                         json!([{"type":"function_call","id":"bg-item","call_id":"bg-launch","name":"subagent","arguments":json!({"agent":"helper","description":"independent investigation","prompt":"OWN_CHILD_TASK","background":case != ParentEpisode::ConvertedForeground}).to_string()}])
                     } else {
+                        if case == ParentEpisode::UndoRedo
+                            && parent_posts.load(Ordering::Acquire) == 2
+                        {
+                            std::future::pending::<()>().await;
+                        }
                         json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"PARENT_SETTLED"}]}])
                     };
                     respond(&mut socket, output).await;
@@ -175,6 +198,24 @@ async fn parent_notice_episode(case: ParentEpisode) {
         .submit(session.clone(), "ORIGINAL_PARENT_TASK".into())
         .await
         .unwrap();
+    let mut seen = Vec::new();
+    if case == ParentEpisode::UndoRedo {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            for _ in 0..3 {
+                seen.push(requests.recv().await.unwrap());
+            }
+            let undone = running
+                .app
+                .change_conversation(session.clone(), ConversationAction::Undo)
+                .await
+                .unwrap();
+            assert!(undone.can_redo);
+            assert_eq!(undone.draft.as_deref(), Some("ORIGINAL_PARENT_TASK"));
+        })
+        .await
+        .unwrap();
+        assert!(origin.foreground.load(Ordering::Acquire));
+    }
     if case == ParentEpisode::ConvertedForeground {
         tokio::time::timeout(Duration::from_secs(5), child_ready.notified())
             .await
@@ -189,7 +230,15 @@ async fn parent_notice_episode(case: ParentEpisode) {
                 CoreEvent::Projection { event, .. } => *event,
                 event => event,
             };
-            if matches!(event, CoreEvent::TurnFinished{turn,..} if turn == first) {
+            if match event {
+                CoreEvent::TurnInterrupted { turn, .. } if case == ParentEpisode::UndoRedo => {
+                    turn == first
+                }
+                CoreEvent::TurnFinished { turn, .. } if case != ParentEpisode::UndoRedo => {
+                    turn == first
+                }
+                _ => false,
+            } {
                 break;
             }
         }
@@ -204,6 +253,10 @@ async fn parent_notice_episode(case: ParentEpisode) {
     drop(running);
     assert_eq!(parent_posts.load(Ordering::Acquire), 2);
     assert_eq!(child_posts.load(Ordering::Acquire), 1);
+    assert!(matches!(
+        owner.db.child_tool_jobs("parent").unwrap()[0].state,
+        oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
+    ));
     origin.auto_once.store(true, Ordering::Release);
     let mut blocked = if matches!(
         case,
@@ -212,11 +265,21 @@ async fn parent_notice_episode(case: ParentEpisode) {
             | ParentEpisode::RunRelease
             | ParentEpisode::SessionCancel
             | ParentEpisode::PermanentRefusal
+            | ParentEpisode::UndoRedo
+            | ParentEpisode::UndoCommit
+            | ParentEpisode::UndoLate
     ) {
         Some(owner.reserve_mutation("parent").unwrap())
     } else {
         None
     };
+    if matches!(case, ParentEpisode::UndoCommit | ParentEpisode::UndoLate) {
+        location
+            .app
+            .change_conversation(session.clone(), ConversationAction::Undo)
+            .await
+            .unwrap();
+    }
     location
         .app
         .session_selection(
@@ -229,24 +292,44 @@ async fn parent_notice_episode(case: ParentEpisode) {
     if case == ParentEpisode::RunSurvivesTui {
         owner.cancel_interactive();
     }
-    if case == ParentEpisode::ChildInterrupted {
-        let job = owner.db.child_tool_jobs("parent").unwrap().remove(0);
-        assert!(owner.resources.children.interrupt("parent", &job));
-        assert!(!origin.foreground.load(Ordering::Acquire));
-        // Keep the peer held: cancellation must settle the child without a
-        // response, and must not cancel the original parent Origin.
-    } else {
-        release.notify_one();
-    }
-    let mut seen = Vec::new();
     let resumed = tokio::time::timeout(Duration::from_secs(5), async {
-        for _ in 0..3 { seen.push(requests.recv().await.unwrap()); }
+        while seen.len() < 3 { seen.push(requests.recv().await.unwrap()); }
+        if case == ParentEpisode::UndoLate {
+            drop(blocked.take());
+            seen.push(replace_parent(&owner, &location, &session, &mut events, &mut requests).await);
+            blocked = Some(owner.reserve_mutation("parent").unwrap());
+        }
+        if case == ParentEpisode::ChildInterrupted {
+            let job = owner.db.child_tool_jobs("parent").unwrap().remove(0);
+            assert!(owner.resources.children.interrupt("parent", &job));
+            assert!(!origin.foreground.load(Ordering::Acquire));
+        } else {
+            release.notify_one();
+        }
         if blocked.is_some() {
             loop {
                 let event = match events.recv().await.unwrap() { CoreEvent::Projection{event,..} => *event, event => event };
                 if matches!(event,CoreEvent::ChildNotice(_)) { break; }
             }
             assert!(owner.root("parent").is_none(),"mutation must defer admission");
+        }
+        if matches!(case, ParentEpisode::UndoRedo | ParentEpisode::UndoCommit) {
+            assert!(owner.resources.children.parent_batches().unwrap().is_empty());
+            drop(blocked.take());
+            owner.reconcile_parent_notices().unwrap();
+            assert!(owner.root("parent").is_none(), "staged Undo must not start or refuse a continuation");
+            assert_eq!(parent_posts.load(Ordering::Acquire), 2);
+            if case == ParentEpisode::UndoRedo {
+                blocked = Some(owner.reserve_mutation("parent").unwrap());
+                let redo = location.app.change_conversation(session.clone(), ConversationAction::Redo).await.unwrap();
+                assert!(!redo.can_redo && redo.reverted.is_none());
+            } else {
+                seen.push(replace_parent(&owner, &location, &session, &mut events, &mut requests).await);
+                owner.resources.children.parent_batches().unwrap();
+                origin.settle().await;
+                assert!(owner.root("parent").is_none());
+                return;
+            }
         }
         match case {
             ParentEpisode::InteractiveRelease => owner.cancel_interactive(),
@@ -315,7 +398,11 @@ async fn parent_notice_episode(case: ParentEpisode) {
     );
     assert_eq!(
         owner.origins.lock().unwrap().len(),
-        1,
+        if case == ParentEpisode::UndoCommit {
+            2
+        } else {
+            1
+        },
         "same origin registration is deduplicated"
     );
     let suppressed = matches!(
@@ -324,9 +411,17 @@ async fn parent_notice_episode(case: ParentEpisode) {
             | ParentEpisode::RunRelease
             | ParentEpisode::SessionCancel
             | ParentEpisode::PermanentRefusal
+            | ParentEpisode::UndoCommit
     );
     if suppressed {
-        assert_eq!(parent_posts.load(Ordering::Acquire), 2);
+        assert_eq!(
+            parent_posts.load(Ordering::Acquire),
+            if case == ParentEpisode::UndoCommit {
+                3
+            } else {
+                2
+            }
+        );
         assert_eq!(child_posts.load(Ordering::Acquire), 1);
         let jobs = owner.db.child_tool_jobs("parent").unwrap();
         assert_eq!(jobs.len(), 1);
@@ -346,24 +441,43 @@ async fn parent_notice_episode(case: ParentEpisode) {
                 .count(),
             0
         );
+        if case == ParentEpisode::UndoCommit {
+            let input = seen.last().unwrap()["input"].to_string();
+            assert!(input.contains("REPLACEMENT_TASK"));
+            assert!(
+                !input.contains("CHILD_REPORT_SENTINEL") && !input.contains("ORIGINAL_PARENT_TASK")
+            );
+        }
         return;
     }
-    assert_eq!(parent_posts.load(Ordering::Acquire), 3);
+    assert_eq!(
+        parent_posts.load(Ordering::Acquire),
+        if case == ParentEpisode::UndoLate {
+            4
+        } else {
+            3
+        }
+    );
     assert_eq!(child_posts.load(Ordering::Acquire), 1);
-    let automatic = seen
-        .iter()
-        .find(|body| body["model"] == "beta-model")
-        .expect("committed parent selection, not child or original model");
+    let automatic = seen.last().unwrap();
+    assert_eq!(automatic["model"], "beta-model");
     let input = automatic["input"].to_string();
     assert!(
         (matches!(
             case,
             ParentEpisode::ChildError | ParentEpisode::ChildInterrupted
         ) || input.contains("CHILD_REPORT_SENTINEL"))
-            && input.contains("ORIGINAL_PARENT_TASK")
+            && input.contains(if case == ParentEpisode::UndoLate {
+                "REPLACEMENT_TASK"
+            } else {
+                "ORIGINAL_PARENT_TASK"
+            })
             && input.contains("CURRENT_PARENT_PROFILE"),
         "{input}"
     );
+    if case == ParentEpisode::UndoLate {
+        assert!(!input.contains("ORIGINAL_PARENT_TASK"));
+    }
     if !matches!(
         case,
         ParentEpisode::ChildError | ParentEpisode::ChildInterrupted
@@ -394,6 +508,43 @@ async fn parent_notice_episode(case: ParentEpisode) {
             .count(),
         1
     );
+}
+
+/// Commit a staged branch through real native admission, before or after a
+/// detached job reports. The replacement never launches another job.
+async fn replace_parent(
+    owner: &Arc<Owner>,
+    location: &Arc<Location>,
+    session: &SessionId,
+    events: &mut broadcast::Receiver<CoreEvent>,
+    requests: &mut mpsc::Receiver<serde_json::Value>,
+) -> serde_json::Value {
+    let origin = Arc::new(Origin::new(Kind::Run, false).at(location.clone()));
+    let running = owner
+        .begin(location.clone(), session.0.clone(), origin, 0, false, None)
+        .unwrap();
+    let turn = running
+        .app
+        .submit(session.clone(), "REPLACEMENT_TASK".into())
+        .await
+        .unwrap();
+    let body = requests.recv().await.unwrap();
+    loop {
+        let event = match events.recv().await.unwrap() {
+            CoreEvent::Projection { event, .. } => *event,
+            event => event,
+        };
+        assert!(!matches!(
+            event,
+            CoreEvent::ParentContinuationRefused { .. }
+        ));
+        if matches!(event, CoreEvent::TurnFinished { turn: id, .. } if id == turn) {
+            break;
+        }
+    }
+    owner.next_root().await.unwrap();
+    assert!(owner.root(&session.0).is_none());
+    body
 }
 
 #[tokio::test]

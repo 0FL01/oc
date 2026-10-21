@@ -1,6 +1,6 @@
 //! Application-owned background lifecycles around the existing Shell supervisor.
 use super::*;
-use crate::storage::{Db, StorageError};
+use crate::storage::{Db, ParentNoticeState, StorageError};
 use futures_util::FutureExt as _;
 use futures_util::future::{BoxFuture, Shared};
 use serde::{Deserialize, Serialize};
@@ -1108,16 +1108,14 @@ impl Jobs {
 
     pub(crate) fn batch_current(&self, batch: &ParentBatch) -> Result<bool, StorageError> {
         let pending = self.pending_wakes.lock().expect("shell handoffs");
-        if batch.origin.flag.load(Ordering::Acquire)
-            || batch.origin.foreground.load(Ordering::Acquire)
-        {
+        if batch.origin.flag.load(Ordering::Acquire) {
             return Ok(false);
         }
         for (operation, message) in batch.operations.iter().zip(&batch.messages) {
             if pending
                 .get(operation)
                 .is_none_or(|wake| wake.origin.id != batch.origin.id)
-                || self.db.parent_notice_assigned(&batch.parent, message)?
+                || self.db.parent_notice_state(&batch.parent, message)? != ParentNoticeState::Ready
             {
                 return Ok(false);
             }
@@ -1133,15 +1131,17 @@ impl Jobs {
         let mut retired = Vec::new();
         for (operation, wake) in pending.iter() {
             let message = self.db.shell_notice_message(&wake.session, operation)?;
+            let notice_state = message
+                .as_ref()
+                .map(|message| self.db.parent_notice_state(&wake.session, message))
+                .transpose()?;
             if wake.origin.flag.load(Ordering::Acquire)
-                || wake.origin.foreground.load(Ordering::Acquire)
-                || message
-                    .as_ref()
-                    .map(|message| self.db.parent_notice_assigned(&wake.session, message))
-                    .transpose()?
-                    .unwrap_or(false)
+                || notice_state == Some(ParentNoticeState::Retired)
             {
                 retired.push(operation.clone());
+                continue;
+            }
+            if notice_state == Some(ParentNoticeState::Held) {
                 continue;
             }
             let Some(message) = message else {

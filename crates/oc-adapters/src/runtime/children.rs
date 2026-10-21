@@ -1,5 +1,6 @@
 //! Bounded child lifetime ownership within the application/runtime lineage.
 use super::*;
+use crate::storage::ParentNoticeState;
 use futures_util::FutureExt as _;
 use futures_util::future::{BoxFuture, Shared};
 use oc_core::queries::{ChildJob, ChildState};
@@ -597,9 +598,7 @@ impl Jobs {
 
     pub(crate) fn batch_current(&self, batch: &ParentBatch) -> Result<bool, StorageError> {
         let work = self.work.lock().expect("child work");
-        if batch.origin.flag.load(Ordering::Acquire)
-            || batch.origin.foreground.load(Ordering::Acquire)
-        {
+        if batch.origin.flag.load(Ordering::Acquire) {
             return Ok(false);
         }
         for (operation, message) in batch.operations.iter().zip(&batch.messages) {
@@ -611,7 +610,7 @@ impl Jobs {
                     .parent_wake
                     .as_ref()
                     .is_none_or(|wake| wake.origin.id != batch.origin.id)
-                || self.db.parent_notice_assigned(&batch.parent, message)?
+                || self.db.parent_notice_state(&batch.parent, message)? != ParentNoticeState::Ready
             {
                 return Ok(false);
             }
@@ -631,22 +630,23 @@ impl Jobs {
             let current =
                 self.db
                     .child_job(&job.identity.parent.0, &job.identity.operation, false)?;
-            let assigned =
+            let notice_state =
                 if let Some(message) = current.as_ref().and_then(|job| job.message_id.as_deref()) {
-                    self.db
-                        .parent_notice_assigned(&job.identity.parent.0, message)?
+                    Some(
+                        self.db
+                            .parent_notice_state(&job.identity.parent.0, message)?,
+                    )
                 } else {
-                    false
+                    None
                 };
             if wake.origin.flag.load(Ordering::Acquire)
-                || wake.origin.foreground.load(Ordering::Acquire)
-                || assigned
+                || notice_state == Some(ParentNoticeState::Retired)
                 || (job.execution.is_none() && current.as_ref().is_none_or(|job| !job.background))
             {
                 job.parent_wake = None;
                 continue;
             }
-            if job.execution.is_some() {
+            if job.execution.is_some() || notice_state == Some(ParentNoticeState::Held) {
                 continue;
             }
             let Some(message) = current.and_then(|job| job.message_id) else {

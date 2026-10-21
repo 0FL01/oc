@@ -4478,6 +4478,13 @@ async fn query(
     }
 }
 
+fn suppress_parent_handoffs(runtime: &Runtime<'_>) {
+    if let Some(origin) = &runtime.native_origin {
+        runtime.child_jobs.suppress_origin(origin.id);
+        runtime.shell_jobs.suppress_origin(origin.id);
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn worker(
     runtime: &Runtime<'_>,
@@ -5077,9 +5084,11 @@ async fn worker(
                             None | Some(InboxMsg::Shutdown) => {
                                 shutdown = true;
                                 cancel.store(true, Ordering::Relaxed);
+                                suppress_parent_handoffs(runtime);
                             }
                             Some(InboxMsg::CancelTitle { session: target, ack }) if target == session => {
                                 cancel.store(true, Ordering::Relaxed);
+                                suppress_parent_handoffs(runtime);
                                 let _ = ack.send(Ok(()));
                             }
                             Some(command @ InboxMsg::ChangeConversation { .. }) => {
@@ -5097,6 +5106,7 @@ async fn worker(
                                 query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, title_work, terminals, authentication, command).await;
                                 if matches!(db.session_meta(&session.0), Err(StorageError::SessionNotFound)) {
                                     cancel.store(true,Ordering::Relaxed);
+                                    suppress_parent_handoffs(runtime);
                                     // Dropping the pinned provider operation closes the
                                     // held stream before processing another owner command.
                                     break Err(app_error("title session deleted"));
@@ -5846,6 +5856,7 @@ async fn worker(
                             _ = runtime.wait_mcp_failure(), if !shutdown => {
                                 shutdown = true;
                                 cancel.store(true, Ordering::Relaxed);
+                                suppress_parent_handoffs(runtime);
                                 runtime.cancel_pending_approvals();
                                 runtime.cancel_all_compactions();
                             },
@@ -5856,6 +5867,7 @@ async fn worker(
                                 None | Some(InboxMsg::Shutdown) => {
                                     shutdown = true;
                                     cancel.store(true, Ordering::Relaxed);
+                                    suppress_parent_handoffs(runtime);
                                     runtime.cancel_pending_approvals();
                                     runtime.cancel_all_compactions();
                                 }

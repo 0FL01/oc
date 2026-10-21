@@ -561,13 +561,23 @@ impl Db {
                 |r| r.get(0),
             )?;
             // Head must admit future rows (manual DCP or the next accepted turn).
-            // Selection-only tail data needs no historical execution context;
-            // clearing staged revert exposes those notices just like the tip.
+            // Selection and authenticated background reports need no saved
+            // execution context. Redo also exposes reports delivered while held.
             if !can_redo && matches!(action, ConversationAction::Redo) {
-                tx.execute(
-                    "UPDATE conversation_state SET upper_seq=NULL WHERE session_id=?1 AND NOT EXISTS(SELECT 1 FROM messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.role NOT IN ('model_switch','agent_switch') AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq))",
-                    params![session,seq],
-                )?;
+                let mut tail = tx.prepare_cached("SELECT m.id FROM messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.role NOT IN ('model_switch','agent_switch') AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq)")?;
+                let mut data_only = true;
+                for row in tail.query_map(params![session, seq], |row| row.get::<_, String>(0))? {
+                    if !Self::native_notice_data_in(&tx, session, &row?)? {
+                        data_only = false;
+                        break;
+                    }
+                }
+                if data_only {
+                    tx.execute(
+                        "UPDATE conversation_state SET upper_seq=NULL WHERE session_id=?1",
+                        [session],
+                    )?;
+                }
             }
             // Invalidate title CAS even when a provider result was already
             // queued. Moving away and back must not revive its old source.

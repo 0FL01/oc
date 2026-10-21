@@ -48,6 +48,31 @@ impl Db {
         Self::parent_notice_assigned_in(&self.conn.lock().expect("db mutex"), session, message)
     }
 
+    /// Staged Undo holds live handoffs; committing a branch retires only reports
+    /// already excluded by that commit, never jobs that have yet to report.
+    pub(crate) fn parent_notice_state(
+        &self,
+        session: &str,
+        message: &str,
+    ) -> Result<ParentNoticeState, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        if Self::parent_notice_assigned_in(&conn, session, message)? {
+            return Ok(ParentNoticeState::Retired);
+        }
+        let (excluded, staged): (bool, bool) = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM messages m JOIN conversation_exclusions e ON e.session_id=m.session_id AND m.seq>e.lower_seq AND m.seq<=e.upper_seq WHERE m.session_id=?1 AND m.id=?2), EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
+            params![session, message],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        Ok(if excluded {
+            ParentNoticeState::Retired
+        } else if staged {
+            ParentNoticeState::Held
+        } else {
+            ParentNoticeState::Ready
+        })
+    }
+
     pub(crate) fn is_native_notice(
         &self,
         session: &str,

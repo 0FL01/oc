@@ -374,6 +374,13 @@ pub(crate) struct AcceptedTurn {
     pub model_switch: Option<oc_core::queries::ModelSwitchNotice>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ParentNoticeState {
+    Ready,
+    Held,
+    Retired,
+}
+
 /// Constructed only after successful acquisition of the exclusive flock.
 struct RootLock(File);
 

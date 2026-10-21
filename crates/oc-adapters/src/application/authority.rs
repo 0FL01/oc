@@ -504,7 +504,13 @@ impl Owner {
             app,
             location: location.clone(),
             ready,
-            cancel: origin.foreground.clone(),
+            // Undo stops one foreground request, not its detached jobs. Their
+            // later continuation keeps the Origin but owns a fresh stop token.
+            cancel: if batch.is_some() {
+                Arc::new(AtomicBool::new(false))
+            } else {
+                origin.foreground.clone()
+            },
             origin: origin.clone(),
         });
         roots.insert(session.clone(), Reservation::Running(root.clone()));
