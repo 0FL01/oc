@@ -1622,3 +1622,64 @@ fn recursive_fork_preserves_launch_and_notice_without_child_authority_or_foreign
     );
     assert_eq!(db.read_history_full("parent").unwrap(), raw);
 }
+
+#[test]
+fn exact_terminal_diagnostic_survives_commit_before_settlement_and_notice_reopen() {
+    for status in ["failed", "cancelled", "interrupted"] {
+        for owner in ["launch", "foreign"] {
+            let dir = tempfile::tempdir().unwrap();
+            let db = Db::open(dir.path()).unwrap();
+            admitted(&db);
+            db.begin_turn("child-turn", "child", "own task").unwrap();
+            db.start_child_job("launch", "child-turn").unwrap();
+            let mut log = crate::tools::TurnLog::new("child-turn", "child", "fixture");
+            let code = if status == "failed" {
+                "provider_error"
+            } else {
+                "cancelled"
+            };
+            let diagnostic = Diagnostic::new("subagent", code, "SAFE_FINAL_REASON")
+                .detail(serde_json::json!({"by":"runtime","reason":"owner_shutdown"}));
+            log.display["owning_operation"] = owner.into();
+            log.display["terminal_diagnostic"] = serde_json::to_value(&diagnostic).unwrap();
+            db.commit_turn("child-turn", status, Some(&log.to_json().to_string()), None)
+                .unwrap();
+            assert_eq!(
+                db.child_diagnostic("launch").unwrap(),
+                (owner == "launch").then_some(diagnostic.clone())
+            );
+            drop(db);
+            let db = Db::open(dir.path()).unwrap();
+            db.recover_child_jobs().unwrap();
+            let job = db.child_job("parent", "launch", true).unwrap().unwrap();
+            assert_eq!(
+                job.state,
+                if status == "failed" {
+                    ChildState::Error
+                } else if status == "interrupted" && owner != "launch" {
+                    ChildState::Unknown
+                } else {
+                    ChildState::Cancelled
+                }
+            );
+            if owner == "launch" {
+                assert_eq!(job.result.as_deref(), Some("SAFE_FINAL_REASON"));
+            }
+            db.finish_child_job("launch", ChildState::Completed, "late loser")
+                .unwrap();
+            assert_eq!(
+                db.child_job("parent", "launch", true)
+                    .unwrap()
+                    .unwrap()
+                    .state,
+                job.state
+            );
+            let notice = db.deliver_child_notices().unwrap().remove(0);
+            let text = child_notice_text(&db, &notice);
+            let payload: serde_json::Value =
+                serde_json::from_str(text.split_once('\n').unwrap().1).unwrap();
+            assert_eq!(payload.get("diagnostic").is_some(), owner == "launch");
+            assert!(db.deliver_child_notices().unwrap().is_empty());
+        }
+    }
+}

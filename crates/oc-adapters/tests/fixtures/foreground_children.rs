@@ -807,11 +807,9 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
             let report = result.unwrap();
             assert_eq!(report.status, TurnStatus::Completed, "{case}");
             assert_eq!(report.calls.len(), 2, "{case}");
-            assert!(
-                report.calls[0].output.starts_with("error: "),
-                "{case}: {:?}",
-                report.calls
-            );
+            let failure: serde_json::Value = serde_json::from_str(&report.calls[0].output).unwrap();
+            assert_eq!(failure["status"], "failed", "{case}: {:?}", report.calls);
+            assert!(failure["error"]["code"].is_string());
             if matches!(case, "model" | "budget") {
                 assert!(report.calls[1].output.contains("survived"));
                 assert!(!cancel.load(Ordering::Acquire));

@@ -635,14 +635,39 @@ impl TurnSubagent<'_, '_> {
                     fresh,
                     None,
                 )
-                .await?;
-            if request.background {
+                .await;
+            let launched = match launched {
+                Ok(outcome) => outcome,
+                Err(error) => {
+                    return Ok(SubagentOutcome::Failed {
+                        session_id: Some(identity.child.0.clone()),
+                        reason: error.to_string(),
+                        diagnostic: Some(
+                            serde_json::to_value(error.diagnostic(SUBAGENT_TOOL))
+                                .expect("diagnostic"),
+                        ),
+                    });
+                }
+            };
+            if request.background || !matches!(launched, SubagentOutcome::Running { .. }) {
                 Ok(launched)
             } else {
-                self.runtime
+                match self
+                    .runtime
                     .child_jobs
                     .wait_foreground(&identity, self.cancel)
                     .await
+                {
+                    Ok(outcome) => Ok(outcome),
+                    Err(error) => Ok(SubagentOutcome::Failed {
+                        session_id: Some(identity.child.0),
+                        reason: error.to_string(),
+                        diagnostic: Some(
+                            serde_json::to_value(error.diagnostic(SUBAGENT_TOOL))
+                                .expect("diagnostic"),
+                        ),
+                    }),
+                }
             }
         }
     }
@@ -1669,6 +1694,9 @@ impl<'a> Runtime<'a> {
         let resuming = resume.is_some();
         let mut turn_log = resume
             .unwrap_or_else(|| TurnLog::new(&turn_id, &selection.id, &params.catalog.provider));
+        if let Some(display) = turn_log.display.as_object_mut() {
+            display.remove("terminal_diagnostic");
+        }
         if !resuming {
             turn_log.binding = Some(binding.clone());
             turn_log.protocol = binding.protocol;
@@ -1923,7 +1951,8 @@ impl<'a> Runtime<'a> {
                     bytes: notices.bytes,
                     cap: ACTIVE_CONTEXT_BYTES_CAP,
                 };
-                let mut report = self.commit_turn(
+                Self::terminal_error(&mut turn_log, "context_overflow", error.to_string());
+                let report = self.commit_turn(
                     &turn_log,
                     turn_id,
                     &params.session,
@@ -1937,7 +1966,6 @@ impl<'a> Runtime<'a> {
                     nudge_hint,
                     &published,
                 )?;
-                report.diagnostic = Some(error.to_string());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             // Keep the open notice tail out of instruction/checkpoint commits
@@ -2508,7 +2536,16 @@ impl<'a> Runtime<'a> {
                 continue;
             }
             if (overflow_pending || automatic_due) && !compacted {
-                let mut report = self.commit_turn(
+                Self::terminal_error(
+                    &mut turn_log,
+                    "compaction_failed",
+                    if overflow_pending {
+                        "context overflow; compaction failed without changing context"
+                    } else {
+                        "automatic compaction failed without changing context"
+                    },
+                );
+                let report = self.commit_turn(
                     &turn_log,
                     turn_id,
                     &params.session,
@@ -2522,14 +2559,6 @@ impl<'a> Runtime<'a> {
                     nudge_hint,
                     &published,
                 )?;
-                report.diagnostic = Some(
-                    if overflow_pending {
-                        "context overflow; compaction failed without changing context"
-                    } else {
-                        "automatic compaction failed without changing context"
-                    }
-                    .into(),
-                );
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             overflow_pending = false;
@@ -2623,7 +2652,8 @@ impl<'a> Runtime<'a> {
                     bytes: baseline_bytes,
                     cap: ACTIVE_CONTEXT_BYTES_CAP,
                 };
-                let mut report = self.commit_turn(
+                Self::terminal_error(&mut turn_log, "context_overflow", error.to_string());
+                let report = self.commit_turn(
                     &turn_log,
                     turn_id,
                     &params.session,
@@ -2637,7 +2667,6 @@ impl<'a> Runtime<'a> {
                     nudge_hint,
                     &published,
                 )?;
-                report.diagnostic = Some(error.to_string());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             let (nudge, persisted_nudge) = {
@@ -2707,7 +2736,8 @@ impl<'a> Runtime<'a> {
                     bytes: escaped_bytes,
                     cap: ACTIVE_CONTEXT_BYTES_CAP,
                 };
-                let mut report = self.commit_turn(
+                Self::terminal_error(&mut turn_log, "context_overflow", error.to_string());
+                let report = self.commit_turn(
                     &turn_log,
                     turn_id,
                     &params.session,
@@ -2721,7 +2751,6 @@ impl<'a> Runtime<'a> {
                     nudge_hint,
                     &published,
                 )?;
-                report.diagnostic = Some(error.to_string());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             let input: Vec<InputItem> = input.into_iter().cloned().collect();
@@ -2763,7 +2792,8 @@ impl<'a> Runtime<'a> {
                     )?;
                     continue 'step;
                 }
-                let mut report = self.commit_turn(
+                Self::terminal_error(&mut turn_log, "request_budget", error.to_string());
+                let report = self.commit_turn(
                     &turn_log,
                     turn_id,
                     &params.session,
@@ -2777,7 +2807,6 @@ impl<'a> Runtime<'a> {
                     nudge_hint,
                     &published,
                 )?;
-                report.diagnostic = Some(error.to_string());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             let mut represented_notices = history_notices.clone();
@@ -3351,7 +3380,12 @@ impl<'a> Runtime<'a> {
                             } else {
                                 TurnStatus::Failed
                             };
-                            let mut report = self.commit_turn(
+                            Self::terminal_error(
+                                &mut turn_log,
+                                "provider_error",
+                                error.to_string(),
+                            );
+                            let report = self.commit_turn(
                                 &turn_log,
                                 turn_id,
                                 &params.session,
@@ -3365,7 +3399,6 @@ impl<'a> Runtime<'a> {
                                 nudge_hint,
                                 &published,
                             )?;
-                            report.diagnostic = Some(error.to_string());
                             return Ok(TurnExecution::Report(Box::new(report)));
                         }
                     }
@@ -3716,7 +3749,12 @@ impl<'a> Runtime<'a> {
                     .map(|report| TurnExecution::Report(Box::new(report)));
             }
             if calls.iter().any(|call| call.state == "unknown") {
-                let mut report = self.commit_turn(
+                Self::terminal_error(
+                    &mut turn_log,
+                    "execution_unresolved",
+                    "MCP outcome unknown; retry may duplicate side effects",
+                );
+                let report = self.commit_turn(
                     &turn_log,
                     turn_id,
                     &params.session,
@@ -3730,8 +3768,6 @@ impl<'a> Runtime<'a> {
                     nudge_hint,
                     &published,
                 )?;
-                report.diagnostic =
-                    Some("MCP outcome unknown; retry may duplicate side effects".into());
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
             if projection_changed {
@@ -3781,7 +3817,14 @@ impl<'a> Runtime<'a> {
                 break;
             }
         }
-        let mut report = self.commit_turn(
+        if turn_log.display["finish_reason"] == "length" {
+            Self::terminal_error(
+                &mut turn_log,
+                "provider_length",
+                "provider finish=length (max_output_tokens)",
+            );
+        }
+        let report = self.commit_turn(
             &turn_log,
             turn_id,
             &params.session,
@@ -3795,9 +3838,6 @@ impl<'a> Runtime<'a> {
             nudge_hint,
             &published,
         )?;
-        if turn_log.display["finish_reason"] == "length" {
-            report.diagnostic = Some("provider finish=length (max_output_tokens)".into());
-        }
         Ok(TurnExecution::Report(Box::new(report)))
     }
 
@@ -4004,7 +4044,7 @@ impl<'a> Runtime<'a> {
                 if resuming || self.db.start_child_job(owning_operation, id).is_ok() {
                     let _ = started.send(());
                 } else {
-                    child_token.store(true, Ordering::Release);
+                    self.request_child_stop(child_token, super::stop::Cause::StartStorageFailed);
                 }
             }
             *accepted_id.lock().expect("child acceptance lock") = Some(id.into());
@@ -4099,15 +4139,20 @@ impl<'a> Runtime<'a> {
                     } else if let Some(id) = accepted_id.lock().expect("child acceptance lock").as_ref() {
                         // Preserve the last durable checkpoint and settle the
                         // child's own accepted turn; no effect is replayed.
-                        let (_, checkpoint) = self.db.turn_result(id)?;
-                        self.db.finish_turn(id, "failed", checkpoint.as_deref())?;
+                        let (state, checkpoint) = self.db.turn_result(id)?;
+                        if state == "started" {
+                            let mut log = checkpoint.as_deref().and_then(|raw| serde_json::from_str(raw).ok()).and_then(|v| TurnLog::from_json(&v).ok()).ok_or(RuntimeError::Storage)?;
+                            Self::terminal_error(&mut log, "runtime_failure", result.as_ref().expect_err("error").to_string());
+                            self.prepare_terminal_diagnostic(&mut log, false, &published);
+                            self.db.finish_turn(id, "failed", Some(&log.to_json().to_string()))?;
+                        }
                         send(CoreEvent::TurnFailed { session: SessionId(session.into()), turn: WorkerTurnId(id.into()), error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: Vec::new(), service_warning_range: 0..0 });
                     }
                     return result;
                 },
                 () = tokio::time::sleep(Duration::from_millis(5)) => {
                     if self.child_jobs.take_parent_rejection(session) {
-                        child_token.store(true, Ordering::Release);
+                        self.request_child_stop(child_token, super::stop::Cause::ApprovalRejected);
                     }
                     if cancel.load(Ordering::Acquire) {
                         child_cancel.store(true, Ordering::Release);
@@ -4141,6 +4186,51 @@ impl<'a> Runtime<'a> {
         format!("{parent}-sub-{}-{seq}", next_turn_id(parent, millis()))
     }
 
+    fn request_child_stop(&self, flag: &AtomicBool, cause: super::stop::Cause) {
+        if let Some(stop) = &self.child_stop {
+            stop.request(flag, cause);
+        } else {
+            flag.store(true, Ordering::Release);
+        }
+    }
+
+    fn terminal_error(log: &mut TurnLog, code: &str, message: impl AsRef<str>) {
+        log.display["terminal_diagnostic"] = serde_json::to_value(
+            crate::tools::diagnostic::Diagnostic::new("runtime", code, message),
+        )
+        .expect("diagnostic");
+    }
+
+    fn prepare_terminal_diagnostic(
+        &self,
+        log: &mut TurnLog,
+        cancelled: bool,
+        published: &PublishedGeneration,
+    ) -> Option<crate::tools::diagnostic::Diagnostic> {
+        use crate::tools::diagnostic::Diagnostic;
+        let selected = self
+            .child_stop
+            .as_ref()
+            .and_then(|stop| stop.freeze(cancelled));
+        let mut diagnostic = if cancelled {
+            selected.or_else(|| Some(super::stop::Cause::Unknown.diagnostic()))
+        } else {
+            serde_json::from_value::<Diagnostic>(log.display["terminal_diagnostic"].clone()).ok()
+        };
+        if let Some(diagnostic) = &mut diagnostic {
+            crate::tools::output::redact_string(
+                &mut diagnostic.message,
+                &super::mcp::mcp_redactions(&published.config, &self.parent_env),
+            );
+            diagnostic
+                .message
+                .truncate(diagnostic.message.floor_char_boundary(1024));
+            log.display["terminal_diagnostic"] =
+                serde_json::to_value(&*diagnostic).expect("diagnostic");
+        }
+        diagnostic
+    }
+
     /// Commit durable records under the issuing execution's authority, then report.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn commit_turn(
@@ -4156,7 +4246,7 @@ impl<'a> Runtime<'a> {
         context_usage: Option<(u64, u64)>,
         calls: Vec<CallRecord>,
         nudge_hint: Option<String>,
-        _published: &PublishedGeneration,
+        published: &PublishedGeneration,
     ) -> Result<TurnReport, RuntimeError> {
         self.check_issued_turn(turn_log, session)?;
         // An explicit Esc is still Cancelled. Losing the last interactive
@@ -4174,6 +4264,11 @@ impl<'a> Runtime<'a> {
         let assistant =
             (status == TurnStatus::Completed && !text.is_empty()).then_some(text.as_str());
         let mut turn_log = turn_log.clone();
+        let diagnostic = self.prepare_terminal_diagnostic(
+            &mut turn_log,
+            matches!(status, TurnStatus::Cancelled | TurnStatus::Interrupted),
+            published,
+        );
         if let Some(span) = turn_log.spans.last_mut()
             && span.completed.is_none()
         {
@@ -4192,7 +4287,7 @@ impl<'a> Runtime<'a> {
         Ok(TurnReport {
             turn_id,
             status,
-            diagnostic: None,
+            diagnostic: diagnostic.map(|d| d.message),
             text,
             rounds,
             usage,
@@ -4281,6 +4376,9 @@ impl<'a> Runtime<'a> {
                     .await?;
                 records.extend(child_records);
                 permission_rejected |= rejected;
+                // A drained child failure is recoverable; unconfirmed cleanup
+                // is not. Check the existing owner health before later effects.
+                self.child_jobs.reap().await?;
                 continue;
             }
             let (id, name, input) = match unit {
@@ -4762,6 +4860,9 @@ impl<'a> Runtime<'a> {
             permission_rejected |= matches!(&admission, Err(AdmissionFailure::Rejected(None)));
             if matches!(&admission, Err(AdmissionFailure::Rejected(None))) {
                 self.child_jobs.permission_rejected_session(session);
+                if let Some(stop) = &self.child_stop {
+                    stop.remember(cancel, super::stop::Cause::ApprovalRejected);
+                }
             }
             // Fail closed. No built-in or MCP dispatch can precede this commit.
             let position = call_positions[i]
@@ -5349,9 +5450,12 @@ impl<'a> Runtime<'a> {
                                 serde_json::json!({"status":"reloaded"}).to_string(),
                             ),
                             Ok(QuestionDecision::Answers(_)) | Ok(QuestionDecision::Cancelled) => {
-                                cancel.store(true, Ordering::Release);
+                                self.request_child_stop(
+                                    cancel,
+                                    super::stop::Cause::QuestionUnknown,
+                                );
                                 permission_rejected = true;
-                                ("cancelled", "error: question dismissed".into())
+                                crate::tools::diagnostic::Diagnostic::cancelled("question")
                             }
                             Err(error) => {
                                 let error = match error {
@@ -5427,15 +5531,27 @@ impl<'a> Runtime<'a> {
                             }
                         };
                         if cancel.load(Ordering::Acquire) {
-                            ("cancelled", "error: cancelled".into())
+                            crate::tools::diagnostic::Diagnostic::cancelled(name)
                         } else {
                             match result {
                                 Ok(Ok((output, source))) => {
                                     artifact_source = Some(source);
                                     ("completed", output)
                                 }
-                                Ok(Err(error)) => ("failed", format!("error: {error}")),
-                                Err(_) => ("failed", "error: artifact worker failed".into()),
+                                Ok(Err(error)) => {
+                                    let state = if error.code == "cancelled" {
+                                        "cancelled"
+                                    } else {
+                                        "failed"
+                                    };
+                                    (state, error.output(state))
+                                }
+                                Err(_) => crate::tools::diagnostic::Diagnostic::new(
+                                    name,
+                                    "worker_failed",
+                                    "Artifact worker failed",
+                                )
+                                .failed(),
                             }
                         }
                     }
@@ -5498,9 +5614,13 @@ impl<'a> Runtime<'a> {
                             crate::tools::diagnostic::Diagnostic::cancelled(name)
                         } else {
                             let mut result = result.unwrap_or_else(|_| {
-                                crate::tools::read::Outcome::error(
+                                crate::tools::read::Outcome::diagnostic(
                                     "failed",
-                                    "read/search worker failed",
+                                    crate::tools::diagnostic::Diagnostic::new(
+                                        name,
+                                        "worker_failed",
+                                        "Read/search worker failed",
+                                    ),
                                 )
                             });
                             if let Some(image) = &result.image {

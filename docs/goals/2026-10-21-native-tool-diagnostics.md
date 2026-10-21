@@ -26,8 +26,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: audited plan step 4 and original root `Preview limited` query.
   - Acceptance: exact root query yields both real source/test locations within existing caps; resource omissions yield failed + verified matches + `coverage:incomplete`, no false absence/global prefix/continuation cursor; ordinary pages retain coherent ordering/pagination. Cancellation discards partial results and joins worker.
   - Primary evidence: file-owner regressions, bounded repository-root query and runtime result projection.
-   - Status: verified
-   - Evidence: file owner suite 28 PASS, tools owner suite 39 PASS; actual bounded repository-root query finds both TUI locations; incomplete evidence/compile-budget and active cancellation/join regressions PASS. Runtime projection is additionally covered by R5.
+  - Status: verified
+  - Evidence: file owner suite 28 PASS, tools owner suite 39 PASS; actual bounded repository-root query finds both TUI locations; incomplete evidence/compile-budget and active cancellation/join regressions PASS. Runtime projection is additionally covered by R5.
 - R3: Native errors and output publication preserve trusted state, actionable bounded diagnostics and field associations.
   - Source: bug report shared builtins concern; audited plan step 3.
   - Acceptance: tool/code/message/detail/hint survive safe redaction/limiting; assembly keeps announced name; state does not depend on text; DCP uses exact durable operation identity and does not purge successful error-looking content; match text remains associated with its own path/line. Existing rich shell/media/effect semantics remain intact.
@@ -38,12 +38,12 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: bug report and audited plan step 5.
   - Acceptance: policy refusal, cancellation, provider/admission/storage failure remain distinct; unknown provenance stays unknown; reason precedes signal and terminal freeze; exact terminal TurnLog is authority, no duplicate diagnostic store; background notices/recovery preserve available facts; cleanup failure remains sticky/fatal; no unknown-effect replay.
   - Primary evidence: child/runtime/storage/authority regressions, committed-turn/reopen and cancellation race fixtures.
-  - Status: pending
+  - Status: in_progress
 - R5: Original composed workflow succeeds and parent can continue after recoverable tool failure.
   - Source: audited plan step 1.
   - Acceptance: admission/execution/persistence/next-provider-request exercise root grep, read-only Explore and root read, with no cancellation solely due to Plan mode.
   - Primary evidence: composed deterministic runtime/subagent integration fixture.
-  - Status: pending
+  - Status: in_progress
 - R6: Deliver verified commits, ordinary push to verified origin, and release binary.
   - Source: user implementation request.
   - Acceptance: relevant tests + full offline gate green, commits pushed without force, `target/release/oc2` built from delivered source; no live owner restart.
@@ -79,17 +79,17 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R4.
-- Smallest next action: preserve child identity/source cause and commit the terminal diagnosis before report construction; exact-turn recovery and sticky cleanup health.
+- Closes: R3/R4/R5.
+- Smallest next action: verify final child/source/terminal and composed Plan workflow changes, then run the required full offline gate.
 - Expected evidence: child stop/foreground/storage/reopen regressions and composed workflow.
 - Stop or replan if: concurrent edits touch owned files, or a required outcome needs a material envelope expansion.
 
 ## Current State
 
-- Resolved: R1, audited source/contract and repository/origin/resource preflight.
-- Last relevant evidence: R3 transport/output/DCP tests PASS; root-read remains green.
+- Resolved: R1/R2; commits through `549a96f4f` pushed and remote HEAD verified.
+- Last relevant evidence: child owner 8, stop 1, storage child 21 tests PASS; first integration run 43/45 PASS, exposing a legacy error-prefix assertion and an independently generated title request. Both fixtures corrected without relaxing workflow behavior; strict affected-crate all-target Clippy PASS. Final targeted rerun pending.
 - Blocker: none.
-- Next: R4 child terminal provenance.
+- Next: final targeted suites, full offline gate and release build.
 
 ## Material Decisions
 
@@ -101,6 +101,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-21: R1 runtime regression reproduced `error: read requires a bounded path`; nonempty normalized root fix passes all aliases, original RAW arguments and external approval regression.
 - 2026-10-21: R3 explicit state survives dispatch/foreground; assembly retains names, JSON clipping retains associations, DCP uses indexed exact operation states. Initial build timeout left corrupt incremental objects (undefined hidden linker symbols); verified with nonincremental Cargo, without deleting target or changing target directory. Remaining file mappings belong to R2.
 - 2026-10-21: R2 file budgets now identify phase/cap/counters; admitted binaries stop early, oversized candidates are explicit omissions, failed incomplete grep retains verified matches with no continuation. Actual root query finds both requested locations. Files (28), tools (39), runtime root-alias regression PASS; cancellation assertions migrated to structured output without weakening drain/no-replay checks.
+- 2026-10-21: R4 implementation commits exact terminal diagnosis before report construction; preserves child ID/cause and separates sticky cleanup health. Storage recovery/notice test covers failed/cancelled/interrupted and mismatched ownership. R3 exact-artifact errors now retain typed budget/cancellation facts. Strict Clippy required shrinking the diagnostic's optional detail allocation, not suppressing the lint.
 
 ## Completion
 

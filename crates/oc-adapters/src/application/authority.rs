@@ -669,13 +669,18 @@ impl Owner {
                 if expected != Some(root.origin.id) || root.location.project != location.project {
                     return Err(CoreError::TurnNotActive);
                 }
-                root.cancel.store(true, Ordering::Release);
                 true
             }
             Some(Reservation::Mutation(_)) => false,
             None => false,
         };
-        let children = self.resources.children.cancel_session(session);
+        let children = self
+            .resources
+            .children
+            .cancel_session_with_cause(session, crate::runtime::stop::Cause::SessionCancel);
+        if let Some(Reservation::Running(root)) = roots.get(session) {
+            root.cancel.store(true, Ordering::Release);
+        }
         let shell = self.resources.shell.cancel_session(session);
         if running || children || shell {
             Ok(())
@@ -708,8 +713,10 @@ impl Owner {
         {
             return Err(CoreError::TurnNotActive);
         }
+        self.resources
+            .children
+            .cancel_session_with_cause(session, crate::runtime::stop::Cause::SessionCancel);
         root.cancel.store(true, Ordering::Release);
-        self.resources.children.cancel_session(session);
         self.resources.shell.cancel_session(session);
         Ok(())
     }
@@ -737,15 +744,19 @@ impl Owner {
             self.closing.store(true, Ordering::Release);
             self.resources.children.suppress_wakes();
             roots
-                .values()
-                .filter_map(|entry| match entry {
-                    Reservation::Running(root) => Some(root.clone()),
+                .iter()
+                .filter_map(|(session, entry)| match entry {
+                    Reservation::Running(root) => Some((session.clone(), root.clone())),
                     Reservation::Mutation(_) => None,
                 })
                 .collect()
         };
-        for root in &roots {
-            root.origin.cancel();
+        for (session, root) in &roots {
+            self.resources
+                .children
+                .cancel_session_with_cause(session, crate::runtime::stop::Cause::OwnerShutdown);
+            root.origin
+                .cancel_with_reason(crate::runtime::stop::Cause::OwnerShutdown);
             root.cancel.store(true, Ordering::Release);
             let _ = root.app.shutdown().await;
         }

@@ -65,7 +65,10 @@ async fn cfg17_saved_allow_cannot_bypass_final_configured_deny() {
                 .unwrap();
             assert_eq!(output.contains("SAVED_GRANT_READ_CANARY"), !denied);
             if denied {
-                assert_eq!(output, "error: denied read");
+                let diagnostic: serde_json::Value = serde_json::from_str(output).unwrap();
+                assert_eq!(diagnostic["status"], "failed");
+                assert_eq!(diagnostic["error"]["tool"], "read");
+                assert_eq!(diagnostic["error"]["code"], "permission_denied");
             }
             respond(&mut socket, &sse("done")).await;
         });

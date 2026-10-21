@@ -177,7 +177,13 @@ async fn scenario(
                     if call == "c1" {
                         match &expected_probe {
                             Some(probe) => assert!(result.contains(probe), "{result}"),
-                            None => assert!(result.starts_with("error:"), "{result}"),
+                            None => {
+                                let diagnostic: serde_json::Value =
+                                    serde_json::from_str(result).unwrap();
+                                assert_eq!(diagnostic["status"], "failed");
+                                assert_eq!(diagnostic["error"]["tool"], "read");
+                                assert_eq!(diagnostic["error"]["code"], "not_found");
+                            }
                         }
                     } else {
                         assert!(

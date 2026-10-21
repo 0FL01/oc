@@ -115,10 +115,10 @@ fn skill01_binary_per_id_deny_removes_metadata_and_rejects_a_forced_call() {
     respond_tool(&mut socket, "skill", json!({"id":ID}), "skill01-forced");
     let (mut socket, next) = fixture.accept(&mut process);
     let output = function_output(&next, "skill01-forced");
-    assert!(
-        output.starts_with("error:"),
-        "denied call was not an error: {output}"
-    );
+    let diagnostic: serde_json::Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(diagnostic["status"], "failed");
+    assert_eq!(diagnostic["error"]["tool"], "skill");
+    assert_eq!(diagnostic["error"]["code"], "permission_denied");
     assert!(!output.contains("# Configure native oc"));
     assert!(!output.contains(BODY.lines().last().unwrap()));
     respond_text(&mut socket, "skill denied");

@@ -9,7 +9,7 @@ pub(crate) struct Diagnostic {
     pub code: String,
     pub message: String,
     #[serde(default, skip_serializing_if = "Value::is_null")]
-    pub detail: Value,
+    pub detail: Box<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hint: Option<String>,
 }
@@ -28,13 +28,13 @@ impl Diagnostic {
             // Redact the complete admitted message before the publication owner
             // clips it; clipping here could expose a prefix of a known secret.
             message: message.as_ref().to_owned(),
-            detail: Value::Null,
+            detail: Box::new(Value::Null),
             hint: None,
         }
     }
 
     pub fn detail(mut self, detail: Value) -> Self {
-        self.detail = detail;
+        self.detail = Box::new(detail);
         self
     }
 

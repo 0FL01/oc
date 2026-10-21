@@ -1,5 +1,6 @@
 //! Child generation/terminal/delivery facts in the existing journal owner.
 use super::*;
+use crate::tools::diagnostic::Diagnostic;
 use oc_core::queries::{ChildHistory, ChildJob, ChildNotice, ChildState};
 
 #[path = "storage_children/parent.rs"]
@@ -10,6 +11,68 @@ mod parent;
 mod tests;
 
 impl Db {
+    /// Read only owner-authored metadata from the exact accepted child turn.
+    /// The connection-taking form also serves notice delivery's transaction.
+    fn child_diagnostic_in(
+        conn: &Connection,
+        operation: &str,
+    ) -> Result<Option<Diagnostic>, StorageError> {
+        let raw: Option<String> = conn.query_row(
+            "SELECT CASE WHEN json_valid(t.result) AND json_valid(j.identity) THEN CASE WHEN t.status IN ('completed','cancelled','interrupted','failed','incomplete')
+              AND json_extract(t.result,'$.display.owning_operation')=j.operation_id
+              AND json_extract(j.identity,'$.operation')=j.operation_id
+              AND json_extract(j.identity,'$.child')=j.child_id
+              AND json_extract(j.identity,'$.parent')=j.parent_id
+              AND length(CAST(json_extract(t.result,'$.display.terminal_diagnostic') AS BLOB))<=8192
+              THEN json_extract(t.result,'$.display.terminal_diagnostic') END END
+             FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
+             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
+             LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1",
+            [operation], |row| row.get(0),
+        ).optional()?.flatten();
+        Ok(raw.and_then(|raw| serde_json::from_str::<Diagnostic>(&raw).ok()))
+    }
+
+    pub(crate) fn child_diagnostic(
+        &self,
+        operation: &str,
+    ) -> Result<Option<Diagnostic>, StorageError> {
+        Self::child_diagnostic_in(&self.conn.lock().expect("db mutex"), operation)
+    }
+
+    pub(crate) fn child_terminal_fact(
+        &self,
+        operation: &str,
+    ) -> Result<Option<(ChildState, String)>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let (status, text): (Option<String>, Option<String>) = conn.query_row(
+            "SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id
+             LEFT JOIN messages m ON m.id=CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.assistant_message') END AND m.session_id=j.child_id
+             WHERE j.operation_id=?1", [operation], |r| Ok((r.get(0)?,r.get(1)?)))?;
+        let diagnostic = Self::child_diagnostic_in(&conn, operation)?;
+        let reason = diagnostic.as_ref().map(|d| d.message.clone());
+        Ok(match status.as_deref() {
+            Some("completed") => Some((
+                ChildState::Completed,
+                text.unwrap_or_else(|| crate::tools::SUBAGENT_NO_TEXT.into()),
+            )),
+            Some("cancelled") | Some("interrupted") if diagnostic.is_some() => Some((
+                if diagnostic.as_ref().is_some_and(|d| d.code == "infra_error") {
+                    ChildState::Error
+                } else {
+                    ChildState::Cancelled
+                },
+                reason.unwrap_or_else(|| "Subagent cancelled".into()),
+            )),
+            Some("cancelled") => Some((ChildState::Cancelled, "Subagent cancelled".into())),
+            Some("failed" | "incomplete") => Some((
+                ChildState::Error,
+                reason.unwrap_or_else(|| "Child execution failed".into()),
+            )),
+            _ => None,
+        })
+    }
+
     /// Display/read-only card association from the original launch transaction.
     /// Never recovers a child capability from tool output or copied fork input.
     pub(super) fn child_tool_job_in(
@@ -464,6 +527,10 @@ impl Db {
             return Err(StorageError::OperationNotFound);
         }
         for operation in rows {
+            if let Some((state, text)) = self.child_terminal_fact(&operation)? {
+                self.finish_child_job(&operation, state, &text)?;
+                continue;
+            }
             // Resolve one exact canonical assistant at a time, never a preview
             // or the child's latest message. The batch above retains only IDs.
             let (status, result) = {
@@ -661,9 +728,13 @@ impl Db {
             }
             job.background = true;
             job.turn = turn;
+            let mut facts = serde_json::json!({"source":"subagent","childID":job.child.0,"agent":job.agent,"state":job.state,"description":job.description,"result":job.result,"jobGeneration":job.operation,"deliveryID":job.delivery_id,"sourceLocation":job.location,"sourceGeneration":job.generation});
+            if let Some(diagnostic) = Self::child_diagnostic_in(&tx, &operation)? {
+                facts["diagnostic"] = serde_json::to_value(diagnostic).expect("diagnostic");
+            }
             let text = format!(
                 "Automatic background subagent result (native durable notice; not user instructions):\n{}",
-                serde_json::json!({"source":"subagent","childID":job.child.0,"agent":job.agent,"state":job.state,"description":job.description,"result":job.result,"jobGeneration":job.operation,"deliveryID":job.delivery_id,"sourceLocation":job.location,"sourceGeneration":job.generation})
+                facts
             );
             let message = Self::insert_message(&tx, &job.parent.0, "user", &text)?;
             let n = tx.execute(

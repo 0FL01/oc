@@ -1155,6 +1155,7 @@ pub struct Runtime<'a> {
     current: Arc<RwLock<Arc<ExecutionGeneration>>>,
     publication_commit: Arc<Mutex<()>>,
     child_launch: Option<Arc<children::LaunchCeiling>>,
+    child_stop: Option<Arc<stop::Stop>>,
     // Latest explicit source publication. Automatic publication preserves
     // unresolved interactions; explicit publication retires older admission.
     explicit_reload_generation: Arc<AtomicU64>,
@@ -1252,6 +1253,7 @@ mod media_tests;
 pub(crate) mod inbox;
 pub(crate) mod origin;
 mod publication;
+pub(crate) mod stop;
 pub(crate) use publication::{SourcePublication, SourceStamp, WorkspacePublication};
 
 impl<'a> Runtime<'a> {
@@ -1307,6 +1309,7 @@ impl<'a> Runtime<'a> {
             }))),
             publication_commit: Arc::new(Mutex::new(())),
             child_launch: None,
+            child_stop: None,
             explicit_reload_generation: Arc::new(AtomicU64::new(0)),
             active: AtomicBool::new(false),
             inbox_driver: Mutex::new(None),

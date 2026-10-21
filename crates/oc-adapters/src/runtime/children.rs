@@ -31,6 +31,7 @@ struct Work {
     parent_wake: Option<ParentWake>,
     _slot: tokio::sync::OwnedSemaphorePermit,
     cancel: Arc<AtomicBool>,
+    stop: Arc<stop::Stop>,
     background: Arc<AtomicBool>,
     mode_changed: Arc<tokio::sync::Notify>,
     foreground_wait: Arc<AtomicBool>,
@@ -196,6 +197,8 @@ impl Drop for Reservation {
 impl Jobs {
     pub(super) fn permission_rejected(&self, operation: &str) {
         if let Some(work) = self.work.lock().expect("child work").get(operation) {
+            work.stop
+                .remember(&work.cancel, stop::Cause::ApprovalRejected);
             work.parent_rejected.store(true, Ordering::Release);
             self.wake.notify_one();
         }
@@ -233,7 +236,7 @@ impl Jobs {
                     || rejected
             });
         if rejected {
-            self.cancel_session(session);
+            self.cancel_session_with_cause(session, stop::Cause::ApprovalRejected);
         }
         if cleared {
             self.notify();
@@ -391,7 +394,7 @@ impl Jobs {
         if !self.db.child_job_live(&selected.operation).unwrap_or(false) {
             return false;
         }
-        work.cancel.store(true, Ordering::Release);
+        work.stop.request(&work.cancel, stop::Cause::ChildInterrupt);
         self.wake.notify_one();
         true
     }
@@ -429,7 +432,7 @@ impl Jobs {
         identity: &ChildJob,
         parent_cancel: &AtomicBool,
     ) -> Result<SubagentOutcome, ToolError> {
-        let (completion, background, changed, cancel, foreground_wait) = {
+        let (completion, background, changed, cancel, foreground_wait, stop) = {
             let work = self.work.lock().expect("child work");
             let work = work
                 .get(&identity.operation)
@@ -450,6 +453,7 @@ impl Jobs {
                 work.mode_changed.clone(),
                 work.cancel.clone(),
                 work.foreground_wait.clone(),
+                work.stop.clone(),
             )
         };
         let _release = WaitRelease(foreground_wait, self.wake.clone());
@@ -462,7 +466,7 @@ impl Jobs {
                 parent_cancel.store(true, Ordering::Release);
             }
             if parent_cancel.load(Ordering::Acquire) {
-                cancel.store(true, Ordering::Release);
+                stop.request(&cancel, stop::Cause::ParentUnknown);
                 // Cancellation drains actual work even if conversion raced it.
             } else if background.load(Ordering::Acquire) {
                 return Ok(SubagentOutcome::Running {
@@ -475,7 +479,7 @@ impl Jobs {
             tokio::select! {
                 ok = &mut completion => {
                     if self.take_parent_rejection(&identity.parent.0) { parent_cancel.store(true,Ordering::Release); }
-                    if !ok { return Err(ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child settlement failed".into() }); }
+                    if !ok { return Ok(SubagentOutcome::Failed { session_id: Some(identity.child.0.clone()), reason: "child settlement or cleanup failed; no replay".into(), diagnostic: None }); }
                     let job = self.db.child_job(&identity.parent.0, &identity.operation, true).map_err(|_| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?
                         .ok_or_else(|| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child state unavailable".into() })?;
                     // Conversion won the journal race: return the same running
@@ -483,10 +487,11 @@ impl Jobs {
                     if job.background && !parent_cancel.load(Ordering::Acquire) {
                         return Ok(SubagentOutcome::Running { session_id: job.child.0, operation: job.operation, generation: job.generation, delivery_id: job.delivery_id });
                     }
+                    let diagnostic = self.db.child_diagnostic(&identity.operation).map_err(|_| ToolError::Failed { tool: SUBAGENT_TOOL.into(), reason: "child diagnostic unavailable".into() })?.map(|d| serde_json::to_value(d).expect("diagnostic"));
                     return Ok(match job.state {
                         ChildState::Completed => SubagentOutcome::Completed { session_id: job.child.0, text: job.result.unwrap_or_else(|| SUBAGENT_NO_TEXT.into()) },
-                        ChildState::Cancelled => SubagentOutcome::Cancelled { session_id: job.child.0 },
-                        _ => SubagentOutcome::Failed { session_id: Some(job.child.0), reason: job.result.unwrap_or_else(|| "child execution failed".into()) },
+                        ChildState::Cancelled => SubagentOutcome::Cancelled { session_id: job.child.0, diagnostic },
+                        _ => SubagentOutcome::Failed { session_id: Some(job.child.0), reason: job.result.unwrap_or_else(|| "child execution failed".into()), diagnostic },
                     });
                 },
                 () = &mut notified => {},
@@ -508,15 +513,16 @@ impl Jobs {
                 (
                     w.execution.as_ref().expect("execution").completion.clone(),
                     w.cancel.clone(),
+                    w.stop.clone(),
                 )
             });
-        let Some((completion, cancel)) = work else {
+        let Some((completion, cancel, stop)) = work else {
             return true;
         };
         tokio::pin!(completion);
         loop {
             if parent_cancel.load(Ordering::Acquire) {
-                cancel.store(true, Ordering::Release);
+                stop.request(&cancel, stop::Cause::ParentUnknown);
             }
             tokio::select! {
                 ok = &mut completion => return ok,
@@ -526,6 +532,10 @@ impl Jobs {
     }
 
     pub(crate) fn cancel_session(&self, parent: &str) -> bool {
+        self.cancel_session_with_cause(parent, stop::Cause::ParentUnknown)
+    }
+
+    pub(crate) fn cancel_session_with_cause(&self, parent: &str, cause: stop::Cause) -> bool {
         let mut found = false;
         let mut work = self.work.lock().expect("child work");
         for work in work.values_mut() {
@@ -535,7 +545,7 @@ impl Jobs {
                     .shell_family_contains(parent, &work.identity.child.0)
                     .unwrap_or(false)
             {
-                work.cancel.store(true, Ordering::Release);
+                work.stop.request(&work.cancel, cause);
                 work.parent_wake = None;
                 found = true;
             }
@@ -785,7 +795,7 @@ impl Jobs {
         let work = {
             let work = self.work.lock().expect("child work");
             for job in work.values() {
-                job.cancel.store(true, Ordering::Release);
+                job.stop.request(&job.cancel, stop::Cause::OwnerShutdown);
             }
             work.iter()
                 .filter_map(|(id, job)| {
@@ -909,6 +919,8 @@ impl Jobs {
                     })?;
             }
             let cancel = Arc::new(AtomicBool::new(false));
+            let stop = Arc::new(stop::Stop::default());
+            runtime.child_stop = Some(stop.clone());
             let token = cancel.clone();
             let background = Arc::new(AtomicBool::new(identity.background));
             let mode_changed = Arc::new(tokio::sync::Notify::new());
@@ -951,10 +963,19 @@ impl Jobs {
                     tokio::select! {
                         result = &mut run => result,
                         () = async { match &child_runtime.native_origin { Some(origin) => origin.cancelled().await, None => std::future::pending().await } } => {
-                            token.store(true, Ordering::Release);
+                            child_runtime.child_stop.as_ref().expect("child stop").request(&token, child_runtime.native_origin.as_ref().expect("origin").stop_cause());
                             run.await
                         }
                     }
+                };
+                let cleanup_failed = matches!(
+                    &result,
+                    Err(RuntimeError::McpShutdown | RuntimeError::Storage)
+                ) || child_runtime.mcp_cleanup_failed.load(Ordering::Acquire);
+                let committed = if result.is_err() {
+                    db.child_terminal_fact(&id.operation)
+                } else {
+                    Ok(None)
                 };
                 let (state, result) = match result {
                     Ok(report) if report.status == TurnStatus::Completed => {
@@ -976,7 +997,22 @@ impl Jobs {
                             TurnStatus::Cancelled | TurnStatus::Interrupted
                         ) =>
                     {
-                        (ChildState::Cancelled, "Subagent cancelled".into())
+                        let diagnostic = child_runtime
+                            .child_stop
+                            .as_ref()
+                            .and_then(|stop| stop.freeze(true));
+                        let state = if diagnostic.as_ref().is_some_and(|d| d.code == "infra_error")
+                        {
+                            ChildState::Error
+                        } else {
+                            ChildState::Cancelled
+                        };
+                        (
+                            state,
+                            report
+                                .diagnostic
+                                .unwrap_or_else(|| "Subagent cancelled".into()),
+                        )
                     }
                     Ok(report) => {
                         let reason = report
@@ -992,16 +1028,41 @@ impl Jobs {
                         };
                         (ChildState::Error, reason)
                     }
-                    Err(_) => (ChildState::Error, "child execution failed".into()),
+                    Err(error) => committed
+                        .as_ref()
+                        .ok()
+                        .and_then(|fact| fact.clone())
+                        .unwrap_or_else(|| {
+                            let mut reason = error.to_string();
+                            crate::tools::output::redact_string(
+                                &mut reason,
+                                &mcp::mcp_redactions(
+                                    &child_runtime.current.read().expect("generation").config,
+                                    &child_runtime.parent_env,
+                                ),
+                            );
+                            reason.truncate(reason.floor_char_boundary(1024));
+                            (ChildState::Error, reason)
+                        }),
                 };
-                let ok = db.finish_child_job(&id.operation, state, &result).is_ok();
+                let settled = db.finish_child_job(&id.operation, state, &result).is_ok();
+                let ok = settled && !cleanup_failed && committed.is_ok();
                 if !ok {
                     failed.store(true, Ordering::Release);
                 }
                 wake.notify_one();
                 ok
             }));
-            let completion = async move { task.await.unwrap_or(false) }.boxed().shared();
+            let failed = self.failed.clone();
+            let completion = async move {
+                let ok = task.await.unwrap_or(false);
+                if !ok {
+                    failed.store(true, Ordering::Release);
+                }
+                ok
+            }
+            .boxed()
+            .shared();
             work.insert(
                 identity.operation.clone(),
                 Work {
@@ -1015,6 +1076,7 @@ impl Jobs {
                     parent_wake,
                     _slot: slot,
                     cancel,
+                    stop,
                     background,
                     mode_changed,
                     foreground_wait,
@@ -1024,6 +1086,7 @@ impl Jobs {
             launched
         };
         if launched.await.is_err() {
+            let mut diagnostic = None;
             if let Some(work) = self
                 .work
                 .lock()
@@ -1031,11 +1094,16 @@ impl Jobs {
                 .get(&identity.operation)
             {
                 work.foreground_wait.store(false, Ordering::Release);
+                diagnostic = work
+                    .stop
+                    .freeze(true)
+                    .map(|d| serde_json::to_value(d).expect("diagnostic"));
             }
             self.notify();
-            return Err(ToolError::Failed {
-                tool: SUBAGENT_TOOL.into(),
+            return Ok(SubagentOutcome::Failed {
+                session_id: Some(identity.child.0),
                 reason: "child launch failed; inspect child state".into(),
+                diagnostic,
             });
         }
         Ok(SubagentOutcome::Running {
@@ -1338,6 +1406,7 @@ impl Runtime<'_> {
             current: self.current.clone(),
             publication_commit: self.publication_commit.clone(),
             child_launch: None,
+            child_stop: None,
             explicit_reload_generation: self.explicit_reload_generation.clone(),
             active: AtomicBool::new(false),
             inbox_driver: Mutex::new(None),

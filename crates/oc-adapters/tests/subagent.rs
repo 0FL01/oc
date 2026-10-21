@@ -697,8 +697,8 @@ async fn nested_resource_constraints_and_filtered_catalog_remain_inherited() {
             .contains("hi")
     );
     assert_eq!(
-        function_output(&captured[3], "grandchild-no"),
-        Some("error: denied bash")
+        diagnostic_message(function_output(&captured[3], "grandchild-no").unwrap()),
+        "denied bash"
     );
     let tools = captured[0]["tools"].as_array().unwrap();
     let description = tools
@@ -746,6 +746,16 @@ fn function_output<'a>(request: &'a serde_json::Value, call_id: &str) -> Option<
             .then(|| item["output"].as_str())
             .flatten()
     })
+}
+
+fn diagnostic_message(output: &str) -> String {
+    let value: serde_json::Value = serde_json::from_str(output).expect("structured failure");
+    assert_eq!(value["status"], "failed");
+    assert!(value["error"]["code"].is_string());
+    value["error"]["message"]
+        .as_str()
+        .expect("actionable reason")
+        .to_owned()
 }
 
 fn child_requests(requests: &CapturedRequests) -> Vec<serde_json::Value> {
@@ -1037,7 +1047,7 @@ async fn denied_subagent_creates_no_child_row() {
     assert_eq!(report.status, TurnStatus::Completed);
     assert_eq!(report.calls[0].state, "failed");
     assert!(
-        report.calls[0].output.contains("error: denied subagent"),
+        diagnostic_message(&report.calls[0].output).contains("denied subagent"),
         "got: {}",
         report.calls[0].output
     );
@@ -1086,9 +1096,7 @@ async fn unknown_and_primary_calls_fail_closed() {
         .await
         .expect("turn");
     assert!(
-        unknown.calls[0]
-            .output
-            .contains("error: Unknown agent: ghost"),
+        diagnostic_message(&unknown.calls[0].output).contains("Unknown agent: ghost"),
         "got: {}",
         unknown.calls[0].output
     );
@@ -1103,9 +1111,8 @@ async fn unknown_and_primary_calls_fail_closed() {
         .await
         .expect("turn");
     assert!(
-        primary.calls[0]
-            .output
-            .contains("error: Agent boss cannot run as a subagent"),
+        diagnostic_message(&primary.calls[0].output)
+            .contains("Agent boss cannot run as a subagent"),
         "got: {}",
         primary.calls[0].output
     );
@@ -1175,8 +1182,8 @@ async fn depth_limit_blocks_nesting_and_higher_depth_allows_it() {
         .await
         .expect("nested turn");
     assert!(
-        refused.calls[0].output.contains(
-            "error: Subagent depth limit reached (1). Increase \"experimental.subagent_depth\" to allow nested subagents."
+        diagnostic_message(&refused.calls[0].output).contains(
+            "Subagent depth limit reached (1). Increase \"experimental.subagent_depth\" to allow nested subagents."
         ),
         "got: {}",
         refused.calls[0].output
@@ -1310,8 +1317,8 @@ async fn invalid_model_and_variant_fail_before_child_creation() {
         .await
         .expect("turn");
     assert!(
-        unknown.calls[0].output.contains(
-            "error: Model \"other/x\" is not available. Use the models tool to see what is available."
+        diagnostic_message(&unknown.calls[0].output).contains(
+            "Model \"other/x\" is not available. Use the models tool to see what is available."
         ),
         "got: {}",
         unknown.calls[0].output
@@ -1327,9 +1334,8 @@ async fn invalid_model_and_variant_fail_before_child_creation() {
         .await
         .expect("turn");
     assert!(
-        no_variants.calls[0]
-            .output
-            .contains("error: Model \"test/m\" has no variants. Omit the variant."),
+        diagnostic_message(&no_variants.calls[0].output)
+            .contains("Model \"test/m\" has no variants. Omit the variant."),
         "got: {}",
         no_variants.calls[0].output
     );
@@ -1338,9 +1344,8 @@ async fn invalid_model_and_variant_fail_before_child_creation() {
         .await
         .expect("turn");
     assert!(
-        bad_variant.calls[0].output.contains(
-            "error: Variant \"nope\" is not available for \"test/small\". Available: fast."
-        ),
+        diagnostic_message(&bad_variant.calls[0].output)
+            .contains("Variant \"nope\" is not available for \"test/small\". Available: fast."),
         "got: {}",
         bad_variant.calls[0].output
     );
@@ -1451,9 +1456,7 @@ async fn session_continuation_only_accepts_a_child_of_the_caller() {
         .await
         .expect("ghost turn");
     assert!(
-        ghost.calls[0]
-            .output
-            .contains("error: Subagent session not found: ghost"),
+        diagnostic_message(&ghost.calls[0].output).contains("Subagent session not found: ghost"),
         "got: {}",
         ghost.calls[0].output
     );
@@ -1479,9 +1482,8 @@ async fn session_continuation_only_accepts_a_child_of_the_caller() {
         .await
         .expect("foreign turn");
     assert!(
-        foreign.calls[0]
-            .output
-            .contains("error: Session other-kid is not a child of the current session"),
+        diagnostic_message(&foreign.calls[0].output)
+            .contains("Session other-kid is not a child of the current session"),
         "got: {}",
         foreign.calls[0].output
     );
@@ -1594,12 +1596,12 @@ async fn child_agent_permissions_narrow_the_child_lane_only() {
 
     let captured = child_requests(&requests);
     assert_eq!(
-        function_output(&captured[2], "call-child-bash"),
-        Some("error: denied bash")
+        diagnostic_message(function_output(&captured[2], "call-child-bash").unwrap()),
+        "denied bash"
     );
     assert_eq!(
-        function_output(&captured[2], "call-child-sub"),
-        Some("error: denied subagent")
+        diagnostic_message(function_output(&captured[2], "call-child-sub").unwrap()),
+        "denied subagent"
     );
 
     // The same parent lane still runs bash normally.
@@ -1659,6 +1661,13 @@ async fn cancel_mid_child_stream_cancels_child_and_parent() {
     let children = harness.db.children_of("parent").expect("children");
     assert_eq!(children.len(), 1);
     let child = &children[0];
+    let cancellation: serde_json::Value = serde_json::from_str(&report.calls[0].output).unwrap();
+    assert_eq!(cancellation["status"], "cancelled");
+    assert_eq!(cancellation["sessionID"].as_str(), Some(child.as_str()));
+    assert_eq!(
+        cancellation["error"]["detail"]["reason"],
+        "parent_cancelled_unknown"
+    );
     assert_eq!(turn_status(&harness.db, child), "cancelled");
     assert_eq!(turn_status(&harness.db, "parent"), "cancelled");
     assert_eq!(

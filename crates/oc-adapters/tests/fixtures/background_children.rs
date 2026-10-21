@@ -17,11 +17,23 @@ async fn app_fixture(
     oc_core::core_app::CoreApp,
     oc_core::core_app::WorkerGuard,
 ) {
+    app_fixture_with_agent(peer, permissions, "build").await
+}
+
+async fn app_fixture_with_agent(
+    peer: &Peer,
+    permissions: serde_json::Value,
+    primary: &str,
+) -> (
+    TempDir,
+    oc_core::core_app::CoreApp,
+    oc_core::core_app::WorkerGuard,
+) {
     let root = tempfile::tempdir().unwrap();
     let project = root.path().join("source");
     std::fs::create_dir(&project).unwrap();
     let config = serde_json::json!({
-        "model":"fixture/m", "compaction":{"auto":false},"permissions":permissions,
+        "model":"fixture/m", "default_agent":primary,"compaction":{"auto":false},"permissions":permissions,
         "agents":{"title":{"disabled":true},"helper":{"mode":"subagent","model":"fixture/agent-model","system":"OWN_BACKGROUND_PROFILE"}},
         "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":peer.base,"apiKey":"synthetic"},"models":{"m":{"limit":{"context":500000,"output":4096}},"agent-model":{"limit":{"context":500000,"output":4096}}}}}
     });
@@ -39,6 +51,118 @@ async fn app_fixture(
         .await
         .unwrap();
     (root, app, guard)
+}
+
+#[tokio::test]
+async fn plan_root_grep_explore_and_read_continue_after_verified_incomplete_search() {
+    use oc_core::domain::SessionId;
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let captured = requests.clone();
+    let root_path = Arc::new(Mutex::new(std::path::PathBuf::new()));
+    let path = root_path.clone();
+    let peer = Peer::start(move |request| {
+        if request["max_output_tokens"] == 256
+            && request["tools"].as_array().is_none_or(Vec::is_empty)
+        {
+            return sse_delta("Synthetic root workflow title") + &sse_completed();
+        }
+        captured.lock().unwrap().push(request.clone());
+        let completed = outputs(&request);
+        if request["model"] == "agent-model" {
+            return if completed.is_empty() {
+                sse_tool_call("explore-root", "read", &serde_json::json!({"path":"."}))
+                    + &sse_completed()
+            } else {
+                assert!(completed[0].1.contains("crates/"), "{completed:?}");
+                sse_delta("Both TUI sources contain Preview limited") + &sse_completed()
+            };
+        }
+        assert_eq!(request["model"], "m");
+        match completed.len() {
+            0 => {
+                sse_tool_call(
+                    "root-grep",
+                    "grep",
+                    &serde_json::json!({"path":*path.lock().unwrap(),"pattern":"Preview limited","limit":100}),
+                ) + &sse_completed()
+            }
+            1 => {
+                let evidence: serde_json::Value = serde_json::from_str(&completed[0].1).unwrap();
+                assert_eq!(evidence["status"], "failed");
+                assert_eq!(evidence["coverage"], "incomplete");
+                assert_eq!(evidence["error"]["detail"]["budget"], "file_bytes");
+                assert_eq!(evidence["matches"].as_array().unwrap().len(), 2);
+                assert!(evidence["pagination"]["next_offset"].is_null());
+                subagent_call(
+                    "explore",
+                    serde_json::json!({"agent":"explore","model":"fixture/agent-model","description":"Find Preview limited","prompt":"Find its TUI sources; read only"}),
+                ) + &sse_completed()
+            }
+            2 => {
+                assert!(
+                    completed[1].1.contains("state=\"completed\""),
+                    "{completed:?}"
+                );
+                sse_tool_call(
+                    "root-read",
+                    "read",
+                    &serde_json::json!({"path":*path.lock().unwrap()}),
+                ) + &sse_completed()
+            }
+            3 => {
+                assert!(completed[2].1.contains("crates/"));
+                sse_delta("Root workflow completed after actionable partial evidence")
+                    + &sse_completed()
+            }
+            count => panic!("unexpected replay or extra dispatch: {count}"),
+        }
+    });
+    let (root, app, guard) = app_fixture_with_agent(
+        &peer,
+        serde_json::json!([
+            {"action":"read","resource":"*","effect":"allow"},
+            {"action":"grep","resource":"*","effect":"allow"},
+            {"action":"subagent","resource":"*","effect":"allow"}
+        ]),
+        "plan",
+    )
+    .await;
+    let project = root.path().join("source");
+    *root_path.lock().unwrap() = project.clone();
+    std::fs::create_dir_all(project.join("crates/oc-tui/src/shell")).unwrap();
+    for file in [
+        "crates/oc-tui/src/shell.rs",
+        "crates/oc-tui/src/shell/tests.rs",
+    ] {
+        std::fs::write(project.join(file), "Preview limited\n").unwrap();
+    }
+    std::fs::write(project.join("zz-oversized"), vec![b'x'; 1024 * 1024 + 1]).unwrap();
+    let mut events = app.subscribe();
+    let turn = app
+        .submit(
+            SessionId("parent".into()),
+            "Find Preview limited and inspect root".into(),
+        )
+        .await
+        .unwrap();
+    parent_finished(&mut events, &turn).await;
+    assert_eq!(requests.lock().unwrap().len(), 6);
+    let jobs = app.child_jobs(SessionId("parent".into())).await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let db = Db::open(&root.path().join("data")).unwrap();
+    let ops = db.list_tool_ops("parent").unwrap();
+    assert_eq!(
+        ops.iter().map(|op| op.state.as_str()).collect::<Vec<_>>(),
+        ["failed", "completed", "completed"]
+    );
+    assert_eq!(jobs.len(), 1);
+    assert_eq!(jobs[0].agent, "explore");
+    assert_eq!(jobs[0].state, oc_core::queries::ChildState::Completed);
+    assert_eq!(
+        db.list_tool_ops(&jobs[0].child.0).unwrap()[0].state,
+        "completed"
+    );
 }
 
 async fn jobs_when(

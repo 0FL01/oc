@@ -64,6 +64,9 @@ impl Runtime<'_> {
             rejected |= matches!(admission, Err(AdmissionFailure::Rejected(None)));
             if matches!(admission, Err(AdmissionFailure::Rejected(None))) {
                 self.child_jobs.permission_rejected_session(session);
+                if let Some(stop) = &self.child_stop {
+                    stop.remember(cancel, super::super::stop::Cause::ApprovalRejected);
+                }
             }
             admissions.push((call, op, input, admission));
         }

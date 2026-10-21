@@ -288,6 +288,24 @@ existing lifecycle/media cases; AUD34/LOAD02/STORE04/A05/A10 retain ownership an
 regressions/resource/crash receipts. Existing T44 presentation qualification stays
 separate and PAUSED; no new task/store/framework/paid campaign or historical PASS rewrite.
 
+## Native failure diagnostics
+
+New native file/search, skill, fetch and subagent failures use a bounded JSON
+diagnostic: `{status,error:{tool,code,message,detail?,hint?}}`. Admission control
+fields such as permission `status`/`feedback` remain intact; process/media/partial
+mutation results keep their existing richer owners. Execution state is trusted
+metadata, never inferred from output text or a JSON-looking skill body. DCP error
+purging likewise uses the exact durable tool occurrence, not an `error:` prefix.
+Redaction precedes clipping, and each clipped match/message retains its own fields.
+
+Failed/cancelled subagent results retain an allocated `sessionID` when available.
+Known stop sources are recorded before signalling and frozen at terminal selection;
+generic parent/question cancellation stays explicitly unknown rather than becoming
+"user cancelled". Accepted-turn diagnosis is committed in the exact linked terminal
+TurnLog and reused for new notices/recovery. Old/missing provenance is not invented.
+Committed outcome and cleanup health remain separate: failed reap/shutdown is fatal,
+and neither an infrastructure error nor an incomplete search authorizes replay.
+
 ## Permissions caveat
 
 Выбранное совместимое файловое семейство не является sandbox: shell технически может писать через cat/python/компилятор, а MCP может иметь свои side effects. Инструкция предпочитать выбранные file tools для source edits — behavioral contract, не OS isolation. Runtime и агент не должны заявлять обратное. Build artifacts нормально создаются dev tools.

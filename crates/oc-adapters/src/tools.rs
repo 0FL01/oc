@@ -427,11 +427,15 @@ pub enum SubagentOutcome {
         session_id: Option<String>,
         /// Upstream-shaped reason.
         reason: String,
+        /// Optional owner-authored structured terminal facts.
+        diagnostic: Option<serde_json::Value>,
     },
     /// The parent cancellation flag stopped the child in flight.
     Cancelled {
         /// Child session id.
         session_id: String,
+        /// Optional owner-authored cancellation provenance.
+        diagnostic: Option<serde_json::Value>,
     },
 }
 
@@ -1555,7 +1559,7 @@ fn tool_skill(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) 
 ///
 /// Result shape mirrors upstream: completed children are wrapped as
 /// `<subagent sessionID="…" state="completed">`; request failures surface as
-/// their upstream message; an in-flight cancellation is `error: cancelled`.
+/// structured diagnostics retaining the child identity and recorded stop cause.
 async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) {
     let Some(runner) = ctx.subagent else {
         return Diagnostic::new(
@@ -1577,14 +1581,20 @@ async fn tool_subagent(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str,
             ))
         }
         Ok(SubagentOutcome::Failed {
-            session_id: Some(session_id),
+            session_id,
             reason,
-        }) => Diagnostic::new(&call.name, "execution_failed", reason).detail(serde_json::json!({"sessionID":session_id})).failed(),
-        Ok(SubagentOutcome::Failed {
-            session_id: None,
-            reason,
-        }) => Diagnostic::new(&call.name, "execution_failed", reason).failed(),
-        Ok(SubagentOutcome::Cancelled { session_id }) => ("cancelled", Diagnostic::new(&call.name, "cancelled", "Subagent cancelled").detail(serde_json::json!({"sessionID":session_id,"by":"unknown","reason":"cancellation_requested"})).output("cancelled")),
+            diagnostic,
+        }) => {
+            let mut diagnostic = diagnostic.and_then(|value| serde_json::from_value::<Diagnostic>(value).ok()).unwrap_or_else(|| Diagnostic::new(&call.name, "execution_failed", reason));
+            diagnostic.tool = call.name.clone();
+            ("failed", serde_json::json!({"status":"failed","sessionID":session_id,"error":diagnostic}).to_string())
+        },
+        Ok(SubagentOutcome::Cancelled { session_id, diagnostic }) => {
+            let mut diagnostic = diagnostic.and_then(|value| serde_json::from_value::<Diagnostic>(value).ok()).unwrap_or_else(|| Diagnostic::new(&call.name, "cancelled", "Subagent cancelled").detail(serde_json::json!({"by":"unknown","reason":"cancellation_requested"})));
+            diagnostic.tool = call.name.clone();
+            ("cancelled", serde_json::json!({"status":"cancelled","sessionID":session_id,"error":diagnostic}).to_string())
+        },
+        Err(ToolError::Cancelled) => Diagnostic::cancelled(&call.name),
         Err(error) => error.diagnostic(&call.name).failed(),
     }
 }

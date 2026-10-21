@@ -18,6 +18,7 @@ pub(crate) struct Origin {
     pub(crate) question_consumer: AtomicBool,
     pub(crate) foreground: std::sync::Arc<AtomicBool>,
     pub(crate) flag: AtomicBool,
+    cause: std::sync::Mutex<Option<super::stop::Cause>>,
     changed: watch::Sender<bool>,
     active: std::sync::atomic::AtomicUsize,
     settled: tokio::sync::Notify,
@@ -35,6 +36,7 @@ impl Origin {
             question_consumer: AtomicBool::new(false),
             foreground: std::sync::Arc::new(AtomicBool::new(false)),
             flag: AtomicBool::new(false),
+            cause: std::sync::Mutex::new(None),
             changed: watch::channel(false).0,
             active: std::sync::atomic::AtomicUsize::new(0),
             settled: tokio::sync::Notify::new(),
@@ -53,9 +55,22 @@ impl Origin {
     }
 
     pub(crate) fn cancel(&self) {
+        self.cancel_with_reason(super::stop::Cause::OriginCancelled);
+    }
+
+    pub(crate) fn cancel_with_reason(&self, cause: super::stop::Cause) {
+        let mut recorded = self.cause.lock().expect("origin stop");
+        recorded.get_or_insert(cause);
         self.foreground.store(true, Ordering::Release);
         self.flag.store(true, Ordering::Release);
         self.changed.send_replace(true);
+    }
+
+    pub(crate) fn stop_cause(&self) -> super::stop::Cause {
+        self.cause
+            .lock()
+            .expect("origin stop")
+            .unwrap_or(super::stop::Cause::OriginCancelled)
     }
 
     pub(crate) fn at(
