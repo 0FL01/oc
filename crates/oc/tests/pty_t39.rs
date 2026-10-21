@@ -364,7 +364,10 @@ fn script(body: &serde_json::Value) -> Script {
     if prompt == "slow stream" {
         return Script::Slow("answer:slow stream".to_string());
     }
-    if prompt == "vis28 held stream" {
+    if matches!(
+        prompt.as_str(),
+        "vis28 held stream" | "vis28 held replacement"
+    ) {
         return Script::Vis28Held;
     }
     if prompt == S07_PROMPT {

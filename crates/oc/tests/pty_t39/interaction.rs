@@ -29,12 +29,68 @@ fn undo_replacement_hides_marker_while_response_is_held() {
     wait_screen_row(&pty, "esc interrupt", DEADLINE);
     wait_screen_row(&pty, "retained anchor", DEADLINE);
     wait_screen_absent(&pty, "messages reverted");
+    pty.send(b"\x1b");
+    wait_screen_row(&pty, "esc again to interrupt", DEADLINE);
+    pty.send(b"\x1b");
+    wait_screen_row(&pty, "interrupted", DEADLINE);
+    pty.send(b"\x10Undo\r"); // Undo from the command menu, as in the reported incident
+    wait_screen_row(&pty, "1 message reverted", DEADLINE);
+    wait_screen_row(&pty, "vis28 held stream", DEADLINE);
+    // Edit the restored draft, then submit once without an idle/retirement delay.
+    pty.send(b"\x1b[F\x7f\x7f\x7f\x7f\x7f\x7freplacement\r");
+    let requests = fixture.wait_requests(5);
+    assert_eq!(requests.len(), 5);
+    let users = requests[4]["input"]
+        .as_array()
+        .expect("input messages")
+        .iter()
+        .filter(|item| item["type"] == "message" && item["role"] == "user")
+        .filter_map(|item| last_user_text(&serde_json::json!({"input": [item]})))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        users
+            .iter()
+            .filter(|text| *text == "vis28 held replacement")
+            .count(),
+        1,
+        "replacement appears once in provider context: {users:?}"
+    );
+    assert!(!users.iter().any(|text| text == "vis28 held stream"));
+    wait_screen_row(&pty, "esc interrupt", DEADLINE);
+    wait_screen_row(&pty, "vis28 held replacement", DEADLINE);
+    wait_screen_absent(&pty, "vis28 held stream");
+    let rows = render_screen(&pty.snapshot()).rows();
+    assert_eq!(
+        rows.iter()
+            .filter(|row| row.contains("vis28 held replacement"))
+            .count(),
+        1,
+        "one replacement user card, no retained draft: {rows:?}"
+    );
     fixture.vis28_continue.store(true, Ordering::Relaxed);
     wait_screen_row(&pty, "answer:vis28 completed", DEADLINE);
     wait_idle(&pty);
     wait_screen_absent(&pty, "messages reverted");
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(fixture.wait_requests(5).len(), 5);
+    let db = oc_adapters::storage::Db::open(pty.data_dir()).unwrap();
+    let history = db.read_history_page("undo-branch", 100, None).unwrap();
+    assert_eq!(
+        history
+            .iter()
+            .filter(|(_, role, _)| role == "user")
+            .map(|(_, _, text)| text.as_str())
+            .collect::<Vec<_>>(),
+        ["vis28 held replacement", "retained anchor"]
+    );
+    assert!(
+        db.read_history("undo-branch")
+            .unwrap()
+            .iter()
+            .any(|(role, text)| role == "user" && text == "vis28 held stream"),
+        "Undo preserves the cancelled prompt in the raw archive"
+    );
 }
 
 /// VAR01: the same effective order reaches the real picker and Ctrl+T,
