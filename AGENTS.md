@@ -31,8 +31,9 @@
 
 ## Проверки и debug
 
-- Начинай с targeted test и проверок затронутого crate. Full offline gate `bash scripts/test.sh` — для общей integration boundary или финальной приёмки, не каждой редакционной правки.
-- Не отключай tests/lints/guards и не меняй baseline, assertions, deadlines или нагрузку ради зелёного. Тест >30s или прогретый gate >10min требует диагностики; единственное согласованное исключение описано в TEST_PLAN.
+- Developer loop: правка → relevant regression tests → scoped Clippy → review diff. Цель прогретого цикла — секунды/десятки секунд.
+- После падения запускай только упавший/затронутый срез, не весь suite. Full offline gate `bash scripts/test.sh` — один раз перед интеграционной приёмкой, не на каждой итерации.
+- Ускоряй fixtures и их выполнение, не отключая tests/lints/guards и не меняя baseline, assertions, deadlines или нагрузку ради зелёного. Тест >30s или прогретый gate >10min требует диагностики; единственное согласованное исключение описано в TEST_PLAN.
 - Live-dev: `cargo build -p oc2 --bin oc2 --locked --release`; binary из проверок подходит. Сообщи путь `target/release/oc2`.
 - Не делай `cargo clean`, не удаляй `target/release`, не переопределяй `CARGO_TARGET_DIR`; один Cargo owner. Config/data и startup env общие с первым native owner; rebuild не обновляет работающий owner.
 - Не запускай интерактивный клиент пользователя, не kill/restart owner и не удаляй его lock. Изменения storage schema/migrations явно отмечай; live — только по TEST_PLAN.

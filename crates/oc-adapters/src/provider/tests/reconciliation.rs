@@ -302,20 +302,66 @@ async fn prov09_done_and_terminal_conflicts_are_local_and_safe() {
 #[tokio::test]
 async fn prov09_completed_reencrypts_reasoning_but_replays_actual_done() {
     // Pinned continuation.ts:193–200 and openai-responses.test.ts:733–782.
+    for terminal_id in ["reasoning", "renamed-reasoning"] {
+        let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
+        let mut completion = reasoning.clone();
+        completion["id"] = terminal_id.into();
+        completion["encrypted_content"] = serde_json::json!("TERMINAL-CANARY");
+        let call = call();
+        let result = generation(vec![
+            done(0, &reasoning),
+            done(1, &call),
+            terminal(Some(vec![completion, call.clone()])),
+        ])
+        .await
+        .unwrap();
+        assert_eq!(result.output, vec![reasoning, call]);
+        assert_eq!(result.finish, crate::provider::FinishReason::Stop);
+        assert_eq!(result.usage, Some((100, 40)));
+    }
+}
+
+#[tokio::test]
+async fn prov09_repeated_renamed_reasoning_replays_actual_done_once() {
     let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
-    let mut completion = reasoning.clone();
-    completion["encrypted_content"] = serde_json::json!("TERMINAL-CANARY");
+    let mut renamed = reasoning.clone();
+    renamed["id"] = "renamed-reasoning".into();
+    renamed["encrypted_content"] = "TERMINAL-CANARY".into();
     let call = call();
     let result = generation(vec![
         done(0, &reasoning),
         done(1, &call),
-        terminal(Some(vec![completion, call.clone()])),
+        terminal(Some(vec![renamed.clone(), renamed, call.clone()])),
     ])
     .await
     .unwrap();
     assert_eq!(result.output, vec![reasoning, call]);
-    assert_eq!(result.finish, crate::provider::FinishReason::Stop);
-    assert_eq!(result.usage, Some((100, 40)));
+}
+
+#[tokio::test]
+async fn prov09_renamed_reasoning_does_not_hide_invalid_or_identified_snapshot() {
+    let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
+    let mut renamed = reasoning.clone();
+    renamed["id"] = "renamed-reasoning".into();
+    let mut invalid = renamed.clone();
+    invalid["status"] = "in_progress".into();
+    for output in [vec![invalid], vec![renamed.clone(), reasoning.clone()]] {
+        local(
+            generation(vec![done(0, &reasoning), terminal(Some(output))])
+                .await
+                .unwrap_err(),
+        );
+    }
+    let mut anonymous = reasoning;
+    anonymous.as_object_mut().unwrap().remove("id");
+    local(
+        generation(vec![
+            done(0, &anonymous),
+            terminal(Some(vec![renamed, anonymous.clone()])),
+        ])
+        .await
+        .unwrap_err(),
+    );
 }
 
 #[tokio::test]

@@ -1221,7 +1221,7 @@ impl SseParser {
             }
             let mut previous_index = None;
             let mut terminal_indices = std::collections::BTreeSet::new();
-            for item in output {
+            for (position, item) in output.iter().enumerate() {
                 // Length admits only genuinely partial assistant messages;
                 // opaque items and failed messages retain ordinary validation.
                 let partial_message = self.finish == FinishReason::Length
@@ -1252,8 +1252,31 @@ impl SseParser {
                 }
                 // A sparse snapshot's array position may be compacted. Actual
                 // observed identity/index takes precedence over that position.
+                let observed_index = self.observed_index(item);
+                // Some providers rename reasoning in the terminal snapshot.
+                // Keep actual done bytes at the real wire slot, including when
+                // the renamed identity is repeated later in the snapshot.
+                let renamed_reasoning = (self.finish == FinishReason::Stop
+                    && item["type"] == "reasoning"
+                    && observed_index.is_none())
+                .then(|| {
+                    output[..position]
+                        .iter()
+                        .position(|prior| *prior == *item || same_identity(prior, item))
+                        .unwrap_or(position) as u64
+                })
+                .filter(|index| {
+                    self.output_done.get(index).is_some_and(|done| {
+                        done.indexed
+                            && done.emitted_reasoning
+                            && done.item["type"] == "reasoning"
+                            && !output.iter().any(|other| {
+                                done.item == *other || same_identity(&done.item, other)
+                            })
+                    })
+                });
                 let position = previous_index.map_or(0, |n| n + 1);
-                let index = self.observed_index(item).unwrap_or_else(|| {
+                let index = observed_index.or(renamed_reasoning).unwrap_or_else(|| {
                     if partial_message && self.output_done.contains_key(&position) {
                         return self.output_done.last_key_value().map_or(0, |(n, _)| n + 1);
                     }
@@ -1276,7 +1299,9 @@ impl SseParser {
                     ));
                 }
                 self.check_observation(item, Some(index), OutputStage::Completion)?;
-                self.retain_completed(index, item, true, OutputStage::Completion)?;
+                if renamed_reasoning.is_none() {
+                    self.retain_completed(index, item, true, OutputStage::Completion)?;
+                }
                 if terminal_indices.insert(index) {
                     previous_index = Some(index);
                 }

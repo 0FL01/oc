@@ -149,11 +149,17 @@ async fn prov09_sparse_done_admits_once_and_preserves_result_pair() {
 
 #[tokio::test]
 async fn prov09_reencrypted_completion_replays_done_bytes_and_executes_once() {
+    assert_reasoning_replay("reasoning").await;
+    assert_reasoning_replay("renamed-reasoning").await;
+}
+
+async fn assert_reasoning_replay(terminal_id: &str) {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("reencrypted").unwrap();
     let reasoning = serde_json::json!({"type":"reasoning","id":"reasoning","status":"completed","summary":[],"encrypted_content":"DONE-CANARY"});
     let mut completion = reasoning.clone();
+    completion["id"] = terminal_id.into();
     completion["encrypted_content"] = serde_json::json!("TERMINAL-CANARY");
     let call = serde_json::json!({"type":"function_call","id":"item","call_id":"call","name":"bash","arguments":serde_json::json!({"argv":["/bin/sh","-c","printf effect >> replay-effects"]}).to_string(),"status":"completed"});
     let (base, hits, requests) = Fake::start_recording(
@@ -190,7 +196,7 @@ async fn prov09_reencrypted_completion_replays_done_bytes_and_executes_once() {
     assert_eq!(
         input
             .iter()
-            .filter(|item| item["id"] == "reasoning")
+            .filter(|item| item["type"] == "reasoning")
             .collect::<Vec<_>>(),
         vec![&reasoning]
     );
@@ -205,7 +211,15 @@ async fn prov09_reencrypted_completion_replays_done_bytes_and_executes_once() {
     assert!(!requests[1].to_string().contains("TERMINAL-CANARY"));
     let stored: serde_json::Value =
         serde_json::from_str(&harness.db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap();
-    assert!(stored["input"].as_array().unwrap().contains(&reasoning));
+    assert_eq!(
+        stored["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|item| item["type"] == "reasoning")
+            .collect::<Vec<_>>(),
+        vec![&reasoning]
+    );
     assert!(!stored.to_string().contains("TERMINAL-CANARY"));
     assert!(!stored["display_parts"].to_string().contains("CANARY"));
     let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
