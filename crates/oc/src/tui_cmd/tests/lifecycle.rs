@@ -1471,6 +1471,150 @@ async fn conversation_commands_wait_for_owner_then_refresh_without_submission() 
 }
 
 #[tokio::test]
+async fn interrupted_first_prompt_opens_message_actions_without_shared_refresh() {
+    use crossterm::event::{MouseButton, MouseEvent};
+    use oc_core::queries::{HistoryPartWindow, HistoryTurn, TranscriptPart};
+    use oc_core::session::MessageId;
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let session = SessionId::new("interrupted-click").unwrap();
+    let mut state = TuiState::new(app.clone(), session.clone());
+    state.handle_paste("FIRST PROMPT ");
+    state.paste_clipboard_image(b"editor-image-fixture".as_slice().into());
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
+        panic!("first submission")
+    };
+    assert_eq!(text.images.len(), 1);
+    let turn = WorkerTurnId("interrupted-turn".into());
+    ack.send(Ok(turn.clone())).unwrap();
+    state.poll_submission();
+    assert!(state.history().rows()[0].message_id.is_none());
+    state.apply_delta(&turn, "partial answer");
+    state.restore_prompt("new unsent draft".into());
+
+    let message = MessageId("owner-prompt".into());
+    let row = HistoryMessage {
+        id: message.clone(),
+        seq: 1,
+        role: Role::User,
+        text: text.text,
+        images: text.images.into_iter().map(|image| image.mark).collect(),
+        turn: Some(HistoryTurn {
+            id: turn.0.clone(),
+            status: "cancelled".into(),
+            parts: vec![TranscriptPart::Text("partial answer".into())],
+            window: Some(HistoryPartWindow {
+                start: 0,
+                end: 1,
+                total: 1,
+            }),
+            ..Default::default()
+        }),
+        model_switch: None,
+        child: None,
+        shell_notice: None,
+        user_shell: None,
+    };
+    let owner = tokio::spawn(async move {
+        let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
+            panic!("canonical terminal refresh")
+        };
+        assert_eq!(session.0, "interrupted-click");
+        ack.send(Ok(HistoryPage {
+            rows: vec![row],
+            total: 1,
+            ..Default::default()
+        }))
+        .unwrap();
+        inbox
+    });
+    let mut deck = LoopState::default();
+    let event = CoreEvent::TurnInterrupted {
+        session: session.clone(),
+        turn: turn.clone(),
+        partial: "partial answer".into(),
+        duration_ms: 10,
+    };
+    tokio::time::timeout(
+        Duration::from_secs(5),
+        handle_worker_event(&app, &mut state, &mut deck, &session, event.clone()),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let users: Vec<_> = state
+        .history()
+        .rows()
+        .iter()
+        .filter(|row| row.role == "user")
+        .collect();
+    assert_eq!(users.len(), 1);
+    assert_eq!(users[0].message_id.as_deref(), Some(&message));
+    assert_eq!(users[0].chips.len(), 1);
+    assert_eq!(
+        state
+            .viewport()
+            .join("\n")
+            .matches("partial answer")
+            .count(),
+        1
+    );
+    assert!(state.viewport().join("\n").contains("interrupted"));
+    assert_eq!(state.active_turn(), None);
+    assert_eq!(state.input(), "new unsent draft");
+
+    let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+    for needle in ["FIRST PROMPT", "clipboard"] {
+        terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+        let buffer = terminal.backend().buffer();
+        let (x, y) = (0..30)
+            .find_map(|y| {
+                let line = (0..100)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect::<String>();
+                line.find(needle).map(|x| (x as u16 + 1, y))
+            })
+            .unwrap();
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            state.handle_mouse(
+                MouseEvent {
+                    kind,
+                    column: x,
+                    row: y,
+                    modifiers: KeyModifiers::NONE,
+                },
+                Rect::new(0, 0, 100, 30),
+            );
+        }
+        assert_eq!(
+            state.panel(),
+            &TuiPanel::MessageActions {
+                message: message.clone(),
+                seq: 1
+            }
+        );
+        state.close_panel();
+    }
+    let mut inbox = owner.await.unwrap();
+    tokio::time::timeout(
+        Duration::from_secs(5),
+        handle_worker_event(&app, &mut state, &mut deck, &session, event),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(
+        inbox.try_recv().is_err(),
+        "duplicate interruption must not reread or submit"
+    );
+}
+
+#[tokio::test]
 async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure() {
     use crossterm::event::{MouseButton, MouseEvent};
     use oc_core::queries::{HistoryMessage, HistoryPage};

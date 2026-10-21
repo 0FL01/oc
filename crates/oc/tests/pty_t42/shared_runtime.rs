@@ -317,7 +317,21 @@ async fn srv04_scoped_native_move_keeps_source_sibling_and_active_destination_ru
     })
     .await
     .expect("native move must settle through the actual owner");
-    wait_screen_row(&a, &fixture.project_b().to_string_lossy(), DEADLINE);
+    // The tool card already contains B's path before the view adopts B.
+    // Wait for the actual Location footer before typing into that view.
+    let destination = fixture.project_b();
+    let moved = Instant::now();
+    loop {
+        let rows = render_screen(&a.snapshot()).rows();
+        if rows.iter().any(|row| {
+            row.trim_start().starts_with(destination.to_str().unwrap())
+                && row.contains("tab agents")
+        }) {
+            break;
+        }
+        assert!(moved.elapsed() < DEADLINE, "Location not adopted: {rows:?}");
+        std::thread::sleep(POLL);
+    }
     let progress = fixture.progress.lock().unwrap().clone();
     for label in ["SOURCE-SIBLING", "DESTINATION"] {
         progress_after(&fixture, label, progress[label]);

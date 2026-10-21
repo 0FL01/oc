@@ -4504,12 +4504,29 @@ async fn handle_worker_event_at(
             duration_ms,
             ..
         } => {
+            let current = state.active_turn() == Some(&turn);
             let compress = state.is_compress_turn(&turn);
             state.apply_interrupted(&turn, &partial, duration_ms);
             if compress {
                 state.notify_dcp(DcpOutcome::Failed {
                     reason: "compress turn cancelled".to_string(),
                 });
+            }
+            if current && !replay {
+                // Replace the accepted prompt's local echo with its durable ID,
+                // just as on completion, so message actions work after Esc.
+                let page = if let Some(selected) = state.linked_child().cloned() {
+                    app.read_child_transcript(selected.parent.clone(), selected)
+                        .await
+                } else {
+                    app.transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
+                        .await
+                };
+                match page {
+                    Ok(page) => state.refresh_completed_page(&page),
+                    Err(CoreError::LocationChanged) if app.shares_workspace() => return Ok(()),
+                    Err(error) => return Err(error.to_string()),
+                }
             }
         }
         CoreEvent::TurnFailed {
