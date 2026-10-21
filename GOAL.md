@@ -13,12 +13,12 @@ Scope текущей работы задаёт пользователь; workflo
 - RAW/HOT, intentional forgetting и отсутствие artificial round stops остаются свойствами продукта, не процессом ведения документации: [DCP](docs/DCP.md), [Long Horizon](docs/LONG_HORIZON.md).
 - Публикация, historical PASS, offline gate или отдельный bugfix не означают full-product READY либо полный паритет с OpenCode.
 
-## Незавершённые outcomes
-
-### Native tool diagnostics — текущий запрошенный фикс
+## Native tool diagnostics — завершено offline
 
 Исправленный после аудита план и frozen outcomes: [read/grep/subagent](docs/goals/2026-10-21-native-tool-diagnostics.md).
-Scope — полезный bounded search, root directory read, достоверные tool states и причины child failure/cancellation; не полная Long Horizon qualification.
+Полезный bounded search, root directory read, достоверные tool states и причины child failure/cancellation проверены; full offline gate и release build PASS. Это не полная Long Horizon qualification.
+
+## Незавершённые outcomes
 
 ### TUI parity — отложено, не отменено
 

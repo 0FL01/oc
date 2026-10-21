@@ -1,6 +1,6 @@
 # Goal: usable native file tools and attributable subagent failures
 
-Status: active
+Status: complete
 Source: user bug report and audited plan, 2026-10-21; implementation/commit/push/build explicitly requested.
 Last updated: 2026-10-21
 
@@ -50,8 +50,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user implementation request.
   - Acceptance: relevant tests + full offline gate green, commits pushed without force, `target/release/oc2` built from delivered source; no live owner restart.
   - Primary evidence: command receipts and Git remote/HEAD agreement.
-  - Status: in_progress
-  - Evidence: full `bash scripts/test.sh` PASS (2252 passed, 12 existing opt-in skips; fmt, strict workspace Clippy, doctests, debug build/help/version). Release build/help/version PASS at `target/release/oc2`. Final test-contract commit/push remains.
+  - Status: verified
+  - Evidence: full `bash scripts/test.sh` PASS (2252 passed, 12 existing opt-in skips; fmt, strict workspace Clippy, doctests, debug build/help/version). Release build/help/version PASS at `target/release/oc2`. All implementation/test commits through `fb3c50f9c` pushed normally to verified origin; remote/local HEAD agreement and clean worktree confirmed before this documentation-only closure.
 
 ### Constraints
 
@@ -82,17 +82,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R6.
-- Smallest next action: commit/push the final structured-output consumer assertions, verify remote HEAD, then close the goal.
-- Expected evidence: clean worktree and remote/HEAD agreement for the verified source.
-- Stop or replan if: concurrent edits touch owned files, or a required outcome needs a material envelope expansion.
+- Closed: R1–R6. No further implementation checkpoint.
 
 ## Current State
 
-- Resolved: R1–R5; commits through `795be060d` pushed and remote HEAD verified.
+- Resolved: R1–R6; implementation/test commits through `fb3c50f9c` pushed and remote HEAD verified.
 - Last relevant evidence: full offline gate PASS: 2252/2252 tests, 12 existing opt-in skips, strict Clippy/doctests/debug build/help/version. Release build/help/version PASS. Four first-gate legacy string assertions were migrated to the required structured status/tool/code checks without weakening refusal/effects/replay guarantees. Cold compilation was 10m22s; the successful warmed test phase was 400.991s. Only the existing approved discovery-deadline case exceeded 30s (32.809s, below its 40s bound).
 - Blocker: none.
-- Next: final ordinary commit/push and closure.
+- Next: none; this frozen objective is complete.
 
 ## Material Decisions
 
@@ -107,7 +104,11 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-21: R4 implementation commits exact terminal diagnosis before report construction; preserves child ID/cause and separates sticky cleanup health. Storage recovery/notice test covers failed/cancelled/interrupted and mismatched ownership. R3 exact-artifact errors now retain typed budget/cancellation facts. Strict Clippy required shrinking the diagnostic's optional detail allocation, not suppressing the lint.
 - 2026-10-21: R3/R4/R5 final targeted suites green, including actual Plan -> incomplete grep -> Explore -> root read -> continued parent. Commit `795be060d` pushed normally; complete offline gate and release delivery remain.
 - 2026-10-21: Full offline gate green after updating exact legacy error-string consumers; 2252 PASS and 12 existing opt-in skips, no tests/guards/deadlines/load disabled. Release `target/release/oc2` built successfully, help/version PASS. Final diff review confirms no dependency, core/UI, SQL schema, test scheduler or gate changes.
+- 2026-10-21: Closure check passed for R1–R6. Verified implementation/test source `fb3c50f9c` matches origin/master and worktree was clean. Only this goal-status metadata follows; no additional product or qualification work is opened.
 
 ## Completion
 
-- Pending.
+- Resolved outcomes: R1–R6, each with current direct evidence above.
+- Commands/artifacts: targeted file/tools/children/storage/runtime regressions; full `bash scripts/test.sh` (2252 PASS, 12 existing opt-in skips); `cargo build -p oc2 --bin oc2 --locked --release`; release help/version PASS; `git diff --check`; ordinary pushes with remote HEAD verification. Cargo used `CARGO_INCREMENTAL=0`, `CARGO_BUILD_JOBS=4`, and the approved disk-backed TMPDIR; test load/deadlines were unchanged.
+- Constraint and scope check: no new dependencies, SQL migration, core/UI/provider-wire change, test/gate suppression, widened permissions, live paid request or live owner restart. Missing legacy cancellation provenance remains explicit unknown. Release binary is `/home/stfu/ai/agent-frameworks/oc/target/release/oc2`.
+- Final status: complete for this offline backend-fix contract; not live/visual or whole-product Long Horizon qualification.
