@@ -1415,6 +1415,18 @@ fn pty_ssh_like_term_variants() {
         );
         pty.wait_visible(READY, DEADLINE);
         submit_turn(&mut pty, "ssh");
+        wait_screen_row(&pty, "echo: ssh", DEADLINE);
+        // Input during execution steers the same task. Wait for the actual
+        // terminal before the settle probe submits a second, separate prompt.
+        let start = Instant::now();
+        while render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+        {
+            assert!(start.elapsed() < DEADLINE, "ssh turn did not finish");
+            std::thread::sleep(POLL);
+        }
         settle_turn(&mut pty);
         let _ = quit_clean(&mut pty);
         let history = persisted(pty.data_dir(), session);

@@ -1151,10 +1151,18 @@ fn child_schema_migration_is_idempotent_across_reopen() {
                 "agent",
                 "model",
                 "title",
-                "updated_at"
+                "updated_at",
+                "idle_seq",
+                "viewed_seq",
+                "idle_outcome"
             ]
         );
-        assert!(columns.iter().all(|(_, ty)| ty == "TEXT"));
+        assert!(columns.iter().all(|(name, ty)| ty
+            == if matches!(name.as_str(), "idle_seq" | "viewed_seq") {
+                "INTEGER"
+            } else {
+                "TEXT"
+            }));
         assert_eq!(db.list_sessions().expect("list"), Vec::<String>::new());
         // One `sessions` row per session; the index exists even on fresh DBs.
         let conn = db.conn.lock().expect("db mutex");

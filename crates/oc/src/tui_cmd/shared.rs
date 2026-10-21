@@ -216,6 +216,8 @@ pub(super) async fn sync(
         }
         Err(error) => return Err(error.to_string()),
     };
+    deck.activity
+        .apply(&snapshot, state.attached_session().cloned());
     if deck.shared_gap {
         // Stage every bounded repair before touching an existing owner. Child
         // snapshots also contain roots; apply each response only to its target.
@@ -337,6 +339,22 @@ pub(super) async fn sync(
     TuiState::new_home(app.clone())
         .apply_tab_rail_width(snapshot.deck.rail_width)
         .map_err(|error| error.to_string())?;
+    let mut cursors: std::collections::HashMap<_, _> = deck
+        .snapshot(state)
+        .sessions
+        .into_iter()
+        .enumerate()
+        .map(|(index, id)| {
+            (
+                id,
+                if deck.active_tab == Some(index) {
+                    deck.cards_before
+                } else {
+                    deck.tab_cards_before[index]
+                },
+            )
+        })
+        .collect();
     let mut local = std::collections::HashMap::new();
     let mut home = deck.home.take();
     for view in deck.tabs.iter_mut().filter_map(Option::take) {
@@ -351,7 +369,9 @@ pub(super) async fn sync(
         home = Some(old);
     }
     let mut tabs = Vec::new();
+    let mut tab_cursors = Vec::new();
     for (id, new_title, fresh, catalog) in prepared {
+        tab_cursors.push(cursors.remove(&id).flatten());
         deck.picker_pending_tabs.remove(&id);
         let mut view = if let Some(mut fresh) = fresh {
             if let Some(previous) = local.remove(&id) {
@@ -388,7 +408,10 @@ pub(super) async fn sync(
     *state = selected;
     deck.tabs = tabs;
     deck.active_tab = active_tab;
-    deck.tab_cards_before = vec![None; deck.tabs.len()];
+    deck.tab_cards_before = tab_cursors;
+    deck.cards_before = deck
+        .active_tab
+        .and_then(|index| deck.tab_cards_before[index]);
     deck.save_disabled = save_disabled;
     deck.location = Some(snapshot.deck.location);
     deck.revision = snapshot.deck.revision;

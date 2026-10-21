@@ -88,6 +88,7 @@ macro_rules! rpc {
 }
 
 rpc! {
+    SessionViewed { session: SessionId, idle_seq: u64 } -> SessionActivity;
     Workspace { selected: Option<SessionId> } -> WorkspaceSnapshot;
     UserShell { session: SessionId, command: String, selection: UserShellSelection,
         #[serde(skip, default="cancel_flag")] cancel: Arc<AtomicBool> } -> String;

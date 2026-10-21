@@ -42,6 +42,7 @@ mod clipboard;
 use clipboard::{ClipboardJob, start_clipboard, sync_clipboard};
 mod connect_controls;
 mod shared;
+mod tab_activity;
 mod terminal_controls;
 
 /// Qualification probe (T26): when set, panic right after entering the
@@ -282,6 +283,7 @@ type CompactionAdmission = tokio::task::JoinHandle<
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    activity: tab_activity::Activity,
     projection_revision: u64,
     shared_refresh: bool,
     shared_gap: bool,
@@ -696,6 +698,13 @@ impl LoopState {
                     parked.as_ref().expect("parked tab")
                 };
                 TabPresentation {
+                    unread: view
+                        .attached_session()
+                        .and_then(|id| self.activity.unread(id)),
+                    complete: view
+                        .attached_session()
+                        .and_then(|id| self.activity.unread(id))
+                        == Some(oc_tui::app::TabUnread::Activity),
                     title: view
                         .session_title
                         .clone()
@@ -706,7 +715,10 @@ impl LoopState {
                             .map(|name| name.to_string_lossy().into_owned())
                     }),
                     home: false,
-                    busy: view.is_busy(),
+                    busy: view.is_busy()
+                        || view
+                            .attached_session()
+                            .is_some_and(|id| self.activity.busy(id)),
                     attention: if state.tab_attention.contains(&index) {
                         Some(oc_tui::app::TabAttention::Permission)
                     } else {
@@ -736,6 +748,52 @@ impl LoopState {
 
     fn activate(&mut self, state: &mut TuiState, index: usize) -> Result<(), String> {
         self.activate_with_hover(state, index, false)
+    }
+
+    async fn move_tab(
+        &mut self,
+        app: &CoreApp,
+        state: &TuiState,
+        session: SessionId,
+        index: usize,
+    ) -> Result<usize, String> {
+        self.departure_ready(state)?;
+        if !self.root_navigation_allowed(state) {
+            return Err("child session: read-only history; saved tabs are unchanged".into());
+        }
+        let before = self.snapshot(state);
+        if self.location.is_some() && state.chrome.location != self.location {
+            return Err(CoreError::LocationChanged.to_string());
+        }
+        let from = before
+            .sessions
+            .iter()
+            .position(|id| id == &session)
+            .ok_or("tab unavailable")?;
+        let index = index.min(before.sessions.len() - 1);
+        let mut requested = before.clone();
+        let moved = requested.sessions.remove(from);
+        requested.sessions.insert(index, moved);
+        if !requested.new_session_titles.is_empty() {
+            let flag = requested.new_session_titles.remove(from);
+            requested.new_session_titles.insert(index, flag);
+        }
+        requested.active = Some(session);
+        let active = before
+            .active
+            .as_ref()
+            .and_then(|id| requested.sessions.iter().position(|target| target == id));
+        if requested != before {
+            self.save_snapshot_checked(app, requested)
+                .await
+                .map_err(|error| error.to_string())?;
+        }
+        let tab = self.tabs.remove(from);
+        self.tabs.insert(index, tab);
+        let cursor = self.tab_cards_before.remove(from);
+        self.tab_cards_before.insert(index, cursor);
+        self.active_tab = active;
+        Ok(index)
     }
 
     fn activate_with_hover(
@@ -1222,6 +1280,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         if app.shares_workspace() && loop_state.shared_refresh {
             dirty |= shared::sync(app, &mut state, &mut loop_state).await?;
         }
+        if app.shares_workspace()
+            && loop_state
+                .activity
+                .sync(app, state.attached_session().cloned())
+                .await
+        {
+            loop_state.sync_tabs(&mut state);
+            dirty = true;
+        }
         if state.terminals_need_refresh() {
             terminal_controls::refresh_or_report(app, &mut state).await;
             dirty = true;
@@ -1481,7 +1548,13 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 }
                 event => (event, None),
             };
+            loop_state.activity.observe(&event);
             match &event {
+                CoreEvent::SessionViewed { .. } => {
+                    loop_state.sync_tabs(&mut state);
+                    dirty = true;
+                    continue;
+                }
                 CoreEvent::WorkspaceChanged { location } => {
                     if loop_state.location.as_ref() == Some(location) {
                         loop_state.shared_refresh = true;
@@ -1572,6 +1645,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             continue;
         }
         let mut deadline = state.next_ui_deadline();
+        if let Some(at) = loop_state.activity.deadline() {
+            deadline = Some(deadline.map_or(at, |d| d.min(at)));
+        }
         if let Some(at) = loop_state.authentication.deadline() {
             deadline = Some(deadline.map_or(at, |d| d.min(at)));
         }
@@ -2250,6 +2326,7 @@ async fn handle_event_ticks(
     cev: CEvent,
     wheel_ticks: usize,
 ) -> Result<(), String> {
+    loop_state.activity.focus(&cev);
     if let CEvent::Resize(width, height) = cev {
         state.resize_mouse_position(ratatui::layout::Rect::new(0, 0, width, height));
         terminal_controls::resize(app, state, ratatui::layout::Rect::new(0, 0, width, height))
@@ -2439,7 +2516,7 @@ async fn apply_mouse_outcome(
     };
     let activate = matches!(
         intent,
-        PanelIntent::ActivateTab { .. } | PanelIntent::NewSession
+        PanelIntent::ActivateTab { .. } | PanelIntent::MoveTab { .. } | PanelIntent::NewSession
     );
     match apply_intent_with_origin(app, state, loop_state, intent, false, pointer.is_some()).await {
         Ok(()) => {
@@ -2567,6 +2644,7 @@ async fn apply_owned_intent(
             | PanelIntent::AddSessionTab
             | PanelIntent::SwitchSession { .. }
             | PanelIntent::ActivateTab { .. }
+            | PanelIntent::MoveTab { .. }
     );
     if root_navigation {
         loop_state.departure_ready(state)?;
@@ -2583,6 +2661,7 @@ async fn apply_owned_intent(
                 | PanelIntent::CloseTab { .. }
                 | PanelIntent::SetTabRailWidth { .. }
                 | PanelIntent::ActivateTab { .. }
+                | PanelIntent::MoveTab { .. }
                 | PanelIntent::SelectModel { .. }
                 | PanelIntent::ChooseModel { .. }
                 | PanelIntent::CycleVariant
@@ -3203,8 +3282,16 @@ async fn apply_owned_intent(
                 loop_state.save_if_changed(app, state, &before).await;
             }
         }
-        PanelIntent::ActivateTab { index } => {
+        intent @ (PanelIntent::ActivateTab { .. } | PanelIntent::MoveTab { .. }) => {
             let before = loop_state.snapshot(state);
+            let moving = matches!(intent, PanelIntent::MoveTab { .. });
+            let index = match intent {
+                PanelIntent::ActivateTab { index } => index,
+                PanelIntent::MoveTab { session, index } => {
+                    loop_state.move_tab(app, state, session, index).await?
+                }
+                _ => unreachable!(),
+            };
             if preserve_pointer {
                 loop_state.activate_with_hover(state, index, true)?;
             } else {
@@ -3228,7 +3315,9 @@ async fn apply_owned_intent(
                 }
                 loop_state.conversation_recovery = Some((session, std::time::Instant::now()));
             }
-            loop_state.save_if_changed(app, state, &before).await;
+            if !moving {
+                loop_state.save_if_changed(app, state, &before).await;
+            }
         }
         PanelIntent::CloseTab { index } => {
             let closed = if loop_state.active_tab == Some(index) {
@@ -4138,6 +4227,7 @@ async fn handle_worker_event_at(
     let owner = match &event {
         CoreEvent::Projection { .. }
         | CoreEvent::WorkspaceChanged { .. }
+        | CoreEvent::SessionViewed { .. }
         | CoreEvent::ProjectionGap
         | CoreEvent::OwnerDisconnected => return Ok(()),
         CoreEvent::ChildNotice(notice) => &notice.job.parent,
@@ -4348,6 +4438,7 @@ async fn handle_worker_event_at(
         CoreEvent::SessionMoved { .. } => unreachable!("handled above"),
         CoreEvent::Projection { .. }
         | CoreEvent::WorkspaceChanged { .. }
+        | CoreEvent::SessionViewed { .. }
         | CoreEvent::ProjectionGap
         | CoreEvent::OwnerDisconnected => unreachable!("handled before session routing"),
         CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),

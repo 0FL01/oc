@@ -61,6 +61,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 ## Storage/tools — `crates/oc-adapters/src/`
 
 - Db/transactions/recovery: `storage.rs`, related `storage_*.rs`; forks/conversation: `storage_fork.rs`, `storage_conversation.rs`. Tests: unit `storage::`; targets `storage_lock`, `dcp_atomic`, `tab_deck`.
+- Tab unread/read watermarks: `storage_activity.rs`, core `queries/workspace.rs`, binary `tui_cmd/tab_activity.rs`; glyph/fade/drag: `oc-tui/src/app/tabs.rs`, `shell.rs`. Tests: `storage::activity`, `tui_cmd::tab_activity`, tab/shell unit tests, `pty_t42/shared_runtime.rs`.
 - Canonical transcript/cursors: `storage_turn_history.rs`, `storage.rs::turn_presentation_window`, `application.rs`. Tests: unit `storage::transcript_tests`, `application::transcript_tests`, `application::authority::live`.
 - Tool output/artifacts: `tools/output.rs`, `storage_tool_output.rs`, `storage_tool_output/access.rs`. Tests: unit `tools::output`, `storage_tool_output`, `tool21_`.
 - Search/read/external scopes: `files.rs`, `files/search.rs`, `files/read.rs`, `tools/read.rs`; args/admission: `tools.rs`, `runtime/turn.rs`. Tests: unit `files::`, `tools::tests::search`, `tool16_`; target `runtime`, filter `approval_lifecycle`.

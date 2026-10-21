@@ -267,4 +267,5 @@ fn restore_output_ends_partial_sync_before_releasing_modes_and_showing_cursor() 
     assert!(bytes.starts_with(b"\x1b[?2026l\x1b]112\x07"));
     assert!(bytes.ends_with(b"\x1b[?1049l\x1b[?25h"));
     assert!(bytes.windows(8).any(|part| part == b"\x1b[?1006l"));
+    assert!(bytes.windows(8).any(|part| part == b"\x1b[?1004l"));
 }

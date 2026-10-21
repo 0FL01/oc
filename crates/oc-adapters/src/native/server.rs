@@ -988,6 +988,21 @@ async fn handle(
         let _deck = location.deck_gate.lock().await;
         let deck = location.app.tab_deck().await?;
         let mut snapshot = owner.resources.live.snapshot(deck, selected.as_ref());
+        let mut roots = snapshot.deck.sessions.clone();
+        snapshot.selected_root = selected
+            .as_ref()
+            .map(|session| owner.db.session_root(&session.0))
+            .transpose()
+            .map_err(|_| CoreError::SessionNotFound)?;
+        if let Some(root) = &snapshot.selected_root
+            && !roots.contains(root)
+        {
+            roots.push(root.clone());
+        }
+        snapshot.activity = owner
+            .db
+            .session_activity(&roots)
+            .map_err(|_| CoreError::Application("session activity unavailable".into()))?;
         if let Some(session) = selected {
             snapshot.inbox = owner
                 .db
@@ -995,6 +1010,23 @@ async fn handle(
                 .map_err(|_| CoreError::Application("inbox storage unavailable".into()))?;
         }
         return serde_json::to_value(Ok::<_, CoreError>(snapshot)).map_err(|_| wire::unknown());
+    }
+    if let Request::SessionViewed { session, idle_seq } = &request {
+        let (activity, changed) = owner
+            .db
+            .session_viewed(&session.0, *idle_seq)
+            .map_err(|_| CoreError::SessionNotFound)?;
+        if changed {
+            owner.resources.live.emit(
+                &location.project.to_string_lossy(),
+                None,
+                CoreEvent::SessionViewed {
+                    session: session.clone(),
+                    viewed_seq: *idle_seq,
+                },
+            );
+        }
+        return serde_json::to_value(Ok::<_, CoreError>(activity)).map_err(|_| wire::unknown());
     }
     let fresh = match &request {
         Request::SubmitFresh { session, .. }

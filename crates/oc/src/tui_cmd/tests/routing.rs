@@ -1,6 +1,136 @@
 use super::*;
 
 #[tokio::test]
+async fn tab_reorder_saves_before_moving_owners_cursors_flags_and_selecting_a_running_source() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let a = SessionId("move-a".into());
+    let mut state = TuiState::new(app.clone(), a.clone());
+    state.apply_catalog(catalog());
+    state.handle_paste("held");
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("one submission")
+    };
+    let turn = WorkerTurnId("move-running".into());
+    ack.send(Ok(turn.clone())).unwrap();
+    state.poll_submission();
+    state.restore_prompt("a draft".into());
+    state.chrome.location = Some("/move".into());
+    let mut deck = LoopState::default();
+    deck.sync_tabs(&mut state);
+    deck.cards_before = Some(11);
+    append_tab(&app, &mut deck, &mut state, "move-b");
+    state.chrome.location = Some("/move".into());
+    state.restore_prompt("b draft".into());
+    deck.cards_before = Some(22);
+    append_tab(&app, &mut deck, &mut state, "move-c");
+    state.chrome.location = Some("/move".into());
+    state.restore_prompt("c draft".into());
+    deck.cards_before = Some(33);
+    deck.location = Some("/move".into());
+    deck.revision = Some("original".into());
+    deck.activity.apply(
+        &oc_core::queries::WorkspaceSnapshot {
+            revision: 1,
+            deck: deck.snapshot(&state),
+            turns: Vec::new(),
+            inbox: Vec::new(),
+            selected_root: state.attached_session().cloned(),
+            activity: vec![oc_core::queries::SessionActivity {
+                session: a.clone(),
+                idle_seq: Some(10),
+                viewed_seq: None,
+                outcome: Some(oc_core::queries::SessionIdleOutcome::Error),
+                busy: true,
+            }],
+        },
+        state.attached_session().cloned(),
+    );
+    for refusal in [
+        Some(CoreError::TabDeckConflict),
+        Some(CoreError::TabDeckStorage),
+        None,
+    ] {
+        let before = deck.snapshot(&state);
+        let expected = before.clone();
+        let owner = async {
+            let Some(InboxMsg::SaveTabDeck {
+                deck: requested,
+                ack,
+            }) = inbox.recv().await
+            else {
+                panic!("one checked save")
+            };
+            assert_eq!(
+                requested.sessions,
+                [
+                    SessionId("move-b".into()),
+                    SessionId("move-c".into()),
+                    a.clone()
+                ]
+            );
+            assert_eq!(requested.active, Some(a.clone()));
+            let mut flags = expected.new_session_titles;
+            if !flags.is_empty() {
+                let moved = flags.remove(0);
+                flags.insert(2, moved);
+            }
+            assert_eq!(requested.new_session_titles, flags);
+            if let Some(error) = refusal.clone() {
+                ack.send(Err(error)).unwrap();
+            } else {
+                ack.send(Ok(TabDeckSnapshot {
+                    revision: Some("saved".into()),
+                    ..requested
+                }))
+                .unwrap();
+            }
+        };
+        let (result, ()) = tokio::join!(deck.move_tab(&app, &state, a.clone(), 2), owner);
+        if refusal.is_some() {
+            assert!(result.is_err());
+            assert_eq!(deck.snapshot(&state), before);
+            assert_eq!(deck.cards_before, Some(33));
+            assert_eq!(state.input(), "c draft");
+        } else {
+            deck.activate(&mut state, result.unwrap()).unwrap();
+        }
+    }
+    assert_eq!(state.session(), &a);
+    assert_eq!(state.active_turn(), Some(&turn));
+    assert_eq!(state.tab_presentation().0[2].session, a);
+    assert_eq!(
+        state.tab_presentation().0[2].unread,
+        Some(oc_tui::app::TabUnread::Error)
+    );
+    assert_eq!(state.input(), "a draft");
+    assert_eq!(deck.cards_before, Some(11));
+    // Moving the active None placeholder backwards preserves the mounted owner.
+    deck.location = None;
+    let index = deck.move_tab(&app, &state, a.clone(), 0).await.unwrap();
+    deck.activate(&mut state, index).unwrap();
+    assert_eq!(deck.active_tab, Some(0));
+    assert_eq!(state.active_turn(), Some(&turn));
+    deck.activate(&mut state, 2).unwrap();
+    assert_eq!(state.input(), "c draft");
+    assert_eq!(deck.cards_before, Some(33));
+    deck.open_home(&mut state, TuiState::new_home(app.clone()));
+    state.restore_prompt("home draft".into());
+    let index = deck
+        .move_tab(&app, &state, SessionId("move-b".into()), 2)
+        .await
+        .unwrap();
+    deck.activate(&mut state, index).unwrap();
+    assert_eq!(state.input(), "b draft");
+    assert_eq!(deck.cards_before, Some(22));
+    assert_eq!(deck.home.as_ref().unwrap().input(), "home draft");
+    assert!(
+        inbox.try_recv().is_err(),
+        "reorder cannot resubmit, query history, cancel or save twice"
+    );
+}
+
+#[tokio::test]
 async fn sidebar_mcp_preference_ack_preserves_drafts_and_projects_on_activation() {
     use oc_core::queries::{McpBinding, McpServerSnapshot, McpSnapshot, McpStatus};
     let (app, mut inbox, _) = CoreApp::channel(8);
@@ -4023,6 +4153,8 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
             panic!("WorkspaceChanged reconciliation")
         };
         ack.send(Ok(oc_core::queries::WorkspaceSnapshot {
+            activity: Vec::new(),
+            selected_root: None,
             inbox: Vec::new(),
             revision: 10,
             deck: accepted,
@@ -4056,11 +4188,17 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(state.session_title.as_deref(), Some("real title"));
     deck.shared_refresh = true;
+    deck.cards_before = Some(73);
     assert!(shared::sync(&app, &mut state, &mut deck).await.unwrap());
     assert_eq!(state.history().rows()[0].seq, 1);
     assert!(state.history().has_newer());
     assert_eq!(state.input(), "retained draft");
     assert_eq!(deck.projection_revision, 7);
+    assert_eq!(
+        deck.cards_before,
+        Some(73),
+        "a deck refresh retains the mounted root cursor"
+    );
     worker.await.unwrap();
 }
 

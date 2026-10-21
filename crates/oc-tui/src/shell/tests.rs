@@ -1465,6 +1465,7 @@ async fn vis39_painted_permission_priority_number_mode_and_static_busy_fallback(
     let mut state = TuiState::new(app, SessionId("indicator".into()));
     let mut tab = TabPresentation::new(SessionId("indicator".into()));
     tab.busy = true;
+    tab.unread = Some(TabUnread::Error);
     tab.attention = Some(TabAttention::Question);
     state.set_tab_strip(vec![tab.clone()], 0, false);
     let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
@@ -1496,6 +1497,48 @@ async fn vis39_painted_permission_priority_number_mode_and_static_busy_fallback(
     assert!(state.tick_ui(spinner));
     terminal.draw(|f| render(f, &state)).unwrap();
     assert_eq!(terminal.backend().buffer()[(1, 0)].symbol(), "⠙");
+}
+
+#[tokio::test]
+async fn unread_marker_error_color_and_numbers_survive_animation_off_in_every_tab_layout() {
+    let theme = Theme::dark();
+    for width in [0, 20, 5] {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("foreground".into()));
+        state.chrome.animations = Some(false);
+        state.chrome.vertical_tabs_width = width;
+        let mut tabs = vec![
+            TabPresentation::new(SessionId("foreground".into())),
+            TabPresentation::new(SessionId("background".into())),
+        ];
+        state.set_tab_strip(tabs.clone(), 0, false);
+        let area = Rect::new(0, 0, 120, 30);
+        let mut terminal = Terminal::new(TestBackend::new(120, 30)).unwrap();
+        terminal.draw(|f| render(f, &state)).unwrap();
+        let plain = terminal.backend().buffer().clone();
+        tabs[1].unread = Some(TabUnread::Error);
+        state.set_tab_strip(tabs, 0, false);
+        terminal.draw(|f| render(f, &state)).unwrap();
+        let rect = tab_strip(&state, area).unwrap().tabs[1].rect;
+        let buffer = terminal.backend().buffer();
+        let marker = (rect.x..rect.right())
+            .find(|x| buffer[(*x, rect.y)].symbol() == "•")
+            .expect("idle unread dot");
+        assert_eq!(buffer[(marker, rect.y)].fg, theme.error());
+        assert_eq!(
+            buffer[(rect.x, rect.y)].bg == plain[(rect.x, rect.y)].bg,
+            width == 5,
+            "compact has no full-row pulse; other layouts retain static unread glow"
+        );
+        state.chrome.tab_indicators = TabIndicators::Numbers;
+        terminal.draw(|f| render(f, &state)).unwrap();
+        assert_eq!(terminal.backend().buffer()[(marker, rect.y)].symbol(), "2");
+        assert_eq!(
+            terminal.backend().buffer()[(marker, rect.y)].fg,
+            theme.error()
+        );
+        assert_eq!(state.next_ui_deadline(), None);
+    }
 }
 
 #[test]
@@ -1567,7 +1610,14 @@ fn vis39_u48_styled_sweep_whitecaps_and_blend_order_preserve_title_attributes() 
                 )),
                 rect,
             );
-            paint_tab_pulse(frame, rect, theme, pulse, false);
+            paint_tab_pulse(
+                frame,
+                rect,
+                theme,
+                pulse,
+                false,
+                theme.hue("accent", 200).unwrap(),
+            );
         })
         .unwrap();
     let buffer = terminal.backend().buffer();
@@ -1608,7 +1658,14 @@ fn vis39_u48_styled_sweep_whitecaps_and_blend_order_preserve_title_attributes() 
             Block::default().style(Style::default().bg(theme.background_panel())),
             rect,
         );
-        paint_tab_pulse(frame, rect, theme, pulse, true);
+        paint_tab_pulse(
+            frame,
+            rect,
+            theme,
+            pulse,
+            true,
+            theme.hue("accent", 200).unwrap(),
+        );
     })
     .unwrap();
     let buffer = rail.backend().buffer();

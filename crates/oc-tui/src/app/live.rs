@@ -104,6 +104,7 @@ impl ScriptDriver {
                 Ok(Ok(
                     CoreEvent::Projection { .. }
                     | CoreEvent::WorkspaceChanged { .. }
+                    | CoreEvent::SessionViewed { .. }
                     | CoreEvent::ProjectionGap
                     | CoreEvent::OwnerDisconnected,
                 )) => {}

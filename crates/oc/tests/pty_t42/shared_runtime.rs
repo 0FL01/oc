@@ -28,6 +28,16 @@ fn one_tui_new_and_tab_switch_keep_both_root_streams_progressing() {
             progress_after(&fixture, label, before[label]);
         }
     }
+    // Move the selected, executing A behind B through the production mouse path.
+    let before = fixture.progress.lock().unwrap().clone();
+    tui.send(b"\x1b[<0;10;1M\x1b[<32;45;1M\x1b[<0;45;1m");
+    click(&mut tui, 10, 1);
+    wait_screen_row(&tui, "NAV-B tick:", DEADLINE);
+    click(&mut tui, 45, 1);
+    wait_screen_row(&tui, "NAV-A tick:", DEADLINE);
+    for label in ["NAV-A", "NAV-B"] {
+        progress_after(&fixture, label, before[label]);
+    }
     let requests = fixture.wait_requests(2);
     assert_eq!(requests.len(), 2, "navigation cannot resubmit");
     for prompt in ["srv-progress NAV-A", "srv-progress NAV-B"] {
@@ -42,6 +52,107 @@ fn one_tui_new_and_tab_switch_keep_both_root_streams_progressing() {
     quit(&mut tui);
 }
 use oc_core::{core_app::CoreEvent, domain::SessionId};
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn tab_completion_is_authoritative_and_viewed_ack_is_shared_without_changing_selection() {
+    let fixture = Fixture::new();
+    let mut tui = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "unread-root"],
+        None,
+    );
+    wait_screen_row(&tui, READY, DEADLINE);
+    let (source, source_guard, _) = oc_adapters::native::attach(
+        &fixture.data_dir(),
+        Some(&fixture.project_a()),
+        oc_adapters::native::Lease::Tui,
+    )
+    .await
+    .unwrap();
+    let (observer, observer_guard, _) = oc_adapters::native::attach(
+        &fixture.data_dir(),
+        Some(&fixture.project_a()),
+        oc_adapters::native::Lease::Tui,
+    )
+    .await
+    .unwrap();
+    let session = SessionId("unread-root".into());
+    tui.send(b"/new\r");
+    wait_screen_row(&tui, "Ask anything", DEADLINE);
+    let mut events = source.subscribe();
+    let turn = source
+        .submit(session.clone(), "completed unread work".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(DEADLINE, async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::Projection { event, .. }
+                if matches!(&*event, CoreEvent::TurnFinished { turn: finished, .. } if finished == &turn)) { break; }
+        }
+    }).await.unwrap();
+    let snapshot = observer.workspace(Some(session.clone())).await.unwrap();
+    let activity = snapshot
+        .activity
+        .iter()
+        .find(|entry| entry.session == session)
+        .unwrap();
+    assert_eq!(
+        activity.unread(),
+        Some(oc_core::queries::SessionIdleOutcome::Activity)
+    );
+    assert!(!activity.busy);
+    wait_screen_row(&tui, "•", DEADLINE);
+    assert!(
+        render_screen(&tui.snapshot()).rows()[0].contains('•'),
+        "background completion paints the real tab indicator"
+    );
+    let idle_seq = activity.idle_seq.unwrap();
+    let deck = observer.tab_deck().await.unwrap();
+    assert_eq!(
+        observer
+            .session_viewed(session.clone(), idle_seq)
+            .await
+            .unwrap()
+            .unread(),
+        None
+    );
+    tokio::time::timeout(DEADLINE, async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::Projection { event, .. }
+                if matches!(&*event, CoreEvent::SessionViewed { session: viewed, viewed_seq } if viewed == &session && *viewed_seq == idle_seq)) { break; }
+        }
+    }).await.unwrap();
+    let refreshed = source.workspace(Some(session.clone())).await.unwrap();
+    assert_eq!(
+        refreshed
+            .activity
+            .iter()
+            .find(|entry| entry.session == session)
+            .unwrap()
+            .unread(),
+        None
+    );
+    assert_eq!(
+        observer.tab_deck().await.unwrap(),
+        deck,
+        "read acknowledgement is not a deck write or navigation"
+    );
+    assert_eq!(fixture.wait_requests(1).len(), 1);
+    let start = Instant::now();
+    while render_screen(&tui.snapshot()).rows()[0].contains('•') {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "viewed broadcast clears the real tab marker after its finite fade"
+        );
+        std::thread::sleep(POLL);
+    }
+    quit(&mut tui);
+    observer.shutdown().await.unwrap();
+    observer_guard.join_diagnostic().await.unwrap();
+    source.shutdown().await.unwrap();
+    source_guard.join_diagnostic().await.unwrap();
+}
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn srv04_running_picker_adoption_is_not_a_removed_tab() {
@@ -641,7 +752,7 @@ fn projectless_owner(fixture: &Fixture) -> (OwnedProcess, std::os::unix::net::Un
     drop(inherited);
     // This fixture exercises the same projectless cold-owner admission as auth.
     let intent =
-        serde_json::to_vec(&serde_json::json!({"version":5,"lease":"Auth","project":null}))
+        serde_json::to_vec(&serde_json::json!({"version":6,"lease":"Auth","project":null}))
             .unwrap();
     startup
         .write_all(&(intent.len() as u32).to_be_bytes())

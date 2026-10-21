@@ -11,7 +11,9 @@ use std::{
 };
 
 use crossterm::cursor::{Hide, Show};
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::event::{
+    DisableFocusChange, DisableMouseCapture, EnableFocusChange, EnableMouseCapture,
+};
 use crossterm::terminal::{
     BeginSynchronizedUpdate, EndSynchronizedUpdate, EnterAlternateScreen, LeaveAlternateScreen,
     disable_raw_mode, enable_raw_mode,
@@ -32,9 +34,14 @@ impl Drop for TerminalGuard {
 pub fn enter() -> Result<TerminalGuard, String> {
     enable_raw_mode().map_err(|e| format!("raw mode: {e}"))?;
     let mut stderr = std::io::stderr();
-    if let Err(e) = crossterm::execute!(stderr, EnterAlternateScreen, EnableMouseCapture) {
+    if let Err(e) = crossterm::execute!(
+        stderr,
+        EnterAlternateScreen,
+        EnableMouseCapture,
+        EnableFocusChange
+    ) {
         let _ = disable_raw_mode();
-        let _ = crossterm::execute!(std::io::stderr(), DisableMouseCapture, LeaveAlternateScreen);
+        let _ = restore_output(&mut std::io::stderr());
         return Err(format!("screen: {e}"));
     }
     Ok(TerminalGuard { _private: () })
@@ -53,6 +60,7 @@ fn restore_output(output: &mut impl Write) -> io::Result<()> {
         EndSynchronizedUpdate,
         crossterm::style::Print("\x1b]112\x07"),
         DisableMouseCapture,
+        DisableFocusChange,
         LeaveAlternateScreen,
         Show
     )

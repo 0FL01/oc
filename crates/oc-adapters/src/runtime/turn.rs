@@ -4280,11 +4280,17 @@ impl<'a> Runtime<'a> {
             }
             span.completed = Some(millis());
         }
-        self.db.commit_turn(
+        let shutdown = matches!(status, TurnStatus::Cancelled | TurnStatus::Interrupted)
+            && self
+                .native_origin
+                .as_ref()
+                .is_some_and(|origin| origin.stop_cause() == super::stop::Cause::OwnerShutdown);
+        self.db.commit_turn_activity(
             &turn_id,
             status.as_str(),
             Some(&turn_log.to_json().to_string()),
             assistant,
+            !shutdown,
         )?;
         Ok(TurnReport {
             turn_id,

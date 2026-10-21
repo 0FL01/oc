@@ -230,6 +230,8 @@ impl Live {
             .map(|active| active.view.clone())
             .collect();
         WorkspaceSnapshot {
+            activity: Vec::new(),
+            selected_root: None,
             inbox: Vec::new(),
             revision: state.revision,
             deck,

@@ -3,6 +3,118 @@ use crate::app::tests::{fresh_state, msg, page, sid, tab_pointer_at, type_text};
 use oc_core::session::Role;
 
 #[tokio::test]
+async fn tab_drag_previews_by_identity_survives_stream_updates_and_commits_once() {
+    use crossterm::event::KeyModifiers;
+    for width in [0, 20, 5] {
+        let mut state = fresh_state("drag-tabs").await;
+        state.chrome.vertical_tabs_width = width;
+        let mut tabs: Vec<_> = ["first", "second", "third"]
+            .into_iter()
+            .map(|id| TabPresentation {
+                busy: true,
+                title: Some(id.into()),
+                ..TabPresentation::new(sid(id))
+            })
+            .collect();
+        state.set_tab_strip(tabs.clone(), 1, false);
+        let area = Rect::new(0, 0, 120, 30);
+        let strip = crate::shell::tab_strip(&state, area).unwrap();
+        let from = strip.tabs[0].rect;
+        let to = strip.tabs[2].rect;
+        let mouse = |kind, rect: Rect| MouseEvent {
+            kind,
+            column: rect.x + 1,
+            row: rect.y,
+            modifiers: KeyModifiers::NONE,
+        };
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), from), area)
+                .intent,
+            None
+        );
+        tabs[0].busy = false;
+        tabs[0].unread = Some(TabUnread::Activity);
+        tabs[0].title = Some("finished while held".into());
+        state.set_tab_strip(tabs.clone(), 1, false);
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), to), area)
+                .intent,
+            None
+        );
+        assert_eq!(state.tab_presentation().0, tabs);
+        assert_eq!(
+            crate::shell::tab_strip(&state, area)
+                .unwrap()
+                .tabs
+                .iter()
+                .map(|slot| slot.index)
+                .collect::<Vec<_>>(),
+            [1, 2, 0]
+        );
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), to), area)
+                .intent,
+            Some(PanelIntent::MoveTab {
+                session: sid("first"),
+                index: 2
+            })
+        );
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), to), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), from), area);
+        tabs.swap(0, 1);
+        state.set_tab_strip(tabs, 1, false);
+        state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), to), area);
+        assert_eq!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), to), area)
+                .intent,
+            None
+        );
+    }
+}
+
+#[tokio::test]
+async fn unread_read_fade_is_finite_and_does_not_manufacture_completion_on_mount() {
+    let mut state = fresh_state("unread-tabs").await;
+    let at = Instant::now();
+    let area = Rect::new(0, 0, 80, 24);
+    let mut tabs = vec![
+        TabPresentation::new(sid("unread-tabs")),
+        TabPresentation {
+            unread: Some(TabUnread::Error),
+            ..TabPresentation::new(sid("background"))
+        },
+    ];
+    state.set_tab_strip_at(tabs.clone(), 0, false, at);
+    state.prepare_tabs(area, at);
+    assert_eq!(state.tab_pulse(1).unread, Some(TabUnread::Error));
+    assert_eq!(state.tab_pulse(1).completion, 0.0);
+    assert_eq!(state.next_tab_deadline(), None);
+    tabs[1].unread = None;
+    state.set_tab_strip_at(tabs, 0, false, at);
+    assert!(state.next_tab_deadline().is_some());
+    assert!(state.tick_tabs(at + Duration::from_millis(90)));
+    assert_eq!(state.tab_pulse(1).unread, Some(TabUnread::Error));
+    assert!(
+        state
+            .tab_pulse(1)
+            .read_fade
+            .is_some_and(|progress| (progress - 0.5).abs() < 0.01)
+    );
+    state.tick_tabs(at + Duration::from_secs(2));
+    assert_eq!(state.tab_pulse(1).unread, None);
+    assert_eq!(state.next_tab_deadline(), None);
+}
+
+#[tokio::test]
 async fn close_tab_chord_uses_the_presented_active_slot_without_mutating_the_deck() {
     let mut state = fresh_state("close-chord").await;
     let tabs = vec![

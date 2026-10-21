@@ -1734,6 +1734,9 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        if let Some(outcome) = self.tab_drag_mouse(event, area) {
+            return outcome;
+        }
         if !matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
@@ -2074,6 +2077,7 @@ impl TuiState {
                         .and_then(|target| target.message_id)
                         .map(|id| ((*id).clone(), self.paint_generation.get(), area));
                     self.tab_down = self.tab_hit(area, event.column, event.row);
+                    self.start_tab_drag(area);
                     self.exploration_down = self
                         .exploration_hit(area, event.column, event.row)
                         .map(|op| (op, event.column, event.row));

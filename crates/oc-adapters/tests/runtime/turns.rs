@@ -2776,6 +2776,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::QuestionResolved { .. }
             | CoreEvent::Projection { .. }
             | CoreEvent::WorkspaceChanged { .. }
+            | CoreEvent::SessionViewed { .. }
             | CoreEvent::ProjectionGap
             | CoreEvent::OwnerDisconnected => {}
         }

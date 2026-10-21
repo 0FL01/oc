@@ -25,7 +25,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 use crate::app::{
-    NoteVariant, TAB_SPINNER_FRAMES, TabAttention, TabPulseFrame, TuiState, TuiStatus,
+    NoteVariant, TAB_SPINNER_FRAMES, TabAttention, TabPulseFrame, TabUnread, TuiState, TuiStatus,
     tab_glow_intensity,
 };
 use crate::layout;
@@ -280,6 +280,12 @@ fn shell_regions(state: &TuiState, area: Rect) -> layout::ShellRegions {
 
 /// Shared painted rectangles for the strip and nonmodal mouse routing.
 pub fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {
+    let mut strip = tab_strip_layout(state, area)?;
+    state.preview_tab_strip(&mut strip);
+    Some(strip)
+}
+
+fn tab_strip_layout(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabStrip> {
     let (tabs, active, can_add) = state.tab_presentation();
     if state.home && tabs.is_empty() {
         return None;
@@ -473,6 +479,11 @@ fn deck_tab_line(
     } else {
         theme.text_muted()
     };
+    let feedback = if attention.is_none() && pulse.unread == Some(TabUnread::Error) {
+        theme.error()
+    } else {
+        theme.hue("accent", 200).unwrap_or(theme.primary())
+    };
     let overflow = UnicodeWidthStr::width(title) > title_width;
     let visible = marquee_parts(title, title_width, animation.0);
     let used = visible
@@ -487,6 +498,8 @@ fn deck_tab_line(
         theme.hue("accent", 200).unwrap_or(theme.primary())
     } else if busy {
         theme.hue("interactive", 200).unwrap_or(theme.primary())
+    } else if pulse.unread.is_some() {
+        feedback
     } else if hovered && !selected {
         foreground
     } else if selected {
@@ -507,7 +520,7 @@ fn deck_tab_line(
     let number = if attention.is_none() && !busy {
         tint(
             number,
-            theme.hue("accent", 200).unwrap_or(theme.primary()),
+            feedback,
             if vertical {
                 pulse.number_glow
             } else {
@@ -526,13 +539,24 @@ fn deck_tab_line(
         tab_width
     };
     let sweep_level = (pulse.sweep(1.0, pulse_width) * 32.0).round() / 32.0;
-    let number = tint(
+    let mut number = tint(
         number,
         theme.text(),
         pulse
             .whitecap
             .max(if vertical { 0.35 } else { 0.15 } * sweep_level),
     );
+    if attention.is_none()
+        && !busy
+        && let Some(progress) = pulse.read_fade
+    {
+        let white = (1.0 - progress / 0.2).clamp(0.0, 1.0);
+        number = tint(
+            tint(number, theme.text(), white),
+            tab_bg,
+            progress * progress * (3.0 - 2.0 * progress),
+        );
+    }
     // U47's mounted spinner does not inherit the fallback text attributes.
     // Its box padding and question-attention layout inherit text.base;
     // other fallback blanks retain canvas white.
@@ -555,6 +579,7 @@ fn deck_tab_line(
         }
         TabIndicators::Status if attention == Some(TabAttention::Question) => Some("?".to_string()),
         TabIndicators::Status if busy => Some(TAB_SPINNER_FRAMES[animation.2 % 10].to_string()),
+        TabIndicators::Status if pulse.unread.is_some() => Some("•".to_string()),
         TabIndicators::Status if compact => Some(
             title
                 .trim_start()
@@ -569,7 +594,7 @@ fn deck_tab_line(
     if let Some(label) = label {
         let color = if compact && selected {
             theme.text()
-        } else if compact && indicators == TabIndicators::Status {
+        } else if compact && indicators == TabIndicators::Status && pulse.unread.is_none() {
             if attention.is_some() {
                 theme.hue("accent", 200).unwrap_or(theme.primary())
             } else if busy {
@@ -617,7 +642,7 @@ fn deck_tab_line(
         };
         let glow = tint(
             tab_bg,
-            theme.hue("accent", 200).unwrap_or(theme.primary()),
+            feedback,
             if vertical { 0.45 } else { 1.0 } * pulse.dim,
         );
         let title_glow = if vertical {
@@ -803,6 +828,7 @@ fn render_deck_tabs(
         let hovered = state.hovered_tab(frame.area()) == Some(tab.index);
         let close = state.tab_close_overlay_cell(frame.area(), tab.index, tab.rect);
         let attention = state.tab_attention_for(tab.index);
+        let position = state.tab_display_position(tab.index);
         if strip.compact && highlighted(tab.index) {
             // Static highlighted edges share the actual slot's clipped geometry;
             // adjacent highlighted slots join rather than exposing base fill.
@@ -812,7 +838,10 @@ fn render_deck_tabs(
                 tab.rect.y.saturating_sub(1),
                 "▄",
                 high,
-                if tab.index.checked_sub(1).is_some_and(&highlighted) {
+                if position
+                    .checked_sub(1)
+                    .is_some_and(|previous| highlighted(state.tab_display_identity(previous)))
+                {
                     high
                 } else {
                     raised
@@ -824,8 +853,8 @@ fn render_deck_tabs(
                 tab.rect.bottom(),
                 "▀",
                 high,
-                if tab.index + 1 < tabs.len() + usize::from(state.home) {
-                    if highlighted(tab.index + 1) {
+                if position + 1 < tabs.len() + usize::from(state.home) {
+                    if highlighted(state.tab_display_identity(position + 1)) {
                         high
                     } else {
                         raised
@@ -844,7 +873,7 @@ fn render_deck_tabs(
                 Some(state.tab_title(tab.index)),
                 state.chrome.tab_indicators,
                 state.tab_busy(tab.index),
-                tab.index,
+                position,
                 selected,
                 home_slot || presentation.is_some_and(|p| p.home),
                 hovered,
@@ -918,6 +947,13 @@ fn render_deck_tabs(
                 theme,
                 state.tab_pulse(tab.index),
                 strip.vertical,
+                if attention.is_none()
+                    && state.tab_pulse(tab.index).unread == Some(TabUnread::Error)
+                {
+                    theme.error()
+                } else {
+                    theme.hue("accent", 200).unwrap_or(theme.primary())
+                },
             );
         }
     }
@@ -1088,6 +1124,7 @@ fn paint_tab_pulse(
     theme: &Theme,
     pulse: TabPulseFrame,
     vertical: bool,
+    feedback: Color,
 ) {
     let width = if vertical {
         rect.width.min(10)
@@ -1098,7 +1135,7 @@ fn paint_tab_pulse(
         for dx in 0..width {
             let cell = &mut frame.buffer_mut()[(rect.x + dx, rect.y + dy)];
             let background = cell.bg;
-            let accent = theme.hue("accent", 200).unwrap_or(theme.primary());
+            let accent = feedback;
             let (running, flash_stop, glow) = if !vertical {
                 (0.45, 0.65, pulse.dim)
             } else if dy == 0 {

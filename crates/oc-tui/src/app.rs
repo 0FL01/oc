@@ -259,6 +259,10 @@ pub enum PanelIntent {
     ActivateTab {
         index: usize,
     },
+    MoveTab {
+        session: SessionId,
+        index: usize,
+    },
     /// Close a retained tab; `tabs.len()` denotes the synthetic Home slot.
     CloseTab {
         index: usize,
@@ -1735,7 +1739,7 @@ mod user_shell;
 
 pub use live::{PumpOutcome, ScriptDriver};
 pub(crate) use tabs::{TAB_SPINNER_FRAMES, TabCloseHold, TabPulseFrame, tab_glow_intensity};
-pub use tabs::{TabAttention, TabCloseSnapshot, TabPresentation};
+pub use tabs::{TabAttention, TabCloseSnapshot, TabPresentation, TabUnread};
 use tabs::{TabPress, TabView};
 
 pub(crate) fn tab_smootherstep(value: f32) -> f32 {

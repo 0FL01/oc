@@ -24,6 +24,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
+#[path = "storage_activity.rs"]
+mod activity;
+
 #[path = "storage_children.rs"]
 mod children;
 #[path = "storage_compaction.rs"]
@@ -583,6 +586,7 @@ impl Db {
         Self::custom_provider_schema(&conn)?;
         Self::terminals_schema(&conn)?;
         Self::inbox_schema(&conn)?;
+        Self::activity_schema(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {
             Ok(()) => {}
@@ -2701,6 +2705,17 @@ impl Db {
         result: Option<&str>,
         assistant: Option<&str>,
     ) -> Result<(), StorageError> {
+        self.commit_turn_activity(turn, status, result, assistant, true)
+    }
+
+    pub(crate) fn commit_turn_activity(
+        &self,
+        turn: &str,
+        status: &str,
+        result: Option<&str>,
+        assistant: Option<&str>,
+        publish_idle: bool,
+    ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let (session, existing_status): (String, String) = tx.query_row(
@@ -2737,6 +2752,23 @@ impl Db {
             "INSERT INTO events(session_id, kind, payload) VALUES (?1, 'turn_finished', ?2)",
             params![session, turn],
         )?;
+        if publish_idle
+            && matches!(
+                status,
+                "completed" | "failed" | "incomplete" | "cancelled" | "interrupted"
+            )
+        {
+            let idle = tx.last_insert_rowid();
+            let outcome = if matches!(status, "failed" | "incomplete") {
+                "error"
+            } else {
+                "activity"
+            };
+            tx.execute(
+                "UPDATE sessions SET idle_seq=?2,idle_outcome=?3 WHERE id=?1",
+                params![session, idle, outcome],
+            )?;
+        }
         Self::conversation_complete(&tx, turn, &session)?;
         if tx.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.native_input.kind') IN ('subagent_notices','shell_notices') ELSE 0 END FROM turns WHERE id=?1", [turn], |row| row.get::<_, Option<bool>>(0))?.unwrap_or(false) {
             Self::publish_settled_context(&tx, &session)?;

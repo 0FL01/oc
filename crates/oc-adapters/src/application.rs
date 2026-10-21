@@ -2911,6 +2911,17 @@ async fn query(
                 "shared workspace requires native attachment".into(),
             )));
         }
+        InboxMsg::SessionViewed {
+            session,
+            idle_seq,
+            ack,
+        } => {
+            let result = db
+                .session_viewed(&session.0, idle_seq)
+                .map(|(activity, _)| activity)
+                .map_err(|_| CoreError::SessionNotFound);
+            let _ = ack.send(result);
+        }
         InboxMsg::Enqueue {
             session,
             text,

@@ -23,8 +23,9 @@ pub struct TabPresentation {
     pub home: bool,
     pub busy: bool,
     pub attention: Option<TabAttention>,
+    pub unread: Option<TabUnread>,
     /// U47 `sessionTabComplete`: actual unread activity while idle, not merely
-    /// a successful turn receipt. The current owner has no unread projection.
+    /// a successful turn receipt.
     pub complete: bool,
     /// U46 user enqueue pulse for a retained, noncurrent root. Zero until the
     /// owner supplies that fact; local submission attempts are not this signal.
@@ -40,6 +41,7 @@ impl TabPresentation {
             home: false,
             busy: false,
             attention: None,
+            unread: None,
             complete: false,
             prompt_pulse: 0,
         }
@@ -50,6 +52,12 @@ impl TabPresentation {
 pub enum TabAttention {
     Permission,
     Question,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TabUnread {
+    Activity,
+    Error,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -239,6 +247,8 @@ impl TabTint {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct TabPulseFrame {
+    pub unread: Option<TabUnread>,
+    pub read_fade: Option<f32>,
     pub animations: bool,
     pub complete: bool,
     pub glows: bool,
@@ -481,6 +491,8 @@ impl TabPulse {
             _ => 0.0,
         };
         TabPulseFrame {
+            unread: None,
+            read_fade: None,
             animations: self.target.animations,
             complete: self.target.complete,
             glows: self.target.glows,
@@ -573,6 +585,17 @@ struct TabMotion {
     at: Option<Instant>,
     frame: usize,
     pulse: TabPulse,
+    unread: Option<TabUnread>,
+    read: Option<(Instant, Instant)>,
+}
+
+struct TabDrag {
+    session: SessionId,
+    area: Rect,
+    strip: crate::layout::HorizontalTabStrip,
+    from: usize,
+    target: usize,
+    moved: bool,
 }
 
 /// U56: one hovered identity retains a completed cycle until leave. The cycle
@@ -630,6 +653,7 @@ impl TabMarquee {
 
 #[derive(Default)]
 pub(super) struct TabView {
+    drag: Option<TabDrag>,
     area: Option<Rect>,
     vertical: bool,
     compact: bool,
@@ -833,6 +857,116 @@ impl TuiState {
         self.set_tab_strip_at(tabs, active, can_add, Instant::now());
     }
 
+    pub(crate) fn preview_tab_strip(&self, strip: &mut crate::layout::HorizontalTabStrip) {
+        let view = self.tab_view.borrow();
+        let Some(drag) = view.drag.as_ref().filter(|drag| drag.moved) else {
+            return;
+        };
+        *strip = drag.strip.clone();
+        for slot in &mut strip.tabs {
+            slot.index = self.tab_display_identity(slot.index);
+        }
+    }
+
+    /// Map a visual position to its retained owner without moving any view.
+    pub(crate) fn tab_display_identity(&self, position: usize) -> usize {
+        let view = self.tab_view.borrow();
+        let Some(drag) = view.drag.as_ref().filter(|drag| drag.moved) else {
+            return position;
+        };
+        if position == drag.target {
+            drag.from
+        } else if drag.from < drag.target && (drag.from..drag.target).contains(&position) {
+            position + 1
+        } else if drag.target < drag.from && (drag.target + 1..=drag.from).contains(&position) {
+            position - 1
+        } else {
+            position
+        }
+    }
+
+    pub(crate) fn tab_display_position(&self, index: usize) -> usize {
+        (0..self.tabs.len())
+            .find(|position| self.tab_display_identity(*position) == index)
+            .unwrap_or(index)
+    }
+
+    pub(super) fn start_tab_drag(&mut self, area: Rect) {
+        self.tab_view.get_mut().drag = None;
+        let Some(TabPress::Tab(from)) = self.tab_down else {
+            return;
+        };
+        let Some(strip) = crate::shell::tab_strip(self, area) else {
+            return;
+        };
+        self.close_hold = None;
+        self.tab_view.get_mut().drag = Some(TabDrag {
+            session: self.tabs[from].session.clone(),
+            area,
+            strip,
+            from,
+            target: from,
+            moved: false,
+        });
+    }
+
+    pub(super) fn tab_drag_mouse(&mut self, event: MouseEvent, area: Rect) -> Option<KeyOutcome> {
+        let view = self.tab_view.get_mut();
+        let drag = view.drag.as_mut()?;
+        if drag.area != area || self.panel != TuiPanel::None || !event.modifiers.is_empty() {
+            view.drag = None;
+            self.tab_down = None;
+            return None;
+        }
+        match event.kind {
+            MouseEventKind::Drag(MouseButton::Left) => {
+                let target = if drag.strip.vertical {
+                    let first = drag.strip.tabs.first()?;
+                    let stride = if drag.strip.compact { 2 } else { 3 };
+                    if event.row < first.rect.y {
+                        drag.strip.start.saturating_sub(1)
+                    } else {
+                        drag.strip.start + usize::from((event.row - first.rect.y) / stride)
+                    }
+                } else {
+                    drag.strip
+                        .tabs
+                        .iter()
+                        .find(|slot| event.column < slot.rect.right())
+                        .or_else(|| drag.strip.tabs.last())?
+                        .index
+                };
+                drag.target = target.min(self.tabs.len().saturating_sub(1));
+                drag.moved = true;
+                self.tab_down = None;
+                self.last_mouse = Some((event.column, event.row, area));
+                Some(KeyOutcome::default())
+            }
+            MouseEventKind::Up(MouseButton::Left) => {
+                let drag = view.drag.take().expect("captured drag");
+                if !drag.moved {
+                    return None;
+                }
+                self.tab_down = None;
+                if drag.target == drag.from && self.active_tab == drag.from && !self.home {
+                    return Some(KeyOutcome::default());
+                }
+                Some(KeyOutcome {
+                    intent: Some(PanelIntent::MoveTab {
+                        session: drag.session,
+                        index: drag.target,
+                    }),
+                    ..KeyOutcome::default()
+                })
+            }
+            MouseEventKind::Moved => None,
+            _ => {
+                view.drag = None;
+                None
+            }
+        }
+    }
+
     /// A same-Location view replacement does not unmount the visible deck.
     /// Move its bounded component clocks; parked transcript views own no copy.
     /// The caller has already admitted the route. Keep an actual same-Location
@@ -860,7 +994,18 @@ impl TuiState {
             self.clear_transcript_selection();
             self.tab_scroll.set(active);
         }
-        self.tab_down = None;
+        let same_order = self.tabs.len() == tabs.len()
+            && self
+                .tabs
+                .iter()
+                .zip(&tabs)
+                .all(|(old, next)| old.session == next.session);
+        if !same_order {
+            self.tab_view.get_mut().drag = None;
+            self.tab_down = None;
+        } else if self.tab_view.get_mut().drag.is_none() {
+            self.tab_down = None;
+        }
         let count = tabs.len().min(16);
         if self.tabs.len() != count
             || self.active_tab != active.min(count.saturating_sub(1))
@@ -879,6 +1024,7 @@ impl TuiState {
 
     /// Clear a mouse surface when it is hidden or no longer admitted.
     pub fn clear_mouse_position(&mut self) {
+        self.tab_view.get_mut().drag = None;
         self.cancel_text_selection();
         self.invalidate_sidebar_pointer();
         self.tab_view.get_mut().rail_drag = None;
@@ -898,6 +1044,7 @@ impl TuiState {
     /// hover resolves current painted identity; only a same-ID tab may retain
     /// its marquee clock across the admitted new layout.
     pub fn resize_mouse_position(&mut self, area: Rect) {
+        self.tab_view.get_mut().drag = None;
         self.cancel_text_selection();
         self.invalidate_sidebar_pointer();
         self.tab_view.get_mut().rail_drag = None;
@@ -1143,6 +1290,9 @@ impl TuiState {
     /// Source U56 resets when the active tab disappears or compactness changes;
     /// title/status/width changes alone do not re-enter an unchanged identity.
     pub(crate) fn prepare_tabs(&self, area: Rect, now: Instant) {
+        if self.panel != TuiPanel::None {
+            self.tab_view.borrow_mut().drag = None;
+        }
         let strip = crate::shell::tab_strip(self, area);
         if let Some(strip) = strip.as_ref().filter(|strip| strip.vertical) {
             self.tab_scroll.set(strip.start);
@@ -1200,7 +1350,8 @@ impl TuiState {
                 index == self.active_tab
             };
             let complete = self.tabs.get(index).is_some_and(|tab| tab.complete) && !busy;
-            let glow = attention || (complete && !selected);
+            let unread = self.tabs.get(index).and_then(|tab| tab.unread);
+            let glow = attention || ((complete || unread.is_some()) && !busy && !selected);
             let prompt = self.tabs.get(index).map_or(0, |tab| tab.prompt_pulse);
             let animations = self.chrome.animations != Some(false);
             let running = busy && !attention;
@@ -1227,10 +1378,25 @@ impl TuiState {
                         at: None,
                         frame: 0,
                         pulse: TabPulse::new(target, now),
+                        unread,
+                        read: None,
                     });
                     view.motions.last_mut().expect("inserted tab motion")
                 };
             spinner.pulse.sync(target, now);
+            if let Some(unread) = unread {
+                spinner.unread = Some(unread);
+                spinner.read = None;
+            } else if spinner.unread.is_some() {
+                let (start, _) = *spinner.read.get_or_insert((now, now));
+                if !animations || now.saturating_duration_since(start) >= Duration::from_millis(180)
+                {
+                    spinner.unread = None;
+                    spinner.read = None;
+                } else {
+                    spinner.read = Some((start, now));
+                }
+            }
             if spinner_running {
                 spinner.at.get_or_insert(now);
             } else {
@@ -1342,7 +1508,13 @@ impl TuiState {
             .motions
             .iter()
             .find(|spinner| spinner.id == id)
-            .map_or_else(TabPulseFrame::default, |spinner| spinner.pulse.frame())
+            .map_or_else(TabPulseFrame::default, |spinner| TabPulseFrame {
+                unread: spinner.unread,
+                read_fade: spinner
+                    .read
+                    .map(|(start, at)| at.saturating_duration_since(start).as_secs_f32() / 0.18),
+                ..spinner.pulse.frame()
+            })
     }
 
     pub(super) fn next_tab_deadline(&self) -> Option<Instant> {
@@ -1363,6 +1535,14 @@ impl TuiState {
                 .filter_map(|spinner| spinner.pulse.deadline())
                 .min(),
             view.leave,
+            view.motions
+                .iter()
+                .filter_map(|motion| {
+                    motion.read.map(|(start, at)| {
+                        (at + TAB_FADE_FRAME).min(start + Duration::from_millis(180))
+                    })
+                })
+                .min(),
             view.marquee.as_ref().and_then(TabMarquee::deadline),
         ]
         .into_iter()
@@ -1371,12 +1551,18 @@ impl TuiState {
     }
 
     pub(super) fn tick_tabs(&mut self, now: Instant) -> bool {
+        let reading = self
+            .tab_view
+            .borrow()
+            .motions
+            .iter()
+            .any(|motion| motion.read.is_some());
         let area = self.tab_view.borrow().area;
         if let Some(area) = area {
             self.prepare_tabs(area, now);
         }
         let view = self.tab_view.get_mut();
-        let mut changed = false;
+        let mut changed = reading;
         if view.leave.is_some_and(|at| now >= at) {
             changed = view.hovered.is_some() || view.marquee.is_some();
             view.reset_hover();

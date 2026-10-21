@@ -902,6 +902,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::QuestionResolved { .. }
             | CoreEvent::Projection { .. }
             | CoreEvent::WorkspaceChanged { .. }
+            | CoreEvent::SessionViewed { .. }
             | CoreEvent::ProjectionGap
             | CoreEvent::OwnerDisconnected => {}
         }

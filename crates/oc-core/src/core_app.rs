@@ -191,6 +191,11 @@ pub enum CoreEvent {
     WorkspaceChanged {
         location: String,
     },
+    /// A captured idle watermark was acknowledged, without changing the deck.
+    SessionViewed {
+        session: SessionId,
+        viewed_seq: u64,
+    },
     /// A disposable live hint was lost; replace the bounded projection.
     ProjectionGap,
     /// The owner disappeared. This is not evidence that a mutation failed.
@@ -488,6 +493,11 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    SessionViewed {
+        session: SessionId,
+        idle_seq: u64,
+        ack: oneshot::Sender<Result<crate::queries::SessionActivity, CoreError>>,
+    },
     Workspace {
         selected: Option<SessionId>,
         ack: oneshot::Sender<Result<crate::queries::WorkspaceSnapshot, CoreError>>,
@@ -1100,6 +1110,23 @@ enum WorkerTask {
 }
 
 impl CoreApp {
+    pub async fn session_viewed(
+        &self,
+        session: SessionId,
+        idle_seq: u64,
+    ) -> Result<crate::queries::SessionActivity, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::SessionViewed {
+                session,
+                idle_seq,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     pub async fn workspace(
         &self,
         selected: Option<SessionId>,
@@ -2891,6 +2918,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::SessionViewed { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::Workspace { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -3143,6 +3173,7 @@ mod tests {
                 | CoreEvent::InboxChanged { .. }
                 | CoreEvent::RetryScheduled { .. }
                 | CoreEvent::WorkspaceChanged { .. }
+                | CoreEvent::SessionViewed { .. }
                 | CoreEvent::ProjectionGap
                 | CoreEvent::OwnerDisconnected
                 | CoreEvent::Projection { .. } => {}
@@ -3469,6 +3500,7 @@ mod tests {
                 | CoreEvent::InboxChanged { .. }
                 | CoreEvent::RetryScheduled { .. }
                 | CoreEvent::WorkspaceChanged { .. }
+                | CoreEvent::SessionViewed { .. }
                 | CoreEvent::ProjectionGap
                 | CoreEvent::OwnerDisconnected
                 | CoreEvent::Projection { .. } => {}

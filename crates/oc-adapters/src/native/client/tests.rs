@@ -37,6 +37,8 @@ async fn frame(stream: &mut UnixStream, budget: &Budget, value: &Server) {
 
 fn snapshot(revision: u64, session: &str, origin: Option<u64>) -> WorkspaceSnapshot {
     WorkspaceSnapshot {
+        activity: Vec::new(),
+        selected_root: None,
         inbox: Vec::new(),
         revision,
         deck: TabDeckSnapshot {
@@ -615,6 +617,8 @@ async fn srv02_gap_resnapshot_discards_covered_deltas_without_replaying_work() {
         CoreEvent::Projection { revision: 3, .. }
     ));
     let snapshot = WorkspaceSnapshot {
+        activity: Vec::new(),
+        selected_root: None,
         inbox: Vec::new(),
         revision: 3,
         deck: TabDeckSnapshot {
