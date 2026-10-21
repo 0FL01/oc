@@ -33,8 +33,8 @@
 
 - Начинай с targeted test и проверок затронутого crate. Full offline gate `bash scripts/test.sh` — для общей integration boundary или финальной приёмки, не каждой редакционной правки.
 - Не отключай tests/lints/guards и не меняй baseline, assertions, deadlines или нагрузку ради зелёного. Тест >30s или прогретый gate >10min требует диагностики; единственное согласованное исключение описано в TEST_PLAN.
-- Live-dev: `cargo build -p oc2 --bin oc2 --locked`; binary из проверок подходит. Сообщи путь `target/debug/oc2`.
-- Не делай `cargo clean`, не удаляй `target/debug`, не переопределяй `CARGO_TARGET_DIR`; один Cargo owner. Config/data и startup env общие с первым native owner; rebuild не обновляет работающий owner.
+- Live-dev: `cargo build -p oc2 --bin oc2 --locked --release`; binary из проверок подходит. Сообщи путь `target/release/oc2`.
+- Не делай `cargo clean`, не удаляй `target/release`, не переопределяй `CARGO_TARGET_DIR`; один Cargo owner. Config/data и startup env общие с первым native owner; rebuild не обновляет работающий owner.
 - Не запускай интерактивный клиент пользователя, не kill/restart owner и не удаляй его lock. Изменения storage schema/migrations явно отмечай; live — только по TEST_PLAN.
 
 ## Безопасность
