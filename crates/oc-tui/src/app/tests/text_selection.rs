@@ -230,7 +230,7 @@ fn vis27_text_selection_readonly_payload_ownership_and_mcp_click_arbitration() {
     state.set_clipboard_mode(ClipboardMode::Manual);
     paint(&state, area);
     for (source, needle) in [
-        (TextSource::Sidebar, "Context"),
+        (TextSource::Sidebar, "MCP"),
         (TextSource::Sidebar, "copy-disabled-1"),
         (TextSource::Sidebar, "Disabled"),
         (TextSource::Location, "project"),
@@ -292,7 +292,7 @@ fn vis27_text_selection_visible_sidebar_projection_and_source_changes() {
     assert_eq!(state.take_copy_request(), Some(expected));
     for repaint in [false, true] {
         paint(&state, area);
-        let (a, b) = text_cells(&state, area, TextSource::Sidebar, "Context");
+        let (a, b) = text_cells(&state, area, TextSource::Sidebar, "MCP");
         state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), a), area);
         state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), b), area);
         state.session_title = Some(format!("changed {repaint}"));
@@ -304,7 +304,7 @@ fn vis27_text_selection_visible_sidebar_projection_and_source_changes() {
     }
     paint(&state, area);
     let title = state.session_title.clone();
-    let (a, b) = text_cells(&state, area, TextSource::Sidebar, "Context");
+    let (a, b) = text_cells(&state, area, TextSource::Sidebar, "MCP");
     state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), a), area);
     state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), b), area);
     state.session_title = Some("intervening title".into());
@@ -323,7 +323,7 @@ fn vis27_text_selection_stable_chrome_and_pending_payload_survive_history_refres
     let mut state = chrome_state();
     let area = Rect::new(0, 0, 160, 40);
     paint(&state, area);
-    let (a, b) = text_cells(&state, area, TextSource::Sidebar, "Context");
+    let (a, b) = text_cells(&state, area, TextSource::Sidebar, "MCP");
     state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), a), area);
     state.handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), b), area);
     let mut history = page(
@@ -339,7 +339,7 @@ fn vis27_text_selection_stable_chrome_and_pending_payload_survive_history_refres
     state.attach_page(&history);
     assert_eq!(
         state.take_copy_request(),
-        Some("Context".into()),
+        Some("MCP".into()),
         "transcript-only invalidation must not erase another source's request"
     );
 }
@@ -434,7 +434,7 @@ fn vis27_text_selection_hidden_surface_cannot_revive_after_repaint() {
         state.restore_prompt("copy draft".into());
         paint(&state, area);
         let (a, b) = if sidebar {
-            text_cells(&state, area, TextSource::Sidebar, "Context")
+            text_cells(&state, area, TextSource::Sidebar, "MCP")
         } else {
             (prompt_cell(&state, 0), prompt_cell(&state, 4))
         };
@@ -471,11 +471,11 @@ fn vis27_text_selection_toast_checks_the_whole_range_not_just_endpoints() {
     assert!(!toast.contains(from.into()) && !toast.contains(to.into()));
     state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), to), area);
     assert!(state.take_copy_request().is_none());
-    let (a, b) = text_cells(&state, area, TextSource::Sidebar, "Context");
+    let (a, b) = text_cells(&state, area, TextSource::Sidebar, "MCP");
     drag(&mut state, area, a, b);
     assert_eq!(
         state.take_copy_request(),
-        Some("Context".into()),
+        Some("MCP".into()),
         "uncovered rows remain selectable"
     );
 }

@@ -844,7 +844,7 @@ fn vis27_session_chrome_copy(pty: &mut PtySession, manual: bool, mut count: usiz
         ("cobalt", false, true),
         ("project", false, true),
         ("Fixture session title", true, false),
-        ("Context", true, false),
+        ("MCP", true, false),
         ("copy-disabled", true, false),
         ("Disabled", true, false),
         ("project", true, true),

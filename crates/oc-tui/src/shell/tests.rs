@@ -2286,8 +2286,8 @@ async fn v03_tall_viewport_and_short_top_placement() {
     state.attach_page(&page(vec![msg(1, Role::Assistant, &text)]));
     let tall = screen(&state, 120, 80);
     assert!(tall.iter().filter(|r| r.contains("ROW-")).count() > 35);
-    let wide = screen(&state, 160, 48);
-    assert!(wide.iter().any(|r| r.contains("Context")), "actual sidebar");
+    let _ = screen(&state, 160, 48);
+    assert!(sidebar_layout(&state, Rect::new(0, 0, 160, 48)).is_some());
 }
 
 #[tokio::test]
@@ -2379,7 +2379,11 @@ async fn v03_rendered_row_scroll_and_chrome_conditions() {
     state.handle_paste("draft-one\ndraft-two");
     for width in [80, 120, 160, 43, 44, 119, 120, 121, 160] {
         let frame = screen(&state, width, 48).join("\n");
-        assert_eq!(frame.contains("Context"), width > 120, "{width}");
+        assert_eq!(
+            sidebar_layout(&state, Rect::new(0, 0, width, 48)).is_some(),
+            width > 120,
+            "{width}"
+        );
         assert_eq!(state.scroll(), detached);
         assert!(frame.contains("draft-two"));
     }
@@ -2391,14 +2395,14 @@ async fn v03_rendered_row_scroll_and_chrome_conditions() {
     state.scroll_transcript(false);
     assert_eq!(state.scroll(), displayed - 1);
     state.chrome.sidebar_hidden = true;
-    assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
+    assert!(sidebar_layout(&state, Rect::new(0, 0, 160, 48)).is_none());
     state.chrome.sidebar_hidden = false;
     state.parent_id = Some("parent".into());
-    assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
+    assert!(sidebar_layout(&state, Rect::new(0, 0, 160, 48)).is_none());
     state.parent_id = None;
     state.chrome.vertical_tabs_width = 42;
-    assert!(!screen(&state, 160, 48).join("\n").contains("Context"));
-    assert!(screen(&state, 163, 48).join("\n").contains("Context"));
+    assert!(sidebar_layout(&state, Rect::new(0, 0, 160, 48)).is_none());
+    assert!(sidebar_layout(&state, Rect::new(0, 0, 163, 48)).is_some());
     state.chrome.devtools = Some(false);
     let hidden = screen(&state, 120, 40);
     assert!(!hidden.join("\n").contains("Native runtime"));
@@ -2784,10 +2788,10 @@ async fn hyphenated_sidebar_title_wraps_like_paired_121x40_frame() {
         assert_eq!(tail.symbol(), " ");
         assert!(!tail.modifier.contains(Modifier::BOLD), "hyphen row {y}");
     }
-    let context = (title_x..title_x + 7)
-        .map(|x| buffer[(x, 7)].symbol())
-        .collect::<String>();
-    assert_eq!(context, "Context");
+    let layout = sidebar_layout(&state, Rect::new(0, 0, 121, 40)).unwrap();
+    assert_eq!(layout.body.y, 7);
+    assert_eq!(layout.content_height, 0);
+    assert_eq!(buffer[(title_x, 7)].symbol(), " ");
     assert_eq!(buffer[(title_x, 6)].symbol(), " ");
 
     // A hyphen break and an unbreakable title both keep graphemes intact.

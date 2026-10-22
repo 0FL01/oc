@@ -109,12 +109,37 @@ fn sidebar_mcp_live_status_wheel_fold_and_restart_without_generation() {
         )
         .unwrap();
         for index in 0..80 {
-            db.append_message(
-                session,
-                if index % 2 == 0 { "user" } else { "assistant" },
-                &format!("sidebar history {index:05}"),
-            )
-            .unwrap();
+            let text = format!("sidebar history {index:05}");
+            let message = db
+                .append_message(
+                    session,
+                    if index % 2 == 0 { "user" } else { "assistant" },
+                    &text,
+                )
+                .unwrap();
+            if index == 79 {
+                // Measured historical context keeps the short body overflowing
+                // without placeholders or a live generation.
+                db.begin_turn("sidebar-context", session, "seeded history")
+                    .unwrap();
+                db.finish_turn(
+                    "sidebar-context",
+                    "completed",
+                    Some(
+                        &json!({
+                            "assistant_message": message,
+                            "display_parts": [{"message": 0}],
+                            "input": [{"content": [{"type": "output_text", "text": text}]}],
+                            "display": {
+                                "context_usage": [8000, 380],
+                                "context_usage_limit": 0
+                            }
+                        })
+                        .to_string(),
+                    ),
+                )
+                .unwrap();
+            }
         }
     }
     // A durable fixture title prevents unrelated automatic-title generation and
@@ -140,6 +165,7 @@ fn sidebar_mcp_live_status_wheel_fold_and_restart_without_generation() {
     tui.resize(160, 48);
     wait_row(&tui, "codex_web", "Connecting");
     wait_row(&tui, "chrome-devtools", "Disabled");
+    tui.wait_screen("8,380 tokens", TIMEOUT);
     assert!(!tui.screen().iter().any(|row| row.contains("MCP servers")));
     fs::write(&gate, "release").unwrap();
     wait_row(&tui, "codex_web", "Connected");

@@ -1328,19 +1328,18 @@ fn sidebar_layout_for_pane(state: &TuiState, pane: Rect) -> SidebarLayout {
         inner.width.saturating_sub(1),
         body_end.saturating_sub(body_y),
     );
-    let context_height = if state.context_usage().is_some() {
-        3
-    } else {
-        2
-    };
+    let context_height = state
+        .context_usage()
+        .filter(|(tokens, _)| *tokens > 0)
+        .map_or(0, |(_, limit)| 2 + usize::from(limit.is_some()));
     let servers = state.sidebar_mcp_servers();
     let expanded = servers.len() <= 2 || state.sidebar_mcp_open();
-    let content_height = context_height
-        + if servers.is_empty() {
-            0
-        } else {
-            2 + if expanded { servers.len() } else { 0 }
-        };
+    let mcp_start = context_height + usize::from(context_height > 0);
+    let content_height = if servers.is_empty() {
+        context_height
+    } else {
+        mcp_start + 1 + if expanded { servers.len() } else { 0 }
+    };
     let offset = state
         .sidebar_scroll()
         .min(content_height.saturating_sub(body.height as usize));
@@ -1348,12 +1347,10 @@ fn sidebar_layout_for_pane(state: &TuiState, pane: Rect) -> SidebarLayout {
         (body.width > 0 && row >= offset && row < offset + body.height as usize)
             .then(|| Rect::new(body.x, body.y + (row - offset) as u16, body.width, 1))
     };
-    let header = (!servers.is_empty())
-        .then(|| row_rect(context_height + 1))
-        .flatten();
+    let header = (!servers.is_empty()).then(|| row_rect(mcp_start)).flatten();
     let rows = if expanded {
         (0..servers.len())
-            .filter_map(|index| row_rect(context_height + 2 + index).map(|rect| (rect, index)))
+            .filter_map(|index| row_rect(mcp_start + 1 + index).map(|rect| (rect, index)))
             .collect()
     } else {
         Vec::new()
@@ -1415,39 +1412,27 @@ fn sidebar_text_rows(
         result[(rect.y - first) as usize] = (rect, selection_line(line, rect.width));
     }
     let mut lines = Vec::new();
-    lines.push(Line::styled(
-        "Context",
-        Style::default()
-            .fg(theme.text())
-            .add_modifier(Modifier::BOLD),
-    ));
-    match state.context_usage() {
-        Some((tokens, limit)) => {
+    if let Some((tokens, limit)) = state.context_usage().filter(|(tokens, _)| *tokens > 0) {
+        lines.push(Line::styled("Context", title_style));
+        lines.push(Line::styled(
+            format!("{} tokens", thousands(tokens)),
+            Style::default().fg(theme.text_muted()),
+        ));
+        if let Some(limit) = limit {
             lines.push(Line::styled(
-                format!("{} tokens", thousands(tokens)),
-                Style::default().fg(theme.text_muted()),
-            ));
-            lines.push(Line::styled(
-                limit.map_or_else(
-                    || "Limit unknown".into(),
-                    |l| {
-                        format!(
-                            "{}% used",
-                            (tokens as f64 / l as f64 * 100.0).round() as u64
-                        )
-                    },
+                format!(
+                    "{}% used",
+                    (tokens as f64 / limit as f64 * 100.0).round() as u64
                 ),
                 Style::default().fg(theme.text_muted()),
             ));
         }
-        None => lines.push(Line::styled(
-            "Usage unknown",
-            Style::default().fg(theme.text_muted()),
-        )),
     }
     let servers = state.sidebar_mcp_servers();
     if !servers.is_empty() {
-        lines.push(Line::default());
+        if !lines.is_empty() {
+            lines.push(Line::default());
+        }
         let mut header = Vec::new();
         if servers.len() > 2 {
             header.push(Span::styled(

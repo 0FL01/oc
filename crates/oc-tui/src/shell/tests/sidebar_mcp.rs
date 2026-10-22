@@ -27,6 +27,72 @@ fn inventory(rows: &[(&str, McpStatus)], revision: u64) -> McpSnapshot {
 }
 
 #[tokio::test]
+async fn sidebar_context_shows_only_measured_rows_and_keeps_mcp_hits_aligned() {
+    use oc_core::queries::HistoryTurn;
+
+    let mut state = golden_state().await;
+    state.chrome.location = Some("/sidebar-mcp".into());
+    let servers = [
+        ("chrome-devtools", McpStatus::Disabled),
+        ("codex_web", McpStatus::Connected),
+        ("crw", McpStatus::Disabled),
+    ];
+    state.apply_mcp_snapshot(inventory(&servers, 1));
+    let area = Rect::new(0, 0, 160, 48);
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    for (usage, expected_context) in [
+        (None, ""),
+        (Some((0, 0, 500_000)), ""),
+        (Some((8000, 380, 0)), "Context\n8,380 tokens\n"),
+        (
+            Some((8000, 380, 500_000)),
+            "Context\n8,380 tokens\n2% used\n",
+        ),
+        (None, ""),
+    ] {
+        let mut answer = msg(2, Role::Assistant, "answer");
+        answer.turn = usage.map(|(input, output, limit)| HistoryTurn {
+            context_usage: Some((input, output)),
+            context_usage_limit: Some(limit),
+            ..Default::default()
+        });
+        state.attach_page(&page(vec![answer]));
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let layout = sidebar_layout(&state, area).unwrap();
+        let buffer = terminal.backend().buffer();
+        let row = |y| {
+            (layout.body.x..layout.body.right())
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_string()
+        };
+        let header = layout.header.unwrap();
+        let context_height = expected_context.lines().count();
+        let mcp_start = context_height + usize::from(context_height > 0);
+        assert_eq!(header.y, layout.body.y + mcp_start as u16);
+        assert_eq!(
+            (layout.body.y..header.y)
+                .map(row)
+                .collect::<Vec<_>>()
+                .join("\n"),
+            expected_context
+        );
+        assert_eq!(row(header.y), "▼ MCP");
+        assert_eq!(layout.content_height, mcp_start + 1 + servers.len());
+        assert_eq!(layout.rows.len(), servers.len());
+        for (rect, index) in &layout.rows {
+            assert_eq!(rect.y, header.y + 1 + *index as u16);
+            assert!(row(rect.y).contains(servers[*index].0));
+        }
+        assert!(
+            (layout.body.y + layout.content_height as u16..layout.body.bottom())
+                .all(|y| row(y).is_empty())
+        );
+    }
+}
+
+#[tokio::test]
 async fn sidebar_mcp_uses_published_status_order_and_semantic_styles() {
     let mut state = golden_state().await;
     state.chrome.location = Some("/sidebar-mcp".into());
@@ -140,7 +206,13 @@ async fn sidebar_mcp_fold_threshold_summary_and_empty_inventory_follow_the_sourc
     state.apply_mcp_snapshot(inventory(&[], 4));
     let empty = screen(&state, 160, 48);
     assert!(!empty.iter().any(|line| line.contains("MCP")));
-    assert!(empty.iter().any(|line| line.contains("Context")));
+    assert!(!empty.iter().any(|line| line.contains("Context")));
+    assert_eq!(
+        sidebar_layout(&state, Rect::new(0, 0, 160, 48))
+            .unwrap()
+            .content_height,
+        0
+    );
     assert!(empty.iter().any(|line| line.contains("/sidebar-mcp")));
 }
 
