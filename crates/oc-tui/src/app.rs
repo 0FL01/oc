@@ -500,6 +500,7 @@ impl LivePart {
                     running: false,
                     expanded: false,
                     toggleable: true,
+                    spinner: None,
                     identity,
                 }),
                 meta: None,
@@ -698,6 +699,9 @@ pub struct TuiState {
     compaction_turn_messages: std::collections::BTreeMap<String, String>,
     scanner_at: Option<Instant>,
     tool_spinner_clocks: BTreeMap<String, ToolSpinnerClock>,
+    reasoning_spinner_clock: Option<ToolSpinnerClock>,
+    /// Cached from composed rows so timer ticks never rebuild the transcript.
+    reasoning_spinner_running: std::cell::Cell<bool>,
     /// Workspace reset retains old rows until the next owner page arrives.
     tool_spinner_clocks_attached: bool,
     panel: TuiPanel,
@@ -960,6 +964,8 @@ impl TuiState {
             compaction_turn_messages: Default::default(),
             scanner_at: None,
             tool_spinner_clocks: BTreeMap::new(),
+            reasoning_spinner_clock: None,
+            reasoning_spinner_running: std::cell::Cell::new(false),
             tool_spinner_clocks_attached: true,
             panel: TuiPanel::None,
             select: Default::default(),
@@ -1117,6 +1123,8 @@ impl TuiState {
     pub fn reset_workspace(&mut self) {
         self.tool_spinner_clocks_attached = false;
         self.tool_spinner_clocks.clear();
+        self.reasoning_spinner_clock = None;
+        self.reasoning_spinner_running.set(false);
         self.invalidate_transcript();
         self.close_panel();
         self.editor.forget_accepted_mentions();
@@ -1174,6 +1182,8 @@ impl TuiState {
     pub fn set_session(&mut self, session: SessionId) {
         self.tool_spinner_clocks_attached = true;
         self.tool_spinner_clocks.clear();
+        self.reasoning_spinner_clock = None;
+        self.reasoning_spinner_running.set(false);
         self.terminals = Default::default();
         self.invalidate_transcript();
         *self.tab_view.get_mut() = TabView::default();
@@ -1426,21 +1436,41 @@ impl TuiState {
         if !self.tool_spinner_clocks_attached || self.chrome.animations == Some(false) {
             return None;
         }
+        // The first paint discovers Thinking membership. Wake once to arm its
+        // clock even when no provider or input event follows that paint.
+        let reasoning = self.reasoning_spinner_running.get().then(|| {
+            self.reasoning_spinner_clock
+                .as_ref()
+                .and_then(|clock| clock.at)
+                .map_or_else(Instant::now, |at| at + Duration::from_millis(80))
+        });
         self.tool_spinner_clocks
             .values()
             .filter_map(|clock| clock.at.map(|at| at + Duration::from_millis(80)))
+            .chain(reasoning)
             .min()
     }
 
     /// Retained running tool cards own their clocks, including shells and child
-    /// activity that outlive the parent turn. Arm before the first paint.
+    /// activity that outlive the parent turn. Thinking shares the same cadence
+    /// once its rendered header has been discovered.
     pub fn tick_tool_spinners(&mut self, now: Instant) -> bool {
         self.sync_tool_spinner_clocks();
+        if self.tool_spinner_clocks_attached && self.reasoning_spinner_running.get() {
+            self.reasoning_spinner_clock
+                .get_or_insert_with(ToolSpinnerClock::default);
+        } else {
+            self.reasoning_spinner_clock = None;
+        }
         if self.chrome.animations == Some(false) {
             return false;
         }
         let mut changed = false;
-        for clock in self.tool_spinner_clocks.values_mut() {
+        for clock in self
+            .tool_spinner_clocks
+            .values_mut()
+            .chain(self.reasoning_spinner_clock.iter_mut())
+        {
             let Some(at) = clock.at else {
                 clock.at = Some(now);
                 continue;

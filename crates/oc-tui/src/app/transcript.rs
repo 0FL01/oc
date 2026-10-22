@@ -1947,6 +1947,7 @@ impl TuiState {
                     running: true,
                     expanded: false,
                     toggleable: true,
+                    spinner: None,
                     identity: Some(crate::messages::ReasoningIdentity::Live(
                         self.reasoning_epoch,
                         self.live_part_offset + self.live_parts.len(),
@@ -2032,6 +2033,20 @@ impl TuiState {
                 row.agent.clone_from(&self.active_agent);
                 row.agent_color_index = None;
             }
+            if let Some(reasoning) = &mut row.reasoning {
+                // A running group clones its first visible part, which may
+                // already be completed, so supply the glyph to every part.
+                reasoning.spinner = self.tool_spinner_clocks_attached.then(|| {
+                    if self.chrome.animations == Some(false) {
+                        crate::tools::SPINNER
+                    } else {
+                        crate::compaction::FRAMES[self
+                            .reasoning_spinner_clock
+                            .as_ref()
+                            .map_or(0, |clock| clock.frame)]
+                    }
+                });
+            }
             if let Some(card) = &mut row.tool {
                 if self.tool_spinner_clocks_attached && crate::tools::tool_spinner_animated(card) {
                     let frame = self
@@ -2078,6 +2093,9 @@ impl TuiState {
                 }
             }
         }
+        self.reasoning_spinner_running.set(
+            self.tool_spinner_clocks_attached && crate::messages::has_running_reasoning(&rows),
+        );
         (rows, live_row)
     }
 

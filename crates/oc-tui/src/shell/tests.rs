@@ -3360,12 +3360,12 @@ async fn golden_live_turn_with_reasoning_and_footer() {
     let turn = state.active_turn().expect("turn").clone();
     state.apply_reasoning_delta(&turn, "**Reading the code**\n\nbody");
     state.apply_delta(&turn, "All done.");
-    // Running state: the static spinner fallback with the summary title.
+    // Running state: the first spinner frame with the summary title.
     let running = screen(&state, 80, 24);
     assert!(
         running
             .iter()
-            .any(|row| row.contains("⋯ Thinking: Reading the code")),
+            .any(|row| row.contains("⠋ Thinking: Reading the code")),
         "{running:?}"
     );
     state.apply_usage(&turn, 100, 200, 4000);

@@ -722,7 +722,11 @@ impl TuiState {
             self.tab_view.get_mut().cancel_rail_drag();
         }
         if (self.chrome.animations != Some(false)) != (snapshot.chrome.animations != Some(false)) {
-            for clock in self.tool_spinner_clocks.values_mut() {
+            for clock in self
+                .tool_spinner_clocks
+                .values_mut()
+                .chain(self.reasoning_spinner_clock.iter_mut())
+            {
                 *clock = ToolSpinnerClock::default();
             }
             for part in &mut self.live_parts {
@@ -2684,6 +2688,7 @@ impl TuiState {
             running: false,
             expanded: false,
             toggleable: true,
+            spinner: None,
             identity: Some(crate::messages::ReasoningIdentity::Live(
                 self.reasoning_epoch,
                 self.live_part_offset + self.live_parts.len(),

@@ -1306,6 +1306,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                     running: turn.status == "started" && duration_ms.is_none(),
                     expanded: false,
                     toggleable: true,
+                    spinner: None,
                     identity: Some(ReasoningIdentity::Durable(row.seq, sequence)),
                 })
             }

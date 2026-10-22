@@ -469,6 +469,8 @@ pub struct ReasoningBlock {
     pub expanded: bool,
     /// Hide mode offers the per-part +/- header; show mode is always open.
     pub(crate) toggleable: bool,
+    /// View-local animation glyph; never stored in history or provider payloads.
+    pub(crate) spinner: Option<&'static str>,
     /// Stable UI-only part address; absent on ad-hoc presentation fixtures.
     pub(crate) identity: Option<ReasoningIdentity>,
 }
@@ -829,6 +831,27 @@ fn reasoning_group(rows: &[HistoryRow], index: usize) -> Option<ReasoningGroup<'
         duration_ms,
         running,
     })
+}
+
+/// Follow the renderer's grouping/visibility rules, including closed groups
+/// whose individual parts never received a completion event.
+pub(crate) fn has_running_reasoning(rows: &[HistoryRow]) -> bool {
+    let mut index = 0;
+    while index < rows.len() {
+        if let Some(group) = reasoning_group(rows, index) {
+            if group.running {
+                return true;
+            }
+            index += group.members.len();
+        } else {
+            let row = &rows[index];
+            if row.reasoning.as_ref().is_some_and(|r| r.running) && visible_reasoning(row) {
+                return true;
+            }
+            index += 1;
+        }
+    }
+    false
 }
 
 fn visit_reasoning_group(
@@ -3427,7 +3450,7 @@ fn paragraph_before_footer(text: &str) -> &str {
 /// (`routes/session/index.tsx:1785-1815`), show mode is `ReasoningPart`
 /// (`message-parts.tsx:49-65,98-145`).
 ///
-/// - running: static spinner fallback `⋯ Thinking` / `⋯ Thinking: <title>`;
+/// - running: supplied spinner (fallback `⋯`) and `Thinking[: <title>]`;
 /// - completed hide: `+ Thought: <title> · <duration>` when closed,
 ///   `- Thought · <duration>` when opened; show mode omits the icon.
 fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
@@ -3460,7 +3483,10 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
     };
     let style = Style::default().fg(fg);
     if reasoning.running {
-        let mut text = String::from("⋯ Thinking");
+        let mut text = format!(
+            "{} Thinking",
+            reasoning.spinner.unwrap_or(crate::tools::SPINNER)
+        );
         if !title.is_empty() {
             text.push_str(": ");
             text.push_str(title);

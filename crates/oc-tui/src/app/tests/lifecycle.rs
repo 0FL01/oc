@@ -1814,6 +1814,91 @@ async fn ordinary_tool_spinner_animates_without_events_and_retires_when_settled(
 }
 
 #[tokio::test]
+async fn reasoning_spinner_animates_without_events_and_retires_when_settled() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("reasoning-spinner"));
+    let turn = WorkerTurnId("reasoning-turn".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_reasoning_delta(&turn, "**Inspecting**\n\nfirst body");
+    let headers = |state: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(100, 30)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, state))
+            .unwrap();
+        state
+            .visible_projection
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lines
+            .iter()
+            .map(crate::styled::Line::plain_text)
+            .filter(|line| line.contains("Thinking") || line.contains("Thought"))
+            .map(|line| line.trim_end().to_string())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(headers(&state), ["   ⠋ Thinking: Inspecting"]);
+    assert!(state.next_tool_spinner_deadline().unwrap() <= Instant::now());
+    let now = Instant::now();
+    assert!(!state.tick_tool_spinners(now));
+    assert_eq!(
+        state.next_tool_spinner_deadline(),
+        Some(now + Duration::from_millis(80))
+    );
+    let builds = state.visible_projection_builds.get();
+    let copies = state.transcript_row_copies.get();
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(79)));
+    headers(&state);
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    assert_eq!(state.transcript_row_copies.get(), copies);
+    // Only the UI deadline advances, with no provider or input event.
+    assert!(state.tick_ui(now + Duration::from_millis(80)));
+    assert_eq!(headers(&state), ["   ⠙ Thinking: Inspecting"]);
+
+    // A running group takes its header from the already-completed first part.
+    state.apply_reasoning_item_ended(&turn);
+    state.apply_reasoning_delta(&turn, "**Verifying**\n\nsecond body");
+    assert_eq!(headers(&state), ["   ⠙ Thinking: Verifying"]);
+    state.thinking_expanded = true;
+    assert!(headers(&state).iter().any(|line| line == "   ┃ ⠙ Thinking"));
+    assert!(state.tick_tool_spinners(now + Duration::from_millis(160)));
+    assert!(headers(&state).iter().any(|line| line == "   ┃ ⠹ Thinking"));
+    state.thinking_expanded = false;
+    assert_eq!(headers(&state), ["   ⠹ Thinking: Verifying"]);
+
+    let mut catalog = snapshot();
+    catalog.chrome = state.chrome.clone();
+    catalog.chrome.animations = Some(false);
+    state.apply_catalog(catalog.clone());
+    assert_eq!(headers(&state), ["   ⋯ Thinking: Verifying"]);
+    assert_eq!(state.next_tool_spinner_deadline(), None);
+    catalog.chrome.animations = Some(true);
+    state.apply_catalog(catalog);
+    assert_eq!(headers(&state), ["   ⠋ Thinking: Verifying"]);
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(200)));
+    assert!(state.tick_tool_spinners(now + Duration::from_millis(280)));
+    assert_eq!(headers(&state), ["   ⠙ Thinking: Verifying"]);
+
+    state.apply_reasoning_item_ended(&turn);
+    let completed = headers(&state);
+    assert_eq!(completed.len(), 1);
+    assert!(completed[0].starts_with("   + Thought: Verifying · 2 steps"));
+    assert_eq!(state.next_tool_spinner_deadline(), None);
+    assert!(!state.tick_tool_spinners(now + Duration::from_millis(360)));
+    assert!(state.reasoning_spinner_clock.is_none());
+
+    state.apply_reasoning_delta(&turn, "**New step**\n\nbody");
+    headers(&state);
+    state.tick_tool_spinners(now + Duration::from_millis(400));
+    state.reset_workspace();
+    headers(&state);
+    state.tick_tool_spinners(now + Duration::from_millis(480));
+    assert!(state.reasoning_spinner_clock.is_none());
+    assert_eq!(state.next_tool_spinner_deadline(), None);
+}
+
+#[tokio::test]
 async fn pending_delegation_clock_is_local_cached_and_demand_driven() {
     use oc_core::tool_stream::{ToolStreamEvent as Event, ToolStreamIdentity};
     let mut state = fresh_state("delegation-clock").await;

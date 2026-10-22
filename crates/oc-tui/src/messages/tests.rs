@@ -175,6 +175,7 @@ fn adjacent_reasoning_group_matches_full_indexed_and_click_bounds() {
             running,
             expanded,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(seq, ordinal)),
         });
         row
@@ -395,6 +396,7 @@ fn expanded_adjacent_reasoning_has_bounded_snapshots_and_pageable_complete_bodie
             running: false,
             expanded: true,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(seq, 0)),
         });
         row
@@ -477,6 +479,7 @@ fn a_single_reasoning_body_scrolls_past_the_row_preview_boundary() {
         running: false,
         expanded: true,
         toggleable: false,
+        spinner: None,
         identity: Some(ReasoningIdentity::Durable(1, 0)),
     });
     let rows = [row, assistant("FINAL_AFTER_PUBLIC_BODY")];
@@ -518,6 +521,7 @@ fn hidden_running_reasoning_keeps_adjacent_group_open_without_showing_a_redacted
             running,
             expanded: false,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(12, 0)),
         });
         row
@@ -530,6 +534,11 @@ fn hidden_running_reasoning_keeps_adjacent_group_open_without_showing_a_redacted
     let header =
         |rows: &[HistoryRow]| transcript(rows, theme, 80, 80, |_| Color::Reset)[1].plain_text();
     assert_eq!(header(&rows), "   ⋯ Thinking: Verifying");
+    assert!(has_running_reasoning(&rows));
+    assert!(
+        !has_running_reasoning(&rows[2..]),
+        "redacted-only is hidden"
+    );
     let (visible, _) = visible_transcript_expanded(
         &rows,
         theme,
@@ -550,11 +559,13 @@ fn hidden_running_reasoning_keeps_adjacent_group_open_without_showing_a_redacted
     rows.pop();
     rows[2].reasoning.as_mut().unwrap().running = false;
     assert_eq!(header(&rows), "   + Thought: Verifying · 2 steps");
+    assert!(!has_running_reasoning(&rows));
     rows[2].reasoning.as_mut().unwrap().running = true;
     rows[1].reasoning.as_mut().unwrap().text = "untitled last body".into();
     assert_eq!(header(&rows), "   ⋯ Thinking");
     rows.push(assistant("answer"));
     assert_eq!(header(&rows), "   + Thought · 2 steps");
+    assert!(!has_running_reasoning(&rows), "following text closes group");
     rows.remove(1);
     rows.pop();
     assert_eq!(header(&rows), "   ⋯ Thinking: Inspecting");
@@ -577,6 +588,7 @@ fn offscreen_expanded_reasoning_is_measured_once_per_cache_miss() {
                 running: false,
                 expanded: true,
                 toggleable: true,
+                spinner: None,
                 identity: Some(ReasoningIdentity::Durable(group, ordinal)),
             });
             rows.push(row);
@@ -640,6 +652,7 @@ fn reachable_reasoning_parts_keep_heights_across_frames_and_bounded_tabs() {
             running: false,
             expanded: true,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(row.seq, 0)),
         });
         rows.push(row);
@@ -760,6 +773,7 @@ fn offscreen_markdown_group_keeps_exact_slices_and_click_after_table_and_fence()
             running: false,
             expanded: true,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(seq, ordinal)),
         });
         row
@@ -895,6 +909,7 @@ fn reasoning_index_hits_only_clipped_painted_cells_at_scroll() {
             running,
             expanded: false,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(42, ordinal)),
         });
         row
@@ -1066,6 +1081,7 @@ fn exploration_mixed_fetches_cross_only_structurally_empty_content() {
         running: false,
         expanded: false,
         toggleable: true,
+        spinner: None,
         identity: None,
     });
     let mut second_fetch = exploration_tool("webfetch", "completed", true);
@@ -1157,6 +1173,7 @@ fn exploration_boundaries_do_not_hide_uncertain_or_unrelated_operations() {
         running: false,
         expanded: false,
         toggleable: true,
+        spinner: None,
         identity: None,
     });
     let mut metadata = assistant("");
@@ -1917,6 +1934,7 @@ fn clipped_thought_hit_requires_generated_styles_and_painted_cells() {
         running: false,
         expanded: false,
         toggleable: true,
+        spinner: None,
         identity: None,
     };
     let clipped = clipped_reasoning_header(&reasoning, theme, 11);
@@ -1998,6 +2016,7 @@ fn golden_reasoning_running_and_completed() {
             running: true,
             expanded: false,
             toggleable: true,
+            spinner: None,
             identity: None,
         }),
         ..assistant("")
@@ -2027,6 +2046,7 @@ fn golden_reasoning_running_and_completed() {
             running: false,
             expanded: false,
             toggleable: true,
+            spinner: None,
             identity: None,
         }),
         ..assistant("")
@@ -2078,6 +2098,7 @@ fn golden_reasoning_running_and_completed() {
             running: false,
             expanded: false,
             toggleable: true,
+            spinner: None,
             identity: None,
         }),
         ..assistant("")
@@ -2098,6 +2119,7 @@ fn empty_cleaned_reasoning_has_no_header_spacer_or_index_hit() {
             running: false,
             expanded: true,
             toggleable: true,
+            spinner: None,
             identity: Some(ReasoningIdentity::Durable(2, 0)),
         });
         let (normal, buffer) = render(std::slice::from_ref(&row), 120, 40);
@@ -2140,6 +2162,7 @@ fn expanded_group_header_and_body_use_separate_geometry_and_index() {
         running: false,
         expanded: true,
         toggleable: true,
+        spinner: None,
         identity: Some(ReasoningIdentity::Durable(2, 0)),
     });
     for width in [120, 12, 8] {
@@ -2230,6 +2253,7 @@ fn grouped_hide_duration_title_and_open_body_match_session_group() {
         running: false,
         expanded: false,
         toggleable: true,
+        spinner: None,
         identity: Some(ReasoningIdentity::Durable(2, 0)),
     });
     let (collapsed, buffer) = render(std::slice::from_ref(&row), 120, 40);
@@ -3010,6 +3034,7 @@ fn v06a_provider_controls_are_inert_outside_markdown() {
         running: true,
         expanded: false,
         toggleable: true,
+        spinner: None,
         identity: None,
     });
     reasoning.meta = Some(AssistantMeta {

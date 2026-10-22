@@ -96,10 +96,16 @@ impl TuiState {
             self.view_id = previous.view_id;
             self.tool_spinner_clocks
                 .clone_from(&previous.tool_spinner_clocks);
+            self.reasoning_spinner_clock
+                .clone_from(&previous.reasoning_spinner_clock);
             if (self.chrome.animations != Some(false))
                 != (previous.chrome.animations != Some(false))
             {
-                for clock in self.tool_spinner_clocks.values_mut() {
+                for clock in self
+                    .tool_spinner_clocks
+                    .values_mut()
+                    .chain(self.reasoning_spinner_clock.iter_mut())
+                {
                     *clock = ToolSpinnerClock::default();
                 }
             }
