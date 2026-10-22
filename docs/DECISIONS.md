@@ -311,6 +311,9 @@ Messages while busy follow OC2 `SessionInbox`. Enter steers a full `PromptInput`
 `<leader>Enter` queues one new turn after successful settlement. Interruption parks
 pending work and cannot restart a cancelled Origin. Blank Enter or dialog promotion
 can explicitly start a retained item on idle; startup never scans/resumes the queue.
+Parked steers join the idle pending-input dock and dialog instead of looking like
+accepted user messages. Retained input alone does not mark the family running or
+animate its tab; active turns and admitted/running child jobs still do.
 `<leader>q` lists queued prompts (Enter steer, ctrl+d delete, ctrl+u restore the full
 original into the composer, with budgets and image ranges checked before withdrawal).
 Executable workspace/native commands expand once at enqueue and retain their

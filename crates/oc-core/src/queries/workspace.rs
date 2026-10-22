@@ -34,6 +34,7 @@ pub struct SessionActivity {
     pub idle_seq: Option<u64>,
     pub viewed_seq: Option<u64>,
     pub outcome: Option<SessionIdleOutcome>,
+    /// Running family turns/jobs, not retained input waiting for explicit resume.
     pub busy: bool,
 }
 

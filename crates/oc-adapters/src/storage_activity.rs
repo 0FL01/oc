@@ -44,7 +44,6 @@ impl Db {
             EXISTS(WITH RECURSIVE family(id) AS (
                 SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id)
                 SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status='started'
-                UNION ALL SELECT 1 FROM session_inbox i JOIN family f ON i.session_id=f.id WHERE i.message_id IS NULL
                 UNION ALL SELECT 1 FROM child_jobs j JOIN family f ON j.parent_id=f.id WHERE j.state IN ('admitted','running'))
             FROM sessions WHERE id=?1", [session], |row| {
                 let outcome: Option<String> = row.get(2)?;
@@ -100,6 +99,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn cancelled_turn_with_parked_steer_is_idle_without_losing_input() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_session("root").unwrap();
+        let ids = [SessionId("root".into())];
+        db.begin_turn("turn", "root", "first").unwrap();
+        let steer = db
+            .inbox_add(
+                "root",
+                oc_core::queries::InboxDelivery::Steer,
+                "edited prompt",
+            )
+            .unwrap();
+        assert!(db.session_activity(&ids).unwrap()[0].busy);
+
+        db.finish_turn("turn", "cancelled", None).unwrap();
+        let idle = db.session_activity(&ids).unwrap().remove(0);
+        assert!(!idle.busy, "parked input is not a running generation");
+        assert_eq!(idle.unread(), Some(SessionIdleOutcome::Activity));
+        assert_eq!(db.inbox_pending("root").unwrap(), vec![steer]);
+    }
+
+    #[test]
     fn family_work_masks_root_activity_without_replacing_its_terminal() {
         let tmp = tempfile::tempdir().unwrap();
         let db = Db::open(tmp.path()).unwrap();
@@ -114,19 +136,19 @@ mod tests {
         db.begin_turn("root-turn", "root", "one").unwrap();
         db.finish_turn("root-turn", "completed", None).unwrap();
         let pending = db.session_activity(&ids).unwrap().remove(0);
-        assert!(pending.busy);
+        assert!(!pending.busy, "parked family input is not running work");
         assert_eq!(
             pending.unread(),
             Some(SessionIdleOutcome::Activity),
-            "busy masks, not delays, idle metadata"
+            "parked input does not mask idle metadata"
         );
-        db.inbox_remove("child", &queued.id).unwrap();
         db.begin_turn("child-turn", "child", "two").unwrap();
         assert!(db.session_activity(&ids).unwrap()[0].busy);
         db.finish_turn("child-turn", "failed", None).unwrap();
         let idle = db.session_activity(&ids).unwrap().remove(0);
         assert!(!idle.busy);
         assert_eq!(idle.idle_seq, pending.idle_seq);
+        assert_eq!(db.inbox_pending("child").unwrap(), vec![queued]);
         assert_eq!(
             idle.unread(),
             Some(SessionIdleOutcome::Activity),

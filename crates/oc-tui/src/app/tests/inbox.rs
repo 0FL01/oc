@@ -79,6 +79,63 @@ async fn enter_while_busy_steers_into_the_running_turn() {
 }
 
 #[tokio::test]
+async fn interrupted_steer_is_parked_and_can_be_explicitly_resumed() {
+    let (mut state, mut inbox) = running("parked").await;
+    type_text(&mut state, "edited prompt").await;
+    let (outcome, _) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        admit(&mut inbox, Ok(()))
+    );
+    assert!(outcome.note.is_none());
+    let pending = state.inbox_items().to_vec();
+    let turn = state.active_turn().unwrap().clone();
+    state.apply_interrupted(&turn, "", 7_098);
+
+    assert!(!state.is_busy());
+    let rows = state.transcript_rows();
+    assert!(
+        !rows
+            .iter()
+            .any(|row| row.role == "user" && row.text == "edited prompt"),
+        "an undelivered steer must not look like an accepted user message"
+    );
+    assert_eq!(
+        rows.iter().find(|row| row.role == "queued").unwrap().text,
+        "1 pending (Enter to resume) · edited prompt"
+    );
+    assert_eq!(state.inbox_items(), pending);
+    assert!(
+        inbox.try_recv().is_err(),
+        "interruption must not auto-resume"
+    );
+
+    let resume = state.handle_key(KeyAction::Enter).await;
+    assert_eq!(
+        resume.intent,
+        Some(PanelIntent::Inbox {
+            action: InboxAction::Deliver {
+                id: pending[0].id.clone(),
+                delivery: InboxDelivery::Steer,
+            },
+            restore: false,
+        })
+    );
+    state.handle_key(KeyAction::Leader).await;
+    state.handle_key(KeyAction::Char('q')).await;
+    assert_eq!(state.panel(), &TuiPanel::QueuedPrompts);
+    assert_eq!(state.modal_options()[0].value, pending[0].id);
+    assert_eq!(
+        state.handle_panel_key(KeyAction::QueuedUndo).intent,
+        Some(PanelIntent::Inbox {
+            action: InboxAction::Remove {
+                id: pending[0].id.clone(),
+            },
+            restore: true,
+        })
+    );
+}
+
+#[tokio::test]
 async fn a_turn_that_just_ended_takes_the_prompt_as_a_new_submission() {
     let (mut state, mut inbox) = running("ended").await;
     type_text(&mut state, "next").await;

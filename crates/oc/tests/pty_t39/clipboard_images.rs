@@ -204,7 +204,7 @@ fn running_queue_survives_interruption_and_reopen_until_explicit_idle_promotion(
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success());
     let mut pty = PtySession::spawn(fixture.clone(), "parked-queue", None);
-    wait_screen_row(&pty, "1 queued", DEADLINE);
+    wait_screen_row(&pty, "1 pending (Enter to resume)", DEADLINE);
     assert_eq!(fixture.wait_requests(1).len(), 1);
     pty.send(b"\r");
     wait_screen_row(&pty, "echo: PARKED_RESUME", DEADLINE);

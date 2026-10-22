@@ -27,7 +27,7 @@ impl TuiState {
     pub(super) fn queued(&self) -> impl Iterator<Item = &InboxItem> {
         self.inbox
             .iter()
-            .filter(|item| item.delivery == InboxDelivery::Queue)
+            .filter(move |item| item.delivery == InboxDelivery::Queue || self.active_turn.is_none())
     }
 
     /// OC2 `submit(delivery)` while a turn runs. `None` means the turn already
@@ -96,7 +96,7 @@ impl TuiState {
         self.handle_enter().await
     }
 
-    /// Blank Enter promotes the first queued prompt into the running turn.
+    /// Blank Enter promotes queued input, including steers parked after a turn.
     pub(super) fn promote_first_queued(&self) -> Option<PanelIntent> {
         let first = self.queued().next()?;
         Some(PanelIntent::Inbox {
@@ -216,8 +216,8 @@ impl TuiState {
         }
     }
 
-    /// Transcript tail: pending steers as user rows (neutral border until
-    /// delivered) and the OC2 `N queued · preview` dock.
+    /// Live steers use neutral user rows; idle steers join the pending-input dock
+    /// until the user explicitly resumes or restores them.
     pub(super) fn inbox_rows(&self) -> Vec<HistoryRow> {
         let row = |role: &str, text: String| HistoryRow {
             position: None,
@@ -237,7 +237,7 @@ impl TuiState {
         let mut rows = self
             .inbox
             .iter()
-            .filter(|item| item.delivery == InboxDelivery::Steer)
+            .filter(|item| item.delivery == InboxDelivery::Steer && self.active_turn.is_some())
             .map(|item| {
                 row(
                     "user",
@@ -250,10 +250,15 @@ impl TuiState {
             .collect::<Vec<_>>();
         let queued = self.queued().collect::<Vec<_>>();
         if let Some(first) = queued.first() {
+            let label = if self.active_turn.is_some() {
+                "queued"
+            } else {
+                "pending (Enter to resume)"
+            };
             rows.push(row(
                 "queued",
                 format!(
-                    "{} queued · {}",
+                    "{} {label} · {}",
                     queued.len(),
                     first.text.replace(['\n', '\r'], " ")
                 ),
