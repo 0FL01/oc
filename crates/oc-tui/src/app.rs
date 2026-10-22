@@ -384,11 +384,21 @@ struct PaintedTranscript {
     scroll: usize,
 }
 
+impl PaintedTranscript {
+    fn top(&self) -> usize {
+        self.total
+            .saturating_sub(self.area.height as usize)
+            .saturating_sub(self.scroll)
+    }
+}
+
 struct TranscriptSelection {
     anchor: TextPoint,
     focus: TextPoint,
     painted: PaintedTranscript,
     dragging: bool,
+    transcript_revision: u64,
+    window_revision: u64,
 }
 
 impl TranscriptSelection {

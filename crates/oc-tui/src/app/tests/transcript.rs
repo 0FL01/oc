@@ -3915,6 +3915,77 @@ async fn message_actions_focus_intents_clipboard_result_and_escape() {
 }
 
 #[tokio::test]
+async fn transcript_spacer_is_not_selected_or_copied_and_wheel_keeps_selection() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use std::time::{Duration, Instant};
+
+    let mut state = fresh_state("selection-spacer-wheel").await;
+    let frame = Rect::new(0, 0, 60, 18);
+    state.live_text = format!("{}\n\nalpha\n\nbeta", "prefix ".repeat(120));
+    let (x, y) = paint_selection_fixture(&mut state, frame, "alpha");
+    let area = crate::shell::transcript_area(&state, frame);
+    let painted = state.painted_transcript.borrow().as_ref().unwrap().clone();
+    let rows = &painted.rows;
+    let end_row = rows
+        .iter()
+        .position(|line| line.plain_text().contains("beta"))
+        .unwrap();
+    let spacer = rows
+        .iter()
+        .enumerate()
+        .find(|(row, line)| {
+            *row > (y - area.y) as usize
+                && *row < end_row
+                && !line.plain_text().is_empty()
+                && line.plain_text().trim().is_empty()
+        })
+        .map(|(row, _)| row)
+        .expect("painted whitespace spacer");
+    let end = (area.x + 3 + 4, area.y + end_row as u16);
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+        frame,
+    );
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Drag(MouseButton::Left), end.0, end.1),
+        frame,
+    );
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Up(MouseButton::Left), end.0, end.1),
+        frame,
+    );
+    assert_eq!(state.take_copy_request().as_deref(), Some("alpha\nbeta"));
+
+    let painted = state.painted_transcript.borrow().as_ref().unwrap().clone();
+    let highlighted = state.paint_transcript(area, &painted.rows, painted.total, painted.scroll);
+    assert_eq!(highlighted[spacer], painted.rows[spacer]);
+
+    let now = Instant::now();
+    state.wheel_transcript_at(true, usize::MAX, now);
+    state.tick_scroll_animation(now + Duration::from_millis(20));
+    let (rows, total, scroll) =
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+    state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+    state.paint_transcript(area, &rows, total, scroll);
+    assert_eq!(state.selection_text(), Ok(Some("alpha\nbeta".into())));
+
+    let now = now + Duration::from_secs(1);
+    state.wheel_transcript_at(false, usize::MAX, now);
+    state.tick_scroll_animation(now + Duration::from_millis(20));
+    let (rows, total, scroll) =
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+    state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+    let highlighted = state.paint_transcript(area, &rows, total, scroll);
+    assert!(
+        highlighted
+            .iter()
+            .any(|line| line.spans().iter().any(|span| {
+                span.content().contains("alpha") && span.style().bg == Some(Theme::dark().text())
+            }))
+    );
+}
+
+#[tokio::test]
 async fn vis27_paired_word_and_line_selection_paint_explicit_source_cells() {
     use crossterm::event::{MouseButton, MouseEventKind};
     use ratatui::{Terminal, backend::TestBackend, style::Modifier, widgets::Paragraph};
@@ -4344,6 +4415,8 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
         },
         painted: painted.clone(),
         dragging: false,
+        transcript_revision: state.transcript_revision,
+        window_revision: state.window.revision(),
     });
     *state.painted_transcript.borrow_mut() = Some(painted);
     state.set_clipboard_mode(super::ClipboardMode::Manual);

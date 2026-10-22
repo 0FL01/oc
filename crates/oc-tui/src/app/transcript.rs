@@ -159,6 +159,21 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
     }
 }
 
+// Layout padding is a separate unstyled span, also on wrapped list rows.
+fn selectable_start(line: &Line) -> usize {
+    match line.spans() {
+        [padding, content, ..]
+            if padding.style() == ratatui::style::Style::default()
+                && !padding.content().is_empty()
+                && padding.content().bytes().all(|byte| byte == b' ')
+                && !content.content().is_empty() =>
+        {
+            padding.content().len()
+        }
+        _ => 0,
+    }
+}
+
 impl TuiState {
     /// An existing card consumes child inventory even with its composer closed.
     /// This predicate never creates a model graph part or navigation authority.
@@ -717,12 +732,12 @@ impl TuiState {
             (owner == frame).then_some(())?;
             self.child_notice_hit(frame, x, y)
         });
+        let painted = self.painted_transcript.borrow();
         let selected = self.selection.as_ref().filter(|selected| {
-            selected.painted.area == area
-                && selected.painted.total == total
-                && selected.painted.scroll == scroll
-                && selected.painted.rows == rows
-                && self.panel == TuiPanel::None
+            self.panel == TuiPanel::None
+                && painted
+                    .as_ref()
+                    .is_some_and(|current| self.transcript_selection_current(selected, current))
         });
         rows.iter()
             .enumerate()
@@ -775,23 +790,31 @@ impl TuiState {
                 } else {
                     line
                 };
-                if let Some(selected) = selected {
+                if let Some(selected) = selected
+                    && let Some(source_row) = (total
+                        .saturating_sub(area.height as usize)
+                        .saturating_sub(scroll)
+                        + row)
+                        .checked_sub(selected.painted.top())
+                    && selected.painted.rows.get(source_row) == rows.get(row)
+                {
                     let (start, end) = selected.bounds();
-                    let begin = if row == start.row {
+                    let begin = if source_row == start.row {
                         start.byte
-                    } else if row > start.row {
+                    } else if source_row > start.row {
                         0
                     } else {
                         line.plain_text().len()
                     };
-                    let finish = if row == end.row {
+                    let finish = if source_row == end.row {
                         end.byte
-                    } else if row < end.row {
+                    } else if source_row < end.row {
                         line.plain_text().len()
                     } else {
                         0
                     };
-                    if begin < finish {
+                    let begin = begin.max(selectable_start(line));
+                    if begin < finish && !line.plain_text().trim().is_empty() {
                         return line.highlight(begin, finish, theme.text(), theme.background());
                     }
                 }
@@ -995,6 +1018,43 @@ impl TuiState {
         *self.painted_transcript.borrow_mut() = None;
     }
 
+    fn transcript_selection_current(
+        &self,
+        selected: &TranscriptSelection,
+        current: &PaintedTranscript,
+    ) -> bool {
+        selected.transcript_revision == self.transcript_revision
+            && selected.window_revision == self.window.revision()
+            && selected.painted.area == current.area
+            && selected.painted.total == current.total
+            && current.rows.iter().enumerate().all(|(row, line)| {
+                (current.top() + row)
+                    .checked_sub(selected.painted.top())
+                    .and_then(|row| selected.painted.rows.get(row))
+                    .is_none_or(|old| old == line)
+            })
+    }
+
+    fn release_transcript_scroll_press(&mut self) {
+        if self
+            .selection
+            .as_ref()
+            .is_some_and(|selected| selected.dragging)
+        {
+            self.clear_transcript_selection();
+            return;
+        }
+        self.cancel_transcript_capture();
+        self.selection_gesture = false;
+        self.click = None;
+        self.child_notice_down = None;
+        self.reverted_down = None;
+        self.message_down = None;
+        self.paint_generation
+            .set(self.paint_generation.get().wrapping_add(1));
+        *self.painted_transcript.borrow_mut() = None;
+    }
+
     pub(super) fn selection_text(&self) -> Result<Option<String>, &'static str> {
         const TOO_LARGE: &str = "Selection exceeds clipboard size limit";
         let Some(selected) = self.selection.as_ref() else {
@@ -1004,11 +1064,7 @@ impl TuiState {
         let Some(current) = painted.as_ref() else {
             return Ok(None);
         };
-        if selected.painted.area != current.area
-            || selected.painted.total != current.total
-            || selected.painted.scroll != current.scroll
-            || selected.painted.rows != current.rows
-        {
+        if !self.transcript_selection_current(selected, current) {
             return Ok(None);
         }
         let (start, end) = selected.bounds();
@@ -1021,16 +1077,24 @@ impl TuiState {
                 return Ok(None);
             };
             let text = line.plain_text();
+            // A whitespace-only painted spacer has no selectable content.
+            if text.trim().is_empty() {
+                continue;
+            }
             let begin = if row == start.row { start.byte } else { 0 };
+            let begin = begin.max(selectable_start(line));
             let finish = if row == end.row { end.byte } else { text.len() };
-            if begin > finish || !text.is_char_boundary(begin) || !text.is_char_boundary(finish) {
+            if begin >= finish {
+                continue;
+            }
+            if !text.is_char_boundary(begin) || !text.is_char_boundary(finish) {
                 return Ok(None);
             }
-            let addition = finish - begin + usize::from(row > start.row);
+            let addition = finish - begin + usize::from(!result.is_empty());
             if result.len().saturating_add(addition) > MAX_SELECTION_BYTES {
                 return Err(TOO_LARGE);
             }
-            if row > start.row {
+            if !result.is_empty() {
                 result.push('\n');
             }
             result.push_str(&text[begin..finish]);
@@ -1138,6 +1202,8 @@ impl TuiState {
                     focus: at,
                     painted,
                     dragging: count > 1,
+                    transcript_revision: self.transcript_revision,
+                    window_revision: self.window.revision(),
                 };
                 self.selection_gesture = true;
                 if count == 2 || count == 3 {
@@ -2552,7 +2618,7 @@ impl TuiState {
         if self.panel != TuiPanel::None {
             return KeyOutcome::default();
         }
-        self.clear_transcript_selection();
+        self.release_transcript_scroll_press();
         if up {
             let max_scroll = self.max_scroll();
             self.scroll = self.display_scroll();
@@ -2598,7 +2664,7 @@ impl TuiState {
             visible
         });
         self.scroll = visible;
-        self.clear_transcript_selection();
+        self.release_transcript_scroll_press();
         self.exploration_down = None;
         self.reasoning_down = None;
         self.wheel_motion = (distance > 0).then_some(WheelMotion {
@@ -2668,7 +2734,7 @@ impl TuiState {
         }
         // Movement invalidates every press/release target from the old paint,
         // including selection-guarded user/reverted and expandable tool rows.
-        self.clear_transcript_selection();
+        self.release_transcript_scroll_press();
         self.exploration_down = None;
         self.reasoning_down = None;
         true
