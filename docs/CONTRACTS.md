@@ -305,7 +305,12 @@ Messages sent while busy follow OC2 steer/queue (D30): Enter steers into the run
 turn at its next fresh request, `<leader>Enter` queues for after it. Both retain the
 full rich prompt, not just visible text. Pending acceptance and delivery acceptance
 are distinct: delivery consumes its row atomically with the prepared request, new
-turn or native-command intent. Refusal retains original input with a visible error;
+turn or native-command intent. User interruption settles the old foreground before
+continuing only undelivered steers under the live Origin with a fresh stop token;
+queued prompts stay parked until explicit promotion or a new accepted input restores
+normal draining. Origin cancellation, shutdown, deletion and undo do not resume them.
+Pending steers remain neutral user rows; only Queue items use the `N queued` dock.
+Refusal retains original input with a visible error;
 snapshots contain bounded previews/image counts, full PNGs are read individually.
 Configured commands expand once under the enqueue generation and command/routing-profile
 digest; stale sources refuse delivery without re-expansion or effects, including

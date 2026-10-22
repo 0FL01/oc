@@ -1668,27 +1668,35 @@ fn pty_escape_cancels_heartbeat_request() {
     // assistant text with the footer's `interrupted` marker
     // (`routes/session/index.tsx:1977-1980`).
     wait_screen_row(&pty, "interrupted", DEADLINE);
+    wait_screen_row(&pty, "echo: steered busy input", DEADLINE);
     quit_clean(&mut pty);
     assert_eq!(
         persisted(pty.data_dir(), "s-cancel"),
-        vec![("user".to_string(), "cancel heartbeat probe".to_string())],
-        "cancelled turn preserves input without a completed assistant answer"
+        vec![
+            ("user".to_string(), "cancel heartbeat probe".to_string()),
+            ("user".to_string(), "steered busy input".to_string()),
+            (
+                "assistant".to_string(),
+                "echo: steered busy input".to_string()
+            ),
+        ],
+        "interrupt drops the incomplete answer and continues the undelivered steer without replaying the original prompt"
     );
     let db = rusqlite::Connection::open_with_flags(
         pty.data_dir().join("oc.sqlite"),
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )
     .unwrap();
-    let pending: String = db
+    let pending: i64 = db
         .query_row(
-            "SELECT text FROM session_inbox WHERE session_id='s-cancel' AND message_id IS NULL",
+            "SELECT count(*) FROM session_inbox WHERE session_id='s-cancel' AND message_id IS NULL",
             [],
             |row| row.get(0),
         )
         .unwrap();
     assert_eq!(
-        pending, "steered busy input",
-        "interrupt parks the accepted steer instead of replaying it"
+        pending, 0,
+        "continued steer is consumed exactly once instead of remaining parked"
     );
 }
 

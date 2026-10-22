@@ -4511,6 +4511,23 @@ async fn worker(
     reload_work.ensure(composition).await?;
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
+    let steer_continuation = primary
+        .as_ref()
+        .is_some_and(|primary| primary.initial_inbox.is_some());
+    let drain_queue = primary
+        .as_ref()
+        .map(|primary| primary.drain_queue.clone())
+        .unwrap_or_else(|| Arc::new(AtomicBool::new(true)));
+    if let Some((session, id)) = primary
+        .as_mut()
+        .and_then(|primary| primary.initial_inbox.take())
+    {
+        pending_inputs.push_back(InboxMsg::SubmitInbox {
+            session,
+            id,
+            ack: oneshot::channel().0,
+        });
+    }
     let mut primary_started = false;
     'worker: loop {
         if let Some(source) = authority.as_mut() {
@@ -4527,12 +4544,29 @@ async fn worker(
         })? {
             return Ok(WorkerOutcome::Move(Box::new(prepared)));
         }
-        if primary.is_some()
+        if let Some(primary) = primary.as_ref()
             && primary_started
             && pending_inputs.is_empty()
             && runtime.pending_compaction().is_none()
             && !runtime.has_pending_session_move()
         {
+            // Startup may have been withdrawn, requeued or refused before
+            // acceptance. Advance past it without dropping later steers or
+            // falling back to Queue, even when no turn was accepted.
+            if steer_continuation
+                && !primary.cancel.load(Ordering::Acquire)
+                && let Some(session) = sessions.get(runtime.location())
+                && let Some(pending) = db
+                    .inbox_next(session, false)
+                    .map_err(|error| storage_diagnostic(db.root(), &error))?
+            {
+                pending_inputs.push_back(InboxMsg::SubmitInbox {
+                    session: SessionId(session.clone()),
+                    id: pending.item.id,
+                    ack: oneshot::channel().0,
+                });
+                continue;
+            }
             return Ok(WorkerOutcome::Stop);
         }
         if authority.is_none() && primary.is_none() {
@@ -5252,15 +5286,23 @@ async fn worker(
                         ) => (session, text, Some(selection), None, ack, None, None),
                         (Some(InboxMsg::SubmitInbox { session, id, ack }), None) => {
                             match db.inbox_read(&session.0, &id) {
-                                Ok(Some(pending)) if pending.item.error.is_none() => (
-                                    session,
-                                    pending.payload.prompt.clone(),
-                                    None,
-                                    None,
-                                    ack,
-                                    None,
-                                    Some(pending),
-                                ),
+                                Ok(Some(pending))
+                                    if pending.item.error.is_none()
+                                        && (!steer_continuation
+                                            || drain_queue.load(Ordering::Acquire)
+                                            || pending.item.delivery
+                                                == oc_core::queries::InboxDelivery::Steer) =>
+                                {
+                                    (
+                                        session,
+                                        pending.payload.prompt.clone(),
+                                        None,
+                                        None,
+                                        ack,
+                                        None,
+                                        Some(pending),
+                                    )
+                                }
                                 Ok(_) => {
                                     let _ = ack.send(Err(app_error("pending input unavailable")));
                                     continue;
@@ -5286,7 +5328,7 @@ async fn worker(
                     sender: ack,
                     runtime,
                     session: &session.0,
-                    pending: pending.as_ref().map(|p| p.item.id.clone()),
+                    pending: pending.as_ref().map(|p| p.item.clone()),
                 };
                 if native_notices.is_none() && text.trim().is_empty() {
                     let _ = ack.send(Err(app_error("empty prompt")));
@@ -5548,8 +5590,9 @@ async fn worker(
                         mpsc::channel::<crate::runtime::inbox::InboxBoundary>(1);
                     let _inbox_guard = runtime.drive_inbox(
                         &session.0,
-                        pending.as_ref().map(|p| p.item.id.clone()),
+                        pending.as_ref().map(|p| p.item.clone()),
                         boundary_tx,
+                        drain_queue.clone(),
                     );
                     // Keep the execution state machine off the actor's inline
                     // future and worker stacks when independent service jobs wake.
@@ -5880,6 +5923,9 @@ async fn worker(
                                     let _ = ack.send(result);
                                 }
                                 Some(InboxMsg::Cancel { session: target, ack }) if target == session => {
+                                    if let Some(primary) = &primary {
+                                        primary.resume_steers.store(conversation_change.is_none(), Ordering::Release);
+                                    }
                                     cancel.store(true, Ordering::Relaxed);
                                     runtime.cancel_pending_approvals();
                                     runtime.shell_jobs.cancel_session(&target.0);
@@ -5922,6 +5968,11 @@ async fn worker(
                             }
                         }
                     };
+                }
+                if (shutdown || conversation_change.is_some())
+                    && let Some(primary) = &primary
+                {
+                    primary.resume_steers.store(false, Ordering::Release);
                 }
                 if turn.is_some() {
                     sessions.insert(runtime.location().to_string(), session.0.clone());
@@ -6028,7 +6079,7 @@ async fn worker(
                         && !cancel.load(Ordering::Acquire)
                         && pending_inputs.len() < MAX_QUEUE_ITEMS
                         && let Some(pending) = db
-                            .inbox_next(&session.0, settled)
+                            .inbox_next(&session.0, settled && drain_queue.load(Ordering::Acquire))
                             .map_err(|e| storage_diagnostic(db.root(), &e))?
                     {
                         pending_inputs.push_back(InboxMsg::SubmitInbox {

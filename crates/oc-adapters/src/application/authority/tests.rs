@@ -1097,6 +1097,164 @@ async fn steer_joins_the_running_turn_and_queue_runs_after_it_settles() {
     );
 }
 
+#[tokio::test]
+async fn user_interrupt_resumes_only_steers_until_a_new_input_is_admitted() {
+    use oc_core::queries::InboxDelivery;
+    use tokio::io::AsyncReadExt;
+
+    // A fresh admission during the successor deliberately restores normal
+    // draining; without it even a successful successor must leave Queue parked.
+    for new_admission in [false, true] {
+        let fixture = RunningInputFixture::new(|_| {}).await;
+        let session = SessionId("R".into());
+        let (mut original, _) = fixture.request().await;
+        fixture
+            .run
+            .app
+            .register_approval_consumer(true)
+            .await
+            .unwrap();
+        let queued = fixture
+            .run
+            .app
+            .enqueue(session.clone(), "queued".into(), InboxDelivery::Queue)
+            .await
+            .unwrap();
+        fixture
+            .run
+            .app
+            .enqueue(session.clone(), "steer".into(), InboxDelivery::Steer)
+            .await
+            .unwrap();
+        fixture
+            .owner
+            .cancel_root(
+                &fixture.run.location,
+                "R",
+                fixture.run.origin.id,
+                Some(&fixture.turn),
+                true,
+            )
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(5), fixture.owner.next_root())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(5), original.read(&mut [0]))
+                .await
+                .unwrap()
+                .unwrap(),
+            0
+        );
+
+        let (mut socket, body) = fixture.request().await;
+        let resumed = fixture.owner.root("R").unwrap();
+        assert!(Arc::ptr_eq(&resumed.origin, &fixture.run.origin));
+        assert!(!Arc::ptr_eq(&resumed.cancel, &fixture.run.cancel));
+        assert!(fixture.run.cancel.load(Ordering::Acquire));
+        assert!(!resumed.cancel.load(Ordering::Acquire));
+        assert!(!resumed.origin.flag.load(Ordering::Acquire));
+        assert!(resumed.origin.auto_once.load(Ordering::Acquire));
+        assert_eq!(
+            fixture.owner.cancel_root(
+                &resumed.location,
+                "R",
+                resumed.origin.id,
+                Some(&fixture.turn),
+                true
+            ),
+            Err(CoreError::TurnNotActive)
+        );
+        let input = body["input"].to_string();
+        assert!(input.contains("steer") && !input.contains("queued"));
+        if new_admission {
+            resumed
+                .app
+                .enqueue(session.clone(), "new queued".into(), InboxDelivery::Queue)
+                .await
+                .unwrap();
+        }
+        final_answer(&mut socket).await;
+        if new_admission {
+            for text in ["queued", "new queued"] {
+                let (mut socket, body) = fixture.request().await;
+                assert!(
+                    body["input"]
+                        .as_array()
+                        .unwrap()
+                        .last()
+                        .unwrap()
+                        .to_string()
+                        .contains(text)
+                );
+                final_answer(&mut socket).await;
+            }
+        }
+        fixture.finish().await;
+        assert!(fixture.owner.root("R").is_none());
+        assert!(futures_util::FutureExt::now_or_never(fixture.listener.accept()).is_none());
+        let pending = fixture.owner.db.inbox_pending("R").unwrap();
+        assert_eq!(
+            pending,
+            if new_admission {
+                Vec::new()
+            } else {
+                vec![queued]
+            }
+        );
+        let history = fixture.owner.db.read_history("R").unwrap();
+        for text in ["original", "steer"] {
+            assert_eq!(
+                history
+                    .iter()
+                    .filter(|(role, value)| role == "user" && value == text)
+                    .count(),
+                1
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn origin_or_owner_shutdown_suppresses_an_interrupted_steer_successor() {
+    use oc_core::queries::InboxDelivery;
+
+    for shutdown in [false, true] {
+        let fixture = RunningInputFixture::new(|_| {}).await;
+        let (_socket, _) = fixture.request().await;
+        let pending = fixture
+            .run
+            .app
+            .enqueue(SessionId("R".into()), "steer".into(), InboxDelivery::Steer)
+            .await
+            .unwrap();
+        fixture
+            .owner
+            .cancel_root(
+                &fixture.run.location,
+                "R",
+                fixture.run.origin.id,
+                Some(&fixture.turn),
+                true,
+            )
+            .unwrap();
+        if shutdown {
+            fixture.owner.shutdown().await.unwrap();
+        } else {
+            fixture.owner.cancel_origin(&fixture.run.origin);
+            fixture.finish().await;
+        }
+        assert!(fixture.owner.root("R").is_none());
+        assert_eq!(fixture.owner.db.inbox_pending("R").unwrap(), [pending]);
+        assert!(futures_util::FutureExt::now_or_never(fixture.listener.accept()).is_none());
+        assert_eq!(
+            fixture.owner.db.read_history("R").unwrap(),
+            [("user".into(), "original".into())]
+        );
+    }
+}
+
 struct RunningInputFixture {
     _root: tempfile::TempDir,
     project: PathBuf,
@@ -1501,43 +1659,77 @@ async fn running_shell_ask_remains_pumped_after_model_finishes_and_receipt_cance
 #[tokio::test]
 async fn running_stale_command_is_visible_restorable_and_does_not_reexpand_or_request_again() {
     use oc_core::queries::InboxDelivery;
-    let f = RunningInputFixture::new(|c| {
-        c["commands"] = json!({"check":{"template":"ORIGINAL_EXPANSION $1"}})
-    })
-    .await;
-    let (mut first, _) = f.request().await;
-    let item = f
-        .run
-        .app
-        .enqueue(
-            SessionId("R".into()),
-            "/check ARG".into(),
-            InboxDelivery::Steer,
-        )
-        .await
-        .unwrap();
-    let path = f.project.join("opencode.json");
-    let mut source: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    source["commands"]["check"]["template"] = json!("CHANGED_EXPANSION $1");
-    std::fs::write(path, source.to_string()).unwrap();
-    // Reload belongs to the Location owner, not its running source follower.
-    let location = f.owner.location(&f.project, false).await.unwrap();
-    tokio::time::timeout(Duration::from_secs(5), location.app.reload_location())
-        .await
-        .unwrap()
-        .unwrap();
-    final_answer(&mut first).await;
-    f.finish().await;
-    let pending = f.owner.db.inbox_read("R", &item.id).unwrap().unwrap();
-    assert!(pending.item.error.is_some());
-    assert_eq!(pending.payload.original().text, "/check ARG");
-    assert_eq!(pending.payload.prompt.text, "ORIGINAL_EXPANSION ARG");
-    assert!(
-        tokio::time::timeout(Duration::from_millis(20), f.listener.accept())
+    for interrupted in [false, true] {
+        let f = RunningInputFixture::new(|c| {
+            c["commands"] = json!({"check":{"template":"ORIGINAL_EXPANSION $1"}})
+        })
+        .await;
+        let (mut first, _) = f.request().await;
+        let item = f
+            .run
+            .app
+            .enqueue(
+                SessionId("R".into()),
+                "/check ARG".into(),
+                InboxDelivery::Steer,
+            )
             .await
-            .is_err()
-    );
+            .unwrap();
+        if interrupted {
+            f.run
+                .app
+                .enqueue(
+                    SessionId("R".into()),
+                    "valid steer".into(),
+                    InboxDelivery::Steer,
+                )
+                .await
+                .unwrap();
+        }
+        let path = f.project.join("opencode.json");
+        let mut source: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        source["commands"]["check"]["template"] = json!("CHANGED_EXPANSION $1");
+        std::fs::write(path, source.to_string()).unwrap();
+        // Reload belongs to the Location owner, not its running source follower.
+        let location = f.owner.location(&f.project, false).await.unwrap();
+        tokio::time::timeout(Duration::from_secs(5), location.app.reload_location())
+            .await
+            .unwrap()
+            .unwrap();
+        if interrupted {
+            f.owner
+                .cancel_root(&location, "R", f.run.origin.id, Some(&f.turn), true)
+                .unwrap();
+            tokio::time::timeout(Duration::from_secs(5), f.owner.next_root())
+                .await
+                .unwrap()
+                .unwrap();
+            let (mut next, body) = f.request().await;
+            assert!(
+                body["input"]
+                    .as_array()
+                    .unwrap()
+                    .last()
+                    .unwrap()
+                    .to_string()
+                    .contains("valid steer")
+            );
+            final_answer(&mut next).await;
+        } else {
+            final_answer(&mut first).await;
+        }
+        f.finish().await;
+        let pending = f.owner.db.inbox_read("R", &item.id).unwrap().unwrap();
+        assert!(pending.item.error.is_some());
+        assert_eq!(pending.payload.original().text, "/check ARG");
+        assert_eq!(pending.payload.prompt.text, "ORIGINAL_EXPANSION ARG");
+        assert!(
+            tokio::time::timeout(Duration::from_millis(20), f.listener.accept())
+                .await
+                .is_err()
+        );
+    }
 }
 
 #[tokio::test]

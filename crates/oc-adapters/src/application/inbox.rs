@@ -103,7 +103,7 @@ pub(super) struct AcceptanceAck<'a, 'db> {
     pub sender: oneshot::Sender<Result<WorkerTurnId, CoreError>>,
     pub runtime: &'a Runtime<'db>,
     pub session: &'a str,
-    pub pending: Option<String>,
+    pub pending: Option<oc_core::queries::InboxItem>,
 }
 
 impl AcceptanceAck<'_, '_> {
@@ -111,8 +111,8 @@ impl AcceptanceAck<'_, '_> {
         self,
         mut result: Result<WorkerTurnId, CoreError>,
     ) -> Result<(), Result<WorkerTurnId, CoreError>> {
-        if let (Some(id), Err(error)) = (&self.pending, &result)
-            && let Err(storage) = self.runtime.fail_pending(self.session, id, error)
+        if let (Some(item), Err(error)) = (&self.pending, &result)
+            && let Err(storage) = self.runtime.fail_pending(self.session, item, error)
         {
             result = Err(runtime_error(storage));
         }

@@ -2550,7 +2550,7 @@ impl Db {
         selection: Option<(&str, &str)>,
         history_input: Option<&str>,
         seed: Option<&mut crate::tools::TurnLog>,
-        pending: Option<&str>,
+        pending: Option<&oc_core::queries::InboxItem>,
     ) -> Result<AcceptedTurn, StorageError> {
         if let Some((key, _)) = selection {
             let valid = key
@@ -2563,8 +2563,8 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        if let Some(id) = pending {
-            Self::consume_inbox_turn_in(&tx, session, id)?;
+        if let Some(item) = pending {
+            Self::consume_inbox_turn_in(&tx, session, item)?;
         }
         let accepted = Self::insert_accepted_turn(
             &tx,

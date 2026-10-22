@@ -242,7 +242,7 @@ impl Db {
     pub(crate) fn inbox_fail(
         &self,
         session: &str,
-        id: &str,
+        item: &InboxItem,
         error: &CoreError,
     ) -> Result<(), StorageError> {
         let raw = serde_json::to_string(error).map_err(|_| invalid())?;
@@ -251,8 +251,8 @@ impl Db {
         }
         self.conn.lock().expect("db mutex").execute(
             "UPDATE session_inbox SET error=?3
-            WHERE session_id=?1 AND id=?2 AND message_id IS NULL",
-            params![session, id, raw],
+            WHERE session_id=?1 AND id=?2 AND message_id IS NULL AND delivery=?4",
+            params![session, item.id, raw, item.delivery.as_str()],
         )?;
         Ok(())
     }
@@ -297,9 +297,11 @@ impl Db {
     pub(super) fn consume_inbox_turn_in(
         conn: &Connection,
         session: &str,
-        id: &str,
+        item: &InboxItem,
     ) -> Result<(), StorageError> {
-        if conn.execute("DELETE FROM session_inbox WHERE session_id=?1 AND id=?2 AND message_id IS NULL AND error IS NULL",params![session,id])? != 1 {
+        // Selecting a steer is not a claim: a concurrent move to Queue must
+        // still win until this acceptance transaction consumes the input.
+        if conn.execute("DELETE FROM session_inbox WHERE session_id=?1 AND id=?2 AND message_id IS NULL AND error IS NULL AND (delivery='steer' OR ?3='queue')",params![session,item.id,item.delivery.as_str()])? != 1 {
             return Err(StorageError::OperationNotFound);
         }
         Ok(())

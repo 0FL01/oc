@@ -151,7 +151,7 @@ fn delivered_steers_are_turn_notices_and_queue_waits() {
         None,
         None,
         None,
-        Some(&queued.id),
+        Some(&queued),
     )
     .unwrap();
     assert!(db.inbox_next("s", true).unwrap().is_none());
@@ -173,6 +173,41 @@ fn idle_boundary_prefers_a_leftover_steer_over_the_oldest_queue() {
         db.inbox_next("s", true).unwrap().unwrap().item.text,
         "queued"
     );
+}
+
+#[test]
+fn requeued_initial_steer_cannot_be_consumed_or_failed_by_its_old_capture() {
+    let (_tmp, db) = db();
+    let item = db
+        .inbox_add("s", InboxDelivery::Steer, "now queued")
+        .unwrap();
+    db.inbox_set_delivery("s", &item.id, InboxDelivery::Queue)
+        .unwrap();
+    assert!(matches!(
+        db.accept_inbox_turn(
+            "blocked",
+            "s",
+            "now queued",
+            "now queued",
+            &model(),
+            None,
+            None,
+            None,
+            None,
+            Some(&item)
+        ),
+        Err(StorageError::OperationNotFound)
+    ));
+    db.inbox_fail(
+        "s",
+        &item,
+        &CoreError::Application("no longer eligible".into()),
+    )
+    .unwrap();
+    assert!(db.read_history("s").unwrap().is_empty());
+    let pending = db.inbox_read("s", &item.id).unwrap().unwrap().item;
+    assert_eq!(pending.delivery, InboxDelivery::Queue);
+    assert!(pending.error.is_none());
 }
 
 #[test]
@@ -216,7 +251,7 @@ fn failed_acceptance_and_checkpoint_leave_the_admitted_input_pending() {
             None,
             None,
             None,
-            Some(&item.id)
+            Some(&item)
         )
         .is_err()
     );

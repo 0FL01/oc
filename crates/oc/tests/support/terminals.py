@@ -371,7 +371,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.command('/terminal')
         second = wait(lambda: entries(root) if len(entries(root)) == 2 else None, 'second real PTY')[1][0]
         remember(second)
-        assert selected(root) == second['target']['id']
+        wait(lambda: selected(root) == second['target']['id'], 'select second')
         # Select the first, hide, then toggle-on must choose LAST without spawn.
         view.leader(b'\x1b[B')
         view.send(b'k\r')

@@ -308,12 +308,16 @@ departure. Manual DCP compress and title regeneration stay idle-only.
 
 Messages while busy follow OC2 `SessionInbox`. Enter steers a full `PromptInput`
 (text and images) at the next fresh request after the issued tool batch settles.
-`<leader>Enter` queues one new turn after successful settlement. Interruption parks
-pending work and cannot restart a cancelled Origin. Blank Enter or dialog promotion
-can explicitly start a retained item on idle; startup never scans/resumes the queue.
-Parked steers join the idle pending-input dock and dialog instead of looking like
-accepted user messages. Retained input alone does not mark the family running or
-animate its tab; active turns and admitted/running child jobs still do.
+`<leader>Enter` queues one new turn after successful settlement. A user interrupt
+finishes the old foreground and its cleanup, then resumes only undelivered,
+non-refused steers under the same live Origin with a fresh foreground stop token.
+Queued prompts stay parked even after that continuation succeeds; a new accepted
+input restores normal queue draining. Origin cancellation, shutdown, deletion and
+undo do not start this continuation. Pending steers retain neutral user rows;
+only Queue items appear in the `N queued` dock and dialog, during work or on idle.
+Blank Enter or dialog promotion can explicitly start a queued item on idle;
+startup never scans/resumes the queue. Retained input alone does not mark the
+family running or animate its tab; active turns and admitted/running child jobs do.
 `<leader>q` lists queued prompts (Enter steer, ctrl+d delete, ctrl+u restore the full
 original into the composer, with budgets and image ranges checked before withdrawal).
 Executable workspace/native commands expand once at enqueue and retain their

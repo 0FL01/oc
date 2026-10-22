@@ -79,7 +79,7 @@ async fn enter_while_busy_steers_into_the_running_turn() {
 }
 
 #[tokio::test]
-async fn interrupted_steer_is_parked_and_can_be_explicitly_resumed() {
+async fn interrupted_steer_stays_a_neutral_user_row_not_a_resumable_queue() {
     let (mut state, mut inbox) = running("parked").await;
     type_text(&mut state, "edited prompt").await;
     let (outcome, _) = tokio::join!(
@@ -94,45 +94,23 @@ async fn interrupted_steer_is_parked_and_can_be_explicitly_resumed() {
     assert!(!state.is_busy());
     let rows = state.transcript_rows();
     assert!(
-        !rows
-            .iter()
+        rows.iter()
             .any(|row| row.role == "user" && row.text == "edited prompt"),
-        "an undelivered steer must not look like an accepted user message"
+        "pending steers remain neutral user rows across the idle boundary"
     );
-    assert_eq!(
-        rows.iter().find(|row| row.role == "queued").unwrap().text,
-        "1 pending (Enter to resume) · edited prompt"
-    );
+    assert!(!rows.iter().any(|row| row.role == "queued"));
     assert_eq!(state.inbox_items(), pending);
     assert!(
         inbox.try_recv().is_err(),
-        "interruption must not auto-resume"
+        "the owner, not the view, continues steering input"
     );
 
-    let resume = state.handle_key(KeyAction::Enter).await;
-    assert_eq!(
-        resume.intent,
-        Some(PanelIntent::Inbox {
-            action: InboxAction::Deliver {
-                id: pending[0].id.clone(),
-                delivery: InboxDelivery::Steer,
-            },
-            restore: false,
-        })
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    assert!(
+        matches!(inbox.try_recv(), Ok(InboxMsg::SessionSelection { .. })),
+        "blank Enter still commits the composer's model choice"
     );
-    state.handle_key(KeyAction::Leader).await;
-    state.handle_key(KeyAction::Char('q')).await;
-    assert_eq!(state.panel(), &TuiPanel::QueuedPrompts);
-    assert_eq!(state.modal_options()[0].value, pending[0].id);
-    assert_eq!(
-        state.handle_panel_key(KeyAction::QueuedUndo).intent,
-        Some(PanelIntent::Inbox {
-            action: InboxAction::Remove {
-                id: pending[0].id.clone(),
-            },
-            restore: true,
-        })
-    );
+    assert!(inbox.try_recv().is_err(), "no submit or inbox promotion");
 }
 
 #[tokio::test]
@@ -178,6 +156,21 @@ async fn leader_enter_queues_and_the_dock_shows_count_and_preview() {
             },
             restore: false,
         })
+    );
+    let turn = state.active_turn().unwrap().clone();
+    state.apply_interrupted(&turn, "", 100);
+    assert_eq!(
+        state
+            .transcript_rows()
+            .iter()
+            .find(|row| row.role == "queued")
+            .unwrap()
+            .text,
+        "1 queued · then update docs"
+    );
+    assert_eq!(
+        state.handle_key(KeyAction::Enter).await.intent,
+        promote.intent
     );
 }
 

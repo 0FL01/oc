@@ -667,7 +667,7 @@ fn cancel_operation(
             .ok_or(CoreError::TurnNotActive)?,
         None => return Err(CoreError::TurnNotActive),
     };
-    owner.cancel_root(&location, &session.0, origin, turn)
+    owner.cancel_root(&location, &session.0, origin, turn, true)
 }
 
 fn publish(
@@ -981,7 +981,7 @@ async fn handle(
         && let Some(root) = owner.root(session)
         && root.location.project == location.project
     {
-        owner.cancel_root(&location, session, root.origin.id, None)?;
+        owner.cancel_root(&location, session, root.origin.id, None, false)?;
         owner.settle_origin(root.origin.id).await;
     }
     if let Request::Workspace { selected } = &request {

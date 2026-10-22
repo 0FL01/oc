@@ -20,8 +20,9 @@ pub(crate) struct PreparedInbox {
 
 pub(super) struct InboxDriver {
     pub(super) session: String,
-    initial: Option<String>,
+    initial: Option<oc_core::queries::InboxItem>,
     sender: tokio::sync::mpsc::Sender<InboxBoundary>,
+    drain_queue: Arc<AtomicBool>,
 }
 
 pub(crate) struct InboxGuard<'a, 'db>(&'a Runtime<'db>);
@@ -75,6 +76,11 @@ impl<'db> Runtime<'db> {
             Arc::make_mut(&mut self.current.write().expect("generation lock")).workspace =
                 workspace;
         }
+        // A fresh admission wakes normal input processing, including queued
+        // turns. Interrupt-only continuations otherwise drain steers alone.
+        if let Some(driver) = self.inbox_driver.lock().expect("inbox driver").as_ref() {
+            driver.drain_queue.store(true, Ordering::Release);
+        }
         self.publish_inbox(session, items, Vec::new());
         Ok(item)
     }
@@ -82,18 +88,20 @@ impl<'db> Runtime<'db> {
     pub(crate) fn drive_inbox(
         &self,
         session: &str,
-        initial: Option<String>,
+        initial: Option<oc_core::queries::InboxItem>,
         sender: tokio::sync::mpsc::Sender<InboxBoundary>,
+        drain_queue: Arc<AtomicBool>,
     ) -> InboxGuard<'_, 'db> {
         *self.inbox_driver.lock().expect("inbox driver") = Some(InboxDriver {
             session: session.into(),
             initial,
             sender,
+            drain_queue,
         });
         InboxGuard(self)
     }
 
-    pub(super) fn inbox_initial(&self) -> Option<String> {
+    pub(super) fn inbox_initial(&self) -> Option<oc_core::queries::InboxItem> {
         self.inbox_driver
             .lock()
             .expect("inbox driver")
@@ -197,10 +205,10 @@ impl<'db> Runtime<'db> {
     pub(crate) fn fail_pending(
         &self,
         session: &str,
-        id: &str,
+        item: &oc_core::queries::InboxItem,
         error: &oc_core::session::CoreError,
     ) -> Result<(), RuntimeError> {
-        self.db.inbox_fail(session, id, error)?;
+        self.db.inbox_fail(session, item, error)?;
         self.publish_inbox(session, self.db.inbox_pending(session)?, Vec::new());
         Ok(())
     }
@@ -216,7 +224,7 @@ impl<'db> Runtime<'db> {
         let Some(pending) = self.db.inbox_next(session, false)? else {
             return Ok(None);
         };
-        let id = pending.item.id.clone();
+        let item = pending.item.clone();
         let sender = self
             .inbox_driver
             .lock()
@@ -228,7 +236,7 @@ impl<'db> Runtime<'db> {
             if pending.payload.command.is_some() {
                 self.fail_pending(
                     session,
-                    &id,
+                    &item,
                     &oc_core::session::CoreError::Application(
                         "command requires its application owner".into(),
                     ),
@@ -272,7 +280,7 @@ impl<'db> Runtime<'db> {
         match result {
             Ok(prepared) => Ok(Some(prepared)),
             Err(error) => {
-                self.fail_pending(session, &id, &error)?;
+                self.fail_pending(session, &item, &error)?;
                 Ok(None)
             }
         }
@@ -293,7 +301,7 @@ mod tests {
         let runtime = crate::runtime::tests::binding_replay_tests::owner(&db, project.path());
         let item = db.inbox_add("s", InboxDelivery::Steer, "retained").unwrap();
         let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
-        let _guard = runtime.drive_inbox("s", None, sender);
+        let _guard = runtime.drive_inbox("s", None, sender, Arc::new(AtomicBool::new(true)));
         assert!(runtime.inbox_running("s"));
         assert!(!runtime.inbox_running("another-session"));
         let cancel = AtomicBool::new(false);

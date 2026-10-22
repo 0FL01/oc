@@ -1782,7 +1782,7 @@ impl<'a> Runtime<'a> {
                 }),
                 history_input,
                 Some(&mut turn_log),
-                self.inbox_initial().as_deref(),
+                self.inbox_initial().as_ref(),
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
@@ -2328,7 +2328,7 @@ impl<'a> Runtime<'a> {
                         if !params.cancel.load(Ordering::Acquire) {
                             self.fail_pending(
                                 &params.session,
-                                &prepared.pending.item.id,
+                                &prepared.pending.item,
                                 &crate::application::runtime_error(error),
                             )?;
                         }
@@ -2760,7 +2760,7 @@ impl<'a> Runtime<'a> {
                 if let Some(prepared) = &pending {
                     self.fail_pending(
                         &params.session,
-                        &prepared.pending.item.id,
+                        &prepared.pending.item,
                         &oc_core::session::CoreError::Application(error),
                     )?;
                     continue 'step;
@@ -2789,7 +2789,7 @@ impl<'a> Runtime<'a> {
                 if let Some(prepared) = &pending {
                     self.fail_pending(
                         &params.session,
-                        &prepared.pending.item.id,
+                        &prepared.pending.item,
                         &oc_core::session::CoreError::Application(error.to_string()),
                     )?;
                     continue 'step;

@@ -198,18 +198,29 @@ fn running_queue_survives_interruption_and_reopen_until_explicit_idle_promotion(
     fixture.wait_requests(1);
     pty.send(b"PARKED_RESUME\x18\r");
     wait_screen_row(&pty, "1 queued", DEADLINE);
-    pty.send(b"\x1b\x1b");
+    pty.send(b"CONTINUE_STEER\r");
+    wait_screen_row(&pty, "CONTINUE_STEER", DEADLINE);
+    prompt_history::wait_prompt(&pty, &[]);
+    pty.send(b"\x1b");
+    wait_screen_row(&pty, "esc again to interrupt", DEADLINE);
+    pty.send(b"\x1b");
+    assert_eq!(
+        last_user_text(&fixture.wait_requests(2)[1]).as_deref(),
+        Some("CONTINUE_STEER")
+    );
+    wait_screen_row(&pty, "echo: CONTINUE_STEER", DEADLINE);
     wait_idle(&pty);
+    assert_eq!(fixture.wait_requests(2).len(), 2);
     fixture.vis28_continue.store(true, Ordering::Relaxed);
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success());
     let mut pty = PtySession::spawn(fixture.clone(), "parked-queue", None);
-    wait_screen_row(&pty, "1 pending (Enter to resume)", DEADLINE);
-    assert_eq!(fixture.wait_requests(1).len(), 1);
+    wait_screen_row(&pty, "1 queued", DEADLINE);
+    assert_eq!(fixture.wait_requests(2).len(), 2);
     pty.send(b"\r");
     wait_screen_row(&pty, "echo: PARKED_RESUME", DEADLINE);
     wait_idle(&pty);
-    assert_eq!(fixture.wait_requests(2).len(), 2);
+    assert_eq!(fixture.wait_requests(3).len(), 3);
     pty.send(b"/quit\r");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
 }

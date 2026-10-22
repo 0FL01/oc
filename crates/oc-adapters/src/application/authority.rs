@@ -467,9 +467,11 @@ impl Owner {
             (approval_mode, question_consumer),
             reservation,
             None,
+            None,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn begin_inner(
         self: &Arc<Self>,
         location: Arc<Location>,
@@ -478,8 +480,8 @@ impl Owner {
         consumers: (u8, bool),
         reservation: Option<&Mutation>,
         batch: Option<ParentBatch>,
+        interrupted: Option<(&Arc<Root>, String)>,
     ) -> Result<Arc<Root>, CoreError> {
-        let (approval_mode, question_consumer) = consumers;
         let mut roots = self.roots.lock().expect("primary roots");
         if self.closing.load(Ordering::Acquire) {
             return Err(CoreError::Shutdown);
@@ -487,10 +489,37 @@ impl Owner {
         let reserved = reservation.is_some_and(|reservation| reservation.session == session
             && std::ptr::eq(reservation.owner.as_ref(), self.as_ref())
             && matches!(roots.get(&session), Some(Reservation::Mutation(token)) if *token == reservation.token));
-        if (roots.contains_key(&session) || reservation.is_some()) && !reserved {
+        let replacing = if let Some((previous, _)) = &interrupted {
+            if !matches!(roots.get(&session), Some(Reservation::Running(current)) if Arc::ptr_eq(current, previous))
+                || !previous.resume_steers.load(Ordering::Acquire)
+                || origin.flag.load(Ordering::Acquire)
+            {
+                return Err(CoreError::TurnNotActive);
+            }
+            true
+        } else {
+            false
+        };
+        let (approval_mode, question_consumer) = if replacing {
+            (
+                if origin.approval_consumer.load(Ordering::Acquire) {
+                    if origin.auto_once.load(Ordering::Acquire) {
+                        2
+                    } else {
+                        1
+                    }
+                } else {
+                    0
+                },
+                origin.question_consumer.load(Ordering::Acquire),
+            )
+        } else {
+            consumers
+        };
+        if (roots.contains_key(&session) || reservation.is_some()) && !reserved && !replacing {
             return Err(CoreError::TurnBusy);
         }
-        if !reserved && roots.len() >= MAX_QUEUE_ITEMS {
+        if !reserved && !replacing && roots.len() >= MAX_QUEUE_ITEMS {
             return Err(CoreError::QueueFull);
         }
         if let Some(batch) = &batch
@@ -506,12 +535,13 @@ impl Owner {
             ready,
             // Undo stops one foreground request, not its detached jobs. Their
             // later continuation keeps the Origin but owns a fresh stop token.
-            cancel: if batch.is_some() {
+            cancel: if batch.is_some() || replacing {
                 Arc::new(AtomicBool::new(false))
             } else {
                 origin.foreground.clone()
             },
             origin: origin.clone(),
+            resume_steers: Arc::new(AtomicBool::new(false)),
         });
         roots.insert(session.clone(), Reservation::Running(root.clone()));
         let mut origins = self.origins.lock().expect("operation origins");
@@ -529,13 +559,14 @@ impl Owner {
         let db = self.db.shared_handle();
         let origin_work = origin.work();
         let resources = self.resources.clone();
+        let initial_inbox = interrupted.map(|(_, id)| id);
         self.root_tasks
             .lock()
             .expect("primary tasks")
             .spawn(async move {
                 let _origin_work = origin_work;
                 let mut refused = None;
-                let result = async {
+                let mut result = async {
                     let seed = match location.primary(session.clone()).await {
                         Ok(seed) => seed,
                         Err(error) => {
@@ -559,6 +590,8 @@ impl Owner {
                         approval_mode,
                         question_consumer,
                         initial,
+                        initial_inbox,
+                        running.resume_steers.clone(),
                     )
                     .await;
                     if let Some(reply) = reply {
@@ -567,6 +600,7 @@ impl Owner {
                     result
                 }
                 .await;
+                let resume = result.is_ok() && refused.is_none();
                 if let Some(batch) = &batch {
                     batch.finish(&resources);
                     if let Some(error) = refused
@@ -579,6 +613,38 @@ impl Owner {
                     }
                 }
                 if let Some(owner) = owner.upgrade() {
+                    // The old foreground and source cleanup are finished. Keep
+                    // its reservation until begin_inner atomically replaces it;
+                    // neither a new submit nor an undo can slip into a gap.
+                    if resume
+                        && running.resume_steers.load(Ordering::Acquire)
+                        && !running.origin.flag.load(Ordering::Acquire)
+                        && !owner.closing.load(Ordering::Acquire)
+                    {
+                        let handoff = db
+                            .inbox_next(&session, false)
+                            .map_err(|error| storage_diagnostic(db.root(), &error))
+                            .and_then(|pending| {
+                                let Some(pending) = pending else { return Ok(()) };
+                                match owner.begin_inner(
+                                    running.location.clone(),
+                                    session.clone(),
+                                    running.origin.clone(),
+                                    consumers,
+                                    None,
+                                    None,
+                                    Some((&running, pending.item.id)),
+                                ) {
+                                    Ok(_) | Err(CoreError::TurnNotActive | CoreError::Shutdown) => Ok(()),
+                                    Err(error) => Err(runtime_issue(
+                                        &running.location.project.to_string_lossy(),
+                                        &["inbox", "continuation"],
+                                        &RuntimeError::InvalidArgs(error.to_string()),
+                                    ).diagnostic),
+                                }
+                            });
+                        result = result.and(handoff);
+                    }
                     let mut roots = owner.roots.lock().expect("primary roots");
                     if roots
                         .get(&session)
@@ -642,6 +708,7 @@ impl Owner {
                 (approval, questions),
                 None,
                 Some(batch),
+                None,
             ) {
                 Ok(_)
                 | Err(
@@ -694,6 +761,7 @@ impl Owner {
             .children
             .cancel_session_with_cause(session, crate::runtime::stop::Cause::SessionCancel);
         if let Some(Reservation::Running(root)) = roots.get(session) {
+            root.resume_steers.store(true, Ordering::Release);
             root.cancel.store(true, Ordering::Release);
         }
         let shell = self.resources.shell.cancel_session(session);
@@ -712,6 +780,7 @@ impl Owner {
         session: &str,
         origin: u64,
         turn: Option<&oc_core::core_app::WorkerTurnId>,
+        resume_steers: bool,
     ) -> Result<(), CoreError> {
         let roots = self.roots.lock().expect("primary roots");
         let Some(Reservation::Running(root)) = roots.get(session) else {
@@ -731,6 +800,7 @@ impl Owner {
         self.resources
             .children
             .cancel_session_with_cause(session, crate::runtime::stop::Cause::SessionCancel);
+        root.resume_steers.store(resume_steers, Ordering::Release);
         root.cancel.store(true, Ordering::Release);
         self.resources.shell.cancel_session(session);
         Ok(())
@@ -903,6 +973,7 @@ pub(crate) struct Root {
     ready: watch::Receiver<Option<Result<(), CoreError>>>,
     pub(crate) cancel: Arc<AtomicBool>,
     pub(crate) origin: Arc<crate::runtime::origin::Origin>,
+    resume_steers: Arc<AtomicBool>,
 }
 
 impl Root {
@@ -921,6 +992,9 @@ pub(super) struct Operation {
     pub(super) cancel: Arc<AtomicBool>,
     pub(super) advance: watch::Receiver<u64>,
     pub(super) initial_notices: Option<ParentNotices>,
+    pub(super) initial_inbox: Option<(SessionId, String)>,
+    pub(super) resume_steers: Arc<AtomicBool>,
+    pub(super) drain_queue: Arc<AtomicBool>,
 }
 
 pub(super) struct ParentNotices {
@@ -997,6 +1071,8 @@ impl Primary {
         approval_mode: u8,
         question_consumer: bool,
         initial_notices: Option<ParentNotices>,
+        initial_inbox: Option<String>,
+        resume_steers: Arc<AtomicBool>,
     ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
         self.runtime.bind_native_origin(origin.clone());
         self.composition
@@ -1031,6 +1107,9 @@ impl Primary {
             cancel: cancel.clone(),
             advance: self.resources.advance.subscribe(),
             initial_notices,
+            drain_queue: Arc::new(AtomicBool::new(initial_inbox.is_none())),
+            initial_inbox: initial_inbox.map(|id| (SessionId(session.into()), id)),
+            resume_steers,
         };
         let result = {
             let work = worker(
