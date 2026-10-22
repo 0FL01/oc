@@ -54,8 +54,8 @@ impl TuiState {
             };
         let options = match &self.panel {
             TuiPanel::MessageActions { .. } => [
-                ("jump", "Jump to", "view message in session"),
                 ("revert", "Revert", "undo messages and restore prompt"),
+                ("jump", "Jump to", "view message in session"),
                 ("copy", "Copy", "message text to clipboard"),
                 ("fork", "Fork", "create a new session"),
             ]

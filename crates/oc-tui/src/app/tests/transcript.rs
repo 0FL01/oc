@@ -3501,9 +3501,9 @@ async fn vis10_user_hover_and_click_follow_painted_identity_through_wrap_and_scr
             .iter()
             .map(|o| o.title.as_str())
             .collect::<Vec<_>>(),
-        ["Jump to", "Revert", "Copy", "Fork"]
+        ["Revert", "Jump to", "Copy", "Fork"]
     );
-    state.select.cursor = 1;
+    assert_eq!(state.select.cursor, 0);
     assert_eq!(
         state.panel_enter().intent,
         Some(PanelIntent::ChangeConversation {
@@ -3665,7 +3665,7 @@ async fn vis10_resize_rehits_physical_hover_without_retaining_message_press() {
             seq: 9
         }
     );
-    state.select.cursor = 1;
+    assert_eq!(state.select.cursor, 0);
     assert_eq!(
         state.panel_enter().intent,
         Some(PanelIntent::ChangeConversation {
