@@ -3097,6 +3097,82 @@ async fn no_selected_variant_has_no_metadata_label_or_overlay() {
 }
 
 #[tokio::test]
+async fn prompt_metadata_hides_unresolved_model_only_while_provider_pending() {
+    use oc_core::queries::{ProviderReadiness, ProviderStatus};
+
+    let (app, _guard) = CoreApp::spawn(MockProvider::echo());
+    let mut state = TuiState::new_home(app);
+    let mut ready = catalog();
+    ready.agents[0].id = "build".into();
+    ready.agent_id = Some("build".into());
+    ready.models[0].display_name = "Fixture Model".into();
+    ready.chrome.provider = Some(ProviderReadiness {
+        service: "provider-opaque-fixture".into(),
+        model: "model-opaque-fixture".into(),
+        status: ProviderStatus::Ready,
+        catalog_status: ProviderStatus::Ready,
+        diagnostic: None,
+    });
+    let mut pending = ready.clone();
+    pending.models.clear();
+    pending.chrome.provider.as_mut().unwrap().status = ProviderStatus::Pending;
+    pending.chrome.provider.as_mut().unwrap().catalog_status = ProviderStatus::Pending;
+    state.apply_catalog(pending.clone());
+    state.handle_paste("keep this draft");
+    let theme = Theme::dark();
+    assert_eq!(
+        metadata_line(&state, theme, 111, 120).unwrap().to_string(),
+        "Build"
+    );
+    assert!(metadata_line(&state, theme, 34, 43).is_none());
+    let before = screen(&state, 120, 40);
+    let metadata_row = before
+        .iter()
+        .position(|row| row.contains("Build"))
+        .expect("pending metadata row");
+    let draft_row = before
+        .iter()
+        .position(|row| row.contains("keep this draft"))
+        .unwrap();
+
+    state.apply_catalog(ready.clone());
+    let expected = "Build · Fixture Model ludka2 · low";
+    assert_eq!(
+        metadata_line(&state, theme, 111, 120).unwrap().to_string(),
+        expected
+    );
+    let after = screen(&state, 120, 40);
+    assert!(after[metadata_row].contains(expected), "{after:?}");
+    assert_eq!(after[draft_row], before[draft_row]);
+    assert_eq!(state.input(), "keep this draft");
+
+    // A known name remains visible even while the provider is pending.
+    pending.models = ready.models;
+    state.apply_catalog(pending.clone());
+    assert_eq!(
+        metadata_line(&state, theme, 111, 120).unwrap().to_string(),
+        expected
+    );
+
+    // Terminal failures remain visible, including missing credentials while
+    // the catalog itself is still pending.
+    pending.models.clear();
+    for (status, catalog_status) in [
+        (ProviderStatus::Failed, ProviderStatus::Failed),
+        (ProviderStatus::Unavailable, ProviderStatus::Pending),
+    ] {
+        let provider = pending.chrome.provider.as_mut().unwrap();
+        provider.status = status;
+        provider.catalog_status = catalog_status;
+        state.apply_catalog(pending.clone());
+        assert_eq!(
+            metadata_line(&state, theme, 111, 120).unwrap().to_string(),
+            "Build · model-opaque-fixture (unavailable) ludka2"
+        );
+    }
+}
+
+#[tokio::test]
 async fn prompt_metadata_fits_the_painted_row_at_43_44_and_120() {
     let mut state = golden_state().await;
     let mut snapshot = catalog();

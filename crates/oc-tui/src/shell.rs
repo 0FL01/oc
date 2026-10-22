@@ -2358,8 +2358,21 @@ fn metadata_line(
         .flatten();
     let agent_label = agent.map(crate::messages::Locale::titlecase);
     let display_agent = agent_label.as_deref();
-    let model = state.active_model_label();
-    let provider = layout::shows_agent_metadata(terminal_width)
+    // An unresolved first catalog is not a retired model. Keep known labels
+    // visible during refresh, but wait for discovery before showing a failure.
+    let pending_model = state
+        .chrome
+        .provider
+        .as_ref()
+        .is_some_and(|provider| provider.status == oc_core::queries::ProviderStatus::Pending)
+        && state
+            .picker
+            .as_ref()
+            .is_none_or(|picker| picker.selection().is_none());
+    let model = (!pending_model)
+        .then(|| state.active_model_label())
+        .flatten();
+    let provider = (layout::shows_agent_metadata(terminal_width) && !pending_model)
         .then(|| state.active_provider())
         .flatten()
         .unwrap_or_default();
