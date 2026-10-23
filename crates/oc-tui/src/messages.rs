@@ -200,6 +200,32 @@ struct LongCellSegments {
     fragments: Vec<(usize, usize)>,
 }
 
+/// A tool row's rendered body for one card allocation and geometry. The card
+/// is shared copy-on-write: any edit allocates a new card, so its address is
+/// the content identity while this entry keeps that allocation alive.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct ToolRowKey {
+    card: usize,
+    role: u8,
+    width: u16,
+    theme: crate::theme::ThemeMode,
+    expanded: bool,
+    leading: bool,
+}
+
+struct ToolRowLayout {
+    _card: std::sync::Arc<crate::history::ToolCard>,
+    lines: std::sync::Arc<Vec<Line>>,
+    expandable: bool,
+    height: usize,
+    bytes: usize,
+    used: u64,
+}
+
+/// Rendered tool bodies retained across projections (bounded by count/bytes).
+const MAX_TOOL_ROWS: usize = 4 * crate::history::WINDOW_ROWS + crate::app::LIVE_PARTS_MAX;
+const MAX_TOOL_ROW_BYTES: usize = 8 * 1024 * 1024;
+
 /// Per-session completed-part cache, bounded independently of history. The
 /// content hash is the part revision; width and theme invalidate geometry.
 #[derive(Default)]
@@ -213,6 +239,8 @@ pub(crate) struct MarkdownCache {
     source_heights: VecDeque<SourceHeight>,
     user_indexes: VecDeque<UserGeometry>,
     user_index_bytes: usize,
+    tool_rows: std::collections::HashMap<ToolRowKey, ToolRowLayout>,
+    tool_row_bytes: usize,
     use_clock: u64,
     #[cfg(test)]
     user_source_wraps: usize,
@@ -220,6 +248,8 @@ pub(crate) struct MarkdownCache {
     source_indexes: usize,
     #[cfg(test)]
     parses: usize,
+    #[cfg(test)]
+    tool_row_renders: usize,
     #[cfg(test)]
     parsed_bytes: usize,
 }
@@ -776,8 +806,118 @@ impl MarkdownCache {
     }
 
     pub(crate) fn retained_bytes(&self) -> usize {
-        self.bytes + self.index_bytes()
+        self.bytes + self.index_bytes() + self.tool_row_bytes
     }
+
+    #[cfg(test)]
+    pub(crate) fn tool_row_renders(&self) -> usize {
+        self.tool_row_renders
+    }
+
+    fn store_tool_row(&mut self, key: ToolRowKey, layout: ToolRowLayout) {
+        self.tool_row_bytes += layout.bytes;
+        if let Some(previous) = self.tool_rows.insert(key, layout) {
+            self.tool_row_bytes -= previous.bytes;
+        }
+        while self.tool_rows.len() > MAX_TOOL_ROWS || self.tool_row_bytes > MAX_TOOL_ROW_BYTES {
+            let Some(oldest) = self
+                .tool_rows
+                .iter()
+                .min_by_key(|(_, layout)| layout.used)
+                .map(|(key, _)| *key)
+            else {
+                break;
+            };
+            let evicted = self.tool_rows.remove(&oldest).expect("tool row");
+            self.tool_row_bytes -= evicted.bytes;
+        }
+    }
+}
+
+/// Body of one tool/shell row: `expandable_tool_entry` when it applies, else
+/// the `render_row` tool block. Memoized by card identity and geometry, so a
+/// stable card is rendered (and its patch highlighted) once, not per frame.
+/// `None` for rows without a card and for Execute cards, whose per-call
+/// expansion state is not part of the key.
+fn tool_row_body(
+    row: &HistoryRow,
+    theme: &Theme,
+    width: u16,
+    expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
+    leading: bool,
+    cache: &RefCell<MarkdownCache>,
+) -> Option<(std::sync::Arc<Vec<Line>>, bool, usize)> {
+    let role = match row.role.as_str() {
+        "tool" => 0,
+        "shell" => 1,
+        "shell_input" => 2,
+        _ => return None,
+    };
+    let card = row.tool.as_ref()?;
+    if matches!(
+        card.render,
+        crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute)
+    ) {
+        return None;
+    }
+    let key = ToolRowKey {
+        card: std::sync::Arc::as_ptr(card) as usize,
+        role,
+        width,
+        theme: theme.mode(),
+        expanded: expanded(ToolExpansion::Operation(&card.op)),
+        leading,
+    };
+    let mut store = cache.borrow_mut();
+    store.use_clock = store.use_clock.wrapping_add(1);
+    let clock = store.use_clock;
+    if let Some(layout) = store.tool_rows.get_mut(&key) {
+        layout.used = clock;
+        return Some((layout.lines.clone(), layout.expandable, layout.height));
+    }
+    drop(store);
+    let (lines, expandable) = match expandable_tool_entry(row, theme, width, expanded, leading) {
+        Some(lines) => (lines, true),
+        None => {
+            let block = crate::tools::tool_block(card, theme, width);
+            let mut lines = Vec::with_capacity(block.len() + 1);
+            if !block.is_empty() {
+                lines.push(Line::plain(""));
+                lines.extend(block);
+            }
+            (lines.into_iter().map(sanitize_line).collect(), false)
+        }
+    };
+    let height = lines
+        .iter()
+        .map(|line| styled::wrap_line_limited(line, width as usize, MAX_MARKDOWN_ROWS).len())
+        .sum();
+    let bytes = lines
+        .iter()
+        .flat_map(|line| line.spans())
+        .map(|span| span.content().len() + 64)
+        .sum::<usize>()
+        + 64;
+    let lines = std::sync::Arc::new(lines);
+    if !styled::render_cancelled() {
+        let mut store = cache.borrow_mut();
+        #[cfg(test)]
+        {
+            store.tool_row_renders += 1;
+        }
+        store.store_tool_row(
+            key,
+            ToolRowLayout {
+                _card: card.clone(),
+                lines: lines.clone(),
+                expandable,
+                height,
+                bytes,
+                used: clock,
+            },
+        );
+    }
+    Some((lines, expandable, height))
 }
 
 fn with_preview_limit(mut lines: Vec<Line>, theme: &Theme) -> Vec<Line> {
@@ -1470,7 +1610,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
         members.push(member);
         completed &= done;
         if !done && spinner.is_none() {
-            spinner = row.tool.as_ref().map(crate::history::ToolCard::spinner);
+            spinner = row.tool.as_ref().map(|card| card.spinner());
         }
         if let Some((_, count)) = counts.iter_mut().find(|(known, _)| *known == name) {
             *count += 1;
@@ -3363,12 +3503,25 @@ fn visible_transcript_indexed(
                 &mut position,
                 &mut visible,
             );
-        } else if let Some(lines) = expandable_tool_entry(
+        } else if let Some(lines) = tool_row_body(
             row,
             theme,
             width,
             options.expanded,
             shell_leading_margin(rows, index),
+            cache,
+        )
+        .map_or_else(
+            || {
+                expandable_tool_entry(
+                    row,
+                    theme,
+                    width,
+                    options.expanded,
+                    shell_leading_margin(rows, index),
+                )
+            },
+            |(lines, expandable, _)| expandable.then(|| lines.as_ref().clone()),
         ) {
             let margin = usize::from(shell_leading_margin(rows, index));
             if let Some(card) = &row.tool {
@@ -3769,6 +3922,22 @@ fn visible_transcript_indexed(
                     }
                 },
             );
+        } else if let Some((lines, _, _)) = tool_row_body(
+            row,
+            theme,
+            width,
+            options.expanded,
+            shell_leading_margin(rows, index),
+            cache,
+        ) {
+            // A plain tool block (expandable bodies were handled above).
+            add_visible_lines(
+                lines.as_ref().clone(),
+                Some(width),
+                (start, end),
+                &mut position,
+                &mut visible,
+            );
         } else {
             let mut margin = (row.role == "user" && index > 0) || row.role == "reverted";
             visit_row_blocks(
@@ -3888,6 +4057,15 @@ pub(crate) fn transcript_part_positions(
                 part(absorbed, total, total);
             }
             continue;
+        } else if let Some((_, _, height)) = tool_row_body(
+            row,
+            theme,
+            width,
+            expanded,
+            shell_leading_margin(rows, index),
+            cache,
+        ) {
+            total += height;
         } else if let Some(lines) = expandable_tool_entry(
             row,
             theme,

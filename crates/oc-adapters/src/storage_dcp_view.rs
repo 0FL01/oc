@@ -13,6 +13,79 @@ pub(super) fn decode(raw: Option<String>) -> Option<DcpRunSnapshot> {
         .and_then(|raw| serde_json::from_str(&raw).ok())
 }
 
+/// Bound on tool-call identities consulted for one active projection. Long
+/// sessions without compaction hold thousands of calls; each is an indexed
+/// lookup, so the bound guards memory, not quadratic work.
+const MAX_ACTIVE_CALLS: usize = 65_536;
+
+#[derive(PartialEq, Eq)]
+struct WireLogKey {
+    session: String,
+    after_seq: i64,
+    projected: Vec<String>,
+    blocks: Vec<crate::dcp::CompressionBlock>,
+    changes: u64,
+}
+
+pub(crate) struct WireLogMemo {
+    key: WireLogKey,
+    logs: Option<Vec<String>>,
+}
+
+/// Public/retained wire logs of the active projection; see
+/// `presentation_wire_logs_in`. Candidate membership (?4) overrides durable
+/// membership during pre-commit measurement.
+pub(super) const PRESENTATION_WIRE_LOGS_SQL: &str = "WITH logs AS MATERIALIZED (
+    SELECT jsonb(t.result) AS result,t.archive_rowid,t.prompt,m.id,
+      (m.id IN (SELECT value FROM json_each(?3))) AS projected_member,
+      COALESCE((SELECT b.value->>'$.id' FROM json_each(?4) b,json_each(b.value,'$.members') member WHERE member.value=m.id LIMIT 1),
+        (SELECT cm.block_id FROM compression_members cm WHERE cm.message_id=m.id AND cm.block_id IN (SELECT value->>'$.id' FROM json_each(?4)) LIMIT 1)) AS block_id
+    FROM conversation_turns t JOIN conversation_messages m ON m.id=json_extract(t.result,'$.user_message')
+    WHERE t.session_id=?1 AND json_valid(t.result) AND m.seq>?2
+      AND (m.id IN(SELECT value FROM json_each(?3)) OR EXISTS(SELECT 1 FROM compression_members cm JOIN json_each(?4) b ON b.value->>'$.id'=cm.block_id WHERE cm.message_id=m.id AND COALESCE(b.value->>'$.hot.standalone',0)=0 AND COALESCE(b.value->>'$.hot.active',1)=1))
+      AND NOT EXISTS(SELECT 1 FROM json_each(?4) b JOIN messages a ON a.id=b.value->>'$.start' JOIN messages z ON z.id=b.value->>'$.end' WHERE b.value->>'$.hot.standalone'=1 AND b.value->>'$.hot.active'=1 AND m.seq BETWEEN a.seq AND z.seq)
+  ), items AS MATERIALIZED (
+    SELECT l.archive_rowid AS turn,i.key AS key,i.value AS value,i.value->>'$.type' AS type,i.value->>'$.call_id' AS call_id,
+      (l.projected_member OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL)) AS shown
+    FROM logs l,json_each(l.result,'$.input') i
+  ), answered AS MATERIALIZED (
+    SELECT DISTINCT turn,call_id FROM items WHERE type='function_call_output' AND call_id IS NOT NULL
+  ), kept AS MATERIALIZED (
+    SELECT it.turn,it.key,it.value FROM items it
+    WHERE it.shown AND (it.type!='function_call' OR EXISTS(SELECT 1 FROM answered a WHERE a.turn=it.turn AND a.call_id=it.call_id))
+  ), visible AS (
+    SELECT json_object('turn_id',result->>'$.turn_id','model',result->>'$.model','provider',result->>'$.provider',
+        'protocol',COALESCE(result->>'$.protocol','responses'),'binding',json(result->'$.binding'),
+       'agent_digest',result->>'$.agent_digest','user_message',id,'assistant_message',result->>'$.assistant_message',
+       'raw_prefix',json(result->'$.raw_prefix'),'working',json(result->'$.working'),
+        'requests',json(COALESCE(result->>'$.requests','[]')),
+        'spans',json(COALESCE(result->>'$.spans','[]')),
+       'call_occurrences',json(COALESCE((SELECT json_group_object(
+         (SELECT count(*) FROM kept k WHERE k.turn=logs.archive_rowid AND k.key<CAST(c.key AS INTEGER)),c.value)
+          FROM json_each(logs.result,'$.call_occurrences') c WHERE EXISTS(SELECT 1 FROM items original WHERE original.turn=logs.archive_rowid AND original.key=CAST(c.key AS INTEGER) AND original.type='function_call' AND EXISTS(SELECT 1 FROM answered a WHERE a.turn=original.turn AND a.call_id=original.call_id))),'{}')),
+       'input_origins',json(COALESCE((SELECT json_group_array(k.key+COALESCE(result->>'$.raw_prefix.ends[0]',0) ORDER BY k.key) FROM kept k WHERE k.turn=logs.archive_rowid),'[]')),
+       'shell_notice_messages',json(CASE WHEN logs.projected_member THEN COALESCE(result->>'$.shell_notice_messages','[]') ELSE '[]' END),
+       'native_input',json_extract(result,'$.native_input'),
+       'instruction_references',json(COALESCE((SELECT json_group_array(json_object(
+         'event',a.value->>'$.event',
+         'index',(SELECT count(*) FROM kept k WHERE k.turn=logs.archive_rowid AND k.key<a.value->>'$.index')))
+         FROM json_each(logs.result,'$.instruction_references') a),'[]')),
+      '_dcp_block',CASE WHEN projected_member THEN NULL ELSE block_id END,
+      '_dcp_prompt',CASE WHEN projected_member THEN prompt END,
+      'display_parts',json(COALESCE((SELECT json_group_array(json(p.value)) FROM json_each(result,'$.display_parts') p WHERE p.value->>'$.tool' IS NOT NULL),'[]')),
+      'input',json(COALESCE((SELECT json_group_array(json(k.value) ORDER BY k.key) FROM kept k WHERE k.turn=logs.archive_rowid),'[]')),
+      'native_mcp_results',json(COALESCE((SELECT json_group_array(json_object(
+        'input_index',(SELECT count(*) FROM kept k WHERE k.turn=logs.archive_rowid AND k.key<a.value->>'$.input_index'),
+        'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
+         FROM json_each(logs.result,'$.native_mcp_results') a),'[]')),
+       'native_read_results',json(COALESCE((SELECT json_group_array(json_object(
+         'input_index',(SELECT count(*) FROM kept k WHERE k.turn=logs.archive_rowid AND k.key<a.value->>'$.input_index'),
+         'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
+         FROM json_each(logs.result,'$.native_read_results') a),'[]')))
+      AS result,archive_rowid
+    FROM logs WHERE projected_member OR block_id IS NOT NULL
+  ) SELECT CASE WHEN length(CAST(result AS BLOB))<=?5 THEN result END FROM visible WHERE result->>'$._dcp_block' IS NULL OR json_array_length(result,'$.input')>0 ORDER BY archive_rowid LIMIT 4097";
+
 impl Db {
     /// Only active, exact occurrences are consulted. Text resembling an error
     /// is not execution evidence; missing/ambiguous legacy facts never purge.
@@ -21,7 +94,7 @@ impl Db {
         session: &str,
         identities: &BTreeMap<DcpCallKey, DcpCallIdentity>,
     ) -> Result<std::collections::BTreeSet<DcpCallKey>, StorageError> {
-        if identities.len() > 4096 {
+        if identities.len() > MAX_ACTIVE_CALLS {
             return Err(StorageError::CompressionConflict);
         }
         let conn = self.conn.lock().expect("db mutex");
@@ -72,7 +145,7 @@ impl Db {
         after: i64,
     ) -> Result<BTreeMap<DcpCallKey, DcpCallIdentity>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let owned:bool=conn.query_row("SELECT EXISTS(SELECT 1 FROM prefs WHERE key='dcp.projection_owned.'||?1 AND value='true')",[session],|r|r.get(0))?;
+        let owned:bool=conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM prefs WHERE key='dcp.projection_owned.'||?1 AND value='true')")?.query_row([session],|r|r.get(0))?;
         let needed: bool = conn.query_row(
             if owned { "SELECT EXISTS(SELECT 1 FROM dcp_tool_projection_v2 WHERE session_id=?1 AND active=1)" } else { "SELECT EXISTS(SELECT 1 FROM dcp_tool_projection_v2 WHERE session_id=?1 AND (active=1 OR active IS NULL))" },
             [session],
@@ -106,7 +179,7 @@ impl Db {
           WHERE i.value->>'$.type'='function_call' AND (pending=1 OR EXISTS(SELECT 1 FROM json_each(items,'$.input') o WHERE o.value->>'$.type'='function_call_output' AND o.value->>'$.call_id'=i.value->>'$.call_id'))
           UNION ALL SELECT position,source,part,-1,NULL,NULL,-1 FROM inputs WHERE length(CAST(items AS BLOB))>?3
         ), admitted AS (SELECT *,SUM(COALESCE(length(CAST(turn AS BLOB)),0)+COALESCE(length(CAST(call AS BLOB)),0)+32) OVER(ORDER BY position,source,part,idx) AS bytes FROM calls)
-          SELECT CASE WHEN bytes<=?3 THEN turn END,CASE WHEN bytes<=?3 THEN call END,original FROM admitted ORDER BY position,source,part,idx LIMIT 4097";
+          SELECT CASE WHEN bytes<=?3 THEN turn END,CASE WHEN bytes<=?3 THEN call END,original FROM admitted ORDER BY position,source,part,idx LIMIT 65537";
         let mut result = BTreeMap::new();
         let mut counts = BTreeMap::<String, u64>::new();
         for row in conn.prepare(sql)?.query_map(
@@ -125,7 +198,7 @@ impl Db {
         )? {
             let (turn, id, original) = row?;
             self.count_history_read(8, turn.len() + id.len() + 8);
-            if result.len() >= 4096 {
+            if result.len() >= MAX_ACTIVE_CALLS {
                 return Err(StorageError::CompressionConflict);
             }
             let original =
@@ -155,11 +228,11 @@ impl Db {
             ("session_checkpoint", "selection"),
             ("dcp_tool_projection_v2", "active"),
         ] {
-            let exists: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
-                [table],
-                |r| r.get(0),
-            )?;
+            let exists: bool = tx
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+                )?
+                .query_row([table], |r| r.get(0))?;
             if !exists {
                 continue;
             }
@@ -176,12 +249,12 @@ impl Db {
                 tx.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {ty};"))?;
             }
         }
-        let exists:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='compression_blocks')",[],|r|r.get(0))?;
+        let exists:bool=tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='compression_blocks')")?.query_row([],|r|r.get(0))?;
         if exists {
             tx.execute_batch(&format!("CREATE INDEX IF NOT EXISTS compression_hot_invalid ON compression_blocks(session_id) WHERE {INVALID_HOT};"))?;
             tx.execute_batch("CREATE INDEX IF NOT EXISTS compression_hot_active ON compression_blocks(session_id,json_extract(hot,'$.active')) WHERE hot IS NOT NULL AND json_valid(hot); CREATE INDEX IF NOT EXISTS compression_legacy_scope ON compression_blocks(session_id,id) WHERE hot IS NULL; INSERT OR IGNORE INTO schema_migrations VALUES(9,'t45-hot-renewal');")?;
         }
-        let projection:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='dcp_tool_projection_v2')",[],|r|r.get(0))?;
+        let projection:bool=tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='dcp_tool_projection_v2')")?.query_row([],|r|r.get(0))?;
         if projection {
             tx.execute_batch("CREATE INDEX IF NOT EXISTS dcp_projection_active ON dcp_tool_projection_v2(session_id,active);")?;
         }
@@ -199,7 +272,34 @@ impl Db {
         blocks: &[crate::dcp::CompressionBlock],
     ) -> Result<Option<Vec<String>>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let result = Self::presentation_wire_logs_in(&conn, session, after_seq, projected, blocks)?;
+        // One step reads the same projection several times (history, cadence,
+        // measurement). Reuse it while this sole writer connection is unchanged.
+        let key = WireLogKey {
+            session: session.to_owned(),
+            after_seq,
+            projected: projected.iter().map(|row| row.0.clone()).collect(),
+            blocks: blocks.to_vec(),
+            changes: conn.total_changes(),
+        };
+        let memo = self
+            .wire_log_memo
+            .lock()
+            .expect("wire log memo")
+            .as_ref()
+            .filter(|memo| memo.key == key)
+            .map(|memo| memo.logs.clone());
+        let result = match memo {
+            Some(logs) => logs,
+            None => {
+                let logs =
+                    Self::presentation_wire_logs_in(&conn, session, after_seq, projected, blocks)?;
+                *self.wire_log_memo.lock().expect("wire log memo") = Some(WireLogMemo {
+                    key,
+                    logs: logs.clone(),
+                });
+                logs
+            }
+        };
         if let Some(logs) = &result {
             for raw in logs {
                 self.count_history_read(0, raw.len());
@@ -228,58 +328,11 @@ impl Db {
         // measurement. Only public/retained fields cross SQLite's boundary;
         // covered canonical message/reasoning outputs are retained exactly as
         // in the Responses continuation, while ordinary Message input is not.
-        let mut stmt = conn.prepare("WITH logs AS (
-            SELECT t.result,t.archive_rowid,t.prompt,m.id,
-              COALESCE((SELECT b.value->>'$.id' FROM json_each(?4) b,json_each(b.value,'$.members') member WHERE member.value=m.id LIMIT 1),
-                (SELECT cm.block_id FROM compression_members cm WHERE cm.message_id=m.id AND cm.block_id IN (SELECT value->>'$.id' FROM json_each(?4)) LIMIT 1)) AS block_id
-            FROM conversation_turns t JOIN conversation_messages m ON m.id=json_extract(t.result,'$.user_message')
-            WHERE t.session_id=?1 AND json_valid(t.result) AND m.seq>?2
-              AND (m.id IN(SELECT value FROM json_each(?3)) OR EXISTS(SELECT 1 FROM compression_members cm JOIN json_each(?4) b ON b.value->>'$.id'=cm.block_id WHERE cm.message_id=m.id AND COALESCE(b.value->>'$.hot.standalone',0)=0 AND COALESCE(b.value->>'$.hot.active',1)=1))
-              AND NOT EXISTS(SELECT 1 FROM json_each(?4) b JOIN messages a ON a.id=b.value->>'$.start' JOIN messages z ON z.id=b.value->>'$.end' WHERE b.value->>'$.hot.standalone'=1 AND b.value->>'$.hot.active'=1 AND m.seq BETWEEN a.seq AND z.seq)
-          ), visible AS (
-            SELECT json_object('turn_id',result->>'$.turn_id','model',result->>'$.model','provider',result->>'$.provider',
-                'protocol',COALESCE(result->>'$.protocol','responses'),'binding',json(result->'$.binding'),
-               'agent_digest',result->>'$.agent_digest','user_message',id,'assistant_message',result->>'$.assistant_message',
-               'raw_prefix',json(result->'$.raw_prefix'),'working',json(result->'$.working'),
-                'requests',json(COALESCE(result->>'$.requests','[]')),
-                'spans',json(COALESCE(result->>'$.spans','[]')),
-               'call_occurrences',json(COALESCE((SELECT json_group_object(
-                 (SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<CAST(c.key AS INTEGER)
-                   AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
-                   AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),c.value)
-                  FROM json_each(logs.result,'$.call_occurrences') c WHERE EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') original WHERE original.key=CAST(c.key AS INTEGER) AND original.value->>'$.type'='function_call' AND EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=original.value->>'$.call_id'))),'{}')),
-               'input_origins',json(COALESCE((SELECT json_group_array(i.key+COALESCE(result->>'$.raw_prefix.ends[0]',0)) FROM json_each(result,'$.input') i
-                 WHERE (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
-                 AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),'[]')),
-               'shell_notice_messages',json(CASE WHEN logs.id IN (SELECT value FROM json_each(?3)) THEN COALESCE(result->>'$.shell_notice_messages','[]') ELSE '[]' END),
-               'native_input',json_extract(result,'$.native_input'),
-               'instruction_references',json(COALESCE((SELECT json_group_array(json_object(
-                 'event',a.value->>'$.event',
-                 'index',(SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<a.value->>'$.index'
-                   AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
-                   AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id')))))
-                 FROM json_each(logs.result,'$.instruction_references') a),'[]')),
-              '_dcp_block',CASE WHEN id IN (SELECT value FROM json_each(?3)) THEN NULL ELSE block_id END,
-              '_dcp_prompt',CASE WHEN id IN (SELECT value FROM json_each(?3)) THEN prompt END,
-              'display_parts',json(COALESCE((SELECT json_group_array(json(p.value)) FROM json_each(result,'$.display_parts') p WHERE p.value->>'$.tool' IS NOT NULL),'[]')),
-              'input',json(COALESCE((SELECT json_group_array(json(i.value)) FROM json_each(result,'$.input') i
-                WHERE (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
-                  AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),'[]')),
-              'native_mcp_results',json(COALESCE((SELECT json_group_array(json_object(
-                'input_index',(SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<a.value->>'$.input_index'
-                  AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
-                  AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),
-                'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
-                 FROM json_each(logs.result,'$.native_mcp_results') a),'[]')),
-               'native_read_results',json(COALESCE((SELECT json_group_array(json_object(
-                 'input_index',(SELECT count(*) FROM json_each(logs.result,'$.input') i WHERE i.key<a.value->>'$.input_index'
-                   AND (logs.id IN (SELECT value FROM json_each(?3)) OR NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL))
-                   AND (i.value->>'$.type'!='function_call' OR EXISTS(SELECT 1 FROM json_each(logs.result,'$.input') answered WHERE answered.value->>'$.type'='function_call_output' AND answered.value->>'$.call_id'=i.value->>'$.call_id'))),
-                 'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
-                 FROM json_each(logs.result,'$.native_read_results') a),'[]')))
-              AS result,archive_rowid
-            FROM logs WHERE id IN (SELECT value FROM json_each(?3)) OR block_id IS NOT NULL
-          ) SELECT CASE WHEN length(CAST(result AS BLOB))<=?5 THEN result END FROM visible WHERE result->>'$._dcp_block' IS NULL OR json_array_length(result,'$.input')>0 ORDER BY archive_rowid LIMIT 4097")?;
+        // Linear per journal: `logs` is materialized once (as JSONB), each input
+        // item is classified once (`items`), answered calls form one set, and
+        // per-item ranks come from `kept` instead of rescanning the input for
+        // every item. Output is byte-identical to the original nested form.
+        let mut stmt = conn.prepare_cached(PRESENTATION_WIRE_LOGS_SQL)?;
         let mut logs = Vec::new();
         let mut budget = crate::runtime::ACTIVE_CONTEXT_BYTES_CAP;
         for row in stmt.query_map(
@@ -362,7 +415,7 @@ impl Db {
             if graph.len() >= 4096 {
                 return Err(StorageError::CompressionConflict);
             }
-            let (topic, summary, start_msg, end_msg,raw_hot): (String,String,String,String,Option<String>) = conn.query_row("WITH chosen AS (SELECT topic,summary,start_msg,end_msg,CASE WHEN ?4 THEN hot ELSE json_set(hot,'$.logs',json('[]'),'$.protected',json('[]'),'$.legacy_protected',json('[]')) END AS hot FROM compression_blocks WHERE session_id=?1 AND id=?2) SELECT topic,summary,start_msg,end_msg,hot FROM chosen WHERE length(CAST(summary AS BLOB))+COALESCE(length(CAST(hot AS BLOB)),0)<=?3",params![session,id,budget as i64,retain_selection],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)))?;
+            let (topic, summary, start_msg, end_msg,raw_hot): (String,String,String,String,Option<String>) = conn.prepare_cached("WITH chosen AS (SELECT topic,summary,start_msg,end_msg,CASE WHEN ?4 THEN hot ELSE json_set(hot,'$.logs',json('[]'),'$.protected',json('[]'),'$.legacy_protected',json('[]')) END AS hot FROM compression_blocks WHERE session_id=?1 AND id=?2) SELECT topic,summary,start_msg,end_msg,hot FROM chosen WHERE length(CAST(summary AS BLOB))+COALESCE(length(CAST(hot AS BLOB)),0)<=?3")?.query_row(params![session,id,budget as i64,retain_selection],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)))?;
             if let Some(reads) = reads {
                 use std::sync::atomic::Ordering::Relaxed;
                 reads[6].fetch_add(1, Relaxed);
@@ -485,9 +538,7 @@ impl Db {
                 bounds.push((start, end));
             }
             for p in crate::dcp::parse_block_placeholders(&range.summary) {
-                let exists: bool = conn.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM compression_blocks WHERE session_id=?1 AND id=?2)",
-                    params![session, p.block_id],
+                let exists: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM compression_blocks WHERE session_id=?1 AND id=?2)")?.query_row(params![session, p.block_id],
                     |r| r.get(0),
                 )?;
                 if exists {
@@ -499,7 +550,7 @@ impl Db {
         let bounds =
             serde_json::to_string(&bounds).map_err(|_| StorageError::CompressionConflict)?;
         for id in &referenced {
-            let fully_covered: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM compression_blocks cb JOIN conversation_messages a ON a.id=cb.start_msg JOIN conversation_messages z ON z.id=cb.end_msg JOIN json_each(?2) span WHERE cb.id=?1 AND a.seq>=span.value->>'$[0]' AND z.seq<=span.value->>'$[1]')",params![id,bounds],|r|r.get(0))?;
+            let fully_covered: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM compression_blocks cb JOIN conversation_messages a ON a.id=cb.start_msg JOIN conversation_messages z ON z.id=cb.end_msg JOIN json_each(?2) span WHERE cb.id=?1 AND a.seq>=span.value->>'$[0]' AND z.seq<=span.value->>'$[1]')")?.query_row(params![id,bounds],|r|r.get(0))?;
             if !fully_covered {
                 return Err(StorageError::CompressionConflict);
             }
@@ -557,11 +608,9 @@ impl Db {
                 |r| r.get(0),
             )
             .optional()?;
-        let high: i64 = conn.query_row(
-            "SELECT high_water FROM compression_identity WHERE singleton=1",
-            [],
-            |r| r.get(0),
-        )?;
+        let high: i64 = conn
+            .prepare_cached("SELECT high_water FROM compression_identity WHERE singleton=1")?
+            .query_row([], |r| r.get(0))?;
         Ok((
             rows,
             graph,
@@ -605,7 +654,7 @@ impl Db {
         session: &str,
         keys: &[DcpCallKey],
     ) -> Result<DcpToolProjection, StorageError> {
-        if keys.len() > 4096 {
+        if keys.len() > MAX_ACTIVE_CALLS {
             return Err(StorageError::CompressionConflict);
         }
         let keys = serde_json::to_string(&keys).map_err(|_| StorageError::CompressionConflict)?;
@@ -620,7 +669,7 @@ impl Db {
 
     pub(crate) fn dcp_block_count(&self, session: &str) -> Result<usize, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let n: i64 = conn.query_row("SELECT count(*) FROM compression_blocks cb WHERE cb.session_id=?1 AND (cb.hot IS NOT NULL AND json_valid(cb.hot) AND json_extract(cb.hot,'$.active')=1 OR cb.hot IS NULL AND EXISTS(SELECT 1 FROM compression_members cm WHERE cm.block_id=cb.id))",[session],|r|r.get(0))?;
+        let n: i64 = conn.prepare_cached("SELECT count(*) FROM compression_blocks cb WHERE cb.session_id=?1 AND (cb.hot IS NOT NULL AND json_valid(cb.hot) AND json_extract(cb.hot,'$.active')=1 OR cb.hot IS NULL AND EXISTS(SELECT 1 FROM compression_members cm WHERE cm.block_id=cb.id))")?.query_row([session],|r|r.get(0))?;
         Ok(n.max(0) as usize)
     }
 
@@ -650,7 +699,7 @@ impl Db {
     /// Existing nudge preferences are versioned with the conversation branch.
     pub(crate) fn dcp_nudges(&self, session: &str) -> Result<u64, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let count: i64 = conn.query_row("SELECT COALESCE(sum(CASE WHEN json_valid(value) THEN COALESCE(json_extract(value,'$.emitted'),0) ELSE 0 END),0) FROM prefs WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||?1||char(0) AS BLOB)))=CAST('dcp.nudge.'||?1||char(0) AS BLOB)",[session],|r|r.get(0))?;
+        let count: i64 = conn.prepare_cached("SELECT COALESCE(sum(CASE WHEN json_valid(value) THEN COALESCE(json_extract(value,'$.emitted'),0) ELSE 0 END),0) FROM prefs WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||?1||char(0) AS BLOB)))=CAST('dcp.nudge.'||?1||char(0) AS BLOB)")?.query_row([session],|r|r.get(0))?;
         Ok(count.max(0) as u64)
     }
     pub(super) fn dcp_view_schema(conn: &Connection) -> Result<(), StorageError> {
@@ -675,9 +724,7 @@ impl Db {
         conn: &Connection,
         session: &str,
     ) -> Result<Option<DcpAccounting>, StorageError> {
-        let raw: Option<String> = conn.query_row(
-            "SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=?2 THEN snapshot END FROM dcp_accounting WHERE session_id=?1",
-            params![session,SNAPSHOT_CAP as i64], |r| r.get(0)).optional()?.flatten();
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=?2 THEN snapshot END FROM dcp_accounting WHERE session_id=?1")?.query_row(params![session,SNAPSHOT_CAP as i64], |r| r.get(0)).optional()?.flatten();
         Ok(raw.and_then(|raw| serde_json::from_str(&raw).ok()))
     }
 
@@ -696,9 +743,7 @@ impl Db {
         session: &str,
         operation: &str,
     ) -> Result<Option<DcpRunSnapshot>, StorageError> {
-        let raw = conn.query_row(
-            "SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=?3 THEN snapshot END FROM dcp_run_views WHERE session_id=?1 AND operation_id=?2",
-            params![session,operation,SNAPSHOT_CAP as i64], |r| r.get(0)).optional()?.flatten();
+        let raw = conn.prepare_cached("SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=?3 THEN snapshot END FROM dcp_run_views WHERE session_id=?1 AND operation_id=?2")?.query_row(params![session,operation,SNAPSHOT_CAP as i64], |r| r.get(0)).optional()?.flatten();
         Ok(decode(raw))
     }
 
@@ -721,9 +766,7 @@ impl Db {
         };
         let limit = limit.clamp(4, SUMMARY_PAGE_CAP);
         let offset = offset.max(0);
-        let page = conn.query_row(
-            "SELECT topic,length(CAST(summary AS BLOB)),substr(CAST(summary AS BLOB),?3+1,?4) FROM compression_blocks WHERE session_id=?1 AND id=?2",
-            params![session,block,offset,limit as i64], |r| Ok((r.get::<_,String>(0)?,r.get::<_,i64>(1)?,r.get::<_,Vec<u8>>(2)?))).optional()?;
+        let page = conn.prepare_cached("SELECT topic,length(CAST(summary AS BLOB)),substr(CAST(summary AS BLOB),?3+1,?4) FROM compression_blocks WHERE session_id=?1 AND id=?2")?.query_row(params![session,block,offset,limit as i64], |r| Ok((r.get::<_,String>(0)?,r.get::<_,i64>(1)?,r.get::<_,Vec<u8>>(2)?))).optional()?;
         let Some((topic, total, bytes)) = page else {
             return Ok(None);
         };
@@ -760,7 +803,7 @@ impl Db {
         let mut accounting = match Self::dcp_accounting_in(conn, session)? {
             Some(value) => value,
             None => {
-                let legacy: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM compression_blocks WHERE session_id=?1 AND id NOT IN (SELECT value FROM json_each(?2))) OR EXISTS(SELECT 1 FROM prune_marks WHERE session_id=?1)",params![session,ids],|r|r.get(0))?;
+                let legacy: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM compression_blocks WHERE session_id=?1 AND id NOT IN (SELECT value FROM json_each(?2))) OR EXISTS(SELECT 1 FROM prune_marks WHERE session_id=?1)")?.query_row(params![session,ids],|r|r.get(0))?;
                 DcpAccounting {
                     complete: !legacy,
                     ..Default::default()
@@ -781,11 +824,9 @@ impl Db {
             }
         }
         for call in &measured.calls {
-            let owned: bool = conn.query_row(
-                "SELECT EXISTS(SELECT 1 FROM turns WHERE id=?1 AND session_id=?2)",
-                params![call.0, session],
-                |r| r.get(0),
-            )?;
+            let owned: bool = conn
+                .prepare_cached("SELECT EXISTS(SELECT 1 FROM turns WHERE id=?1 AND session_id=?2)")?
+                .query_row(params![call.0, session], |r| r.get(0))?;
             if !owned {
                 return Err(StorageError::CompressionConflict);
             }
@@ -803,7 +844,7 @@ impl Db {
         accounting.net_saved = accounting.net_saved.saturating_add(measured.net_saved);
         accounting.compressions = accounting.compressions.saturating_add(1);
         accounting.prunes = accounting.prunes.saturating_add(measured.prunes);
-        let ordinal: i64 = conn.query_row("INSERT INTO dcp_run_identity VALUES(?1,1) ON CONFLICT(session_id) DO UPDATE SET high_water=high_water+1 RETURNING high_water",[session],|r|r.get(0))?;
+        let ordinal: i64 = conn.prepare_cached("INSERT INTO dcp_run_identity VALUES(?1,1) ON CONFLICT(session_id) DO UPDATE SET high_water=high_water+1 RETURNING high_water")?.query_row([session],|r|r.get(0))?;
         let operation_id = tool
             .map(|t| t.operation_id.to_owned())
             .unwrap_or_else(|| format!("dcp:{session}:{ordinal}"));
@@ -861,7 +902,7 @@ impl Db {
             .iter()
             .map(|b| (b.id.clone(), b.clone()))
             .collect::<std::collections::BTreeMap<_, _>>();
-        let (rows,bytes): (i64,i64) = conn.query_row("SELECT count(*),COALESCE(sum(length(CAST(text AS BLOB))),0) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<=?3 AND NOT EXISTS(SELECT 1 FROM compression_members cm WHERE cm.message_id=m.id)",params![session,old_seq,new_seq],|r|Ok((r.get(0)?,r.get(1)?)))?;
+        let (rows,bytes): (i64,i64) = conn.prepare_cached("SELECT count(*),COALESCE(sum(length(CAST(text AS BLOB))),0) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<=?3 AND NOT EXISTS(SELECT 1 FROM compression_members cm WHERE cm.message_id=m.id)")?.query_row(params![session,old_seq,new_seq],|r|Ok((r.get(0)?,r.get(1)?)))?;
         if rows > 4096 || bytes > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64 {
             return Err(StorageError::CompressionConflict);
         }
@@ -879,22 +920,23 @@ impl Db {
             let Some(anchor) = log.user_message else {
                 continue;
             };
-            let seq: i64 = conn.query_row(
-                "SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2",
-                params![session, anchor],
-                |r| r.get(0),
-            )?;
+            let seq: i64 = conn
+                .prepare_cached(
+                    "SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2",
+                )?
+                .query_row(params![session, anchor], |r| r.get(0))?;
             if seq > new_seq {
                 continue;
             }
             represented.insert(anchor);
             let assistant_survives = if let Some(assistant) = value["assistant_message"].as_str() {
                 represented.insert(assistant.into());
-                conn.query_row(
+                conn.prepare_cached(
                     "SELECT seq>?3 FROM conversation_messages WHERE session_id=?1 AND id=?2",
-                    params![session, assistant, new_seq],
-                    |r| r.get::<_, bool>(0),
-                )
+                )?
+                .query_row(params![session, assistant, new_seq], |r| {
+                    r.get::<_, bool>(0)
+                })
                 .optional()?
                 .unwrap_or(false)
             } else {
@@ -954,7 +996,7 @@ impl Db {
         let mut active_summary = 0u64;
         // A summary remains active if any member survives the new prune bound.
         for block in &graph {
-            let (old_active,new_active): (bool,bool) = conn.query_row("SELECT EXISTS(SELECT 1 FROM compression_members cm JOIN conversation_messages m ON m.id=cm.message_id WHERE cm.block_id=?1 AND m.seq>?2),EXISTS(SELECT 1 FROM compression_members cm JOIN conversation_messages m ON m.id=cm.message_id WHERE cm.block_id=?1 AND m.seq>?3)",params![block.id,old_seq,new_seq],|r|Ok((r.get(0)?,r.get(1)?)))?;
+            let (old_active,new_active): (bool,bool) = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM compression_members cm JOIN conversation_messages m ON m.id=cm.message_id WHERE cm.block_id=?1 AND m.seq>?2),EXISTS(SELECT 1 FROM compression_members cm JOIN conversation_messages m ON m.id=cm.message_id WHERE cm.block_id=?1 AND m.seq>?3)")?.query_row(params![block.id,old_seq,new_seq],|r|Ok((r.get(0)?,r.get(1)?)))?;
             if !old_active {
                 continue;
             }
@@ -1008,11 +1050,9 @@ impl Db {
         session: &str,
         recent_messages: &str,
     ) -> Result<String, StorageError> {
-        let total: i64 = conn.query_row(
-            "SELECT count(*) FROM conversation_messages WHERE session_id=?1",
-            [session],
-            |r| r.get(0),
-        )?;
+        let total: i64 = conn
+            .prepare_cached("SELECT count(*) FROM conversation_messages WHERE session_id=?1")?
+            .query_row([session], |r| r.get(0))?;
         if total == 0 {
             return Ok("░".repeat(50));
         }
@@ -1170,5 +1210,119 @@ mod review_tests {
         let result=runtime.run_compress("s",&serde_json::json!({"topic":"bounded manual","content":[{"startId":tail,"endId":end,"summary":"short"}]}),&oc_core::context_plan::ProtectedSpec::default()).unwrap();
         assert!(result.shrank);
         assert_eq!(db.dcp_accounting("s").unwrap().unwrap().compressions, 1);
+    }
+}
+
+#[cfg(test)]
+mod linear_sql_tests {
+    use super::*;
+
+    /// The linear projection SQL emits byte-identical logs to the original
+    /// nested form, including bare messages, unanswered calls, occurrence
+    /// ranks, instruction/native result indices and non-projected turns.
+    #[test]
+    fn linear_presentation_sql_matches_the_original_nested_form() {
+        let legacy = include_str!("storage_dcp_view_legacy.sql");
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        db.apply_dcp_schema().unwrap();
+        db.create_session("s").unwrap();
+        let mut users = Vec::new();
+        for turn in 0..6 {
+            let user = db
+                .append_message("s", "user", &format!("prompt {turn}"))
+                .unwrap();
+            let assistant = db.append_message("s", "assistant", "answer").unwrap();
+            let call = |id: &str| serde_json::json!({"type":"function_call","call_id":id,"name":"read","arguments":"{}"});
+            let output = |id: &str| serde_json::json!({"type":"function_call_output","call_id":id,"output":"ok"});
+            let input = serde_json::json!([
+                {"type":"message","role":"user","content":"bare"},
+                {"type":"message","role":"assistant","id":format!("msg{turn}"),"content":"kept"},
+                call(&format!("a{turn}")),
+                output(&format!("a{turn}")),
+                call(&format!("dangling{turn}")),
+                {"type":"reasoning","id":format!("r{turn}")},
+                {"no_type":true},
+                call(&format!("b{turn}")),
+                output(&format!("b{turn}")),
+            ]);
+            let result = serde_json::json!({
+                "turn_id": format!("t{turn}"), "model":"m", "provider":"p",
+                "user_message": user, "assistant_message": assistant,
+                "raw_prefix": if turn % 2 == 0 { serde_json::json!({"ends":[3,0,0,0,0]}) } else { serde_json::Value::Null },
+                "input": input,
+                "call_occurrences": {"2": 0, "4": 1, "7": 2, "9": 3},
+                "instruction_references": [{"event":"e","index":5},{"event":"f","index":0}],
+                "native_read_results": [{"input_index":8,"call_id":format!("b{turn}"),"result":{"ok":true}}],
+                "native_mcp_results": [{"input_index":3,"call_id":"x","result":[1,2]}],
+                "display_parts": [{"tool":"a"},{"message":1},{"tool":"b"}],
+                "shell_notice_messages": ["n1"],
+                "spans": [{"id":"span"}], "requests": [{"input_start":0}],
+            });
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "INSERT INTO turns(id,session_id,status,prompt,result) VALUES (?1,'s','completed','prompt',?2)",
+                    params![format!("t{turn}"), result.to_string()],
+                )
+                .unwrap();
+            users.push(user);
+        }
+        let conn = db.conn.lock().unwrap();
+        for projected in [
+            users.clone(),
+            users.iter().step_by(2).cloned().collect(),
+            Vec::new(),
+        ] {
+            let ids = serde_json::to_string(&projected).unwrap();
+            let run = |sql: &str| -> Vec<Option<String>> {
+                conn.prepare(sql)
+                    .unwrap()
+                    .query_map(params!["s", 0i64, ids, "[]", i64::MAX], |r| r.get(0))
+                    .unwrap()
+                    .collect::<Result<_, _>>()
+                    .unwrap()
+            };
+            let (old, new) = (run(legacy), run(PRESENTATION_WIRE_LOGS_SQL));
+            assert_eq!(old.len(), projected.len());
+            assert_eq!(old, new);
+        }
+        conn.execute(
+            "UPDATE turns SET result=json_remove(result,'$.raw_prefix')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+        // A repeated read reuses the memo; any write through the connection
+        // (here: a rewritten journal) invalidates it.
+        let rows: Vec<_> = users
+            .iter()
+            .map(|id| (id.clone(), "user".to_string(), String::new()))
+            .collect();
+        let first = db
+            .presentation_wire_logs("s", 0, &rows, &[])
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            db.presentation_wire_logs("s", 0, &rows, &[])
+                .unwrap()
+                .unwrap(),
+            first
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE turns SET result=json_set(result,'$.model','rewritten') WHERE id='t0'",
+                [],
+            )
+            .unwrap();
+        let after = db
+            .presentation_wire_logs("s", 0, &rows, &[])
+            .unwrap()
+            .unwrap();
+        assert_ne!(after, first);
+        assert!(after[0].contains("rewritten"));
     }
 }

@@ -944,7 +944,7 @@ pub struct CompressReport {
 /// (`models::admit`) still runs against the selected entry's context limit
 /// and the estimate stays a heuristic. Exceeding this budget refuses the
 /// turn with an explicit diagnostic instead of silently dropping facts.
-pub const ACTIVE_CONTEXT_BYTES_CAP: usize = 16 * 1024 * 1024;
+pub const ACTIVE_CONTEXT_BYTES_CAP: usize = 32 * 1024 * 1024;
 
 /// Turn-log page size for the bounded wire replay.
 pub const WIRE_LOG_PAGE: usize = 64;

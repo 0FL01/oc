@@ -17,8 +17,7 @@ impl Db {
         conn: &Connection,
         operation: &str,
     ) -> Result<Option<Diagnostic>, StorageError> {
-        let raw: Option<String> = conn.query_row(
-            "SELECT CASE WHEN json_valid(t.result) AND json_valid(j.identity) THEN CASE WHEN t.status IN ('completed','cancelled','interrupted','failed','incomplete')
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN json_valid(t.result) AND json_valid(j.identity) THEN CASE WHEN t.status IN ('completed','cancelled','interrupted','failed','incomplete')
               AND json_extract(t.result,'$.display.owning_operation')=j.operation_id
               AND json_extract(j.identity,'$.operation')=j.operation_id
               AND json_extract(j.identity,'$.child')=j.child_id
@@ -27,8 +26,7 @@ impl Db {
               THEN json_extract(t.result,'$.display.terminal_diagnostic') END END
              FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
              JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
-             LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1",
-            [operation], |row| row.get(0),
+             LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([operation], |row| row.get(0),
         ).optional()?.flatten();
         Ok(raw.and_then(|raw| serde_json::from_str::<Diagnostic>(&raw).ok()))
     }
@@ -45,10 +43,9 @@ impl Db {
         operation: &str,
     ) -> Result<Option<(ChildState, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let (status, text): (Option<String>, Option<String>) = conn.query_row(
-            "SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id
+        let (status, text): (Option<String>, Option<String>) = conn.prepare_cached("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id
              LEFT JOIN messages m ON m.id=CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.assistant_message') END AND m.session_id=j.child_id
-             WHERE j.operation_id=?1", [operation], |r| Ok((r.get(0)?,r.get(1)?)))?;
+             WHERE j.operation_id=?1")?.query_row([operation], |r| Ok((r.get(0)?,r.get(1)?)))?;
         let diagnostic = Self::child_diagnostic_in(&conn, operation)?;
         let reason = diagnostic.as_ref().map(|d| d.message.clone());
         Ok(match status.as_deref() {
@@ -80,16 +77,14 @@ impl Db {
         session: &str,
         operation: &str,
     ) -> Result<Option<ChildJob>, StorageError> {
-        let row = conn.query_row(
-            "SELECT j.identity,j.state,j.parent_id,j.child_id,j.delivery_id,j.child_turn,j.message_id,
+        let row = conn.prepare_cached("SELECT j.identity,j.state,j.parent_id,j.child_id,j.delivery_id,j.child_turn,j.message_id,
              EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id),
              (SELECT e.payload FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_launch'
               AND length(CAST(e.payload AS BLOB))<=?3
               AND CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation')=j.operation_id ELSE 0 END LIMIT 1)
              FROM child_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
              JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
-             WHERE j.parent_id=?1 AND j.operation_id=?2 AND length(CAST(j.identity AS BLOB))<=?3",
-            params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
+             WHERE j.parent_id=?1 AND j.operation_id=?2 AND length(CAST(j.identity AS BLOB))<=?3")?.query_row(params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
             |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,row.get::<_,String>(3)?,row.get::<_,String>(4)?,row.get::<_,Option<String>>(5)?,row.get::<_,Option<String>>(6)?,row.get::<_,bool>(7)?,row.get::<_,Option<String>>(8)?)),
         ).optional()?;
         let Some((raw, state, parent, child, delivery, turn, message, converted, launch)) = row
@@ -155,13 +150,11 @@ impl Db {
         include_result: bool,
     ) -> Result<Option<ChildJob>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let row = conn.query_row(
-            "SELECT j.identity,j.state,CASE WHEN ?3 THEN j.result END,j.message_id,j.parent_id,j.child_id,j.delivery_id,j.child_turn,
+        let row = conn.prepare_cached("SELECT j.identity,j.state,CASE WHEN ?3 THEN j.result END,j.message_id,j.parent_id,j.child_id,j.delivery_id,j.child_turn,
              EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id)
              FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
              JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
-             WHERE j.parent_id=?1 AND j.operation_id=?2",
-            params![session,operation,include_result],
+             WHERE j.parent_id=?1 AND j.operation_id=?2")?.query_row(params![session,operation,include_result],
             |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,Option<String>>(2)?,row.get::<_,Option<String>>(3)?,row.get::<_,String>(4)?,row.get::<_,String>(5)?,row.get::<_,String>(6)?,row.get::<_,Option<String>>(7)?,row.get::<_,bool>(8)?)),
         ).optional()?;
         let Some((raw, state, result, message, parent, child, delivery, turn, converted)) = row
@@ -190,24 +183,24 @@ impl Db {
         message: &oc_core::session::MessageId,
     ) -> Result<Option<ChildHistory>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        if !conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
-            params![session, message.0],
-            |row| row.get::<_, bool>(0),
-        )? {
+        if !conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+            )?
+            .query_row(params![session, message.0], |row| row.get::<_, bool>(0))?
+        {
             return Ok(None);
         }
         if let Some(job) = Self::child_notice_in(&conn, session, &message.0)? {
             return Ok(Some(ChildHistory::Notice(Box::new(job))));
         }
         if Self::native_notice_data_in(&conn, session, &message.0)?
-            && conn.query_row("SELECT EXISTS(SELECT 1 FROM turn_acceptances WHERE session_id=?1 AND user_message=?2)",params![session,message.0],|row|row.get::<_,bool>(0))? {
+            && conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turn_acceptances WHERE session_id=?1 AND user_message=?2)")?.query_row(params![session,message.0],|row|row.get::<_,bool>(0))? {
             return Ok(Some(ChildHistory::NativeControl));
         }
         // Read the original structured tool argument of this exact acceptance,
         // not delimiters inside its transformed native host/context-pack text.
-        let task = conn.query_row(
-            "SELECT substr(CAST(json_extract(o.input,'$.prompt') AS BLOB),1,65536),length(CAST(json_extract(o.input,'$.prompt') AS BLOB))
+        let task = conn.prepare_cached("SELECT substr(CAST(json_extract(o.input,'$.prompt') AS BLOB),1,65536),length(CAST(json_extract(o.input,'$.prompt') AS BLOB))
              FROM conversation_messages m JOIN turn_acceptances a ON a.user_message=m.id AND a.session_id=m.session_id
              JOIN child_jobs j ON j.child_turn=a.turn_id AND j.child_id=a.session_id
              JOIN turns t ON t.id=a.turn_id AND t.session_id=j.child_id
@@ -221,8 +214,7 @@ impl Db {
                 AND json_extract(j.identity,'$.child')=j.child_id
                 AND json_extract(j.identity,'$.delivery_id')=j.delivery_id
                 AND json_extract(j.identity,'$.agent')=json_extract(o.input,'$.agent')
-             ELSE 0 END",
-            params![session,message.0],
+             ELSE 0 END")?.query_row(params![session,message.0],
             |row| Ok((row.get::<_,Vec<u8>>(0)?,row.get::<_,i64>(1)?)),
         ).optional()?;
         Ok(task.map(|(text, bytes)| {
@@ -241,15 +233,13 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<Option<ChildJob>, StorageError> {
-        let notice = conn.query_row(
-            "SELECT j.identity,j.state,j.parent_id,j.child_id,j.operation_id,j.delivery_id,j.child_turn
+        let notice = conn.prepare_cached("SELECT j.identity,j.state,j.parent_id,j.child_id,j.operation_id,j.delivery_id,j.child_turn
              FROM messages m JOIN child_jobs j ON j.message_id=m.id AND j.parent_id=m.session_id
              JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
              JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
              WHERE m.session_id=?1 AND m.id=?2 AND m.role='user' AND j.state NOT IN ('admitted','running')
              AND length(CAST(j.identity AS BLOB))<=?3
-             AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_notice' AND e.payload=j.delivery_id)",
-             params![session,message,oc_core::tool_output::RECORD_BYTES as i64],
+             AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_notice' AND e.payload=j.delivery_id)")?.query_row(params![session,message,oc_core::tool_output::RECORD_BYTES as i64],
             |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,row.get::<_,String>(3)?,row.get::<_,String>(4)?,row.get::<_,String>(5)?,row.get::<_,Option<String>>(6)?)),
         ).optional()?;
         if let Some((raw, state, parent, child, operation, delivery, turn)) = notice {
@@ -287,7 +277,7 @@ impl Db {
 
     pub(crate) fn child_launch_fingerprint(&self, operation: &str) -> Result<String, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let facts = conn.query_row("SELECT id,session_id,turn_id,input,provider_call_id,call_occurrence,original_input_index FROM tool_operations WHERE id=?1 AND name='subagent'",[operation],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,Option<String>>(2)?,r.get::<_,String>(3)?,r.get::<_,Option<String>>(4)?,r.get::<_,Option<i64>>(5)?,r.get::<_,Option<i64>>(6)?)))?;
+        let facts = conn.prepare_cached("SELECT id,session_id,turn_id,input,provider_call_id,call_occurrence,original_input_index FROM tool_operations WHERE id=?1 AND name='subagent'")?.query_row([operation],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,Option<String>>(2)?,r.get::<_,String>(3)?,r.get::<_,Option<String>>(4)?,r.get::<_,Option<i64>>(5)?,r.get::<_,Option<i64>>(6)?)))?;
         Ok(crate::compaction::fingerprint(&facts))
     }
     pub(crate) fn child_job_unresolved(&self, child: &str) -> Result<bool, StorageError> {
@@ -311,11 +301,10 @@ impl Db {
         self.conn.lock().expect("db mutex").query_row("SELECT id FROM tool_operations WHERE turn_id=?1 AND provider_call_id=?2 AND name='subagent' AND state='started' ORDER BY rowid DESC LIMIT 1",params![turn,call],|r|r.get(0)).map_err(Into::into)
     }
     pub(super) fn child_jobs_schema(conn: &Connection) -> Result<(), StorageError> {
-        if conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=10)",
-            [],
-            |row| row.get::<_, bool>(0),
-        )? {
+        if conn
+            .prepare_cached("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=10)")?
+            .query_row([], |row| row.get::<_, bool>(0))?
+        {
             return Ok(());
         }
         let tx =
@@ -368,10 +357,8 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.id=?2 AND o.session_id=?1 AND o.name='subagent')", params![job.parent.0,job.operation], |r| r.get(0))?;
-        let count: i64 = tx.query_row(
-            "SELECT count(*) FROM child_jobs j WHERE state IN ('admitted','running','unknown') OR (message_id IS NULL AND (coalesce(json_extract(identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)))",
-            [],
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.id=?2 AND o.session_id=?1 AND o.name='subagent')")?.query_row(params![job.parent.0,job.operation], |r| r.get(0))?;
+        let count: i64 = tx.prepare_cached("SELECT count(*) FROM child_jobs j WHERE state IN ('admitted','running','unknown') OR (message_id IS NULL AND (coalesce(json_extract(identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)))")?.query_row([],
             |r| r.get(0),
         )?;
         if !valid || count >= crate::runtime::children::JOB_CAP as i64 {
@@ -393,11 +380,11 @@ impl Db {
                 [&job.child.0],
             )?;
         } else {
-            let child: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM sessions WHERE id=?2 AND parent_id=?1)",
-                params![job.parent.0, job.child.0],
-                |r| r.get(0),
-            )?;
+            let child: bool = tx
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM sessions WHERE id=?2 AND parent_id=?1)",
+                )?
+                .query_row(params![job.parent.0, job.child.0], |r| r.get(0))?;
             if !child {
                 return Err(StorageError::SessionNotFound);
             }
@@ -423,7 +410,7 @@ impl Db {
     pub(crate) fn background_child_job(&self, operation: &str) -> Result<bool, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let parent: Option<String> = tx.query_row("SELECT parent_id FROM child_jobs WHERE operation_id=?1 AND state IN ('admitted','running')", [operation], |r| r.get(0)).optional()?;
+        let parent: Option<String> = tx.prepare_cached("SELECT parent_id FROM child_jobs WHERE operation_id=?1 AND state IN ('admitted','running')")?.query_row([operation], |r| r.get(0)).optional()?;
         let Some(parent) = parent else {
             return Ok(false);
         };
@@ -535,7 +522,7 @@ impl Db {
             // or the child's latest message. The batch above retains only IDs.
             let (status, result) = {
                 let conn = self.conn.lock().expect("db mutex");
-                conn.query_row("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id LEFT JOIN messages m ON json_valid(t.result) AND m.id=json_extract(t.result,'$.assistant_message') AND m.session_id=j.child_id WHERE j.operation_id=?1", [&operation], |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, Option<String>>(1)?)))?
+                conn.prepare_cached("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id LEFT JOIN messages m ON json_valid(t.result) AND m.id=json_extract(t.result,'$.assistant_message') AND m.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([&operation], |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, Option<String>>(1)?)))?
             };
             let (state,text) = match status.as_deref() {
                 Some("completed") => {
@@ -557,7 +544,7 @@ impl Db {
     /// external effect; other compress outcomes stay conservatively unsafe.
     fn child_checkpoint_safe(&self, operation: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let raw: Option<String> = conn.query_row("SELECT t.result FROM child_jobs j JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1", [operation], |r|r.get(0))?;
+        let raw: Option<String> = conn.prepare_cached("SELECT t.result FROM child_jobs j JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([operation], |r|r.get(0))?;
         let Some(raw) = raw.filter(|s| s.len() <= crate::runtime::ACTIVE_CONTEXT_BYTES_CAP) else {
             return Ok(false);
         };
@@ -567,7 +554,7 @@ impl Db {
         let Some(log) = log else {
             return Ok(false);
         };
-        let unsafe_ops: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND (o.state NOT IN ('completed','failed','denied') OR (o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models') AND NOT (o.name='compress' AND o.state='completed' AND json_extract(o.output,'$.status')='task_renewal_accepted'))))", [operation], |r|r.get(0))?;
+        let unsafe_ops: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND (o.state NOT IN ('completed','failed','denied') OR (o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models') AND NOT (o.name='compress' AND o.state='completed' AND json_extract(o.output,'$.status')='task_renewal_accepted'))))")?.query_row([operation], |r|r.get(0))?;
         if unsafe_ops {
             return Ok(false);
         }
@@ -628,7 +615,7 @@ impl Db {
                 let Some((name, arguments, original_index)) = pending.remove(id) else {
                     return Ok(false);
                 };
-                let causal: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.turn_id=?1 AND o.session_id=(SELECT child_id FROM child_jobs WHERE operation_id=?2) AND o.provider_call_id=?3 AND o.original_input_index=?4 AND o.name=?5 AND o.input=?6 AND o.output=?7 AND o.state IN ('completed','failed','denied'))",params![log.turn_id,operation,id,original_index as i64,name,arguments,output],|r|r.get(0))?;
+                let causal: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.turn_id=?1 AND o.session_id=(SELECT child_id FROM child_jobs WHERE operation_id=?2) AND o.provider_call_id=?3 AND o.original_input_index=?4 AND o.name=?5 AND o.input=?6 AND o.output=?7 AND o.state IN ('completed','failed','denied'))")?.query_row(params![log.turn_id,operation,id,original_index as i64,name,arguments,output],|r|r.get(0))?;
                 if !causal {
                     return Ok(false);
                 }
@@ -671,7 +658,7 @@ impl Db {
         job: &ChildJob,
     ) -> Result<serde_json::Value, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let raw: String = conn.query_row("SELECT payload FROM events WHERE session_id=?1 AND kind='subagent_recovery_fence' AND json_extract(payload,'$.operation')=?2 ORDER BY seq LIMIT 1", params![job.child.0,job.operation], |r|r.get(0))?;
+        let raw: String = conn.prepare_cached("SELECT payload FROM events WHERE session_id=?1 AND kind='subagent_recovery_fence' AND json_extract(payload,'$.operation')=?2 ORDER BY seq LIMIT 1")?.query_row(params![job.child.0,job.operation], |r|r.get(0))?;
         let value: serde_json::Value =
             serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
         Ok(value["fence"].clone())
@@ -689,8 +676,8 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=c.id JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=c.id JOIN prefs l ON l.key='tui.session_location.'||c.id WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state='running' AND t.status='started' AND t.result=?5 AND a.user_message=json_extract(t.result,'$.user_message') AND json_extract(a.model_ref,'$.provider')=json_extract(t.result,'$.provider') AND json_extract(a.model_ref,'$.id')=json_extract(t.result,'$.model') AND l.value=?6 AND c.agent=?7 AND c.model=?8)",params![job.operation,job.parent.0,job.child.0,job.delivery_id,checkpoint,job.location,job.agent,job.model],|r|r.get(0))?;
-        let attempts: i64 = tx.query_row("SELECT count(*) FROM events WHERE session_id=?1 AND kind='subagent_resume_claim' AND json_extract(payload,'$.operation')=?2",params![job.child.0,job.operation],|r|r.get(0))?;
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=c.id JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=c.id JOIN prefs l ON l.key='tui.session_location.'||c.id WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state='running' AND t.status='started' AND t.result=?5 AND a.user_message=json_extract(t.result,'$.user_message') AND json_extract(a.model_ref,'$.provider')=json_extract(t.result,'$.provider') AND json_extract(a.model_ref,'$.id')=json_extract(t.result,'$.model') AND l.value=?6 AND c.agent=?7 AND c.model=?8)")?.query_row(params![job.operation,job.parent.0,job.child.0,job.delivery_id,checkpoint,job.location,job.agent,job.model],|r|r.get(0))?;
+        let attempts: i64 = tx.prepare_cached("SELECT count(*) FROM events WHERE session_id=?1 AND kind='subagent_resume_claim' AND json_extract(payload,'$.operation')=?2")?.query_row(params![job.child.0,job.operation],|r|r.get(0))?;
         if !valid || attempts >= 10 {
             return Err(StorageError::OperationNotFound);
         }
@@ -709,20 +696,20 @@ impl Db {
         };
         let mut notices = Vec::new();
         for operation in rows {
-            let (raw, state, result, turn) = tx.query_row(
-                "SELECT identity,state,result,child_turn FROM child_jobs WHERE operation_id=?1",
-                [&operation],
-                |r| {
+            let (raw, state, result, turn) = tx
+                .prepare_cached(
+                    "SELECT identity,state,result,child_turn FROM child_jobs WHERE operation_id=?1",
+                )?
+                .query_row([&operation], |r| {
                     Ok((
                         r.get::<_, String>(0)?,
                         r.get::<_, String>(1)?,
                         r.get::<_, Option<String>>(2)?,
                         r.get::<_, Option<String>>(3)?,
                     ))
-                },
-            )?;
+                })?;
             let mut job = Self::decode_child_job(raw, state, result, None)?;
-            let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state=?5 AND json_extract(j.identity,'$.operation')=j.operation_id AND json_extract(j.identity,'$.parent')=j.parent_id AND json_extract(j.identity,'$.child')=j.child_id AND json_extract(j.identity,'$.delivery_id')=j.delivery_id)",params![job.operation,job.parent.0,job.child.0,job.delivery_id,serde_json::to_value(job.state).expect("state").as_str()],|r|r.get(0))?;
+            let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state=?5 AND json_extract(j.identity,'$.operation')=j.operation_id AND json_extract(j.identity,'$.parent')=j.parent_id AND json_extract(j.identity,'$.child')=j.child_id AND json_extract(j.identity,'$.delivery_id')=j.delivery_id)")?.query_row(params![job.operation,job.parent.0,job.child.0,job.delivery_id,serde_json::to_value(job.state).expect("state").as_str()],|r|r.get(0))?;
             if !valid {
                 return Err(StorageError::OperationNotFound);
             }

@@ -1233,7 +1233,7 @@ async fn exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_l
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card),
+            tool: Some(std::sync::Arc::new(card)),
         });
     }
     let event = |kind, x, y| MouseEvent {
@@ -2304,7 +2304,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     });
     let frame = ratatui::layout::Rect::new(0, 0, 80, 48);
     let area = crate::shell::transcript_area(&state, frame);
@@ -2416,7 +2416,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     });
     let (rows, total, scroll) =
         state.visible_transcript_at_viewport(area.width, frame.width, area.height);
@@ -2503,7 +2503,7 @@ async fn exploration_toggle_anchors_long_result_and_attach_page_discards_expansi
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card),
+            tool: Some(std::sync::Arc::new(card)),
         });
     }
     let area = ratatui::layout::Rect::new(0, 0, 80, 24);
@@ -2996,7 +2996,7 @@ async fn exploration_and_its_failure_are_clickable_above_an_open_child_composer(
     state.begin_linked_turn(WorkerTurnId("child-active".into()));
     state.window.push_row(crate::history::HistoryRow {
         role: "tool".into(),
-        tool: Some(crate::history::card_from_row(
+        tool: Some(std::sync::Arc::new(crate::history::card_from_row(
             &oc_core::queries::ToolOpView {
                 child_job: None,
                 output_presentation: None,
@@ -3013,7 +3013,7 @@ async fn exploration_and_its_failure_are_clickable_above_an_open_child_composer(
                 dcp: None,
                 dcp_topic: None,
             },
-        )),
+        ))),
         ..Default::default()
     });
     let area = ratatui::layout::Rect::new(0, 0, 120, 40);
@@ -3080,7 +3080,7 @@ async fn instructions_click_opens_recloses_and_does_not_steal_text_selection() {
     });
     state.window.push_row(crate::history::HistoryRow {
         role: "tool".into(),
-        tool: Some(crate::history::card_from_row(
+        tool: Some(std::sync::Arc::new(crate::history::card_from_row(
             &oc_core::queries::ToolOpView {
                 child_job: None,
                 output_presentation: Some(Box::new(output)),
@@ -3097,7 +3097,7 @@ async fn instructions_click_opens_recloses_and_does_not_steal_text_selection() {
                 dcp: None,
                 dcp_topic: None,
             },
-        )),
+        ))),
         ..Default::default()
     });
     let area = ratatui::layout::Rect::new(0, 0, 100, 30);

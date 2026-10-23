@@ -2545,7 +2545,8 @@ async fn argument_stream_exploration_groups_like_upstream_and_survives_admission
         .into_iter()
         .find_map(|row| row.tool)
         .unwrap()
-        .op;
+        .op
+        .clone();
     state.exploration_expanded.insert(first);
     state.invalidate_transcript();
     let members = [

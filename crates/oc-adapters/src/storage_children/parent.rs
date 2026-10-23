@@ -23,7 +23,9 @@ impl Db {
         if Self::native_notice_kind_in(conn, session, message)?.is_some() {
             return Ok(true);
         }
-        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=CASE json_extract(t.result,'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 ELSE -1 END AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)",params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
+        // `turns_native_input` holds only turns that carry native input, so a
+        // history row no longer parses every journal of the session.
+        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND json_valid(t.result) AND json_type(t.result,'$.native_input') IS NOT NULL AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=CASE json_extract(t.result,'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 ELSE -1 END AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)")?.query_row(params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
     }
 
     fn native_notice_kind_in(

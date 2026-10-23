@@ -118,19 +118,20 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         Self::require_session(&tx, session)?;
-        let (count, bytes): (i64, i64) = tx.query_row(
-            "SELECT count(*),COALESCE(sum(length(CAST(COALESCE(payload,text) AS BLOB))),0)
+        let (count, bytes): (i64, i64) = tx
+            .prepare_cached(
+                "SELECT count(*),COALESCE(sum(length(CAST(COALESCE(payload,text) AS BLOB))),0)
             FROM session_inbox WHERE session_id=?1 AND message_id IS NULL",
-            [session],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
+            )?
+            .query_row([session], |r| Ok((r.get(0)?, r.get(1)?)))?;
         if count as usize >= MAX_INBOX_ITEMS
             || (bytes as usize).saturating_add(raw.len()) > MAX_PENDING_BYTES
         {
             return Err(StorageError::InboxFull);
         }
-        let id: String =
-            tx.query_row("SELECT 'in-'||lower(hex(randomblob(16)))", [], |r| r.get(0))?;
+        let id: String = tx
+            .prepare_cached("SELECT 'in-'||lower(hex(randomblob(16)))")?
+            .query_row([], |r| r.get(0))?;
         tx.execute(
             "INSERT INTO session_inbox(id,session_id,delivery,text,payload,images)
             VALUES(?1,?2,?3,?4,?5,?6)",
@@ -178,8 +179,8 @@ impl Db {
         session: &str,
         id: &str,
     ) -> Result<Option<InboxItem>, StorageError> {
-        Ok(conn.query_row("SELECT id,delivery,substr(text,1,2049),images,CASE WHEN error IS NULL OR length(CAST(error AS BLOB))<=65536 THEN error ELSE 'invalid' END FROM session_inbox
-            WHERE session_id=?1 AND id=?2 AND message_id IS NULL", params![session,id],Self::inbox_item_row).optional()?)
+        Ok(conn.prepare_cached("SELECT id,delivery,substr(text,1,2049),images,CASE WHEN error IS NULL OR length(CAST(error AS BLOB))<=65536 THEN error ELSE 'invalid' END FROM session_inbox
+            WHERE session_id=?1 AND id=?2 AND message_id IS NULL")?.query_row(params![session,id],Self::inbox_item_row).optional()?)
     }
 
     pub fn inbox_pending(&self, session: &str) -> Result<Vec<InboxItem>, StorageError> {
@@ -202,18 +203,21 @@ impl Db {
         let Some(item) = Self::inbox_item_in(&conn, session, id)? else {
             return Ok(None);
         };
-        let (raw, text, legacy): (Option<String>, String, bool) = conn.query_row(
-            "SELECT CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN payload END,
+        let (raw, text, legacy): (Option<String>, String, bool) = conn
+            .prepare_cached(
+                "SELECT CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN payload END,
             CASE WHEN length(CAST(text AS BLOB))<=?4 THEN text ELSE NULL END,payload IS NULL
             FROM session_inbox WHERE session_id=?1 AND id=?2 AND message_id IS NULL",
-            params![
-                session,
-                id,
-                MAX_PAYLOAD_BYTES as i64,
-                oc_core::session::MAX_INPUT_BYTES as i64
-            ],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-        )?;
+            )?
+            .query_row(
+                params![
+                    session,
+                    id,
+                    MAX_PAYLOAD_BYTES as i64,
+                    oc_core::session::MAX_INPUT_BYTES as i64
+                ],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?;
         let payload: InboxPayload = match raw {
             Some(raw) => serde_json::from_str(&raw).map_err(|_| invalid())?,
             None if legacy => InboxPayload {
@@ -315,9 +319,8 @@ impl Db {
         steer: &InboxSteer,
     ) -> Result<InboxDelivered, StorageError> {
         let pending = &steer.pending;
-        let eligible: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM session_inbox
-            WHERE session_id=?1 AND id=?2 AND message_id IS NULL AND error IS NULL AND delivery='steer')",
-            params![session,pending.item.id],|r|r.get(0))?;
+        let eligible: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM session_inbox
+            WHERE session_id=?1 AND id=?2 AND message_id IS NULL AND error IS NULL AND delivery='steer')")?.query_row(params![session,pending.item.id],|r|r.get(0))?;
         if !eligible {
             return Err(StorageError::CompressionConflict);
         }
@@ -350,11 +353,11 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<bool, StorageError> {
-        Ok(conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM session_inbox WHERE session_id=?1 AND message_id=?2)",
-            params![session, message],
-            |r| r.get(0),
-        )?)
+        Ok(conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM session_inbox WHERE session_id=?1 AND message_id=?2)",
+            )?
+            .query_row(params![session, message], |r| r.get(0))?)
     }
 
     pub(crate) fn admit_inbox_command(

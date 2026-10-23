@@ -77,11 +77,14 @@ impl Db {
         } else {
             "DESC"
         };
-        let mut statement = conn.prepare(&format!(
+        // The anchor term matches `turns_display_anchor`: an indexed probe per
+        // assistant row, not a JSON scan of every journal in the session.
+        let mut statement = conn.prepare_cached(&format!(
             "WITH projected AS (
               SELECT m.seq,m.role,m.id,
                 CASE WHEN m.role='assistant' AND EXISTS (
                   SELECT 1 FROM turns t WHERE t.session_id=m.session_id AND json_valid(t.result)
+                  AND COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message'))=+m.id
                   AND json_extract(t.result,'$.assistant_message')=m.id
                   AND json_type(t.result,'$.display_parts')='array') THEN ''
                 WHEN length(CAST(m.text AS BLOB))<=?6 THEN m.text END AS text
@@ -149,10 +152,9 @@ impl Db {
     ) -> Result<(), StorageError> {
         // The fork owner has already admitted total requested rows and bytes.
         // Transfer one bounded segment at a time; source rows never change.
-        let source_raw: String =
-            conn.query_row("SELECT result FROM turns WHERE id=?1", [source], |r| {
-                r.get(0)
-            })?;
+        let source_raw: String = conn
+            .prepare_cached("SELECT result FROM turns WHERE id=?1")?
+            .query_row([source], |r| r.get(0))?;
         let source_log = TurnLog::from_json(
             &serde_json::from_str(&source_raw).map_err(|_| invalid("invalid source journal"))?,
         )
@@ -204,10 +206,9 @@ impl Db {
                 ],
             )?;
         }
-        let raw: String =
-            conn.query_row("SELECT result FROM turns WHERE id=?1", [destination], |r| {
-                r.get(0)
-            })?;
+        let raw: String = conn
+            .prepare_cached("SELECT result FROM turns WHERE id=?1")?
+            .query_row([destination], |r| r.get(0))?;
         let mut journal: serde_json::Value =
             serde_json::from_str(&raw).map_err(|_| invalid("invalid fork hot journal"))?;
         Self::rebase_turn_journal(&mut journal, destination, messages, operations)?;
@@ -277,11 +278,9 @@ impl Db {
         Ok(())
     }
     pub(super) fn apply_turn_history_schema(conn: &Connection) -> Result<(), StorageError> {
-        let applied: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=8)",
-            [],
-            |r| r.get(0),
-        )?;
+        let applied: bool = conn
+            .prepare_cached("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=8)")?
+            .query_row([], |r| r.get(0))?;
         if applied {
             return Ok(());
         }
@@ -314,7 +313,7 @@ impl Db {
         call_id: &str,
     ) -> Result<u64, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let previous: Option<i64> = conn.query_row("SELECT call_occurrence FROM tool_operations WHERE turn_id=?1 AND provider_call_id=?2 ORDER BY call_occurrence DESC LIMIT 1",params![turn,call_id],|r| r.get(0)).optional()?.flatten();
+        let previous: Option<i64> = conn.prepare_cached("SELECT call_occurrence FROM tool_operations WHERE turn_id=?1 AND provider_call_id=?2 ORDER BY call_occurrence DESC LIMIT 1")?.query_row(params![turn,call_id],|r| r.get(0)).optional()?.flatten();
         previous.map_or(Ok(0), |n| {
             u64::try_from(n)
                 .ok()
@@ -443,21 +442,17 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         Self::validate_raw_prefix(&tx, &old.turn_id, old.raw_prefix.as_ref())?;
-        let current: Option<String> = tx.query_row(
-            "SELECT result FROM turns WHERE id=?1 AND status='started'",
-            [&old.turn_id],
-            |r| r.get(0),
-        )?;
+        let current: Option<String> = tx
+            .prepare_cached("SELECT result FROM turns WHERE id=?1 AND status='started'")?
+            .query_row([&old.turn_id], |r| r.get(0))?;
         if current.as_deref() != Some(old.to_json().to_string().as_str()) {
             return Err(invalid("stale closed checkpoint"));
         }
         for part in &delta.display_parts {
             if let Some(op) = part["tool"].as_str() {
-                let state: String = tx.query_row(
-                    "SELECT state FROM tool_operations WHERE id=?1 AND turn_id=?2",
-                    params![op, old.turn_id],
-                    |r| r.get(0),
-                )?;
+                let state: String = tx
+                    .prepare_cached("SELECT state FROM tool_operations WHERE id=?1 AND turn_id=?2")?
+                    .query_row(params![op, old.turn_id], |r| r.get(0))?;
                 if !matches!(
                     state.as_str(),
                     "completed" | "failed" | "denied" | "cancelled" | "no_gain"
@@ -506,7 +501,7 @@ impl Db {
                 }
                 for ((id, n), origin) in call_window(old)? {
                     let old_n = n + past_removed.get(&id).copied().unwrap_or(0);
-                    let action: Option<String>=tx.query_row("SELECT action FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3",params![snapshot.session,id,old_n as i64],|r| r.get(0)).optional()?;
+                    let action: Option<String>=tx.prepare_cached("SELECT action FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3")?.query_row(params![snapshot.session,id,old_n as i64],|r| r.get(0)).optional()?;
                     tx.execute("DELETE FROM dcp_tool_projection_v2 WHERE session_id=?1 AND call_id=?2 AND occurrence=?3",params![snapshot.session,id,old_n as i64])?;
                     if let Some(action) = action
                         && let Some(key) = new.get(&(id, origin))
@@ -521,7 +516,7 @@ impl Db {
                     )?;
                 }
             }
-            let boundary: Option<String> = tx.query_row("SELECT id FROM conversation_messages WHERE session_id=?1 AND seq<(SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2) ORDER BY seq DESC LIMIT 1",params![snapshot.session,old.user_message],|r|r.get(0)).optional()?;
+            let boundary: Option<String> = tx.prepare_cached("SELECT id FROM conversation_messages WHERE session_id=?1 AND seq<(SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2) ORDER BY seq DESC LIMIT 1")?.query_row(params![snapshot.session,old.user_message],|r|r.get(0)).optional()?;
             if let Some(boundary) = &boundary {
                 tx.execute("INSERT INTO prune_marks VALUES(?1,?2,'turn-consolidation') ON CONFLICT(session_id) DO UPDATE SET up_to_msg=excluded.up_to_msg,created_at=excluded.created_at",params![snapshot.session,boundary])?;
                 Self::retire_compression_prefix(&tx, &snapshot.session, boundary)?;
@@ -546,7 +541,7 @@ impl Db {
         turn: &str,
         prefix: Option<&RawPrefix>,
     ) -> Result<(), StorageError> {
-        let last: Option<Option<String>> = conn.query_row("SELECT CASE WHEN length(CAST(descriptor AS BLOB))<=16384 THEN descriptor END FROM turn_raw_segments WHERE turn_id=?1 ORDER BY ordinal DESC LIMIT 1", [turn], |r| r.get(0)).optional()?;
+        let last: Option<Option<String>> = conn.prepare_cached("SELECT CASE WHEN length(CAST(descriptor AS BLOB))<=16384 THEN descriptor END FROM turn_raw_segments WHERE turn_id=?1 ORDER BY ordinal DESC LIMIT 1")?.query_row([turn], |r| r.get(0)).optional()?;
         if last == Some(None) {
             return Err(invalid("raw descriptor exceeds existing snapshot budget"));
         }
@@ -585,9 +580,7 @@ impl Db {
         turn: &str,
         ordinal: i64,
     ) -> Result<Option<(RawPrefix, RawPrefix)>, StorageError> {
-        let row: Option<([i64;3],Option<String>,Option<String>)> = conn.query_row(
-            "SELECT input_end,span_end,part_end,CASE WHEN length(CAST(descriptor AS BLOB))<=16384 THEN descriptor END,CASE WHEN length(CAST(base_descriptor AS BLOB))<=16384 THEN base_descriptor END FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2",
-            params![turn,ordinal], |r| Ok(([r.get(0)?,r.get(1)?,r.get(2)?],r.get(3)?,r.get(4)?))).optional()?;
+        let row: Option<([i64;3],Option<String>,Option<String>)> = conn.prepare_cached("SELECT input_end,span_end,part_end,CASE WHEN length(CAST(descriptor AS BLOB))<=16384 THEN descriptor END,CASE WHEN length(CAST(base_descriptor AS BLOB))<=16384 THEN base_descriptor END FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2")?.query_row(params![turn,ordinal], |r| Ok(([r.get(0)?,r.get(1)?,r.get(2)?],r.get(3)?,r.get(4)?))).optional()?;
         let Some((indexed, raw, base)) = row else {
             return Ok(None);
         };
@@ -643,13 +636,13 @@ impl Db {
             return Err(invalid("invalid raw page ordinal"));
         }
         let Some((indexed_base, end)) = Self::raw_descriptor_in(conn, turn, ordinal)? else {
-            let tail: Option<i64>=conn.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.raw_prefix.ordinal') END FROM turns WHERE id=?1",[turn],|r|r.get(0)).optional()?.flatten();
+            let tail: Option<i64>=conn.prepare_cached("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.raw_prefix.ordinal') END FROM turns WHERE id=?1")?.query_row([turn],|r|r.get(0)).optional()?.flatten();
             if tail.is_some_and(|tail| tail >= ordinal) {
                 return Err(invalid("missing raw page inside committed prefix"));
             }
             return Ok(None);
         };
-        let raw: Option<String> = conn.query_row("SELECT CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN payload END FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2",params![turn,ordinal,i64::try_from(budget).unwrap_or(i64::MAX)],|r|r.get(0))?;
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN payload END FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2")?.query_row(params![turn,ordinal,i64::try_from(budget).unwrap_or(i64::MAX)],|r|r.get(0))?;
         let raw = raw.ok_or_else(|| invalid("raw history page exceeds byte budget"))?;
         let value: serde_json::Value =
             serde_json::from_str(&raw).map_err(|_| invalid("corrupt raw page JSON"))?;
@@ -668,7 +661,7 @@ impl Db {
         {
             return Err(invalid("raw page contains selected projection"));
         }
-        let previous: Option<i64> = conn.query_row("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND ordinal<?2 ORDER BY ordinal DESC LIMIT 1",params![turn,ordinal],|r|r.get(0)).optional()?;
+        let previous: Option<i64> = conn.prepare_cached("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND ordinal<?2 ORDER BY ordinal DESC LIMIT 1")?.query_row(params![turn,ordinal],|r|r.get(0)).optional()?;
         let expected_base = if ordinal == 1 {
             RawPrefix::default()
         } else {
@@ -708,17 +701,17 @@ impl Db {
         }
         for part in &journal.display_parts {
             if let Some(op) = part["tool"].as_str() {
-                let owned: bool = conn.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND turn_id=?2)",
-                    params![op, turn],
-                    |r| r.get(0),
-                )?;
+                let owned: bool = conn
+                    .prepare_cached(
+                        "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND turn_id=?2)",
+                    )?
+                    .query_row(params![op, turn], |r| r.get(0))?;
                 if !owned {
                     return Err(invalid("foreign raw tool reference"));
                 }
             }
         }
-        let next: Option<i64> = conn.query_row("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND ordinal>?2 ORDER BY ordinal LIMIT 1",params![turn,ordinal],|r|r.get(0)).optional()?;
+        let next: Option<i64> = conn.prepare_cached("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND ordinal>?2 ORDER BY ordinal LIMIT 1")?.query_row(params![turn,ordinal],|r|r.get(0)).optional()?;
         if let Some(next) = next {
             if ordinal.checked_add(1) != Some(next) {
                 return Err(invalid("missing adjacent raw successor"));
@@ -729,7 +722,7 @@ impl Db {
                 return Err(invalid("raw successor base disagrees with page end"));
             }
         } else {
-            let hot: Option<String> = conn.query_row("SELECT CASE WHEN json_valid(result) AND length(CAST(json_extract(result,'$.raw_prefix') AS BLOB))<=16384 THEN json_extract(result,'$.raw_prefix') END FROM turns WHERE id=?1",[turn],|r|r.get(0))?;
+            let hot: Option<String> = conn.prepare_cached("SELECT CASE WHEN json_valid(result) AND length(CAST(json_extract(result,'$.raw_prefix') AS BLOB))<=16384 THEN json_extract(result,'$.raw_prefix') END FROM turns WHERE id=?1")?.query_row([turn],|r|r.get(0))?;
             let hot: serde_json::Value = serde_json::from_str(
                 &hot.ok_or_else(|| invalid("missing bounded hot descriptor"))?,
             )
@@ -757,13 +750,11 @@ impl Db {
             queries::{HistoryNoticeOrder, HistoryNoticePlacement, NoticePlacement},
             session::MessageId,
         };
-        let accepted: Option<(String,i64)> = conn.query_row(
-            "SELECT a.user_message,m.seq FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=a.session_id WHERE a.turn_id=?1 AND a.session_id=?2",
-            params![turn,session], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+        let accepted: Option<(String,i64)> = conn.prepare_cached("SELECT a.user_message,m.seq FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=a.session_id WHERE a.turn_id=?1 AND a.session_id=?2")?.query_row(params![turn,session], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
         let Some((prompt, prompt_seq)) = accepted else {
             return Ok(None);
         };
-        let mut candidates = conn.prepare("SELECT m.id,m.seq FROM conversation_messages m WHERE (EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id) OR EXISTS(SELECT 1 FROM session_inbox i WHERE i.message_id=m.id AND i.session_id=m.session_id)) AND m.session_id=?1 AND m.seq>?2 AND m.seq<COALESCE((SELECT MIN(n.seq) FROM conversation_messages n WHERE n.session_id=?1 AND n.seq>?2 AND (n.id=(SELECT json_extract(result,'$.assistant_message') FROM turns WHERE id=?3) OR EXISTS(SELECT 1 FROM turn_acceptances a WHERE a.user_message=n.id AND a.session_id=n.session_id))),9223372036854775807) ORDER BY m.seq LIMIT 241")?;
+        let mut candidates = conn.prepare_cached("SELECT m.id,m.seq FROM conversation_messages m WHERE (EXISTS(SELECT 1 FROM child_jobs j WHERE j.message_id=m.id AND j.parent_id=m.session_id) OR EXISTS(SELECT 1 FROM session_inbox i WHERE i.message_id=m.id AND i.session_id=m.session_id)) AND m.session_id=?1 AND m.seq>?2 AND m.seq<COALESCE((SELECT MIN(n.seq) FROM conversation_messages n WHERE n.session_id=?1 AND n.seq>?2 AND (n.id=(SELECT json_extract(result,'$.assistant_message') FROM turns WHERE id=?3) OR EXISTS(SELECT 1 FROM turn_acceptances a WHERE a.user_message=n.id AND a.session_id=n.session_id))),9223372036854775807) ORDER BY m.seq LIMIT 241")?;
         let candidates = candidates
             .query_map(params![session, prompt_seq, turn], |r| {
                 Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?))
@@ -776,7 +767,7 @@ impl Db {
         {
             return Ok(None);
         }
-        let raw: Option<String> = conn.query_row("SELECT CASE WHEN length(CAST(json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) AS BLOB))<=?2 THEN json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) END FROM turns WHERE id=?1",params![turn,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0))?;
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) AS BLOB))<=?2 THEN json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) END FROM turns WHERE id=?1")?.query_row(params![turn,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0))?;
         let Some(raw) = raw else { return Ok(None) };
         let hot: serde_json::Value =
             serde_json::from_str(&raw).map_err(|_| invalid("notice original journal"))?;
@@ -796,7 +787,7 @@ impl Db {
             let ordinal = if seq > prefix.delivered_notice_seq {
                 prefix.ordinal + 1
             } else {
-                let found: Option<i64> = conn.query_row("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND json_extract(descriptor,'$.delivered_notice_seq')>=?2 ORDER BY ordinal LIMIT 1",params![turn,seq],|r|r.get(0)).optional()?;
+                let found: Option<i64> = conn.prepare_cached("SELECT ordinal FROM turn_raw_segments WHERE turn_id=?1 AND json_extract(descriptor,'$.delivered_notice_seq')>=?2 ORDER BY ordinal LIMIT 1")?.query_row(params![turn,seq],|r|r.get(0)).optional()?;
                 let Some(found) = found else { continue };
                 found as u64
             };
@@ -810,7 +801,7 @@ impl Db {
                     let Ok(sql_ordinal) = i64::try_from(at) else {
                         break;
                     };
-                    let size: Option<i64> = conn.query_row("SELECT length(CAST(payload AS BLOB)) FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2",params![turn,sql_ordinal],|r|r.get(0)).optional()?;
+                    let size: Option<i64> = conn.prepare_cached("SELECT length(CAST(payload AS BLOB)) FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?2")?.query_row(params![turn,sql_ordinal],|r|r.get(0)).optional()?;
                     let Some(size) = size else { break };
                     if pages.len() >= 4
                         || bytes.saturating_add(size as usize)
@@ -930,9 +921,9 @@ impl Db {
         conn: &Connection,
         turn: &str,
     ) -> Result<Vec<oc_core::queries::AssistantSpan>, StorageError> {
-        let total: i64 = conn.query_row("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[2]'),0)+COALESCE(json_array_length(result,'$.spans'),0) FROM turns WHERE id=?1",[turn],|r| r.get(0))?;
+        let total: i64 = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[2]'),0)+COALESCE(json_array_length(result,'$.spans'),0) FROM turns WHERE id=?1")?.query_row([turn],|r| r.get(0))?;
         let floor = (total - 192).max(0);
-        let mut stmt=conn.prepare("WITH recent AS (SELECT ordinal,payload FROM turn_raw_segments WHERE turn_id=?1 AND span_end>?2 ORDER BY ordinal DESC LIMIT 192), spans AS (
+        let mut stmt=conn.prepare_cached("WITH recent AS (SELECT ordinal,payload FROM turn_raw_segments WHERE turn_id=?1 AND span_end>?2 ORDER BY ordinal DESC LIMIT 192), spans AS (
           SELECT json_extract(r.payload,'$.base.ends[2]')+s.key AS seq,s.value FROM recent r,json_each(r.payload,'$.journal.spans') s WHERE json_extract(r.payload,'$.base.ends[2]')+s.key>=?2
           UNION ALL SELECT COALESCE(json_extract(t.result,'$.raw_prefix.ends[2]'),0)+s.key,s.value FROM turns t,json_each(t.result,'$.spans') s WHERE t.id=?1)
           SELECT CASE WHEN SUM(length(CAST(value AS BLOB))) OVER (ORDER BY seq)<=?3 THEN value END FROM (SELECT seq,value FROM spans ORDER BY seq DESC LIMIT 192) ORDER BY seq")?;
@@ -954,7 +945,7 @@ impl Db {
         conn: &Connection,
         turn: &str,
     ) -> Result<Vec<(usize, Option<i64>, serde_json::Value)>, StorageError> {
-        let total: i64=conn.query_row("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+COALESCE(json_array_length(result,'$.display_parts'),0) FROM turns WHERE id=?1",[turn],|r| r.get(0))?;
+        let total: i64=conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+COALESCE(json_array_length(result,'$.display_parts'),0) FROM turns WHERE id=?1")?.query_row([turn],|r| r.get(0))?;
         self.turn_part_refs(
             conn,
             turn,
@@ -976,7 +967,7 @@ impl Db {
         // reference range; subsequent segments with the same end have no parts.
         // Seek the requested interval, not the latest archive and not all RAW.
         let order = if newer { "ASC" } else { "DESC" };
-        let mut stmt=conn.prepare(&format!("WITH owners AS (
+        let mut stmt=conn.prepare_cached(&format!("WITH owners AS (
           SELECT MIN(ordinal) AS ordinal FROM turn_raw_segments
           WHERE turn_id=?1 AND part_end>?2 GROUP BY part_end ORDER BY part_end LIMIT 240
           ), recent AS (SELECT r.ordinal,r.payload FROM turn_raw_segments r JOIN owners o ON o.ordinal=r.ordinal

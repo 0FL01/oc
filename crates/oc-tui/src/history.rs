@@ -59,7 +59,7 @@ pub struct HistoryRow {
     pub meta: Option<AssistantMeta>,
     /// Tool card attached to a `tool` row (live turns and cards panel rows
     /// stay plain text; the transcript renders the card).
-    pub tool: Option<ToolCard>,
+    pub tool: Option<std::sync::Arc<ToolCard>>,
     /// Exact delivered child notice; not a user block or assistant tool part.
     pub child_notice: Option<Box<oc_core::queries::ChildJob>>,
     /// Exact background Shell data notice; intentionally not a navigation link.
@@ -373,10 +373,12 @@ impl HistoryWindow {
             let Some(card) = row.tool.as_mut().filter(|card| card.op == op) else {
                 return false;
             };
-            let ToolRender::Dcp(view) = &mut card.render else {
-                return false;
-            };
-            view.apply_summary(page.clone())
+            edit_card(card, |card| {
+                let ToolRender::Dcp(view) = &mut card.render else {
+                    return false;
+                };
+                view.apply_summary(page.clone())
+            })
         });
         if changed {
             self.revision = self.revision.wrapping_add(1);
@@ -399,7 +401,9 @@ impl HistoryWindow {
             if row.role == "tool"
                 && let Some(card) = &mut row.tool
             {
-                changed |= card.refresh_subagent_job(session, jobs, picker);
+                changed |= edit_card(card, |card| {
+                    card.refresh_subagent_job(session, jobs, picker)
+                });
             }
         }
         if changed {
@@ -420,7 +424,9 @@ impl HistoryWindow {
         let mut changed = false;
         for row in &mut self.rows {
             if let Some(card) = &mut row.tool {
-                changed |= card.apply_subagent_notice(receipt, jobs, picker);
+                changed |= edit_card(card, |card| {
+                    card.apply_subagent_notice(receipt, jobs, picker)
+                });
             }
         }
         if changed {
@@ -464,7 +470,7 @@ impl HistoryWindow {
                         .as_ref()
                         .and_then(|m| m.model.as_ref())
                         .map_or(0, String::len)
-                    + row.tool.as_ref().map_or(0, ToolCard::retained_bytes)
+                    + row.tool.as_ref().map_or(0, |card| card.retained_bytes())
                     + row.child_notice.as_deref().map_or(0, child_notice_bytes)
                     + row.shell_notice.as_ref().map_or(0, |notice| {
                         notice.operation.len() + notice.state.len() + notice.command.len()
@@ -654,7 +660,7 @@ impl HistoryWindow {
             chips: Vec::new(),
             reasoning: None,
             meta: None,
-            tool: Some(card),
+            tool: Some(std::sync::Arc::new(card)),
             child_notice: None,
             shell_notice: None,
         });
@@ -880,7 +886,7 @@ impl HistoryWindow {
             if card.output_presentation.as_ref() == Some(output) {
                 continue;
             }
-            *card = user_shell_card(&oc_core::queries::UserShellResult {
+            *card = std::sync::Arc::new(user_shell_card(&oc_core::queries::UserShellResult {
                 input: true,
                 superseded_input: false,
                 operation: card.op.clone(),
@@ -889,7 +895,7 @@ impl HistoryWindow {
                 state: "started".into(),
                 output: output.clone(),
                 diagnostic: None,
-            });
+            }));
             changed = true;
         }
         if changed {
@@ -913,7 +919,9 @@ impl HistoryWindow {
             if row.role == "tool"
                 && let Some(card) = &mut row.tool
             {
-                changed |= card.refresh_model_shell_output(session, None, jobs);
+                changed |= edit_card(card, |card| {
+                    card.refresh_model_shell_output(session, None, jobs)
+                });
             }
         }
         if changed {
@@ -934,7 +942,7 @@ impl HistoryWindow {
             if row.role == "tool"
                 && let Some(card) = &mut row.tool
             {
-                changed |= card.finish_model_shell_preview(snapshot);
+                changed |= edit_card(card, |card| card.finish_model_shell_preview(snapshot));
             }
         }
         if changed {
@@ -1226,7 +1234,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
             return vec![result];
         }
         result.role = if shell.input { "shell_input" } else { "shell" }.into();
-        result.tool = Some(user_shell_card(shell));
+        result.tool = Some(std::sync::Arc::new(user_shell_card(shell)));
         return vec![result];
     }
     if row.model_switch.is_some() || row.agent_switch.is_some() {
@@ -1322,7 +1330,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
             }
             TranscriptPart::Tool(op) => {
                 part_row.role = "tool".to_string();
-                part_row.tool = Some(card_from_row(op));
+                part_row.tool = Some(std::sync::Arc::new(card_from_row(op)));
             }
         }
         if let Some(state) = turn.part_states.get(index)
@@ -1433,7 +1441,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                             .get(part_start + index)
                             .and_then(|row| row.tool.as_ref())
                             .filter(|card| card.output_presentation.is_some())
-                            .is_none_or(ToolCard::preview_limited))
+                            .is_none_or(|card| card.preview_limited()))
             }),
     });
     rows.push(footer);
@@ -1545,6 +1553,23 @@ pub struct ToolCard {
     /// Presentation data parsed once from the recorded input/output
     /// (bounded); the transcript renders the card from it.
     pub render: ToolRender,
+}
+
+/// Run a conditional edit on a shared card. An unchanged card keeps its
+/// identity, which keys cached layout; a changed card gets a fresh allocation.
+pub(crate) fn edit_card(
+    card: &mut std::sync::Arc<ToolCard>,
+    edit: impl FnOnce(&mut ToolCard) -> bool,
+) -> bool {
+    if let Some(unique) = std::sync::Arc::get_mut(card) {
+        return edit(unique);
+    }
+    let mut next = ToolCard::clone(card);
+    let changed = edit(&mut next);
+    if changed {
+        *card = std::sync::Arc::new(next);
+    }
+    changed
 }
 
 impl ToolCard {

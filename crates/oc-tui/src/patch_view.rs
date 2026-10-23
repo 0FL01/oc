@@ -842,7 +842,7 @@ pub(crate) mod tests {
                 child_notice: None,
                 shell_notice: None,
                 meta: None,
-                tool: Some(card.clone()),
+                tool: Some(std::sync::Arc::new(card.clone())),
             }];
             let full = crate::messages::transcript(&rows, theme, content.width, terminal, |_| {
                 theme.text()
@@ -977,7 +977,7 @@ pub(crate) mod tests {
                 child_notice: None,
                 shell_notice: None,
                 meta: None,
-                tool: Some(card),
+                tool: Some(std::sync::Arc::new(card)),
             }];
             let mut full = vec![Line::plain("")];
             full.extend(styled::wrap_lines(
@@ -1045,7 +1045,7 @@ pub(crate) mod tests {
                 child_notice: None,
                 shell_notice: None,
                 meta: None,
-                tool: Some(card),
+                tool: Some(std::sync::Arc::new(card)),
             }];
             for terminal in [120, 121] {
                 let content = layout::session_regions(Rect::new(0, 0, terminal, 40), 0).transcript;
@@ -1176,7 +1176,7 @@ pub(crate) mod tests {
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card),
+            tool: Some(std::sync::Arc::new(card)),
         }];
         let cache = std::cell::RefCell::new(crate::messages::MarkdownCache::default());
         for terminal in [79, 80, 120, 121] {
@@ -1285,7 +1285,7 @@ pub(crate) mod tests {
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card),
+            tool: Some(std::sync::Arc::new(card)),
         };
         let theme = Theme::dark();
         let cache = std::cell::RefCell::new(crate::messages::MarkdownCache::default());
@@ -1325,7 +1325,7 @@ pub(crate) mod tests {
         let replay: PatchEffects = serde_json::from_str(&encoded).unwrap();
         assert_eq!(
             card_from_row(&row(Some(replay), "completed")),
-            history.tool.unwrap()
+            *history.tool.unwrap()
         );
     }
 }

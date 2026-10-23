@@ -50,7 +50,7 @@ pub(super) fn standalone_prefix_operations(
         digests.insert(pre);
         digests.extend(post);
     }
-    let boundary: Option<String> = conn.query_row("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND a.user_message=?2 AND p.active=1",params![source,before],|r|r.get(0)).optional()?;
+    let boundary: Option<String> = conn.prepare_cached("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND a.user_message=?2 AND p.active=1")?.query_row(params![source,before],|r|r.get(0)).optional()?;
     digests.extend(boundary);
     let mut allowed = HashSet::new();
     for digest in digests {
@@ -156,7 +156,7 @@ impl Import<'_> {
                         } else {
                             // Reserve even blocks absent at the initial cut: a
                             // later Undo must never collide with another root.
-                            let n: i64 = self.conn.query_row("UPDATE compression_identity SET high_water=high_water+1 WHERE singleton=1 RETURNING high_water",[],|r|r.get(0))?;
+                            let n: i64 = self.conn.prepare_cached("UPDATE compression_identity SET high_water=high_water+1 WHERE singleton=1 RETURNING high_water")?.query_row([],|r|r.get(0))?;
                             let block = format!("b{n:04}");
                             self.blocks.insert(old_block, block.clone());
                             block
@@ -190,14 +190,14 @@ impl Import<'_> {
                             let target = if let Some(id) = self.blocks.get(&placeholder.block_id) {
                                 id.clone()
                             } else {
-                                let present: bool = self.conn.query_row("SELECT EXISTS(SELECT 1 FROM fork_objects f JOIN conversation_objects o ON o.id=f.id WHERE o.kind=0 AND json_extract(o.payload,'$[0]')=?1)",[&placeholder.block_id],|r|r.get(0))?;
+                                let present: bool = self.conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM fork_objects f JOIN conversation_objects o ON o.id=f.id WHERE o.kind=0 AND json_extract(o.payload,'$[0]')=?1)")?.query_row([&placeholder.block_id],|r|r.get(0))?;
                                 if !present {
                                     return Err(refuse(
                                         "historical summary reference outside prefix",
                                     )
                                     .into());
                                 }
-                                let n: i64 = self.conn.query_row("UPDATE compression_identity SET high_water=high_water+1 WHERE singleton=1 RETURNING high_water",[],|r|r.get(0))?;
+                                let n: i64 = self.conn.prepare_cached("UPDATE compression_identity SET high_water=high_water+1 WHERE singleton=1 RETURNING high_water")?.query_row([],|r|r.get(0))?;
                                 let id = format!("b{n:04}");
                                 self.blocks.insert(placeholder.block_id.clone(), id.clone());
                                 id
@@ -259,17 +259,19 @@ impl Import<'_> {
                             .as_str()
                             .ok_or_else(|| refuse("invalid historical compaction operation"))?;
                         let new_id = format!("{}:{original}", self.root);
-                        let present: bool = self.conn.query_row(
-                            "SELECT EXISTS(SELECT 1 FROM session_compactions WHERE id=?1)",
-                            [&new_id],
-                            |r| r.get(0),
-                        )?;
+                        let present: bool = self
+                            .conn
+                            .prepare_cached(
+                                "SELECT EXISTS(SELECT 1 FROM session_compactions WHERE id=?1)",
+                            )?
+                            .query_row([&new_id], |r| r.get(0))?;
                         if !present {
-                            let raw: String = self.conn.query_row(
-                                "SELECT snapshot FROM session_compactions WHERE id=?1",
-                                [original],
-                                |r| r.get(0),
-                            )?;
+                            let raw: String = self
+                                .conn
+                                .prepare_cached(
+                                    "SELECT snapshot FROM session_compactions WHERE id=?1",
+                                )?
+                                .query_row([original], |r| r.get(0))?;
                             let mut snapshot: oc_core::compaction::CompactionSnapshot =
                                 serde_json::from_str(&raw).map_err(|_| {
                                     refuse("invalid historical compaction presentation")
@@ -345,7 +347,7 @@ impl Import<'_> {
                                 // accepted-turn association. Import only those
                                 // referenced by this genuine saved context cut.
                                 let remaining = self.bytes.min(super::MAX_BYTES);
-                                let row: Option<(Option<String>,Option<String>,i64)> = self.conn.query_row("SELECT input,output,COALESCE(length(CAST(input AS BLOB)),0)+COALESCE(length(CAST(output AS BLOB)),0) FROM tool_operations WHERE id=?1 AND session_id=?2 AND turn_id IS NULL AND name='compress' AND state='completed' AND COALESCE(length(CAST(input AS BLOB)),0)+COALESCE(length(CAST(output AS BLOB)),0)<=?3",params![old_op,self.source,remaining],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
+                                let row: Option<(Option<String>,Option<String>,i64)> = self.conn.prepare_cached("SELECT input,output,COALESCE(length(CAST(input AS BLOB)),0)+COALESCE(length(CAST(output AS BLOB)),0) FROM tool_operations WHERE id=?1 AND session_id=?2 AND turn_id IS NULL AND name='compress' AND state='completed' AND COALESCE(length(CAST(input AS BLOB)),0)+COALESCE(length(CAST(output AS BLOB)),0)<=?3")?.query_row(params![old_op,self.source,remaining],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
                                 let Some((input, output, bytes)) = row else {
                                     return Err(
                                         refuse("historical DCP operation outside prefix").into()
@@ -426,11 +428,12 @@ impl Import<'_> {
                     "INSERT OR IGNORE INTO conversation_objects(kind,payload) VALUES (?1,?2)",
                     params![kind, payload],
                 )?;
-                let object = self.conn.query_row(
-                    "SELECT id FROM conversation_objects WHERE kind=?1 AND payload=?2",
-                    params![kind, payload],
-                    |r| r.get(0),
-                )?;
+                let object = self
+                    .conn
+                    .prepare_cached(
+                        "SELECT id FROM conversation_objects WHERE kind=?1 AND payload=?2",
+                    )?
+                    .query_row(params![kind, payload], |r| r.get(0))?;
                 self.objects.insert(old, (object, key.clone()));
                 (object, key)
             };
@@ -466,7 +469,7 @@ pub(super) fn copy(
         .query_map([source],|r|Ok((r.get::<_,String>(0)?,r.get::<_,i64>(1)?,r.get::<_,String>(2)?,r.get::<_,Option<i64>>(3)?,r.get::<_,Option<String>>(4)?)))?
         .filter_map(|row| match row { Ok(p) if turns.contains_key(&p.0) => Some(Ok(p)), Ok(_) => None, Err(e) => Some(Err(e)) })
         .collect::<Result<Vec<_>,_>>()?;
-    let boundary: Option<String> = conn.query_row("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE a.session_id=?1 AND a.user_message=?2 AND p.active=1",params![source,before],|r|r.get(0)).optional()?;
+    let boundary: Option<String> = conn.prepare_cached("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE a.session_id=?1 AND a.user_message=?2 AND p.active=1")?.query_row(params![source,before],|r|r.get(0)).optional()?;
     let mut digests = HashSet::new();
     for p in &points {
         digests.insert(p.2.clone());
@@ -494,7 +497,7 @@ pub(super) fn copy(
             [],
         )?;
     }
-    let (n,bytes): (i64,i64) = conn.query_row("SELECT count(*),coalesce(sum(length(CAST(o.payload AS BLOB))),0) FROM fork_objects f JOIN conversation_objects o ON o.id=f.id",[],|r|Ok((r.get(0)?,r.get(1)?)))?;
+    let (n,bytes): (i64,i64) = conn.prepare_cached("SELECT count(*),coalesce(sum(length(CAST(o.payload AS BLOB))),0) FROM fork_objects f JOIN conversation_objects o ON o.id=f.id")?.query_row([],|r|Ok((r.get(0)?,r.get(1)?)))?;
     if n + points.len() as i64 > rows_left || bytes > bytes_left {
         return Err(refuse("copy budget exceeded").into());
     }

@@ -1347,7 +1347,7 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     }
 }
 
@@ -1365,7 +1365,12 @@ fn exploration_mixed_fetches_cross_only_structurally_empty_content() {
         identity: None,
     });
     let mut second_fetch = exploration_tool("webfetch", "completed", true);
-    second_fetch.tool.as_mut().unwrap().op = "second-fetch".into();
+    second_fetch
+        .tool
+        .as_mut()
+        .map(std::sync::Arc::make_mut)
+        .unwrap()
+        .op = "second-fetch".into();
     let rows = [
         exploration_tool("grep", "completed", false),
         empty,
@@ -1551,8 +1556,18 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
         exploration_tool("read", "failed", false),
         exploration_tool("read", "completed", true),
     ];
-    rows[4].tool.as_mut().unwrap().op = "failed-read".into();
-    rows[5].tool.as_mut().unwrap().op = "limited-read".into();
+    rows[4]
+        .tool
+        .as_mut()
+        .map(std::sync::Arc::make_mut)
+        .unwrap()
+        .op = "failed-read".into();
+    rows[5]
+        .tool
+        .as_mut()
+        .map(std::sync::Arc::make_mut)
+        .unwrap()
+        .op = "limited-read".into();
     let cache = RefCell::new(MarkdownCache::default());
     for width in [16, 80] {
         let full = transcript_with_expansion(
@@ -1622,7 +1637,11 @@ fn instructions_disclosure_is_distinct_from_exploration_and_matches_indexed_geom
             ],
             total: 2,
         });
-        row.tool.as_mut().unwrap().output_presentation = Some(Box::new(presentation));
+        row.tool
+            .as_mut()
+            .map(std::sync::Arc::make_mut)
+            .unwrap()
+            .output_presentation = Some(Box::new(presentation));
     }
     let cache = RefCell::new(MarkdownCache::default());
     for open in [false, true] {
@@ -1711,7 +1730,12 @@ fn failed_exploration_preserves_styles_error_click_and_indexed_geometry() {
         ("webfetch", "% WebFetch https://example.test/reference"),
     ] {
         let mut failed = exploration_tool(name, "failed", false);
-        failed.tool.as_mut().unwrap().op = "actual-failure".into();
+        failed
+            .tool
+            .as_mut()
+            .map(std::sync::Arc::make_mut)
+            .unwrap()
+            .op = "actual-failure".into();
         let rows = [
             failed,
             exploration_tool("grep", "completed", true),
@@ -1828,7 +1852,7 @@ fn streaming_exploration_arguments_join_the_group_as_pending_members() {
     // Live argument streams carry no input (`index.tsx:2416`).
     let streaming = |name: &str, op: &str| {
         let mut row = exploration_tool(name, "argument_stream", false);
-        let card = row.tool.as_mut().unwrap();
+        let card = row.tool.as_mut().map(std::sync::Arc::make_mut).unwrap();
         card.op = op.into();
         card.render = crate::tools::ToolRender::parse(name, None, None, "argument_stream");
         card.output_preview.clear();
@@ -2242,7 +2266,7 @@ fn clipped_thought_hit_requires_generated_styles_and_painted_cells() {
         }
     }
     let mut tool = exploration_tool("read", "error", false);
-    tool.tool = Some(card_from_row(&ToolOpView {
+    tool.tool = Some(std::sync::Arc::new(card_from_row(&ToolOpView {
         child_job: None,
         output_presentation: None,
         question: None,
@@ -2257,7 +2281,7 @@ fn clipped_thought_hit_requires_generated_styles_and_painted_cells() {
         patch_effects: None,
         dcp: None,
         dcp_topic: None,
-    }));
+    })));
     let tool_lines = transcript(&[tool], theme, 60, 60, |_| theme.text());
     assert!(
         tool_lines
@@ -3357,7 +3381,9 @@ fn v06a_provider_controls_are_inert_outside_markdown() {
     };
     let mut row = assistant("");
     row.role = "tool".into();
-    row.tool = Some(crate::history::card_from_row(&operation));
+    row.tool = Some(std::sync::Arc::new(crate::history::card_from_row(
+        &operation,
+    )));
     for line in transcript(&[row], Theme::dark(), 80, 80, |_| Color::Reset) {
         assert!(
             !line.plain_text().chars().any(char::is_control),
@@ -4813,4 +4839,74 @@ fn footer_omits_unavailable_fields() {
     )
     .expect("agent field");
     assert_eq!(tokens_without_duration.plain_text(), "   Build");
+}
+
+/// Scrolling a window of patch cards renders each card once: later frames
+/// reuse the card-identity layout, and match a cold cache exactly.
+#[test]
+fn scrolling_reuses_tool_card_layout_without_rerendering_patches() {
+    let patch = |index: usize| {
+        let mut row = exploration_tool("apply_patch", "completed", false);
+        let body: String = (0..12)
+            .map(|line| format!("+fn item_{index}_{line}(v: u64) -> u64 {{ v ^ {line} }}\n"))
+            .collect();
+        let input = serde_json::json!({
+            "patchText": format!("*** Begin Patch\n*** Add File: src/f{index}.rs\n{body}*** End Patch")
+        });
+        row.tool = Some(std::sync::Arc::new(card_from_row(&ToolOpView {
+            child_job: None,
+            output_presentation: None,
+            question: None,
+            rowid: index as i64,
+            op: format!("patch-{index}"),
+            name: "apply_patch".into(),
+            state: "completed".into(),
+            input: Some(input.to_string()),
+            output: Some("Success. Updated the following files:\nA src/f.rs".into()),
+            output_bytes: 40,
+            output_truncated: false,
+            patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
+        })));
+        row
+    };
+    let rows: Vec<HistoryRow> = (0..40)
+        .flat_map(|index| {
+            [
+                user(&format!("change {index}"), vec![]),
+                patch(index),
+                assistant("done"),
+            ]
+        })
+        .collect();
+    let theme = Theme::dark();
+    let frame = |cache: &RefCell<MarkdownCache>, scroll: usize| {
+        visible_transcript_targets(
+            &rows,
+            theme,
+            (100, 100),
+            (30, scroll, None),
+            |_| Color::Reset,
+            cache,
+            &|_| false,
+        )
+        .0
+    };
+    let cache = RefCell::new(MarkdownCache::default());
+    frame(&cache, 0);
+    let rendered = cache.borrow().tool_row_renders();
+    assert_eq!(
+        rendered, 40,
+        "each card is rendered once to learn its height"
+    );
+    for scroll in (1..400).step_by(7) {
+        let warm = frame(&cache, scroll);
+        assert_eq!(warm, frame(&RefCell::new(MarkdownCache::default()), scroll));
+    }
+    assert_eq!(
+        cache.borrow().tool_row_renders(),
+        rendered,
+        "scroll rendered no card again"
+    );
 }

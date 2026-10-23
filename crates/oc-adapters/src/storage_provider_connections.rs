@@ -228,7 +228,7 @@ impl Db {
 }
 
 fn read_connections(conn: &Connection) -> Result<Vec<CustomConnection>, StorageError> {
-    let exists: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='custom_provider_connections')", [], |r| r.get(0)).map_err(credentials::credential_error)?;
+    let exists: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='custom_provider_connections')")?.query_row([], |r| r.get(0)).map_err(credentials::credential_error)?;
     if !exists {
         return Ok(Vec::new());
     }

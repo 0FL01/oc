@@ -296,7 +296,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
         meta: None,
         // The list text may ellipsize; the existing detail viewer still needs
         // bounded owner facts without another query or a parallel store.
-        tool: Some(card.clone()),
+        tool: Some(std::sync::Arc::new(card.clone())),
         child_notice: None,
         shell_notice: None,
     }
@@ -415,7 +415,7 @@ impl TuiState {
                 row.tool
                     .as_ref()
                     .filter(|card| &card.op == operation)
-                    .and_then(crate::tools::execute::facts)
+                    .and_then(|card| crate::tools::execute::facts(card))
             }) {
                 calls.retain(|index| *index < facts.calls.len());
                 !calls.is_empty()
@@ -462,9 +462,10 @@ impl TuiState {
                 .apply_notice(receipt, &mut self.window, self.picker.as_ref());
         for part in &mut self.live_parts {
             if let LivePart::Tool { card, .. } = part {
-                changed |= self
-                    .children
-                    .apply_live_notice(receipt, card, self.picker.as_ref());
+                changed |= crate::history::edit_card(card, |card| {
+                    self.children
+                        .apply_live_notice(receipt, card, self.picker.as_ref())
+                });
             }
         }
         if changed {
@@ -498,7 +499,9 @@ impl TuiState {
                     .as_ref()
                     .is_some_and(|turn| turn.0 == snapshot.job.turn)
             {
-                changed |= card.finish_model_shell_preview(snapshot);
+                changed |= crate::history::edit_card(card, |card| {
+                    card.finish_model_shell_preview(snapshot)
+                });
             }
         }
         if changed {
@@ -514,11 +517,10 @@ impl TuiState {
             let mut changed = self.shells.refresh_transcript(session, &mut self.window);
             for part in &mut self.live_parts {
                 if let LivePart::Tool { card, .. } = part {
-                    changed |= self.shells.refresh_live_card(
-                        session,
-                        self.active_turn.as_ref().map(|turn| turn.0.as_str()),
-                        card,
-                    );
+                    let turn = self.active_turn.as_ref().map(|turn| turn.0.as_str());
+                    changed |= crate::history::edit_card(card, |card| {
+                        self.shells.refresh_live_card(session, turn, card)
+                    });
                 }
             }
             if changed {
@@ -539,9 +541,10 @@ impl TuiState {
         if self.active_turn.is_some() {
             for part in &mut self.live_parts {
                 if let LivePart::Tool { card, .. } = part {
-                    changed |= self
-                        .children
-                        .refresh_live_card(session, card, self.picker.as_ref());
+                    changed |= crate::history::edit_card(card, |card| {
+                        self.children
+                            .refresh_live_card(session, card, self.picker.as_ref())
+                    });
                 }
             }
         }
@@ -2009,7 +2012,7 @@ impl TuiState {
                     .live_part_sources
                     .get(&(self.live_part_offset + ordinal));
                 let card = match part {
-                    LivePart::Tool { card, .. } => Some(card.as_ref()),
+                    LivePart::Tool { card, .. } => Some(card),
                     _ => None,
                 };
                 if let Some(index) = source.and_then(|source| {
@@ -2025,7 +2028,7 @@ impl TuiState {
         }
         cards
             .into_iter()
-            .filter_map(|(_, card)| card.map(|card| (card.op.as_str(), card)))
+            .filter_map(|(_, card)| card.map(|card| (card.op.as_str(), &**card)))
             .collect()
     }
 
@@ -2103,7 +2106,8 @@ impl TuiState {
                 ..
             } = part
                 && let Some(card) = row.tool.as_mut()
-                && let crate::tools::ToolRender::Subagent(view) = &mut card.render
+                && let crate::tools::ToolRender::Subagent(view) =
+                    &mut std::sync::Arc::make_mut(card).render
             {
                 view.spinner = Some(if self.chrome.animations == Some(false) {
                     "⋯"
@@ -2287,24 +2291,35 @@ impl TuiState {
                 });
             }
             if let Some(card) = &mut row.tool {
+                // Cards are shared with the window; write only actual changes so
+                // an unchanged card keeps its identity (and its cached layout).
                 if self.tool_spinner_clocks_attached && crate::tools::tool_spinner_animated(card) {
                     let frame = self
                         .tool_spinner_clocks
                         .get(&card.op)
                         .map_or(0, |clock| clock.frame);
-                    card.spinner = Some(if self.chrome.animations == Some(false) {
+                    let spinner = Some(if self.chrome.animations == Some(false) {
                         crate::tools::SPINNER
                     } else {
                         crate::compaction::FRAMES[frame]
                     });
-                    if let crate::tools::ToolRender::Subagent(view) = &mut card.render {
-                        view.spinner = card.spinner;
+                    let subagent = matches!(
+                        &card.render,
+                        crate::tools::ToolRender::Subagent(view) if view.spinner != spinner
+                    );
+                    if card.spinner != spinner || subagent {
+                        let card = std::sync::Arc::make_mut(card);
+                        card.spinner = spinner;
+                        if let crate::tools::ToolRender::Subagent(view) = &mut card.render {
+                            view.spinner = spinner;
+                        }
                     }
                 }
-                card.diff_settings = self.chrome.diffs;
-                if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
-                    view.config = self.chrome.dcp.clone();
-                    view.color_index = row.agent_color_index.or(view.color_index).or_else(|| {
+                if card.diff_settings != self.chrome.diffs {
+                    std::sync::Arc::make_mut(card).diff_settings = self.chrome.diffs;
+                }
+                if let crate::tools::ToolRender::Dcp(view) = &card.render {
+                    let color_index = row.agent_color_index.or(view.color_index).or_else(|| {
                         row.agent.as_ref().and_then(|id| {
                             self.agents
                                 .iter()
@@ -2312,8 +2327,18 @@ impl TuiState {
                                 .map(|entry| entry.color_index)
                         })
                     });
-                    view.spinner = (self.chrome.animations != Some(false))
+                    let spinner = (self.chrome.animations != Some(false))
                         .then(|| crate::compaction::FRAMES[self.compaction_frame].to_string());
+                    if (view.config != self.chrome.dcp
+                        || view.color_index != color_index
+                        || view.spinner != spinner)
+                        && let crate::tools::ToolRender::Dcp(view) =
+                            &mut std::sync::Arc::make_mut(card).render
+                    {
+                        view.config = self.chrome.dcp.clone();
+                        view.color_index = color_index;
+                        view.spinner = spinner;
+                    }
                 }
             }
             if let Some(meta) = &mut row.meta {

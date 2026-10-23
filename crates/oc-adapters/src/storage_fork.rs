@@ -39,12 +39,10 @@ fn accepted_model_for_user(
     source: &str,
     user: &str,
 ) -> Result<Option<String>, ForkError> {
-    let association: Option<Option<String>> = conn.query_row(
-        "SELECT CASE WHEN length(CAST(model_ref AS BLOB))<=65536 THEN model_ref END FROM turn_acceptances WHERE session_id=?1 AND user_message=?2",
-        params![source,user],|r|r.get(0)).optional()?;
+    let association: Option<Option<String>> = conn.prepare_cached("SELECT CASE WHEN length(CAST(model_ref AS BLOB))<=65536 THEN model_ref END FROM turn_acceptances WHERE session_id=?1 AND user_message=?2")?.query_row(params![source,user],|r|r.get(0)).optional()?;
     let raw = match association {
         Some(raw) => Some(raw),
-        None => conn.query_row("SELECT CASE WHEN length(CAST(payload AS BLOB))<=65536 THEN payload END FROM events WHERE session_id=?1 AND kind='accepted_model' AND seq < (SELECT min(seq) FROM events WHERE session_id=?1 AND kind='message' AND payload=?2) ORDER BY seq DESC LIMIT 1",params![source,user],|r|r.get(0)).optional()?,
+        None => conn.prepare_cached("SELECT CASE WHEN length(CAST(payload AS BLOB))<=65536 THEN payload END FROM events WHERE session_id=?1 AND kind='accepted_model' AND seq < (SELECT min(seq) FROM events WHERE session_id=?1 AND kind='message' AND payload=?2) ORDER BY seq DESC LIMIT 1")?.query_row(params![source,user],|r|r.get(0)).optional()?,
     };
     raw.map(|raw| raw.ok_or_else(|| refuse("accepted model budget exceeded").into()))
         .transpose()
@@ -97,15 +95,11 @@ impl Db {
     ) -> Result<ForkSessionSnapshot, ForkError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        let valid: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key=?2 WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?3)",
-            params![source, format!("{SESSION_LOCATION_PREFIX}{source}"), location], |r| r.get(0))?;
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key=?2 WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?3)")?.query_row(params![source, format!("{SESSION_LOCATION_PREFIX}{source}"), location], |r| r.get(0))?;
         if !valid {
             return Err(refuse("source is not a root in this Location").into());
         }
-        let boundary: Option<(i64, String, String)> = tx.query_row(
-            "SELECT seq,role,text FROM conversation_messages WHERE session_id=?1 AND id=?2 AND length(CAST(text AS BLOB))<=?3",
-            params![source,before,oc_core::session::MAX_INPUT_BYTES as i64],
+        let boundary: Option<(i64, String, String)> = tx.prepare_cached("SELECT seq,role,text FROM conversation_messages WHERE session_id=?1 AND id=?2 AND length(CAST(text AS BLOB))<=?3")?.query_row(params![source,before,oc_core::session::MAX_INPUT_BYTES as i64],
             |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
         let Some((mut cutoff, role, prompt)) = boundary else {
             return Err(refuse("invalid boundary").into());
@@ -121,13 +115,13 @@ impl Db {
         // its preceding turn. A profile change can also change the model.
         // One lookup: the earliest switch row after the nearest earlier
         // non-switch row (or the session start).
-        let first_switch: Option<i64> = tx.query_row(
-            "SELECT MIN(seq) FROM conversation_messages WHERE session_id=?1 AND seq<?2
+        let first_switch: Option<i64> = tx
+            .prepare_cached(
+                "SELECT MIN(seq) FROM conversation_messages WHERE session_id=?1 AND seq<?2
              AND seq>COALESCE((SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1
                AND seq<?2 AND role NOT IN ('model_switch','agent_switch')), -9223372036854775808)",
-            params![source, cutoff],
-            |r| r.get(0),
-        )?;
+            )?
+            .query_row(params![source, cutoff], |r| r.get(0))?;
         if let Some(seq) = first_switch {
             cutoff = seq;
         }
@@ -144,8 +138,7 @@ impl Db {
         }
         // Admit the actual requested prefix before transferring any journal,
         // including RAW. Future turns cannot inflate an earlier prefix copy.
-        let (rows, bytes): (i64,i64) = tx.query_row(
-            "WITH prefix AS (SELECT t.id FROM conversation_turns t LEFT JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=t.session_id LEFT JOIN conversation_messages m ON m.id=COALESCE(a.user_message,CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.user_message') END) WHERE t.session_id=?1 AND (m.seq<?2 OR m.seq IS NULL)) SELECT sum(n),sum(b) FROM (
+        let (rows, bytes): (i64,i64) = tx.prepare_cached("WITH prefix AS (SELECT t.id FROM conversation_turns t LEFT JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=t.session_id LEFT JOIN conversation_messages m ON m.id=COALESCE(a.user_message,CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.user_message') END) WHERE t.session_id=?1 AND (m.seq<?2 OR m.seq IS NULL)) SELECT sum(n),sum(b) FROM (
               SELECT count(*) n,coalesce(sum(length(CAST(id AS BLOB))+length(CAST(role AS BLOB))+length(CAST(text AS BLOB))),0) b FROM messages WHERE session_id=?1 AND seq<?2
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+length(CAST(status AS BLOB))+length(CAST(prompt AS BLOB))+coalesce(length(CAST(result AS BLOB)),0)),0) FROM turns WHERE id IN (SELECT id FROM prefix)
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(id AS BLOB))+coalesce(length(CAST(turn_id AS BLOB)),0)+length(CAST(state AS BLOB))+length(CAST(name AS BLOB))+coalesce(length(CAST(input AS BLOB)),0)+coalesce(length(CAST(output AS BLOB)),0)),0) FROM tool_operations WHERE session_id=?1 AND (turn_id IN (SELECT id FROM prefix) OR turn_id IS NULL)
@@ -153,24 +146,22 @@ impl Db {
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(metadata AS BLOB))),0) FROM patch_effects WHERE op_id IN (SELECT id FROM tool_operations WHERE session_id=?1 AND (turn_id IN (SELECT id FROM prefix) OR turn_id IS NULL))
                UNION ALL SELECT count(*),coalesce(sum(length(CAST(payload AS BLOB))+length(CAST(descriptor AS BLOB))+length(CAST(base_descriptor AS BLOB))),0) FROM turn_raw_segments WHERE turn_id IN (SELECT id FROM prefix)
                 UNION ALL SELECT count(*),coalesce(sum(length(CAST(i.id AS BLOB))+length(CAST(i.text AS BLOB))+coalesce(length(CAST(i.user_images AS BLOB)),0)+coalesce(length(CAST(i.command AS BLOB)),0)),0) FROM session_inbox i JOIN conversation_messages m ON m.id=i.message_id AND m.session_id=i.session_id WHERE i.session_id=?1 AND m.seq<?2
-               UNION ALL SELECT 0,coalesce(length(CAST(title AS BLOB)),0) FROM sessions WHERE id=?1)",
-            params![source,cutoff], |r| Ok((r.get(0)?,r.get(1)?)))?;
+               UNION ALL SELECT 0,coalesce(length(CAST(title AS BLOB)),0) FROM sessions WHERE id=?1)")?.query_row(params![source,cutoff], |r| Ok((r.get(0)?,r.get(1)?)))?;
         if rows > MAX_ROWS || bytes > MAX_BYTES || choice.len() as i64 > MAX_BYTES {
             return Err(refuse("copy budget exceeded").into());
         }
-        let root: String =
-            tx.query_row("SELECT 'fork-' || lower(hex(randomblob(16)))", [], |r| {
-                r.get(0)
-            })?;
+        let root: String = tx
+            .prepare_cached("SELECT 'fork-' || lower(hex(randomblob(16)))")?
+            .query_row([], |r| r.get(0))?;
         if tab_adoption_key(location, &root).len() > MAX_TAB_ADOPTION_KEY_BYTES {
             return Err(refuse("invalid Location scope").into());
         }
-        let unanchored_tool: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND (o.turn_id IS NULL OR NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1)))",[source],|r|r.get(0))?;
+        let unanchored_tool: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND (o.turn_id IS NULL OR NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1)))")?.query_row([source],|r|r.get(0))?;
         if unanchored_tool {
             let standalone = context::standalone_prefix_operations(&tx, source, before, cutoff)?;
             let standalone = serde_json::to_string(&standalone)
                 .map_err(|_| refuse("invalid historical DCP operations"))?;
-            let unrelated: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND ((o.turn_id IS NULL AND o.id NOT IN (SELECT value FROM json_each(?2))) OR (o.turn_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1))))",params![source,standalone],|r|r.get(0))?;
+            let unrelated: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND ((o.turn_id IS NULL AND o.id NOT IN (SELECT value FROM json_each(?2))) OR (o.turn_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1))))")?.query_row(params![source,standalone],|r|r.get(0))?;
             if unrelated {
                 return Err(refuse("unanchored tool record").into());
             }
@@ -266,7 +257,7 @@ impl Db {
                 };
                 if role != "assistant"
                     || *seq <= anchor_seq
-                    || tx.query_row("SELECT EXISTS(SELECT 1 FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message WHERE a.session_id=?1 AND m.seq>?2 AND m.seq<?3)",params![source,anchor_seq,seq],|r|r.get::<_,bool>(0))?
+                    || tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM turn_acceptances a JOIN conversation_messages m ON m.id=a.user_message WHERE a.session_id=?1 AND m.seq>?2 AND m.seq<?3)")?.query_row(params![source,anchor_seq,seq],|r|r.get::<_,bool>(0))?
                     || !assistant_owners.insert(assistant.to_string())
                 {
                     return Err(refuse("invalid assistant ownership").into());
@@ -281,9 +272,7 @@ impl Db {
                         let op = op
                             .as_str()
                             .ok_or_else(|| refuse("invalid tool reference"))?;
-                        let owned: bool = tx.query_row(
-                            "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2 AND turn_id=?3)",
-                            params![op, source, old], |r| r.get(0))?;
+                        let owned: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2 AND turn_id=?3)")?.query_row(params![op, source, old], |r| r.get(0))?;
                         if !owned {
                             return Err(refuse("foreign tool reference").into());
                         }
@@ -384,10 +373,9 @@ impl Db {
                 }
             }
             let new_id = Self::insert_message(&tx, &root, &role, &text)?;
-            let new_seq: i64 =
-                tx.query_row("SELECT seq FROM messages WHERE id=?1", [&new_id], |r| {
-                    r.get(0)
-                })?;
+            let new_seq: i64 = tx
+                .prepare_cached("SELECT seq FROM messages WHERE id=?1")?
+                .query_row([&new_id], |r| r.get(0))?;
             seqs.insert(seq, new_seq);
             ids.insert(old, new_id);
         }
@@ -434,7 +422,7 @@ impl Db {
                 // child's current execution state. Copy only owner-proven facts;
                 // the fork gains neither a job nor a child capability. Native
                 // origin is retained through recursive forks.
-                let child_launch = state == "running" && name == crate::tools::SUBAGENT_TOOL && tx.query_row("SELECT EXISTS(SELECT 1 FROM events e JOIN child_jobs j ON j.operation_id=json_extract(e.payload,'$.origin_operation') WHERE e.session_id=?1 AND e.kind='subagent_launch' AND json_valid(e.payload) AND length(CAST(e.payload AS BLOB))<=8192 AND json_extract(e.payload,'$.operation')=?2 AND j.child_id=json_extract(e.payload,'$.childID') AND j.parent_id=json_extract(e.payload,'$.parentID') AND j.delivery_id=json_extract(e.payload,'$.deliveryID') AND json_extract(j.identity,'$.generation')=json_extract(e.payload,'$.generation') AND json_extract(j.identity,'$.location')=json_extract(e.payload,'$.location') AND json_valid(?3) AND json_extract(?3,'$.status')='running' AND json_extract(?3,'$.sessionID')=j.child_id AND json_extract(?3,'$.jobGeneration')=j.operation_id AND json_extract(?3,'$.deliveryID')=j.delivery_id)",params![source,op,output],|row|row.get::<_,bool>(0))?;
+                let child_launch = state == "running" && name == crate::tools::SUBAGENT_TOOL && tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM events e JOIN child_jobs j ON j.operation_id=json_extract(e.payload,'$.origin_operation') WHERE e.session_id=?1 AND e.kind='subagent_launch' AND json_valid(e.payload) AND length(CAST(e.payload AS BLOB))<=8192 AND json_extract(e.payload,'$.operation')=?2 AND j.child_id=json_extract(e.payload,'$.childID') AND j.parent_id=json_extract(e.payload,'$.parentID') AND j.delivery_id=json_extract(e.payload,'$.deliveryID') AND json_extract(j.identity,'$.generation')=json_extract(e.payload,'$.generation') AND json_extract(j.identity,'$.location')=json_extract(e.payload,'$.location') AND json_valid(?3) AND json_extract(?3,'$.status')='running' AND json_extract(?3,'$.sessionID')=j.child_id AND json_extract(?3,'$.jobGeneration')=j.operation_id AND json_extract(?3,'$.deliveryID')=j.delivery_id)")?.query_row(params![source,op,output],|row|row.get::<_,bool>(0))?;
                 if !matches!(
                     state.as_str(),
                     "completed" | "failed" | "denied" | "cancelled" | "no_gain"
@@ -752,7 +740,7 @@ mod tests {
         // Imported point failure rolls back root/deck/metadata and block IDs.
         let conn = db.conn.lock().unwrap();
         conn.execute_batch("CREATE TEMP TRIGGER fail_fork_point BEFORE INSERT ON conversation_points WHEN NEW.session_id LIKE 'fork-%' BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
-        let before_counts: (i64,i64,i64,i64) = conn.query_row("SELECT (SELECT count(*) FROM conversation_versions),(SELECT count(*) FROM conversation_objects),(SELECT count(*) FROM conversation_points),(SELECT high_water FROM compression_identity)",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+        let before_counts: (i64,i64,i64,i64) = conn.query_row("SELECT (SELECT count(*) FROM conversation_versions),(SELECT count(*) FROM conversation_objects),(SELECT count(*) FROM conversation_points),(SELECT high_water FROM compression_identity)", [],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
         drop(conn);
         let before = counts(&db);
         assert!(
@@ -994,7 +982,7 @@ mod tests {
             .unwrap();
         assert_eq!(accepted.model_switch.unwrap().previous.id, "new");
         let conn = db.conn.lock().unwrap();
-        let ordered: bool = conn.query_row("SELECT NOT EXISTS(SELECT 1 FROM turn_acceptances a JOIN events u ON u.session_id=a.session_id AND u.kind='message' AND u.payload=a.user_message WHERE a.session_id=?1 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.session_id=a.session_id AND e.kind='accepted_model' AND e.payload=a.model_ref AND e.seq<u.seq))",[&fork.session.0],|r|r.get(0)).unwrap();
+        let ordered: bool = conn.query_row("SELECT NOT EXISTS(SELECT 1 FROM turn_acceptances a JOIN events u ON u.session_id=a.session_id AND u.kind='message' AND u.payload=a.user_message WHERE a.session_id=?1 AND NOT EXISTS(SELECT 1 FROM events e WHERE e.session_id=a.session_id AND e.kind='accepted_model' AND e.payload=a.model_ref AND e.seq<u.seq))", [&fork.session.0],|r|r.get(0)).unwrap();
         assert!(ordered);
     }
 

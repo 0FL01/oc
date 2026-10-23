@@ -40,9 +40,7 @@ impl Db {
         let mut facts = Vec::new();
         let mut bytes = 0usize;
         for event in state.events {
-            let raw: Option<String> = conn.query_row(
-                "SELECT CASE WHEN length(CAST(payload AS BLOB))<=?2 THEN payload END FROM events WHERE seq=?1 AND kind='instructions_updated'",
-                params![event, (crate::defs::MAX_INSTRUCTIONS_FILE * 8 + 16384) as i64], |r|r.get(0))?;
+            let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(payload AS BLOB))<=?2 THEN payload END FROM events WHERE seq=?1 AND kind='instructions_updated'")?.query_row(params![event, (crate::defs::MAX_INSTRUCTIONS_FILE * 8 + 16384) as i64], |r|r.get(0))?;
             let raw = raw.ok_or_else(|| {
                 StorageError::Io(std::io::Error::other("instruction fact budget exceeded"))
             })?;
@@ -76,11 +74,11 @@ impl Db {
         crate::instructions::validate_sources(desired).map_err(std::io::Error::other)?;
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let session: String = tx.query_row(
-            "SELECT session_id FROM conversation_turns WHERE id=?1 AND status='started'",
-            [turn],
-            |r| r.get(0),
-        )?;
+        let session: String = tx
+            .prepare_cached(
+                "SELECT session_id FROM conversation_turns WHERE id=?1 AND status='started'",
+            )?
+            .query_row([turn], |r| r.get(0))?;
         let (revision, previous) = Self::instruction_view_in(&tx, &session)?;
         if revision != expected {
             return Err(StorageError::Io(std::io::Error::other(

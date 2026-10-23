@@ -454,7 +454,7 @@ enum LivePart {
     },
     /// One tool call card plus the recorded input of an in-flight call.
     Tool {
-        card: Box<ToolCard>,
+        card: std::sync::Arc<ToolCard>,
         input: String,
         /// Provider draft presentation, never observed execution timing.
         delegation: Option<DelegationSpinner>,
@@ -536,7 +536,7 @@ impl LivePart {
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
-                tool: Some((**card).clone()),
+                tool: Some(card.clone()),
                 child_notice: None,
                 shell_notice: None,
             },

@@ -116,19 +116,17 @@ impl Db {
           CREATE UNIQUE INDEX IF NOT EXISTS conversation_version_current ON conversation_versions(kind,row_key) WHERE valid_to IS NULL;
           CREATE TABLE IF NOT EXISTS conversation_tracked(kind INTEGER PRIMARY KEY);")?;
         for (kind, (table, columns, _)) in TABLES.iter().enumerate() {
-            let exists: bool = conn.query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
-                [table],
-                |r| r.get(0),
-            )?;
+            let exists: bool = conn
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+                )?
+                .query_row([table], |r| r.get(0))?;
             if !exists {
                 continue;
             }
-            let tracked: bool = conn.query_row(
-                "SELECT EXISTS(SELECT 1 FROM conversation_tracked WHERE kind=?1)",
-                [kind as i64],
-                |r| r.get(0),
-            )?;
+            let tracked: bool = conn
+                .prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_tracked WHERE kind=?1)")?
+                .query_row([kind as i64], |r| r.get(0))?;
             let updated: bool = if tracked && matches!(kind, 0 | 4 | 5 | 6) {
                 let sql: Option<String> = conn
                     .query_row(
@@ -231,10 +229,9 @@ impl Db {
     }
 
     pub(super) fn save_context(conn: &Connection, _session: &str) -> Result<String, StorageError> {
-        let revision: i64 =
-            conn.query_row("SELECT revision FROM conversation_revision", [], |r| {
-                r.get(0)
-            })?;
+        let revision: i64 = conn
+            .prepare_cached("SELECT revision FROM conversation_revision")?
+            .query_row([], |r| r.get(0))?;
         let digest = format!("revision:{revision}");
         conn.execute(
             "INSERT OR IGNORE INTO conversation_contexts(digest,metadata) VALUES (?1,'revision')",
@@ -252,9 +249,7 @@ impl Db {
         session: &str,
     ) -> Result<(), StorageError> {
         let user = Self::last_conversation_user_in(conn, session, i64::MAX, false)?;
-        let tip: Option<String> = conn.query_row(
-            "SELECT p.turn_id FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=?2 AND NOT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
-            params![session, user],
+        let tip: Option<String> = conn.prepare_cached("SELECT p.turn_id FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=?2 AND NOT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)")?.query_row(params![session, user],
             |r| r.get(0),
         ).optional()?;
         if let Some(tip) = tip {
@@ -277,11 +272,9 @@ impl Db {
         session: &str,
         digest: &str,
     ) -> Result<(), StorageError> {
-        let saved: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM conversation_contexts WHERE digest=?1)",
-            [digest],
-            |r| r.get(0),
-        )?;
+        let saved: bool = conn
+            .prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_contexts WHERE digest=?1)")?
+            .query_row([digest], |r| r.get(0))?;
         if !saved {
             return Err(unavailable("no saved historical context"));
         }
@@ -315,17 +308,15 @@ impl Db {
         conn: &Connection,
         session: &str,
     ) -> Result<(), StorageError> {
-        let exists: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name='compression_blocks')",
-            [],
-            |r| r.get(0),
-        )?;
+        let exists: bool = conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name='compression_blocks')",
+            )?
+            .query_row([], |r| r.get(0))?;
         if !exists {
-            let has_dcp: bool = conn.query_row(
-                "SELECT EXISTS(SELECT 1 FROM conversation_restore WHERE kind<5)",
-                [],
-                |r| r.get(0),
-            )?;
+            let has_dcp: bool = conn
+                .prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_restore WHERE kind<5)")?
+                .query_row([], |r| r.get(0))?;
             if has_dcp {
                 return Err(unavailable("saved DCP schema unavailable"));
             }
@@ -392,11 +383,11 @@ impl Db {
         session: &str,
     ) -> Result<(), StorageError> {
         Self::conversation_branch_admit(conn, session)?;
-        let pre: i64 = conn.query_row(
-            "SELECT COALESCE(MAX(seq),0) FROM conversation_messages WHERE session_id=?1",
-            [session],
-            |r| r.get(0),
-        )?;
+        let pre: i64 = conn
+            .prepare_cached(
+                "SELECT COALESCE(MAX(seq),0) FROM conversation_messages WHERE session_id=?1",
+            )?
+            .query_row([session], |r| r.get(0))?;
         let context = Self::save_context(conn, session)?;
         conn.execute("INSERT INTO conversation_points(turn_id,session_id,pre_seq,pre_context) VALUES (?1,?2,?3,?4)",params![turn,session,pre,context])?;
         Ok(())
@@ -439,17 +430,15 @@ impl Db {
         turn: &str,
         session: &str,
     ) -> Result<(), StorageError> {
-        let exists: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM conversation_points WHERE turn_id=?1 AND post_context IS NULL)",
-            [turn],
+        let exists: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_points WHERE turn_id=?1 AND post_context IS NULL)")?.query_row([turn],
             |r| r.get(0),
         )?;
         if exists {
-            let post: i64 = conn.query_row(
-                "SELECT COALESCE(MAX(seq),0) FROM conversation_messages WHERE session_id=?1",
-                [session],
-                |r| r.get(0),
-            )?;
+            let post: i64 = conn
+                .prepare_cached(
+                    "SELECT COALESCE(MAX(seq),0) FROM conversation_messages WHERE session_id=?1",
+                )?
+                .query_row([session], |r| r.get(0))?;
             let context = Self::save_context(conn, session)?;
             conn.execute(
                 "UPDATE conversation_points SET post_seq=?2,post_context=?3 WHERE turn_id=?1",
@@ -498,7 +487,7 @@ impl Db {
             let mut conn = self.conn.lock().expect("db mutex");
             let tx = conn.transaction()?;
             Self::require_session(&tx, session)?;
-            let upper: i64 = tx.query_row("SELECT COALESCE((SELECT upper_seq FROM conversation_state WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM messages WHERE session_id=?1))",[session],|r|r.get(0))?;
+            let upper: i64 = tx.prepare_cached("SELECT COALESCE((SELECT upper_seq FROM conversation_state WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM messages WHERE session_id=?1))")?.query_row([session],|r|r.get(0))?;
             let user = Self::last_conversation_user_in(&tx, session, upper, true)?;
             if let ConversationAction::Revert { message } = &action
                 && Self::native_notice_data_in(&tx, session, &message.0)?
@@ -506,22 +495,22 @@ impl Db {
                 return Err(unavailable("native report is not a user prompt"));
             }
             let (turn, seq, context): (String,i64,String) = match action {
-                ConversationAction::Undo => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2",params![session,user],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
-                ConversationAction::Redo => tx.query_row("SELECT '',tip_seq,context FROM conversation_redo WHERE session_id=?1",[session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation redo boundary unavailable"))?,
-                ConversationAction::Revert { ref message } => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id JOIN messages m ON m.id=a.user_message WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND m.role='user'",params![session,message.0],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation revert boundary unavailable: no saved historical context"))?,
+                ConversationAction::Undo => tx.prepare_cached("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2")?.query_row(params![session,user],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
+                ConversationAction::Redo => tx.prepare_cached("SELECT '',tip_seq,context FROM conversation_redo WHERE session_id=?1")?.query_row([session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation redo boundary unavailable"))?,
+                ConversationAction::Revert { ref message } => tx.prepare_cached("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id JOIN messages m ON m.id=a.user_message WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND m.role='user'")?.query_row(params![session,message.0],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation revert boundary unavailable: no saved historical context"))?,
             };
             let draft = if matches!(action, ConversationAction::Redo) {
                 None
             } else {
-                let (message, text) = tx.query_row("SELECT m.id,m.text FROM turn_acceptances a JOIN messages m ON m.id=a.user_message WHERE a.turn_id=?1",[turn],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?;
+                let (message, text) = tx.prepare_cached("SELECT m.id,m.text FROM turn_acceptances a JOIN messages m ON m.id=a.user_message WHERE a.turn_id=?1")?.query_row([turn],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?;
                 Some(Self::user_prompt_in(&tx, session, &message, text)?)
             };
             if matches!(action, ConversationAction::Redo) {
-                let pending: String = tx.query_row(
-                    "SELECT pending_context FROM conversation_redo WHERE session_id=?1",
-                    [session],
-                    |r| r.get(0),
-                )?;
+                let pending: String = tx
+                    .prepare_cached(
+                        "SELECT pending_context FROM conversation_redo WHERE session_id=?1",
+                    )?
+                    .query_row([session], |r| r.get(0))?;
                 Self::load_context_restore(&tx, session, &pending)?;
                 tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS conversation_pending(kind INTEGER,object_id INTEGER,row_key TEXT); DELETE FROM conversation_pending; INSERT INTO conversation_pending SELECT * FROM conversation_restore WHERE kind=5;")?;
                 Self::load_context_restore(&tx, session, &context)?;
@@ -532,16 +521,14 @@ impl Db {
                     [session],
                 )?;
             } else {
-                let staged: bool = tx.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
-                    [session],
+                let staged: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)")?.query_row([session],
                     |r| r.get(0),
                 )?;
                 if !staged {
                     // Preserve the last genuinely saved post revision at the original
                     // branch tip, plus DCP nudge state persisted after completion.
                     let tip_user = Self::last_conversation_user_in(&tx, session, i64::MAX, false)?;
-                    let tip: Option<(i64, String)> = tx.query_row("SELECT (SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1),p.post_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND p.post_context IS NOT NULL", params![session, tip_user], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+                    let tip: Option<(i64, String)> = tx.prepare_cached("SELECT (SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1),p.post_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND p.post_context IS NOT NULL")?.query_row(params![session, tip_user], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
                     if let Some((tip_seq, tip_context)) = tip {
                         let pending = Self::save_context(&tx, session)?;
                         tx.execute(
@@ -554,12 +541,12 @@ impl Db {
             }
             tx.execute("INSERT INTO conversation_state(session_id,upper_seq) VALUES (?1,?2) ON CONFLICT(session_id) DO UPDATE SET upper_seq=excluded.upper_seq",params![session,seq])?;
             let user = Self::last_conversation_user_in(&tx, session, seq, true)?;
-            let can_undo: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2)",params![session,user],|r|r.get(0))?;
-            let can_redo: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM conversation_redo WHERE session_id=?1)",
-                [session],
-                |r| r.get(0),
-            )?;
+            let can_undo: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2)")?.query_row(params![session,user],|r|r.get(0))?;
+            let can_redo: bool = tx
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM conversation_redo WHERE session_id=?1)",
+                )?
+                .query_row([session], |r| r.get(0))?;
             // Head must admit future rows (manual DCP or the next accepted turn).
             // Selection and authenticated background reports need no saved
             // execution context. Redo also exposes reports delivered while held.
@@ -642,13 +629,10 @@ impl Db {
     /// Accepted task message of one turn, if admitted.
     pub(crate) fn turn_user_message(&self, turn: &str) -> Result<Option<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
-            "SELECT user_message FROM turn_acceptances WHERE turn_id=?1",
-            [turn],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(Into::into)
+        conn.prepare_cached("SELECT user_message FROM turn_acceptances WHERE turn_id=?1")?
+            .query_row([turn], |row| row.get(0))
+            .optional()
+            .map_err(Into::into)
     }
 
     /// R8: resolve caller-selected parent messages against one read snapshot.

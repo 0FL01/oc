@@ -279,7 +279,7 @@ fn vis35_failed_patch_detail_uses_child_gap_muted_text_and_unstyled_padding() {
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card),
+            tool: Some(std::sync::Arc::new(card)),
         }];
         let cache = RefCell::new(MarkdownCache::default());
         for width in [43, 80] {
@@ -452,7 +452,7 @@ fn vis37_answered_question_full_and_cached_transcripts_bypass_generic_expansion(
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     }];
     let theme = Theme::dark();
     let cache = RefCell::new(MarkdownCache::default());
@@ -571,7 +571,7 @@ fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_re
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     }];
     let cache = RefCell::new(MarkdownCache::default());
     for expanded in [false, true] {
@@ -691,7 +691,7 @@ fn vis37_cancelled_question_uses_muted_struck_inline_and_preserves_raw_other_err
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     }];
     let cache = RefCell::new(MarkdownCache::default());
     for (width, expanded) in [(80, false), (80, true), (15, false), (15, true)] {
@@ -1181,7 +1181,7 @@ fn generic_summary_paints_only_fitting_source_wrap_separators() {
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card.clone()),
+            tool: Some(std::sync::Arc::new(card.clone())),
         }];
         let cache = RefCell::new(MarkdownCache::default());
         for cached in [None, Some(&cache)] {
@@ -1299,7 +1299,7 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
         child_notice: None,
         shell_notice: None,
         meta: None,
-        tool: Some(card),
+        tool: Some(std::sync::Arc::new(card)),
     }];
     let theme = Theme::dark();
     let cache = RefCell::new(MarkdownCache::default());

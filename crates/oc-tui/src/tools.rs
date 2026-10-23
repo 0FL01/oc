@@ -2097,7 +2097,7 @@ mod tests {
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card.clone()),
+            tool: Some(std::sync::Arc::new(card.clone())),
         }
     }
 

@@ -79,7 +79,7 @@ impl TuiState {
                 self.window
                     .rows()
                     .iter()
-                    .find_map(|row| row.tool.as_ref().filter(|card| card.op == operation))
+                    .find_map(|row| row.tool.as_deref().filter(|card| card.op == operation))
             })
             .filter(|card| crate::tools::execute::facts(card).is_some())
     }

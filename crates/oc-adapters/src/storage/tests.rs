@@ -2010,6 +2010,22 @@ fn hot_path_queries_use_indexes_not_archive_scans() {
             "SELECT 1 FROM turns WHERE session_id='s' AND status='started'",
             "turns_session_status",
         ),
+        (
+            "SELECT 1 FROM turns t WHERE t.session_id='s' AND json_valid(t.result) AND json_type(t.result,'$.native_input') IS NOT NULL",
+            "turns_native_input",
+        ),
+        (
+            "SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload='op'",
+            "events_shell_foreground",
+        ),
+        (
+            "SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload='op'",
+            "events_shell_background",
+        ),
+        (
+            "SELECT payload FROM events WHERE session_id='s' AND kind='tool_output_presentation' AND (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)='op' ORDER BY seq DESC LIMIT 1",
+            "events_tool_presentation",
+        ),
     ];
     for (sql, index) in cases {
         let plan = plan(sql);

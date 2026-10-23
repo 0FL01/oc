@@ -158,19 +158,29 @@ impl Db {
         // A converted foreground await can publish its logical handle after the
         // process has exited. Prefer the frozen supervisor facts, not publication
         // order, without rewriting the tool result or its provider/RAW graph.
-        let frozen: Option<String> = conn.query_row(
-            "WITH owned AS (SELECT j.session_id,j.operation_id,o.turn_id,CASE WHEN json_valid(j.outcome) THEN j.outcome ELSE '{}' END result,CASE WHEN json_valid(j.provenance) THEN j.provenance ELSE '{}' END provenance FROM shell_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id WHERE j.session_id=?1 AND j.operation_id=?2 AND j.phase='terminal' AND o.name IN ('shell','bash') AND o.turn_id IS NOT NULL) SELECT json_extract(result,'$.output_presentation') FROM owned WHERE json_extract(result,'$.version')=1 AND json_type(result,'$.version')='integer' AND json_extract(result,'$.state') IN ('completed','failed','cancelled','timed_out','unknown') AND json_extract(provenance,'$.version')=1 AND json_type(provenance,'$.version')='integer' AND json_extract(provenance,'$.session')=session_id AND json_extract(provenance,'$.operation')=operation_id AND json_extract(provenance,'$.turn')=turn_id AND json_type(result,'$.output_presentation')='object' AND length(CAST(json_extract(result,'$.output_presentation') AS BLOB))<=?3",
-            params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
-            |row| row.get(0),
-        ).optional()?;
+        let frozen: Option<String> = conn
+            .prepare_cached(
+                "WITH owned AS (SELECT j.session_id,j.operation_id,o.turn_id,CASE WHEN json_valid(j.outcome) THEN j.outcome ELSE '{}' END result,CASE WHEN json_valid(j.provenance) THEN j.provenance ELSE '{}' END provenance FROM shell_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id WHERE j.session_id=?1 AND j.operation_id=?2 AND j.phase='terminal' AND o.name IN ('shell','bash') AND o.turn_id IS NOT NULL) SELECT json_extract(result,'$.output_presentation') FROM owned WHERE json_extract(result,'$.version')=1 AND json_type(result,'$.version')='integer' AND json_extract(result,'$.state') IN ('completed','failed','cancelled','timed_out','unknown') AND json_extract(provenance,'$.version')=1 AND json_type(provenance,'$.version')='integer' AND json_extract(provenance,'$.session')=session_id AND json_extract(provenance,'$.operation')=operation_id AND json_extract(provenance,'$.turn')=turn_id AND json_type(result,'$.output_presentation')='object' AND length(CAST(json_extract(result,'$.output_presentation') AS BLOB))<=?3",
+            )?
+            .query_row(
+                params![session, operation, oc_core::tool_output::RECORD_BYTES as i64],
+                |row| row.get(0),
+            )
+            .optional()?;
         let mut presentation = frozen.and_then(|raw| serde_json::from_str(&raw).ok());
         if presentation.is_none() {
-            let raw: Option<Option<String>> = conn.query_row(
-                "WITH facts AS (SELECT seq,CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN CASE WHEN json_valid(payload) THEN payload ELSE '{}' END ELSE '{}' END payload FROM events WHERE session_id=?1 AND kind='tool_output_presentation') SELECT payload FROM facts WHERE json_extract(payload,'$.operation')=?2 ORDER BY CASE WHEN json_extract(payload,'$.presentation.shell.process_state') IN ('completed','failed','cancelled','timed_out','unknown') THEN 1 ELSE 0 END DESC,seq DESC LIMIT 1",
-            params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
-            |row| row.get(0),
-        ).optional()?;
-            presentation = raw.flatten().and_then(|raw| {
+            // `events_tool_presentation` keys this exact expression: one index
+            // seek per operation, not a JSON scan of every session fact.
+            let raw: Option<String> = conn
+                .prepare_cached(
+                    "SELECT payload FROM events WHERE session_id=?1 AND kind='tool_output_presentation' AND (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)=?2 AND length(CAST(payload AS BLOB))<=?3 ORDER BY CASE WHEN json_extract(payload,'$.presentation.shell.process_state') IN ('completed','failed','cancelled','timed_out','unknown') THEN 1 ELSE 0 END DESC,seq DESC LIMIT 1",
+                )?
+                .query_row(
+                    params![session, operation, oc_core::tool_output::RECORD_BYTES as i64],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            presentation = raw.and_then(|raw| {
                 let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
                 serde_json::from_value::<oc_core::tool_output::Presentation>(
                     value["presentation"].clone(),
@@ -186,9 +196,7 @@ impl Db {
         if let Some(capture) = &mut presentation.capture {
             // The event records completion facts, not a current filesystem
             // capability. Forks copy those facts but never own the cold file.
-            let descriptor: Option<Option<String>> = conn.query_row(
-                "SELECT CASE WHEN length(CAST(descriptor AS BLOB))<=?2 THEN descriptor END FROM tool_output_resources WHERE operation_id=?1",
-                params![operation, oc_core::tool_output::RECORD_BYTES as i64],
+            let descriptor: Option<Option<String>> = conn.prepare_cached("SELECT CASE WHEN length(CAST(descriptor AS BLOB))<=?2 THEN descriptor END FROM tool_output_resources WHERE operation_id=?1")?.query_row(params![operation, oc_core::tool_output::RECORD_BYTES as i64],
                 |row| row.get(0),
             ).optional()?;
             let resource = descriptor
@@ -385,11 +393,11 @@ impl Db {
         self.expire_tool_outputs(timestamp())?;
         let conn = self.conn.lock().expect("db mutex");
         self.verify_output_dir()?;
-        let belongs: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
-            params![operation, session],
-            |r| r.get(0),
-        )?;
+        let belongs: bool = conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
+            )?
+            .query_row(params![operation, session], |r| r.get(0))?;
         if !belongs
             || location.len() > 4096
             || source.len() > 4096
@@ -485,7 +493,7 @@ impl Db {
         path: &str,
     ) -> Result<Reader, StorageError> {
         self.verify_output_dir()?;
-        let (raw,name,dev,ino,extent,state):(String,String,i64,i64,i64,String)=conn.query_row("WITH RECURSIVE owned(id,depth) AS (SELECT ?1,0 UNION ALL SELECT s.id,owned.depth+1 FROM sessions s JOIN owned ON s.parent_id=owned.id WHERE owned.depth<32) SELECT r.descriptor,r.name,r.dev,r.ino,r.extent,r.state FROM tool_output_resources r JOIN tool_operations o ON o.id=r.operation_id AND o.session_id=r.session_id WHERE r.session_id IN (SELECT id FROM owned) AND json_extract(r.descriptor,'$.path')=?2",params![session,path],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional()?.ok_or_else(invalid)?;
+        let (raw,name,dev,ino,extent,state):(String,String,i64,i64,i64,String)=conn.prepare_cached("WITH RECURSIVE owned(id,depth) AS (SELECT ?1,0 UNION ALL SELECT s.id,owned.depth+1 FROM sessions s JOIN owned ON s.parent_id=owned.id WHERE owned.depth<32) SELECT r.descriptor,r.name,r.dev,r.ino,r.extent,r.state FROM tool_output_resources r JOIN tool_operations o ON o.id=r.operation_id AND o.session_id=r.session_id WHERE r.session_id IN (SELECT id FROM owned) AND json_extract(r.descriptor,'$.path')=?2")?.query_row(params![session,path],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional()?.ok_or_else(invalid)?;
         let extent = u64::try_from(extent).map_err(|_| invalid())?;
         if state == "Expired" {
             return Err(invalid());
@@ -640,9 +648,7 @@ impl Db {
             return None;
         }
         let reference: QuestionResource = serde_json::from_str(raw?).ok()?;
-        let (descriptor, original_name): (String,String) = conn.query_row(
-            "SELECT r.descriptor,o.name FROM tool_output_resources r JOIN tool_operations o ON o.id=r.operation_id AND o.session_id=r.session_id WHERE r.id=?1 AND r.operation_id=?2 AND r.session_id=?3 AND r.state='Complete'",
-            params![reference.resource_id,reference.source_operation,reference.source_session], |r| Ok((r.get(0)?,r.get(1)?))).ok()?;
+        let (descriptor, original_name): (String,String) = conn.prepare_cached("SELECT r.descriptor,o.name FROM tool_output_resources r JOIN tool_operations o ON o.id=r.operation_id AND o.session_id=r.session_id WHERE r.id=?1 AND r.operation_id=?2 AND r.session_id=?3 AND r.state='Complete'").and_then(|mut stmt| stmt.query_row(params![reference.resource_id,reference.source_operation,reference.source_session], |r| Ok((r.get(0)?,r.get(1)?)))).ok()?;
         if original_name != "question" {
             return None;
         }
@@ -702,11 +708,9 @@ impl Db {
             if readers.get(id).copied().unwrap_or(0) > 0 {
                 continue;
             }
-            let registered: bool = conn.query_row(
-                "SELECT EXISTS(SELECT 1 FROM tool_output_resources WHERE name=?1)",
-                [&name],
-                |r| r.get(0),
-            )?;
+            let registered: bool = conn
+                .prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_output_resources WHERE name=?1)")?
+                .query_row([&name], |r| r.get(0))?;
             let meta = fs::symlink_metadata(entry.path())?;
             let age = meta
                 .modified()?
@@ -863,11 +867,9 @@ impl Writer {
     }
     fn freeze_prefix(&mut self, state: CaptureState) -> Result<(), StorageError> {
         let conn = self.db.conn.lock().expect("db mutex");
-        let raw: String = conn.query_row(
-            "SELECT descriptor FROM tool_output_resources WHERE id=?1",
-            [&self.resource.id],
-            |row| row.get(0),
-        )?;
+        let raw: String = conn
+            .prepare_cached("SELECT descriptor FROM tool_output_resources WHERE id=?1")?
+            .query_row([&self.resource.id], |row| row.get(0))?;
         self.resource = serde_json::from_str(&raw).map_err(|_| invalid())?;
         self.file.set_len(self.resource.bytes)?;
         self.file.sync_all()?;

@@ -363,6 +363,8 @@ pub struct Db {
     // Ephemeral authorization fences; live attempts never survive root reopen.
     credential_epochs: Arc<Mutex<std::collections::BTreeMap<String, u64>>>,
     pub(crate) response_channels: crate::provider::websocket::Channels,
+    // Last projected wire-log read, valid while this connection made no write.
+    wire_log_memo: Arc<Mutex<Option<dcp_view::WireLogMemo>>>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -569,6 +571,10 @@ impl Db {
         // Bound SQLite's process-resident page cache independently of a
         // Location's archived history. This is per connection, in KiB.
         conn.pragma_update(None, "cache_size", -512_i64)?;
+        // Hot reads reuse compiled statements; the distinct SQL texts number in
+        // the low hundreds, so compiling per call (a page renders many parts)
+        // would dominate.
+        conn.set_prepared_statement_cache_capacity(512);
         conn.create_scalar_function(
             "oc_session_lower",
             1,
@@ -618,7 +624,13 @@ impl Db {
              CREATE INDEX IF NOT EXISTS tool_operations_session ON tool_operations(session_id);
              CREATE INDEX IF NOT EXISTS events_model_selected ON events(session_id, seq) WHERE kind='session_model_selected';
              CREATE INDEX IF NOT EXISTS events_message ON events(session_id, seq) WHERE kind='message';
-             CREATE INDEX IF NOT EXISTS turns_session_status ON turns(session_id, status);",
+             CREATE INDEX IF NOT EXISTS turns_session_status ON turns(session_id, status);
+             CREATE INDEX IF NOT EXISTS turns_native_input ON turns(session_id) WHERE json_valid(result) AND json_type(result,'$.native_input') IS NOT NULL;
+             CREATE INDEX IF NOT EXISTS events_message_payload ON events(payload) WHERE kind='message';
+             CREATE INDEX IF NOT EXISTS events_user_shell_admitted ON events(payload) WHERE kind='user_shell_admitted';
+             CREATE INDEX IF NOT EXISTS events_shell_foreground ON events(payload) WHERE kind='shell_foreground';
+             CREATE INDEX IF NOT EXISTS events_shell_background ON events(payload) WHERE kind='shell_background';
+             CREATE INDEX IF NOT EXISTS events_tool_presentation ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_presentation';",
         )?;
 
         let db = Self {
@@ -635,6 +647,7 @@ impl Db {
             credential_refresh: Arc::new(tokio::sync::Mutex::new(())),
             credential_epochs: Arc::new(Mutex::new(std::collections::BTreeMap::new())),
             response_channels: Default::default(),
+            wire_log_memo: Default::default(),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -656,6 +669,7 @@ impl Db {
             credential_refresh: self.credential_refresh.clone(),
             credential_epochs: self.credential_epochs.clone(),
             response_channels: self.response_channels.clone(),
+            wire_log_memo: self.wire_log_memo.clone(),
             _lock: self._lock.clone(),
         }
     }
@@ -1106,8 +1120,8 @@ impl Db {
     /// A real active turn on any parent_id descendant marks its root running.
     pub fn session_family_running(&self, session: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        Ok(conn.query_row("WITH RECURSIVE family(id) AS (SELECT id FROM sessions WHERE id=?1 UNION SELECT c.id FROM sessions c JOIN family f ON c.parent_id=f.id)
-            SELECT EXISTS(SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status='started')", [session], |r| r.get(0))?)
+        Ok(conn.prepare_cached("WITH RECURSIVE family(id) AS (SELECT id FROM sessions WHERE id=?1 UNION SELECT c.id FROM sessions c JOIN family f ON c.parent_id=f.id)
+            SELECT EXISTS(SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status='started')")?.query_row([session], |r| r.get(0))?)
     }
 
     /// Explicit deletion is the sole archive-removal operation. Descend only
@@ -1119,19 +1133,17 @@ impl Db {
     ) -> Result<oc_core::queries::TabDeckSnapshot, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)", params![session,location], |r| r.get(0))?;
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)")?.query_row(params![session,location], |r| r.get(0))?;
         if !valid {
             return Err(StorageError::SessionNotFound);
         }
         tx.execute_batch("CREATE TEMP TABLE IF NOT EXISTS deleting_family(id TEXT PRIMARY KEY); DELETE FROM deleting_family;")?;
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
-        let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM tool_output_resources WHERE session_id IN deleting_family AND state='Active') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))", [], |r| r.get(0))?;
-        let busy = busy || tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE parent_id IN deleting_family AND (state IN ('admitted','running') OR message_id IS NULL))",[],|r|r.get::<_,bool>(0))?;
+        let busy: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM tool_output_resources WHERE session_id IN deleting_family AND state='Active') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))")?.query_row([], |r| r.get(0))?;
+        let busy = busy || tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE parent_id IN deleting_family AND (state IN ('admitted','running') OR message_id IS NULL))")?.query_row([],|r|r.get::<_,bool>(0))?;
         // Do not cascade away the recovery identity of a still-owned PTY.
         // Hiding/navigating is not cancellation; remove terminals explicitly.
-        let busy = busy || tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM terminals WHERE session_id IN deleting_family AND live=1)",
-            [],
+        let busy = busy || tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM terminals WHERE session_id IN deleting_family AND live=1)")?.query_row([],
             |r| r.get::<_, bool>(0),
         )?;
         if busy {
@@ -1167,7 +1179,7 @@ impl Db {
         }
         let mut seen = HashSet::new();
         for id in &deck.sessions {
-            let owned: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)", params![id,location], |r|r.get(0))?;
+            let owned: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)")?.query_row(params![id,location], |r|r.get(0))?;
             if !valid_tab_id(id) || !seen.insert(id) || !owned {
                 return Err(invalid_stored_tab_deck());
             }
@@ -1234,11 +1246,11 @@ impl Db {
             "compression_blocks",
             "conversation_versions",
         ] {
-            let exists: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
-                [table],
-                |r| r.get(0),
-            )?;
+            let exists: bool = tx
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1)",
+                )?
+                .query_row([table], |r| r.get(0))?;
             if exists {
                 let predicate = if table == "compression_members" {
                     "block_id IN (SELECT id FROM compression_blocks WHERE session_id IN deleting_family)"
@@ -1260,20 +1272,17 @@ impl Db {
     /// Read one session's stored metadata; unknown ids are `SessionNotFound`.
     pub fn session_meta(&self, session: &str) -> Result<SessionMeta, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
-            "SELECT parent_id, agent, model, title FROM sessions WHERE id = ?1",
-            params![session],
-            |row| {
+        conn.prepare_cached("SELECT parent_id, agent, model, title FROM sessions WHERE id = ?1")?
+            .query_row(params![session], |row| {
                 Ok(SessionMeta {
                     parent_id: row.get(0)?,
                     agent: row.get(1)?,
                     model: row.get(2)?,
                     title: row.get(3)?,
                 })
-            },
-        )
-        .optional()?
-        .ok_or(StorageError::SessionNotFound)
+            })
+            .optional()?
+            .ok_or(StorageError::SessionNotFound)
     }
 
     /// Cache lineage is not affinity or routing. Forks copy the original root
@@ -1359,9 +1368,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
         let mut remaining = HISTORY_PAGE_ID_BYTES;
-        conn.query_row(
-            "SELECT seq,role,text,id FROM conversation_messages WHERE session_id=?1 AND id=?2 AND role!='system'",
-            params![session, message.0],
+        conn.prepare_cached("SELECT seq,role,text,id FROM conversation_messages WHERE session_id=?1 AND id=?2 AND role!='system'")?.query_row(params![session, message.0],
             |row| {
                 Ok(HistoryPageRow {
                     id: page_message_id(row, &mut remaining)?,
@@ -1668,11 +1675,11 @@ impl Db {
     ) -> Result<(String, i64, Option<i64>), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
-        let belongs: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
-            params![op, session],
-            |row| row.get(0),
-        )?;
+        let belongs: bool = conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
+            )?
+            .query_row(params![op, session], |row| row.get(0))?;
         if !belongs {
             return Err(StorageError::OperationNotFound);
         }
@@ -1724,13 +1731,10 @@ impl Db {
     }
 
     fn require_session(conn: &Connection, session: &str) -> Result<(), StorageError> {
-        conn.query_row(
-            "SELECT 1 FROM sessions WHERE id = ?1",
-            params![session],
-            |_| Ok(()),
-        )
-        .optional()?
-        .ok_or(StorageError::SessionNotFound)
+        conn.prepare_cached("SELECT 1 FROM sessions WHERE id = ?1")?
+            .query_row(params![session], |_| Ok(()))
+            .optional()?
+            .ok_or(StorageError::SessionNotFound)
     }
 
     /// List tool operations in row order, bounded (UI03 cards).
@@ -1807,13 +1811,12 @@ impl Db {
     /// then projects from the full history (more context, never less).
     pub fn prune_bound(&self, session: &str) -> Result<Option<(String, i64)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
+        conn.prepare_cached(
             "SELECT p.up_to_msg, m.seq FROM prune_marks p
                JOIN messages m ON m.id = p.up_to_msg
               WHERE p.session_id = ?1",
-            params![session],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
+        )?
+        .query_row(params![session], |row| Ok((row.get(0)?, row.get(1)?)))
         .optional()
         .map_err(StorageError::Sqlite)
     }
@@ -2195,7 +2198,7 @@ impl Db {
             }
             let mut seen = HashSet::new();
             for id in &deck.sessions {
-                let valid:bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)",params![id.0,deck.location],|r|r.get(0)).map_err(|_|CoreError::TabDeckStorage)?;
+                let valid:bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id WHERE s.id=?1 AND s.parent_id IS NULL AND p.value=?2)").and_then(|mut stmt| stmt.query_row(params![id.0,deck.location],|r|r.get(0))).map_err(|_|CoreError::TabDeckStorage)?;
                 if !valid_tab_id(&id.0) || !seen.insert(&id.0) || !valid {
                     return Err(CoreError::InvalidTabDeck);
                 }
@@ -2429,14 +2432,12 @@ impl Db {
         else {
             return false;
         };
-        conn.query_row(
-            "SELECT json_extract(tagged_value_json, '$.type') = 'oauth' AND refresh_pending = 0
+        conn.prepare_cached("SELECT json_extract(tagged_value_json, '$.type') = 'oauth' AND refresh_pending = 0
             AND json_extract(tagged_value_json, '$.methodID') IN ('chatgpt-browser', 'chatgpt-headless')
             AND json_extract(tagged_value_json, '$.expires_at') > 0
-            FROM credential_accounts WHERE provider_namespace = ?1 AND active = 1",
-            [scope.namespace()],
+            FROM credential_accounts WHERE provider_namespace = ?1 AND active = 1").and_then(|mut stmt| stmt.query_row([scope.namespace()],
             |row| row.get::<_, bool>(0),
-        )
+        ))
         .unwrap_or(false)
     }
 
@@ -2735,11 +2736,9 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let (session, existing_status): (String, String) = tx.query_row(
-            "SELECT session_id,status FROM turns WHERE id = ?1",
-            [turn],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
+        let (session, existing_status): (String, String) = tx
+            .prepare_cached("SELECT session_id,status FROM turns WHERE id = ?1")?
+            .query_row([turn], |r| Ok((r.get(0)?, r.get(1)?)))?;
         // First settlement owns the assistant row, wire journal and saved
         // context atomically. Retries cannot replace any of those artifacts.
         if existing_status != "started" {
@@ -2787,7 +2786,7 @@ impl Db {
             )?;
         }
         Self::conversation_complete(&tx, turn, &session)?;
-        if tx.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.native_input.kind') IN ('subagent_notices','shell_notices') ELSE 0 END FROM turns WHERE id=?1", [turn], |row| row.get::<_, Option<bool>>(0))?.unwrap_or(false) {
+        if tx.prepare_cached("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.native_input.kind') IN ('subagent_notices','shell_notices') ELSE 0 END FROM turns WHERE id=?1")?.query_row([turn], |row| row.get::<_, Option<bool>>(0))?.unwrap_or(false) {
             Self::publish_settled_context(&tx, &session)?;
         }
         tx.commit()?;
@@ -2860,9 +2859,7 @@ impl Db {
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         // An inherited operation remains fixed even when a later root turn starts.
-        let root_operation: Option<String> = conn.query_row(
-            "SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1",
-            params![operation,session], |r|r.get(0)).optional()?;
+        let root_operation: Option<String> = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
         conn.execute("INSERT INTO events(session_id,kind,payload) VALUES (?1,'generation_dispatched',?2)", params![session,serde_json::json!({"operation":root_operation.as_deref().unwrap_or(operation),"owner":operation,"lane":lane}).to_string()])?;
         Ok(())
     }
@@ -2892,11 +2889,9 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let started: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM turns WHERE id=?1 AND status='started')",
-            [turn],
-            |r| r.get(0),
-        )?;
+        let started: bool = tx
+            .prepare_cached("SELECT EXISTS(SELECT 1 FROM turns WHERE id=?1 AND status='started')")?
+            .query_row([turn], |r| r.get(0))?;
         if !started {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
@@ -2998,9 +2993,7 @@ impl Db {
         session: &str,
     ) -> Result<Option<(Option<String>, i64)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
-            "SELECT title, COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind IN ('session_updated','conversation_changed')), 0) FROM sessions WHERE id = ?1 AND parent_id IS NULL",
-            params![session],
+        conn.prepare_cached("SELECT title, COALESCE((SELECT MAX(seq) FROM events WHERE session_id = sessions.id AND kind IN ('session_updated','conversation_changed')), 0) FROM sessions WHERE id = ?1 AND parent_id IS NULL")?.query_row(params![session],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()
@@ -3052,9 +3045,7 @@ impl Db {
         has_title: bool,
     ) -> Result<Option<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let first: Option<(i64, String)> = conn.query_row(
-            "SELECT seq, substr(text, 1, 2048) FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq ASC LIMIT 1",
-            params![session], |row| Ok((row.get(0)?, row.get(1)?)),
+        let first: Option<(i64, String)> = conn.prepare_cached("SELECT seq, substr(text, 1, 2048) FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq ASC LIMIT 1")?.query_row(params![session], |row| Ok((row.get(0)?, row.get(1)?)),
         ).optional()?;
         let Some((first_seq, first)) = first else {
             return Ok(None);
@@ -3112,7 +3103,7 @@ impl Db {
     ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
         let id = {
             let conn = self.conn.lock().expect("db mutex");
-            conn.query_row("SELECT t.id FROM turns t JOIN messages m ON m.session_id=t.session_id WHERE json_valid(t.result) AND t.session_id=?1 AND m.seq=?2 AND m.id=COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message')) LIMIT 1", params![session,seq], |r|r.get::<_,String>(0)).optional()?
+            conn.prepare_cached("SELECT t.id FROM turns t JOIN messages m ON m.session_id=t.session_id WHERE json_valid(t.result) AND t.session_id=?1 AND m.seq=?2 AND m.id=COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message')) LIMIT 1")?.query_row(params![session,seq], |r|r.get::<_,String>(0)).optional()?
         };
         match id {
             Some(id) => self.turn_presentation_range(session, &id, cursor, from_start),
@@ -3148,17 +3139,15 @@ impl Db {
         use oc_core::queries::{HistoryTurn, PartState, ToolOpView, TranscriptPart};
         let locked = self.conn.lock().expect("db mutex");
         let conn = locked.unchecked_transaction()?;
-        let record: Option<(String, String, String, String)> = conn.query_row(
-            "SELECT t.id, t.status, COALESCE(json_extract(t.result,'$.display'),'{}'), COALESCE(json_extract(t.result,'$.model'),'')
-             FROM turns t WHERE json_valid(t.result) AND t.session_id=?1 AND t.id=?2 LIMIT 1",
-            params![session,id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
+        let record: Option<(String, String, String, String)> = conn.prepare_cached("SELECT t.id, t.status, COALESCE(json_extract(t.result,'$.display'),'{}'), COALESCE(json_extract(t.result,'$.model'),'')
+             FROM turns t WHERE json_valid(t.result) AND t.session_id=?1 AND t.id=?2 LIMIT 1")?.query_row(params![session,id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
         let Some((id, status, metadata, model)) = record else {
             return Ok(None);
         };
         let meta: serde_json::Value = serde_json::from_str(&metadata).unwrap_or_default();
         let mut turn = HistoryTurn {
-            revision: conn.query_row("SELECT COALESCE(MAX(seq),0) FROM events WHERE session_id=?1",[session],|r|r.get::<_,i64>(0))? as u64,
-            physical_requests: conn.query_row("SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?1",[&id],|r|r.get::<_,i64>(0))? as u64,
+            revision: conn.prepare_cached("SELECT COALESCE(MAX(seq),0) FROM events WHERE session_id=?1")?.query_row([session],|r|r.get::<_,i64>(0))? as u64,
+            physical_requests: conn.prepare_cached("SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?1")?.query_row([&id],|r|r.get::<_,i64>(0))? as u64,
             id: id.clone(),
             status,
             agent: meta["agent"].as_str().map(str::to_string),
@@ -3178,9 +3167,7 @@ impl Db {
         };
         // Bounded presentation window, not a runtime step/retry admission limit.
         turn.spans = self.latest_turn_spans(&conn, &id)?;
-        let total: Option<i64> = conn.query_row(
-            "SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+json_array_length(result,'$.display_parts') FROM turns WHERE id=?1",
-            [&id],
+        let total: Option<i64> = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+json_array_length(result,'$.display_parts') FROM turns WHERE id=?1")?.query_row([&id],
             |r| r.get(0),
         )?;
         turn.legacy_text_only = total.is_none();
@@ -3242,7 +3229,7 @@ impl Db {
             let older_span = if let Some(span_id) = part["span"].as_str()
                 && !turn.spans.iter().any(|s| s.id == span_id)
             {
-                let raw: Option<Option<String>>=conn.query_row("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT json_extract(payload,'$.journal') FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?3) SELECT CASE WHEN length(CAST(s.value AS BLOB))<=?4 THEN s.value END FROM source,json_each(source.payload,'$.spans') s WHERE s.value->>'$.id'=?2 LIMIT 1",params![id,span_id,ordinal,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r| r.get(0)).optional()?;
+                let raw: Option<Option<String>>=conn.prepare_cached("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT json_extract(payload,'$.journal') FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?3) SELECT CASE WHEN length(CAST(s.value AS BLOB))<=?4 THEN s.value END FROM source,json_each(source.payload,'$.spans') s WHERE s.value->>'$.id'=?2 LIMIT 1")?.query_row(params![id,span_id,ordinal,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r| r.get(0)).optional()?;
                 if raw == Some(None) {
                     return Err(StorageError::CompressionConflict);
                 }
@@ -3300,7 +3287,7 @@ impl Db {
                 // boundary destroys patch/path metadata. Preserve complete input
                 // within its producer-derived canonical encoding bound, not what an
                 // unrelated operation left in a shared turn budget.
-                let view=conn.query_row("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2",params![op,id,TOOL_OP_PREVIEW_BYTES as i64,TOOL_INPUT_JSON_BYTES as i64],|r| {
+                let view=conn.prepare_cached("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2")?.query_row(params![op,id,TOOL_OP_PREVIEW_BYTES as i64,TOOL_INPUT_JSON_BYTES as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
                     let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
@@ -3365,18 +3352,18 @@ impl Db {
     /// Read a turn's terminal status and result JSON (turn-log replay).
     pub fn turn_result(&self, turn: &str) -> Result<(String, Option<String>), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let bytes: i64 = conn.query_row(
-            "SELECT COALESCE(length(CAST(result AS BLOB)),0) FROM turns WHERE id=?1",
-            [turn],
-            |r| r.get(0),
-        )?;
+        let bytes: i64 = conn
+            .prepare_cached(
+                "SELECT COALESCE(length(CAST(result AS BLOB)),0) FROM turns WHERE id=?1",
+            )?
+            .query_row([turn], |r| r.get(0))?;
         if bytes < 0 || bytes as u64 > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as u64 {
             return Err(StorageError::Io(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "turn hot journal exceeds existing context byte budget",
             )));
         }
-        let descriptor: Option<String> = conn.query_row("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.raw_prefix') END FROM turns WHERE id=?1", [turn], |r| r.get(0))?;
+        let descriptor: Option<String> = conn.prepare_cached("SELECT CASE WHEN json_valid(result) THEN json_extract(result,'$.raw_prefix') END FROM turns WHERE id=?1")?.query_row([turn], |r| r.get(0))?;
         let prefix = descriptor
             .as_deref()
             .map(serde_json::from_str::<serde_json::Value>)
@@ -3467,11 +3454,9 @@ impl Db {
         let tx = conn.transaction()?;
         // Block ids are a global sequence: per-session COUNT would hand a
         // second session the same `b0001` and violate the primary key.
-        let max: Option<i64> = tx.query_row(
-            "SELECT high_water FROM compression_identity WHERE singleton=1",
-            [],
-            |row| row.get(0),
-        )?;
+        let max: Option<i64> = tx
+            .prepare_cached("SELECT high_water FROM compression_identity WHERE singleton=1")?
+            .query_row([], |row| row.get(0))?;
         let id = format!("b{:04}", max.unwrap_or(0) + 1);
         let now = now_rfc3339();
         tx.execute(
@@ -3559,11 +3544,9 @@ impl Db {
                 |r| r.get(0),
             )
             .optional()?;
-        let high: i64 = conn.query_row(
-            "SELECT high_water FROM compression_identity WHERE singleton=1",
-            [],
-            |r| r.get(0),
-        )?;
+        let high: i64 = conn
+            .prepare_cached("SELECT high_water FROM compression_identity WHERE singleton=1")?
+            .query_row([], |r| r.get(0))?;
         Ok((revision, prune, (high.max(0) as u64).saturating_add(1)))
     }
 
@@ -3571,7 +3554,7 @@ impl Db {
         conn: &Connection,
         session: &str,
     ) -> Result<i64, StorageError> {
-        Ok(conn.query_row("SELECT COALESCE(MAX(MAX(valid_from,COALESCE(valid_to,0))),0) FROM conversation_versions WHERE session_id=?1 AND kind IN (0,1,2,3,4)",[session],|r|r.get(0))?)
+        Ok(conn.prepare_cached("SELECT COALESCE(MAX(MAX(valid_from,COALESCE(valid_to,0))),0) FROM conversation_versions WHERE session_id=?1 AND kind IN (0,1,2,3,4)")?.query_row([session],|r|r.get(0))?)
     }
 
     /// Latest durable continuation route, without loading its journal payload.
@@ -3580,7 +3563,7 @@ impl Db {
         session: &str,
     ) -> Result<Option<(String, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        Ok(conn.query_row("SELECT json_extract(result,'$.model'),json_extract(result,'$.provider') FROM conversation_turns WHERE session_id=?1 AND json_valid(result) AND json_extract(result,'$.model') IS NOT NULL AND json_extract(result,'$.provider') IS NOT NULL ORDER BY archive_rowid DESC LIMIT 1",[session],|r|Ok((r.get(0)?,r.get(1)?))).optional()?)
+        Ok(conn.prepare_cached("SELECT json_extract(result,'$.model'),json_extract(result,'$.provider') FROM conversation_turns WHERE session_id=?1 AND json_valid(result) AND json_extract(result,'$.model') IS NOT NULL AND json_extract(result,'$.provider') IS NOT NULL ORDER BY archive_rowid DESC LIMIT 1")?.query_row([session],|r|Ok((r.get(0)?,r.get(1)?))).optional()?)
     }
 
     pub(crate) fn compression_snapshot(
@@ -3597,11 +3580,9 @@ impl Db {
                 |row| row.get::<_, String>(0),
             )
             .optional()?;
-        let max: Option<i64> = conn.query_row(
-            "SELECT high_water FROM compression_identity WHERE singleton=1",
-            [],
-            |row| row.get(0),
-        )?;
+        let max: Option<i64> = conn
+            .prepare_cached("SELECT high_water FROM compression_identity WHERE singleton=1")?
+            .query_row([], |row| row.get(0))?;
         let next = u64::try_from(max.unwrap_or(0))
             .unwrap_or(0)
             .saturating_add(1);
@@ -3632,11 +3613,9 @@ impl Db {
         let tx = conn.transaction()?;
         Self::require_session(&tx, session)?;
 
-        let max: Option<i64> = tx.query_row(
-            "SELECT high_water FROM compression_identity WHERE singleton=1",
-            [],
-            |row| row.get(0),
-        )?;
+        let max: Option<i64> = tx
+            .prepare_cached("SELECT high_water FROM compression_identity WHERE singleton=1")?
+            .query_row([], |row| row.get(0))?;
         let actual_next = u64::try_from(max.unwrap_or(0))
             .unwrap_or(0)
             .saturating_add(1);
@@ -3678,7 +3657,7 @@ impl Db {
                 return Err(StorageError::CompressionConflict);
             }
             if block.hot.is_some() {
-                let bounds:Option<(i64,i64)>=tx.query_row("SELECT a.seq,z.seq FROM conversation_messages a JOIN conversation_messages z ON z.session_id=a.session_id WHERE a.session_id=?1 AND a.id=?2 AND z.id=?3",params![session,block.start_msg,block.end_msg],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+                let bounds:Option<(i64,i64)>=tx.prepare_cached("SELECT a.seq,z.seq FROM conversation_messages a JOIN conversation_messages z ON z.session_id=a.session_id WHERE a.session_id=?1 AND a.id=?2 AND z.id=?3")?.query_row(params![session,block.start_msg,block.end_msg],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
                 let (start, end) = bounds.ok_or(StorageError::CompressionConflict)?;
                 if start > end {
                     return Err(StorageError::CompressionConflict);
@@ -3904,7 +3883,7 @@ impl Db {
     pub fn save_prune_mark(&self, session: &str, up_to: &str) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let old_seq: i64 = tx.query_row("SELECT COALESCE((SELECT seq FROM messages WHERE session_id=?1 AND id=(SELECT up_to_msg FROM prune_marks WHERE session_id=?1)),0)",[session],|r|r.get(0))?;
+        let old_seq: i64 = tx.prepare_cached("SELECT COALESCE((SELECT seq FROM messages WHERE session_id=?1 AND id=(SELECT up_to_msg FROM prune_marks WHERE session_id=?1)),0)")?.query_row([session],|r|r.get(0))?;
         let new_seq: Option<i64> = tx
             .query_row(
                 "SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2",
@@ -3927,11 +3906,10 @@ impl Db {
     /// Read the prune mark, if any.
     pub fn load_prune_mark(&self, session: &str) -> Result<Option<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        match conn.query_row(
-            "SELECT up_to_msg FROM prune_marks WHERE session_id = ?1",
-            params![session],
-            |row| row.get::<_, String>(0),
-        ) {
+        match conn
+            .prepare_cached("SELECT up_to_msg FROM prune_marks WHERE session_id = ?1")?
+            .query_row(params![session], |row| row.get::<_, String>(0))
+        {
             Ok(value) => Ok(Some(value)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(StorageError::Sqlite(e)),
@@ -4044,10 +4022,9 @@ impl Db {
             "INSERT INTO events(session_id,kind,payload) SELECT session_id,'turn_unknown',id FROM turns WHERE id=?1",
             [turn],
         )?;
-        let session: String =
-            tx.query_row("SELECT session_id FROM turns WHERE id=?1", [turn], |r| {
-                r.get(0)
-            })?;
+        let session: String = tx
+            .prepare_cached("SELECT session_id FROM turns WHERE id=?1")?
+            .query_row([turn], |r| r.get(0))?;
         Self::conversation_complete(&tx, turn, &session)?;
         tx.commit()?;
         Ok(())
@@ -4088,11 +4065,9 @@ impl Db {
     /// Read a tool operation state (tests + recovery inspection).
     pub fn tool_state(&self, op: &str) -> Result<String, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let state: String = conn.query_row(
-            "SELECT state FROM tool_operations WHERE id = ?1",
-            params![op],
-            |row| row.get(0),
-        )?;
+        let state: String = conn
+            .prepare_cached("SELECT state FROM tool_operations WHERE id = ?1")?
+            .query_row(params![op], |row| row.get(0))?;
         Ok(state)
     }
 
@@ -4473,11 +4448,10 @@ const MAX_ACCEPTANCE_MIGRATION_FIELD_BYTES: i64 = 65536;
 /// is bounded, so a large valid database can still finish migration.
 fn apply_turn_acceptance_schema(conn: &Connection) -> Result<(), StorageError> {
     let tx = conn.unchecked_transaction()?;
-    if tx.query_row(
-        "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=?1)",
-        [TURN_ACCEPTANCE_SCHEMA_VERSION],
-        |r| r.get::<_, bool>(0),
-    )? {
+    if tx
+        .prepare_cached("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=?1)")?
+        .query_row([TURN_ACCEPTANCE_SCHEMA_VERSION], |r| r.get::<_, bool>(0))?
+    {
         return Ok(());
     }
     tx.execute_batch("CREATE INDEX IF NOT EXISTS events_session_seq ON events(session_id,seq)")?;

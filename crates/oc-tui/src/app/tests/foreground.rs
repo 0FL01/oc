@@ -69,7 +69,7 @@ async fn foreground_hint_and_root_handoff_are_delayed_bounded_and_exact_current_
     let now = Instant::now();
     for part in &mut state.live_parts {
         if let LivePart::Tool { card, .. } = part {
-            card.started_at = Some(now);
+            std::sync::Arc::make_mut(card).started_at = Some(now);
         }
     }
     state.sync_foreground_hint(now);

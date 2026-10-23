@@ -26,26 +26,25 @@ impl Db {
 
     pub(crate) fn session_root(&self, session: &str) -> Result<SessionId, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
+        conn.prepare_cached(
             "WITH RECURSIVE lineage(id,parent_id) AS (
             SELECT id,parent_id FROM sessions WHERE id=?1
             UNION SELECT s.id,s.parent_id FROM sessions s JOIN lineage c ON c.parent_id=s.id)
             SELECT id FROM lineage WHERE parent_id IS NULL",
-            [session],
-            |row| row.get(0),
-        )
+        )?
+        .query_row([session], |row| row.get(0))
         .optional()?
         .map(SessionId)
         .ok_or(StorageError::SessionNotFound)
     }
 
     fn activity_in(conn: &Connection, session: &str) -> Result<SessionActivity, StorageError> {
-        conn.query_row("SELECT idle_seq,viewed_seq,idle_outcome,
+        conn.prepare_cached("SELECT idle_seq,viewed_seq,idle_outcome,
             EXISTS(WITH RECURSIVE family(id) AS (
                 SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id)
                 SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status='started'
                 UNION ALL SELECT 1 FROM child_jobs j JOIN family f ON j.parent_id=f.id WHERE j.state IN ('admitted','running'))
-            FROM sessions WHERE id=?1", [session], |row| {
+            FROM sessions WHERE id=?1")?.query_row([session], |row| {
                 let outcome: Option<String> = row.get(2)?;
                 Ok(SessionActivity {
                     session: SessionId(session.to_owned()),

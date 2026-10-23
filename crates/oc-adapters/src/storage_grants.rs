@@ -58,7 +58,7 @@ impl Db {
         resource: &str,
     ) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db lock");
-        let exact: bool = conn.query_row("SELECT EXISTS(SELECT 1 FROM permission_grants WHERE project=?1 AND action=?2 AND pattern=?3)", params![project,action,resource], |row| row.get(0))?;
+        let exact: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM permission_grants WHERE project=?1 AND action=?2 AND pattern=?3)")?.query_row(params![project,action,resource], |row| row.get(0))?;
         if exact {
             return Ok(true);
         }

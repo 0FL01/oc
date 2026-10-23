@@ -58,7 +58,7 @@ fn direct_user_shell_is_a_single_typed_block_without_assistant_graph_or_user_act
     assert_eq!(rows[0].message_id.as_deref(), Some(&raw.id));
     assert!(rows[0].meta.is_none() && rows[0].agent.is_none());
     assert!(rows[0].text.is_empty());
-    let card = rows[0].tool.as_ref().unwrap();
+    let card: &crate::history::ToolCard = rows[0].tool.as_ref().unwrap();
     assert_eq!(card.op, "actual-null-turn-operation");
     assert!(!card.preview_limited());
     assert!(

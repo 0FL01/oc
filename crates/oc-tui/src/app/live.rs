@@ -1028,16 +1028,16 @@ impl TuiState {
             .rev()
             .filter_map(|row| row.tool)
             .flat_map(|card| {
-                let crate::tools::ToolRender::Dcp(view) = card.render else {
+                let crate::tools::ToolRender::Dcp(view) = &card.render else {
                     return Vec::new();
                 };
-                let Some(run) = view.snapshot else {
+                let Some(run) = &view.snapshot else {
                     return Vec::new();
                 };
                 run.block_ids
-                    .into_iter()
+                    .iter()
                     .enumerate()
-                    .filter(|(_, id)| !view.summaries.iter().any(|page| &page.block_id == id))
+                    .filter(|(_, id)| !view.summaries.iter().any(|page| &page.block_id == *id))
                     .map(|(index, _)| (card.op.clone(), index))
                     .collect::<Vec<_>>()
             })
@@ -1061,7 +1061,8 @@ impl TuiState {
         for part in &mut self.live_parts {
             if let LivePart::Tool { card, .. } = part
                 && card.op == op
-                && let crate::tools::ToolRender::Dcp(view) = &mut card.render
+                && let crate::tools::ToolRender::Dcp(view) =
+                    &mut std::sync::Arc::make_mut(card).render
             {
                 view.apply_summary(page);
                 self.enforce_parts();
@@ -1945,7 +1946,7 @@ impl TuiState {
                         view.color_index = projection.agent_color_index;
                     }
                     LivePart::Tool {
-                        card: Box::new(card),
+                        card: std::sync::Arc::new(card),
                         input: row.input.clone().unwrap_or_default(),
                         delegation: None,
                     }
@@ -2325,7 +2326,7 @@ impl TuiState {
                 card.started_at = previous.started_at.or(card.started_at);
             }
             *part = LivePart::Tool {
-                card: Box::new(card),
+                card: std::sync::Arc::new(card),
                 input: input.to_string(),
                 delegation: None,
             };
@@ -2335,7 +2336,7 @@ impl TuiState {
             return;
         }
         self.live_parts.push(LivePart::Tool {
-            card: Box::new(card),
+            card: std::sync::Arc::new(card),
             input: input.to_string(),
             delegation: None,
         });
@@ -2363,6 +2364,7 @@ impl TuiState {
             matches!(part, LivePart::Tool { card, .. }
                 if card.op == op && matches!(card.state.as_str(), "started" | "running"))
         }) {
+            let card = std::sync::Arc::make_mut(card);
             card.output_presentation = Some(presentation);
             card.render = crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute);
         }
@@ -2397,7 +2399,7 @@ impl TuiState {
             let present = self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == request.binding.call)));
             if !present && self.live_parts.iter().filter(|p| matches!(p, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))).count() < oc_core::tool_stream::PENDING_TOOL_MAX {
                 let card = card_from_row(&ToolOpView { child_job: None, question: None, rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, output_presentation: None, patch_effects: None, dcp: None, dcp_topic: None });
-                self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new(), delegation: None });
+                self.live_parts.push(LivePart::Tool { card: std::sync::Arc::new(card), input: String::new(), delegation: None });
             }
         }
         for part in &mut self.live_parts {
@@ -2425,7 +2427,7 @@ impl TuiState {
             });
             let Some(request) = request else {
                 if card.state == "permission_pending" {
-                    card.state = "argument_stream".into();
+                    std::sync::Arc::make_mut(card).state = "argument_stream".into();
                 }
                 continue;
             };
@@ -2433,6 +2435,7 @@ impl TuiState {
             // intent or a parser of unfinished provider argument fragments.
             // Bind the presentation to its prepared operation so a rejection can
             // reconcile without a Started/Linked event (neither may precede consent).
+            let card = std::sync::Arc::make_mut(card);
             card.op.clone_from(&request.binding.operation);
             card.state = "permission_pending".into();
             *delegation = None;
@@ -2612,7 +2615,7 @@ impl TuiState {
                             })
                     });
                 let part = LivePart::Tool {
-                    card: Box::new(card),
+                    card: std::sync::Arc::new(card),
                     input: String::new(),
                     delegation,
                 };
@@ -2655,6 +2658,7 @@ impl TuiState {
                         if let Some(clock) = self.tool_spinner_clocks.remove(&key) {
                             self.tool_spinner_clocks.entry(op.clone()).or_insert(clock);
                         }
+                        let card = std::sync::Arc::make_mut(card);
                         card.op.clone_from(op);
                         card.state = "started".into();
                         card.input_preview.clear();
@@ -2880,7 +2884,7 @@ impl TuiState {
                 finished.files = card.files.clone();
                 finished.files_truncated = card.files_truncated;
             }
-            **card = finished;
+            *card = std::sync::Arc::new(finished);
             *delegation = None;
             self.enforce_parts();
             self.sync_compaction_clock();
@@ -2894,7 +2898,7 @@ impl TuiState {
             view.color_index = self.live_agent_color_index;
         }
         self.live_parts.push(LivePart::Tool {
-            card: Box::new(card),
+            card: std::sync::Arc::new(card),
             input: String::new(),
             delegation: None,
         });

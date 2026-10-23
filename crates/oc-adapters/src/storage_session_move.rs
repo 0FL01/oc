@@ -58,11 +58,9 @@ impl Db {
         directory: &str,
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let root: bool = conn.query_row(
-            "SELECT parent_id IS NULL FROM sessions WHERE id=?1",
-            [session],
-            |r| r.get(0),
-        )?;
+        let root: bool = conn
+            .prepare_cached("SELECT parent_id IS NULL FROM sessions WHERE id=?1")?
+            .query_row([session], |r| r.get(0))?;
         if root {
             Self::check_move_deck_in(&conn, session, directory)?;
         }
@@ -103,7 +101,7 @@ impl Db {
     pub(crate) fn admit_session_move(&self, record: &MoveRecord) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id JOIN turns t ON t.id=?3 JOIN tool_operations o ON o.id=?4 AND o.turn_id=t.id WHERE s.id=?1 AND p.value=?2 AND t.status='started' AND o.state='started' AND o.name='opencode_session_move') AND (SELECT count(*) FROM session_moves WHERE phase='pending')<8",params![record.session,record.source,record.source_turn,record.operation], |r|r.get(0))?;
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM sessions s JOIN prefs p ON p.key='tui.session_location.'||s.id JOIN turns t ON t.id=?3 JOIN tool_operations o ON o.id=?4 AND o.turn_id=t.id WHERE s.id=?1 AND p.value=?2 AND t.status='started' AND o.state='started' AND o.name='opencode_session_move') AND (SELECT count(*) FROM session_moves WHERE phase='pending')<8")?.query_row(params![record.session,record.source,record.source_turn,record.operation], |r|r.get(0))?;
         if !valid {
             return Err(StorageError::SessionNotFound);
         }
@@ -168,20 +166,16 @@ impl Db {
         if phase.as_deref() == Some("applied") {
             return Ok(false);
         }
-        let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM session_moves m JOIN turns t ON t.id=m.source_turn JOIN prefs p ON p.key='tui.session_location.'||m.session_id WHERE m.operation_id=?1 AND m.session_id=?2 AND m.source=?3 AND m.directory=?4 AND m.fingerprint=?5 AND m.phase='pending' AND p.value=m.source AND t.status IN ('completed','failed','cancelled','incomplete'))",params![record.operation,record.session,record.source,record.directory,record.fingerprint],|r|r.get(0))?;
-        let busy: bool = tx.query_row(
-            "WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT EXISTS(SELECT 1 FROM turns t JOIN family f ON f.id=t.session_id WHERE t.status='started')",
-            [&record.session],
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM session_moves m JOIN turns t ON t.id=m.source_turn JOIN prefs p ON p.key='tui.session_location.'||m.session_id WHERE m.operation_id=?1 AND m.session_id=?2 AND m.source=?3 AND m.directory=?4 AND m.fingerprint=?5 AND m.phase='pending' AND p.value=m.source AND t.status IN ('completed','failed','cancelled','incomplete'))")?.query_row(params![record.operation,record.session,record.source,record.directory,record.fingerprint],|r|r.get(0))?;
+        let busy: bool = tx.prepare_cached("WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT EXISTS(SELECT 1 FROM turns t JOIN family f ON f.id=t.session_id WHERE t.status='started')")?.query_row([&record.session],
             |r| r.get(0),
         )?;
         if !valid || busy {
             return Err(StorageError::SessionNotFound);
         }
-        let root: bool = tx.query_row(
-            "SELECT parent_id IS NULL FROM sessions WHERE id=?1",
-            [&record.session],
-            |r| r.get(0),
-        )?;
+        let root: bool = tx
+            .prepare_cached("SELECT parent_id IS NULL FROM sessions WHERE id=?1")?
+            .query_row([&record.session], |r| r.get(0))?;
         if root && record.source != record.directory {
             Self::check_move_deck_in(&tx, &record.session, &record.directory)?;
             let key = tab_deck_key(&record.source);

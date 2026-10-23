@@ -64,7 +64,7 @@ const HUE_NAMES: [&str; 11] = [
 const HUE_STEPS: [u16; 9] = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 
 /// Theme mode selected from the asset (`dark` is the upstream default).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ThemeMode {
     Dark,
     Light,

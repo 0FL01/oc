@@ -19,11 +19,10 @@ impl AdmittedUserShell {
 impl Db {
     pub(crate) fn has_active_shell_jobs(&self, session: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
+        conn.prepare_cached(
             "SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE session_id=?1 AND phase!='terminal')",
-            [session],
-            |r| r.get(0),
-        )
+        )?
+        .query_row([session], |r| r.get(0))
         .map_err(Into::into)
     }
     pub(super) fn shell_jobs_schema(conn: &Connection) -> Result<(), StorageError> {
@@ -162,11 +161,11 @@ impl Db {
 
     pub(crate) fn background_shell_job(&self, operation: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let running: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=?1 AND phase='running')",
-            [operation],
-            |r| r.get(0),
-        )?;
+        let running: bool = conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=?1 AND phase='running')",
+            )?
+            .query_row([operation], |r| r.get(0))?;
         if running {
             conn.execute("INSERT INTO events(session_id,kind,payload) SELECT session_id,'shell_background',operation_id FROM shell_jobs WHERE operation_id=?1", [operation])?;
         }
@@ -182,7 +181,7 @@ impl Db {
         Self::require_session(&conn, caller)?;
         // Walk the owned job's ancestry, not every historical descendant of
         // the caller. Inventory remains eight jobs even in a long-lived family.
-        Ok(conn.query_row("WITH RECURSIVE lineage(id,parent_id) AS (SELECT id,parent_id FROM sessions WHERE id=?2 UNION SELECT s.id,s.parent_id FROM sessions s JOIN lineage child ON child.parent_id=s.id) SELECT EXISTS(SELECT 1 FROM lineage WHERE id=?1)", params![caller, source], |r| r.get(0))?)
+        Ok(conn.prepare_cached("WITH RECURSIVE lineage(id,parent_id) AS (SELECT id,parent_id FROM sessions WHERE id=?2 UNION SELECT s.id,s.parent_id FROM sessions s JOIN lineage child ON child.parent_id=s.id) SELECT EXISTS(SELECT 1 FROM lineage WHERE id=?1)")?.query_row(params![caller, source], |r| r.get(0))?)
     }
 
     pub(crate) fn shell_job_phase(
@@ -227,7 +226,7 @@ impl Db {
         operation: &str,
     ) -> Result<oc_core::queries::ShellJob, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let (raw, process, background): (String, Option<String>, bool) = conn.query_row("SELECT provenance,process,(NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) FROM shell_jobs j WHERE session_id=?1 AND operation_id=?2", params![session, operation], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
+        let (raw, process, background): (String, Option<String>, bool) = conn.prepare_cached("SELECT provenance,process,(NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) FROM shell_jobs j WHERE session_id=?1 AND operation_id=?2")?.query_row(params![session, operation], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?;
         let p: Provenance =
             serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
         let pid = process
@@ -276,16 +275,14 @@ impl Db {
         let n = tx.execute("UPDATE shell_jobs SET phase='terminal',outcome=?2 WHERE operation_id=?1 AND phase!='terminal'",
             params![operation, serde_json::to_string(outcome).expect("shell outcome")])?;
         if n != 1 {
-            let frozen: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=?1 AND phase='terminal')",[operation],|r|r.get(0))?;
+            let frozen: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=?1 AND phase='terminal')")?.query_row([operation],|r|r.get(0))?;
             if frozen {
                 tx.commit()?;
                 return Ok(());
             }
             return Err(StorageError::OperationNotFound);
         }
-        let user_command: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM events WHERE kind='user_shell_admitted' AND payload=?1)",
-            [operation],
+        let user_command: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM events WHERE kind='user_shell_admitted' AND payload=?1)")?.query_row([operation],
             |r| r.get(0),
         )?;
         if user_command {
@@ -385,13 +382,13 @@ impl Db {
                     "output":output,"retainedOutputBytes":full.len(),"previewTruncated":kept<full.len(),
                       "sourceLocation":provenance.location,"sourceGeneration":provenance.generation,
                        "capture":result.capture,"captureFacts":result.capture_facts,"captureFailure":result.capture_failure});
-            let user_command: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM events e JOIN tool_operations o ON o.id=e.payload
+            let user_command: bool = tx
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM events e JOIN tool_operations o ON o.id=e.payload
                  WHERE e.session_id=?1 AND e.kind='user_shell_admitted' AND e.payload=?2
                  AND o.session_id=e.session_id AND o.turn_id IS NULL AND o.name='shell')",
-                params![session, operation],
-                |r| r.get(0),
-            )?;
+                )?
+                .query_row(params![session, operation], |r| r.get(0))?;
             let user_command = user_command
                 && provenance.turn.is_empty()
                 && provenance.session == session
@@ -456,8 +453,7 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<Option<oc_core::queries::ShellHistoryNotice>, StorageError> {
-        let row: Option<(String, String, Vec<u8>, i64)> = conn.query_row(
-            "WITH owned AS (
+        let row: Option<(String, String, Vec<u8>, i64)> = conn.prepare_cached("WITH owned AS (
                SELECT j.operation_id,j.session_id,j.delivery_id,o.turn_id,
                 CASE WHEN json_valid(j.provenance) THEN j.provenance ELSE '{}' END AS p,
                 CASE WHEN json_valid(j.outcome) THEN j.outcome ELSE '{}' END AS result
@@ -475,8 +471,7 @@ impl Db {
               AND json_extract(p,'$.session')=session_id AND json_extract(p,'$.operation')=operation_id
               AND json_extract(p,'$.turn')=turn_id AND length(turn_id)>0
               AND json_type(p,'$.command')='text' AND length(CAST(operation_id AS BLOB))<=4096
-              AND json_extract(result,'$.state') IN ('completed','failed','cancelled','timed_out','unknown')",
-            params![session, message],
+              AND json_extract(result,'$.state') IN ('completed','failed','cancelled','timed_out','unknown')")?.query_row(params![session, message],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         ).optional()?;
         Ok(row.map(|(operation, state, bytes, original_bytes)| {
@@ -508,11 +503,11 @@ impl Db {
         message: &oc_core::session::MessageId,
     ) -> Result<Option<oc_core::queries::ShellHistoryNotice>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let visible: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
-            params![session, message.0],
-            |row| row.get(0),
-        )?;
+        let visible: bool = conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+            )?
+            .query_row(params![session, message.0], |row| row.get(0))?;
         if !visible {
             return Ok(None);
         }
@@ -526,26 +521,31 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<Option<(String, bool, bool)>, StorageError> {
-        conn.query_row(
-            "SELECT j.operation_id,
+        // Seed candidates from the message itself (its linked job, or the
+        // admission event right after its message event); then validate the
+        // same facts. A row never walks every shell job of the session.
+        conn.prepare_cached(
+            "WITH candidates(op) AS (
+               SELECT linked.operation_id FROM shell_jobs linked WHERE linked.message_id=?2
+               UNION SELECT admission.payload FROM events input
+                 JOIN events admission ON admission.seq=input.seq+1
+                 WHERE input.kind='message' AND input.payload=?2 AND +input.session_id=?1
+                 AND admission.session_id=?1 AND admission.kind='user_shell_admitted')
+             SELECT j.operation_id,
                     j.message_id IS NOT m.id AND EXISTS(SELECT 1 FROM conversation_messages visible
                      WHERE visible.session_id=j.session_id AND visible.id=j.message_id),
                     j.message_id IS NOT m.id
-             FROM messages m
-             JOIN shell_jobs j ON j.session_id=m.session_id AND
-              (j.message_id=m.id OR EXISTS(SELECT 1 FROM events admission
-                 JOIN events input ON input.seq=admission.seq-1
-                 WHERE admission.session_id=j.session_id AND input.session_id=j.session_id
-                 AND admission.kind='user_shell_admitted' AND admission.payload=j.operation_id
-                 AND input.kind='message' AND input.payload=m.id))
-             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id
-             WHERE j.session_id=?1 AND m.id=?2
-             AND o.turn_id IS NULL AND o.name='shell' AND m.role='user'
+             FROM candidates c
+             JOIN shell_jobs j ON j.operation_id=c.op AND j.session_id=?1
+             JOIN messages m ON m.id=?2 AND m.session_id=j.session_id
+             JOIN tool_operations o ON o.id=j.operation_id AND +o.session_id=j.session_id
+             WHERE o.turn_id IS NULL AND o.name='shell' AND m.role='user'
              AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id
                         AND e.kind='user_shell_admitted' AND e.payload=j.operation_id)",
-            params![session, message],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
+        )?
+        .query_row(params![session, message], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })
         .optional()
         .map_err(Into::into)
     }
@@ -562,9 +562,7 @@ impl Db {
         else {
             return Ok(None);
         };
-        let (provenance, outcome, phase): (String, Option<String>, String) = conn.query_row(
-            "SELECT provenance,outcome,phase FROM shell_jobs WHERE session_id=?1 AND operation_id=?2",
-            params![session, operation], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        let (provenance, outcome, phase): (String, Option<String>, String) = conn.prepare_cached("SELECT provenance,outcome,phase FROM shell_jobs WHERE session_id=?1 AND operation_id=?2")?.query_row(params![session, operation], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )?;
         let provenance: Provenance =
             serde_json::from_str(&provenance).map_err(|_| StorageError::OperationNotFound)?;
@@ -650,11 +648,11 @@ impl Db {
         };
         if !result.overflow {
             for (id, role, _) in page {
-                let text = conn.query_row(
-                    "SELECT text FROM conversation_messages WHERE session_id=?1 AND id=?2",
-                    params![session, id],
-                    |r| r.get::<_, String>(0),
-                )?;
+                let text = conn
+                    .prepare_cached(
+                        "SELECT text FROM conversation_messages WHERE session_id=?1 AND id=?2",
+                    )?
+                    .query_row(params![session, id], |r| r.get::<_, String>(0))?;
                 result.rows.push((id, role, text));
             }
         }
@@ -670,11 +668,11 @@ impl Db {
     ) -> Result<Option<(String, i64, Option<i64>)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
-        let owned: bool = conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE session_id=?1 AND id=?2)",
-            params![session, operation],
-            |r| r.get(0),
-        )?;
+        let owned: bool = conn
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE session_id=?1 AND id=?2)",
+            )?
+            .query_row(params![session, operation], |r| r.get(0))?;
         if !owned {
             return Err(StorageError::OperationNotFound);
         }
@@ -686,9 +684,7 @@ impl Db {
                 .map(Some);
         }
         let conn = self.conn.lock().expect("db mutex");
-        let raw: Option<String> = conn.query_row(
-            "SELECT outcome FROM shell_jobs WHERE session_id=?1 AND operation_id=?2 AND phase='terminal'",
-            params![session,operation],|r|r.get::<_,String>(0)).optional()?;
+        let raw: Option<String> = conn.prepare_cached("SELECT outcome FROM shell_jobs WHERE session_id=?1 AND operation_id=?2 AND phase='terminal'")?.query_row(params![session,operation],|r|r.get::<_,String>(0)).optional()?;
         let Some(raw) = raw else {
             return Ok(None);
         };

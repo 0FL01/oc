@@ -32,7 +32,7 @@ impl Db {
         after: i64,
     ) -> Result<u64, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let n:i64=conn.query_row("SELECT COALESCE((SELECT SUM(length(CAST(b.hot->'$.logs' AS BLOB))+CASE WHEN json_array_length(b.hot->'$.legacy_protected')>0 THEN length(CAST(b.hot->'$.legacy_protected' AS BLOB)) ELSE 0 END) FROM compression_blocks b JOIN conversation_messages z ON z.id=b.end_msg WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND z.seq>?2),0)+COALESCE((SELECT length(CAST(selection AS BLOB)) FROM session_checkpoint WHERE session_id=?1),0)",params![session,after],|r|r.get(0))?;
+        let n:i64=conn.prepare_cached("SELECT COALESCE((SELECT SUM(length(CAST(b.hot->'$.logs' AS BLOB))+CASE WHEN json_array_length(b.hot->'$.legacy_protected')>0 THEN length(CAST(b.hot->'$.legacy_protected' AS BLOB)) ELSE 0 END) FROM compression_blocks b JOIN conversation_messages z ON z.id=b.end_msg WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND z.seq>?2),0)+COALESCE((SELECT length(CAST(selection AS BLOB)) FROM session_checkpoint WHERE session_id=?1),0)")?.query_row(params![session,after],|r|r.get(0))?;
         u64::try_from(n).map_err(|_| StorageError::CompressionConflict)
     }
     pub(crate) fn protected_user_over_budget(
@@ -43,17 +43,17 @@ impl Db {
         budget: usize,
     ) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        Ok(conn.query_row("SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0)>?4 FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<=?3 AND m.role='user' AND NOT EXISTS(SELECT 1 FROM compression_blocks b JOIN messages a ON a.id=b.start_msg JOIN messages z ON z.id=b.end_msg WHERE b.session_id=m.session_id AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND json_extract(b.hot,'$.standalone')=1 AND m.seq BETWEEN a.seq AND z.seq)",params![session,after,cutoff,budget as i64],|r|r.get(0))?)
+        Ok(conn.prepare_cached("SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0)>?4 FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<=?3 AND m.role='user' AND NOT EXISTS(SELECT 1 FROM compression_blocks b JOIN messages a ON a.id=b.start_msg JOIN messages z ON z.id=b.end_msg WHERE b.session_id=m.session_id AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND json_extract(b.hot,'$.standalone')=1 AND m.seq BETWEEN a.seq AND z.seq)")?.query_row(params![session,after,cutoff,budget as i64],|r|r.get(0))?)
     }
     pub(crate) fn compaction_anchor(
         &self,
         session: &str,
     ) -> Result<oc_core::compaction::CompactionAnchor, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let message=conn.query_row("SELECT id FROM conversation_messages WHERE session_id=?1 ORDER BY seq DESC LIMIT 1",[session],|r|r.get(0)).optional()?;
-        let turn: Option<String>=conn.query_row("SELECT id FROM conversation_turns WHERE session_id=?1 ORDER BY archive_rowid DESC LIMIT 1",[session],|r|r.get(0)).optional()?;
+        let message=conn.prepare_cached("SELECT id FROM conversation_messages WHERE session_id=?1 ORDER BY seq DESC LIMIT 1")?.query_row([session],|r|r.get(0)).optional()?;
+        let turn: Option<String>=conn.prepare_cached("SELECT id FROM conversation_turns WHERE session_id=?1 ORDER BY archive_rowid DESC LIMIT 1")?.query_row([session],|r|r.get(0)).optional()?;
         let tool = if let Some(turn) = &turn {
-            conn.query_row("SELECT id FROM conversation_tools WHERE session_id=?1 AND turn_id=?2 ORDER BY archive_rowid DESC LIMIT 1",params![session,turn],|r|r.get(0)).optional()?
+            conn.prepare_cached("SELECT id FROM conversation_tools WHERE session_id=?1 AND turn_id=?2 ORDER BY archive_rowid DESC LIMIT 1")?.query_row(params![session,turn],|r|r.get(0)).optional()?
         } else {
             None
         };
@@ -151,7 +151,7 @@ impl Db {
         session: &str,
     ) -> Result<Option<(i64, String, Option<String>, Option<String>)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row("SELECT m.seq,c.summary,c.route,c.opaque FROM session_checkpoint c JOIN conversation_messages m ON m.id=c.boundary_message AND m.session_id=c.session_id WHERE c.session_id=?1",[session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional().map_err(Into::into)
+        conn.prepare_cached("SELECT m.seq,c.summary,c.route,c.opaque FROM session_checkpoint c JOIN conversation_messages m ON m.id=c.boundary_message AND m.session_id=c.session_id WHERE c.session_id=?1")?.query_row([session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional().map_err(Into::into)
     }
 
     pub(crate) fn checkpoint_model(
@@ -159,7 +159,7 @@ impl Db {
         session: &str,
     ) -> Result<Option<oc_core::queries::ModelRef>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let raw:Option<String>=conn.query_row("SELECT c.snapshot ->> '$.model' FROM session_checkpoint p JOIN session_compactions c ON c.id=p.operation_id WHERE p.session_id=?1",[session],|row|row.get(0)).optional()?.flatten();
+        let raw:Option<String>=conn.prepare_cached("SELECT c.snapshot ->> '$.model' FROM session_checkpoint p JOIN session_compactions c ON c.id=p.operation_id WHERE p.session_id=?1")?.query_row([session],|row|row.get(0)).optional()?.flatten();
         raw.map(|raw| serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict))
             .transpose()
     }
@@ -169,7 +169,7 @@ impl Db {
         session: &str,
     ) -> Result<Option<oc_core::queries::RequestProfile>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let raw: Option<String> = conn.query_row("SELECT c.snapshot ->> '$.profile' FROM session_checkpoint p JOIN session_compactions c ON c.id=p.operation_id WHERE p.session_id=?1", [session], |row| row.get(0)).optional()?.flatten();
+        let raw: Option<String> = conn.prepare_cached("SELECT c.snapshot ->> '$.profile' FROM session_checkpoint p JOIN session_compactions c ON c.id=p.operation_id WHERE p.session_id=?1")?.query_row([session], |row| row.get(0)).optional()?.flatten();
         raw.map(|raw| serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict))
             .transpose()
     }
@@ -209,8 +209,8 @@ impl Db {
             .filter(|seq| *seq > oldest_seq)
             .or(latest_user.filter(|seq| *seq > oldest_seq));
         match tail {
-            Some(seq) => conn.query_row("SELECT seq,id FROM conversation_messages WHERE session_id=?1 AND seq>?2 AND seq<?3 ORDER BY seq DESC LIMIT 1", params![session,after,seq],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(Into::into),
-            None => conn.query_row("SELECT seq,id FROM conversation_messages WHERE session_id=?1 AND seq>?2 AND seq<COALESCE((SELECT MIN(m.seq) FROM turn_acceptances a JOIN turns t ON t.id=a.turn_id JOIN messages m ON m.id=a.user_message WHERE a.session_id=?1 AND t.status='started'),9223372036854775807) ORDER BY seq DESC LIMIT 1",params![session,after],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(Into::into),
+            Some(seq) => conn.prepare_cached("SELECT seq,id FROM conversation_messages WHERE session_id=?1 AND seq>?2 AND seq<?3 ORDER BY seq DESC LIMIT 1")?.query_row(params![session,after,seq],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(Into::into),
+            None => conn.prepare_cached("SELECT seq,id FROM conversation_messages WHERE session_id=?1 AND seq>?2 AND seq<COALESCE((SELECT MIN(m.seq) FROM turn_acceptances a JOIN turns t ON t.id=a.turn_id JOIN messages m ON m.id=a.user_message WHERE a.session_id=?1 AND t.status='started'),9223372036854775807) ORDER BY seq DESC LIMIT 1")?.query_row(params![session,after],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(Into::into),
         }
     }
     /// Visible sequences of several messages under one lock and one cached
@@ -240,13 +240,10 @@ impl Db {
     }
     pub(crate) fn message_seq(&self, session: &str, id: &str) -> Result<Option<i64>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.query_row(
-            "SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2",
-            params![session, id],
-            |r| r.get(0),
-        )
-        .optional()
-        .map_err(Into::into)
+        conn.prepare_cached("SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2")?
+            .query_row(params![session, id], |r| r.get(0))
+            .optional()
+            .map_err(Into::into)
     }
     /// Choose a whole-exchange suffix from lengths/anchors before receiving any
     /// content. Inactive native coverage is skipped through active endpoints.
@@ -262,7 +259,7 @@ impl Db {
         let mut bytes = 0usize;
         let mut groups = 0usize;
         loop {
-            let interval:Option<(i64,i64,i64)>=conn.query_row("SELECT a.seq,z.seq,length(CAST(b.summary AS BLOB))+COALESCE(length(CAST(json_set(b.hot,'$.logs',json('[]'),'$.protected',json('[]')) AS BLOB)),0) FROM compression_blocks b JOIN messages a ON a.id=b.start_msg JOIN conversation_messages z ON z.id=b.end_msg WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND json_extract(b.hot,'$.standalone')=1 AND a.seq<=?3 AND z.seq>?2 ORDER BY z.seq DESC LIMIT 1",params![session,after,cursor],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
+            let interval:Option<(i64,i64,i64)>=conn.prepare_cached("SELECT a.seq,z.seq,length(CAST(b.summary AS BLOB))+COALESCE(length(CAST(json_set(b.hot,'$.logs',json('[]'),'$.protected',json('[]')) AS BLOB)),0) FROM compression_blocks b JOIN messages a ON a.id=b.start_msg JOIN conversation_messages z ON z.id=b.end_msg WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND json_extract(b.hot,'$.standalone')=1 AND a.seq<=?3 AND z.seq>?2 ORDER BY z.seq DESC LIMIT 1")?.query_row(params![session,after,cursor],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
             if let Some((start, end, size)) = interval
                 && cursor <= end
             {
@@ -279,7 +276,7 @@ impl Db {
                 continue;
             }
             let gap_start = interval.map_or(after, |(_, end, _)| end).max(after);
-            let row:Option<(i64,i64)>=conn.query_row("SELECT a.seq,COALESCE(length(CAST(t.result AS BLOB)),0)+(SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>=a.seq AND m.seq<=?3) FROM conversation_messages a LEFT JOIN turn_acceptances accepted ON accepted.user_message=a.id LEFT JOIN turns t ON t.id=accepted.turn_id WHERE a.session_id=?1 AND a.role='user' AND a.seq>?2 AND a.seq<=?3 ORDER BY a.seq DESC LIMIT 1",params![session,gap_start,cursor],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+            let row:Option<(i64,i64)>=conn.prepare_cached("SELECT a.seq,COALESCE(length(CAST(t.result AS BLOB)),0)+(SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>=a.seq AND m.seq<=?3) FROM conversation_messages a LEFT JOIN turn_acceptances accepted ON accepted.user_message=a.id LEFT JOIN turns t ON t.id=accepted.turn_id WHERE a.session_id=?1 AND a.role='user' AND a.seq>?2 AND a.seq<=?3 ORDER BY a.seq DESC LIMIT 1")?.query_row(params![session,gap_start,cursor],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
             let Some((start, size)) = row else {
                 if gap_start > after {
                     cursor = gap_start;
@@ -314,7 +311,7 @@ impl Db {
         session: &str,
     ) -> Result<Option<Vec<serde_json::Value>>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let row:Option<Option<String>>=conn.query_row("SELECT CASE WHEN length(CAST(selection AS BLOB))<=?2 THEN selection END FROM session_checkpoint WHERE session_id=?1 AND selection IS NOT NULL",params![session,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0)).optional()?;
+        let row:Option<Option<String>>=conn.prepare_cached("SELECT CASE WHEN length(CAST(selection AS BLOB))<=?2 THEN selection END FROM session_checkpoint WHERE session_id=?1 AND selection IS NOT NULL")?.query_row(params![session,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0)).optional()?;
         row.map(|raw| {
             serde_json::from_str(&raw.ok_or(StorageError::CompressionConflict)?)
                 .map_err(|_| StorageError::CompressionConflict)
@@ -341,11 +338,11 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let exists: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
-            params![snapshot.session, boundary],
-            |r| r.get(0),
-        )?;
+        let exists: bool = tx
+            .prepare_cached(
+                "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+            )?
+            .query_row(params![snapshot.session, boundary], |r| r.get(0))?;
         if !exists {
             return Err(StorageError::CompressionConflict);
         }
@@ -415,7 +412,7 @@ impl Db {
         session: &str,
         boundary: &str,
     ) -> Result<(), StorageError> {
-        if !conn.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='compression_blocks')", [], |r| r.get::<_,bool>(0))? {
+        if !conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='compression_blocks')")?.query_row([], |r| r.get::<_,bool>(0))? {
             return Ok(());
         }
         conn.execute("UPDATE compression_blocks SET hot=json_set(COALESCE(hot,'{\"version\":1,\"active\":true,\"standalone\":false,\"protected\":[],\"logs\":[]}'),'$.active',json('false'),'$.logs',json('[]')) WHERE id IN (SELECT b.id FROM compression_blocks b WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND EXISTS(SELECT 1 FROM conversation_messages z JOIN conversation_messages cutoff ON cutoff.session_id=z.session_id WHERE z.id=b.end_msg AND z.session_id=?1 AND cutoff.id=?2 AND z.seq<=cutoff.seq) UNION ALL SELECT b.id FROM compression_blocks b WHERE b.session_id=?1 AND b.hot IS NULL AND EXISTS(SELECT 1 FROM conversation_messages z JOIN conversation_messages cutoff ON cutoff.session_id=z.session_id WHERE z.id=b.end_msg AND z.session_id=?1 AND cutoff.id=?2 AND z.seq<=cutoff.seq))",params![session,boundary])?;
@@ -462,16 +459,12 @@ impl Db {
         session: &str,
     ) -> Result<(), StorageError> {
         // No backfill: legacy/unmeasured sessions still have no accounting.
-        let raw: Option<String> = conn.query_row(
-            "SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=16384 THEN snapshot END FROM dcp_accounting WHERE session_id=?1",
-            [session], |r| r.get(0),
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(snapshot AS BLOB))<=16384 THEN snapshot END FROM dcp_accounting WHERE session_id=?1")?.query_row([session], |r| r.get(0),
         ).optional()?.flatten();
         let Some(raw) = raw else { return Ok(()) };
         let mut accounting: oc_core::dcp_view::DcpAccounting =
             serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict)?;
-        let after: i64 = conn.query_row(
-            "SELECT MAX(COALESCE((SELECT m.seq FROM session_checkpoint c JOIN conversation_messages m ON m.id=c.boundary_message AND m.session_id=c.session_id WHERE c.session_id=?1),0),COALESCE((SELECT m.seq FROM prune_marks p JOIN conversation_messages m ON m.id=p.up_to_msg AND m.session_id=p.session_id WHERE p.session_id=?1),0))",
-            [session], |r| r.get(0),
+        let after: i64 = conn.prepare_cached("SELECT MAX(COALESCE((SELECT m.seq FROM session_checkpoint c JOIN conversation_messages m ON m.id=c.boundary_message AND m.session_id=c.session_id WHERE c.session_id=?1),0),COALESCE((SELECT m.seq FROM prune_marks p JOIN conversation_messages m ON m.id=p.up_to_msg AND m.session_id=p.session_id WHERE p.session_id=?1),0))")?.query_row([session], |r| r.get(0),
         )?;
         let graph = Self::active_compression_graph_in(conn, session, after)?;
         let by_id = graph.into_iter().map(|b| (b.id.clone(), b)).collect();

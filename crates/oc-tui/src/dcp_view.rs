@@ -475,7 +475,9 @@ mod tests {
             child_notice: None,
             shell_notice: None,
             meta: None,
-            tool: Some(card_from_row(&operation(Some(fixture_run("s", "op"))))),
+            tool: Some(std::sync::Arc::new(card_from_row(&operation(Some(
+                fixture_run("s", "op"),
+            ))))),
         };
         let cache = RefCell::new(MarkdownCache::default());
         let nonempty_spans = |line: Line| {
@@ -497,7 +499,7 @@ mod tests {
                     DcpNotificationMode::Detailed,
                 ] {
                     let crate::tools::ToolRender::Dcp(view) =
-                        &mut row.tool.as_mut().unwrap().render
+                        &mut std::sync::Arc::make_mut(row.tool.as_mut().unwrap()).render
                     else {
                         panic!("typed DCP card")
                     };
@@ -563,7 +565,7 @@ mod tests {
         }
         let mut pending = operation(None);
         pending.state = "started".into();
-        row.tool = Some(card_from_row(&pending));
+        row.tool = Some(std::sync::Arc::new(card_from_row(&pending)));
         let replayed_pending =
             transcript(&[row.clone()], Theme::dark(), 100, 100, |_| Color::Reset)
                 .iter()
@@ -572,7 +574,7 @@ mod tests {
                 .join("\n");
         assert!(replayed_pending.contains("actual typed pending topic"));
         assert!(!replayed_pending.contains("forged") && !replayed_pending.contains("removed"));
-        row.tool = Some(card_from_row(&operation(None)));
+        row.tool = Some(std::sync::Arc::new(card_from_row(&operation(None))));
         let legacy = transcript(&[row], Theme::dark(), 100, 100, |_| Color::Reset)
             .iter()
             .map(Line::plain_text)
