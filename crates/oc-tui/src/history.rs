@@ -991,7 +991,7 @@ impl HistoryWindow {
     }
 
     /// A live acceptance notice arrives after the prompt echo receipt.
-    pub(crate) fn insert_before_live_user(&mut self, text: String) {
+    pub(crate) fn insert_before_live_user(&mut self, notice: &oc_core::queries::ModelSwitchNotice) {
         if let Some(index) = self
             .rows
             .iter()
@@ -1004,8 +1004,8 @@ impl HistoryWindow {
                     position: None,
                     message_id: None,
                     seq: i64::MAX,
-                    role: "model_switch".into(),
-                    text: text.into(),
+                    role: model_switch_role(notice).into(),
+                    text: model_switch_text(notice).into(),
                     agent: None,
                     agent_color_index: None,
                     chips: Vec::new(),
@@ -1096,8 +1096,8 @@ fn row_from_page(
         position: None,
         message_id: Some(message_id.clone()),
         seq: row.seq,
-        role: if row.model_switch.is_some() {
-            "model_switch".into()
+        role: if let Some(notice) = &row.model_switch {
+            model_switch_role(notice).into()
         } else if row.agent_switch.is_some() {
             "agent_switch".into()
         } else {
@@ -1144,9 +1144,19 @@ fn clipboard_chips(count: usize) -> Vec<crate::messages::Chip> {
         .collect()
 }
 
+fn model_switch_role(notice: &oc_core::queries::ModelSwitchNotice) -> &'static str {
+    if notice.previous.provider == notice.current.provider
+        && notice.previous.id == notice.current.id
+    {
+        "variant_switch"
+    } else {
+        "model_switch"
+    }
+}
+
 pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) -> String {
     let current = &notice.current;
-    let text = if notice.previous.provider == current.provider && notice.previous.id == current.id {
+    let text = if model_switch_role(notice) == "variant_switch" {
         format!(
             "Switched variant to {}",
             current.variant.as_deref().unwrap_or("default")
@@ -2146,9 +2156,7 @@ mod tests {
             "Switched model to Catalog Name (high)"
         );
         window.push_synthetic("user", "next", None, None);
-        window.insert_before_live_user(super::model_switch_text(
-            marker.model_switch.as_ref().unwrap(),
-        ));
+        window.insert_before_live_user(marker.model_switch.as_ref().unwrap());
         assert_eq!(window.rows()[2].role, "model_switch");
         assert_eq!(
             window.rows()[2].text,
@@ -2205,7 +2213,19 @@ mod tests {
         }
         window.push_synthetic("user", "live", None, None);
         assert!(window.rows().last().unwrap().message_id.is_none());
-        window.insert_before_live_user("switch".into());
+        window.insert_before_live_user(&oc_core::queries::ModelSwitchNotice {
+            previous: oc_core::queries::ModelRef {
+                provider: "p".into(),
+                id: "old".into(),
+                variant: None,
+            },
+            current: oc_core::queries::ModelRef {
+                provider: "p".into(),
+                id: "new".into(),
+                variant: None,
+            },
+            display_name: None,
+        });
         assert!(window.rows()[window.len() - 2].message_id.is_none());
         let mut oversized = row(72, Role::User, "small text");
         oversized.id.0 = "x".repeat(super::WINDOW_BYTES + 1);

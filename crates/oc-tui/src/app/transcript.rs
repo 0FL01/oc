@@ -2064,7 +2064,23 @@ impl TuiState {
         #[cfg(test)]
         self.transcript_row_copies
             .set(self.transcript_row_copies.get() + self.window.len());
-        let mut rows = self.window.rows().to_vec();
+        // Collapse adjacent effort choices only in the render copy, retaining
+        // every durable row and paging identity in the history window.
+        let mut rows: Vec<_> = self
+            .window
+            .rows()
+            .iter()
+            .enumerate()
+            .filter(|(index, row)| {
+                row.role != "variant_switch"
+                    || self
+                        .window
+                        .rows()
+                        .get(index + 1)
+                        .is_none_or(|next| next.role != "variant_switch")
+            })
+            .map(|(_, row)| row.clone())
+            .collect();
         let canonical_ahead = self.canonical_history_ahead();
         if let Some(turn) = &self.active_turn {
             rows.retain(|row| {
@@ -2398,7 +2414,11 @@ impl TuiState {
                 .find_map(|(i, (row, _, _))| {
                     ((matches!(
                         row.role.as_str(),
-                        "user" | "native_control" | "model_switch" | "agent_switch"
+                        "user"
+                            | "native_control"
+                            | "model_switch"
+                            | "variant_switch"
+                            | "agent_switch"
                     ) || row.shell_notice.is_some())
                         && !placed(row))
                     .then_some(i)

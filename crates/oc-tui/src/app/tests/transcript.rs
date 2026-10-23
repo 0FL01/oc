@@ -1,6 +1,66 @@
 use super::*;
 
 #[tokio::test]
+async fn consecutive_variant_switches_show_only_last() {
+    use oc_core::queries::{AgentSwitchNotice, ModelRef, ModelSwitchNotice};
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("variant-switches"));
+    let mut agent = msg(1, Role::Assistant, "");
+    agent.agent_switch = Some(AgentSwitchNotice {
+        previous: Some("plan".into()),
+        current: "build".into(),
+    });
+    let mut rows = vec![agent];
+    let mut previous = ModelRef {
+        provider: "p".into(),
+        id: "m".into(),
+        variant: None,
+    };
+    for (seq, variant) in [(2, "medium"), (3, "xhigh")] {
+        let current = ModelRef {
+            variant: Some(variant.into()),
+            ..previous.clone()
+        };
+        let mut notice = msg(seq, Role::Assistant, "");
+        notice.model_switch = Some(ModelSwitchNotice {
+            previous,
+            current: current.clone(),
+            display_name: None,
+        });
+        rows.push(notice);
+        previous = current;
+    }
+    rows.push(msg(4, Role::User, "implement"));
+    state.attach_page(&page(rows, 4, false, false));
+    let full = state.rendered_transcript(80, 80);
+    let (visible, total) = state.visible_transcript(80, 80, 40);
+    assert_eq!(
+        visible
+            .iter()
+            .map(crate::styled::Line::plain_text)
+            .collect::<Vec<_>>(),
+        full.iter()
+            .map(crate::styled::Line::plain_text)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(total, full.len());
+    let notices: Vec<_> = full
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .filter(|line| line.trim_start().starts_with("Switched "))
+        .collect();
+    assert_eq!(
+        notices,
+        [
+            "   Switched agent from Plan to Build",
+            "   Switched variant to xhigh",
+        ]
+    );
+    assert_eq!(state.history().rows().len(), 4);
+    assert_eq!(state.history().rows()[1].text, "Switched variant to medium");
+}
+
+#[tokio::test]
 async fn child_notice_order_metadata_only_refresh_paths_enforce_the_window_budget() {
     use crate::history::WINDOW_BYTES;
     use oc_core::queries::{

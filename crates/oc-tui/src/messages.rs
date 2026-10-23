@@ -1824,7 +1824,7 @@ fn render_row(
         }
         // SessionRowView supplies one top margin; the notice itself has
         // paddingLeft=3 and muted text (session/index.tsx:1433, 1999-2013).
-        "model_switch" | "agent_switch" => vec![
+        "model_switch" | "variant_switch" | "agent_switch" => vec![
             Line::plain(""),
             Line::new(vec![
                 Span::plain(" ".repeat(MESSAGE_PADDING)),

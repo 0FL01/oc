@@ -1788,8 +1788,7 @@ impl TuiState {
         if self.active_turn.as_ref() != Some(turn) {
             return;
         }
-        self.window
-            .insert_before_live_user(crate::history::model_switch_text(notice));
+        self.window.insert_before_live_user(notice);
         self.invalidate_transcript();
     }
 
