@@ -12,7 +12,8 @@ use std::{
 
 use crossterm::cursor::{Hide, Show};
 use crossterm::event::{
-    DisableFocusChange, DisableMouseCapture, EnableFocusChange, EnableMouseCapture,
+    DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
+    EnableFocusChange, EnableMouseCapture,
 };
 use crossterm::terminal::{
     BeginSynchronizedUpdate, EndSynchronizedUpdate, EnterAlternateScreen, LeaveAlternateScreen,
@@ -38,7 +39,8 @@ pub fn enter() -> Result<TerminalGuard, String> {
         stderr,
         EnterAlternateScreen,
         EnableMouseCapture,
-        EnableFocusChange
+        EnableFocusChange,
+        EnableBracketedPaste
     ) {
         let _ = disable_raw_mode();
         let _ = restore_output(&mut std::io::stderr());
@@ -61,6 +63,7 @@ fn restore_output(output: &mut impl Write) -> io::Result<()> {
         crossterm::style::Print("\x1b]112\x07"),
         DisableMouseCapture,
         DisableFocusChange,
+        DisableBracketedPaste,
         LeaveAlternateScreen,
         Show
     )

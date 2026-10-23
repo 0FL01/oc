@@ -1342,6 +1342,10 @@ fn v05_raw_paste_chip_keeps_original_on_wire_and_in_history() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "v05-paste-chip", None);
     pty.wait_visible(READY, DEADLINE);
+    assert!(
+        contains(&pty.snapshot(), b"\x1b[?2004h"),
+        "TUI must enable bracketed paste before accepting input"
+    );
     let pasted = "е\u{301}🧑‍💻\nвторая\nтретья";
     pty.send(b"prefix ");
     pty.send(format!("\x1b[200~{pasted}\x1b[201~").as_bytes());
@@ -1394,6 +1398,10 @@ fn v05_raw_paste_chip_keeps_original_on_wire_and_in_history() {
     pty.send(b"\x03");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert!(
+        contains(&output, b"\x1b[?2004l"),
+        "TUI must disable bracketed paste on exit"
+    );
     let rows = persisted(pty.data_dir(), "v05-paste-chip");
     assert_eq!(rows.iter().filter(|(role, _)| role == "user").count(), 1);
     assert_eq!(
