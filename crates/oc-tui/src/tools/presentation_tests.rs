@@ -894,6 +894,60 @@ fn shell_status_is_owned_and_projection_does_not_synthesize_truncation() {
 }
 
 #[test]
+fn shell_nonzero_exit_keeps_captured_output_and_notice_muted() {
+    let stdout = (1..=12)
+        .map(|n| format!("test output {n}\n"))
+        .collect::<String>();
+    let stderr = "error: test failed\n";
+    let body = format!("{stdout}{stderr}");
+    let mut presentation = Presentation::new(&body, body.len() as u64, false);
+    presentation.shell = Some(Shell {
+        background: false,
+        process_state: Some("failed".into()),
+        stdout,
+        stderr: stderr.into(),
+        stdout_limited: false,
+        stderr_limited: false,
+        exit: Some(101),
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    let mut row = operation("shell", "exit 101\nmodel-only envelope", Some(presentation));
+    row.state = "failed".into();
+    row.input = Some(serde_json::json!({"command":"cargo test"}).to_string());
+    let card = card_from_row(&row);
+    let ToolRender::Shell(shell) = &card.render else {
+        panic!("native shell card")
+    };
+    for theme in [Theme::dark(), Theme::light()] {
+        for expanded in [false, true] {
+            let lines = shell_block_expanded(shell, &card, theme, 120, expanded);
+            assert_eq!(lines[1].spans()[2].style().fg, Some(theme.text()));
+            let text = lines
+                .iter()
+                .map(Line::plain_text)
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(text.contains("test output 12") && text.contains(stderr.trim_end()));
+            assert!(text.contains("Command exited with code 101."));
+            assert_eq!(text.contains("earlier lines)"), !expanded);
+            assert!(!text.contains("model-only envelope"));
+            for span in lines.iter().skip(3).flat_map(Line::spans) {
+                if span.content() != "┃" && !span.content().trim().is_empty() {
+                    assert_eq!(
+                        span.style().fg,
+                        Some(theme.text_muted()),
+                        "{}",
+                        span.content()
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn shell_command_character_wrap_keeps_continuation_space_and_owned_body() {
     let command = format!(
         "printf 'VIS-SHELL-LINE-%03d\\n' {}; printf '[Part preview truncated]\\n[output preview truncated; full result retained]\\n[truncated]\\n'",

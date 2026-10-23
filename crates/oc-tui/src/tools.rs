@@ -1037,15 +1037,18 @@ pub(crate) fn shell_block_expanded(
             // ShellDisplay's inner box gap=1, only when an output child exists.
             out.push(frame.row(&[]));
         }
-        // An error outcome colors the whole recorded output; a successful one
-        // keeps stdout muted (`index.tsx:2784-2866` error line).
-        let stdout_style = if is_error_state(&card.state) && !shell.direct_user {
+        // A nonzero process exit is still muted ShellDisplay output, not a
+        // BlockTool error. Native `failed` covers both cases; the exit separates them.
+        let output_style = if is_error_state(&card.state)
+            && !shell.direct_user
+            && (card.state != "failed" || shell.exit.is_none())
+        {
             error
         } else {
             muted
         };
-        for (line, stderr) in output {
-            let line = Line::styled(line, if stderr { error } else { stdout_style });
+        for (line, feedback_error) in output {
+            let line = Line::styled(line, if feedback_error { error } else { output_style });
             for wrapped in styled::wrap_line_limited(&line, inner, usize::MAX) {
                 out.push(frame.row(wrapped.spans()));
             }
@@ -1098,13 +1101,14 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
         .collect::<Vec<_>>();
     if !shell.stderr.is_empty() {
         output.push(("[stderr]".to_string(), false));
-        output.extend(shell.stderr.iter().map(|line| (line.clone(), true)));
+        output.extend(shell.stderr.iter().map(|line| (line.clone(), false)));
     }
     append_shell_status(shell, card, &mut output);
     output
 }
 
 fn append_shell_status(shell: &ShellRender, card: &ToolCard, output: &mut Vec<(String, bool)>) {
+    let mut status_error = is_error_state(&card.state) || shell.timed_out;
     let status = if card.state == "unknown" || shell.process_state.as_deref() == Some("unknown") {
         Some("Outcome unknown (operation was interrupted)".to_string())
     } else if shell.process_state.as_deref() == Some("failed")
@@ -1117,6 +1121,7 @@ fn append_shell_status(shell: &ShellRender, card: &ToolCard, output: &mut Vec<(S
     } else if shell.timed_out {
         Some(COMMAND_TIMED_OUT.to_string())
     } else if let Some(code) = shell.exit.filter(|code| *code != 0) {
+        status_error = false;
         Some(command_exited(code))
     } else if shell.signal {
         Some("exit signal".to_string())
@@ -1145,7 +1150,7 @@ fn append_shell_status(shell: &ShellRender, card: &ToolCard, output: &mut Vec<(S
         } else {
             status
         };
-        output.push((status, is_error_state(&card.state) || shell.timed_out));
+        output.push((status, status_error));
     }
     if let Some(diagnostic) = &shell.diagnostic {
         output.push((diagnostic.clone(), true));
@@ -1178,7 +1183,7 @@ fn collapse_shell_command(input: &str, width: u16, running: bool) -> (String, us
     (input.to_string(), lines, false)
 }
 
-/// Port of collapseTail (:83–95), retaining stderr styles on the visible tail.
+/// Port of collapseTail (:83–95), retaining per-row feedback on the visible tail.
 fn collapse_shell_tail(output: &mut Vec<(String, bool)>, max_lines: usize, max_chars: usize) {
     let chars = output
         .iter()
@@ -2133,7 +2138,7 @@ mod tests {
     }
 
     /// Shell block card (`index.tsx:2884-3037`): `$ <cmd>` with the
-    /// `cd <workdir> && ` prefix, muted output, stderr in the error color and
+    /// `cd <workdir> && ` prefix, muted stdout/stderr and
     /// the upstream exit-status string; running shows the spinner instead of
     /// `$`.
     #[test]
@@ -2182,11 +2187,11 @@ mod tests {
                 "┃".to_string(),
             ]
         );
-        // stdout is muted, stderr carries `text.feedback.error.base`.
+        // ShellDisplay keeps both captured streams muted.
         assert_eq!(buffer[(3, 4)].fg, theme.text_muted());
         assert_eq!(buffer[(3, 4)].bg, theme.user_message_background());
         assert_eq!(buffer[(3, 7)].symbol(), "w");
-        assert_eq!(buffer[(3, 7)].fg, theme.error());
+        assert_eq!(buffer[(3, 7)].fg, theme.text_muted());
 
         // A missing cwd keeps the bare `$ <cmd>` header.
         let plain = make_card(
