@@ -105,7 +105,16 @@ owner, actual resources, before/after approval preview и approved-preimage rech
 Write/Edit/ApplyPatch отдельно; replay использует persisted input/results/effects,
 не сегодняшние файлы. No Formatter/LSP subsystem в этом файловом срезе.
 
-`shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, minimal documented credential-free env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
+`shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, captured owner env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
+
+Shell commands (agent foreground/background, legacy `bash`, user `!`) and PTYs inherit
+the full captured native-owner startup environment, including SSH-agent sockets,
+proxy/CA/toolchain settings and credentials. No name allowlist or client-env refresh;
+NUL-containing values are dropped and missing PATH/LANG receive working defaults.
+Spawn installs that snapshot explicitly, without merging ambient process env. Existing
+output redaction remains; it is not a barrier against commands using inherited secrets.
+Browser authorization launch keeps a separate credential-free allowlist; MCP and
+webfetch retain their own environment/credential policies.
 
 Owner amendment 2026-10-01 extends T50/R2/TOOL13 with authoritative source-session
 running shell inventory/status, bounded live output/final flush, selected-job kill
@@ -119,10 +128,10 @@ The old arbitrary-terminal-manager exclusion is narrowly superseded by approved
 [T56/TERM01](goals/2026-10-01-native-session-terminals.md): explicit user-created
 session-local native PTYs selected from Terminals and shown in the right pane.
 They survive hide/show/session view changes within live `oc`, not application
-shutdown/daemon handoff. Native sanitized shell env/trust/credential ceilings,
+shutdown/daemon handoff. Captured owner env, native trust/permission ceilings,
 bounded VT/input/output/process ownership, reaping and no unknown-command replay
-remain. No model-visible terminal tool, hidden startup process, Node/Bun/WASM host
-or donor inherited-provider/runner env. Shell, child jobs and PTYs are different owners.
+remain. No model-visible terminal tool, hidden startup process or Node/Bun/WASM
+host. Shell, child jobs and PTYs are different owners.
 
 `webfetch`: read-only GET, http/https, text/HTML/JSON response; T50 adds requested text/markdown/html (default markdown), timeout seconds default30/max120 and truthful original/final URL/status/content-type/format. One total budget includes conversion; bounded download/redirect/output and Unicode conversion remain. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
 
@@ -189,11 +198,12 @@ No-execution-timeout jobs still require bounded teardown/output and explicit out
 Завершение leader не считается завершением группы: drains получают ограниченное
 окно, затем owned session group (setsid, pgid == pid) получает TERM → grace →
 KILL, а reader-потоки никогда не join'ятся бесконечно — возвращается частичный
-вывод. Cancel проверяется на всех ожиданиях. Child env — строгий allowlist имён
+вывод. Cancel проверяется на всех ожиданиях. Historical child env used a strict allowlist
 (`PATH`, `HOME`, `TMPDIR`, `TERM`, `USER`, `LOGNAME`, `SHELL`, `CARGO_HOME`,
 `RUSTUP_HOME`, `XDG_*`, `LANG`/`LC_*`), а не substring-фильтр: всё прочее, включая
 безобидные имена, отбрасывается; `PATH`/`LANG` имеют рабочие defaults, поэтому
-обычные `cargo`/`rustc` команды резолвятся без абсолютных подсказок.
+обычные `cargo`/`rustc` команды резолвятся без абсолютных подсказок. Этот старый env
+контракт заменён полным captured owner env, описанным выше; supervision не изменён.
 `cwd` проверяется лексически и канонически: symlink внутри root, ведущий наружу,
 даёт `BadCwd`. Ошибка exec теперь сообщает OS error kind, а не bare `reap failed`.
 
@@ -318,7 +328,7 @@ and neither an infrastructure error nor an incomplete search authorizes replay.
 
 HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy stateless JSON mode отсутствие session ID или GET event stream не должно порождать reconnect loop. Если SDK optional GET получает 405 — не считать это отказом исправного POST path; соответствие спецификации и поведение SDK проверить. Отправлять нужный `MCP-Protocol-Version` после initialize; no OAuth auto-discovery при oauth:false. Remote service timeout может быть меньше нашего клиентского 60s — сохранять исходный error, не ложно ждать/повторять операцию.
 
-Local `chrome-devtools`: argv точно из admitted config, без shell splitting/rewrite. `enabled:false` (или canonical disabled:true) означает: не launch npx, не probe browser, не требовать Node, не делать install, включая environment/cwd/timeout. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. T46/R6 pending target заменяет прежний минимальный MCP env на inherited product-process environment + configured overlay после command/resource/credential-domain admission; обычный shell остаётся credential-free/minimal. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
+Local `chrome-devtools`: argv точно из admitted config, без shell splitting/rewrite. `enabled:false` (или canonical disabled:true) означает: не launch npx, не probe browser, не требовать Node, не делать install, включая environment/cwd/timeout. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. T46/R6 pending target заменяет прежний минимальный MCP env на inherited product-process environment + configured overlay после command/resource/credential-domain admission; shell отдельно наследует captured owner env. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
 
 `chrome-devtools-mcp@latest` — явная пользовательская команда; её не подменять pinned silently. Core adapter acceptance — pinned fake stdio server. Optional real-browser smoke записывает фактически разрешённую версию/digest в evidence; это не воспроизводимость `@latest` навсегда.
 

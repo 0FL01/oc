@@ -66,7 +66,7 @@ session-local interactive PTY inventory/create/input/resize/snapshot/output/exit
 not a model-facing tool or shell-job projection. Native VT cells/cursor are rendered
 inside the pane; raw escape bytes cannot reach the host terminal. Hide/show and view
 switches do not kill; raw focused Ctrl+C/D reach the PTY, not application/composer
-actions. Preserve original session/Location/generation, sanitized shell env and
+actions. Preserve original session/Location/generation, captured owner env and
 owned process/descriptor/queue bounds, shutdown/reap and identity-verified crash
 quarantine. Native live-application lifetime, not donor daemon/server handoff;
 restart never recreates old shells/replays unknown commands or invents running state.

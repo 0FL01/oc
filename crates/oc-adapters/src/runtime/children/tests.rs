@@ -260,7 +260,7 @@ async fn term01_terminal_creation_uses_retained_child_source_not_moved_parent() 
             BTreeMap::from([
                 ("SHELL".into(), shell.into()),
                 ("HOME".into(), project.display().to_string()),
-                ("OC_API_KEY".into(), "SYNTHETIC_NOT_INHERITED".into()),
+                ("OC_API_KEY".into(), "SYNTHETIC_INHERITED".into()),
             ]),
             ToolRoots {
                 project: project.into(),
@@ -364,9 +364,9 @@ async fn term01_terminal_creation_uses_retained_child_source_not_moved_parent() 
     assert_eq!(entry.shell, "/bin/bash");
     let environment = std::fs::read(format!("/proc/{}/environ", entry.pid)).unwrap();
     assert!(
-        !environment
-            .windows(b"SYNTHETIC_NOT_INHERITED".len())
-            .any(|w| w == b"SYNTHETIC_NOT_INHERITED")
+        environment
+            .split(|b| *b == 0)
+            .any(|entry| entry == b"OC_API_KEY=SYNTHETIC_INHERITED")
     );
     // Losing the retained child lane never fabricates one at the moved parent.
     drop(source);

@@ -73,9 +73,9 @@ fn term01_real_pty_identity_environment_raw_control_resize_and_replay() {
     );
     let child_env = std::fs::read(format!("/proc/{}/environ", entry.pid)).unwrap();
     assert!(
-        !child_env
-            .windows(b"synthetic-secret".len())
-            .any(|w| w == b"synthetic-secret")
+        child_env
+            .split(|b| *b == 0)
+            .any(|entry| entry == b"OC_API_KEY=synthetic-secret")
     );
     owner.select(&target.session, Some(target)).unwrap();
     let checkpoint = owner.snapshot(&target.session, target).unwrap();

@@ -78,7 +78,7 @@ Admitted local MCP inherits product-process env plus configured string-map overl
 relative cwd resolves from effective Location workspace directory, not source file.
 Full environment/credential authority requires command/resource/credential-domain
 admission before launch; untrusted/lower-trust commands do not inherit higher-trust
-secrets. Ordinary shell keeps its minimal env; remote MCP gets no arbitrary local env.
+secrets. Ordinary shell inherits the captured owner env; remote MCP gets no arbitrary local env.
 New env values/inherited secrets join redaction; never dump expanded effective config.
 
 [T51](goals/2026-09-27-startup-fault-isolation.md) uses the existing `ServiceDiagnostic`
@@ -147,6 +147,11 @@ TUI/run/auth/sessions одного UID/data root автоматически ис
 подхватывается после штатного завершения всех leases этого owner. Один закрытый TUI
 не перезапускает owner, пока остаётся другой TUI или конечная CLI-операция.
 Старый in-process `oc2` надо закрыть нормально; `oc.lock` не удалять.
+
+Shell, user `!` shell и PTYs получают этот полный captured startup env, включая
+SSH_AUTH_SOCK, proxy/CA/toolchain settings и credentials. Нет фильтрации имён;
+NUL-containing values отбрасываются, missing PATH/LANG получают defaults.
+Browser authorization launcher сохраняет собственный минимальный env.
 
 ## Hot reload — T61 target, отдельная qualification
 

@@ -415,7 +415,34 @@ pub(crate) async fn open_authorization(url: &str) -> Result<()> {
         return Err("authorization URL unavailable");
     }
     let parent = std::env::vars().collect::<std::collections::BTreeMap<_, _>>();
-    let mut env = oc_adapters::shell::child_env(&parent);
+    // Browser launch is not a shell command: keep its credential-free allowlist.
+    let mut env = parent
+        .iter()
+        .filter(|(name, value)| {
+            (matches!(
+                name.as_str(),
+                "PATH"
+                    | "HOME"
+                    | "TMPDIR"
+                    | "TERM"
+                    | "USER"
+                    | "LOGNAME"
+                    | "SHELL"
+                    | "CARGO_HOME"
+                    | "RUSTUP_HOME"
+                    | "XDG_CACHE_HOME"
+                    | "XDG_CONFIG_HOME"
+                    | "XDG_DATA_HOME"
+                    | "XDG_RUNTIME_DIR"
+                    | "LANG"
+            ) || name.starts_with("LC_"))
+                && !value.contains('\0')
+        })
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    env.entry("PATH".into())
+        .or_insert_with(|| "/usr/bin:/bin".into());
+    env.entry("LANG".into()).or_insert_with(|| "C.UTF-8".into());
     for name in [
         "DISPLAY",
         "WAYLAND_DISPLAY",

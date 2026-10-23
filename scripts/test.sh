@@ -11,8 +11,8 @@ else
     exit 1
 fi
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-$(getconf _NPROCESSORS_ONLN)}"
-# Preserve the real toolchain homes when fixtures replace HOME. The production
-# shell deliberately forwards these homes, not arbitrary runner variables.
+# Preserve the real toolchain homes when fixtures replace HOME. Production shell
+# forwards the captured owner environment; fixture environments remain explicit.
 export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
 export RUSTUP_HOME="${RUSTUP_HOME:-$(rustup show home)}"
 export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-$(rustup show active-toolchain | awk '{print $1}')}"

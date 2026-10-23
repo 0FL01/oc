@@ -607,7 +607,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "shell".to_string(),
-            description: "Execute a Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (foreground default 120000, background default 0; 0 disables only execution timeout; native positive ceiling 600000). Background returns running/shellID after launch; you will be notified automatically when it completes. DO NOT poll; continue independent work or end your response. Output is bounded; cancellation and process-group teardown remain active. The child receives a minimal credential-free environment."
+            description: "Execute a Linux shell command using the compatible inherited SHELL (fallback PATH bash, then /bin/sh), with -c semantics. Quote paths containing spaces; prefer dedicated tools. `workdir` is relative to the admitted project root (default root). `timeout` is milliseconds (foreground default 120000, background default 0; 0 disables only execution timeout; native positive ceiling 600000). Background returns running/shellID after launch; you will be notified automatically when it completes. DO NOT poll; continue independent work or end your response. Output is bounded; cancellation and process-group teardown remain active. The child inherits the native owner's captured startup environment, including SSH-agent access and credentials."
                 .to_string(),
             parameters: serde_json::json!({
                 "type": "object", "properties": {

@@ -346,7 +346,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         for entry, live, identity in entries(root):
             assert live == 1 and identity['pid'] == entry['pid']
             assert os.readlink(f'/proc/{entry["pid"]}/cwd') == entry['cwd']
-            assert b'SYNTHETIC-TERM01-CANARY' not in Path(f'/proc/{entry["pid"]}/environ').read_bytes()
+            assert b'OC_API_KEY=SYNTHETIC-TERM01-CANARY' in Path(f'/proc/{entry["pid"]}/environ').read_bytes().split(b'\0')
         view.command("printf 'one-%s\\n' OK")
         view.see('one-OK')
         view.command('sleep 30')

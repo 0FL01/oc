@@ -3,7 +3,7 @@
 //! One-shot supervised execution, not a persistent shell manager and not a
 //! sandbox: the child shares the filesystem, network and uid. Per call the
 //! supervisor forks a fresh session (`setsid`), pins `cwd` inside the trusted
-//! root, exposes only an allowlisted non-credential child environment,
+//! root, forwards the captured parent environment (including credentials),
 //! services stdin/stdout/stderr concurrently into bounded buffers, and
 //! enforces an optional execution deadline that starts before spawn. Zero
 //! disables only that deadline. Leader exit is not group
@@ -215,9 +215,8 @@ impl Shell {
 
     /// Execute a validated invocation under the supervisor.
     ///
-    /// `parent_env` is the caller-observed environment (production passes
-    /// `std::env::vars`); only allowlisted non-credential names reach the
-    /// child. `cancel` is polled alongside the optional deadline, which starts before
+    /// `parent_env` is the captured caller environment, forwarded without a name
+    /// filter. `cancel` is polled alongside the optional deadline, which starts before
     /// spawn so a slow spawn or a blocked stdin write cannot extend it.
     pub fn execute(
         &self,
@@ -853,42 +852,15 @@ fn group_running(pid: i32) -> bool {
 #[path = "shell/group_tests.rs"]
 mod group_tests;
 
-/// Strict child-environment allowlist: names that cannot carry provider,
-/// MCP or runner credentials and that ordinary dev toolchains need.
+/// Forward the captured parent environment, including SSH-agent access and
+/// credentials, without inheriting additional variables from the spawning process.
 ///
-/// This is a positive list, not a "name does not contain a keyword" filter:
-/// anything unlisted (including innocuous names) is dropped.
-const ENV_ALLOWLIST: [&str; 13] = [
-    "PATH",
-    "HOME",
-    "TMPDIR",
-    "TERM",
-    "USER",
-    "LOGNAME",
-    "SHELL",
-    "CARGO_HOME",
-    "RUSTUP_HOME",
-    "XDG_CACHE_HOME",
-    "XDG_CONFIG_HOME",
-    "XDG_DATA_HOME",
-    "XDG_RUNTIME_DIR",
-];
-
-fn env_allowed(name: &str) -> bool {
-    name == "LANG" || name.starts_with("LC_") || ENV_ALLOWLIST.contains(&name)
-}
-
-/// Minimal child env: strict name allowlist from the parent plus working
-/// defaults.
-///
-/// Allowlisted names keep their parent value so toolchains resolve normally
-/// (`PATH`, `HOME`, `CARGO_HOME`, …); `PATH`/`LANG` fall back to a working
-/// default when unset. Every other name — credential-shaped or not — is
-/// dropped, because a substring denylist is not a security boundary.
+/// Values containing NUL cannot be passed to exec and are dropped; `PATH`/`LANG`
+/// receive working defaults when unset. This is not a credential boundary.
 pub fn child_env(parent: &BTreeMap<String, String>) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
     for (key, value) in parent {
-        if !env_allowed(key) || value.contains('\0') {
+        if value.contains('\0') {
             continue;
         }
         out.insert(key.clone(), value.clone());
@@ -1126,11 +1098,22 @@ mod tests {
     }
 
     #[test]
-    fn tool05_child_env_excludes_credentials() {
+    fn tool05_child_env_inherits_captured_environment() {
         let (_tmp, shell) = setup();
+        let mut parent = parent_env();
+        parent.extend([
+            ("SSH_AUTH_SOCK".into(), "/run/fixture/ssh-agent.sock".into()),
+            ("https_proxy".into(), "http://proxy.invalid:8080".into()),
+            ("NODE_EXTRA_CA_CERTS".into(), "/fixture/ca.pem".into()),
+            ("INVALID_VALUE".into(), "invalid\0value".into()),
+        ]);
+        let mut expected = parent.clone();
+        expected.remove("INVALID_VALUE");
+        expected.insert("LANG".into(), "C.UTF-8".into());
+        assert_eq!(child_env(&parent), expected);
         let out = shell
             .execute(
-                &parent_env(),
+                &parent,
                 &["env".to_string()],
                 ".",
                 None,
@@ -1138,22 +1121,18 @@ mod tests {
                 &NO_CANCEL,
             )
             .expect("run");
+        assert_eq!(out.code, Some(0));
         let text = String::from_utf8(out.stdout).expect("utf8");
-        // Allowlisted non-credential names keep their parent value…
-        assert!(text.contains("HOME=/home/fixture"));
-        assert!(text.contains("PATH=/usr/bin:/bin"));
-        assert!(!text.contains("parent-secret"));
-        // …everything else is dropped: a name-based denylist is not a
-        // boundary, so even an innocuous unlisted name must not survive.
-        assert!(!text.contains("MYAPP_OK"), "unlisted env leaked: {text}");
-        let scrubbed = child_env(&parent_env());
-        assert!(!scrubbed.contains_key("LUDKA_API_KEY"));
-        assert!(!scrubbed.contains_key("MCP_TOKEN"));
-        assert!(!scrubbed.contains_key("MYAPP_OK"));
-        assert_eq!(
-            scrubbed.get("HOME").map(String::as_str),
-            Some("/home/fixture")
-        );
+        let actual: BTreeMap<String, String> = text
+            .lines()
+            .map(|line| {
+                let (name, value) = line.split_once('=').expect("env entry");
+                (name.into(), value.into())
+            })
+            .collect();
+        // Exact snapshot: SSH/proxy/CA/custom names and credentials survive,
+        // but no ambient variables from the test process are merged in.
+        assert_eq!(actual, expected);
         // Working defaults apply when the parent lacks them.
         let bare = child_env(&BTreeMap::new());
         assert_eq!(bare.get("PATH").map(String::as_str), Some("/usr/bin:/bin"));

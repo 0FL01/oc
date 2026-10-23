@@ -59,10 +59,7 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
         BTreeMap::from([
             ("SHELL".into(), "/bin/bash".into()),
             ("HOME".into(), a.display().to_string()),
-            (
-                "OC_API_KEY".into(),
-                "TERM01_SYNTHETIC_MUST_NOT_INHERIT".into(),
-            ),
+            ("OC_API_KEY".into(), "TERM01_SYNTHETIC_INHERITED".into()),
         ]),
     )
     .await
@@ -132,7 +129,7 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
         source.clone(),
         TerminalAction::Input {
             target: first.target.clone(),
-            bytes: b"printf 'TER%s'; pwd; test -z \"$OC_API_KEY\" && printf 'SAFE%s' ENV\n"
+            bytes: b"printf 'TER%s'; pwd; test \"$OC_API_KEY\" = TERM01_SYNTHETIC_INHERITED && printf 'INHERITED%s' ENV\n"
                 .to_vec(),
         },
     )
@@ -151,7 +148,7 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
             panic!("snapshot");
         };
         let text: String = snapshot.cells.iter().map(|c| c.text.as_str()).collect();
-        if text.contains("SAFEENV") {
+        if text.contains("INHERITEDENV") {
             assert!(text.contains(&a.display().to_string()));
             break;
         }
