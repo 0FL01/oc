@@ -20,6 +20,7 @@ pub mod runtime;
 pub mod session;
 pub mod tool_output;
 pub mod tool_stream;
+pub mod wake;
 mod wire_bytes;
 
 /// Crate identity used by smoke tests and diagnostics.

@@ -61,7 +61,7 @@ pub(super) fn start(
     deck.reload_verify = Some(Job {
         location,
         draft,
-        task: tokio::spawn(async move {
+        task: oc_core::wake::spawn(async move {
             if let Some(auto) = permission {
                 owner
                     .register_approval_consumer(auto)

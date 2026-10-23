@@ -53,7 +53,7 @@ impl Jobs {
         let child = owner.clone();
         self.discovery.insert(
             owner,
-            tokio::spawn(async move {
+            oc_core::wake::spawn(async move {
                 for parent in parents {
                     let jobs = app
                         .child_jobs(parent.session.clone())
@@ -116,7 +116,9 @@ pub(super) fn open(
         route,
         navigation: deck.navigation_revision,
         draining: false,
-        job: tokio::spawn(async move { prepare(&owner, selected, retained.is_some()).await }),
+        job: oc_core::wake::spawn(
+            async move { prepare(&owner, selected, retained.is_some()).await },
+        ),
     });
     Ok(())
 }

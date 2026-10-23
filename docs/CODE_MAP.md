@@ -21,6 +21,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 ## Core — `crates/oc-core/src/`
 
 - Typed façade/inbox/events: `core_app.rs`; DTO/query/ports/domain: `application.rs`, `queries.rs`, `ports.rs`, `domain.rs`. Tests: unit `core_app::`.
+- UI completion wake (receipts/jobs wake the event loop instead of a timer poll): `wake.rs`. Tests: unit `wake::`.
 - Questions/prompt images/tool facts: `question.rs`, `prompt.rs`, `tool_output.rs`. Tests: unit `question::`, `prompt::`, `tool_output::`.
 - Selection/accounts/auth/PTY DTOs: `queries/model_preference.rs`, `queries/accounts.rs`, `queries/auth.rs`, `queries/terminals.rs`. Tests: unit `queries::`.
 
@@ -88,7 +89,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 
 ## Binary и test tooling
 
-- `crates/oc/src/tui_cmd.rs`, `tui_cmd/shared.rs` — event loop/shared deck; `tui_cmd/{child_controls,terminal_controls,auth_controls,connect_controls,clipboard}.rs` — captured effects/ACKs. Tests: binary unit `tui_cmd::`; targets `pty_t39`, `pty_t42`, `terminals`, `auth_tui`, `mcp_application`.
+- `crates/oc/src/tui_cmd.rs`, `tui_cmd/shared.rs` — event loop/shared deck; `tui_cmd/display_rate.rs` — paint cap from the display refresh (unit `tui_cmd::display_rate`); `tui_cmd/{child_controls,terminal_controls,auth_controls,connect_controls,clipboard}.rs` — captured effects/ACKs. Tests: binary unit `tui_cmd::`; targets `pty_t39`, `pty_t42`, `terminals`, `auth_tui`, `mcp_application`.
 - `crates/oc/src/{cli,bootstrap,headless,models_cmd,auth_cmd}.rs`, `clipboard/read.rs` — CLI/cancel/catalog/auth/PNG. Tests: binary unit `models_cmd`, `auth_cmd`, `clipboard`; targets `responses`, `configured_workspace`, `auth_cli`.
 - `crates/oc-adapters/tests/runtime.rs`, `tests/runtime/`, `tests/fixtures/` — fake-wire suites. `crates/oc/tests/pty_t39.rs`, `tests/pty_t39/`, `tests/support/` — actual-binary PTY fixtures; не отдельные targets на каждый файл.
 - `scripts/bounded_live.py`, `scripts/test_bounded_live.py`, `crates/oc/tests/live_bounded/envelope.rs` — live guards; `scripts/tui_capture/`, `tui-recovery/scripts/` — capture/comparator tooling, не runtime dependency. Запуск только по TEST_PLAN.

@@ -66,7 +66,7 @@ impl Jobs {
                 generation: view.chrome.selection_generation,
                 effect,
                 rerun: false,
-                job: tokio::spawn(async move {
+                job: oc_core::wake::spawn(async move {
                     match request {
                         Request::Mcp(Some(control)) => {
                             owner.mcp_control(control).await.map(Data::Mcp)

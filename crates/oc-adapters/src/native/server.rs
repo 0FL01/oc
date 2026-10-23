@@ -1,6 +1,6 @@
 use super::{
     Lease,
-    client::{Pipes, send},
+    client::{self, Pipes, send},
     endpoint::{self, Endpoint},
     framing::{self, Budget, Message},
     issue,
@@ -699,6 +699,13 @@ fn publish(
     } else {
         None
     };
+    // Serialize once, outside the hub lock; every viewer queues the same bytes.
+    let frame = Server::Event {
+        revision: event.revision,
+        origin: event.origin,
+        event: Box::new(Event::from(event.event)),
+    };
+    let message = Message::encode(&frame, budget);
     let mut shared = state.lock().expect("native leases");
     if let Some((session, running)) = terminals {
         let count = shared.terminals.len();
@@ -710,18 +717,17 @@ fn publish(
         }
     }
     shared.revision = event.revision;
-    let frame = Server::Event {
-        revision: shared.revision,
-        origin: event.origin,
-        event: Box::new(Event::from(event.event)),
-    };
     for viewer in shared
         .viewers
         .values()
         .filter(|viewer| viewer.ready && matches!(viewer.lease, Some(Lease::Tui | Lease::Run)))
     {
         if let Some(output) = &viewer.output
-            && send(output, budget, &frame).is_err()
+            && message
+                .as_ref()
+                .map_err(|_| ())
+                .and_then(|message| client::send_encoded(output, message.clone()).map_err(|_| ()))
+                .is_err()
         {
             viewer.disconnect.send_replace(true);
         }

@@ -23,13 +23,20 @@ struct Prepared {
     approvals: Vec<oc_core::approval::ApprovalRequest>,
     questions: Vec<oc_core::question::QuestionRequest>,
     ancestry: HashMap<SessionId, Vec<SessionId>>,
+    parents: HashMap<SessionId, Option<SessionId>>,
 }
+
+/// A session's parent is fixed at creation; bound the memo, not its validity.
+const MAX_PARENT_MEMO: usize = 1024;
 
 #[derive(Default)]
 pub(super) struct Controls {
     dirty: bool,
     job: Option<tokio::task::JoinHandle<Result<Prepared, CoreError>>>,
     effects: HashMap<u64, Mutation>,
+    /// Parent links learned by earlier refreshes: a pending request's
+    /// ancestry is read once, not again on every periodic refresh.
+    parents: HashMap<SessionId, Option<SessionId>>,
 }
 enum Reply {
     Approval,
@@ -72,7 +79,7 @@ impl Controls {
         let (reply, job) = match intent {
             PanelIntent::ReplyApproval(reply) => (
                 Reply::Approval,
-                tokio::spawn(async move {
+                oc_core::wake::spawn(async move {
                     owner
                         .reply_approval(reply)
                         .await
@@ -83,7 +90,7 @@ impl Controls {
                 let captured = reply.clone();
                 (
                     Reply::Question(Box::new(reply)),
-                    tokio::spawn(async move {
+                    oc_core::wake::spawn(async move {
                         owner
                             .reply_question(captured)
                             .await
@@ -93,7 +100,7 @@ impl Controls {
             }
             PanelIntent::SetPermissionMode { auto_once } => (
                 Reply::Permission(auto_once),
-                tokio::spawn(async move {
+                oc_core::wake::spawn(async move {
                     owner
                         .set_permission_mode_with_cli_auto(auto_once, cli)
                         .await
@@ -170,7 +177,8 @@ impl Controls {
                 .await
                 .unwrap_or(Err(CoreError::Shutdown));
             match result {
-                Ok(prepared) => {
+                Ok(mut prepared) => {
+                    self.parents = std::mem::take(&mut prepared.parents);
                     for view in read_jobs::views_mut(state, deck) {
                         if !prepared.fences.contains(&fence(view)) {
                             self.dirty = true;
@@ -252,7 +260,11 @@ impl Controls {
                 .filter_map(|view| view.user_shell_admission_session().cloned())
                 .collect();
             let owner = app.clone();
-            self.job = Some(tokio::spawn(async move {
+            let mut parents = std::mem::take(&mut self.parents);
+            if parents.len() > MAX_PARENT_MEMO {
+                parents.clear();
+            }
+            self.job = Some(oc_core::wake::spawn(async move {
                 let approvals = owner.pending_approvals().await?;
                 let questions = owner.pending_questions().await?;
                 let sources: HashSet<_> = approvals
@@ -264,7 +276,6 @@ impl Controls {
                             .map(|request| SessionId(request.binding.session.clone())),
                     )
                     .collect();
-                let mut parents = HashMap::new();
                 let mut ancestry = HashMap::new();
                 for source in sources {
                     if unadmitted.contains(&source) {
@@ -295,6 +306,7 @@ impl Controls {
                     approvals,
                     questions,
                     ancestry,
+                    parents,
                 })
             }));
         }

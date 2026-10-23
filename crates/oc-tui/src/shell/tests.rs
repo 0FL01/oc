@@ -3824,3 +3824,54 @@ async fn prompt_box_glyphs_follow_the_padding_breakpoint() {
     assert!(narrow[20].starts_with(" ╹▀"));
     assert_eq!(narrow[17], " ┃ hi");
 }
+
+/// The row-cached transcript painter is cell-for-cell `Paragraph::new(lines)`,
+/// across cache hits, a changed row, a shorter frame and a changed canvas.
+#[test]
+fn cached_row_painter_matches_paragraph_rendering() {
+    use crate::styled::{Line as StyledLine, Span as StyledSpan};
+    use ratatui::buffer::Buffer;
+    use ratatui::widgets::Widget as _;
+    let area = Rect::new(2, 1, 12, 6);
+    let line = |parts: &[(&str, Color)]| {
+        StyledLine::new(
+            parts
+                .iter()
+                .map(|(text, fg)| StyledSpan::styled(*text, Style::default().fg(*fg)))
+                .collect(),
+        )
+    };
+    let frames = [
+        vec![
+            line(&[("plain", Color::Red), (" text", Color::Blue)]),
+            line(&[("宽字符宽字符宽字", Color::Green)]),
+            line(&[("overflowing beyond the width", Color::Yellow)]),
+            line(&[("emoji 🙂🙂🙂🙂", Color::Cyan)]),
+        ],
+        vec![
+            line(&[("plain", Color::Red), (" text", Color::Blue)]),
+            line(&[("changed", Color::Magenta)]),
+            line(&[("overflowing beyond the width", Color::Yellow)]),
+            line(&[("emoji 🙂🙂🙂🙂", Color::Cyan)]),
+        ],
+        vec![line(&[("plain", Color::Red), (" text", Color::Blue)])],
+        vec![line(&[("plain", Color::Red), (" text", Color::Blue)])],
+    ];
+    for (index, lines) in frames.iter().enumerate() {
+        for canvas in [Color::Black, Color::Rgb(1, 2, 3), Color::Black] {
+            let fresh = || {
+                let mut buffer = Buffer::empty(Rect::new(0, 0, 16, 8));
+                Block::default()
+                    .style(Style::default().bg(canvas))
+                    .render(buffer.area, &mut buffer);
+                buffer
+            };
+            let mut expected = fresh();
+            Paragraph::new(crate::styled::Lines::from(lines.clone()).into_text())
+                .render(area, &mut expected);
+            let mut actual = fresh();
+            paint_rows(&mut actual, area, lines.clone());
+            assert_eq!(actual, expected, "frame {index} canvas {canvas:?}");
+        }
+    }
+}

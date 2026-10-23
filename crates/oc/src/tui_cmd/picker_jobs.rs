@@ -120,7 +120,7 @@ impl Jobs {
         let target = session.clone();
         self.titles.insert(
             session,
-            tokio::spawn(async move { owner.cancel_title(target).await }),
+            oc_core::wake::spawn(async move { owner.cancel_title(target).await }),
         );
     }
     pub(super) fn request(
@@ -157,7 +157,7 @@ impl Jobs {
                 rerun: false,
                 open: None,
                 request,
-                task: tokio::spawn(async move {
+                task: oc_core::wake::spawn(async move {
                     match captured {
                         Request::Rename {
                             target,

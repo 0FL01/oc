@@ -803,6 +803,9 @@ pub struct TuiState {
     markdown_cache: std::cell::RefCell<crate::messages::MarkdownCache>,
     projection_work: std::cell::RefCell<projection::Work>,
     transcript_revision: u64,
+    /// Advances on every transcript change except an append to the open
+    /// live text/reasoning; membership derived from rows and cards keys on it.
+    transcript_structure: u64,
     visible_projection: std::cell::RefCell<Option<VisibleTranscriptProjection>>,
     #[cfg(test)]
     transcript_row_copies: std::cell::Cell<usize>,
@@ -1061,6 +1064,7 @@ impl TuiState {
             markdown_cache: std::cell::RefCell::new(Default::default()),
             projection_work: Default::default(),
             transcript_revision: 0,
+            transcript_structure: 0,
             visible_projection: Default::default(),
             #[cfg(test)]
             transcript_row_copies: Default::default(),
@@ -1516,8 +1520,9 @@ impl TuiState {
     }
 
     fn sync_tool_spinner_clocks(&mut self) {
+        // Live text appends never add or settle a tool card.
         let stamp = (
-            self.transcript_revision,
+            self.transcript_structure,
             self.window.revision(),
             self.tool_spinner_clocks_attached,
         );

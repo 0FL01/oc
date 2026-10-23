@@ -159,7 +159,7 @@ impl Activity {
             self.viewed_job = Some((
                 session,
                 idle,
-                tokio::spawn(async move { owner.session_viewed(captured, idle).await }),
+                oc_core::wake::spawn(async move { owner.session_viewed(captured, idle).await }),
             ));
         }
         changed

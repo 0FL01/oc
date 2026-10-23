@@ -2989,6 +2989,89 @@ async fn anonymous_text_after_second_reasoning_keeps_unstreamed_first_message_on
     guard.join().await.unwrap();
 }
 
+/// Many small reasoning deltas of one item accumulate in place into one
+/// persisted part, including multi-byte text split across deltas.
+#[tokio::test]
+async fn many_small_reasoning_deltas_persist_as_one_exact_part() {
+    use oc_adapters::application;
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    use oc_core::queries::TranscriptPart;
+
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let pieces: Vec<String> = (0..200).map(|n| format!("é{n};")).collect();
+    let expected: String = pieces.concat();
+    let stream = pieces
+        .iter()
+        .map(|piece| sse_reasoning(piece))
+        .collect::<String>()
+        + &sse_reasoning_done("rs_1", "private-1")
+        + &sse_delta("done")
+        + &sse_completed_output(vec![
+            serde_json::json!({"type":"reasoning","id":"rs_1","encrypted_content":"private-1","status":"completed"}),
+            serde_json::json!({"type":"message","role":"assistant","id":"m1","status":"completed","content":[{"type":"output_text","text":"done"}]}),
+        ]);
+    let (base, _) = Fake::start(vec![stream], Duration::ZERO);
+    std::fs::write(
+        project.path().join("opencode.json"),
+        serde_json::json!({
+            "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
+            "settings":{"baseURL":base,"apiKey":"test-key"}, "models":{"m":{}}}}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().to_string_lossy().to_string()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
+        .await
+        .unwrap();
+    let session = SessionId::new("many-reasoning-deltas").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    app.rename_session(session.clone(), "Reasoning deltas".into())
+        .await
+        .unwrap();
+    let mut rx = app.subscribe();
+    let turn = app.submit(session.clone(), "first".into()).await.unwrap();
+    let mut streamed = String::new();
+    loop {
+        let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        match event {
+            CoreEvent::ReasoningDelta {
+                turn: id, delta, ..
+            } if id == turn => streamed.push_str(&delta),
+            CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+            CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!(streamed, expected);
+    let page = app.history_page(session, None, None, 10).await.unwrap();
+    let parts = &page
+        .rows
+        .iter()
+        .find(|row| row.turn.as_ref().is_some_and(|t| t.id == turn.0))
+        .unwrap()
+        .turn
+        .as_ref()
+        .unwrap()
+        .parts;
+    assert!(
+        matches!(&parts[..], [TranscriptPart::Reasoning { text, .. }, TranscriptPart::Text(answer)]
+        if *text == expected && answer == "done"),
+        "{parts:?}"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
 /// End to end through the real application worker: `application::spawn_with_env`
 /// broadcasts the tool-call events next to the text/turn events, so the TUI
 /// transcript can render a patch card from live state.

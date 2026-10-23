@@ -3113,16 +3113,16 @@ impl<'a> Runtime<'a> {
                                 {
                                     active_text = None;
                                     reasoning_started.get_or_insert_with(std::time::Instant::now);
-                                    if let Some(last) = turn_log.display_parts.last_mut()
+                                    // Append in place: rebuilding the accumulated
+                                    // string per delta is quadratic in its length.
+                                    if !reasoning_closed
+                                        && let Some(last) = turn_log.display_parts.last_mut()
                                         && last["span"]
                                             == turn_log.spans.last().expect("active span").id
-                                        && let Some(text) =
-                                            last.get("reasoning").and_then(|v| v.as_str())
-                                        && !reasoning_closed
+                                        && let Some(serde_json::Value::String(text)) =
+                                            last.get_mut("reasoning")
                                     {
-                                        let mut text = text.to_string();
                                         text.push_str(delta);
-                                        last["reasoning"] = text.into();
                                     } else {
                                         turn_log.display_parts.push(serde_json::json!({"reasoning":delta,"span":turn_log.spans.last().expect("active span").id}));
                                     }

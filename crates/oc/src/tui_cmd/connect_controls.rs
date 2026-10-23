@@ -103,18 +103,18 @@ impl Controls {
             PanelIntent::LoadProviderConnections { revision } => (
                 revision,
                 Kind::Providers,
-                tokio::spawn(
-                    async move { owner.provider_connections().await.map(Outcome::Providers) },
-                ),
+                oc_core::wake::spawn(async move {
+                    owner.provider_connections().await.map(Outcome::Providers)
+                }),
             ),
             PanelIntent::LoadAuthMethods { provider, revision } => {
                 let target = provider.clone();
                 (
                     revision,
                     Kind::Methods(provider),
-                    tokio::spawn(
-                        async move { owner.auth_methods(target).await.map(Outcome::Methods) },
-                    ),
+                    oc_core::wake::spawn(async move {
+                        owner.auth_methods(target).await.map(Outcome::Methods)
+                    }),
                 )
             }
             PanelIntent::ProviderAccounts {
@@ -124,7 +124,7 @@ impl Controls {
             } => (
                 revision,
                 Kind::Accounts,
-                tokio::spawn(async move {
+                oc_core::wake::spawn(async move {
                     let changed = action.is_some();
                     let snapshot = owner.provider_accounts(provider.clone(), action).await?;
                     // Publish the mutation's current facts before its explicit
@@ -205,7 +205,7 @@ impl Controls {
                 (
                     revision,
                     Kind::Custom,
-                    tokio::spawn(async move {
+                    oc_core::wake::spawn(async move {
                         let reply = owner.custom_provider(action).await?;
                         let canonical = if matches!(&reply, CustomProviderReply::Saved(_)) {
                             Some(Box::new(match session {
@@ -352,7 +352,7 @@ impl Controls {
                 self.job = Some(Pending {
                     revision: probe.revision,
                     kind: Kind::Close,
-                    task: tokio::spawn(async move {
+                    task: oc_core::wake::spawn(async move {
                         owner
                             .custom_provider(CustomProviderAction::Cancel { revision: receipt })
                             .await?;

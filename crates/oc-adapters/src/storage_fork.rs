@@ -119,10 +119,16 @@ impl Db {
         let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
         // The adjacent selection notices belong to the selected prompt, not
         // its preceding turn. A profile change can also change the model.
-        while let Some((seq, role)) = tx.query_row("SELECT seq,role FROM conversation_messages WHERE session_id=?1 AND seq<?2 ORDER BY seq DESC LIMIT 1", params![source,cutoff], |r| Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?))).optional()? {
-            if !matches!(role.as_str(), "model_switch" | "agent_switch") {
-                break;
-            }
+        // One lookup: the earliest switch row after the nearest earlier
+        // non-switch row (or the session start).
+        let first_switch: Option<i64> = tx.query_row(
+            "SELECT MIN(seq) FROM conversation_messages WHERE session_id=?1 AND seq<?2
+             AND seq>COALESCE((SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1
+               AND seq<?2 AND role NOT IN ('model_switch','agent_switch')), -9223372036854775808)",
+            params![source, cutoff],
+            |r| r.get(0),
+        )?;
+        if let Some(seq) = first_switch {
             cutoff = seq;
         }
         let stored =
@@ -889,6 +895,44 @@ mod tests {
         )
         .unwrap();
         user
+    }
+
+    #[test]
+    fn fork_cutoff_excludes_every_adjacent_selection_notice_of_the_boundary() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_bound_session("source", "/project").unwrap();
+        let model = oc_core::queries::ModelRef {
+            provider: "fixture".into(),
+            id: "m".into(),
+            variant: None,
+        };
+        complete(&db, "source", "first", &model);
+        {
+            let conn = db.conn.lock().unwrap();
+            // Several selection notices directly precede the boundary prompt.
+            Db::insert_message(&conn, "source", "agent_switch", "\"build\"").unwrap();
+            for _ in 0..2 {
+                let text = serde_json::json!({"previous": model, "current": model});
+                Db::insert_message(&conn, "source", "model_switch", &text.to_string()).unwrap();
+            }
+        }
+        let second = complete(&db, "source", "second", &model);
+        let roles = |session: &str| -> Vec<String> {
+            let conn = db.conn.lock().unwrap();
+            let mut stmt = conn
+                .prepare("SELECT role FROM messages WHERE session_id=?1 ORDER BY seq")
+                .unwrap();
+            stmt.query_map([session], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
+        };
+        assert_eq!(roles("source").len(), 7);
+        let fork = db
+            .fork_session("source", &second, "/project", "fixture", "{}")
+            .unwrap();
+        assert_eq!(roles(&fork.session.0), ["user", "assistant"]);
     }
 
     fn counts(db: &Db) -> Vec<i64> {

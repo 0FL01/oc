@@ -213,6 +213,31 @@ impl Db {
             None => conn.query_row("SELECT seq,id FROM conversation_messages WHERE session_id=?1 AND seq>?2 AND seq<COALESCE((SELECT MIN(m.seq) FROM turn_acceptances a JOIN turns t ON t.id=a.turn_id JOIN messages m ON m.id=a.user_message WHERE a.session_id=?1 AND t.status='started'),9223372036854775807) ORDER BY seq DESC LIMIT 1",params![session,after],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(Into::into),
         }
     }
+    /// Visible sequences of several messages under one lock and one cached
+    /// statement; ids without a visible row are absent from the result.
+    pub(crate) fn conversation_message_seqs<'a>(
+        &self,
+        session: &str,
+        ids: impl IntoIterator<Item = &'a str>,
+    ) -> Result<std::collections::HashMap<&'a str, i64>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached(
+            "SELECT seq FROM conversation_messages WHERE session_id=?1 AND id=?2",
+        )?;
+        let mut seqs = std::collections::HashMap::new();
+        for id in ids {
+            if seqs.contains_key(id) {
+                continue;
+            }
+            if let Some(seq) = stmt
+                .query_row(params![session, id], |r| r.get(0))
+                .optional()?
+            {
+                seqs.insert(id, seq);
+            }
+        }
+        Ok(seqs)
+    }
     pub(crate) fn message_seq(&self, session: &str, id: &str) -> Result<Option<i64>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         conn.query_row(
@@ -481,6 +506,34 @@ impl Db {
 mod tests {
     use super::*;
     use oc_core::compaction::{CompactionAnchor, CompactionReason};
+
+    #[test]
+    fn batched_message_seqs_match_single_visible_lookups() {
+        let data = tempfile::tempdir().unwrap();
+        let db = Db::open(data.path()).unwrap();
+        db.create_session("s").unwrap();
+        db.create_session("other").unwrap();
+        let ids: Vec<_> = (0..5)
+            .map(|n| db.append_message("s", "user", &format!("m{n}")).unwrap())
+            .collect();
+        let foreign = db.append_message("other", "user", "x").unwrap();
+        let wanted: Vec<&str> = ids
+            .iter()
+            .map(String::as_str)
+            .chain([ids[1].as_str(), foreign.as_str(), "missing"])
+            .collect();
+        let batch = db
+            .conversation_message_seqs("s", wanted.iter().copied())
+            .unwrap();
+        for id in &wanted {
+            assert_eq!(
+                batch.get(id).copied(),
+                db.message_seq("s", id).unwrap(),
+                "{id}"
+            );
+        }
+        assert_eq!(batch.len(), ids.len());
+    }
 
     #[test]
     fn completed_generation_and_usage_checkpoint_rollback_and_reopen_together() {

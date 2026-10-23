@@ -251,7 +251,7 @@ impl Reads {
             let dcp = resources && (*view.panel() == TuiPanel::Dcp || read.compress.is_some());
             let owner = app.clone();
             let captured = route.clone();
-            read.job = Some(tokio::spawn(async move {
+            read.job = Some(oc_core::wake::spawn(async move {
                 let route = captured;
                 // Qualify the exact retained launch before any linked resources.
                 let mut linked_page = route.validate_child(&owner).await?;

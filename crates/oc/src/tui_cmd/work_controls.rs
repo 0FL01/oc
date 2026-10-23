@@ -35,7 +35,7 @@ impl Jobs {
             key,
             Mutation {
                 route,
-                job: tokio::spawn(async move {
+                job: oc_core::wake::spawn(async move {
                     let mut errors = Vec::new();
                     match intent {
                         PanelIntent::BackgroundSession {

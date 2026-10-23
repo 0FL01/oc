@@ -63,7 +63,7 @@ impl Jobs {
                 route,
                 request,
                 next: None,
-                job: tokio::spawn(async move {
+                job: oc_core::wake::spawn(async move {
                     prepare(&owner, captured, query)
                         .await
                         .map_err(|error| error.to_string())

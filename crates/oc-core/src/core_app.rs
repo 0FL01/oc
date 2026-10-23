@@ -99,7 +99,7 @@ pub struct WorkerTurnId(pub String);
 pub struct PromptHistoryReceipt(oneshot::Receiver<Result<Vec<String>, CoreError>>);
 impl PromptHistoryReceipt {
     pub fn try_result(&mut self) -> Option<Result<Vec<String>, CoreError>> {
-        match self.0.try_recv() {
+        match crate::wake::try_reply(&mut self.0) {
             Ok(result) => Some(result),
             Err(oneshot::error::TryRecvError::Empty) => None,
             Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
@@ -139,7 +139,7 @@ pub struct UserShellReceipt {
 
 impl UserShellReceipt {
     pub fn try_result(&mut self) -> Option<Result<String, CoreError>> {
-        match self.result.try_recv() {
+        match crate::wake::try_reply(&mut self.result) {
             Ok(result) => Some(result),
             Err(oneshot::error::TryRecvError::Empty) => None,
             Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
@@ -167,7 +167,7 @@ pub struct ModelCommitReceipt(oneshot::Receiver<Result<CatalogSnapshot, CoreErro
 pub struct EnqueueReceipt(oneshot::Receiver<Result<crate::queries::InboxItem, CoreError>>);
 impl EnqueueReceipt {
     pub fn try_result(&mut self) -> Option<Result<crate::queries::InboxItem, CoreError>> {
-        match self.0.try_recv() {
+        match crate::wake::try_reply(&mut self.0) {
             Ok(result) => Some(result),
             Err(oneshot::error::TryRecvError::Empty) => None,
             Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
@@ -176,7 +176,7 @@ impl EnqueueReceipt {
 }
 impl ModelCommitReceipt {
     pub fn try_result(&mut self) -> Option<Result<CatalogSnapshot, CoreError>> {
-        match self.0.try_recv() {
+        match crate::wake::try_reply(&mut self.0) {
             Ok(result) => Some(result),
             Err(oneshot::error::TryRecvError::Empty) => None,
             Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
@@ -187,7 +187,7 @@ impl ModelCommitReceipt {
 impl SubmissionReceipt {
     /// Poll without waiting for network, provider or durable acceptance.
     pub fn try_result(&mut self) -> Option<Result<WorkerTurnId, CoreError>> {
-        match self.0.try_recv() {
+        match crate::wake::try_reply(&mut self.0) {
             Ok(result) => Some(result),
             Err(oneshot::error::TryRecvError::Empty) => None,
             Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),

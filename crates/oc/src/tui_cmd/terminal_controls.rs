@@ -236,7 +236,9 @@ impl Jobs {
                     effect.focus = false;
                     effect.feedback = false;
                     effect.job =
-                        tokio::spawn(async move { perform(&owner, captured, action).await });
+                        oc_core::wake::spawn(
+                            async move { perform(&owner, captured, action).await },
+                        );
                     self.effects.insert(session, effect);
                 } else if !succeeded && !effect.pending.is_empty() {
                     view.push_note(
@@ -305,7 +307,9 @@ impl Jobs {
             };
             let captured = fence.clone();
             let owner = app.clone();
-            read.job = Some(tokio::spawn(async move { prepare(&owner, captured).await }));
+            read.job = Some(oc_core::wake::spawn(async move {
+                prepare(&owner, captured).await
+            }));
             read.fence = fence;
             read.rerun = false;
             self.reads.insert(key, read);
@@ -322,7 +326,7 @@ impl Jobs {
                 let owner = app.clone();
                 let target = resize.target.clone();
                 let size = resize.size;
-                resize.job = Some(tokio::spawn(async move {
+                resize.job = Some(oc_core::wake::spawn(async move {
                     owner
                         .terminal(
                             target.session.clone(),
@@ -486,7 +490,7 @@ pub(super) async fn apply(
             },
             control,
             feedback: load_feedback,
-            job: tokio::spawn(async move {
+            job: oc_core::wake::spawn(async move {
                 validation.validate_child(&owner).await?;
                 perform(&owner, captured, action).await
             }),

@@ -50,6 +50,7 @@ use clipboard::{ClipboardJob, start_clipboard, sync_clipboard};
 mod connect_controls;
 mod control_jobs;
 mod deck_jobs;
+mod display_rate;
 mod inbox_jobs;
 mod notice_jobs;
 mod read_jobs;
@@ -130,6 +131,8 @@ struct FrameMetrics {
     frame_monotonic_ns: Vec<u128>,
     wake_monotonic_ns: Vec<u128>,
     wakeups: u64,
+    completion_wakeups: u64,
+    display_hz: Option<u32>,
     input_events: u64,
     worker_events: u64,
     changed_frames: u64,
@@ -175,10 +178,14 @@ impl FrameMetrics {
 /// input still yields to the worker drain below each frame).
 const MAX_KEYS_PER_FRAME: usize = 256;
 const MAX_WORKER_EVENTS_PER_FRAME: usize = 256;
-/// A short coalescing window, independent of animation cadence. Continuous
-/// activity cannot postpone its first dirty deadline.
-const FRAME_BUDGET: Duration = Duration::from_millis(2);
+/// Input/worker drain slice per loop turn; fairness, not the paint rate.
 const BURST_BUDGET: Duration = Duration::from_millis(2);
+/// Background lanes and receipts wake the loop through `oc_core::wake` when
+/// they complete. A wake can precede the handle's `is_finished` by a few
+/// instructions, so one short recheck follows it; the slow fallback only
+/// bounds an unexpected missing wake, it is not a polling cadence.
+const COMPLETION_RECHECK: Duration = Duration::from_millis(1);
+const COMPLETION_FALLBACK: Duration = Duration::from_millis(100);
 const MAX_TABS: usize = 16;
 const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
@@ -427,7 +434,7 @@ type ConversationPrepared = (
 type ConversationRefresh = tokio::task::JoinHandle<ConversationPrepared>;
 
 fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh {
-    tokio::spawn(async move {
+    oc_core::wake::spawn(async move {
         let page = app
             .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
             .await
@@ -1463,10 +1470,26 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     let mut first_paint = true;
     let mut painted_cursor_color = ratatui::style::Color::Reset;
     let mut paint_at = Instant::now();
+    // Paint no faster than the display refreshes; detected once, 60 Hz until known.
+    let mut frame_interval = display_rate::interval(display_rate::DEFAULT_HZ);
+    let mut rate_probe = Some(display_rate::spawn_probe());
+    let mut woke_by_completion = false;
     let mut worker_ready = None;
     let mut input_pending = std::collections::VecDeque::new();
 
     loop {
+        // Sample before polling any lane: a completion after this point wakes
+        // the wait below immediately instead of being missed.
+        let wake_seen = oc_core::wake::generation();
+        if rate_probe.as_ref().is_some_and(|probe| probe.is_finished()) {
+            let probe = rate_probe.take().expect("finished display probe");
+            if let Ok(Some(hz)) = probe.await {
+                frame_interval = display_rate::interval(hz);
+                if let Some(metrics) = &mut frame_metrics {
+                    metrics.display_hz = Some(hz);
+                }
+            }
+        }
         let had_pending = (
             state.has_pending_submission(),
             state.has_pending_model_commit(),
@@ -1590,6 +1613,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= state.tick_delegations(Instant::now());
         dirty |= state.tick_tool_spinners(Instant::now());
         if dirty && Instant::now() >= paint_at {
+            let frame_start = Instant::now();
             let draw_start = frame_metrics
                 .as_ref()
                 .map(|_| (Instant::now(), monotonic_ns()));
@@ -1649,7 +1673,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 metrics.writes = output_metrics.as_ref().expect("metrics enabled").get();
             }
             dirty = false;
-            paint_at = Instant::now() + FRAME_BUDGET;
+            // Pace from the frame start without catch-up: a slow frame delays
+            // the next one, it never queues a burst.
+            paint_at = (frame_start + frame_interval).max(Instant::now());
             if loop_state.reload_pending() {
                 loop_state.reload_painted = true;
             }
@@ -1870,9 +1896,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             })
             || loop_state.has_jobs()
         {
-            let check = Instant::now() + FRAME_BUDGET;
+            let check = Instant::now()
+                + if woke_by_completion {
+                    COMPLETION_RECHECK
+                } else {
+                    COMPLETION_FALLBACK
+                };
             deadline = Some(deadline.map_or(check, |at| at.min(check)));
         }
+        woke_by_completion = false;
         if let Some((_, since)) = &loop_state.mention_pending {
             let at = *since + MENTION_DEBOUNCE;
             if at > Instant::now() {
@@ -1903,6 +1935,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     }
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => return Err("application event channel closed".into()),
                 }
+            }
+            () = oc_core::wake::changed(wake_seen) => {
+                woke_by_completion = true;
+                if let Some(metrics) = &mut frame_metrics { metrics.completion_wakeups += 1; }
             }
             _ = async {
                 match deadline {
@@ -2038,7 +2074,7 @@ async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState)
         let query = key.query.clone();
         deck.mention_job = Some((
             key,
-            tokio::spawn(async move { owner.file_suggestions(query, MENTION_LIMIT).await }),
+            oc_core::wake::spawn(async move { owner.file_suggestions(query, MENTION_LIMIT).await }),
         ));
     }
     changed
@@ -2091,7 +2127,7 @@ async fn sync_home(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) ->
         let owner = app.clone();
         deck.home_job = Some((
             identity,
-            tokio::spawn(async move { owner.home_selection(action).await }),
+            oc_core::wake::spawn(async move { owner.home_selection(action).await }),
         ));
     }
     changed
@@ -2293,7 +2329,9 @@ async fn reconcile_exit(
         // next frame starts its Home query or selection CAS. Settle those known
         // lanes and persist only focus/geometry against authoritative membership.
         // A refused/unknown CAS stays blocked: shutdown must never retry it.
+        let mut woke = false;
         loop {
+            let seen = oc_core::wake::generation();
             if deck.selection_blocked {
                 return Err("quit tab selection unavailable; saved tabs were not replayed".into());
             }
@@ -2333,7 +2371,15 @@ async fn reconcile_exit(
                 }
                 break;
             }
-            tokio::time::sleep(FRAME_BUDGET).await;
+            // Wait for the next lane completion, not a timer; see COMPLETION_RECHECK.
+            let wait = if woke {
+                COMPLETION_RECHECK
+            } else {
+                COMPLETION_FALLBACK
+            };
+            woke = tokio::time::timeout(wait, oc_core::wake::changed(seen))
+                .await
+                .is_ok();
         }
         return Ok(());
     }
@@ -3272,7 +3318,7 @@ async fn apply_owned_intent(
                 let owner = app.clone();
                 loop_state.cancel_jobs.insert(
                     key,
-                    tokio::spawn(async move {
+                    oc_core::wake::spawn(async move {
                         let compaction = if cancel_compaction {
                             owner.cancel_compaction(session.clone()).await
                         } else {
@@ -3431,7 +3477,7 @@ async fn apply_owned_intent(
             let owner = app.clone();
             let revision = state.compaction_request_revision();
             loop_state.compaction_origin = read_jobs::Route::capture(state);
-            loop_state.compaction_job = Some(tokio::spawn(async move {
+            loop_state.compaction_job = Some(oc_core::wake::spawn(async move {
                 owner
                     .compact_session(session)
                     .await
@@ -3449,7 +3495,7 @@ async fn apply_owned_intent(
             let owner = app.clone();
             loop_state.conversation_origin = read_jobs::Route::capture(state)
                 .map(|route| (route, loop_state.navigation_revision));
-            loop_state.conversation_job = Some(tokio::spawn(async move {
+            loop_state.conversation_job = Some(oc_core::wake::spawn(async move {
                 let snapshot = owner
                     .change_conversation(session.clone(), action)
                     .await
@@ -3471,7 +3517,7 @@ async fn apply_owned_intent(
             let owner = app.clone();
             loop_state.conversation_origin = read_jobs::Route::capture(state)
                 .map(|route| (route, loop_state.navigation_revision));
-            loop_state.conversation_job = Some(tokio::spawn(async move {
+            loop_state.conversation_job = Some(oc_core::wake::spawn(async move {
                 let snapshot = owner
                     .fork_session(session, message)
                     .await
@@ -3500,8 +3546,9 @@ async fn apply_owned_intent(
             );
             loop_state.reload_draft = slash_draft;
             let owner = app.clone();
-            loop_state.reload_job =
-                Some(tokio::spawn(async move { owner.reload_location().await }));
+            loop_state.reload_job = Some(oc_core::wake::spawn(async move {
+                owner.reload_location().await
+            }));
             loop_state.reload_painted = false;
         }
         PanelIntent::LoadCatalog => {
@@ -3845,7 +3892,7 @@ async fn apply_owned_intent(
                     let target = session.clone();
                     loop_state.title_job = Some((
                         session,
-                        tokio::spawn(async move { owner.regenerate_title(target).await }),
+                        oc_core::wake::spawn(async move { owner.regenerate_title(target).await }),
                     ));
                 }
                 _ => state
@@ -4691,6 +4738,8 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
         "changed_frames": frames.map_or(0, |frames| frames.changed_frames),
         "wakeups": frames.map_or(0, |frames| frames.wakeups),
+        "completion_wakeups": frames.map_or(0, |frames| frames.completion_wakeups),
+        "display_hz": frames.and_then(|frames| frames.display_hz),
         "input_events": frames.map_or(0, |frames| frames.input_events),
         "worker_events": frames.map_or(0, |frames| frames.worker_events),
         "terminal_write_calls": frames.map_or(0, |frames| frames.writes.calls),

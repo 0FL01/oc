@@ -38,13 +38,23 @@ fn invalid() -> io::Error {
     )
 }
 
-pub(super) struct Message {
+/// One encoded logical message. Clones share the bytes and their single
+/// budget reservation, so a fanout to several peers serializes once.
+#[derive(Clone)]
+pub(super) struct Message(Arc<Encoded>);
+struct Encoded {
     bytes: Vec<u8>,
     _permit: OwnedSemaphorePermit,
 }
 impl Message {
+    fn new(bytes: Vec<u8>, permit: OwnedSemaphorePermit) -> Self {
+        Self(Arc::new(Encoded {
+            bytes,
+            _permit: permit,
+        }))
+    }
     pub(super) fn decode<T: DeserializeOwned>(&self) -> io::Result<T> {
-        serde_json::from_slice(&self.bytes).map_err(|_| invalid())
+        serde_json::from_slice(&self.0.bytes).map_err(|_| invalid())
     }
     pub(super) fn encode(value: &impl Serialize, budget: &Budget) -> io::Result<Self> {
         // Count without allocating first, then hold the exact serialization
@@ -68,10 +78,7 @@ impl Message {
         let permit = budget.reserve(count.0)?;
         let mut bytes = Vec::with_capacity(count.0);
         serde_json::to_writer(&mut bytes, value).map_err(|_| invalid())?;
-        Ok(Self {
-            bytes,
-            _permit: permit,
-        })
+        Ok(Self::new(bytes, permit))
     }
 }
 
@@ -104,22 +111,29 @@ pub(super) async fn read_limited(
             .await?;
         offset += length;
     }
-    Ok(Message {
-        bytes,
-        _permit: permit,
-    })
+    Ok(Message::new(bytes, permit))
 }
 
 pub(super) async fn write(
     writer: &mut (impl AsyncWrite + Unpin),
     message: &Message,
 ) -> io::Result<()> {
-    writer.write_u32(message.bytes.len() as u32).await?;
-    for frame in message.bytes.chunks(FRAME) {
+    write_unflushed(writer, message).await?;
+    writer.flush().await
+}
+
+/// Frame one message without flushing; a buffered writer batches several.
+pub(super) async fn write_unflushed(
+    writer: &mut (impl AsyncWrite + Unpin),
+    message: &Message,
+) -> io::Result<()> {
+    let bytes = &message.0.bytes;
+    writer.write_u32(bytes.len() as u32).await?;
+    for frame in bytes.chunks(FRAME) {
         writer.write_u32(frame.len() as u32).await?;
         writer.write_all(frame).await?;
     }
-    writer.flush().await
+    Ok(())
 }
 
 #[cfg(test)]

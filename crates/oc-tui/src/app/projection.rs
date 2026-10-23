@@ -522,10 +522,10 @@ impl TuiState {
             let Some(flight) = work.flight.as_mut() else {
                 return false;
             };
-            if !flight.handle.is_finished() {
-                return false;
-            }
-            match Pin::new(&mut flight.handle).poll(&mut Context::from_waker(Waker::noop())) {
+            // The UI waker fires once the output is stored, not on a timer.
+            match Pin::new(&mut flight.handle)
+                .poll(&mut Context::from_waker(oc_core::wake::waker()))
+            {
                 Poll::Ready(output) => {
                     work.flight.take();
                     Some(output)

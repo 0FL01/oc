@@ -211,7 +211,7 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
             let owner = app.clone();
             let captured = route.clone();
             read.route = route;
-            read.job = Some(tokio::spawn(async move {
+            read.job = Some(oc_core::wake::spawn(async move {
                 prepare(&owner, captured, events).await
             }));
             jobs.reads.insert(key, read);

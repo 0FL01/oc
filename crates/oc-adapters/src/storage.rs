@@ -610,6 +610,16 @@ impl Db {
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
+        // Hot-path lookups must not scan the whole archive: global message
+        // sequence allocation, per-session tool lists/counts, effort facts and
+        // their next-message anchor, and the busy-family activity probe.
+        conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS messages_seq ON messages(seq);
+             CREATE INDEX IF NOT EXISTS tool_operations_session ON tool_operations(session_id);
+             CREATE INDEX IF NOT EXISTS events_model_selected ON events(session_id, seq) WHERE kind='session_model_selected';
+             CREATE INDEX IF NOT EXISTS events_message ON events(session_id, seq) WHERE kind='message';
+             CREATE INDEX IF NOT EXISTS turns_session_status ON turns(session_id, status);",
+        )?;
 
         let db = Self {
             root,

@@ -1924,8 +1924,65 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
     state.observe_transcript_viewport(area.width, terminal_width, area.height, total, scroll);
     let lines =
         state.paint_transcript_at(area, &lines, total, scroll, Some(frame.area()), &targets);
-    let text = crate::styled::Lines::from(lines).into_text();
-    frame.render_widget(Paragraph::new(text), area);
+    paint_rows(frame.buffer_mut(), area, lines);
+}
+
+/// One painted transcript row: its source line, the cells under it before
+/// painting and the resulting cells.
+struct PaintedRow {
+    rect: Rect,
+    line: crate::styled::Line,
+    before: Vec<ratatui::buffer::Cell>,
+    after: Vec<ratatui::buffer::Cell>,
+}
+
+thread_local! {
+    /// Rows painted by the previous frame on this UI thread. Streaming and
+    /// spinner frames change a few rows; the rest copy their cells instead of
+    /// re-segmenting every grapheme of the viewport.
+    static PAINTED_ROWS: std::cell::RefCell<Vec<PaintedRow>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Exactly `Paragraph::new(lines)` over `area` (no wrap): rows are independent
+/// truncated lines, and rows past the text keep their cells. A row whose line,
+/// position and underlying cells equal the previous frame's reuses its cells.
+fn paint_rows(buf: &mut ratatui::buffer::Buffer, area: Rect, lines: Vec<crate::styled::Line>) {
+    use ratatui::widgets::Widget as _;
+    let area = area.intersection(buf.area);
+    if area.is_empty() {
+        return;
+    }
+    PAINTED_ROWS.with_borrow_mut(|cache| {
+        let rows = lines.len().min(usize::from(area.height));
+        cache.truncate(rows);
+        for (row, line) in lines.into_iter().take(rows).enumerate() {
+            let rect = Rect::new(area.x, area.y + row as u16, area.width, 1);
+            let start = buf.index_of(rect.x, rect.y);
+            let cells = start..start + usize::from(rect.width);
+            if let Some(painted) = cache.get(row)
+                && painted.rect == rect
+                && painted.line == line
+                && buf.content[cells.clone()] == painted.before[..]
+            {
+                buf.content[cells].clone_from_slice(&painted.after);
+                continue;
+            }
+            let before = buf.content[cells.clone()].to_vec();
+            Paragraph::new(line.clone().into_ratatui()).render(rect, buf);
+            let painted = PaintedRow {
+                rect,
+                line,
+                before,
+                after: buf.content[cells].to_vec(),
+            };
+            if let Some(slot) = cache.get_mut(row) {
+                *slot = painted;
+            } else {
+                cache.push(painted);
+            }
+        }
+    });
 }
 
 /// Height-1 right-aligned status row (`routes/session/index.tsx:1331-1350`).

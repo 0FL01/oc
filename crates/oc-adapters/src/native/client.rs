@@ -258,6 +258,10 @@ fn process_death(pid: u32) -> io::Result<tokio::io::unix::AsyncFd<OwnedFd>> {
     tokio::io::unix::AsyncFd::new(unsafe { OwnedFd::from_raw_fd(descriptor as i32) })
 }
 
+/// Bounded egress batching: messages per flush and the coalescing buffer.
+const WRITE_BATCH: usize = 64;
+const WRITE_BUFFER: usize = 64 * 1024;
+
 pub(super) struct Pipes {
     pub incoming: mpsc::Receiver<io::Result<Message>>,
     pub outgoing: mpsc::Sender<Message>,
@@ -267,7 +271,7 @@ pub(super) struct Pipes {
 }
 impl Pipes {
     pub(super) fn start(stream: UnixStream, budget: Budget) -> Self {
-        let (mut read, mut write) = stream.into_split();
+        let (mut read, write) = stream.into_split();
         let (input, incoming) = mpsc::channel(oc_core::session::MAX_QUEUE_ITEMS);
         let (outgoing, mut output) = mpsc::channel::<Message>(oc_core::session::MAX_QUEUE_ITEMS);
         let (priority, mut controls) = mpsc::channel::<Message>(16);
@@ -281,6 +285,9 @@ impl Pipes {
             }
         });
         let writer = tokio::spawn(async move {
+            // Coalesce a ready burst into few socket writes and one flush;
+            // controls still go first between whole messages.
+            let mut write = tokio::io::BufWriter::with_capacity(WRITE_BUFFER, write);
             loop {
                 let message = tokio::select! {
                     biased;
@@ -288,12 +295,18 @@ impl Pipes {
                     Some(message) = output.recv() => message,
                     else => break,
                 };
+                let batch = async {
+                    framing::write_unflushed(&mut write, &message).await?;
+                    for _ in 1..WRITE_BATCH {
+                        let Ok(next) = controls.try_recv().or_else(|_| output.try_recv()) else {
+                            break;
+                        };
+                        framing::write_unflushed(&mut write, &next).await?;
+                    }
+                    tokio::io::AsyncWriteExt::flush(&mut write).await
+                };
                 if !matches!(
-                    tokio::time::timeout(
-                        Duration::from_secs(10),
-                        framing::write(&mut write, &message)
-                    )
-                    .await,
+                    tokio::time::timeout(Duration::from_secs(10), batch).await,
                     Ok(Ok(()))
                 ) {
                     break;
@@ -627,8 +640,13 @@ pub(super) fn send(
     budget: &Budget,
     value: &impl serde::Serialize,
 ) -> io::Result<()> {
+    send_encoded(output, Message::encode(value, budget)?)
+}
+
+/// Queue an already encoded message; a fanout shares one encoding.
+pub(super) fn send_encoded(output: &mpsc::Sender<Message>, message: Message) -> io::Result<()> {
     output
-        .try_send(Message::encode(value, budget)?)
+        .try_send(message)
         .map_err(|_| io::Error::new(io::ErrorKind::WouldBlock, "native peer egress full"))
 }
 

@@ -153,7 +153,7 @@ impl Jobs {
                 preference,
                 refresh: false,
                 next: None,
-                job: tokio::spawn(async move {
+                job: oc_core::wake::spawn(async move {
                     prepare(&owner, captured, home, picker, directory, loaded, request).await
                 }),
             },

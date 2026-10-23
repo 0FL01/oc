@@ -1977,3 +1977,43 @@ fn list_sessions_keeps_id_order_and_includes_children() {
         vec!["a-root", "b-child", "m-child", "z-root"]
     );
 }
+
+/// Hot-path storage lookups use an index instead of scanning the archive.
+#[test]
+fn hot_path_queries_use_indexes_not_archive_scans() {
+    let tmp = tmp_root("hot-path-indexes");
+    let db = Db::open(tmp.path()).unwrap();
+    let conn = db.conn.lock().expect("db mutex");
+    let plan = |sql: &str| -> String {
+        let mut stmt = conn.prepare(&format!("EXPLAIN QUERY PLAN {sql}")).unwrap();
+        let rows = stmt.query_map([], |row| row.get::<_, String>(3)).unwrap();
+        rows.collect::<Result<Vec<_>, _>>().unwrap().join("\n")
+    };
+    let cases = [
+        (
+            "SELECT COALESCE(MAX(seq), 0) + 1 FROM messages",
+            "messages_seq",
+        ),
+        (
+            "SELECT count(*) FROM tool_operations WHERE session_id='s'",
+            "tool_operations_session",
+        ),
+        (
+            "SELECT seq FROM events WHERE session_id='s' AND kind='session_model_selected' AND seq>0 ORDER BY seq",
+            "events_model_selected",
+        ),
+        (
+            "SELECT payload FROM events WHERE session_id='s' AND kind='message' AND seq>3 ORDER BY seq LIMIT 1",
+            "events_message",
+        ),
+        (
+            "SELECT 1 FROM turns WHERE session_id='s' AND status='started'",
+            "turns_session_status",
+        ),
+    ];
+    for (sql, index) in cases {
+        let plan = plan(sql);
+        assert!(plan.contains(index), "{sql}\n{plan}");
+        assert!(!plan.contains("SCAN "), "{sql}\n{plan}");
+    }
+}

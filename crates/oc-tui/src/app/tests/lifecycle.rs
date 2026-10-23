@@ -2912,3 +2912,37 @@ async fn cancel_releases_turn() {
     assert_eq!(outcome, PumpOutcome::Finished(expected));
     assert_eq!(state.status(), &TuiStatus::Idle);
 }
+
+/// Streamed text and reasoning appends repaint but never rebuild tool-card
+/// spinner membership; a new card still does.
+#[tokio::test]
+async fn streamed_text_deltas_do_not_rescan_tool_spinner_membership() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("text-membership"));
+    let turn = WorkerTurnId("parent".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_tool_started(&turn, "op-a", "bash", r#"{"command":"sleep 1"}"#);
+    let now = Instant::now();
+    state.tick_tool_spinners(now);
+    let discoveries = state.tool_spinner_membership_builds;
+    for index in 0..50 {
+        state.apply_delta(&turn, &format!("text {index} "));
+        state.tick_tool_spinners(now);
+    }
+    state.apply_reasoning_delta(&turn, "thinking");
+    state.tick_tool_spinners(now);
+    let after_freeze = state.tool_spinner_membership_builds;
+    for index in 0..50 {
+        state.apply_reasoning_delta(&turn, &format!("more {index} "));
+        state.tick_tool_spinners(now);
+    }
+    assert!(
+        after_freeze <= discoveries + 1,
+        "only the text freeze is structural"
+    );
+    assert_eq!(state.tool_spinner_membership_builds, after_freeze);
+    state.apply_tool_started(&turn, "op-b", "bash", r#"{"command":"sleep 2"}"#);
+    state.tick_tool_spinners(now);
+    assert_eq!(state.tool_spinner_membership_builds, after_freeze + 1);
+    assert_eq!(state.tool_spinner_clocks.len(), 2);
+}

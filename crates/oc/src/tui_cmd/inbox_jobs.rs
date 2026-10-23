@@ -62,9 +62,9 @@ impl Jobs {
                 session,
                 route,
                 phase,
-                job: Some(tokio::spawn(
-                    async move { owner.inbox(target, request).await },
-                )),
+                job: Some(oc_core::wake::spawn(async move {
+                    owner.inbox(target, request).await
+                })),
             },
         );
         Ok(())
@@ -119,10 +119,9 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                         let owner = app.clone();
                         let session = admission.session.clone();
                         admission.phase = Phase::Remove(prompt);
-                        admission.job =
-                            Some(tokio::spawn(
-                                async move { owner.inbox(session, action).await },
-                            ));
+                        admission.job = Some(oc_core::wake::spawn(async move {
+                            owner.inbox(session, action).await
+                        }));
                     }
                     Phase::Remove(prompt) => {
                         admission.phase = Phase::Restore(Box::new(snapshot), prompt)

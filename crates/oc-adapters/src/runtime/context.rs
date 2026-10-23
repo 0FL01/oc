@@ -914,9 +914,14 @@ impl<'a> Runtime<'a> {
             .db
             .presentation_wire_logs(session, after, projected, blocks)?
             .ok_or(RuntimeError::Storage)?;
+        // First projected position of each identity: one map, not a scan per log.
+        let mut positions = std::collections::HashMap::with_capacity(projected.len());
+        for (index, row) in projected.iter().enumerate() {
+            positions.entry(row.0.as_str()).or_insert(index);
+        }
         for block in blocks
             .iter()
-            .filter(|b| projected.iter().any(|r| r.0 == b.id))
+            .filter(|b| positions.contains_key(b.id.as_str()))
         {
             if let Some(hot) = &block.hot {
                 for value in hot["logs"].as_array().ok_or(RuntimeError::Storage)? {
@@ -926,7 +931,7 @@ impl<'a> Runtime<'a> {
                 }
             }
         }
-        if projected.iter().any(|r| r.0 == "session-checkpoint")
+        if positions.contains_key("session-checkpoint")
             && let Some(selection) = self.db.checkpoint_selection(session)?
         {
             for mut value in selection {
@@ -939,7 +944,7 @@ impl<'a> Runtime<'a> {
                 logs.push(value.to_string());
             }
         }
-        let mut keyed = Vec::new();
+        let mut keyed = Vec::with_capacity(logs.len());
         let mut bytes = 0usize;
         for raw in logs {
             bytes = bytes.saturating_add(raw.len());
@@ -955,19 +960,33 @@ impl<'a> Runtime<'a> {
                 .as_str()
                 .or(value["user_message"].as_str())
                 .ok_or(RuntimeError::Storage)?;
-            let position = projected
-                .iter()
-                .position(|r| r.0 == key)
-                .ok_or(RuntimeError::Storage)?;
-            let seq = if let Some(anchor) = value["user_message"].as_str() {
-                self.db.message_seq(session, anchor)?.unwrap_or(0)
-            } else {
-                0
-            };
-            keyed.push((position, seq, raw));
+            let position = *positions.get(key).ok_or(RuntimeError::Storage)?;
+            let anchor = value["user_message"].as_str().map(str::to_owned);
+            keyed.push((position, anchor, raw));
         }
-        keyed.sort_by_key(|(position, seq, _)| (*position, *seq));
-        Ok(keyed.into_iter().map(|(_, _, raw)| raw).collect())
+        // Anchor sequences in one batched read rather than one query per log.
+        let seqs = self.db.conversation_message_seqs(
+            session,
+            keyed.iter().filter_map(|(_, anchor, _)| anchor.as_deref()),
+        )?;
+        let mut ordered: Vec<_> = keyed
+            .iter()
+            .map(|(position, anchor, _)| {
+                let seq = anchor
+                    .as_deref()
+                    .and_then(|anchor| seqs.get(anchor).copied())
+                    .unwrap_or(0);
+                (*position, seq)
+            })
+            .zip(0..)
+            .collect();
+        drop(seqs);
+        ordered.sort_by_key(|(key, _)| *key);
+        let mut raws: Vec<_> = keyed.into_iter().map(|(_, _, raw)| Some(raw)).collect();
+        Ok(ordered
+            .into_iter()
+            .map(|(_, index)| raws[index].take().expect("each log once"))
+            .collect())
     }
     /// Execute a manual compress over validated ranges (same permission path).
     pub fn run_compress(

@@ -565,7 +565,7 @@ pub(super) async fn sync(
         let owner = app.clone();
         deck.workspace_job = Some(Job {
             request,
-            job: tokio::spawn(async move { prepare(&owner, &captured).await }),
+            job: oc_core::wake::spawn(async move { prepare(&owner, &captured).await }),
         });
     }
     Ok(changed)
@@ -817,7 +817,7 @@ mod tests {
                     pending: Default::default(),
                     provisional: Default::default(),
                 },
-                job: tokio::spawn(async { Err("invalid stored tab deck".into()) }),
+                job: oc_core::wake::spawn(async { Err("invalid stored tab deck".into()) }),
             });
             tokio::time::timeout(Duration::from_secs(1), async {
                 while !deck.workspace_job.as_ref().unwrap().ready() {

@@ -1804,7 +1804,7 @@ impl TuiState {
         if self.live_text.len() < WINDOW_BYTES {
             let room = WINDOW_BYTES - self.live_text.len();
             self.live_text.push_str(crate::truncate_utf8(delta, room));
-            self.invalidate_transcript();
+            self.invalidate_live_text();
         }
     }
 
@@ -1817,6 +1817,7 @@ impl TuiState {
         if self.live_reasoning.is_empty() && !self.live_text.is_empty() {
             self.freeze_text();
             self.enforce_parts();
+            self.invalidate_transcript();
         }
         if self.reasoning_started.is_none() {
             self.reasoning_started = Some(Instant::now());
@@ -1825,7 +1826,7 @@ impl TuiState {
             let room = WINDOW_BYTES - self.live_reasoning.len();
             self.live_reasoning
                 .push_str(crate::truncate_utf8(delta, room));
-            self.invalidate_transcript();
+            self.invalidate_live_text();
         }
     }
 

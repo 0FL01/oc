@@ -2671,6 +2671,13 @@ impl TuiState {
 
     pub(super) fn invalidate_transcript(&mut self) {
         self.transcript_revision = self.transcript_revision.wrapping_add(1);
+        self.transcript_structure = self.transcript_structure.wrapping_add(1);
+    }
+
+    /// An append to the open live text or reasoning: repaint, but rows and
+    /// tool cards are unchanged.
+    pub(super) fn invalidate_live_text(&mut self) {
+        self.transcript_revision = self.transcript_revision.wrapping_add(1);
     }
 
     /// Wheel/scrollbox navigation never changes the focused editor, even

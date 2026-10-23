@@ -199,7 +199,7 @@ pub(super) fn start(
         returning: false,
         pointer: None,
         prepared: None,
-        task: Some(tokio::spawn(async move {
+        task: Some(oc_core::wake::spawn(async move {
             let (location, catalog, saved, selected, first) = match request {
                 Request::Open(target) => {
                     let receipt = owner
@@ -400,7 +400,7 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
         let owner = app.clone();
         job.returning = true;
         job.prepared = None;
-        job.task = Some(tokio::spawn(async move {
+        job.task = Some(oc_core::wake::spawn(async move {
             let snapshot = owner
                 .switch_location_home(original.clone())
                 .await

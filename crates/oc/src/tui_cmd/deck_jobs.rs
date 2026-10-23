@@ -169,7 +169,7 @@ pub(super) fn start(
         effect,
         staged: None,
         close_pointer: None,
-        job: tokio::spawn(async move {
+        job: oc_core::wake::spawn(async move {
             Outcome {
                 result: if local {
                     Ok(captured)
@@ -279,7 +279,7 @@ fn launch_delete(app: &CoreApp, deck: &mut LoopState, delete: Deletion) {
         },
         staged: None,
         close_pointer: None,
-        job: tokio::spawn(async move {
+        job: oc_core::wake::spawn(async move {
             let home = if home {
                 match owner.home_selection(SelectionAction::Current).await {
                     Ok(catalog) => Some(catalog),
@@ -349,7 +349,7 @@ fn launch_close(
         },
         staged: None,
         close_pointer: None,
-        job: tokio::spawn(async move {
+        job: oc_core::wake::spawn(async move {
             let home = if home {
                 match owner.home_selection(SelectionAction::Current).await {
                     Ok(catalog) => Some(catalog),
@@ -651,7 +651,7 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
         deck.deck_read_revision = Some(deck.navigation_revision);
         deck.deck_read = Some((
             location,
-            tokio::spawn(async move { owner.tab_deck().await }),
+            oc_core::wake::spawn(async move { owner.tab_deck().await }),
         ));
     }
     let closed: Vec<_> = deck.closed_owners.keys().cloned().collect();

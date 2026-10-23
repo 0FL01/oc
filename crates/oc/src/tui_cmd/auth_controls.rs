@@ -73,7 +73,7 @@ impl Controls {
         self.cancelling = true;
         self.job = Some((
             request.clone(),
-            tokio::spawn(async move {
+            oc_core::wake::spawn(async move {
                 owner
                     .authenticate(request.provider, AuthAction::Cancel { attempt: id })
                     .await?;
@@ -116,7 +116,7 @@ impl Controls {
                                 let target = request.provider.clone();
                                 self.job = Some((
                                     request.clone(),
-                                    tokio::spawn(async move {
+                                    oc_core::wake::spawn(async move {
                                         let accounts =
                                             owner.provider_accounts(target.clone(), None).await;
                                         let catalog = if accounts.as_ref().is_ok_and(|a| {
@@ -206,7 +206,7 @@ impl Controls {
                 let owner = app.clone();
                 self.job = Some((
                     request.clone(),
-                    tokio::spawn(async move {
+                    oc_core::wake::spawn(async move {
                         owner
                             .authenticate(
                                 request.provider,
@@ -230,7 +230,7 @@ impl Controls {
                 let id = active.id.clone();
                 self.job = Some((
                     request.clone(),
-                    tokio::spawn(async move {
+                    oc_core::wake::spawn(async move {
                         owner
                             .authenticate(request.provider, AuthAction::Status { attempt: id })
                             .await
@@ -250,7 +250,9 @@ impl Controls {
             let url = url.to_owned();
             self.opener = Some((
                 request.clone(),
-                tokio::spawn(async move { crate::auth_cmd::open_authorization(&url).await }),
+                oc_core::wake::spawn(
+                    async move { crate::auth_cmd::open_authorization(&url).await },
+                ),
             ));
         }
     }

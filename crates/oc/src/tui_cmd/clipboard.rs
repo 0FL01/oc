@@ -33,7 +33,7 @@ pub(super) fn start_clipboard(state: &mut TuiState, deck: &mut LoopState) {
         location: deck.location.clone(),
         tab: deck.active_tab,
         cancel,
-        task: tokio::spawn(crate::clipboard::read(cancelled)),
+        task: oc_core::wake::spawn(crate::clipboard::read(cancelled)),
     });
 }
 
