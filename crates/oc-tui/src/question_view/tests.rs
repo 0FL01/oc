@@ -214,6 +214,75 @@ fn answered_question_metadata_is_charged_without_turn_preview_loss() {
     assert!(window.retained_bytes() <= WINDOW_BYTES);
 }
 
+#[test]
+fn question_heading_uses_captured_author_and_profile_color() {
+    use oc_core::{core_app::CoreApp, domain::SessionId, queries::*};
+    use ratatui::{Terminal, backend::TestBackend};
+
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, SessionId("s".into()));
+    state.apply_catalog(CatalogSnapshot {
+        chrome: TuiChrome {
+            agent_colors: [
+                ("build".into(), "#5c9cf5".into()),
+                ("explore".into(), "#12ab34".into()),
+            ]
+            .into(),
+            ..Default::default()
+        },
+        auto_accept: Default::default(),
+        provider: String::new(),
+        models: vec![],
+        model_id: String::new(),
+        variant: None,
+        agents: vec![AgentEntry {
+            id: "build".into(),
+            color_index: 0,
+            description: String::new(),
+            model: None,
+            variant: None,
+        }],
+        agent_id: Some("build".into()),
+        commands: vec![],
+        command_descriptions: Default::default(),
+    });
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+    for (session, agent, name, color) in [
+        ("child", "explore", "Explore", Color::Rgb(0x12, 0xab, 0x34)),
+        ("s", "build", "Build", Color::Rgb(0x5c, 0x9c, 0xf5)),
+    ] {
+        let mut r = request(false);
+        r.binding.session = session.into();
+        r.binding.agent = Some(agent.into());
+        state
+            .questions
+            .reconcile(std::slice::from_ref(&r), vec![r.clone()]);
+        terminal
+            .draw(|frame| {
+                crate::shell::render_background(frame);
+                render(frame, &state, Rect::new(0, 1, 80, 23));
+            })
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let title = (0..24)
+            .find(|y| buffer[(5, *y)].symbol() == "Q")
+            .expect("question heading");
+        let row: String = (0..80).map(|x| buffer[(x, title)].symbol()).collect();
+        assert_eq!(row.trim(), format!("┃  Questions · {name}"));
+        assert_eq!(buffer[(5, title)].fg, Theme::dark().text_muted());
+        assert_eq!(buffer[(15, title)].fg, Theme::dark().text_muted());
+        for x in 17..17 + name.len() as u16 {
+            assert_eq!(buffer[(x, title)].fg, color);
+        }
+        assert_eq!(state.active_agent(), Some("build"));
+        let Some(PanelIntent::ReplyQuestion(reply)) = state.questions.key(KeyAction::Enter).intent
+        else {
+            panic!("question answer");
+        };
+        assert_eq!(reply.binding, r.binding);
+    }
+}
+
 #[tokio::test]
 async fn vis37_pending_panel_uses_pinned_roles_tabs_description_rows_and_custom_caret() {
     use oc_core::{
@@ -504,7 +573,7 @@ fn vis37_custom_typing_paste_and_close_keep_owned_answers_without_implicit_submi
     view.key(KeyAction::Cancel);
     {
         let drafts = view.drafts.lock().unwrap();
-        let rows = layout(&drafts[0], 40, 48)
+        let rows = layout(&drafts[0], 40, 48, Color::Reset)
             .rows
             .into_iter()
             .map(|row| {
@@ -723,7 +792,7 @@ fn vis37_sixteen_fields_keep_fallback_actions_and_explicit_empty_review_without_
     r.input.validate().unwrap();
     let original = r.input.clone();
     let mut d = Draft::new(r);
-    let form = layout(&d, 52, 24);
+    let form = layout(&d, 52, 24, Color::Reset);
     let text = |line: &Line<'_>| {
         line.spans
             .iter()
@@ -753,7 +822,7 @@ fn vis37_sixteen_fields_keep_fallback_actions_and_explicit_empty_review_without_
     assert_eq!(d.answers[0], vec!["custom Ω界"]);
     d.answers[0].clear();
     d.tab = 16;
-    let review = layout(&d, 52, 24);
+    let review = layout(&d, 52, 24, Color::Reset);
     assert!(review.rows.iter().any(|r| text(r) == "Pick: (none)"));
     assert!(
         review

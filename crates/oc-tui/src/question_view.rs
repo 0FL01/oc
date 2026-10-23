@@ -4,13 +4,14 @@ use crate::{
     app::{KeyOutcome, PanelIntent, TuiState},
     editor::Editor,
     events::KeyAction,
+    messages::Locale,
     theme::Theme,
 };
 use oc_core::question::{QuestionDecision, QuestionReply, QuestionRequest};
 use ratatui::{
     Frame,
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Paragraph},
 };
@@ -595,7 +596,7 @@ fn wrapped_text(text: &str, width: usize, style: Style) -> Vec<Line<'static>> {
         .collect()
 }
 
-fn layout(d: &Draft, width: u16, terminal_height: u16) -> FormLayout {
+fn layout(d: &Draft, width: u16, terminal_height: u16, agent_color: Color) -> FormLayout {
     let theme = Theme::dark();
     let slot = |name| theme.color(name).expect("question form theme role");
     let base = Style::default().fg(theme.text());
@@ -609,10 +610,21 @@ fn layout(d: &Draft, width: u16, terminal_height: u16) -> FormLayout {
         .color("background.formfield.$focused")
         .unwrap_or(form_bg);
     let content_width = usize::from(width.saturating_sub(10).max(1));
-    let mut out = vec![
-        Line::default(),
-        Line::from(Span::styled("Questions", muted)),
-    ];
+    let mut heading = Line::from(Span::styled("Questions", muted));
+    if let Some(agent) = d.request.binding.agent.as_deref() {
+        let agent = safe(agent);
+        let name = Locale::truncate_width(
+            &Locale::titlecase(agent.trim()),
+            content_width.saturating_sub(heading.width() + 3),
+        );
+        if !name.is_empty() {
+            heading.spans.push(Span::styled(" · ", muted));
+            heading
+                .spans
+                .push(Span::styled(name, Style::default().fg(agent_color)));
+        }
+    }
+    let mut out = vec![Line::default(), heading];
     let mut targets = Vec::new();
     if !d.single() {
         out.push(Line::default());
@@ -1056,7 +1068,16 @@ pub(crate) fn height(state: &TuiState, width: u16, terminal_height: u16) -> u16 
     drafts
         .iter()
         .find(|d| Some(&d.request) == state.questions.active())
-        .map_or(0, |d| layout(d, width, terminal_height).rows.len() as u16)
+        .map_or(0, |d| {
+            layout(
+                d,
+                width,
+                terminal_height,
+                state.agent_color(d.request.binding.agent.as_deref()),
+            )
+            .rows
+            .len() as u16
+        })
 }
 pub fn render(frame: &mut Frame<'_>, state: &TuiState, area: Rect) {
     if state.approvals.active().is_some() || state.questions.active().is_none() {
@@ -1070,7 +1091,12 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState, area: Rect) {
     else {
         return;
     };
-    let form = layout(d, area.width, frame.area().height);
+    let form = layout(
+        d,
+        area.width,
+        frame.area().height,
+        state.agent_color(d.request.binding.agent.as_deref()),
+    );
     let content = crate::layout::content_box(area);
     let height = (form.rows.len() as u16).min(content.height);
     let rect = Rect::new(
