@@ -118,7 +118,7 @@ impl TuiState {
                 .saturating_sub(area.height as usize)
                 .saturating_sub(displayed);
             let following = displayed == 0 && !self.window.has_newer();
-            let rows = self.transcript_rows();
+            let (rows, _, _) = self.compose_structure(true);
             self.execute_calls_expanded.retain(|op, _| {
                 rows.iter()
                     .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == op))
@@ -132,6 +132,9 @@ impl TuiState {
             }
             self.invalidate_transcript();
             let (_, after) = self.visible_transcript(area.width, frame.width, area.height);
+            if !self.projection_ready((area.width, frame.width, area.height)) {
+                return;
+            }
             self.scroll = if following {
                 0
             } else {

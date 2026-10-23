@@ -56,6 +56,7 @@ async fn enter_while_busy_steers_into_the_running_turn() {
         state.handle_key(KeyAction::Enter),
         admit(&mut inbox, Ok(()))
     );
+    state.poll_submission();
     assert_eq!(outcome.note, None, "no 'turn busy' refusal");
     assert_eq!(
         admitted,
@@ -86,6 +87,7 @@ async fn interrupted_steer_stays_a_neutral_user_row_not_a_resumable_queue() {
         state.handle_key(KeyAction::Enter),
         admit(&mut inbox, Ok(()))
     );
+    state.poll_submission();
     assert!(outcome.note.is_none());
     let pending = state.inbox_items().to_vec();
     let turn = state.active_turn().unwrap().clone();
@@ -117,18 +119,20 @@ async fn interrupted_steer_stays_a_neutral_user_row_not_a_resumable_queue() {
 async fn a_turn_that_just_ended_takes_the_prompt_as_a_new_submission() {
     let (mut state, mut inbox) = running("ended").await;
     type_text(&mut state, "next").await;
-    let owner = async {
-        admit(&mut inbox, Err(oc_core::session::CoreError::TurnNotActive)).await;
-        loop {
-            match inbox.recv().await.unwrap() {
-                InboxMsg::SessionSelection { ack, .. } => drop(ack),
-                InboxMsg::Submit { text, .. } => return text.text,
-                _ => panic!("unexpected owner message"),
-            }
-        }
+    state.handle_key(KeyAction::Enter).await;
+    assert!(state.input().is_empty());
+    state.handle_paste("independent next draft");
+    admit(&mut inbox, Err(oc_core::session::CoreError::TurnNotActive)).await;
+    state.poll_submission();
+    let InboxMsg::Submit { text, ack, .. } = inbox.try_recv().unwrap() else {
+        panic!("fallback submit")
     };
-    let (_, submitted) = tokio::join!(state.handle_key(KeyAction::Enter), owner);
-    assert_eq!(submitted, "next");
+    assert_eq!(text.text, "next");
+    ack.send(Ok(WorkerTurnId("fallback".into()))).unwrap();
+    state.poll_submission();
+    state.poll_submission();
+    assert_eq!(state.input(), "independent next draft");
+    assert!(inbox.try_recv().is_err(), "exactly one fallback");
 }
 
 #[tokio::test]
@@ -140,6 +144,7 @@ async fn leader_enter_queues_and_the_dock_shows_count_and_preview() {
         state.handle_key(KeyAction::Enter),
         admit(&mut inbox, Ok(()))
     );
+    state.poll_submission();
     assert_eq!(outcome.note, None);
     assert_eq!(admitted.1, InboxDelivery::Queue);
     let rows = state.transcript_rows();
@@ -186,6 +191,7 @@ async fn queue_accepts_workspace_commands_but_not_local_actions_or_shell() {
         state.handle_key(KeyAction::Enter),
         admit(&mut inbox, Ok(()))
     );
+    state.poll_submission();
     assert_eq!(outcome.note, None);
     assert_eq!(admitted, ("/review".into(), InboxDelivery::Queue));
     type_text(&mut state, "/quit").await;
@@ -317,7 +323,25 @@ async fn rich_steer_queue_refusal_and_restoration_preserve_pngs_and_utf8_marks()
             ack.send(Err(CoreError::QueueFull)).unwrap();
         };
         let (outcome, ()) = tokio::join!(state.handle_key(KeyAction::Enter), peer);
-        assert!(outcome.note.unwrap().contains("pending"));
+        assert!(
+            outcome.note.is_none(),
+            "local acceptance does not wait for the owner"
+        );
+        assert!(state.input().is_empty());
+        state.poll_submission();
+        assert!(state.failed_submission_note().unwrap().contains("retained"));
+        assert!(!state.has_pending_submission());
+        state.handle_paste("next");
+        assert!(
+            state
+                .recover_submission(true)
+                .note
+                .unwrap()
+                .contains("Empty")
+        );
+        assert_eq!(state.input(), "next");
+        state.restore_prompt(String::new());
+        state.recover_submission(true);
         assert_eq!(
             state.editor.prompt(state.input()).trimmed(),
             prompt,

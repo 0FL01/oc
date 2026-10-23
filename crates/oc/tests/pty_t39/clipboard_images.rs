@@ -48,17 +48,28 @@ fn running_rich_inbox_and_direct_shell_cross_actual_native_ipc_without_losing_me
         1,
         "shell must not create a model request"
     );
+    let admission_ready = |pty: &mut PtySession| {
+        // The pending echo precedes its receipt. This local command's shortcut
+        // is enabled only after that exact admission has settled; never run it.
+        pty.send(b"\x10Close tab");
+        wait_screen_row(pty, "ctrl+x w", DEADLINE);
+        pty.send(b"\x1b");
+        dismissed(pty, "Commands");
+    };
     pty.send(b"steered image ");
     pty.send(b"\x16");
     prompt_history::wait_prompt(&pty, &["steered image [Image 1]"]);
     pty.send(b"\r");
     wait_screen_row(&pty, "steered image", DEADLINE);
+    admission_ready(&mut pty);
     pty.send(b"queued image \x16");
     prompt_history::wait_prompt(&pty, &["queued image [Image 1]"]);
     pty.send(b"\x18\r");
     wait_screen_row(&pty, "1 queued", DEADLINE);
+    admission_ready(&mut pty);
     pty.send(b"/t39cmd steered\r");
     wait_screen_row(&pty, "/t39cmd steered", DEADLINE);
+    admission_ready(&mut pty);
     pty.send(b"/t39cmd queued\x18\r");
     wait_screen_row(&pty, "2 queued", DEADLINE);
     fixture.vis28_continue.store(true, Ordering::Relaxed);

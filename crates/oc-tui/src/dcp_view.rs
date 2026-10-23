@@ -177,7 +177,14 @@ pub fn block(view: &DcpRender, state: &str, reason: &str, theme: &Theme, width: 
     } else {
         colors[view.color_index.unwrap_or(0) % colors.len()]
     };
-    text_block(&text, theme, width, color)
+    let mut lines = text_block(&text, theme, width, color);
+    if matches!(state, "started" | "running")
+        && let Some(line) = lines.get_mut(1)
+    {
+        *line =
+            std::mem::take(line).animate("┃  ".len(), crate::styled::AnimationSource::Compaction);
+    }
+    lines
 }
 
 /// Native toast mapping: one bounded transient status notice, no persistent card
@@ -361,6 +368,33 @@ mod tests {
                 && !running.contains("summary")
                 && !running.contains("Compression #")
         );
+        view.spinner = Some("⠋".into());
+        view.topic = Some("Actual literal ⋯ topic".into());
+        let mut animated = block(&view, "running", "", Theme::dark(), 100);
+        let cells: Vec<_> = animated
+            .iter()
+            .enumerate()
+            .flat_map(|(row, line)| {
+                line.animation_cells()
+                    .into_iter()
+                    .map(move |(byte, source)| (row, byte, source))
+            })
+            .collect();
+        assert_eq!(
+            cells,
+            [(1, "┃  ".len(), crate::styled::AnimationSource::Compaction)]
+        );
+        animated[1].patch_cell("┃  ".len(), "⠙");
+        assert!(
+            animated[1]
+                .plain_text()
+                .starts_with("┃  ⠙ DCP · Compressing…")
+        );
+        assert!(
+            animated
+                .iter()
+                .any(|line| line.plain_text().contains("Actual literal ⋯ topic"))
+        );
     }
 
     #[test]
@@ -433,7 +467,7 @@ mod tests {
             seq: 1,
             message_id: None,
             role: "tool".into(),
-            text: String::new(),
+            text: String::new().into(),
             agent: Some("build".into()),
             agent_color_index: Some(1),
             chips: vec![],

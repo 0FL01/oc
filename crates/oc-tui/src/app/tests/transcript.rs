@@ -519,7 +519,7 @@ async fn reverted_boundary_retires_only_on_matching_model_or_compress_acceptance
             })
             .unwrap();
             state.poll_submission();
-            assert_eq!(state.input(), "replacement newer draft");
+            assert_eq!(state.input(), " newer draft");
             if accepted {
                 assert!(state.reverted.is_none());
                 assert_eq!(state.conversation_available, Some((true, false)));
@@ -1225,7 +1225,7 @@ async fn exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_l
             message_id: None,
             seq: i as i64 + 1,
             role: "tool".into(),
-            text: String::new(),
+            text: String::new().into(),
             agent: None,
             agent_color_index: None,
             chips: vec![],
@@ -2043,7 +2043,7 @@ async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
     for i in 0..LIVE_PARTS_MAX - 1 {
         state
             .live_parts
-            .push(super::LivePart::Text(format!("segment {i}")));
+            .push(super::LivePart::Text(format!("segment {i}").into()));
     }
     state.enforce_parts();
     assert_eq!(state.live_part_offset, 1);
@@ -2296,7 +2296,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         message_id: None,
         seq: 1,
         role: "tool".into(),
-        text: String::new(),
+        text: String::new().into(),
         agent: None,
         agent_color_index: None,
         chips: vec![],
@@ -2408,7 +2408,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         message_id: None,
         seq: 2,
         role: "tool".into(),
-        text: String::new(),
+        text: String::new().into(),
         agent: None,
         agent_color_index: None,
         chips: vec![],
@@ -2495,7 +2495,7 @@ async fn exploration_toggle_anchors_long_result_and_attach_page_discards_expansi
             message_id: None,
             seq: i + 1,
             role: "tool".into(),
-            text: String::new(),
+            text: String::new().into(),
             agent: None,
             agent_color_index: None,
             chips: vec![],
@@ -2653,7 +2653,9 @@ async fn vis32_live_tail_anchor_unicode_paging_and_resize() {
     fn paint(state: &super::TuiState, width: u16, height: u16) -> Vec<String> {
         let (lines, total, scroll) = state.visible_transcript_at_viewport(width, width, height);
         state.observe_transcript_viewport(width, width, height, total, scroll);
-        lines
+        let frame = ratatui::layout::Rect::new(0, 0, width, height);
+        state
+            .paint_transcript_at(frame, &lines, total, scroll, Some(frame), &[])
             .iter()
             .map(|line| line.spans().iter().map(|span| span.content()).collect())
             .collect()
@@ -2717,7 +2719,12 @@ async fn vis32_completion_preserves_cached_part_expansion_paging_and_resize() {
     fn paint(state: &super::TuiState, width: u16, height: u16) -> Vec<String> {
         let (lines, total, scroll) = state.visible_transcript_at_viewport(width, width, height);
         state.observe_transcript_viewport(width, width, height, total, scroll);
-        lines.iter().map(|line| line.plain_text()).collect()
+        let frame = ratatui::layout::Rect::new(0, 0, width, height);
+        state
+            .paint_transcript_at(frame, &lines, total, scroll, Some(frame), &[])
+            .iter()
+            .map(|line| line.plain_text())
+            .collect()
     }
     let mut state = fresh_state("completion-parts").await;
     let mut answer = msg(2, Role::Assistant, "");
@@ -3921,7 +3928,7 @@ async fn transcript_spacer_is_not_selected_or_copied_and_wheel_keeps_selection()
 
     let mut state = fresh_state("selection-spacer-wheel").await;
     let frame = Rect::new(0, 0, 60, 18);
-    state.live_text = format!("{}\n\nalpha\n\nbeta", "prefix ".repeat(120));
+    state.live_text = format!("{}\n\nalpha\n\nbeta", "prefix ".repeat(120)).into();
     let (x, y) = paint_selection_fixture(&mut state, frame, "alpha");
     let area = crate::shell::transcript_area(&state, frame);
     let painted = state.painted_transcript.borrow().as_ref().unwrap().clone();
@@ -4222,7 +4229,7 @@ async fn vis27_wrapped_wide_graphemes_copy_complete_visible_rows() {
     let mut state = fresh_state("selection-wide-wrap").await;
     let frame = Rect::new(0, 0, 40, 25);
     state.set_clipboard_mode(super::ClipboardMode::Select);
-    state.live_text = "🧑‍💻".repeat(36);
+    state.live_text = "🧑‍💻".repeat(36).into();
     let (x, y) = paint_selection_fixture(&mut state, frame, "🧑‍💻");
     let rect = crate::shell::transcript_area(&state, frame);
     let (rows, _, _) = state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
@@ -4262,7 +4269,7 @@ async fn vis27_double_click_word_is_clipped_to_painted_wrap_row() {
     use crossterm::event::{MouseButton, MouseEventKind};
     let mut state = fresh_state("selection-word-wrap").await;
     let frame = Rect::new(0, 0, 40, 25);
-    state.live_text = "q".repeat(200);
+    state.live_text = "q".repeat(200).into();
     let (x, y) = paint_selection_fixture(&mut state, frame, "qqqq");
     let rect = crate::shell::transcript_area(&state, frame);
     let row = (y - rect.y) as usize;

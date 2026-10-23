@@ -37,13 +37,26 @@ use oc_tui::terminal::{FrameBackend, enter, install_panic_hook, set_cursor_color
 use oc_tui::views::{cursor_color, render_frame};
 
 mod auth_controls;
+mod catalog_jobs;
 mod child_controls;
+mod child_jobs;
 mod clipboard;
+mod history_jobs;
+mod navigation_jobs;
+mod picker_jobs;
+mod reload_jobs;
+mod resource_jobs;
 use clipboard::{ClipboardJob, start_clipboard, sync_clipboard};
 mod connect_controls;
+mod control_jobs;
+mod deck_jobs;
+mod inbox_jobs;
+mod notice_jobs;
+mod read_jobs;
 mod shared;
 mod tab_activity;
 mod terminal_controls;
+mod work_controls;
 
 /// Qualification probe (T26): when set, panic right after entering the
 /// terminal so PTY tests can verify panic-path restoration. Never set in
@@ -172,7 +185,8 @@ const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 /// Launch the interactive TUI; returns process exit code.
 pub async fn run_tui(data_dir: &Path, session_opt: Option<String>, auto_once: bool) -> ExitCode {
     install_panic_hook();
-    match run_inner(data_dir, session_opt, auto_once).await {
+    // Keep presentation state out of the shared CLI/native-owner dispatch future.
+    match Box::pin(run_inner(data_dir, session_opt, auto_once)).await {
         Ok(code) => code,
         Err(message) => {
             eprintln!("error: {message}");
@@ -283,17 +297,50 @@ type CompactionAdmission = tokio::task::JoinHandle<
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    reads: read_jobs::Reads,
+    notices: notice_jobs::Jobs,
+    children: child_jobs::Jobs,
+    work: work_controls::Jobs,
+    catalogs: catalog_jobs::Jobs,
+    provider_feedback: Option<(Option<String>, String)>,
+    picker: picker_jobs::Jobs,
+    history_reads: history_jobs::Jobs,
+    resources: resource_jobs::Jobs,
+    controls: control_jobs::Controls,
+    terminals: terminal_controls::Jobs,
+    workspace_job: Option<shared::Job>,
+    navigation_revision: u64,
+    pointer_revision: u64,
+    interaction_revision: u64,
+    selection_dirty: bool,
+    selection_blocked: bool,
+    closed_owners: std::collections::HashMap<SessionId, Option<CatalogSnapshot>>,
+    fresh_membership: std::collections::HashSet<SessionId>,
+    deck_job: Option<deck_jobs::Job>,
+    deck_read: Option<(
+        String,
+        tokio::task::JoinHandle<Result<TabDeckSnapshot, CoreError>>,
+    )>,
+    deck_read_revision: Option<u64>,
+    home_job: Option<HomeJob>,
+    home_pending: Option<((u64, u64), SelectionAction)>,
+    unresolved_homes: std::collections::HashSet<u64>,
+    home_commands: std::collections::HashMap<u64, (u64, String)>,
+    cancel_jobs: std::collections::HashMap<CancelKey, CancelJob>,
+    inbox_jobs: inbox_jobs::Jobs,
     activity: tab_activity::Activity,
     projection_revision: u64,
     shared_refresh: bool,
     shared_gap: bool,
     authentication: auth_controls::Controls,
+    authentication_origin: Option<u64>,
     questions: oc_tui::question_view::QuestionView,
     cli_auto: bool,
     permission_auto: Option<bool>,
     sidebar_mcp_open: Option<bool>,
     approvals_checked: Option<(Option<SessionId>, Instant)>,
     compaction_job: Option<CompactionAdmission>,
+    compaction_origin: Option<read_jobs::Route>,
     /// Bounded prompt drafts for picker Location round trips. Views and
     /// configuration are rebuilt from the newly accepted owner receipt.
     picker_drafts:
@@ -301,8 +348,10 @@ struct LoopState {
     clipboard_job: Option<ClipboardJob>,
     picker_pending_tabs: std::collections::HashSet<SessionId>,
     conversation_job: Option<tokio::task::JoinHandle<Result<ConversationResult, String>>>,
+    conversation_origin: Option<(read_jobs::Route, u64)>,
     conversation_recovery: Option<(SessionId, std::time::Instant)>,
     recovery_job: Option<ConversationRefresh>,
+    recovery_route: Option<read_jobs::Route>,
     #[cfg(test)]
     copy_transport: Option<CopyTransport>,
     mention_pending: Option<(MentionRequest, Instant)>,
@@ -319,6 +368,10 @@ struct LoopState {
     /// The owner rebuild runs off the terminal loop so the progress notice
     /// paints before the final outcome. Only quit and resize are accepted meanwhile.
     reload_job: Option<tokio::task::JoinHandle<Result<ReloadLocationSnapshot, CoreError>>>,
+    reload_verify: Option<reload_jobs::Job>,
+    navigation_job: Option<navigation_jobs::Job>,
+    scope_uncertain: bool,
+    moved_pending: Option<navigation_jobs::Moved>,
     reload_draft: Option<String>,
     reload_painted: bool,
     /// Turn started by a manual `/dcp-compress` request.
@@ -338,6 +391,7 @@ struct LoopState {
     /// mock decks have no Location and do not write a preference.
     location: Option<String>,
     revision: Option<String>,
+    authoritative_deck: Option<TabDeckSnapshot>,
     /// A projected or unreadable preference cannot be safely rewritten from
     /// the visible tabs: hidden IDs must survive until a clean reload/repair.
     save_disabled: bool,
@@ -351,18 +405,26 @@ struct LoopState {
 }
 
 enum ConversationResult {
-    Changed(oc_core::queries::ConversationSnapshot, ConversationRefresh),
-    Forked(oc_core::queries::ForkSessionSnapshot, ConversationRefresh),
+    Changed(oc_core::queries::ConversationSnapshot, ConversationPrepared),
+    Forked(oc_core::queries::ForkSessionSnapshot, ConversationPrepared),
 }
+
+type HomeJob = (
+    (u64, u64),
+    tokio::task::JoinHandle<Result<CatalogSnapshot, CoreError>>,
+);
+type CancelKey = (SessionId, Option<oc_core::core_app::WorkerTurnId>, bool);
+type CancelJob = tokio::task::JoinHandle<Result<(), CoreError>>;
 
 #[cfg(test)]
 type CopyTransport = fn(&str) -> Result<(), String>;
 
-type ConversationRefresh = tokio::task::JoinHandle<(
+type ConversationPrepared = (
     Result<oc_core::queries::HistoryPage, String>,
     Result<CatalogSnapshot, String>,
     Result<Vec<oc_core::compaction::CompactionSnapshot>, String>,
-)>;
+);
+type ConversationRefresh = tokio::task::JoinHandle<ConversationPrepared>;
 
 fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh {
     tokio::spawn(async move {
@@ -383,57 +445,48 @@ fn conversation_refresh(app: CoreApp, session: SessionId) -> ConversationRefresh
 }
 
 async fn apply_conversation_refresh(
-    app: &CoreApp,
+    _app: &CoreApp,
     state: &mut TuiState,
-    refresh: ConversationRefresh,
-    recovery: bool,
+    refresh: ConversationPrepared,
+    _recovery: bool,
 ) -> bool {
-    match refresh.await {
-        Ok((mut page, catalog, compactions)) => {
-            // A recovery can outlive a new admission while metadata is read.
-            // Apply only history read inline against the current owner state.
-            if recovery && let Some(session) = state.attached_session().cloned() {
-                page = app
-                    .transcript_page(session, None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|e| e.to_string());
-            }
-            let success = page.is_ok() && catalog.is_ok() && compactions.is_ok();
-            match page {
-                Ok(page) => state.attach_page(&page),
-                Err(error) => state.push_transient_note(
-                    &format!("Conversation saved; history refresh failed: {error}"),
-                    NoteVariant::Error,
-                ),
-            }
-            match catalog {
-                Ok(catalog) => state.apply_catalog(catalog),
-                Err(error) => state.push_transient_note(
-                    &format!("Conversation saved; metadata refresh failed: {error}"),
-                    NoteVariant::Error,
-                ),
-            }
-            match compactions {
-                Ok(snapshots) => state.apply_compaction_history(snapshots),
-                Err(error) => state.push_transient_note(
-                    &format!("Conversation saved; compaction refresh failed: {error}"),
-                    NoteVariant::Error,
-                ),
-            }
-            refresh_dcp_summaries(app, state).await;
-            success
-        }
-        Err(_) => {
-            state.push_transient_note(
-                "Conversation saved; refresh interrupted",
-                NoteVariant::Error,
-            );
-            false
-        }
+    let (page, catalog, compactions) = refresh;
+    let success = page.is_ok() && catalog.is_ok() && compactions.is_ok();
+    match page {
+        Ok(page) => state.attach_page(&page),
+        Err(error) => state.push_transient_note(
+            &format!("Conversation saved; history refresh failed: {error}"),
+            NoteVariant::Error,
+        ),
     }
+    match catalog {
+        Ok(catalog) => state.apply_catalog(catalog),
+        Err(error) => state.push_transient_note(
+            &format!("Conversation saved; metadata refresh failed: {error}"),
+            NoteVariant::Error,
+        ),
+    }
+    match compactions {
+        Ok(snapshots) => state.apply_compaction_history(snapshots),
+        Err(error) => state.push_transient_note(
+            &format!("Conversation saved; compaction refresh failed: {error}"),
+            NoteVariant::Error,
+        ),
+    }
+    success
 }
 
 impl LoopState {
+    fn reload_pending(&self) -> bool {
+        self.reload_job.is_some() || self.reload_verify.is_some()
+    }
+    fn conversation_owns(&self, view: &TuiState) -> bool {
+        self.conversation_job.is_some()
+            && self
+                .conversation_origin
+                .as_ref()
+                .is_some_and(|(route, _)| route.owns(view))
+    }
     fn retire_parked_auth(&mut self) {
         for view in self
             .tabs
@@ -450,6 +503,27 @@ impl LoopState {
     }
     fn has_jobs(&self) -> bool {
         self.job_lanes() != 0
+            || self.picker.pending()
+            || self.navigation_job.is_some()
+            || self.moved_pending.is_some()
+            || self.reload_verify.is_some()
+            || self.resources.pending()
+            || self.history_reads.pending()
+            || self.catalogs.pending()
+            || self.work.pending()
+            || self.children.pending()
+            || self.notices.pending()
+            || self.reads.pending()
+            || self.controls.pending()
+            || self.terminals.pending()
+            || self.workspace_job.is_some()
+            || self.activity.pending()
+            || self.deck_job.is_some()
+            || self.deck_read.is_some()
+            || self.home_job.is_some()
+            || self.home_pending.is_some()
+            || !self.cancel_jobs.is_empty()
+            || self.inbox_jobs.pending()
     }
 
     fn job_lanes(&self) -> u8 {
@@ -457,14 +531,49 @@ impl LoopState {
             | (u8::from(self.recovery_job.is_some()) << 1)
             | (u8::from(self.mention_job.is_some()) << 2)
             | (u8::from(self.title_job.is_some()) << 3)
-            | (u8::from(self.reload_job.is_some()) << 4)
+            | (u8::from(self.reload_pending()) << 4)
             | (u8::from(self.compaction_job.is_some()) << 5)
             | (u8::from(self.authentication.pending()) << 6)
             | (u8::from(self.clipboard_job.is_some()) << 7)
     }
 
-    fn ready_job(&self) -> bool {
-        self.authentication.ready()
+    fn ready_job(&self, state: &TuiState) -> bool {
+        self.picker.ready()
+            || self
+                .navigation_job
+                .as_ref()
+                .is_some_and(navigation_jobs::Job::ready)
+            || self
+                .reload_verify
+                .as_ref()
+                .is_some_and(reload_jobs::Job::ready)
+            || self.resources.ready()
+            || self.history_reads.ready()
+            || self.catalogs.ready()
+            || self.work.ready()
+            || self.children.ready()
+            || self.notices.ready()
+            || self.reads.ready()
+            || self.controls.ready()
+            || self.terminals.ready()
+            || self.workspace_job.as_ref().is_some_and(shared::Job::ready)
+            || self.activity.ready()
+            || self.deck_job.as_ref().is_some_and(|job| {
+                job.ready()
+                    && !read_jobs::views(state, self)
+                        .any(|view| job.closing(view) && view.has_pending_transcript_projection())
+            })
+            || self
+                .deck_read
+                .as_ref()
+                .is_some_and(|(_, job)| job.is_finished())
+            || self
+                .home_job
+                .as_ref()
+                .is_some_and(|(_, job)| job.is_finished())
+            || self.cancel_jobs.values().any(|job| job.is_finished())
+            || self.inbox_jobs.ready()
+            || self.authentication.ready()
             || self
                 .clipboard_job
                 .as_ref()
@@ -510,20 +619,22 @@ impl LoopState {
     }
 
     fn departure_ready(&self, state: &TuiState) -> Result<(), String> {
-        // Receipts are polled by the mounted view. An accepted turn, unlike
+        // Every retained view keeps its receipt. An accepted turn, unlike
         // its admission receipt, remains owned by the native session runner.
         if std::iter::once(state)
             .chain(self.tabs.iter().flatten())
             .chain(self.home.iter())
             .chain(self.child_parent.as_deref())
-            .any(|view| view.has_pending_submission() || view.has_pending_model_commit())
+            .chain(self.child_views.values())
+            .any(|view| self.owns_receipt(view))
         {
             return Err("submission or model selection pending; session switch refused".into());
         }
         if self.conversation_job.is_some()
             || self.conversation_recovery.is_some()
             || self.recovery_job.is_some()
-            || self.reload_job.is_some()
+            || self.reload_pending()
+            || self.navigation_job.is_some()
             || self.compaction_job.is_some()
             || self.authentication.pending()
             || self.authentication.deadline().is_some()
@@ -534,21 +645,67 @@ impl LoopState {
         Ok(())
     }
 
+    fn target_ready(&self, state: &TuiState, index: usize) -> Result<(), String> {
+        let view = if self.active_tab == Some(index) {
+            self.child_parent.as_deref().unwrap_or(state)
+        } else if index == self.tabs.len() {
+            if self.active_tab.is_none() {
+                state
+            } else {
+                self.home.as_ref().ok_or("tab unavailable")?
+            }
+        } else {
+            self.tabs
+                .get(index)
+                .and_then(Option::as_ref)
+                .ok_or("tab unavailable")?
+        };
+        if self.owns_receipt(view) || view.auth_request().is_some() {
+            return Err("submission or model selection pending; target close refused".into());
+        }
+        Ok(())
+    }
+
+    fn owns_receipt(&self, view: &TuiState) -> bool {
+        view.has_pending_submission()
+            || view.has_pending_model_commit()
+            || view.user_shell_admission_session().is_some()
+            || self.inbox_jobs.owns(view)
+            || self.picker.owns(view)
+            || self.conversation_owns(view)
+            || self.terminals.owns(view)
+            || self.controls.owns(view)
+            || self.work.owns(view)
+            || self.catalogs.owns(view)
+            || self.resources.owns(view)
+            || self.authentication_origin == Some(view.view_identity().0)
+                && self.authentication.has_surface()
+            || self
+                .cancel_jobs
+                .keys()
+                .any(|(session, _, _)| view.tab_route_session() == Some(session))
+            || self.compaction_job.is_some()
+                && self
+                    .compaction_origin
+                    .as_ref()
+                    .is_some_and(|route| route.owns(view))
+    }
+
     fn snapshot(&self, state: &TuiState) -> TabDeckSnapshot {
         let state = self.child_parent.as_deref().unwrap_or(state);
         let sessions = self
             .tabs
             .iter()
             .enumerate()
-            .map(|(index, parked)| {
+            .filter_map(|(index, parked)| {
                 let view = if self.active_tab == Some(index) {
                     state
                 } else {
                     parked.as_ref().expect("parked tab")
                 };
                 view.attached_session()
-                    .expect("real tab has session")
-                    .clone()
+                    .filter(|id| !self.closed_owners.contains_key(*id))
+                    .cloned()
             })
             .collect();
         TabDeckSnapshot {
@@ -560,12 +717,15 @@ impl LoopState {
                     .tabs
                     .iter()
                     .enumerate()
-                    .map(|(index, parked)| {
-                        if self.active_tab == Some(index) {
-                            state.new_session_tab
+                    .filter_map(|(index, parked)| {
+                        let view = if self.active_tab == Some(index) {
+                            state
                         } else {
-                            parked.as_ref().expect("parked tab").new_session_tab
-                        }
+                            parked.as_ref().expect("parked tab")
+                        };
+                        view.attached_session()
+                            .filter(|id| !self.closed_owners.contains_key(*id))
+                            .map(|_| view.new_session_tab)
                     })
                     .collect::<Vec<_>>();
                 if flags.iter().any(|value| *value) {
@@ -574,11 +734,31 @@ impl LoopState {
                     Vec::new()
                 }
             },
-            active: self
-                .active_tab
-                .and_then(|_| state.attached_session().cloned()),
+            active: self.active_tab.and_then(|_| {
+                state
+                    .attached_session()
+                    .filter(|id| !self.closed_owners.contains_key(*id))
+                    .cloned()
+            }),
             rail_width: state.tab_rail_preference(),
         }
+    }
+
+    /// Membership belongs to the acknowledged authority, not to whether the
+    /// submit reply has reached a provisional view yet. Structural operations
+    /// change only their explicit stable target in this captured deck.
+    fn structural_snapshot(&self, state: &TuiState) -> TabDeckSnapshot {
+        let visible = self.snapshot(state);
+        let mut snapshot = self
+            .authoritative_deck
+            .as_ref()
+            .filter(|saved| saved.location == visible.location)
+            .cloned()
+            .unwrap_or_else(|| visible.clone());
+        snapshot.revision = self.revision.clone();
+        snapshot.active = visible.active.filter(|id| snapshot.sessions.contains(id));
+        snapshot.rail_width = visible.rail_width;
+        snapshot
     }
 
     async fn save(&mut self, app: &CoreApp, state: &mut TuiState) {
@@ -619,7 +799,8 @@ impl LoopState {
                     && saved.revision.is_some()
                     && saved.rail_width == requested.rail_width =>
             {
-                self.revision = saved.revision;
+                self.revision = saved.revision.clone();
+                self.authoritative_deck = Some(saved);
                 Ok(())
             }
             Ok(_) => Err(CoreError::TabDeckStorage),
@@ -632,18 +813,24 @@ impl LoopState {
         }
     }
 
-    async fn save_if_changed(
-        &mut self,
-        app: &CoreApp,
-        state: &mut TuiState,
-        before: &TabDeckSnapshot,
-    ) {
-        if self.snapshot(state) != *before {
-            self.save(app, state).await;
-        }
-    }
-
     fn sync_tabs(&mut self, state: &mut TuiState) {
+        let retained: std::collections::HashSet<_> = read_jobs::views(state, self)
+            .map(|view| view.view_identity().0)
+            .collect();
+        self.unresolved_homes.retain(|id| retained.contains(id));
+        self.home_commands
+            .retain(|home, (source, _)| retained.contains(home) && retained.contains(source));
+        if self
+            .home_pending
+            .as_ref()
+            .is_some_and(|(identity, _)| !retained.contains(&identity.0))
+        {
+            self.home_pending = None;
+        }
+        self.fresh_membership = read_jobs::views(state, self)
+            .filter(|view| view.has_provisional_tab_route())
+            .filter_map(|view| view.tab_route_session().cloned())
+            .collect();
         if let Some(open) = self.sidebar_mcp_open {
             state.apply_sidebar_mcp_open(open);
         }
@@ -678,14 +865,20 @@ impl LoopState {
                     .map(|_| index)
             })
             .collect();
-        // Bare Home has no tab. Acceptance attaches it to the first real
-        // session; subsequent Home submissions append to the existing deck.
-        if !showing_child && self.active_tab.is_none() && state.attached_session().is_some() {
+        // Bare Home has no tab. A locally enqueued fresh request reserves its
+        // provisional slot before the original receipt can attach the session.
+        if !showing_child && self.active_tab.is_none() && tab_route_session(state).is_some() {
+            if state.has_provisional_tab_route() {
+                self.fresh_membership
+                    .insert(tab_route_session(state).expect("promoted route").clone());
+            }
             debug_assert!(self.tabs.len() < MAX_TABS);
             state.new_session_tab = true;
             self.active_tab = Some(self.tabs.len());
             self.tabs.push(None);
             self.tab_cards_before.push(self.cards_before);
+            self.navigation_revision = self.navigation_revision.wrapping_add(1);
+            self.selection_dirty = true;
         }
         let tabs: Vec<_> = self
             .tabs
@@ -727,17 +920,16 @@ impl LoopState {
                             .map(|_| oc_tui::app::TabAttention::Question)
                     },
                     ..TabPresentation::new(
-                        view.attached_session()
-                            .expect("real tab has session")
+                        tab_route_session(view)
+                            .expect("real or provisional tab has route")
                             .clone(),
                     )
                 }
             })
             .collect();
         let active = self.active_tab.unwrap_or(self.tabs.len());
-        let can_add = self.root_navigation_allowed(state)
-            && self.departure_ready(state).is_ok()
-            && (self.home.is_some() || self.can_open_session());
+        let can_add =
+            self.root_navigation_allowed(state) && (self.home.is_some() || self.can_open_session());
         let (shown, selected, allowed) = state.tab_presentation();
         // `set_tab_strip` cancels a pending mouse Down: never call it while
         // nothing painted has changed, even across the 50ms redraw loop.
@@ -757,11 +949,10 @@ impl LoopState {
         session: SessionId,
         index: usize,
     ) -> Result<usize, String> {
-        self.departure_ready(state)?;
         if !self.root_navigation_allowed(state) {
             return Err("child session: read-only history; saved tabs are unchanged".into());
         }
-        let before = self.snapshot(state);
+        let before = self.structural_snapshot(state);
         if self.location.is_some() && state.chrome.location != self.location {
             return Err(CoreError::LocationChanged.to_string());
         }
@@ -779,20 +970,20 @@ impl LoopState {
             requested.new_session_titles.insert(index, flag);
         }
         requested.active = Some(session);
-        let active = before
-            .active
-            .as_ref()
-            .and_then(|id| requested.sessions.iter().position(|target| target == id));
         if requested != before {
-            self.save_snapshot_checked(app, requested)
-                .await
-                .map_err(|error| error.to_string())?;
+            let order = requested.sessions.clone();
+            let session = requested.active.clone().expect("moving real root");
+            deck_jobs::start(
+                app,
+                self,
+                requested,
+                deck_jobs::Effect::Move {
+                    session,
+                    order,
+                    navigation: self.navigation_revision,
+                },
+            )?;
         }
-        let tab = self.tabs.remove(from);
-        self.tabs.insert(index, tab);
-        let cursor = self.tab_cards_before.remove(from);
-        self.tab_cards_before.insert(index, cursor);
-        self.active_tab = active;
         Ok(index)
     }
 
@@ -802,7 +993,6 @@ impl LoopState {
         index: usize,
         preserve_pointer: bool,
     ) -> Result<(), String> {
-        self.departure_ready(state)?;
         if !self.root_navigation_allowed(state) {
             return Err("child session: read-only history; saved tabs are unchanged".into());
         }
@@ -811,6 +1001,8 @@ impl LoopState {
         }
         child_controls::return_root(state, self);
         if self.active_tab == Some(index) {
+            self.navigation_revision = self.navigation_revision.wrapping_add(1);
+            self.selection_dirty = true;
             state.close_panel();
             return Ok(());
         }
@@ -823,7 +1015,7 @@ impl LoopState {
         next.sync_clipboard_mode_from(state);
         next.take_tab_clocks_from(state);
         let previous = std::mem::replace(state, next);
-        state.invalidate_file_suggestions();
+        state.resume_retained_view();
         if let Some(old) = self.active_tab {
             self.tabs[old] = Some(previous);
             self.tab_cards_before[old] = self.cards_before;
@@ -831,6 +1023,8 @@ impl LoopState {
             self.home = Some(previous);
         }
         self.active_tab = Some(index);
+        self.navigation_revision = self.navigation_revision.wrapping_add(1);
+        self.selection_dirty = true;
         self.cards_before = self.tab_cards_before[index];
         self.dcp_seen = false;
         self.sync_tabs(state);
@@ -849,6 +1043,8 @@ impl LoopState {
         }
         // An existing synthetic Home is replaced by a fresh `/new` Home.
         self.home = None;
+        self.navigation_revision = self.navigation_revision.wrapping_add(1);
+        self.selection_dirty = true;
         self.cards_before = None;
         self.dcp_seen = false;
         self.sync_tabs(state);
@@ -864,8 +1060,10 @@ impl LoopState {
         home.take_tab_clocks_from(state);
         let old = self.active_tab.take().expect("Home parked from a tab");
         self.tabs[old] = Some(std::mem::replace(state, home));
-        state.invalidate_file_suggestions();
+        state.resume_retained_view();
         self.tab_cards_before[old] = self.cards_before;
+        self.navigation_revision = self.navigation_revision.wrapping_add(1);
+        self.selection_dirty = true;
         self.cards_before = None;
         self.dcp_seen = false;
         self.sync_tabs(state);
@@ -880,107 +1078,75 @@ impl LoopState {
     ) -> Result<(), String> {
         // OC2: closing a tab never cancels its run; only unresolved receipts
         // (their admission/commit outcome) keep a view open.
-        self.departure_ready(state)?;
+        self.target_ready(state, index)?;
         if index == self.tabs.len() {
-            // Home is a synthetic slot, and cannot be closed when it is the
-            // only route. When selected, activate the last real view before
-            // discarding the parked Home (and its draft).
-            if self.active_tab.is_none() && !self.tabs.is_empty() {
-                let mut candidate = self.snapshot(state);
-                candidate.active = self.tabs.last().and_then(|view| {
-                    view.as_ref()
-                        .and_then(|view| view.attached_session())
-                        .cloned()
-                });
-                self.save_snapshot_checked(app, candidate)
-                    .await
-                    .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
-                self.activate(state, self.tabs.len() - 1)?;
-            } else if self.home.is_none() {
+            if self.tabs.is_empty() || self.active_tab.is_some() && self.home.is_none() {
                 return Err("tab unavailable".into());
             }
-            self.home = None;
-            self.sync_tabs(state);
-            return Ok(());
+            let identity = if self.active_tab.is_none() {
+                state.view_identity()
+            } else {
+                self.home.as_ref().expect("parked Home").view_identity()
+            };
+            let mut candidate = self.structural_snapshot(state);
+            if self.active_tab.is_none() {
+                candidate.active = self
+                    .tabs
+                    .last()
+                    .and_then(Option::as_ref)
+                    .and_then(TuiState::attached_session)
+                    .cloned();
+            }
+            return deck_jobs::start(
+                app,
+                self,
+                candidate,
+                deck_jobs::Effect::CloseHome { identity },
+            );
         }
         if index >= self.tabs.len() {
             return Err("tab unavailable".into());
         }
-        // Fetch a replacement Home while the active tab and its draft still
-        // exist. A failed query must not retire the pending-root marker or
-        // change the visible route.
-        let replacement_home =
-            if self.active_tab == Some(index) && self.tabs.len() == 1 && self.home.is_none() {
-                let catalog = app
-                    .home_selection(SelectionAction::Current)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                let mut home = TuiState::new_home(app.clone());
-                home.apply_catalog(catalog);
-                Some(home)
-            } else {
-                None
-            };
-        // A fresh Home root can be accepted before its first preference save
-        // succeeds. Retire the owner's pending-root marker while the full
-        // visible deck still contains that root; otherwise closing it locally
-        // can make a later restart resurrect an explicitly closed tab.
-        // This CAS also refuses stale or unreadable projected preferences.
-        self.save_checked(app, state)
-            .await
-            .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
-        let mut candidate = self.snapshot(state);
-        candidate.sessions.remove(index);
+        let view = if self.active_tab == Some(index) {
+            &*state
+        } else {
+            self.tabs[index].as_ref().expect("parked target")
+        };
+        let session = tab_route_session(view).cloned().ok_or("tab unavailable")?;
+        if view.attached_session().is_none() {
+            // Failed/unknown fresh admission has no durable membership to
+            // delete. Dismiss only this local owner, without replay or cancel.
+            deck_jobs::close_local(app, state, self, index);
+            return Ok(());
+        }
+        let before = self.structural_snapshot(state);
+        let mut candidate = before.clone();
+        let durable_index = candidate
+            .sessions
+            .iter()
+            .position(|id| id == &session)
+            .ok_or("tab unavailable")?;
+        candidate.sessions.remove(durable_index);
         if !candidate.new_session_titles.is_empty() {
-            candidate.new_session_titles.remove(index);
+            candidate.new_session_titles.remove(durable_index);
             if !candidate.new_session_titles.iter().any(|value| *value) {
                 candidate.new_session_titles.clear();
             }
         }
         candidate.active = if self.active_tab == Some(index) {
-            // Immediately previous if available, otherwise the next tab.
-            (self.tabs.len() > 1).then(|| candidate.sessions[index.saturating_sub(1)].clone())
+            candidate
+                .sessions
+                .get(durable_index.saturating_sub(1))
+                .cloned()
         } else {
             candidate.active
         };
-        self.save_snapshot_checked(app, candidate)
-            .await
-            .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
-        if self.active_tab == Some(index) {
-            if self.tabs.len() == 1 {
-                if self.home.is_some() {
-                    self.restore_home(state);
-                    self.tabs.clear();
-                    self.tab_cards_before.clear();
-                    self.sync_tabs(state);
-                    return Ok(());
-                }
-                let mut home = replacement_home.expect("Home fetched before close save");
-                home.take_tab_clocks_from(state);
-                *state = home;
-                self.reset_deck();
-                self.sync_tabs(state);
-                return Ok(());
-            }
-            // Immediately previous if available, otherwise the next tab.
-            let survivor = if index > 0 { index - 1 } else { 1 };
-            self.activate(state, survivor)
-                .expect("idle surviving tab is available");
-        }
-        // The former active view is now parked. Removing the parallel cursor
-        // at the same index keeps paging state aligned with the real tabs.
-        self.tabs.remove(index);
-        self.tab_cards_before.remove(index);
-        if let Some(active) = self.active_tab.as_mut()
-            && *active > index
-        {
-            *active -= 1;
-        }
-        self.sync_tabs(state);
-        Ok(())
+        deck_jobs::start_close(app, self, before, candidate, session)
     }
 
     fn reset_deck(&mut self) {
+        self.authoritative_deck = None;
+        self.navigation_revision = self.navigation_revision.wrapping_add(1);
         self.child_parent = None;
         self.child_parent_read_only = false;
         self.child_views.clear();
@@ -995,22 +1161,42 @@ impl LoopState {
 
 async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
     if deck
-        .conversation_recovery
-        .as_ref()
-        .is_some_and(|(session, _)| state.attached_session() != Some(session))
-    {
-        deck.conversation_recovery = None;
-        if let Some(job) = deck.recovery_job.take() {
-            job.abort();
-        }
-    }
-    if deck
         .recovery_job
         .as_ref()
         .is_some_and(|job| job.is_finished())
     {
         let job = deck.recovery_job.take().expect("finished refresh");
-        if apply_conversation_refresh(app, state, job, true).await {
+        let prepared = job.await.unwrap_or_else(|_| {
+            (
+                Err("refresh interrupted".into()),
+                Err("refresh interrupted".into()),
+                Err("refresh interrupted".into()),
+            )
+        });
+        let route = deck.recovery_route.take();
+        let current = read_jobs::views_mut(state, deck).any(|view| {
+            route
+                .as_ref()
+                .is_some_and(|route| route.projection_current(view))
+        });
+        let mut applied = false;
+        if let Some(view) = read_jobs::views_mut(state, deck).find(|view| {
+            route
+                .as_ref()
+                .is_some_and(|route| route.projection_current(view))
+        }) {
+            applied = apply_conversation_refresh(app, view, prepared, true).await;
+        }
+        if !current {
+            let mut reads = std::mem::take(&mut deck.reads);
+            if let Some(view) = read_jobs::views_mut(state, deck)
+                .find(|view| route.as_ref().is_some_and(|route| route.owns(view)))
+            {
+                reads.request(view, true);
+            }
+            deck.reads = reads;
+            deck.conversation_recovery = None;
+        } else if applied {
             deck.conversation_recovery = None;
         } else if let Some((_, retry)) = &mut deck.conversation_recovery {
             *retry = std::time::Instant::now() + std::time::Duration::from_secs(1);
@@ -1023,6 +1209,7 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
         && *retry <= std::time::Instant::now()
     {
         if state.attached_session() == Some(session) {
+            deck.recovery_route = read_jobs::Route::capture(state);
             deck.recovery_job = Some(conversation_refresh(app.clone(), session.clone()));
         } else {
             deck.conversation_recovery = None;
@@ -1039,16 +1226,23 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
         .conversation_job
         .take()
         .expect("finished conversation job");
+    let origin = deck.conversation_origin.take();
     match job
         .await
         .unwrap_or_else(|_| Err("conversation operation interrupted".into()))
     {
         Ok(ConversationResult::Changed(snapshot, refresh)) => {
-            if state.attached_session() != Some(&snapshot.session) {
-                return;
+            let mut success = false;
+            if let Some(view) = read_jobs::views_mut(state, deck).find(|view| {
+                origin
+                    .as_ref()
+                    .is_some_and(|(route, _)| route.projection_current(view))
+                    && view.attached_session() == Some(&snapshot.session)
+            }) {
+                view.conversation_applied(&snapshot, &Default::default());
+                success = apply_conversation_refresh(app, view, refresh, false).await;
             }
-            state.conversation_applied(&snapshot, &Default::default());
-            if !apply_conversation_refresh(app, state, refresh, false).await {
+            if !success {
                 deck.conversation_recovery = Some((
                     snapshot.session,
                     std::time::Instant::now() + std::time::Duration::from_secs(1),
@@ -1060,11 +1254,34 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
         }
         Ok(ConversationResult::Forked(snapshot, refresh)) => {
             let before = deck.snapshot(state);
+            let mut requested = deck.structural_snapshot(state);
+            if !requested.sessions.contains(&snapshot.session) {
+                requested.sessions.push(snapshot.session.clone());
+                if !requested.new_session_titles.is_empty() {
+                    requested.new_session_titles.push(false);
+                }
+            }
             let mut next = TuiState::new(app.clone(), snapshot.session.clone());
             next.restore_prompt_input(oc_core::prompt::PromptInput {
                 text: snapshot.prompt,
                 images: snapshot.images,
             });
+            let refreshed = apply_conversation_refresh(app, &mut next, refresh, false).await;
+            if origin
+                .as_ref()
+                .is_some_and(|(_, navigation)| *navigation != deck.navigation_revision)
+            {
+                deck.tabs.push(Some(next));
+                deck.tab_cards_before.push(None);
+                deck.selection_dirty = true;
+                deck.sync_tabs(state);
+                requested.active = deck.snapshot(state).active;
+                if let Err(error) = deck_jobs::start(app, deck, requested, deck_jobs::Effect::Adopt)
+                {
+                    state.push_note(&error);
+                }
+                return;
+            }
             state.close_panel();
             next.take_tab_clocks_from(state);
             if let Some(old) = deck.active_tab.take() {
@@ -1079,8 +1296,12 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
             deck.cards_before = None;
             deck.dcp_seen = false;
             deck.sync_tabs(state);
-            deck.save_if_changed(app, state, &before).await;
-            if !apply_conversation_refresh(app, state, refresh, false).await {
+            deck.selection_dirty |= deck.snapshot(state) != before;
+            requested.active = deck.snapshot(state).active;
+            if let Err(error) = deck_jobs::start(app, deck, requested, deck_jobs::Effect::Adopt) {
+                state.push_note(&error);
+            }
+            if !refreshed {
                 deck.conversation_recovery = Some((
                     snapshot.session,
                     std::time::Instant::now() + std::time::Duration::from_secs(1),
@@ -1088,7 +1309,13 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
             }
             deck.sync_tabs(state);
         }
-        Err(error) => state.push_transient_note(&error, NoteVariant::Error),
+        Err(error) => {
+            if let Some(view) = read_jobs::views_mut(state, deck)
+                .find(|view| origin.as_ref().is_some_and(|(route, _)| route.owns(view)))
+            {
+                view.push_transient_note(&error, NoteVariant::Error);
+            }
+        }
     }
 }
 
@@ -1190,32 +1417,6 @@ async fn refresh_approvals_in_views(
     Ok(())
 }
 
-async fn refresh_control_views(
-    app: &CoreApp,
-    state: &mut TuiState,
-    deck: &mut LoopState,
-) -> Result<(), String> {
-    let unadmitted_shell = std::iter::once(&*state)
-        .chain(deck.tabs.iter().flatten())
-        .chain(deck.home.iter())
-        .filter(|view| view.attached_session().is_none())
-        .find_map(TuiState::user_shell_admission_session)
-        .cloned();
-    refresh_approvals_in_views(app, state, unadmitted_shell.as_ref()).await?;
-    // Existing bounded retained roots own their control projections too. None
-    // of these reads replies to a request or grants an execution capability.
-    for parked in deck
-        .tabs
-        .iter_mut()
-        .flatten()
-        .chain(deck.child_parent.as_deref_mut())
-        .chain(deck.child_views.values_mut())
-    {
-        refresh_approvals_in_views(app, parked, unadmitted_shell.as_ref()).await?;
-    }
-    Ok(())
-}
-
 async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> Result<u8, String> {
     let _term = enter()?;
     if std::env::var_os(PANIC_PROBE_ENV).is_some() {
@@ -1272,12 +1473,27 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         );
         state.questions.share_drafts(&loop_state.questions);
         let job_lanes = loop_state.job_lanes();
-        let job_ready = loop_state.ready_job();
+        let job_ready = loop_state.ready_job(&state);
         dirty |= state.tick_ui(Instant::now());
+        let active = state.view_identity();
+        for view in read_jobs::views(&state, &loop_state) {
+            if view.view_identity() != active {
+                view.poll_transcript_projection();
+            }
+        }
         loop_state.retire_parked_auth();
-        dirty |= loop_state.authentication.sync(app, &mut state).await;
-        poll_and_sync(app, &mut state, &mut loop_state).await;
-        if app.shares_workspace() && loop_state.shared_refresh {
+        dirty |= sync_authentication(app, &mut state, &mut loop_state).await;
+        dirty |= poll_and_sync(app, &mut state, &mut loop_state).await;
+        if app.shares_workspace()
+            && loop_state
+                .activity
+                .needs_workspace(state.attached_session())
+        {
+            loop_state.shared_refresh = true;
+        }
+        if app.shares_workspace()
+            && (loop_state.shared_refresh || loop_state.workspace_job.is_some())
+        {
             dirty |= shared::sync(app, &mut state, &mut loop_state).await?;
         }
         if app.shares_workspace()
@@ -1289,9 +1505,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             loop_state.sync_tabs(&mut state);
             dirty = true;
         }
+        dirty |= sync_controller_jobs(app, &mut state, &mut loop_state).await;
         if state.terminals_need_refresh() {
-            terminal_controls::refresh_or_report(app, &mut state).await;
-            dirty = true;
+            loop_state.terminals.request(&state);
         }
         if loop_state
             .approvals_checked
@@ -1302,21 +1518,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             })
         {
             if state.children_open() || state.linked_child().is_some() {
-                if let Err(error) = child_controls::refresh(app, &mut state).await {
-                    state.push_note(&error);
-                }
-                dirty = true;
+                loop_state.reads.request(&state, false);
             }
-            let before = state.approvals.active().cloned();
-            let question_before = state.questions.active().cloned();
-            let roots_before = state.approval_roots.clone();
-            if let Err(error) = refresh_approvals(app, &mut state).await {
-                state.approvals.error = Some(error);
-            }
-            dirty |= before.as_ref() != state.approvals.active();
-            dirty |= question_before.as_ref() != state.questions.active();
-            dirty |= roots_before != state.approval_roots;
-            loop_state.sync_tabs(&mut state);
+            loop_state.controls.request();
             loop_state.approvals_checked =
                 Some((state.attached_session().cloned(), Instant::now()));
         }
@@ -1404,12 +1608,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             }
             if state.terminal_visible().is_some() {
                 let size = terminal.size().map_err(|e| format!("terminal size: {e}"))?;
-                terminal_controls::resize(
-                    app,
-                    &mut state,
+                loop_state.terminals.resize(
+                    &state,
                     ratatui::layout::Rect::new(0, 0, size.width, size.height),
-                )
-                .await;
+                );
             }
             let color = cursor_color(&state);
             if color != painted_cursor_color {
@@ -1448,7 +1650,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             }
             dirty = false;
             paint_at = Instant::now() + FRAME_BUDGET;
-            if loop_state.reload_job.is_some() {
+            if loop_state.reload_pending() {
                 loop_state.reload_painted = true;
             }
         }
@@ -1585,13 +1787,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             if let Some(metrics) = &mut frame_metrics {
                 metrics.worker_events += 1;
             }
-            poll_and_sync(app, &mut state, &mut loop_state).await;
+            dirty |= poll_and_sync(app, &mut state, &mut loop_state).await;
             if let CoreEvent::Compaction(snapshot) = event {
                 apply_compaction_to_view(&mut state, &mut loop_state, snapshot);
             } else if let CoreEvent::McpChanged(snapshot) = event {
                 apply_mcp_to_views(&mut state, &mut loop_state, snapshot);
             } else if matches!(event, CoreEvent::ProviderChanged) {
+                loop_state.shared_refresh |= app.shares_workspace();
                 refresh_provider_views(app, &mut state, &mut loop_state).await;
+                loop_state.reads.request(&state, false);
             } else if matches!(
                 &event,
                 CoreEvent::PermissionAsked(_)
@@ -1601,7 +1805,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             ) {
                 // Fresh direct-user Shell Ask exists before a root history does.
                 // Control events must reach its receipt owner even on Home.
-                refresh_control_views(app, &mut state, &mut loop_state).await?;
+                loop_state.controls.request();
                 loop_state.approvals_checked = None;
             } else if let Some(current) = state
                 .attached_session()
@@ -1634,9 +1838,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= sync_mention(app, &mut state, &mut loop_state).await;
         // The DCP panel shows runtime counters: refresh when it opens.
         if *state.panel() == TuiPanel::Dcp && !loop_state.dcp_seen {
-            if let Some(current) = state.attached_session().cloned() {
-                refresh_dcp(app, &mut state, &current).await;
-            }
+            loop_state.reads.request(&state, false);
             loop_state.dcp_seen = true;
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
@@ -1654,8 +1856,18 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         if dirty {
             deadline = Some(deadline.map_or(paint_at, |at| at.min(paint_at)));
         }
-        if state.has_pending_submission()
-            || state.has_pending_model_commit()
+        if std::iter::once(&state)
+            .chain(loop_state.tabs.iter().flatten())
+            .chain(loop_state.home.iter())
+            .chain(loop_state.child_parent.as_deref())
+            .chain(loop_state.child_views.values())
+            .any(|view| {
+                view.has_pending_submission()
+                    || view.has_pending_model_commit()
+                    || view.has_pending_prompt_history()
+                    || view.user_shell_admission_session().is_some()
+                    || view.has_pending_transcript_projection()
+            })
             || loop_state.has_jobs()
         {
             let check = Instant::now() + FRAME_BUDGET;
@@ -1707,6 +1919,14 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         }
     }
     loop_state.authentication.shutdown(app).await?;
+    // Stop all views first, then explicitly join without retaining any TUI
+    // RefCell borrow across await. Parked roots/Home/children own work too.
+    for view in read_jobs::views(&state, &loop_state) {
+        view.cancel_transcript_projection();
+    }
+    for view in read_jobs::views(&state, &loop_state) {
+        view.finish_transcript_projection().await;
+    }
     if let Some(job) = loop_state.clipboard_job.take() {
         job.cancel().await;
     }
@@ -1824,22 +2044,208 @@ async fn sync_mention(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState)
     changed
 }
 
-async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
-    state.poll_submission();
-    // A key can poll the acceptance before this loop does. The deck, rather
-    // than the view, records whether that accepted Home was already saved.
-    let fresh = deck.active_tab.is_none() && state.attached_session().is_some();
-    deck.sync_tabs(state);
-    if fresh {
-        if app.shares_workspace() {
-            deck.shared_refresh = true;
-        } else {
-            deck.save(app, state).await;
+fn tab_route_session(view: &TuiState) -> Option<&SessionId> {
+    view.tab_route_session()
+}
+
+async fn sync_home(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) -> bool {
+    let mut changed = false;
+    if deck
+        .home_job
+        .as_ref()
+        .is_some_and(|(_, job)| job.is_finished())
+    {
+        let (identity, job) = deck.home_job.take().expect("finished Home catalog");
+        let result = job.await.unwrap_or(Err(CoreError::Shutdown));
+        let mut resolved = false;
+        // Reactivating the same retained Home only changes its read/filesystem
+        // generation. It does not withdraw this already-issued selection ACK.
+        if let Some(view) = read_jobs::views_mut(state, deck).find(|view| {
+            view.view_identity().0 == identity.0 && view.home && view.attached_session().is_none()
+        }) {
+            match result {
+                Ok(catalog) if catalog.chrome.location == view.chrome.location
+                    && catalog.chrome.selection_generation >= view.chrome.selection_generation => {
+                    view.apply_catalog(catalog);
+                    resolved = true;
+                }
+                _ => view.push_note("Home selection unavailable or changed; input retained. Open New to resolve it again."),
+            }
+            changed = true;
         }
-        if let Err(error) = refresh_shells(app, state).await {
-            state.push_note(&error);
+        if resolved {
+            deck.unresolved_homes.remove(&identity.0);
+            if let Some((source, command)) = deck.home_commands.remove(&identity.0)
+                && let Some(view) = read_jobs::views_mut(state, deck)
+                    .find(|view| view.view_identity().0 == source && view.input() == command)
+            {
+                view.accept_intent();
+            }
         }
     }
+    if deck.home_job.is_none()
+        && deck.navigation_job.is_none()
+        && !deck.scope_uncertain
+        && let Some((identity, action)) = deck.home_pending.take()
+    {
+        let owner = app.clone();
+        deck.home_job = Some((
+            identity,
+            tokio::spawn(async move { owner.home_selection(action).await }),
+        ));
+    }
+    changed
+}
+
+async fn sync_authentication(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) -> bool {
+    if deck.authentication_origin.is_none() {
+        if deck.navigation_job.is_some() {
+            return false;
+        }
+        let origin = read_jobs::views(state, deck)
+            .find(|view| view.auth_request().is_some())
+            .map(|view| view.view_identity().0);
+        deck.authentication_origin = origin;
+    }
+    let Some(origin) = deck.authentication_origin else {
+        return false;
+    };
+    let mut authentication = std::mem::take(&mut deck.authentication);
+    let changed = if let Some(view) =
+        read_jobs::views_mut(state, deck).find(|view| view.view_identity().0 == origin)
+    {
+        authentication.sync(app, view).await
+    } else {
+        false
+    };
+    if !authentication.has_surface() {
+        deck.authentication_origin = None;
+    }
+    deck.authentication = authentication;
+    changed
+}
+
+async fn sync_controller_jobs(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) -> bool {
+    let mut changed = sync_home(app, state, deck).await;
+    let finished: Vec<_> = deck
+        .cancel_jobs
+        .iter()
+        .filter(|(_, job)| job.is_finished())
+        .map(|(id, _)| id.clone())
+        .collect();
+    for key in finished {
+        let result = deck
+            .cancel_jobs
+            .remove(&key)
+            .expect("finished captured cancel")
+            .await
+            .unwrap_or(Err(CoreError::Shutdown));
+        if let Err(error) = result
+            && error != CoreError::TurnNotActive
+            && let Some(view) = read_jobs::views_mut(state, deck)
+                .find(|view| tab_route_session(view) == Some(&key.0))
+        {
+            view.push_note(&format!("Cancellation: {error}"));
+            changed = true;
+        }
+    }
+    changed |= read_jobs::sync(app, state, deck).await;
+    changed |= notice_jobs::sync(app, state, deck).await;
+    changed |= child_jobs::sync(app, state, deck).await;
+    changed |= work_controls::sync(state, deck).await;
+    changed |= catalog_jobs::sync(app, state, deck).await;
+    changed |= history_jobs::sync(app, state, deck).await;
+    changed |= resource_jobs::sync(state, deck).await;
+    changed |= reload_jobs::sync(app, state, deck).await;
+    changed |= navigation_jobs::sync(app, state, deck).await;
+    changed |= picker_jobs::sync(app, state, deck).await;
+    changed |= inbox_jobs::sync(app, state, deck).await;
+    changed |= control_jobs::sync(app, state, deck).await;
+    changed |= terminal_controls::sync(app, state, deck).await;
+    changed |= deck_jobs::sync(app, state, deck).await;
+    changed |= finish_provider_feedback(state, deck);
+    if changed {
+        deck.sync_tabs(state);
+    }
+    changed
+}
+
+async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) -> bool {
+    let mut intents = Vec::new();
+    let mut changed = false;
+    let slots = deck.tabs.len();
+    for view in std::iter::once(&mut *state)
+        .chain(deck.tabs.iter_mut().flatten())
+        .chain(deck.home.iter_mut())
+        .chain(deck.child_parent.as_deref_mut())
+        .chain(deck.child_views.values_mut())
+    {
+        changed |= view.poll_prompt_history();
+        let attached = view.attached_session().cloned();
+        let pending = (
+            view.has_pending_submission(),
+            view.has_pending_model_commit(),
+            view.has_occupied_submission(),
+        );
+        if let Some(intent) = view.poll_submission() {
+            intents.push((view.view_identity(), intent));
+        }
+        if attached != view.attached_session().cloned() {
+            deck.shared_refresh |= app.shares_workspace();
+            deck.selection_dirty = true;
+            deck.controls.request();
+            deck.reads.request(view, true);
+            changed = true;
+        }
+        changed |= pending
+            != (
+                view.has_pending_submission(),
+                view.has_pending_model_commit(),
+                view.has_occupied_submission(),
+            );
+    }
+    // The source can be parked while agent preparation resolves. Execute its
+    // one deferred intent against that exact owner, never against current focus.
+    for (identity, intent) in intents {
+        if state.view_identity() == identity {
+            if let Err(error) = Box::pin(apply_intent_with_origin(
+                app, state, deck, intent, false, false,
+            ))
+            .await
+            {
+                state.push_note(&error);
+            }
+        } else if let Some(index) = deck.tabs.iter().position(|view| {
+            view.as_ref()
+                .is_some_and(|view| view.view_identity() == identity)
+        }) {
+            let mut view = deck.tabs[index].take().expect("retained receipt owner");
+            if let Err(error) = Box::pin(apply_intent_with_origin(
+                app, &mut view, deck, intent, false, false,
+            ))
+            .await
+            {
+                view.push_note(&error);
+            }
+            deck.tabs[index] = Some(view);
+        } else if deck
+            .home
+            .as_ref()
+            .is_some_and(|view| view.view_identity() == identity)
+        {
+            let mut view = deck.home.take().expect("retained Home receipt owner");
+            if let Err(error) = Box::pin(apply_intent_with_origin(
+                app, &mut view, deck, intent, false, false,
+            ))
+            .await
+            {
+                view.push_note(&error);
+            }
+            deck.home = Some(view);
+        }
+    }
+    deck.sync_tabs(state);
+    changed || slots != deck.tabs.len()
 }
 
 async fn reconcile_exit(
@@ -1851,14 +2257,98 @@ async fn reconcile_exit(
         .reconcile_fresh_quit()
         .await
         .map_err(|error| format!("quit cancellation: {error}"))?;
+    for view in deck
+        .tabs
+        .iter_mut()
+        .flatten()
+        .chain(deck.home.iter_mut())
+        .chain(deck.child_parent.as_deref_mut())
+        .chain(deck.child_views.values_mut())
+    {
+        view.reconcile_fresh_quit()
+            .await
+            .map_err(|error| format!("quit cancellation: {error}"))?;
+    }
     if app.shares_workspace() {
+        if read_jobs::views(state, deck).any(|view| {
+            view.attached_session().is_none()
+                && (view.has_pending_submission() || view.user_shell_admission_session().is_some())
+        }) {
+            // A pre-acceptance Ask can hold the native Location deck gate.
+            // Its authority-owned admission needs this viewer's lease release;
+            // waiting for workspace/selection behind it would deadlock Quit.
+            return if deck.home_pending.is_some()
+                || deck.home_job.is_some()
+                || deck.deck_job.is_some()
+                || deck.workspace_job.is_some()
+                || deck.shared_refresh
+                || deck.selection_dirty
+            {
+                Err("quit tab selection unavailable while fresh admission awaits acknowledgement; release viewer lease".into())
+            } else {
+                Ok(())
+            };
+        }
+        // Quit may arrive in the same input batch as New/activation, before the
+        // next frame starts its Home query or selection CAS. Settle those known
+        // lanes and persist only focus/geometry against authoritative membership.
+        // A refused/unknown CAS stays blocked: shutdown must never retry it.
+        loop {
+            if deck.selection_blocked {
+                return Err("quit tab selection unavailable; saved tabs were not replayed".into());
+            }
+            if deck.navigation_job.is_some() || deck.moved_pending.is_some() || deck.scope_uncertain
+            {
+                return if deck.home_pending.is_some()
+                    || deck.home_job.is_some()
+                    || deck.selection_dirty
+                {
+                    Err(
+                        "quit tab selection unavailable while Location navigation is unresolved"
+                            .into(),
+                    )
+                } else {
+                    Ok(())
+                };
+            }
+            sync_home(app, state, deck).await;
+            if deck.workspace_job.is_some() || deck.shared_refresh {
+                shared::sync(app, state, deck).await?;
+            }
+            deck.sync_tabs(state);
+            deck_jobs::sync(app, state, deck).await;
+            if deck.selection_blocked {
+                return Err("quit tab selection unavailable; saved tabs were not replayed".into());
+            }
+            if deck.home_job.is_none()
+                && deck.home_pending.is_none()
+                && deck.deck_job.is_none()
+                && deck.workspace_job.is_none()
+                && !deck.shared_refresh
+            {
+                if deck.selection_dirty && !deck.save_disabled {
+                    return Err(
+                        "quit tab selection unavailable; saved tabs were not replayed".into(),
+                    );
+                }
+                break;
+            }
+            tokio::time::sleep(FRAME_BUDGET).await;
+        }
         return Ok(());
     }
     // `handle_key` can consume an acceptance just before setting Quit, after
     // the frame's final poll_and_sync. Only a newly attached Home needs a
     // save; an already-durable tab never waits or writes again.
-    if deck.active_tab.is_none() && state.attached_session().is_some() {
-        deck.sync_tabs(state);
+    deck.sync_tabs(state);
+    let visible = deck.snapshot(state);
+    if visible.sessions.iter().any(|id| {
+        deck.fresh_membership.contains(id)
+            && deck
+                .authoritative_deck
+                .as_ref()
+                .is_none_or(|saved| !saved.sessions.contains(id))
+    }) {
         deck.save_checked(app, state)
             .await
             .map_err(|error| format!("quit tab deck: {error}"))?;
@@ -1871,66 +2361,15 @@ fn at_tty() -> bool {
     std::io::stdin().is_terminal()
 }
 
-/// A manual Home choice becomes the durable Home draft at once, so the next
-/// launch opens with it without a send first. Best effort: a refused or failed
-/// write never undoes the draft (the send path still validates and persists).
-async fn remember_home_draft(app: &CoreApp, state: &TuiState) {
-    if state.attached_session().is_none()
-        && let Some(commit) = state.captured_model_commit()
-    {
-        let _ = app.home_selection(SelectionAction::Commit(commit)).await;
-    }
-}
-
-/// Pinned `saveVariant`: the effort is remembered as soon as it is chosen,
-/// independent of sending; a storage failure never undoes the draft.
-async fn remember_drafted_variant(app: &CoreApp, state: &mut TuiState) {
-    remember_home_draft(app, state).await;
-    if let Some(action) = state.drafted_variant()
-        && let Ok(preference) = app.model_preference(Some(action)).await
-    {
-        state.apply_model_preference(preference);
-    }
-}
-
-async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
-    let picker_provider = state.picker_provider_filter().map(str::to_owned);
-    let catalog = if let Some(session) = state.attached_session() {
-        app.session_selection(session.clone(), false, SelectionAction::Current)
-            .await
-    } else {
-        app.home_selection(SelectionAction::Current).await
-    };
-    if let Ok(catalog) = catalog {
-        state.apply_catalog(catalog);
-        if let Some(provider) = picker_provider
-            && let Ok(catalog) = app.provider_catalog(provider).await
-        {
-            state.apply_picker_catalog(catalog);
-        }
-    }
-    // A provider view finished discovery while the all-provider dialog is open.
-    if state.model_directory_visible()
-        && let Ok(catalogs) = app.model_catalogs().await
-    {
-        let preference = app.model_preference(None).await.unwrap_or_default();
-        state.apply_model_directory(catalogs, preference);
-    }
-}
-
 async fn refresh_provider_views(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
-    refresh_provider_view(app, state).await;
-    for view in deck.tabs.iter_mut().flatten() {
-        refresh_provider_view(app, view).await;
+    let mut jobs = std::mem::take(&mut deck.catalogs);
+    for view in read_jobs::views_mut(state, deck) {
+        jobs.request(app, view, catalog_jobs::Request::Provider);
     }
-    if let Some(home) = deck.home.as_mut() {
-        refresh_provider_view(app, home).await;
-    }
-    if deck.reload_job.is_none()
-        && let Ok(snapshot) = app.mcp_status().await
-    {
-        apply_mcp_to_views(state, deck, snapshot);
-    }
+    deck.catalogs = jobs;
+    let _ = deck
+        .resources
+        .request(app, state, resource_jobs::Request::Mcp(None));
 }
 
 fn startup_query(error: CoreError) -> StartupFailure {
@@ -2172,6 +2611,7 @@ async fn restore_initial(
     {
         return Err(StartupFailure::Query);
     }
+    deck.authoritative_deck = Some(stored.clone());
     deck.location = Some(stored.location);
     deck.revision = stored.revision;
     let mut ids = stored.sessions;
@@ -2326,11 +2766,39 @@ async fn handle_event_ticks(
     cev: CEvent,
     wheel_ticks: usize,
 ) -> Result<(), String> {
+    if matches!(&cev, CEvent::Key(_) | CEvent::Mouse(_) | CEvent::Paste(_)) {
+        loop_state.interaction_revision = loop_state.interaction_revision.wrapping_add(1);
+    }
     loop_state.activity.focus(&cev);
     if let CEvent::Resize(width, height) = cev {
         state.resize_mouse_position(ratatui::layout::Rect::new(0, 0, width, height));
-        terminal_controls::resize(app, state, ratatui::layout::Rect::new(0, 0, width, height))
-            .await;
+        loop_state
+            .terminals
+            .resize(state, ratatui::layout::Rect::new(0, 0, width, height));
+        return Ok(());
+    }
+    if let CEvent::Key(key) = &cev
+        && key.kind != crossterm::event::KeyEventKind::Release
+        && key.code == crossterm::event::KeyCode::Char('d')
+        && key.modifiers == crossterm::event::KeyModifiers::CONTROL
+        && let Some(target) = loop_state
+            .terminals
+            .attaching_eof(state, loop_state.interaction_revision)
+    {
+        let session = target.session.clone();
+        terminal_controls::apply(
+            app,
+            state,
+            loop_state,
+            session,
+            oc_tui::terminal_view::TerminalIntent::Control(
+                oc_core::queries::TerminalAction::Input {
+                    target,
+                    bytes: vec![4],
+                },
+            ),
+        )
+        .await;
         return Ok(());
     }
     let raw = match &cev {
@@ -2346,7 +2814,7 @@ async fn handle_event_ticks(
         crossterm::event::Event::Key(key) => state.terminal_key(key).map(UiEvent::Key),
         other => map_event(other),
     };
-    if loop_state.reload_job.is_some() || loop_state.conversation_job.is_some() {
+    if loop_state.reload_pending() {
         match event {
             Some(UiEvent::Key(KeyAction::Interrupt | KeyAction::Quit)) => {
                 // Bypass modal/editor focus, but leave owner reload intact for
@@ -2370,6 +2838,31 @@ async fn handle_event_ticks(
         Some(UiEvent::Key(action)) => {
             let submits = action == KeyAction::Enter
                 || matches!(&action, KeyAction::SequenceKey(key, _) if key == "enter");
+            let composer_submit = submits
+                && *state.panel() == TuiPanel::None
+                && state.approvals.active().is_none()
+                && state.questions.active().is_none();
+            if *state.panel() == TuiPanel::Sessions
+                && matches!(
+                    action,
+                    KeyAction::Enter | KeyAction::Rename | KeyAction::DeleteOrQuit
+                )
+            {
+                match loop_state.picker.defer_action(
+                    state,
+                    loop_state.navigation_revision,
+                    loop_state.interaction_revision,
+                    false,
+                    action.clone(),
+                ) {
+                    Ok(true) => return Ok(()),
+                    Err(error) => {
+                        state.push_note(&error);
+                        return Ok(());
+                    }
+                    Ok(false) => {}
+                }
+            }
             sync_clipboard(state, loop_state).await;
             if action == KeyAction::Paste {
                 start_clipboard(state, loop_state);
@@ -2379,13 +2872,36 @@ async fn handle_event_ticks(
                 state.push_note("clipboard paste pending; wait or edit to cancel");
                 return Ok(());
             }
+            if composer_submit
+                && dispatch(state.input().trim()).is_none()
+                && (loop_state
+                    .deck_job
+                    .as_ref()
+                    .is_some_and(|job| job.closing(state))
+                    || loop_state.conversation_owns(state)
+                    || loop_state.catalogs.preparing(state)
+                    || loop_state.navigation_job.is_some()
+                    || loop_state.scope_uncertain)
+            {
+                state.push_note("tab close pending; input retained until acknowledgement");
+                return Ok(());
+            }
+            if composer_submit
+                && loop_state
+                    .unresolved_homes
+                    .contains(&state.view_identity().0)
+                && dispatch(state.input().trim()).is_none()
+            {
+                state.push_note("Home selection loading; input retained");
+                return Ok(());
+            }
             if action == KeyAction::Cancel
                 && *state.panel() == TuiPanel::None
                 && state.input().trim() == "/rename"
                 && let Some((session, _)) = &loop_state.title_job
                 && state.attached_session() == Some(session)
             {
-                let _ = app.cancel_title(session.clone()).await;
+                loop_state.picker.cancel_title(app, session.clone());
                 return Ok(());
             }
             if loop_state.read_only
@@ -2424,6 +2940,7 @@ async fn handle_event_ticks(
             apply_outcome(app, state, loop_state, outcome, false).await;
         }
         Some(UiEvent::Mouse(mouse)) => {
+            loop_state.pointer_revision = loop_state.pointer_revision.wrapping_add(1);
             let (cols, rows) =
                 crossterm::terminal::size().map_err(|e| format!("mouse terminal size: {e}"))?;
             let area = ratatui::layout::Rect::new(0, 0, cols, rows);
@@ -2499,7 +3016,6 @@ async fn apply_mouse_outcome(
     let picker_open = *state.panel() == TuiPanel::Sessions
         && matches!(intent, PanelIntent::SwitchSession { .. })
         && area.contains((x, y).into());
-    let picker_location = picker_open.then(|| loop_state.location.clone());
     let pointer =
         (state.mouse_position() == Some((x, y, area)) || picker_open).then_some((x, y, area));
     let close = match intent {
@@ -2522,12 +3038,19 @@ async fn apply_mouse_outcome(
         Ok(()) => {
             loop_state.sync_tabs(state);
             if let Some(snapshot) = close {
-                state.restore_mouse_close(snapshot);
-            } else if (activate
-                || picker_open && picker_location.as_ref() == Some(&loop_state.location))
+                if let Some(job) = loop_state.deck_job.as_mut() {
+                    job.retain_close_pointer(loop_state.navigation_revision, snapshot);
+                } else {
+                    state.restore_mouse_close(snapshot);
+                }
+            } else if (activate || picker_open)
                 && let Some(pointer) = pointer
             {
-                state.restore_mouse_hover(pointer);
+                if picker_open && let Some(job) = loop_state.navigation_job.as_mut() {
+                    job.retain_pointer(loop_state.pointer_revision, pointer);
+                } else {
+                    state.restore_mouse_hover(pointer);
+                }
             }
         }
         Err(message) => {
@@ -2551,12 +3074,17 @@ async fn apply_outcome(
     let Some(intent) = outcome.intent else {
         return;
     };
+    let rename = match &intent {
+        PanelIntent::RenameSessionDirect { .. } => Some(true),
+        PanelIntent::RenameSession { .. } | PanelIntent::RenameSelectedSession { .. } => {
+            Some(false)
+        }
+        _ => None,
+    };
     let keyboard_close_pointer = (matches!(intent, PanelIntent::CloseTab { .. })
         && *state.panel() == TuiPanel::None)
         .then(|| state.mouse_position())
         .flatten();
-    // Scrolling intents never consume typed input; commands do.
-    let consumes = matches!(intent, PanelIntent::SwitchLocation { .. });
     // Keep the controller's large intent future out of each nested input poll
     // frame; do not depend on an enlarged executor/test thread stack.
     match Box::pin(apply_intent_with_origin(
@@ -2565,14 +3093,18 @@ async fn apply_outcome(
     .await
     {
         Ok(()) => {
-            if consumes {
-                state.accept_intent();
-            }
             if let Some(pointer) = keyboard_close_pointer {
                 state.restore_tab_hover_at(pointer);
             }
         }
-        Err(message) => state.apply_intent_error(message),
+        Err(message) => match rename {
+            Some(true) => state
+                .rename_session_direct_rejected(format!("session rename unavailable: {message}")),
+            Some(false) => {
+                state.rename_session_rejected(format!("session rename unavailable: {message}"))
+            }
+            None => state.apply_intent_error(message),
+        },
     }
     loop_state.sync_tabs(state);
 }
@@ -2632,10 +3164,59 @@ async fn apply_owned_intent(
             | PanelIntent::LoadProviderConnections { .. }
             | PanelIntent::ProviderAccounts { action: None, .. }
     );
-    if loop_state.conversation_job.is_some() && !terminal_control && !auth_control {
-        return Err("conversation operation pending".into());
+    let local_navigation = matches!(
+        intent,
+        PanelIntent::NewSession | PanelIntent::AddSessionTab | PanelIntent::ActivateTab { .. }
+    );
+    if loop_state
+        .unresolved_homes
+        .contains(&state.view_identity().0)
+        && matches!(
+            &intent,
+            PanelIntent::SelectModel { .. }
+                | PanelIntent::ChooseModel { .. }
+                | PanelIntent::CycleVariant
+                | PanelIntent::SelectAgent { .. }
+        )
+    {
+        return Err("Home binding preparing; model and agent drafts unchanged".into());
     }
-    if loop_state.reload_job.is_some() && !terminal_control && !auth_control {
+    let source_mutation = matches!(
+        &intent,
+        PanelIntent::Inbox { .. }
+            | PanelIntent::CompactSession
+            | PanelIntent::ChangeConversation { .. }
+            | PanelIntent::ForkMessage { .. }
+            | PanelIntent::RenameSession { .. }
+            | PanelIntent::RenameSessionDirect { .. }
+            | PanelIntent::RegenerateTitle
+            | PanelIntent::SelectModel { .. }
+            | PanelIntent::ChooseModel { .. }
+            | PanelIntent::CycleVariant
+            | PanelIntent::SelectAgent { .. }
+            | PanelIntent::Compress { .. }
+            | PanelIntent::Terminal { .. }
+            | PanelIntent::SetSidebarMcpOpen { .. }
+    );
+    if source_mutation && !terminal_control {
+        if state
+            .tab_route_session()
+            .is_some_and(|id| loop_state.closed_owners.contains_key(id))
+            || loop_state
+                .deck_job
+                .as_ref()
+                .is_some_and(|job| job.closing(state))
+        {
+            return Err("tab close pending; draft retained until acknowledgement".into());
+        }
+        if loop_state.conversation_owns(state) {
+            return Err("conversation operation pending".into());
+        }
+        if loop_state.navigation_job.is_some() || loop_state.scope_uncertain {
+            return Err("session navigation pending; draft retained".into());
+        }
+    }
+    if loop_state.reload_pending() && !terminal_control && !auth_control {
         return Err("configuration reload pending".into());
     }
     let root_navigation = matches!(
@@ -2646,7 +3227,7 @@ async fn apply_owned_intent(
             | PanelIntent::ActivateTab { .. }
             | PanelIntent::MoveTab { .. }
     );
-    if root_navigation {
+    if root_navigation && !local_navigation {
         loop_state.departure_ready(state)?;
     }
     if loop_state.read_only
@@ -2676,13 +3257,48 @@ async fn apply_owned_intent(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::CancelSession {
+            session,
+            turn,
+            cancel_compaction,
+        } => {
+            let key = (session.clone(), turn.clone(), cancel_compaction);
+            if !loop_state.cancel_jobs.contains_key(&key) {
+                if loop_state.cancel_jobs.len() >= MAX_TABS + 17 {
+                    return Err(
+                        "cancellation admissions pending; retry after acknowledgement".into(),
+                    );
+                }
+                let owner = app.clone();
+                loop_state.cancel_jobs.insert(
+                    key,
+                    tokio::spawn(async move {
+                        let compaction = if cancel_compaction {
+                            owner.cancel_compaction(session.clone()).await
+                        } else {
+                            Ok(())
+                        };
+                        let cancellation = match turn {
+                            Some(turn) => owner.cancel_turn(session, turn).await,
+                            None => owner.cancel(session).await,
+                        };
+                        compaction
+                            .or_else(|error| {
+                                if error == CoreError::TurnNotActive {
+                                    Ok(())
+                                } else {
+                                    Err(error)
+                                }
+                            })
+                            .and(cancellation)
+                    }),
+                );
+            }
+        }
         PanelIntent::SetSidebarMcpOpen { open } => {
-            let open = app
-                .sidebar_mcp_open(Some(open))
-                .await
-                .map_err(|error| error.to_string())?;
-            loop_state.sidebar_mcp_open = Some(open);
-            state.apply_sidebar_mcp_open(open);
+            loop_state
+                .resources
+                .request(app, state, resource_jobs::Request::Sidebar(open))?;
         }
         PanelIntent::SetTabRailWidth { width } => {
             if !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
@@ -2692,15 +3308,9 @@ async fn apply_owned_intent(
             {
                 return Err(CoreError::InvalidTabDeck.to_string());
             }
-            let mut requested = loop_state.snapshot(state);
+            let mut requested = loop_state.structural_snapshot(state);
             requested.rail_width = Some(width);
-            loop_state
-                .save_snapshot_checked(app, requested)
-                .await
-                .map_err(|e| e.to_string())?;
-            state
-                .apply_tab_rail_width(Some(width))
-                .map_err(|e| e.to_string())?;
+            deck_jobs::start(app, loop_state, requested, deck_jobs::Effect::Width(width))?;
         }
         connection @ (PanelIntent::LoadProviderConnections { .. }
         | PanelIntent::LoadAuthMethods { .. }
@@ -2708,35 +3318,37 @@ async fn apply_owned_intent(
         | PanelIntent::ProbeCustomProvider { .. }
         | PanelIntent::RetryCustomProvider { .. }
         | PanelIntent::SaveCustomProvider { .. }) => {
+            if loop_state.navigation_job.is_some()
+                || loop_state.scope_uncertain
+                || loop_state
+                    .authentication_origin
+                    .is_some_and(|origin| origin != state.view_identity().0)
+            {
+                return Err(
+                    "authorization target pending in another retained view; input retained".into(),
+                );
+            }
             loop_state.authentication.connect(app, state, connection)?;
+            loop_state.authentication_origin = Some(state.view_identity().0);
         }
         PanelIntent::BeginAuthentication(request) => {
             if state.auth_request() == Some(&request) {
-                loop_state.authentication.sync(app, state).await;
+                sync_authentication(app, state, loop_state).await;
             }
         }
         PanelIntent::RefreshCustomProvider { binding } => {
             if state.custom_picker_binding() != Some(&binding) {
                 return Ok(());
             }
-            let current = app.catalog().await.map_err(|e| e.to_string())?;
-            if current.chrome.location != binding.location
-                || current.chrome.selection_generation != binding.generation
-            {
-                return Ok(());
-            }
-            app.custom_provider(oc_core::queries::CustomProviderAction::Refresh {
-                provider: binding.provider.clone(),
-            })
-            .await
-            .map_err(|e| e.to_string())?;
-            let snapshot = app
-                .provider_catalog(binding.provider)
-                .await
-                .map_err(|e| e.to_string())?;
-            state.apply_picker_catalog(snapshot);
+            loop_state
+                .catalogs
+                .request(app, state, catalog_jobs::Request::Custom(binding));
         }
-        PanelIntent::OpenAuthorization => loop_state.authentication.open(state),
+        PanelIntent::OpenAuthorization => {
+            if loop_state.authentication_origin == Some(state.view_identity().0) {
+                loop_state.authentication.open(state);
+            }
+        }
         PanelIntent::CopyAuthorization => {
             if let Some(detail) = state.auth_detail(true) {
                 let result = crate::clipboard::copy(detail);
@@ -2755,6 +3367,12 @@ async fn apply_owned_intent(
             action,
             close_composer,
         } => {
+            if matches!(action, oc_tui::terminal_view::TerminalIntent::Refresh) {
+                if state.attached_session() == Some(&session) {
+                    loop_state.terminals.request(state);
+                }
+                return Ok(());
+            }
             // Source callback closes the lower composer BEFORE dispatch. A child
             // route returns to its parent, but never changes the captured actor.
             if close_composer {
@@ -2765,7 +3383,7 @@ async fn apply_owned_intent(
             }
             terminal_controls::apply(app, state, loop_state, session, action).await;
         }
-        PanelIntent::LoadChildren => child_controls::refresh(app, state).await?,
+        PanelIntent::LoadChildren => loop_state.reads.request(state, false),
         PanelIntent::OpenChild { selected } => {
             child_controls::open(app, state, loop_state, selected).await?
         }
@@ -2780,88 +3398,30 @@ async fn apply_owned_intent(
             if state.attached_session() != Some(&session) || state.active_turn() != Some(&turn) {
                 return Ok(());
             }
-            for target in work {
-                let result = match target {
-                    oc_tui::app::ForegroundWork::Child(job)
-                        if job.parent == session
-                            && !job.background
-                            && matches!(
-                                job.state,
-                                oc_core::queries::ChildState::Admitted
-                                    | oc_core::queries::ChildState::Running
-                            ) =>
-                    {
-                        app.background_child(job.parent.clone(), *job).await
-                    }
-                    oc_tui::app::ForegroundWork::Shell(job)
-                        if job.session == session && job.turn == turn.0 && !job.background =>
-                    {
-                        app.background_shell(job.session, job.shell_id).await
-                    }
-                    _ => continue,
-                };
-                if let Err(error) = result {
-                    state.push_note(&error.to_string());
-                }
-            }
-            child_controls::refresh(app, state).await?;
-            if let Ok(rows) = app.shell_jobs(session).await {
-                state.apply_shell_jobs(rows);
-            }
+            loop_state.work.start(
+                app,
+                state,
+                PanelIntent::BackgroundSession {
+                    session,
+                    turn,
+                    work,
+                },
+            )?;
         }
-        PanelIntent::BackgroundChild { selected } => {
-            if let Err(error) = app
-                .background_child(selected.parent.clone(), selected)
-                .await
+        work @ (PanelIntent::BackgroundChild { .. } | PanelIntent::InterruptChild { .. }) => {
+            loop_state.work.start(app, state, work)?
+        }
+        control @ (PanelIntent::SetPermissionMode { .. }
+        | PanelIntent::ReplyApproval(_)
+        | PanelIntent::ReplyQuestion(_)) => {
+            if matches!(&control, PanelIntent::SetPermissionMode { .. })
+                && (loop_state.navigation_job.is_some() || loop_state.scope_uncertain)
             {
-                state.push_note(&error.to_string());
+                return Err("session scope changing; permission mode unchanged".into());
             }
-            child_controls::refresh(app, state).await?;
-        }
-        PanelIntent::InterruptChild { selected } => {
-            if let Err(error) = app.interrupt_child(selected.parent.clone(), selected).await {
-                state.push_note(&error.to_string());
-            }
-            child_controls::refresh(app, state).await?;
-        }
-        PanelIntent::SetPermissionMode { auto_once } => {
-            app.set_permission_mode_with_cli_auto(auto_once, loop_state.cli_auto)
-                .await
-                .map_err(|e| e.to_string())?;
-            state.chrome.permissions_auto = auto_once;
-            let effective = auto_once || loop_state.cli_auto;
-            loop_state.permission_auto = Some(effective);
-            state.auto_accept = if effective {
-                oc_core::queries::AutoAcceptState::Enabled
-            } else {
-                oc_core::queries::AutoAcceptState::Disabled
-            };
-            for parked in loop_state.tabs.iter_mut().flatten() {
-                parked.auto_accept = state.auto_accept;
-                parked.chrome.permissions_auto = auto_once;
-            }
-            if let Some(home) = loop_state.home.as_mut() {
-                home.auto_accept = state.auto_accept;
-                home.chrome.permissions_auto = auto_once;
-            }
-            state.permission_mode_applied();
-            refresh_approvals(app, state).await?;
-        }
-        PanelIntent::ReplyApproval(reply) => match app.reply_approval(reply).await {
-            Ok(()) => refresh_approvals(app, state).await?,
-            Err(error) => {
-                state.approvals.error = Some(error.to_string());
-                return Err(error.to_string());
-            }
-        },
-        PanelIntent::ReplyQuestion(reply) => {
-            let result = app.reply_question(reply.clone()).await;
-            state
-                .questions
-                .reply_result(&reply, result.as_ref().err().map(ToString::to_string));
-            if result.is_ok() {
-                refresh_approvals(app, state).await?;
-            }
+            loop_state
+                .controls
+                .reply(app, state, control, loop_state.cli_auto)?
         }
         PanelIntent::CompactSession => {
             if loop_state.compaction_job.is_some() {
@@ -2870,6 +3430,7 @@ async fn apply_owned_intent(
             let session = state.attached_session().cloned().ok_or("no session yet")?;
             let owner = app.clone();
             let revision = state.compaction_request_revision();
+            loop_state.compaction_origin = read_jobs::Route::capture(state);
             loop_state.compaction_job = Some(tokio::spawn(async move {
                 owner
                     .compact_session(session)
@@ -2886,12 +3447,16 @@ async fn apply_owned_intent(
                 return Err("submission pending".into());
             }
             let owner = app.clone();
+            loop_state.conversation_origin = read_jobs::Route::capture(state)
+                .map(|route| (route, loop_state.navigation_revision));
             loop_state.conversation_job = Some(tokio::spawn(async move {
                 let snapshot = owner
                     .change_conversation(session.clone(), action)
                     .await
                     .map_err(|e| e.to_string())?;
-                let refresh = conversation_refresh(owner, session);
+                let refresh = conversation_refresh(owner, session)
+                    .await
+                    .map_err(|_| "conversation refresh interrupted".to_string())?;
                 Ok(ConversationResult::Changed(snapshot, refresh))
             }));
         }
@@ -2904,29 +3469,25 @@ async fn apply_owned_intent(
             }
             let session = require_session(state)?;
             let owner = app.clone();
+            loop_state.conversation_origin = read_jobs::Route::capture(state)
+                .map(|route| (route, loop_state.navigation_revision));
             loop_state.conversation_job = Some(tokio::spawn(async move {
                 let snapshot = owner
                     .fork_session(session, message)
                     .await
                     .map_err(|e| e.to_string())?;
-                let refresh = conversation_refresh(owner, snapshot.session.clone());
+                let refresh = conversation_refresh(owner, snapshot.session.clone())
+                    .await
+                    .map_err(|_| "conversation refresh interrupted".to_string())?;
                 Ok(ConversationResult::Forked(snapshot, refresh))
             }));
         }
         PanelIntent::CopyMessage { message, seq } => {
-            let session = require_session(state)?;
-            // Fetch the owner row again: HistoryWindow/rendering can shorten text.
-            let page = app
-                .history_page(session, seq.checked_add(1), None, 1)
-                .await
-                .map_err(|e| e.to_string())?;
-            let row = page
-                .rows
-                .into_iter()
-                .find(|row| row.id == message && row.role == oc_core::session::Role::User)
-                .ok_or("message is no longer active")?;
-            state.copy_message_text(row.text)?;
-            report_copy_request(state, loop_state);
+            loop_state.history_reads.request(
+                app,
+                state,
+                history_jobs::Request::Copy(message, seq),
+            )?;
         }
         PanelIntent::ReloadConfiguration => {
             // OC2 reloads under a running turn: its prepared request keeps the
@@ -2944,59 +3505,48 @@ async fn apply_owned_intent(
             loop_state.reload_painted = false;
         }
         PanelIntent::LoadCatalog => {
-            let snapshot = selection(app, state, SelectionAction::Current).await?;
-            state.apply_catalog(snapshot);
-        }
-        PanelIntent::LoadMcps => {
-            state.apply_mcp_snapshot(app.mcp_status().await.map_err(|error| error.to_string())?);
-        }
-        PanelIntent::McpControl(control) => {
-            state.apply_mcp_snapshot(
-                app.mcp_control(control)
-                    .await
-                    .map_err(|error| error.to_string())?,
+            loop_state.catalogs.request(
+                app,
+                state,
+                catalog_jobs::Request::Selection {
+                    action: SelectionAction::Current,
+                    preview: false,
+                },
             );
         }
+        PanelIntent::LoadMcps => {
+            loop_state
+                .resources
+                .request(app, state, resource_jobs::Request::Mcp(None))?;
+        }
+        PanelIntent::McpControl(control) => {
+            loop_state
+                .resources
+                .request(app, state, resource_jobs::Request::Mcp(Some(control)))?;
+        }
         PanelIntent::LoadSessions => {
-            let context = app
-                .session_picker_context(state.session_scope_update())
-                .await
-                .map_err(|e| e.to_string())?;
-            state.apply_session_picker_context(context);
-            let entries = app
-                .session_list(state.session_search(), state.sessions_all_projects())
-                .await
-                .map_err(|e| e.to_string())?;
-            state.apply_session_entries(entries);
+            loop_state
+                .picker
+                .request(app, state, picker_jobs::Request::List)?;
         }
         PanelIntent::RenameSelectedSession { id, title } => {
             let target = SessionId::new(id.clone()).ok_or("bad session id")?;
-            let result = if loop_state.read_only {
-                Err(CoreError::TurnBusy)
-            } else {
-                app.picker_session_action(
-                    target,
-                    state.session_search(),
-                    state.sessions_all_projects(),
-                    oc_core::queries::SessionPickerAction::Rename(title.clone()),
-                )
-                .await
-                .map(|_| ())
-            };
-            match result {
-                Ok(()) => {
-                    state.selected_session_renamed(&id, title.clone());
-                    for parked in loop_state.tabs.iter_mut().flatten() {
-                        parked.selected_session_renamed(&id, title.clone());
-                    }
-                    loop_state.sync_tabs(state);
-                }
-                Err(error) => state.rename_session_rejected(error.to_string()),
+            if loop_state.read_only {
+                return Err("child session: read-only history; rename refused".into());
             }
+            loop_state.picker.request(
+                app,
+                state,
+                picker_jobs::Request::Rename {
+                    target,
+                    title,
+                    direct: None,
+                },
+            )?;
         }
         PanelIntent::DeleteSelectedSession { id } => {
             // OC2: the owner interrupts a running session before deleting it.
-            if loop_state.read_only || loop_state.conversation_job.is_some() {
+            if loop_state.read_only {
                 state.session_delete_rejected(
                     "conversation operation pending or read-only history; delete refused".into(),
                 );
@@ -3013,231 +3563,142 @@ async fn apply_owned_intent(
                     } else {
                         parked.as_ref()?
                     };
-                    (view.attached_session() == Some(&target)).then_some(index)
+                    (tab_route_session(view) == Some(&target)).then_some(index)
                 });
             // Prepare the replacement before destructive acceptance. The
             // current view, draft and tab membership survive all refusals.
-            if index.is_some() && index == loop_state.active_tab {
-                loop_state.departure_ready(state)?;
-            }
-            let home = if index == loop_state.active_tab
-                && index.is_some()
-                && loop_state.tabs.len() == 1
-                && loop_state.home.is_none()
-            {
-                let catalog = app
-                    .home_selection(SelectionAction::Current)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                let mut home = TuiState::new_home(app.clone());
-                home.apply_catalog(catalog);
-                Some(home)
+            if let Some(index) = index {
+                loop_state.target_ready(state, index)?;
+                deck_jobs::start_delete(app, state, loop_state, target)?;
             } else {
-                None
-            };
-            if index.is_some() {
+                // Off-deck (including foreign Location) picker deletion owns
+                // its own typed receipt, not this Location's membership/token.
                 loop_state
-                    .save_checked(app, state)
-                    .await
-                    .map_err(|e| e.to_string())?;
-            }
-            match app
-                .picker_session_action(
-                    target.clone(),
-                    state.session_search(),
-                    state.sessions_all_projects(),
-                    oc_core::queries::SessionPickerAction::Delete,
-                )
-                .await
-            {
-                Err(error) => state.session_delete_rejected(error.to_string()),
-                Ok(oc_core::queries::SessionPickerResult::Renamed) => {
-                    unreachable!("delete result")
-                }
-                Ok(oc_core::queries::SessionPickerResult::Deleted(snapshot)) => {
-                    if loop_state.location.as_deref() == Some(snapshot.location.as_str())
-                        || index.is_some()
-                    {
-                        loop_state.revision = snapshot.revision;
-                    }
-                    if loop_state
-                        .conversation_recovery
-                        .as_ref()
-                        .is_some_and(|(owner, _)| owner == &target)
-                    {
-                        loop_state.conversation_recovery = None;
-                        if let Some(job) = loop_state.recovery_job.take() {
-                            job.abort();
-                        }
-                    }
-                    if loop_state
-                        .title_job
-                        .as_ref()
-                        .is_some_and(|(owner, _)| owner == &target)
-                        && let Some((_, job)) = loop_state.title_job.take()
-                    {
-                        job.abort();
-                    }
-                    if let Some(index) = index {
-                        if loop_state.active_tab == Some(index) {
-                            if loop_state.tabs.len() == 1 {
-                                if !loop_state.restore_home(state) {
-                                    *state = home.expect("replacement prepared before deletion");
-                                }
-                                loop_state.reset_deck();
-                            } else {
-                                loop_state
-                                    .activate(state, if index > 0 { index - 1 } else { 1 })?;
-                                loop_state.tabs.remove(index);
-                                loop_state.tab_cards_before.remove(index);
-                                if let Some(active) = &mut loop_state.active_tab
-                                    && *active > index
-                                {
-                                    *active -= 1;
-                                }
-                            }
-                        } else {
-                            loop_state.tabs.remove(index);
-                            loop_state.tab_cards_before.remove(index);
-                            if let Some(active) = &mut loop_state.active_tab
-                                && *active > index
-                            {
-                                *active -= 1;
-                            }
-                        }
-                        loop_state.sync_tabs(state);
-                    }
-                    if loop_state.location.as_deref() == Some(snapshot.location.as_str()) {
-                        state
-                            .apply_tab_rail_width(snapshot.rail_width)
-                            .map_err(|error| error.to_string())?;
-                    }
-                    // An unrelated deletion keeps modal search and prompt draft.
-                    let entries = app
-                        .session_list(state.session_search(), state.sessions_all_projects())
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    state.apply_session_entries(entries);
-                }
+                    .picker
+                    .request(app, state, picker_jobs::Request::Delete { target })?;
             }
         }
         PanelIntent::LoadSkills => {
-            let cards = app.skills().await.map_err(|e| e.to_string())?;
-            state.apply_skills(cards);
+            loop_state
+                .resources
+                .request(app, state, resource_jobs::Request::Skills)?;
         }
         PanelIntent::LoadCards => {
-            let session = require_session(state)?;
-            let page = app
-                .tool_ops_page(session, loop_state.cards_before, TOOL_OPS_PAGE_LIMIT)
-                .await
-                .map_err(|e| e.to_string())?;
-            let cards = oc_tui::history::cards_from_rows(&page.rows);
-            if loop_state.cards_before.is_none() {
-                state.apply_cards(cards, page.has_older);
-            } else {
-                state.prepend_cards(cards, page.has_older);
-            }
-            loop_state.cards_before = page.rows.last().map(|row| row.rowid);
+            loop_state.history_reads.request(
+                app,
+                state,
+                history_jobs::Request::Cards(loop_state.cards_before),
+            )?;
         }
-        PanelIntent::LoadShells => refresh_shells(app, state).await?,
-        PanelIntent::CancelShell { session, shell_id } => {
-            match app.cancel_shell(session, shell_id).await {
-                Ok(()) | Err(CoreError::TurnNotActive) => {}
-                Err(error) => state.push_note(&error.to_string()),
-            }
-            refresh_shells(app, state).await?;
-        }
-        PanelIntent::BackgroundShell { session, shell_id } => {
-            match app.background_shell(session, shell_id).await {
-                Ok(()) | Err(CoreError::TurnNotActive) => {}
-                Err(error) => state.push_note(&error.to_string()),
-            }
-            refresh_shells(app, state).await?;
+        PanelIntent::LoadShells => loop_state.reads.request(state, false),
+        work @ (PanelIntent::CancelShell { .. } | PanelIntent::BackgroundShell { .. }) => {
+            loop_state.work.start(app, state, work)?
         }
         PanelIntent::LoadCardOutput { op, offset } => {
-            let session = require_session(state)?;
-            let page = match app
-                .shell_output(session.clone(), op.clone(), offset, 240)
-                .await
-                .map_err(|error| error.to_string())?
-            {
-                Some(page) => page,
-                None => app
-                    .tool_output_page(session, op.clone(), offset, 240)
-                    .await
-                    .map_err(|error| error.to_string())?,
-            };
-            state.apply_card_output(op, offset, page);
+            loop_state.history_reads.request(
+                app,
+                state,
+                history_jobs::Request::Output(op, offset),
+            )?;
         }
         PanelIntent::SelectModel { id, recent } => {
+            if loop_state.catalogs.preparing(state) {
+                return Err("agent selection preparing; model draft unchanged".into());
+            }
             state.draft_model(&id)?;
             // Pinned `model.set(..., { recent: true })` ignores storage failures.
-            if let Some(model) = recent
-                && let Ok(preference) = app
-                    .model_preference(Some(oc_core::queries::ModelPreferenceAction::Recent(model)))
-                    .await
-            {
-                state.apply_model_preference(preference);
-            }
-            remember_home_draft(app, state).await;
+            loop_state.catalogs.request(
+                app,
+                state,
+                catalog_jobs::Request::Preference {
+                    action: recent.map(oc_core::queries::ModelPreferenceAction::Recent),
+                    home: state
+                        .attached_session()
+                        .is_none()
+                        .then(|| state.captured_model_commit())
+                        .flatten(),
+                },
+            );
         }
         PanelIntent::LoadModelDirectory => {
-            if !state.catalog_loaded() {
-                let snapshot = selection(app, state, SelectionAction::Current).await?;
-                state.apply_catalog(snapshot);
-            }
-            let catalogs = app.model_catalogs().await.map_err(|e| e.to_string())?;
-            let preference = app.model_preference(None).await.unwrap_or_default();
-            state.apply_model_directory(catalogs, preference);
+            loop_state
+                .catalogs
+                .request(app, state, catalog_jobs::Request::Directory);
         }
         PanelIntent::FavoriteModel { model, enabled } => {
-            let preference = app
-                .model_preference(Some(oc_core::queries::ModelPreferenceAction::Favorite {
-                    model,
-                    enabled,
-                }))
-                .await
-                .map_err(|e| e.to_string())?;
-            state.apply_model_preference(preference);
+            loop_state.catalogs.request(
+                app,
+                state,
+                catalog_jobs::Request::Preference {
+                    action: Some(oc_core::queries::ModelPreferenceAction::Favorite {
+                        model,
+                        enabled,
+                    }),
+                    home: None,
+                },
+            );
         }
         PanelIntent::ChooseModel { variant, .. } => {
+            if loop_state.catalogs.preparing(state) {
+                return Err("agent selection preparing; model draft unchanged".into());
+            }
             state.draft_variant(variant.as_deref())?;
-            remember_drafted_variant(app, state).await;
+            loop_state.catalogs.request(
+                app,
+                state,
+                catalog_jobs::Request::Preference {
+                    action: state.drafted_variant(),
+                    home: state
+                        .attached_session()
+                        .is_none()
+                        .then(|| state.captured_model_commit())
+                        .flatten(),
+                },
+            );
         }
         PanelIntent::CycleVariant => {
+            if loop_state.catalogs.preparing(state) {
+                return Err("agent selection preparing; model draft unchanged".into());
+            }
             if state.cycle_variant_draft()? {
-                remember_drafted_variant(app, state).await;
+                loop_state.catalogs.request(
+                    app,
+                    state,
+                    catalog_jobs::Request::Preference {
+                        action: state.drafted_variant(),
+                        home: state
+                            .attached_session()
+                            .is_none()
+                            .then(|| state.captured_model_commit())
+                            .flatten(),
+                    },
+                );
             }
         }
         PanelIntent::NewSession | PanelIntent::AddSessionTab => {
-            let guarded_departure = loop_state.child_parent.is_some()
-                || loop_state
-                    .child_parent
-                    .as_deref()
-                    .unwrap_or(state)
-                    .active_turn()
-                    .is_some();
-            let before = loop_state.snapshot(state);
-            if loop_state.home.is_some() {
-                if guarded_departure {
-                    let mut candidate = before.clone();
-                    candidate.active = None;
-                    loop_state
-                        .save_snapshot_checked(app, candidate)
-                        .await
-                        .map_err(|_| "tab Add refused; saved tabs unavailable".to_string())?;
-                }
+            if !loop_state.root_navigation_allowed(state) {
+                return Err("child session: read-only history; saved tabs are unchanged".into());
+            }
+            loop_state.sync_tabs(state);
+            if let Some(home) = &loop_state.home {
                 if typed_new {
-                    state.accept_intent();
+                    let home_id = home.view_identity().0;
+                    if loop_state.unresolved_homes.contains(&home_id) {
+                        loop_state
+                            .home_commands
+                            .insert(home_id, (state.view_identity().0, state.input().to_owned()));
+                    } else {
+                        state.accept_intent();
+                    }
                 }
                 child_controls::return_root(state, loop_state);
                 loop_state.restore_home(state);
-                if !guarded_departure {
-                    loop_state.save_if_changed(app, state, &before).await;
+                if loop_state.save_disabled {
+                    state.push_note("tab deck could not be saved; review saved tabs");
                 }
                 return Ok(());
             }
-            if loop_state.tabs.len() >= MAX_TABS && state.attached_session().is_some() {
+            if loop_state.tabs.len() >= MAX_TABS && tab_route_session(state).is_some() {
                 return Err("tab limit reached".into());
             }
             // A shared tab Add navigates to the existing Home selection, just
@@ -3256,39 +3717,49 @@ async fn apply_owned_intent(
                         .map(str::to_string),
                 )
             };
-            let snapshot = app
-                .home_selection(action)
-                .await
-                .map_err(|e| e.to_string())?;
             let mut home = TuiState::new_home(app.clone());
-            home.apply_catalog(snapshot);
-            if guarded_departure {
-                if home.chrome.location.as_deref() != loop_state.location.as_deref() {
-                    return Err("tab Add refused; Location binding changed".into());
-                }
-                let mut candidate = before.clone();
-                candidate.active = None;
-                loop_state
-                    .save_snapshot_checked(app, candidate)
-                    .await
-                    .map_err(|_| "tab Add refused; saved tabs unavailable".to_string())?;
-            }
+            // Paint retained local chrome immediately, but never submit using
+            // a guessed Home model/agent. The authoritative catalog is separate.
+            home.chrome = loop_state
+                .child_parent
+                .as_deref()
+                .unwrap_or(state)
+                .chrome
+                .clone();
+            home.chrome.location = loop_state.location.clone().or(home.chrome.location);
+            loop_state.home_pending = Some((home.view_identity(), action));
+            loop_state.unresolved_homes.insert(home.view_identity().0);
             if typed_new {
-                state.accept_intent();
+                loop_state.home_commands.insert(
+                    home.view_identity().0,
+                    (state.view_identity().0, state.input().to_owned()),
+                );
             }
             child_controls::return_root(state, loop_state);
             loop_state.open_home(state, home);
-            if !guarded_departure {
-                loop_state.save_if_changed(app, state, &before).await;
+            if loop_state.save_disabled {
+                state.push_note("tab deck could not be saved; review saved tabs");
             }
         }
         intent @ (PanelIntent::ActivateTab { .. } | PanelIntent::MoveTab { .. }) => {
             let before = loop_state.snapshot(state);
             let moving = matches!(intent, PanelIntent::MoveTab { .. });
             let index = match intent {
-                PanelIntent::ActivateTab { index } => index,
+                PanelIntent::ActivateTab { index } => {
+                    if preserve_pointer {
+                        loop_state
+                            .deck_job
+                            .as_ref()
+                            .and_then(|job| job.pointer_target(index))
+                            .and_then(|id| deck_jobs::route_index(state, loop_state, id))
+                            .unwrap_or(index)
+                    } else {
+                        index
+                    }
+                }
                 PanelIntent::MoveTab { session, index } => {
-                    loop_state.move_tab(app, state, session, index).await?
+                    loop_state.move_tab(app, state, session, index).await?;
+                    return Ok(());
                 }
                 _ => unreachable!(),
             };
@@ -3297,15 +3768,14 @@ async fn apply_owned_intent(
             } else {
                 loop_state.activate(state, index)?;
             }
-            refresh_dcp_summaries(app, state).await;
+            loop_state.reads.request(state, false);
             // Parked prompt/editor state survives routing, but pending ownership
             // must be recovered before its first visible frame after activation.
-            if (state.is_busy()
+            if state.is_busy()
                 || !state.approval_roots.is_empty()
-                || state.approvals.active().is_some())
-                && let Err(error) = refresh_approvals(app, state).await
+                || state.approvals.active().is_some()
             {
-                state.approvals.error = Some(error);
+                loop_state.approvals_checked = None;
             }
             if let Some(session) = state.attached_session().cloned()
                 && loop_state.picker_pending_tabs.remove(&session)
@@ -3316,27 +3786,14 @@ async fn apply_owned_intent(
                 loop_state.conversation_recovery = Some((session, std::time::Instant::now()));
             }
             if !moving {
-                loop_state.save_if_changed(app, state, &before).await;
+                loop_state.selection_dirty |= loop_state.snapshot(state) != before;
+            }
+            if loop_state.save_disabled {
+                state.push_note("tab deck could not be saved; review saved tabs");
             }
         }
         PanelIntent::CloseTab { index } => {
-            let closed = if loop_state.active_tab == Some(index) {
-                state.attached_session().cloned()
-            } else {
-                loop_state
-                    .tabs
-                    .get(index)
-                    .and_then(Option::as_ref)
-                    .and_then(TuiState::attached_session)
-                    .cloned()
-            };
             loop_state.close_tab(app, state, index).await?;
-            refresh_dcp_summaries(app, state).await;
-            if let Some((owner, _)) = &loop_state.title_job
-                && closed.as_ref() == Some(owner)
-            {
-                let _ = app.cancel_title(owner.clone()).await;
-            }
         }
         intent @ (PanelIntent::RenameSession { .. } | PanelIntent::RenameSessionDirect { .. }) => {
             let direct = matches!(intent, PanelIntent::RenameSessionDirect { .. });
@@ -3348,48 +3805,28 @@ async fn apply_owned_intent(
             // A selected root in the current deck is the only writable route.
             // The owner validates its Location and persists the title before
             // the dialog or tab presentation is changed.
-            let result = async {
-                if loop_state.read_only {
-                    return Err("child session: read-only history; rename refused");
-                }
-                let session = state
-                    .attached_session()
-                    .filter(|_| {
-                        !state.home
-                            && loop_state.active_tab.is_some_and(|index| {
-                                index < loop_state.tabs.len() && loop_state.tabs[index].is_none()
-                            })
-                    })
-                    .cloned()
-                    .ok_or("no active session; rename refused")?;
-                app.rename_session(session, title.clone())
-                    .await
-                    .map_err(|error| match error {
-                        CoreError::Application(ref reason) if reason == "invalid session title" => {
-                            "invalid session title (max 256 bytes; no invisible or control text)"
-                        }
-                        CoreError::SessionNotFound => "session unavailable for rename",
-                        _ => "session rename unavailable; check the data directory",
-                    })
+            if loop_state.read_only {
+                return Err("child session: read-only history; rename refused".into());
             }
-            .await;
-            match result {
-                Ok(()) => {
-                    if direct {
-                        state.rename_session_direct_applied(title);
-                    } else {
-                        state.rename_session_applied(title);
-                    }
-                    loop_state.sync_tabs(state);
-                }
-                Err(message) => {
-                    if direct {
-                        state.rename_session_direct_rejected(message.into());
-                    } else {
-                        state.rename_session_rejected(message.into());
-                    }
-                }
-            }
+            let target = state
+                .attached_session()
+                .filter(|_| {
+                    !state.home
+                        && loop_state.active_tab.is_some_and(|index| {
+                            index < loop_state.tabs.len() && loop_state.tabs[index].is_none()
+                        })
+                })
+                .cloned()
+                .ok_or("no active session; rename refused")?;
+            loop_state.picker.request(
+                app,
+                state,
+                picker_jobs::Request::Rename {
+                    target,
+                    title,
+                    direct: Some(direct),
+                },
+            )?;
         }
         PanelIntent::RegenerateTitle => {
             let session = state
@@ -3416,41 +3853,34 @@ async fn apply_owned_intent(
             }
         }
         PanelIntent::Inbox { action, restore } => {
-            let session = require_session(state)?;
-            let prompt = if restore && let oc_core::queries::InboxAction::Remove { id } = &action {
-                let peek = app
-                    .inbox(
-                        session.clone(),
-                        oc_core::queries::InboxAction::Read { id: id.clone() },
-                    )
-                    .await
-                    .map_err(|error| error.to_string())?;
-                Some(state.prepare_inbox_restore(peek.prompt.ok_or("input already delivered")?)?)
-            } else {
-                None
-            };
-            let mut snapshot = app
-                .inbox(session.clone(), action)
-                .await
-                .map_err(|error| error.to_string())?;
-            snapshot.prompt = prompt;
-            state.applied_inbox(&session, snapshot, restore);
+            loop_state.inbox_jobs.start(app, state, action, restore)?;
         }
         PanelIntent::SelectAgent { id } => {
             // OC2: a session's agent is a composer draft until the next send;
             // the running turn keeps its profile. Home persists its own choice.
-            if state.home || state.attached_session().is_none() {
-                let snapshot = selection(app, state, SelectionAction::Agent(id)).await?;
-                state.apply_catalog(snapshot);
-            } else {
-                let snapshot = selection(app, state, SelectionAction::Preview(id)).await?;
-                state.apply_agent_preview(snapshot)?;
-            }
-            if *state.panel() != TuiPanel::None {
-                state.close_panel();
-            }
+            let home = state.home || state.attached_session().is_none();
+            loop_state.catalogs.request(
+                app,
+                state,
+                catalog_jobs::Request::Selection {
+                    action: if home {
+                        SelectionAction::Agent(id)
+                    } else {
+                        SelectionAction::Preview(id)
+                    },
+                    preview: !home,
+                },
+            );
         }
         PanelIntent::SwitchSession { id } => {
+            if loop_state.picker.defer_open(
+                state,
+                loop_state.navigation_revision,
+                loop_state.interaction_revision,
+                preserve_pointer,
+            )? {
+                return Ok(());
+            }
             let target = SessionId::new(id).ok_or_else(|| "bad session id".to_string())?;
             let index = loop_state
                 .tabs
@@ -3476,77 +3906,12 @@ async fn apply_owned_intent(
             {
                 return Err("tab limit reached".into());
             }
-            let receipt = app
-                .open_picker_session(
-                    target.clone(),
-                    state.session_search(),
-                    state.sessions_all_projects(),
-                    loop_state.snapshot(state),
-                )
-                .await
-                .map_err(|e| e.to_string())?;
-            if loop_state.location.as_deref().unwrap_or_default() != receipt.location {
-                child_controls::return_root(state, loop_state);
-                adopt_picker_open(app, state, loop_state, receipt).await;
-                return Ok(());
-            }
-            loop_state.revision = receipt.deck.revision;
-            let pending_refresh = loop_state.picker_pending_tabs.remove(&target)
-                || loop_state
-                    .conversation_recovery
-                    .as_ref()
-                    .is_some_and(|(session, _)| session == &target);
-            if let Some(index) = index {
-                loop_state.activate(state, index)?;
-                // A healthy retained tab keeps its loaded older window and
-                // scroll state. A changed branch or incomplete view gets the
-                // already validated owner page instead.
-                let changed = state.history().total() != receipt.page.total
-                    || (!state.history().has_newer()
-                        && state.history().rows().last().map(|row| row.seq)
-                            != receipt.page.rows.last().map(|row| row.seq));
-                if pending_refresh {
-                    state.attach_page(&receipt.page);
-                    shared::attach(app, state).await?;
-                    if let Some(job) = loop_state.recovery_job.take() {
-                        job.abort();
-                    }
-                    loop_state.conversation_recovery = None;
-                } else if changed {
-                    state.refresh_completed_page(&receipt.page);
-                } else if let Some(title) = receipt.page.title {
-                    state.selected_session_renamed(&target.0, title);
-                }
-                state.apply_catalog(receipt.catalog);
-                state
-                    .apply_tab_rail_width(receipt.deck.rail_width)
-                    .map_err(|error| error.to_string())?;
-                refresh_compactions(app, state).await;
-                loop_state.sync_tabs(state);
-                return Ok(());
-            }
-            let mut next = TuiState::new(app.clone(), target);
-            next.attach_page(&receipt.page);
-            next.apply_catalog(receipt.catalog);
-            refresh_compactions(app, &mut next).await;
-            shared::attach(app, &mut next).await?;
-            next.apply_tab_rail_width(receipt.deck.rail_width)
-                .map_err(|error| error.to_string())?;
-            child_controls::return_root(state, loop_state);
-            state.close_panel();
-            next.take_tab_clocks_from(state);
-            if let Some(old) = loop_state.active_tab.take() {
-                loop_state.tabs[old] = Some(std::mem::replace(state, next));
-                loop_state.tab_cards_before[old] = loop_state.cards_before;
-            } else {
-                loop_state.home = Some(std::mem::replace(state, next));
-            }
-            loop_state.active_tab = Some(loop_state.tabs.len());
-            loop_state.tabs.push(None);
-            loop_state.tab_cards_before.push(None);
-            loop_state.cards_before = None;
-            loop_state.dcp_seen = false;
-            loop_state.sync_tabs(state);
+            navigation_jobs::start(
+                app,
+                state,
+                loop_state,
+                navigation_jobs::Request::Open(target),
+            )?;
         }
         PanelIntent::SwitchLocation { path } => {
             // OC2: a running root keeps running in its Location. Only an
@@ -3554,11 +3919,15 @@ async fn apply_owned_intent(
             loop_state.departure_ready(state)?;
             // Publish a sessionless generation first: even when switching
             // from a real tab, a saved Home route cannot mint a new root.
-            let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
-            adopt_location(app, state, loop_state, snapshot.catalog, &snapshot.location).await;
+            navigation_jobs::start(
+                app,
+                state,
+                loop_state,
+                navigation_jobs::Request::Location(path),
+            )?;
         }
         PanelIntent::LoadOlder => {
-            let session = require_session(state)?;
+            require_session(state)?;
             let before = state
                 .history()
                 .rows()
@@ -3572,20 +3941,18 @@ async fn apply_owned_intent(
                     after_seq: None,
                     part,
                 };
-                let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child_window(selected.parent.clone(), selected, window)
-                        .await
-                } else {
-                    app.history_window(session, window, HISTORY_PAGE_LIMIT)
-                        .await
-                }
-                .map_err(|e| e.to_string())?;
-                state.prepend_page(&page);
-                refresh_dcp_summaries(app, state).await;
+                loop_state.history_reads.request(
+                    app,
+                    state,
+                    history_jobs::Request::Window {
+                        window,
+                        older: true,
+                    },
+                )?;
             }
         }
         PanelIntent::LoadNewer => {
-            let session = require_session(state)?;
+            require_session(state)?;
             let after = state
                 .history()
                 .rows()
@@ -3600,16 +3967,14 @@ async fn apply_owned_intent(
                     before_seq: None,
                     part,
                 };
-                let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child_window(selected.parent.clone(), selected, window)
-                        .await
-                } else {
-                    app.history_window(session, window, HISTORY_PAGE_LIMIT)
-                        .await
-                }
-                .map_err(|e| e.to_string())?;
-                state.append_page(&page);
-                refresh_dcp_summaries(app, state).await;
+                loop_state.history_reads.request(
+                    app,
+                    state,
+                    history_jobs::Request::Window {
+                        window,
+                        older: false,
+                    },
+                )?;
             }
         }
         PanelIntent::Compress { focus } => {
@@ -3673,7 +4038,20 @@ async fn finish_reload_refusal(
     message: String,
 ) {
     refresh_provider_views(app, state, deck).await;
+    deck.provider_feedback = Some((deck.location.clone(), message.clone()));
     state.push_transient_note(&message, NoteVariant::Error);
+}
+
+fn finish_provider_feedback(state: &mut TuiState, deck: &mut LoopState) -> bool {
+    if !deck.catalogs.pending()
+        && !deck.resources.pending()
+        && let Some((location, message)) = deck.provider_feedback.take()
+        && location == deck.location
+    {
+        state.push_transient_note(&message, NoteVariant::Error);
+        return true;
+    }
+    false
 }
 
 /// Owner success is already published. Refresh every retained route before
@@ -3686,267 +4064,13 @@ async fn finish_reload(
     snapshot: ReloadLocationSnapshot,
     slash_draft: Option<String>,
 ) -> Result<(), String> {
-    if state.chrome.location.as_deref() != Some(snapshot.location.as_str())
-        || deck.location.as_deref() != Some(snapshot.location.as_str())
-    {
-        state.disable_clipboard_until_catalog();
-        for parked in deck.tabs.iter_mut().flatten() {
-            parked.disable_clipboard_until_catalog();
-        }
-        if let Some(home) = deck.home.as_mut() {
-            home.disable_clipboard_until_catalog();
-        }
-        return Err(
-            "Configuration reload incomplete; visible Location changed during refresh".into(),
-        );
-    }
-    // The owner has already published the replacement. Unlike the remainder
-    if snapshot.catalog.auto_accept != oc_core::queries::AutoAcceptState::Unsupported {
-        let permission_auto = deck.cli_auto || snapshot.catalog.chrome.permissions_auto;
-        app.register_approval_consumer(permission_auto)
-            .await
-            .map_err(|e| e.to_string())?;
-        deck.permission_auto = Some(permission_auto);
-    }
-    // of each view's catalog, terminal.copy is safety-sensitive: a failed
-    // session/Home refresh must not retain an obsolete automatic-copy mode.
-    let copy_mode = snapshot.catalog.chrome.terminal_copy;
-    // This setting is already owner-published too. Footer presentation must
-    // follow it even if a later route-specific catalog query fails.
-    let session_tps = snapshot.catalog.chrome.session_tps;
-    state.chrome.session_tps = session_tps;
-    state.refresh_clipboard_mode(copy_mode);
-    for parked in deck.tabs.iter_mut().flatten() {
-        parked.chrome.session_tps = session_tps;
-        parked.refresh_clipboard_mode(copy_mode);
-    }
-    if let Some(home) = deck.home.as_mut() {
-        home.chrome.session_tps = session_tps;
-        home.refresh_clipboard_mode(copy_mode);
-    }
-    let mut catalogs = Vec::with_capacity(deck.tabs.len());
-    for (index, parked) in deck.tabs.iter().enumerate() {
-        let view = if deck.active_tab == Some(index) {
-            &*state
-        } else {
-            parked.as_ref().expect("parked tab")
-        };
-        let session = view.attached_session().expect("real tab");
-        catalogs.push(
-            app.session_selection(session.clone(), view.home, SelectionAction::Current)
-                .await
-                .map_err(|_| "Configuration reload incomplete; session selection refresh failed; retry /reload".to_string())?,
-        );
-    }
-    let home_catalog = if deck.active_tab.is_none() || deck.home.is_some() {
-        Some(
-            app.home_selection(SelectionAction::Current)
-                .await
-                .map_err(|_| {
-                    "Configuration reload incomplete; Home selection refresh failed; retry /reload"
-                        .to_string()
-                })?,
-        )
-    } else {
-        None
-    };
-    if app
-        .catalog()
-        .await
-        .map_err(|_| "Configuration reload incomplete; catalog verification failed".to_string())?
-        .chrome
-        .location
-        .as_deref()
-        != Some(snapshot.location.as_str())
-        || catalogs
-            .iter()
-            .any(|catalog| catalog.chrome.location.as_deref() != Some(snapshot.location.as_str()))
-        || home_catalog.as_ref().is_some_and(|catalog| {
-            catalog.chrome.location.as_deref() != Some(snapshot.location.as_str())
-        })
-    {
-        return Err("Configuration reload incomplete; Location changed during refresh".into());
-    }
-    if let Some((_, job)) = deck.mention_job.take() {
-        job.abort();
-    }
-    deck.mention_pending = None;
-    deck.mention_failed = None;
-    let mcp = app.mcp_status().await.map_err(|_| {
-        "Configuration reload incomplete; MCP status verification failed".to_string()
-    })?;
-    if mcp.binding.location != snapshot.location {
-        return Err("Configuration reload incomplete; MCP Location changed during refresh".into());
-    }
-    // Explicit operation feedback survives unchanged causes; a new cause can
-    // replace it with its brief service summary, not be hidden by a later toast.
-    state.push_transient_note("Configuration reloaded", NoteVariant::Success);
-    for (index, catalog) in catalogs.into_iter().enumerate() {
-        let view = if deck.active_tab == Some(index) {
-            &mut *state
-        } else {
-            deck.tabs[index].as_mut().expect("parked tab")
-        };
-        // A staged next-send agent is re-resolved in the new generation.
-        let staged = view.staged_agent();
-        view.refresh_configuration(catalog);
-        if let Some(agent) = staged
-            && let Ok(preview) = selection(app, view, SelectionAction::Preview(agent)).await
-        {
-            let _ = view.apply_agent_preview(preview);
-        }
-    }
-    if let Some(catalog) = home_catalog {
-        if deck.active_tab.is_none() {
-            state.refresh_configuration(catalog);
-        } else if let Some(home) = deck.home.as_mut() {
-            home.refresh_configuration(catalog);
-        }
-    }
-    apply_mcp_to_views(state, deck, mcp);
-    if slash_draft.as_deref() == Some(state.input()) {
-        state.accept_intent();
-    }
-    Ok(())
-}
-
-/// Adopt the accepted route before optional reads; keep bounded prompt drafts
-/// without carrying old Location views or configuration into the new owner.
-async fn adopt_picker_open(
-    app: &CoreApp,
-    state: &mut TuiState,
-    deck: &mut LoopState,
-    receipt: oc_core::queries::SessionPickerOpen,
-) {
-    let drafts = deck
-        .picker_drafts
-        .remove(&receipt.location)
-        .unwrap_or_default();
-    if let Some(location) = &deck.location {
-        let mut old = vec![(state.attached_session().cloned(), state.composer_draft())];
-        old.extend(
-            deck.tabs
-                .iter()
-                .flatten()
-                .map(|view| (view.attached_session().cloned(), view.composer_draft())),
-        );
-        if let Some(home) = &deck.home {
-            old.push((None, home.composer_draft()));
-        }
-        if deck.picker_drafts.len() >= 4
-            && let Some(key) = deck.picker_drafts.keys().next().cloned()
-        {
-            deck.picker_drafts.remove(&key);
-        }
-        deck.picker_drafts.insert(location.clone(), old);
-    }
-    if let Some((_, job)) = deck.title_job.take() {
-        job.abort();
-    }
-    if let Some((_, job)) = deck.mention_job.take() {
-        job.abort();
-    }
-    if let Some(job) = deck.recovery_job.take() {
-        job.abort();
-    }
-    deck.conversation_recovery = None;
-    deck.mention_pending = None;
-    deck.mention_failed = None;
-    deck.reset_deck();
-    deck.picker_pending_tabs.clear();
-    deck.location = Some(receipt.location);
-    deck.revision = receipt.deck.revision;
-    deck.save_disabled = false;
-    deck.read_only = false;
-    let mut active = TuiState::new(app.clone(), receipt.session.clone());
-    active.attach_page(&receipt.page);
-    active.apply_catalog(receipt.catalog.clone());
-    if let Err(error) = shared::attach(app, &mut active).await {
-        deck.shared_gap = true;
-        deck.shared_refresh = true;
-        active.push_note(&format!("Session opened; live refresh pending: {error}"));
-    }
-    if active
-        .apply_tab_rail_width(receipt.deck.rail_width)
-        .is_err()
-    {
-        deck.save_disabled = true;
-        active.push_note("Location tabs unavailable; check saved tabs");
-    }
-    refresh_compactions(app, &mut active).await;
-    if let Some((_, draft)) = drafts
-        .iter()
-        .find(|(id, _)| id.as_ref() == Some(&receipt.session))
-    {
-        active.restore_composer_draft(draft.clone());
-    }
-    // Adopt the accepted route before any optional parked-view refresh.
-    *state = active;
-    for (index, session) in receipt.deck.sessions.into_iter().enumerate() {
-        let new_session_tab = receipt
-            .deck
-            .new_session_titles
-            .get(index)
-            .copied()
-            .unwrap_or(false);
-        if session == receipt.session {
-            state.new_session_tab = new_session_tab;
-            deck.active_tab = Some(deck.tabs.len());
-            deck.tabs.push(None);
-        } else {
-            let mut view = TuiState::new(app.clone(), session.clone());
-            view.new_session_tab = new_session_tab;
-            view.apply_catalog(receipt.catalog.clone());
-            if let Some((_, draft)) = drafts.iter().find(|(id, _)| id.as_ref() == Some(&session)) {
-                view.restore_composer_draft(draft.clone());
-            }
-            let page = app
-                .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
-                .await;
-            let catalog = app
-                .session_selection(session.clone(), false, SelectionAction::Current)
-                .await;
-            match (page, catalog) {
-                (Ok(page), Ok(catalog)) => {
-                    view.attach_page(&page);
-                    view.apply_catalog(catalog);
-                    refresh_compactions(app, &mut view).await;
-                    if let Err(error) = shared::attach(app, &mut view).await {
-                        deck.shared_gap = true;
-                        deck.shared_refresh = true;
-                        view.push_note(&format!("Session opened; live refresh pending: {error}"));
-                    }
-                }
-                _ => {
-                    deck.picker_pending_tabs.insert(session);
-                    view.push_note("Session opened; tab refresh pending");
-                }
-            }
-            deck.tabs.push(Some(view));
-        }
-        deck.tab_cards_before.push(None);
-    }
-    if deck.tabs.len() < MAX_TABS
-        && let Some((_, draft)) = drafts.iter().find(|(id, _)| id.is_none())
-    {
-        let mut home = TuiState::new_home(app.clone());
-        match app.home_selection(SelectionAction::Current).await {
-            Ok(catalog) => home.apply_catalog(catalog),
-            Err(_) => {
-                home.apply_catalog(receipt.catalog);
-                home.disable_clipboard_until_catalog();
-                home.push_note("Home selection refresh pending");
-            }
-        }
-        home.restore_composer_draft(draft.clone());
-        deck.home = Some(home);
-    }
-    deck.sync_tabs(state);
+    reload_jobs::start(app, state, deck, snapshot, slash_draft)
 }
 
 /// A published Location invalidates every old view, including the parked
 /// Home draft. On a broken preference keep the new Location's Home and show
 /// a static diagnostic rather than accidentally repainting old-location data.
+#[cfg(test)]
 async fn adopt_location(
     app: &CoreApp,
     state: &mut TuiState,
@@ -3954,92 +4078,16 @@ async fn adopt_location(
     catalog: CatalogSnapshot,
     location: &str,
 ) {
-    deck.reset_deck();
-    // Never carry A's binding or token into a successfully published B.
-    deck.location = None;
-    deck.revision = None;
-    deck.save_disabled = false;
-    deck.read_only = false;
-    let mut previous = std::mem::replace(state, TuiState::new_home(app.clone()));
-    state.apply_catalog(catalog);
-    match app.tab_deck().await {
-        Ok(snapshot)
-            if snapshot.location != location
-                || snapshot.location.is_empty()
-                || snapshot.rail_width.is_some_and(|width| {
-                    !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
-                        .contains(&width)
-                })
-                || snapshot.sessions.len() > MAX_TABS
-                || (!snapshot.new_session_titles.is_empty()
-                    && snapshot.new_session_titles.len() != snapshot.sessions.len())
-                || (snapshot.active.is_none() && snapshot.sessions.len() == MAX_TABS)
-                || snapshot
-                    .active
-                    .as_ref()
-                    .is_some_and(|active| !snapshot.sessions.contains(active)) =>
-        {
-            deck.save_disabled = true;
-            state.push_note("Location tabs unavailable; check saved tabs");
-        }
-        Ok(snapshot) => {
-            deck.location = Some(snapshot.location);
-            deck.revision = snapshot.revision;
-            let home = std::mem::replace(state, TuiState::new_home(app.clone()));
-            // `home` carries B's published catalog; no old Location view can
-            // be reactivated even if one of B's parked reads fails.
-            *state = restore_views(
-                app,
-                deck,
-                snapshot
-                    .sessions
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, id)| {
-                        (
-                            id,
-                            snapshot
-                                .new_session_titles
-                                .get(index)
-                                .copied()
-                                .unwrap_or(false),
-                        )
-                    })
-                    .collect(),
-                snapshot.active,
-                None,
-                Some(home),
-                false,
-            )
-            .await
-            .expect("published Home is already available");
-            state
-                .apply_tab_rail_width(snapshot.rail_width)
-                .expect("owner rail width validated before route adoption");
-        }
-        Err(_) => {
-            // With no read token the owner will refuse to overwrite an
-            // existing broken preference. A successful switch supplies B.
-            deck.location = (!location.is_empty()).then(|| location.to_string());
-            deck.save_disabled = true;
-            state.push_note("saved tab deck unavailable; review saved tabs");
-        }
-    }
-    // A route change must preserve the fixed diagnostic, including when a
-    // loaded active view replaces the Home state.
-    if deck.save_disabled {
-        state.push_note("Location tabs unavailable; check saved tabs");
-    } else {
-        state.push_note(&format!("location: {location}"));
-    }
-    state.inherit_shell_view(&mut previous);
-    state.inherit_terminal_view(&mut previous);
-    if state.shells_open()
-        && let Err(error) = refresh_shells(app, state).await
-    {
-        state.push_note(&error);
-    }
-    deck.sync_tabs(state);
+    navigation_jobs::start(
+        app,
+        state,
+        deck,
+        navigation_jobs::Request::Published {
+            catalog: Box::new(catalog),
+            location: location.into(),
+        },
+    )
+    .expect("published Location adoption");
 }
 
 fn require_session(state: &TuiState) -> Result<SessionId, String> {
@@ -4047,20 +4095,6 @@ fn require_session(state: &TuiState) -> Result<SessionId, String> {
         .attached_session()
         .cloned()
         .ok_or_else(|| "no active session; submit a prompt first".to_string())
-}
-
-async fn selection(
-    app: &CoreApp,
-    state: &TuiState,
-    action: SelectionAction,
-) -> Result<CatalogSnapshot, String> {
-    match state.attached_session() {
-        Some(session) => app
-            .session_selection(session.clone(), state.home, action)
-            .await
-            .map_err(|e| e.to_string()),
-        None => app.home_selection(action).await.map_err(|e| e.to_string()),
-    }
 }
 
 #[cfg(test)]
@@ -4078,11 +4112,25 @@ async fn handle_worker_event_at(
     app: &CoreApp,
     state: &mut TuiState,
     _loop_state: &mut LoopState,
-    session: &SessionId,
+    _session: &SessionId,
     event: CoreEvent,
     revision: Option<u64>,
     replay: bool,
 ) -> Result<(), String> {
+    if replay
+        && matches!(
+            &event,
+            CoreEvent::ShellChanged { .. }
+                | CoreEvent::TerminalChanged { .. }
+                | CoreEvent::SessionMoved { .. }
+                | CoreEvent::PermissionAsked(_)
+                | CoreEvent::PermissionResolved { .. }
+                | CoreEvent::QuestionAsked(_)
+                | CoreEvent::QuestionResolved { .. }
+        )
+    {
+        return Ok(());
+    }
     // Root tabs own their live view even while Home/another tab is selected.
     // Global inventory/Location publications below keep their existing all-view
     // handlers; only exact session-addressed normal events take this route.
@@ -4120,31 +4168,23 @@ async fn handle_worker_event_at(
         return Ok(());
     }
     if let CoreEvent::TerminalChanged { session: owner } = &event {
-        if state.attached_session() == Some(owner) {
-            terminal_controls::refresh_or_report(app, state).await;
-        }
-        for parked in _loop_state
-            .tabs
-            .iter_mut()
-            .flatten()
-            .filter(|v| v.attached_session() == Some(owner))
+        let mut jobs = std::mem::take(&mut _loop_state.terminals);
+        for view in read_jobs::views_mut(state, _loop_state)
+            .filter(|view| view.attached_session() == Some(owner))
         {
-            terminal_controls::refresh_or_report(app, parked).await;
+            jobs.request(view);
         }
+        _loop_state.terminals = jobs;
         return Ok(());
     }
     if let CoreEvent::ShellChanged { session: owner } = &event {
-        if state.attached_session() == Some(owner) || state.shells_open() {
-            refresh_shells(app, state).await?;
-        }
-        for parked in _loop_state
-            .tabs
-            .iter_mut()
-            .flatten()
-            .filter(|view| view.attached_session() == Some(owner) || view.shells_open())
+        let mut jobs = std::mem::take(&mut _loop_state.reads);
+        for view in read_jobs::views_mut(state, _loop_state)
+            .filter(|view| view.attached_session() == Some(owner))
         {
-            refresh_shells(app, parked).await?;
+            jobs.shells(view);
         }
+        _loop_state.reads = jobs;
         return Ok(());
     }
     if let CoreEvent::SessionMoved {
@@ -4154,22 +4194,9 @@ async fn handle_worker_event_at(
     } = &event
     {
         if let Some(snapshot) = location {
-            if app.shares_workspace() && state.attached_session() == Some(moved) {
-                app.switch_location_home(snapshot.location.clone())
-                    .await
-                    .map_err(|error| error.to_string())?;
-            }
-            if app.catalog().await.is_ok_and(|catalog| {
-                catalog.chrome.location.as_deref() == Some(snapshot.location.as_str())
-            }) {
-                adopt_location(
-                    app,
-                    state,
-                    _loop_state,
-                    snapshot.catalog.clone(),
-                    &snapshot.location,
-                )
-                .await;
+            if !replay {
+                navigation_jobs::moved(state, _loop_state, moved, snapshot.clone());
+                _loop_state.shared_refresh |= app.shares_workspace();
             }
         } else {
             // An explicit idle target left this scope; retire only its parked
@@ -4178,29 +4205,20 @@ async fn handle_worker_event_at(
                 view.as_ref()
                     .is_some_and(|view| view.attached_session() == Some(moved))
             }) {
-                _loop_state.tabs.remove(index);
-                _loop_state.tab_cards_before.remove(index);
-                if let Some(active) = _loop_state.active_tab.as_mut()
-                    && *active > index
-                {
-                    *active -= 1;
+                if _loop_state.target_ready(state, index).is_err() {
+                    _loop_state.closed_owners.insert(moved.clone(), None);
+                } else {
+                    _loop_state.tabs.remove(index);
+                    _loop_state.tab_cards_before.remove(index);
+                    if let Some(active) = _loop_state.active_tab.as_mut()
+                        && *active > index
+                    {
+                        *active -= 1;
+                    }
                 }
             }
-            match app.tab_deck().await {
-                Ok(snapshot)
-                    if _loop_state.location.as_deref() == Some(snapshot.location.as_str())
-                        && _loop_state.snapshot(state).sessions == snapshot.sessions
-                        && _loop_state.snapshot(state).new_session_titles
-                            == snapshot.new_session_titles
-                        && _loop_state.snapshot(state).active == snapshot.active =>
-                {
-                    _loop_state.revision = snapshot.revision;
-                }
-                _ => {
-                    _loop_state.save_disabled = true;
-                    state.push_note("Session moved; saved tabs refresh required");
-                }
-            }
+            _loop_state.shared_refresh |= app.shares_workspace();
+            _loop_state.selection_blocked = true;
             _loop_state.sync_tabs(state);
         }
         return Ok(());
@@ -4212,7 +4230,7 @@ async fn handle_worker_event_at(
             | CoreEvent::QuestionAsked(_)
             | CoreEvent::QuestionResolved { .. }
     ) {
-        refresh_control_views(app, state, _loop_state).await?;
+        _loop_state.controls.request();
         _loop_state.approvals_checked = None;
         return Ok(());
     }
@@ -4280,49 +4298,11 @@ async fn handle_worker_event_at(
             );
         }
         CoreEvent::ChildNotice(notice) => {
-            let Some(message) = notice.job.message_id else {
-                return Ok(());
-            };
-            let exact = app
-                .history_message(
-                    notice.job.parent.clone(),
-                    oc_core::session::MessageId(message.clone()),
-                )
-                .await
-                .map_err(|error| error.to_string())?;
-            let Some(receipt) = exact.rows.iter().find_map(|row| {
-                let Some(oc_core::queries::ChildHistory::Notice(job)) = &row.child else {
-                    return None;
-                };
-                (row.id.0 == message
-                    && job.message_id.as_ref() == Some(&message)
-                    && job.parent == notice.job.parent)
-                    .then(|| job.as_ref().clone())
-            }) else {
-                return Ok(());
-            };
-            if state.has_subagent_cards() {
-                child_controls::refresh(app, state).await?;
+            if !replay {
+                _loop_state
+                    .notices
+                    .request(state, CoreEvent::ChildNotice(notice));
             }
-            if state.is_busy() {
-                let recent = app
-                    .transcript_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|error| error.to_string())?;
-                state.refresh_child_notice_page(&recent);
-                state.refresh_child_notice_page(&exact);
-            } else {
-                let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child_transcript(selected.parent.clone(), selected)
-                        .await
-                } else {
-                    app.transcript_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
-                        .await
-                }
-                .map_err(|error| error.to_string())?;
-                state.refresh_completed_page(&page);
-            }
-            state.apply_child_notice(&receipt);
         }
         CoreEvent::ShellChanged { .. } => unreachable!("handled above"),
         CoreEvent::TerminalChanged { .. } => {}
@@ -4330,17 +4310,11 @@ async fn handle_worker_event_at(
             state.apply_session_model_selected(&session, &commit)
         }
         CoreEvent::SelectionNoticeCommitted { session, message } => {
-            let exact = app
-                .history_message(session.clone(), message)
-                .await
-                .map_err(|error| error.to_string())?;
-            if !exact.rows.is_empty() {
-                let recent = app
-                    .transcript_page(session, None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|error| error.to_string())?;
-                state.refresh_child_notice_page(&recent);
-                state.refresh_child_notice_page(&exact);
+            if !replay {
+                _loop_state.notices.request(
+                    state,
+                    CoreEvent::SelectionNoticeCommitted { session, message },
+                );
             }
         }
         CoreEvent::InboxChanged {
@@ -4348,82 +4322,25 @@ async fn handle_worker_event_at(
             items,
             delivered,
         } => {
-            state.apply_inbox(&session, items);
+            state.apply_inbox(&session, items.clone());
             // A steer joined the running turn: correlate the live prompt, then
             // show its durable user row placed by the turn's notice order.
-            if !delivered.is_empty() {
-                let recent = app
-                    .transcript_page(session, None, None, HISTORY_PAGE_LIMIT)
-                    .await
-                    .map_err(|error| error.to_string())?;
-                state.refresh_child_notice_page(&recent);
-                let ids = delivered
-                    .into_iter()
-                    .map(|delivered| delivered.message)
-                    .collect::<Vec<_>>();
-                state.insert_steered_rows(&recent, &ids);
+            if !replay && !delivered.is_empty() {
+                _loop_state.notices.request(
+                    state,
+                    CoreEvent::InboxChanged {
+                        session,
+                        items,
+                        delivered,
+                    },
+                );
             }
         }
         CoreEvent::ShellNotice(notice) => {
-            if notice.user_requested {
-                let page = app
-                    .history_message(
-                        notice.session.clone(),
-                        oc_core::session::MessageId(notice.message_id),
-                    )
-                    .await
-                    .map_err(|error| error.to_string())?;
-                if page.rows.iter().any(|row| row.user_shell.is_some()) {
-                    if state.is_busy() {
-                        state.refresh_user_shell_page(&page);
-                    } else {
-                        let page = app
-                            .transcript_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
-                            .await
-                            .map_err(|error| error.to_string())?;
-                        state.refresh_completed_page(&page);
-                    }
-                }
-            } else {
-                let exact = app
-                    .history_message(
-                        notice.session.clone(),
-                        oc_core::session::MessageId(notice.message_id),
-                    )
-                    .await
-                    .map_err(|error| error.to_string())?;
-                if !exact.rows.iter().any(|row| {
-                    row.shell_notice
-                        .as_ref()
-                        .is_some_and(|metadata| metadata.operation == notice.shell_id)
-                }) {
-                    return Ok(());
-                }
-                if state.has_model_shell_card(&notice.shell_id)
-                    && let Ok(snapshot) = app
-                        .shell_snapshot(notice.session.clone(), notice.shell_id.clone())
-                        .await
-                {
-                    state.apply_model_shell_snapshot(&snapshot);
-                }
-                if state.is_busy() {
-                    let recent = app
-                        .transcript_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
-                        .await
-                        .map_err(|error| error.to_string())?;
-                    state.refresh_child_notice_page(&recent);
-                    state.refresh_child_notice_page(&exact);
-                    return Ok(());
-                }
-                let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child_transcript(selected.parent.clone(), selected)
-                        .await
-                } else {
-                    app.transcript_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
-                        .await
-                }
-                .map_err(|error| error.to_string())?;
-                state.refresh_completed_page(&page);
+            if !replay {
+                _loop_state
+                    .notices
+                    .request(state, CoreEvent::ShellNotice(notice));
             }
         }
         CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
@@ -4441,7 +4358,12 @@ async fn handle_worker_event_at(
         | CoreEvent::SessionViewed { .. }
         | CoreEvent::ProjectionGap
         | CoreEvent::OwnerDisconnected => unreachable!("handled before session routing"),
-        CoreEvent::SessionTitleUpdated { title, .. } => state.session_title = Some(title),
+        CoreEvent::SessionTitleUpdated { title, .. } => {
+            if state.session_title.as_ref() != Some(&title) {
+                state.observe_history_commit();
+                state.session_title = Some(title);
+            }
+        }
         CoreEvent::TurnStarted {
             turn, model_switch, ..
         } => {
@@ -4459,20 +4381,12 @@ async fn handle_worker_event_at(
                 || state.linked_child().is_some()
                 || app.shares_workspace() && !state.has_pending_submission()
             {
-                if !replay && app.shares_workspace() && state.active_turn() != Some(&turn) {
-                    let page = app
-                        .transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
-                        .await;
-                    match page {
-                        Ok(page) => state.refresh_completed_page(&page),
-                        // Move committed after emission of this live hint. Its
-                        // queued SessionMoved event rebinds the view; keep the
-                        // editor and do not read through the retired Location.
-                        Err(CoreError::LocationChanged) if app.shares_workspace() => {}
-                        Err(error) => return Err(error.to_string()),
-                    }
-                }
+                let refresh =
+                    !replay && app.shares_workspace() && state.active_turn() != Some(&turn);
                 state.begin_linked_turn(turn.clone());
+                if refresh {
+                    _loop_state.reads.request(state, true);
+                }
             }
             if let Some(notice) = model_switch {
                 state.apply_model_switch(&turn, &notice);
@@ -4512,7 +4426,7 @@ async fn handle_worker_event_at(
                 output_presentation,
             );
             if !replay && name == "subagent" && state.active_turn() == Some(&turn) {
-                child_controls::refresh(app, state).await?;
+                _loop_state.reads.request(state, false);
             }
         }
         CoreEvent::ToolCallProgress {
@@ -4551,11 +4465,10 @@ async fn handle_worker_event_at(
                 output_presentation,
             );
             if !replay && name == "subagent" && state.active_turn() == Some(&turn) {
-                child_controls::refresh(app, state).await?;
+                _loop_state.reads.request(state, false);
             }
             if !replay && name == "compress" && state.active_turn() == Some(&turn) {
-                refresh_dcp(app, state, session).await;
-                refresh_dcp_summaries(app, state).await;
+                _loop_state.reads.request(state, false);
             }
         }
         CoreEvent::TurnContextUsage {
@@ -4584,25 +4497,10 @@ async fn handle_worker_event_at(
             let compress = state.is_compress_turn(&turn);
             state.apply_finished(&turn, &text, duration_ms);
             if current && !replay {
-                let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child_transcript(selected.parent.clone(), selected)
-                        .await
-                } else {
-                    app.transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
-                        .await
-                };
-                let page = match page {
-                    Ok(page) => page,
-                    Err(CoreError::LocationChanged) if app.shares_workspace() => {
-                        state.apply_turn_warnings(warnings, service_warning_range);
-                        return Ok(());
-                    }
-                    Err(error) => return Err(error.to_string()),
-                };
-                state.refresh_completed_page(&page);
-                refresh_dcp_summaries(app, state).await;
                 if compress {
-                    report_compress_outcome(app, state, session, &turn, &page).await;
+                    _loop_state.reads.compress(state, turn);
+                } else {
+                    _loop_state.reads.request(state, true);
                 }
             }
             state.apply_turn_warnings(warnings, service_warning_range);
@@ -4624,18 +4522,7 @@ async fn handle_worker_event_at(
             if current && !replay {
                 // Replace the accepted prompt's local echo with its durable ID,
                 // just as on completion, so message actions work after Esc.
-                let page = if let Some(selected) = state.linked_child().cloned() {
-                    app.read_child_transcript(selected.parent.clone(), selected)
-                        .await
-                } else {
-                    app.transcript_page(session.clone(), None, None, HISTORY_PAGE_LIMIT)
-                        .await
-                };
-                match page {
-                    Ok(page) => state.refresh_completed_page(&page),
-                    Err(CoreError::LocationChanged) if app.shares_workspace() => return Ok(()),
-                    Err(error) => return Err(error.to_string()),
-                }
+                _loop_state.reads.request(state, true);
             }
         }
         CoreEvent::TurnFailed {
@@ -4670,7 +4557,7 @@ fn apply_mcp_to_views(
     // service recovery. The acknowledged reload reads one current owner
     // snapshot before releasing this captured view; queued old instances then
     // fail the normal binding guards. No second registry/history is needed.
-    if deck.reload_job.is_some() {
+    if deck.reload_pending() {
         return;
     }
     state.apply_mcp_snapshot(snapshot.clone());
@@ -4682,27 +4569,6 @@ fn apply_mcp_to_views(
         home.set_service_feedback_visible(false);
         home.apply_mcp_snapshot(snapshot);
     }
-}
-
-async fn refresh_shells(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {
-    let Some(session) = state.attached_session().cloned() else {
-        return Ok(());
-    };
-    state.apply_shell_jobs(
-        app.shell_jobs(session)
-            .await
-            .map_err(|error| error.to_string())?,
-    );
-    if let Some(job) = state.shell_viewer().cloned() {
-        let snapshot = app
-            .shell_snapshot(job.session.clone(), job.shell_id.clone())
-            .await;
-        match snapshot {
-            Ok(snapshot) => state.apply_shell_snapshot(snapshot),
-            Err(_) => state.apply_shell_read_failure(&job),
-        }
-    }
-    Ok(())
 }
 
 fn apply_compaction_to_view(
@@ -4731,45 +4597,31 @@ async fn finish_compaction_admission(state: &mut TuiState, deck: &mut LoopState)
     {
         return;
     }
-    match deck
+    let origin = deck.compaction_origin.take();
+    let result = deck
         .compaction_job
         .take()
         .expect("finished compaction admission")
         .await
-        .unwrap_or(Err(CoreError::Shutdown))
-    {
-        Ok((snapshot, revision)) => {
-            if state
-                .attached_session()
-                .is_some_and(|id| id.0 == snapshot.session)
-            {
-                state.compaction_admitted(snapshot, revision);
-            } else if let Some(view) = deck.tabs.iter_mut().flatten().find(|view| {
-                view.attached_session()
+        .unwrap_or(Err(CoreError::Shutdown));
+    let view = read_jobs::views_mut(state, deck)
+        .find(|view| origin.as_ref().is_some_and(|route| route.owns(view)));
+    if let Some(view) = view {
+        match result {
+            Ok((snapshot, revision)) => {
+                if view
+                    .attached_session()
                     .is_some_and(|id| id.0 == snapshot.session)
-            }) {
-                view.compaction_admitted(snapshot, revision);
+                {
+                    view.compaction_admitted(snapshot, revision);
+                }
             }
-        }
-        Err(error) => {
-            state.push_transient_note(&format!("compaction: {error}"), NoteVariant::Error)
+            Err(error) => {
+                view.push_transient_note(&format!("compaction: {error}"), NoteVariant::Error)
+            }
         }
     }
     deck.sync_tabs(state);
-}
-
-async fn refresh_compactions(app: &CoreApp, state: &mut TuiState) {
-    let Some(session) = state.attached_session().cloned() else {
-        return;
-    };
-    match app.compaction_history(session).await {
-        Ok(snapshots) => state.apply_compaction_history(snapshots),
-        Err(error) => state.push_transient_note(
-            &format!("Session opened; compaction refresh failed: {error}"),
-            NoteVariant::Error,
-        ),
-    }
-    refresh_dcp_summaries(app, state).await;
 }
 
 async fn refresh_dcp_summaries(app: &CoreApp, state: &mut TuiState) {
@@ -4794,24 +4646,13 @@ async fn refresh_dcp_summaries(app: &CoreApp, state: &mut TuiState) {
     }
 }
 
-/// Refresh the DCP snapshot for the attached session.
-async fn refresh_dcp(app: &CoreApp, state: &mut TuiState, session: &SessionId) {
-    match app.dcp_snapshot(session.clone()).await {
-        Ok(snapshot) => state.apply_dcp_snapshot(snapshot),
-        Err(error) => state.push_note(&format!("DCP query failed: {error}")),
-    }
-}
-
 /// Only this exact turn can establish a manual-operation outcome. Successful
 /// notices are emitted once by ToolCallFinished from its typed run snapshot.
-async fn report_compress_outcome(
-    app: &CoreApp,
+fn report_compress_outcome(
     state: &mut TuiState,
-    session: &SessionId,
     turn: &oc_core::core_app::WorkerTurnId,
     page: &oc_core::queries::HistoryPage,
 ) {
-    refresh_dcp(app, state, session).await;
     let recorded = page
         .rows
         .iter()

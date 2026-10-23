@@ -589,6 +589,14 @@ async fn live_shell_shortcut_yields_to_prompt_history_and_respects_effective_rem
     state.restore_prompt("unfinished draft".into());
     state.handle_key(KeyAction::Home).await;
     state.handle_key(KeyAction::Up).await;
+    tokio::time::timeout(std::time::Duration::from_secs(1), async {
+        while state.has_pending_prompt_history() {
+            state.poll_prompt_history();
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured prompt-history read");
     assert_eq!(state.input(), "accepted older prompt");
     let down = KeyEvent::new(KeyCode::Down, KeyModifiers::NONE);
     let action = state.terminal_key(down).unwrap();

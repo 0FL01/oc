@@ -75,6 +75,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 ## TUI — `crates/oc-tui/src/`
 
 - State/input/tabs/live/history: `app.rs`, `app/{input,tabs,live,transcript}.rs`, `history.rs`. Tests: unit `app::`, `history::`.
+- Cold visible projection/cache ownership/cancel+join: `app/projection.rs`; immutable source/preview handles: `history/source.rs`. Tests: unit `app::projection::tests`, `semantic_footer_slice`, `indexed_normal_reasoning`, `shared_detail_lru`. Parked poll/close integration: `crates/oc/src/tui_cmd/{read_jobs,deck_jobs,navigation_jobs}.rs`, binary unit `parked_projection_close`.
 - Markdown/wrapping/cards/DCP: `messages.rs`, `styled.rs`, `tools.rs`, `dcp_view.rs`, `views.rs`; execute: `tools/execute.rs`, `app/execute.rs`, `execute_view.rs`. Tests: unit `messages::`, `tools::`, `app::tests::execute`.
 - Syntax/diff: `syntax.rs`, `syntax/styles.rs`, `patch_view.rs`; pinned grammars: `crates/oc-tui/assets/syntax/{manifest.json,PROVENANCE.md}`, `crates/oc-tui/build.rs`. Tests: unit `syntax::`, `patch_view`.
 - Frame/prompt/caret/selection: `shell.rs`, `layout.rs`, `editor.rs`, `app/input.rs`, `app/text_selection.rs`. Tests: unit `shell::`, `app::tests::prompt`, `app::tests::text_selection`.

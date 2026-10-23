@@ -1,4 +1,4 @@
-//! Mounted auth-surface work; never blocks the input loop on issuer/browser IO.
+//! Retained auth-surface work; never blocks the input loop on issuer/browser IO.
 use super::*;
 use oc_core::queries::{AuthAction, AuthAttempt, AuthAttemptState, ProviderAccounts};
 use oc_tui::app::AuthRequest;
@@ -38,6 +38,9 @@ pub(super) struct Controls {
 }
 
 impl Controls {
+    pub(super) fn has_surface(&self) -> bool {
+        self.pending() || self.active.is_some() || self.seen.is_some() || self.poll_at.is_some()
+    }
     pub(super) fn pending(&self) -> bool {
         self.job.is_some() || self.opener.is_some() || self.connections.pending()
     }

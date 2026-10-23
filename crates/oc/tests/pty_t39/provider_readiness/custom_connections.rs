@@ -142,7 +142,7 @@ fn conn04_zero_provider_native_connect_mask_cancel_ack_exact_request_and_restart
     pty.send(b"CONN04 no model yet\r");
     wait_screen_row(&pty, "model_unavailable", DEADLINE);
     counts(&fixture, 0, 0, 0, 0);
-    pty.send(b"\x03"); // Clear the refused draft, not a key or a created session.
+    discard_failed_submission(&mut pty); // Explicitly retire the captured refusal.
     form(&mut pty, &base);
     pty.send(b"\x1b");
     dismissed(&pty, "Connect a custom provider");

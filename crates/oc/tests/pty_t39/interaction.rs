@@ -482,6 +482,7 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         wait_screen_row(&pty, "variant_unavailable (retryable=false)", DEADLINE);
         wait_screen_row(&pty, "config variant: select an", DEADLINE);
         wait_screen_row(&pty, "model variant or Default", DEADLINE);
+        recover_failed_submission(&mut pty, true);
         wait_screen_row(&pty, "retired draft", DEADLINE);
         assert!(
             fixture.requests.lock().unwrap().is_empty(),
@@ -1512,7 +1513,9 @@ fn v05_review_empty_editor_up_uses_history_on_wire() {
         .unwrap();
     let mut pty = PtySession::spawn(fixture.clone(), "v05-empty-up", None);
     pty.wait_visible(READY, DEADLINE);
-    pty.send(b"\x1b[A\r"); // empty editor: Up recalls, Enter submits it
+    pty.send(b"\x1b[A"); // empty editor: Up starts the owner-backed recall
+    prompt_history::wait_prompt(&pty, &["seeded row 00000 payload"]);
+    pty.send(b"\r");
     let requests = fixture.wait_requests(1);
     assert_eq!(
         last_user_text(&requests[0]).as_deref(),
@@ -1811,6 +1814,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         pty.send(b"\r"); // picker alone no longer persists the selected choice
         pty.send(b"/rename Retained selection root\r");
         wait_screen_row(&pty, "Retained selection root", DEADLINE);
+        wait_screen_absent(&pty, "/rename Retained selection root");
         pty.send(b"/quit\r");
         assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
         let before = {
@@ -1879,6 +1883,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
             },
             DEADLINE,
         );
+        recover_failed_submission(&mut pty, true);
         wait_screen_row(&pty, "blocked draft", DEADLINE);
         assert!(
             fixture.requests.lock().unwrap().is_empty(),

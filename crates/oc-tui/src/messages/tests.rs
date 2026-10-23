@@ -34,8 +34,289 @@ fn retained_cache_index_counter_tracks_replacement_and_eviction() {
         .iter()
         .map(|index| MarkdownCache::pages_bytes(&index.pages))
         .sum();
-    assert_eq!(cache.index_bytes(), actual);
-    assert_eq!(cache.retained_bytes(), cache.bytes + actual);
+    let summaries = cache.source_heights.capacity() * std::mem::size_of::<SourceHeight>();
+    assert_eq!(cache.index_bytes(), actual + summaries);
+    assert_eq!(cache.retained_bytes(), cache.bytes + actual + summaries);
+}
+
+#[test]
+fn semantic_footer_slice_replaces_only_its_reachable_compact_height() {
+    let cache = RefCell::new(MarkdownCache::default());
+    let mut rows: Vec<_> = (0..MAX_REASONING_HEIGHTS)
+        .map(|index| HistoryRow {
+            seq: index as i64,
+            role: "assistant".into(),
+            text: format!("paragraph {index}\n").into(),
+            ..Default::default()
+        })
+        .collect();
+    let count = |rows: &[HistoryRow], cache: &RefCell<MarkdownCache>| {
+        visible_transcript(
+            rows,
+            Theme::dark(),
+            60,
+            60,
+            (0, 0, None),
+            |_| Color::Reset,
+            cache,
+        )
+        .1
+    };
+    count(&rows, &cache);
+    let indexes = cache.borrow().source_indexes;
+    let token = rows[0].text.token();
+    rows[0].meta = Some(Default::default());
+    let total = count(&rows, &cache);
+    assert_eq!(total, count(&rows, &RefCell::new(MarkdownCache::default())));
+    assert_eq!(cache.borrow().source_indexes, indexes + 1);
+    assert_eq!(cache.borrow().source_heights.len(), MAX_REASONING_HEIGHTS);
+    let cache = cache.borrow();
+    let key = cache
+        .source_heights
+        .iter()
+        .find(|entry| entry.key.token == token)
+        .unwrap()
+        .key;
+    assert_eq!(key.kind, SourceKind::Footer);
+    assert_eq!(key.end, rows[0].text.len() - 1);
+    assert!(
+        cache
+            .source_heights
+            .iter()
+            .all(|entry| entry.key.token != token || entry.key == key)
+    );
+    assert!(cache.index_bytes() <= MAX_INDEX_BYTES);
+}
+
+#[test]
+fn indexed_normal_reasoning_borrows_its_original_token_bounds_and_details() {
+    let cache = RefCell::new(MarkdownCache::default());
+    let source: crate::history::SourceText =
+        format!("  {}  ", "reasoning paragraph 🧑‍💻\n\n".repeat(1000)).into();
+    let pointer = source.as_ptr();
+    let token = source.token();
+    let part = ReasoningBlock {
+        text: source,
+        expanded: true,
+        duration_ms: None,
+        running: false,
+        toggleable: true,
+        spinner: None,
+        identity: None,
+    };
+    for _ in 0..3 {
+        visit_reasoning_body_indexed(
+            &part,
+            (1, 0),
+            Theme::dark(),
+            60,
+            &cache,
+            false,
+            &mut |_, _| {},
+        );
+        assert_eq!(part.text.as_ptr(), pointer);
+        let cache = cache.borrow();
+        assert_eq!(cache.source_indexes, 1);
+        let key = cache.indexes.front().unwrap().key;
+        assert_eq!(key.token, token);
+        assert_eq!(key.kind, SourceKind::Reasoning);
+        assert_eq!(key.start, 2);
+        assert_eq!(key.end, part.text.trim_end().len());
+    }
+}
+
+#[test]
+fn shared_detail_lru_keeps_new_visible_markdown_after_32_user_details() {
+    let mut cache = MarkdownCache::default();
+    let sources: Vec<crate::history::SourceText> = (0..32)
+        .map(|index| format!("user {index}").into())
+        .collect();
+    for source in &sources {
+        cache.user_geometry(source, 40);
+    }
+    let text: crate::history::SourceText = "visible Markdown".into();
+    let key = GeometryKey::new(&text, 0..text.len(), SourceKind::Assistant, 40);
+    let first = cache.pages_shared((40, 0), &text, key);
+    assert_eq!(cache.user_indexes.len(), 31);
+    assert_eq!(cache.indexes.len(), 1);
+    let builds = cache.source_indexes;
+    let second = cache.pages_shared((40, 0), &text, key);
+    assert!(std::sync::Arc::ptr_eq(&first, &second));
+    assert_eq!(cache.source_indexes, builds);
+    assert!(cache.index_bytes() <= MAX_INDEX_BYTES);
+}
+
+#[test]
+fn offscreen_reasoning_and_text_keep_exact_heights_at_full_compact_capacity() {
+    let cache = RefCell::new(MarkdownCache::default());
+    let mut rows: Vec<_> = (0..MAX_REASONING_HEIGHTS)
+        .map(|index| HistoryRow {
+            seq: index as i64,
+            role: "assistant".into(),
+            text: format!("ordinary source {index}").into(),
+            reasoning: (index < 40).then(|| ReasoningBlock {
+                text: format!("thought {index}\n{}", "old reason ".repeat(1800)).into(),
+                expanded: true,
+                duration_ms: None,
+                running: false,
+                toggleable: false,
+                spinner: None,
+                identity: None,
+            }),
+            ..Default::default()
+        })
+        .collect();
+    let paint = |rows: &[HistoryRow]| {
+        visible_transcript(
+            rows,
+            Theme::dark(),
+            60,
+            60,
+            (12, 0, None),
+            |_| Color::Reset,
+            &cache,
+        )
+    };
+    let (_, total) = paint(&rows);
+    let builds = cache.borrow().source_indexes;
+    assert_eq!(cache.borrow().source_heights.len(), MAX_REASONING_HEIGHTS);
+    assert_eq!(cache.borrow().reasoning_heights.len(), 40);
+    for delta in 0..3 {
+        rows.last_mut().unwrap().text = format!("changed source {delta}").into();
+        assert_eq!(paint(&rows).1, total);
+        assert_eq!(
+            cache.borrow().source_indexes,
+            builds + delta + 1,
+            "only the changed text is indexed; evicted offscreen reasoning details are not reacquired by count"
+        );
+        assert_eq!(cache.borrow().source_heights.len(), MAX_REASONING_HEIGHTS);
+        assert!(cache.borrow().indexes.len() + cache.borrow().user_indexes.len() <= 32);
+        assert!(cache.borrow().index_bytes() <= MAX_INDEX_BYTES);
+    }
+    // A legacy row owns both kinds. Neither detail may replace the other just
+    // because they share the same transcript ordinal.
+    let cache = RefCell::new(MarkdownCache::default());
+    let legacy = [rows[0].clone()];
+    let paint = || {
+        visible_transcript(
+            &legacy,
+            Theme::dark(),
+            60,
+            60,
+            (12, 0, None),
+            |_| Color::Reset,
+            &cache,
+        )
+    };
+    paint();
+    let builds = cache.borrow().source_indexes;
+    paint();
+    assert_eq!(cache.borrow().source_indexes, builds);
+}
+
+#[test]
+fn retained_source_geometry_survives_live_delta_without_rewrapping_offscreen_user_or_old_parts() {
+    let theme = Theme::dark();
+    let cache = RefCell::new(MarkdownCache::default());
+    let mut rows = vec![user(&"word 🧑‍💻  ".repeat(20_000), vec![])];
+    for index in 0..80 {
+        let mut row = user("", vec![]);
+        row.seq = index + 2;
+        row.role = "assistant".into();
+        row.text = format!("old source {index}\n\n{}", "paragraph ".repeat(100)).into();
+        rows.push(row);
+    }
+    let paint = |rows: &[HistoryRow]| {
+        visible_transcript(
+            rows,
+            theme,
+            60,
+            60,
+            (12, 0, Some(rows.len() - 1)),
+            |_| theme.text(),
+            &cache,
+        )
+    };
+    paint(&rows);
+    let indexes = cache.borrow().source_indexes;
+    let wraps = cache.borrow().user_source_wraps;
+    assert_eq!(wraps, 1);
+    let shared = rows[0].clone();
+    assert_eq!(
+        shared.text.as_ptr(),
+        rows[0].text.as_ptr(),
+        "presentation clones share retained source bytes"
+    );
+    for delta in 0..350 {
+        rows.last_mut().unwrap().text = format!("live {delta}").into();
+        paint(&rows);
+        assert_eq!(cache.borrow().user_source_wraps, wraps);
+        assert_eq!(
+            cache.borrow().source_indexes,
+            indexes + delta + 1,
+            "only changed live source is indexed; >32 retained sources do not churn"
+        );
+        assert!(cache.borrow().index_bytes() <= MAX_INDEX_BYTES);
+        assert!(cache.borrow().indexes.len() + cache.borrow().user_indexes.len() <= 32);
+    }
+}
+
+#[test]
+fn sparse_user_source_checkpoints_preserve_unicode_controls_spaces_and_tail_exactly() {
+    let theme = Theme::dark();
+    let text = format!("{}TAIL", "  alpha 🧑‍💻 beta\t\u{0085} x\n   \n".repeat(150));
+    let rows = vec![user(
+        &text,
+        vec![Chip {
+            kind: ChipKind::Skill,
+            name: "inspect".into(),
+        }],
+    )];
+    let cache = RefCell::new(MarkdownCache::default());
+    for width in [17, 37, 80] {
+        // Indexed transcripts own the leading spacer and outer wrapping of
+        // over-wide chip rows, unlike the unwindowed text projection.
+        let mut full = vec![Line::plain("")];
+        for line in transcript(&rows, theme, width, width, |_| theme.text()) {
+            full.extend(
+                styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                    .into_iter()
+                    .map(|wrapped| wrapped.with_style(line.style())),
+            );
+        }
+        for scroll in [0, 63, 127, full.len().saturating_sub(14)] {
+            let (visible, total) = visible_transcript(
+                &rows,
+                theme,
+                width,
+                width,
+                (14, scroll, None),
+                |_| theme.text(),
+                &cache,
+            );
+            assert_eq!(total, full.len());
+            let end = total.saturating_sub(scroll.min(total.saturating_sub(14)));
+            let start = end.saturating_sub(14);
+            assert_eq!(visible, full[start..end], "width={width} scroll={scroll}");
+        }
+        assert!(cache.borrow().index_bytes() <= MAX_INDEX_BYTES);
+    }
+}
+
+#[test]
+fn source_sanitization_preserves_only_generated_animation_cells() {
+    let line = Line::new(vec![
+        Span::plain("   ⠋"),
+        Span::plain(" command\t literal ⋯"),
+    ])
+    .animate(3, styled::AnimationSource::Reasoning);
+    let mut safe = sanitize_line(line);
+    assert_eq!(
+        safe.animation_cells(),
+        [(3, styled::AnimationSource::Reasoning)]
+    );
+    safe.patch_cell(3, "⠙");
+    assert_eq!(safe.plain_text(), "   ⠙ command� literal ⋯");
 }
 
 fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
@@ -44,7 +325,7 @@ fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
         message_id: None,
         seq: 1,
         role: "user".to_string(),
-        text: text.to_string(),
+        text: text.into(),
         agent: Some("build".to_string()),
         agent_color_index: None,
         chips,
@@ -150,7 +431,7 @@ fn assistant(text: &str) -> HistoryRow {
         message_id: None,
         seq: 2,
         role: "assistant".to_string(),
-        text: text.to_string(),
+        text: text.into(),
         agent: Some("build".to_string()),
         agent_color_index: None,
         chips: Vec::new(),
@@ -391,7 +672,7 @@ fn expanded_adjacent_reasoning_has_bounded_snapshots_and_pageable_complete_bodie
         let mut row = assistant("");
         row.seq = seq;
         row.reasoning = Some(ReasoningBlock {
-            text: format!("{marker}\n{}\n{marker} END", "word ".repeat(5000)),
+            text: format!("{marker}\n{}\n{marker} END", "word ".repeat(5000)).into(),
             duration_ms: None,
             running: false,
             expanded: true,
@@ -474,7 +755,7 @@ fn a_single_reasoning_body_scrolls_past_the_row_preview_boundary() {
     let cache = RefCell::new(MarkdownCache::default());
     let mut row = assistant("");
     row.reasoning = Some(ReasoningBlock {
-        text: format!("{}\nROW_TAIL_617", "public\n".repeat(700)),
+        text: format!("{}\nROW_TAIL_617", "public\n".repeat(700)).into(),
         duration_ms: Some(1),
         running: false,
         expanded: true,
@@ -583,7 +864,7 @@ fn offscreen_expanded_reasoning_is_measured_once_per_cache_miss() {
             let mut row = assistant("");
             row.seq = group;
             row.reasoning = Some(ReasoningBlock {
-                text: format!("**Group {group}**\n\n{}", "word ".repeat(1300)),
+                text: format!("**Group {group}**\n\n{}", "word ".repeat(1300)).into(),
                 duration_ms: Some(10),
                 running: false,
                 expanded: true,
@@ -647,7 +928,7 @@ fn reachable_reasoning_parts_keep_heights_across_frames_and_bounded_tabs() {
         let mut row = assistant("");
         row.seq = index as i64;
         row.reasoning = Some(ReasoningBlock {
-            text: format!("**Step {index}**\n\nbody {index}"),
+            text: format!("**Step {index}**\n\nbody {index}").into(),
             duration_ms: None,
             running: false,
             expanded: true,
@@ -752,12 +1033,11 @@ fn reachable_reasoning_parts_keep_heights_across_frames_and_bounded_tabs() {
     }
     let cache = cache.borrow();
     assert_eq!(cache.reasoning_heights.len(), MAX_REASONING_HEIGHTS);
-    assert_eq!(
-        cache.retained_bytes(),
-        cache.bytes
-            + cache.index_bytes()
-            + cache.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
+    assert!(
+        cache.index_bytes()
+            >= cache.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
     );
+    assert_eq!(cache.retained_bytes(), cache.bytes + cache.index_bytes());
 }
 
 #[test]
@@ -1059,7 +1339,7 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
         message_id: None,
         seq: 3,
         role: "tool".to_string(),
-        text: String::new(),
+        text: String::new().into(),
         agent: Some("build".to_string()),
         agent_color_index: None,
         chips: Vec::new(),
@@ -2011,7 +2291,7 @@ fn golden_reasoning_running_and_completed() {
     );
     let running = HistoryRow {
         reasoning: Some(ReasoningBlock {
-            text: "**Inspecting**\n\nbody".to_string(),
+            text: "**Inspecting**\n\nbody".into(),
             duration_ms: None,
             running: true,
             expanded: false,
@@ -2041,7 +2321,7 @@ fn golden_reasoning_running_and_completed() {
 
     let completed = HistoryRow {
         reasoning: Some(ReasoningBlock {
-            text: "**Inspecting**\n\nbody".to_string(),
+            text: "**Inspecting**\n\nbody".into(),
             duration_ms: Some(1500),
             running: false,
             expanded: false,
@@ -2093,7 +2373,7 @@ fn golden_reasoning_running_and_completed() {
     // Unknown duration renders `Thought` without an invented `0ms`.
     let no_duration = HistoryRow {
         reasoning: Some(ReasoningBlock {
-            text: "no title".to_string(),
+            text: "no title".into(),
             duration_ms: None,
             running: false,
             expanded: false,
@@ -3229,7 +3509,8 @@ fn indexed_code_keeps_whole_fence_state_and_literal_json() {
         changed[0].text = changed[0]
             .text
             .replacen("/*", "//", 1)
-            .replacen("*/", "//", 1);
+            .replacen("*/", "//", 1)
+            .into();
         let (visible, _) = visible_transcript(
             &changed,
             theme,

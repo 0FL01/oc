@@ -490,6 +490,21 @@ pub enum PumpOutcome {
 }
 
 impl TuiState {
+    /// Reactivating this exact retained owner invalidates filesystem/read
+    /// projections, not its captured admission. No receipt is moved to another
+    /// route and no owner effect is repeated.
+    pub fn resume_retained_view(&mut self) {
+        self.resume_transcript_projection();
+        let previous = self.generation;
+        self.invalidate_file_suggestions();
+        if let Some(pending) = self.pending.as_mut()
+            && pending.generation == previous
+        {
+            pending.generation = self.generation;
+        }
+        self.retain_user_shell_generation(previous);
+    }
+
     /// Active-turn only: parked views receive this through the same scoped router.
     pub fn apply_retry(
         &mut self,
@@ -556,6 +571,7 @@ impl TuiState {
             // The owner's bounded journal query returns newest-first.
             .rev()
             .filter(|s| self.session.as_ref().is_some_and(|id| id.0 == s.session))
+            .map(Into::into)
             .collect();
         self.sync_compaction_clock();
     }
@@ -576,9 +592,9 @@ impl TuiState {
             {
                 return;
             }
-            *current = snapshot;
+            *current = snapshot.into();
         } else {
-            self.compactions.push(snapshot);
+            self.compactions.push(snapshot.into());
         }
         if self.compactions.len() > 100 {
             self.compactions.remove(0);
@@ -672,6 +688,10 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        self.apply_catalog_inner(snapshot, true);
+    }
+
+    fn apply_catalog_inner(&mut self, snapshot: CatalogSnapshot, refresh_composer: bool) {
         self.invalidate_sidebar_pointer();
         let dialog_changed = self.chrome.dialog_shortcuts != snapshot.chrome.dialog_shortcuts;
         let mut previous_issues = self.service_issues();
@@ -748,14 +768,16 @@ impl TuiState {
         self.auto_accept = snapshot.auto_accept;
         // A staged next-send agent survives canonical refreshes of this view;
         // the composer keeps showing it until the owner reports it committed.
-        let agent_draft = self.agent_draft.take().filter(|draft| {
-            draft.agent_id != snapshot.agent_id
-                && draft.chrome.location == snapshot.chrome.location
-                && draft.chrome.selection_generation == snapshot.chrome.selection_generation
-        });
-        let picker = self.composer_picker(agent_draft.as_ref().unwrap_or(&snapshot));
+        if refresh_composer {
+            let agent_draft = self.agent_draft.take().filter(|draft| {
+                draft.agent_id != snapshot.agent_id
+                    && draft.chrome.location == snapshot.chrome.location
+                    && draft.chrome.selection_generation == snapshot.chrome.selection_generation
+            });
+            self.picker = Some(self.composer_picker(agent_draft.as_ref().unwrap_or(&snapshot)));
+            self.agent_draft = agent_draft;
+        }
         self.reconcile_service_feedback(previous_issues);
-        self.picker = Some(picker);
         self.commands = snapshot.commands;
         self.command_descriptions = snapshot.command_descriptions;
         self.active_agent = snapshot.agent_id.clone().map(|id| {
@@ -768,7 +790,6 @@ impl TuiState {
             }
         });
         self.agents = snapshot.agents;
-        self.agent_draft = agent_draft;
         self.sync_agents_cursor();
         self.catalog_loaded = true;
         self.sync_modal_cursor();
@@ -812,6 +833,21 @@ impl TuiState {
             .unwrap_or(usize::MAX);
     }
 
+    /// Fence older preparation while the next-send agent is being resolved.
+    pub fn begin_agent_selection(&mut self) {
+        // Supersede older preparation without guessing the new profile. The
+        // controller keeps sending disabled until this owned preview resolves.
+        self.agent_draft_revision = self.agent_draft_revision.wrapping_add(1);
+    }
+
+    pub fn agent_selection_revision(&self) -> u64 {
+        self.agent_draft_revision
+    }
+
+    pub fn agent_picker_identity(&self) -> Option<(&str, usize)> {
+        (self.panel == TuiPanel::Agents).then_some((self.select.query.as_str(), self.agents_cursor))
+    }
+
     /// Stage an owner `Preview` as the composer's next-send agent (OC2 local
     /// agent draft). The running turn keeps its profile; nothing is committed.
     pub fn apply_agent_preview(&mut self, snapshot: CatalogSnapshot) -> Result<(), String> {
@@ -821,8 +857,10 @@ impl TuiState {
             return Err("agent preview is stale; try again".into());
         }
         self.picker = Some(self.composer_picker(&snapshot));
-        self.agent_draft =
-            (self.active_agent.as_deref() != snapshot.agent_id.as_deref()).then_some(snapshot);
+        self.agent_draft_revision = self.agent_draft_revision.wrapping_add(1);
+        self.agent_draft = (self.active_agent.as_deref() != snapshot.agent_id.as_deref()
+            || self.has_pending_submission())
+        .then_some(snapshot);
         self.sync_agents_cursor();
         self.sync_modal_cursor();
         Ok(())
@@ -841,36 +879,6 @@ impl TuiState {
             Some(draft) => draft.agent_id.as_deref(),
             None => self.active_agent.as_deref(),
         }
-    }
-
-    /// OC2 `prepareAgent`: commit a staged agent before the next send, so the
-    /// captured model commit carries its binding. A refusal keeps every draft.
-    pub(super) async fn commit_agent_draft(&mut self) -> Result<(), String> {
-        let Some(agent) = self
-            .agent_draft
-            .as_ref()
-            .and_then(|draft| draft.agent_id.clone())
-        else {
-            return Ok(());
-        };
-        let Some(session) = self.session.clone().filter(|_| !self.home) else {
-            return Ok(());
-        };
-        // The pending prompt's captured model scope names the old agent.
-        if self.pending.is_some() {
-            return Err("submission pending; the agent applies to the next send".into());
-        }
-        let snapshot = self
-            .app
-            .session_selection(
-                session,
-                false,
-                oc_core::queries::SessionSelectionAction::Agent(agent),
-            )
-            .await
-            .map_err(|error| format!("agent switch: {error}"))?;
-        self.apply_catalog(snapshot);
-        Ok(())
     }
 
     /// Apply the session list snapshot.
@@ -1014,7 +1022,8 @@ impl TuiState {
         {
             return Vec::new();
         }
-        self.transcript_rows()
+        self.compose_structure(true)
+            .0
             .into_iter()
             .rev()
             .filter_map(|row| row.tool)
@@ -1140,6 +1149,10 @@ impl TuiState {
     }
 
     /// Report that an intent was accepted and applied; clears the input.
+    pub fn input_revision(&self) -> u64 {
+        self.input_revision
+    }
+
     pub fn accept_intent(&mut self) {
         self.input.clear();
         self.editor.clear();
@@ -1161,6 +1174,7 @@ impl TuiState {
         self.live_span = None;
         self.live_projection_revision = None;
         self.active_turn = Some(turn);
+        self.projection_epoch = self.projection_epoch.wrapping_add(1);
         self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
         self.status = TuiStatus::Streaming;
         self.panel = TuiPanel::Dcp;
@@ -1189,7 +1203,7 @@ impl TuiState {
 
     /// Enqueue manual compression using the same draft/receipt lifecycle as text.
     pub fn request_compress(&mut self, focus: String) -> Result<(), CoreError> {
-        if self.is_busy() {
+        if self.is_busy() || self.has_occupied_submission() {
             return Err(CoreError::TurnBusy);
         }
         if self.editor.has_images() {
@@ -1209,54 +1223,334 @@ impl TuiState {
         }
         let session = self.session.clone().ok_or(CoreError::SessionNotFound)?;
         let receipt = self.app.request_compress(session.clone(), focus)?;
-        self.begin_submission(receipt, session, false, true);
+        let mut pending = self.capture_submission(session, SubmissionPurpose::Compress);
+        pending.phase = SubmissionPhase::AwaitingTurn(receipt);
+        self.occupy_submission(pending);
         Ok(())
     }
 
-    pub(super) fn begin_submission(
-        &mut self,
-        receipt: SubmissionReceipt,
+    fn capture_submission(
+        &self,
         session: SessionId,
-        fresh: bool,
-        compress: bool,
-    ) {
-        self.request_id += 1;
-        let agent = self.active_agent.clone();
+        purpose: SubmissionPurpose,
+    ) -> PendingSubmission {
+        let agent = self.composer_agent().map(str::to_owned);
         let agent_color_index = agent.as_deref().and_then(|agent| {
             self.agents
                 .iter()
                 .find(|entry| entry.id == agent)
                 .map(|entry| entry.color_index)
         });
-        self.pending = Some(PendingSubmission {
+        let prompt = self.editor.prompt(&self.input).trimmed();
+        PendingSubmission {
             selection: self.captured_model_commit(),
-            request_id: self.request_id,
+            request_id: self.request_id.wrapping_add(1),
             generation: self.generation,
             session,
-            fresh,
-            draft: self.input.clone(),
-            images: self.editor.prompt(&self.input).images,
+            fresh: self.session.is_none(),
+            draft: crate::ComposerDraft::default(),
+            source: prompt.text.as_str().into(),
+            prompt,
             mentions: self.editor.submitted_mentions(&self.input),
-            revision: self.input_revision,
-            receipt,
+            phase: SubmissionPhase::Failed(String::new()),
+            purpose,
+            promote: matches!(purpose, SubmissionPurpose::Empty)
+                .then(|| self.promote_first_queued())
+                .flatten(),
+            agent_revision: self.agent_draft_revision,
             agent,
             agent_color_index,
             cancelling: false,
-            compress,
-        });
-        self.status = TuiStatus::PendingSubmission;
+        }
+    }
+
+    fn occupy_submission(&mut self, mut pending: PendingSubmission) {
+        if pending.fresh {
+            self.provisional_session = Some(pending.session.clone());
+        }
+        self.request_id = pending.request_id;
+        if !matches!(pending.purpose, SubmissionPurpose::Empty) {
+            pending.draft = crate::ComposerDraft {
+                text: std::mem::take(&mut self.input),
+                editor: std::mem::take(&mut self.editor),
+            };
+            self.input_revision = self.input_revision.wrapping_add(1);
+            self.slash_selected = 0;
+            self.slash_dismissed = None;
+            self.clear_mentions();
+        }
+        self.pending = Some(pending);
+        if self.active_turn.is_none() {
+            self.status = TuiStatus::PendingSubmission;
+        }
+        self.invalidate_transcript();
+    }
+
+    fn request_captured_input(
+        &self,
+        pending: &PendingSubmission,
+    ) -> Result<SubmissionPhase, CoreError> {
+        if let SubmissionPurpose::Inbox(delivery) = pending.purpose {
+            return self
+                .app
+                .request_enqueue_selected(
+                    pending.session.clone(),
+                    pending.prompt.clone(),
+                    delivery,
+                    pending.selection.clone(),
+                )
+                .map(SubmissionPhase::AwaitingInbox);
+        }
+        let receipt = if pending.fresh {
+            let selection =
+                pending
+                    .selection
+                    .clone()
+                    .map(|commit| oc_core::core_app::FreshSelection {
+                        binding: Some(commit.binding.clone()),
+                        agent_id: commit.binding.agent_id,
+                        model_id: commit.model_id,
+                        variant: commit.variant,
+                    });
+            self.app.request_submit_input_fresh(
+                pending.session.clone(),
+                pending.prompt.clone(),
+                selection,
+            )
+        } else {
+            self.app.request_submit_input_selected(
+                pending.session.clone(),
+                pending.prompt.clone(),
+                pending.selection.clone(),
+            )
+        }?;
+        Ok(SubmissionPhase::AwaitingTurn(receipt))
+    }
+
+    /// Capture once, then transfer the rich draft only after bounded local admission.
+    pub(super) fn request_composer_submission(&mut self, purpose: SubmissionPurpose) -> KeyOutcome {
+        if self.has_occupied_submission() {
+            return KeyOutcome {
+                note: Some(self.submission_occupied_note().into()),
+                ..Default::default()
+            };
+        }
+        if self.parent_id.is_some() {
+            return KeyOutcome {
+                note: Some("child session is read-only".into()),
+                ..Default::default()
+            };
+        }
+        let session = self.session.clone().unwrap_or_else(fresh_session_id);
+        let mut pending = self.capture_submission(session, purpose);
+        if let Err(error) = pending.prompt.check_budget() {
+            return KeyOutcome {
+                note: Some(self.submission_note(&error)),
+                ..Default::default()
+            };
+        }
+        let phase = if !pending.fresh && !self.home && self.staged_agent().is_some() {
+            self.app
+                .request_session_selection(
+                    pending.session.clone(),
+                    false,
+                    oc_core::queries::SessionSelectionAction::Agent(
+                        pending.agent.clone().expect("staged agent"),
+                    ),
+                )
+                .map(SubmissionPhase::PreparingAgent)
+        } else {
+            self.request_captured_input(&pending)
+        };
+        match phase {
+            Ok(phase) => {
+                pending.phase = phase;
+                self.occupy_submission(pending);
+                KeyOutcome::default()
+            }
+            Err(error) => KeyOutcome {
+                note: Some(self.submission_note(&error)),
+                ..Default::default()
+            },
+        }
+    }
+
+    pub(super) fn submission_occupied_note(&self) -> &str {
+        if self.pending.as_ref().is_some_and(|p| !p.outstanding()) {
+            "last request retained; Settings → Last request: Ctrl+U restore into an empty editor, Ctrl+D discard"
+        } else {
+            "submission pending; Esc to cancel"
+        }
+    }
+
+    pub(super) fn failed_submission_note(&self) -> Option<&str> {
+        match &self.pending.as_ref()?.phase {
+            SubmissionPhase::Failed(note) => Some(note),
+            _ => None,
+        }
+    }
+
+    fn fail_submission(&mut self, mut pending: PendingSubmission, error: CoreError) {
+        let unknown = error == CoreError::Shutdown;
+        let detail = self.submission_note(&error);
+        let note = if unknown {
+            format!(
+                "Request outcome unknown; it may already be accepted. No automatic resend. {detail}. Ctrl+U restores only into an empty editor; Ctrl+D discards (Settings → Last request)."
+            )
+        } else {
+            format!(
+                "{detail}. Draft retained; Ctrl+U restores only into an empty editor; Ctrl+D discards (Settings → Last request)."
+            )
+        };
+        pending.phase = SubmissionPhase::Failed(note.clone());
+        self.pending = Some(pending);
+        if self.status != TuiStatus::Quit {
+            self.status = if self.active_turn.is_some() {
+                TuiStatus::Streaming
+            } else {
+                TuiStatus::Idle
+            };
+        }
+        self.push_note(if unknown { &note } else { &detail });
+        self.invalidate_transcript();
     }
 
     /// Reconcile the unique acceptance receipt before applying queued turn
-    /// events. Failure leaves the editable draft intact. No worker is spawned.
-    pub fn poll_submission(&mut self) {
+    /// events. A deferred blank-Enter inbox intent retains its captured item ID.
+    pub fn poll_submission(&mut self) -> Option<PanelIntent> {
+        self.poll_submission_receipts();
+        self.submission_intent.take()
+    }
+
+    // Input/paint callers must not consume a deferred controller action.
+    pub(super) fn poll_submission_receipts(&mut self) {
+        if let Some(intent) = self.poll_submission_inner() {
+            self.submission_intent = Some(intent);
+        }
+    }
+
+    fn poll_submission_inner(&mut self) -> Option<PanelIntent> {
         self.poll_model_commits();
         self.poll_user_shell();
-        let Some(result) = self.pending.as_mut().and_then(|p| p.receipt.try_result()) else {
-            return;
+        let mut pending = self.pending.take()?;
+        if pending.generation != self.generation || pending.request_id != self.request_id {
+            return None;
+        }
+        if self.status == TuiStatus::Quit {
+            self.pending = Some(pending);
+            return None;
+        }
+        match &mut pending.phase {
+            SubmissionPhase::PreparingAgent(receipt) => {
+                if let Some(result) = receipt.try_result() {
+                    match result {
+                        Ok(snapshot) => {
+                            if snapshot.chrome.location != self.chrome.location
+                                || snapshot.chrome.selection_generation
+                                    != self.chrome.selection_generation
+                                || snapshot.agent_id != pending.agent
+                            {
+                                self.fail_submission(
+                                    pending,
+                                    CoreError::Application(
+                                        "agent preparation: stale acknowledgement".into(),
+                                    ),
+                                );
+                                return None;
+                            }
+                            if let Some(commit) = &mut pending.selection {
+                                // Keep the exact selected provider (including a cross-provider
+                                // picker draft), model, variant, caller and revision.
+                                commit.binding.location = snapshot.chrome.location.clone();
+                                commit.binding.generation = snapshot.chrome.selection_generation;
+                                commit.binding.agent_id = snapshot.agent_id.clone();
+                            }
+                            self.apply_catalog_inner(snapshot, false);
+                            if self.agent_draft_revision == pending.agent_revision {
+                                self.agent_draft = None;
+                            }
+                            if pending.cancelling {
+                                self.fail_submission(
+                                    pending,
+                                    CoreError::Application(
+                                        "cancelled before input admission".into(),
+                                    ),
+                                );
+                                return None;
+                            }
+                            if matches!(pending.purpose, SubmissionPurpose::Empty) {
+                                let result = self.commit_captured_model(
+                                    pending.session.clone(),
+                                    pending.selection.clone(),
+                                );
+                                if let Err(error) = result {
+                                    self.fail_submission(pending, CoreError::Application(error));
+                                    return None;
+                                }
+                                if self.active_turn.is_none() {
+                                    self.status = TuiStatus::Idle;
+                                }
+                                self.invalidate_transcript();
+                                return pending.promote;
+                            }
+                            match self.request_captured_input(&pending) {
+                                Ok(phase) => pending.phase = phase,
+                                Err(error) => {
+                                    self.fail_submission(pending, error);
+                                    return None;
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            self.fail_submission(pending, error);
+                            return None;
+                        }
+                    }
+                }
+            }
+            SubmissionPhase::AwaitingTurn(receipt) => {
+                if let Some(result) = receipt.try_result() {
+                    self.reconcile_submission(pending, result, false);
+                    return None;
+                }
+            }
+            SubmissionPhase::AwaitingInbox(receipt) => {
+                if let Some(result) = receipt.try_result() {
+                    match result {
+                        Ok(item) => {
+                            self.model_submission_accepted(
+                                &pending.session,
+                                pending.selection.as_ref(),
+                            );
+                            if !self.inbox.iter().any(|known| known.id == item.id) {
+                                self.inbox.push(item);
+                            }
+                            self.invalidate_transcript();
+                            return None;
+                        }
+                        Err(CoreError::TurnNotActive) if !pending.cancelling => {
+                            // The sole definitive fallback. Never re-enter handle_enter,
+                            // recapture a draft or retry a dropped/unknown receipt.
+                            pending.purpose = SubmissionPurpose::Turn;
+                            match self.request_captured_input(&pending) {
+                                Ok(phase) => pending.phase = phase,
+                                Err(error) => {
+                                    self.fail_submission(pending, error);
+                                    return None;
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            self.fail_submission(pending, error);
+                            return None;
+                        }
+                    }
+                }
+            }
+            SubmissionPhase::Failed(_) => {}
         };
-        let pending = self.pending.take().expect("polled receipt");
-        self.reconcile_submission(pending, result, false);
+        self.pending = Some(pending);
+        None
     }
 
     /// Quit must not discard an in-flight Home root after the owner commits
@@ -1271,7 +1565,7 @@ impl TuiState {
             return Ok(());
         }
         self.reconcile_user_shell_quit().await?;
-        let Some(pending) = self.pending.as_mut().filter(|p| p.fresh) else {
+        let Some(pending) = self.pending.as_mut().filter(|p| p.fresh && p.outstanding()) else {
             return Ok(());
         };
         pending.cancelling = true;
@@ -1286,13 +1580,15 @@ impl TuiState {
             Ok(()) | Err(CoreError::TurnNotActive) => {}
             Err(error) => return Err(error),
         }
-        let result = self
+        let SubmissionPhase::AwaitingTurn(receipt) = &mut self
             .pending
             .as_mut()
             .expect("fresh receipt still pending")
-            .receipt
-            .wait()
-            .await;
+            .phase
+        else {
+            return Ok(());
+        };
+        let result = receipt.wait().await;
         let pending = self.pending.take().expect("fresh receipt still pending");
         if result == Err(CoreError::Shutdown) {
             return Err(CoreError::Shutdown);
@@ -1328,20 +1624,22 @@ impl TuiState {
                 self.live_terminal_status = None;
                 self.live_model_label = None;
                 self.live_agent_color_index = None;
-                if !pending.compress {
+                if !matches!(pending.purpose, SubmissionPurpose::Compress) {
                     self.home = false;
                     self.editor
-                        .accepted_mentions(pending.draft.trim(), pending.mentions);
+                        .accepted_mentions(&pending.prompt.text, pending.mentions);
                     self.window.push_synthetic(
                         "user",
-                        pending.draft.trim(),
+                        &pending.prompt.text,
                         pending.agent,
                         pending.agent_color_index,
                     );
-                    self.window.set_latest_user_images(pending.images.len());
+                    self.window
+                        .set_latest_user_images(pending.prompt.images.len());
                     self.prune_reasoning();
                 }
-                self.compress_turn = pending.compress.then(|| turn.clone());
+                self.compress_turn =
+                    matches!(pending.purpose, SubmissionPurpose::Compress).then(|| turn.clone());
                 self.conversation_available = Some((true, false));
                 self.live_text.clear();
                 self.live_reasoning.clear();
@@ -1362,6 +1660,7 @@ impl TuiState {
                 self.live_span = None;
                 self.live_projection_revision = None;
                 self.active_turn = Some(turn);
+                self.projection_epoch = self.projection_epoch.wrapping_add(1);
                 self.reasoning_epoch = self.reasoning_epoch.wrapping_add(1);
                 if !exiting {
                     self.reset_scanner();
@@ -1369,20 +1668,12 @@ impl TuiState {
                 }
                 self.scroll = 0;
                 self.wheel_motion = None;
-                if self.input_revision == pending.revision && !pending.cancelling {
-                    self.input.clear();
-                    self.editor.clear_submitted_draft();
-                }
                 self.dcp.clear_notice();
                 self.note = None;
                 self.refused_submission = None;
             }
             Err(error) => {
-                if !exiting {
-                    self.status = TuiStatus::Idle;
-                }
-                let note = self.submission_note(&error);
-                self.push_note(&note);
+                self.fail_submission(pending, error);
             }
         }
     }
@@ -1448,6 +1739,7 @@ impl TuiState {
         self.live_checkpoint_end = None;
         self.retire_delegation_clocks();
         self.active_turn = Some(turn);
+        self.projection_epoch = self.projection_epoch.wrapping_add(1);
         self.status = TuiStatus::Streaming;
         self.turn_usage = None;
         self.turn_context_usage = None;
@@ -1641,9 +1933,9 @@ impl TuiState {
             let slot = self.live_part_offset + self.live_parts.len();
             self.live_part_sources.insert(slot, state.sequence);
             self.live_parts.push(match part {
-                TranscriptPart::Text(text) => LivePart::Text(text.clone()),
+                TranscriptPart::Text(text) => LivePart::Text(text.clone().into()),
                 TranscriptPart::Reasoning { text, duration_ms } => LivePart::Reasoning {
-                    text: text.clone(),
+                    text: text.clone().into(),
                     duration_ms: *duration_ms,
                 },
                 TranscriptPart::Tool(row) => {
@@ -1753,7 +2045,7 @@ impl TuiState {
                 seq: i64::MAX,
                 message_id: None,
                 role: "assistant".to_string(),
-                text: text.to_string(),
+                text: text.into(),
                 agent: self.active_agent.clone(),
                 agent_color_index: self.live_agent_color_index,
                 chips: Vec::new(),
@@ -1800,7 +2092,7 @@ impl TuiState {
                 seq: i64::MAX,
                 message_id: None,
                 role: "assistant".to_string(),
-                text: partial.to_string(),
+                text: partial.into(),
                 agent: self.active_agent.clone(),
                 agent_color_index: self.live_agent_color_index,
                 chips: Vec::new(),

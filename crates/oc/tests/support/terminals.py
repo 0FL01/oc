@@ -42,11 +42,12 @@ def wait(predicate, label, seconds=8):
     raise AssertionError(label)
 
 
-def rows(stream, cols, height):
+def rows(stream, cols, height, with_cursor=False):
     # Existing startup fixture's sparse-Ratatui reconstruction, kept local to this
     # binary qualification; this is not the production PTY VT parser.
     grid = [[' '] * cols for _ in range(height)]
     x = y = 0
+    visible = False
     tokens = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07]*(?:\x07|\x1b\\)|.', re.S)
     for match in tokens.finditer(stream):
         char = match.group()
@@ -62,6 +63,8 @@ def rows(stream, cols, height):
             elif code == 'B': y += n
             elif code == 'C': x += n
             elif code == 'D': x -= n
+            elif char.startswith('\x1b[?') and n == 25 and code in 'hl':
+                visible = code == 'h'
             elif code == 'J' and n in (1, 2): grid = [[' '] * cols for _ in range(height)]
             elif code == 'K' and 0 <= y < height:
                 a, b = (0, x + 1) if n == 1 else (0, cols) if n == 2 else (x, cols)
@@ -75,7 +78,8 @@ def rows(stream, cols, height):
             grid[y][x] = char
             if width == 2 and x + 1 < cols: grid[y][x + 1] = ' '
             x += width
-    return [''.join(row) for row in grid]
+    screen = [''.join(row) for row in grid]
+    return (screen, (x, y), visible) if with_cursor else screen
 
 
 class View:
@@ -125,6 +129,17 @@ class View:
     def see(self, text):
         return wait(lambda: any(text in row for row in self.screen()),
                     f'missing {text!r}: {self.screen()}')
+
+    def terminal_prompt(self):
+        # A prepared screen can paint before its focus receipt. The actual
+        # visible hardware cursor in that pane proves ordinary typing is routed
+        # there, without sending a probe or replaying the real command.
+        def ready():
+            self.drain()
+            screen, (x, _), visible = rows(self.output.decode('utf-8', errors='replace'),
+                                           self.cols, self.height, with_cursor=True)
+            return visible and x >= self.cols//2 and any('$ ' in row[self.cols//2:] for row in screen)
+        wait(ready, 'prepared and focused PTY prompt before its one command')
 
     def send(self, data):
         os.write(self.master, data)
@@ -326,8 +341,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         remember(first)
         # The pinned pane is borderless: readiness is its real interactive
         # prompt, not an invented native title consuming a terminal row.
-        wait(lambda: any('$ ' in row[view.cols//2:] for row in view.screen()),
-             'actual borderless PTY prompt')
+        view.terminal_prompt()
         assert first['cwd'] == str(root/'project') and first['shell'] == '/bin/bash'
         for entry, live, identity in entries(root):
             assert live == 1 and identity['pid'] == entry['pid']
@@ -522,7 +536,11 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
             view.drain(.01)
             entry, live, _ = entries(root)[0]
             return dead(first['pid']) and entry['state'] == 'Exited' and live == 0
-        wait(exited, 'selected PTY raw EOF/reap/publication')
+        try:
+            wait(exited, 'selected PTY raw EOF/reap/publication')
+        except AssertionError:
+            raise AssertionError(('selected PTY raw EOF/reap/publication',
+                                  selected(root), entries(root), view.screen())) from None
         view.send(b'\x1b')
         view.quit()
         wait(lambda: all(dead(pid) for pid in known), 'clean shutdown owns both PTYs')
@@ -532,12 +550,14 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.command('/terminal')
         third = wait(lambda: entries(root) if len(entries(root)) == 4 else None, 'new crash PTY')[3][0]
         remember(third)
+        view.terminal_prompt()
         view.command("trap '' HUP; printf 'effect\\n' >> effect; sleep 30")
         wait(lambda: (root/'project/effect').exists(), 'real pre-crash effect')
         view.leader(b'\x1b[D')
         view.command('/terminal')
         fourth = wait(lambda: entries(root) if len(entries(root)) == 5 else None, 'second crash PTY')[4][0]
         remember(fourth)
+        view.terminal_prompt()
         view.command("trap '' HUP; printf 'effect-two\\n' >> effect-two; sleep 30")
         wait(lambda: (root/'project/effect-two').exists(), 'second real pre-crash effect')
         crash_fixture_owner(root)

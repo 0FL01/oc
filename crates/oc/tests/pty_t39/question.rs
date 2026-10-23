@@ -92,6 +92,32 @@ fn vis37_actual_question_auto_still_waits_for_owned_reply_and_durable_restart() 
         first,
         "--auto is not a question answer"
     );
+    // Keep the actual question tool unanswered while local Home/retained-tab
+    // navigation, resize and input paint proceed. No simulated busy status or
+    // provider release can make this responsiveness check pass accidentally.
+    for (cols, rows, glyph) in [(100, 32, "Ж"), (120, 40, "Й")] {
+        let add = render_screen(&pty.snapshot()).rows()[0]
+            .chars()
+            .position(|cell| cell == '+')
+            .expect("root tab Add control") as u16
+            + 1;
+        mouse_click(&mut pty, add, 1);
+        wait_screen_row(&pty, "New session", DEADLINE);
+        pty.resize(cols, rows);
+        let offset = pty.snapshot().len();
+        let sent = Instant::now();
+        pty.send(glyph.as_bytes());
+        super::lifecycle::wait_input_receipt(&pty, offset, sent, glyph);
+        assert_eq!(
+            fixture.wait_requests(1),
+            first,
+            "Home typing cannot answer or resubmit the held tool"
+        );
+        let returned = pty.snapshot().len();
+        mouse_click(&mut pty, 10, 1);
+        pty.wait_visible_after(returned, "Pick languages?", DEADLINE);
+        wait_screen_row(&pty, "Pick languages?", DEADLINE);
+    }
     pty.send(b" \x1b[B \t");
     // This text-screen observer is not a styled Unicode-cell oracle. The
     // second field's ASCII question prefix proves navigation; exact Unicode

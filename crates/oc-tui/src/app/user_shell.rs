@@ -25,6 +25,14 @@ struct PendingUserShell {
 }
 
 impl TuiState {
+    pub(super) fn retain_user_shell_generation(&mut self, previous: u64) {
+        if let Some(pending) = self.user_shell.pending.as_mut()
+            && pending.generation == previous
+        {
+            pending.generation = self.generation;
+        }
+    }
+
     pub(crate) fn prompt_shell_mode(&self) -> bool {
         self.user_shell.mode
     }
@@ -102,6 +110,9 @@ impl TuiState {
             .request_user_shell(session.clone(), self.input.clone(), choice)
         {
             Ok(receipt) => {
+                if fresh {
+                    self.provisional_session = Some(session.clone());
+                }
                 self.user_shell.pending = Some(PendingUserShell {
                     session,
                     fresh,

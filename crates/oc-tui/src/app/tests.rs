@@ -21,6 +21,17 @@ pub(super) fn sid(raw: &str) -> SessionId {
     SessionId::new(raw).expect("id")
 }
 
+async fn settle_history(state: &mut TuiState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while state.has_pending_prompt_history() {
+            state.poll_prompt_history();
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured auxiliary history receipt");
+}
+
 pub(super) fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
     HistoryMessage {
         images: Vec::new(),
@@ -157,7 +168,7 @@ pub(super) async fn type_text(state: &mut TuiState, text: &str) {
 
 async fn await_submission(state: &mut TuiState) {
     tokio::time::timeout(Duration::from_secs(2), async {
-        while state.pending.is_some() {
+        while state.has_pending_submission() {
             tokio::task::yield_now().await;
             state.poll_submission();
         }
@@ -258,6 +269,7 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
     (rect.x + column as u16, rect.y + row as u16)
 }
 
+mod admission;
 mod clipboard_images;
 mod dcp_controls;
 mod execute;

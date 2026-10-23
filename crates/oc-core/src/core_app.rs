@@ -95,6 +95,18 @@ pub fn normalized_session_title(title: &str) -> Option<&str> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct WorkerTurnId(pub String);
 
+/// A bounded append/read receipt for the existing shared prompt-history port.
+pub struct PromptHistoryReceipt(oneshot::Receiver<Result<Vec<String>, CoreError>>);
+impl PromptHistoryReceipt {
+    pub fn try_result(&mut self) -> Option<Result<Vec<String>, CoreError>> {
+        match self.0.try_recv() {
+            Ok(result) => Some(result),
+            Err(oneshot::error::TryRecvError::Empty) => None,
+            Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
+        }
+    }
+}
+
 /// Explicit first-turn choice for a new root. `None` at the API boundary uses
 /// the application's current Home choice; `Some` pins these exact values to
 /// the new session and turn. The owner validates the model, variant and agent
@@ -151,6 +163,17 @@ pub struct SubmissionReceipt(oneshot::Receiver<Result<WorkerTurnId, CoreError>>)
 
 /// Exact owner acknowledgement for a commit that creates no user input/turn.
 pub struct ModelCommitReceipt(oneshot::Receiver<Result<CatalogSnapshot, CoreError>>);
+/// Exact acknowledgement for one already-enqueued steer/queue operation.
+pub struct EnqueueReceipt(oneshot::Receiver<Result<crate::queries::InboxItem, CoreError>>);
+impl EnqueueReceipt {
+    pub fn try_result(&mut self) -> Option<Result<crate::queries::InboxItem, CoreError>> {
+        match self.0.try_recv() {
+            Ok(result) => Some(result),
+            Err(oneshot::error::TryRecvError::Empty) => None,
+            Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
+        }
+    }
+}
 impl ModelCommitReceipt {
     pub fn try_result(&mut self) -> Option<Result<CatalogSnapshot, CoreError>> {
         match self.0.try_recv() {
@@ -1256,6 +1279,17 @@ impl CoreApp {
     /// Shared bounded input history. Appending is independent of generation,
     /// while normal input is recorded atomically by durable turn acceptance.
     pub async fn prompt_history(&self, append: Option<String>) -> Result<Vec<String>, CoreError> {
+        self.request_prompt_history(append)?
+            .0
+            .await
+            .map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Enqueue the same history operation without awaiting owner persistence.
+    pub fn request_prompt_history(
+        &self,
+        append: Option<String>,
+    ) -> Result<PromptHistoryReceipt, CoreError> {
         if append
             .as_ref()
             .is_some_and(|text| text.len() > MAX_INPUT_BYTES)
@@ -1269,7 +1303,7 @@ impl CoreApp {
                 mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
             })?;
-        rx.await.map_err(|_| CoreError::Shutdown)?
+        Ok(PromptHistoryReceipt(rx))
     }
     async fn approval_consumer(
         &self,
@@ -1701,12 +1735,26 @@ impl CoreApp {
         session: SessionId,
         commit: crate::queries::ModelCommit,
     ) -> Result<ModelCommitReceipt, CoreError> {
+        self.request_session_selection(
+            session,
+            false,
+            crate::queries::SessionSelectionAction::Commit(commit),
+        )
+    }
+
+    /// Bounded preparation using the existing selection message and owner ACK.
+    pub fn request_session_selection(
+        &self,
+        session: SessionId,
+        home: bool,
+        action: crate::queries::SessionSelectionAction,
+    ) -> Result<ModelCommitReceipt, CoreError> {
         let (ack, receipt) = oneshot::channel();
         self.inbox
             .try_send(InboxMsg::SessionSelection {
                 session,
-                home: false,
-                action: crate::queries::SessionSelectionAction::Commit(commit),
+                home,
+                action,
                 ack,
             })
             .map_err(|error| match error {
@@ -1714,6 +1762,31 @@ impl CoreApp {
                 mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
             })?;
         Ok(ModelCommitReceipt(receipt))
+    }
+
+    /// Local enqueue acceptance is not evidence of durable inbox acceptance.
+    pub fn request_enqueue_selected(
+        &self,
+        session: SessionId,
+        text: crate::prompt::PromptInput,
+        delivery: crate::queries::InboxDelivery,
+        selection: Option<crate::queries::ModelCommit>,
+    ) -> Result<EnqueueReceipt, CoreError> {
+        text.check_budget()?;
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::Enqueue {
+                session,
+                text,
+                delivery,
+                selection,
+                ack,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        Ok(EnqueueReceipt(receipt))
     }
 
     /// Enqueue a new root's first turn without waiting for durable acceptance.
@@ -3402,6 +3475,145 @@ mod tests {
         drop(inbox);
         assert_eq!(
             app.request_submit_fresh(sid("closed"), "prompt".into(), None)
+                .err(),
+            Some(CoreError::Shutdown)
+        );
+    }
+
+    #[tokio::test]
+    async fn admission_selection_receipt_is_bounded_and_owner_acknowledged() {
+        let (app, mut inbox, _) = CoreApp::channel(1);
+        let mut receipt = app
+            .request_session_selection(
+                sid("selection"),
+                true,
+                crate::queries::SessionSelectionAction::Agent("build".into()),
+            )
+            .unwrap();
+        assert!(receipt.try_result().is_none());
+        assert_eq!(
+            app.request_session_selection(
+                sid("other"),
+                false,
+                crate::queries::SessionSelectionAction::Agent("plan".into())
+            )
+            .err(),
+            Some(CoreError::QueueFull)
+        );
+        let InboxMsg::SessionSelection {
+            session,
+            home,
+            action,
+            ack,
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("selection")
+        };
+        assert_eq!(session, sid("selection"));
+        assert!(home);
+        assert_eq!(
+            action,
+            crate::queries::SessionSelectionAction::Agent("build".into())
+        );
+        ack.send(Err(CoreError::TurnBusy)).unwrap();
+        assert_eq!(receipt.try_result(), Some(Err(CoreError::TurnBusy)));
+        let mut dropped = app
+            .request_session_selection(
+                sid("selection"),
+                false,
+                crate::queries::SessionSelectionAction::Agent("build".into()),
+            )
+            .unwrap();
+        drop(inbox.recv().await);
+        assert_eq!(dropped.try_result(), Some(Err(CoreError::Shutdown)));
+        drop(inbox);
+        assert_eq!(
+            app.request_session_selection(
+                sid("closed"),
+                false,
+                crate::queries::SessionSelectionAction::Agent("build".into())
+            )
+            .err(),
+            Some(CoreError::Shutdown)
+        );
+    }
+
+    #[tokio::test]
+    async fn admission_enqueue_receipt_preserves_capture_and_never_retries() {
+        use crate::queries::{InboxDelivery, InboxItem, ModelCommit, SelectionBinding};
+        let (app, mut inbox, _) = CoreApp::channel(1);
+        let selected = ModelCommit {
+            attachment: app.attachment(),
+            caller: 27,
+            draft_revision: 4,
+            binding: SelectionBinding {
+                location: Some("/fixture".into()),
+                generation: 9,
+                provider: "chosen-provider".into(),
+                agent_id: Some("build".into()),
+            },
+            model_id: "exact/model".into(),
+            variant: Some("low".into()),
+        };
+        let mut receipt = app
+            .request_enqueue_selected(
+                sid("inbox"),
+                "Ω prompt".into(),
+                InboxDelivery::Queue,
+                Some(selected.clone()),
+            )
+            .unwrap();
+        assert!(receipt.try_result().is_none());
+        assert_eq!(
+            app.request_enqueue_selected(sid("full"), "other".into(), InboxDelivery::Steer, None)
+                .err(),
+            Some(CoreError::QueueFull)
+        );
+        let InboxMsg::Enqueue {
+            session,
+            text,
+            delivery,
+            selection,
+            ack,
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("enqueue")
+        };
+        assert_eq!(session, sid("inbox"));
+        assert_eq!(text.text, "Ω prompt");
+        assert_eq!(delivery, InboxDelivery::Queue);
+        assert_eq!(selection, Some(selected));
+        let item = InboxItem {
+            id: "one".into(),
+            text: text.text,
+            images: 0,
+            delivery,
+            error: None,
+        };
+        ack.send(Ok(item.clone())).unwrap();
+        assert_eq!(receipt.try_result(), Some(Ok(item)));
+        assert_eq!(
+            app.request_enqueue_selected(
+                sid("large"),
+                "x".repeat(crate::session::MAX_INPUT_BYTES + 1).into(),
+                InboxDelivery::Queue,
+                None
+            )
+            .err(),
+            Some(CoreError::InputTooLarge)
+        );
+        let mut unknown = app
+            .request_enqueue_selected(sid("unknown"), "once".into(), InboxDelivery::Steer, None)
+            .unwrap();
+        drop(inbox.recv().await);
+        assert_eq!(unknown.try_result(), Some(Err(CoreError::Shutdown)));
+        assert!(
+            inbox.try_recv().is_err(),
+            "receipt polling cannot replay a mutation"
+        );
+        drop(inbox);
+        assert_eq!(
+            app.request_enqueue_selected(sid("closed"), "once".into(), InboxDelivery::Queue, None)
                 .err(),
             Some(CoreError::Shutdown)
         );

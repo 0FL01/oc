@@ -9,6 +9,143 @@ use oc_core::session::Role;
 
 mod navigation;
 
+// Legacy lifecycle fixtures explicitly pump the same production lane after
+// initiating an action. Initiation itself must remain nonblocking (covered by
+// the held-receipt tests), so `apply_intent` deliberately does not settle jobs.
+macro_rules! settle_lane {
+    ($name:ident, $module:ident, $field:ident) => {
+        pub(super) async fn $name(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+            tokio::time::timeout(Duration::from_secs(1), async {
+                loop {
+                    $module::sync(app, state, deck).await;
+                    if !deck.$field.pending() {
+                        break;
+                    }
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .expect(concat!(stringify!($module), " receipt"));
+        }
+    };
+}
+settle_lane!(settle_history, history_jobs, history_reads);
+settle_lane!(settle_catalog, catalog_jobs, catalogs);
+settle_lane!(settle_children, child_jobs, children);
+settle_lane!(settle_controls, control_jobs, controls);
+settle_lane!(settle_picker, picker_jobs, picker);
+settle_lane!(settle_inbox, inbox_jobs, inbox_jobs);
+settle_lane!(settle_reads, read_jobs, reads);
+settle_lane!(settle_notices, notice_jobs, notices);
+pub(super) async fn settle_work(_app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while deck.work.pending() {
+            work_controls::sync(state, deck).await;
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured work control receipt");
+}
+
+pub(super) async fn empty_view_resources(
+    inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>,
+    expected: &str,
+) {
+    let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
+        panic!("child inventory")
+    };
+    assert_eq!(session.0, expected);
+    ack.send(Ok(Vec::new())).unwrap();
+    empty_compactions(inbox).await;
+    empty_shell_inventory(inbox, expected).await;
+}
+
+async fn settle_deck(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            deck_jobs::sync(app, state, deck).await;
+            if deck.deck_job.is_none() && deck.deck_read.is_none() {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured deck receipt");
+}
+
+async fn settle_navigation(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while deck.navigation_job.is_some() {
+            navigation_jobs::sync(app, state, deck).await;
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured navigation receipt");
+}
+
+async fn settle_home(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            sync_home(app, state, deck).await;
+            if deck.home_job.is_none() && deck.home_pending.is_none() {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured Home selection receipt");
+}
+
+async fn settle_resources(state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while deck.resources.pending() {
+            resource_jobs::sync(state, deck).await;
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured resource receipt");
+}
+
+async fn settle_provider(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while deck.catalogs.pending() || deck.resources.pending() {
+            catalog_jobs::sync(app, state, deck).await;
+            resource_jobs::sync(state, deck).await;
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured provider facts");
+    finish_provider_feedback(state, deck);
+}
+
+pub(super) async fn settle_reload(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while deck.reload_verify.is_some() {
+            reload_jobs::sync(app, state, deck).await;
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured reload verification");
+}
+
+async fn settle_workspace(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while deck.shared_refresh || deck.workspace_job.is_some() {
+            shared::sync(app, state, deck).await.unwrap();
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("captured workspace read");
+}
+
 fn catalog() -> CatalogSnapshot {
     CatalogSnapshot {
         chrome: Default::default(),
@@ -121,4 +258,5 @@ fn append_tab(app: &CoreApp, deck: &mut LoopState, state: &mut TuiState, id: &st
 
 mod lifecycle;
 mod projection;
+mod responsiveness;
 mod routing;

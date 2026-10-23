@@ -56,7 +56,7 @@ pub struct Editor {
 }
 
 /// Opaque bounded unfinished composer state, without Location/config/UI state.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ComposerDraft {
     pub(crate) text: String,
     pub(crate) editor: Editor,

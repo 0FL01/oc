@@ -2,7 +2,12 @@
 
 use super::*;
 
-fn wait_input_receipt(pty: &PtySession, offset: usize, sent: Instant, glyph: &str) -> Duration {
+pub(super) fn wait_input_receipt(
+    pty: &PtySession,
+    offset: usize,
+    sent: Instant,
+    glyph: &str,
+) -> Duration {
     loop {
         let (received, checked) = pty.received_at(offset, glyph.as_bytes());
         // The receiver timestamps the bytes; a descheduled observer cannot
@@ -904,6 +909,7 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
     pty.send(b"/rename Scoped alpha root\r");
     wait_screen_row(&pty, "Scoped alpha root", DEADLINE);
+    wait_screen_absent(&pty, "/rename Scoped alpha root");
     pty.send(b"/continue\r");
     wait_screen_row(&pty, "Sessions", DEADLINE);
     // A is focused and newest after its real title update. B is the only
@@ -917,6 +923,7 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
     pty.send(b"/rename Scoped beta root\r");
     wait_screen_row(&pty, "Scoped beta root", DEADLINE);
+    wait_screen_absent(&pty, "/rename Scoped beta root");
     pty.send(b"/continue\rScoped alpha root\r");
     dismissed(&pty, "Sessions");
     wait_screen_row(&pty, "echo: A named none", DEADLINE);

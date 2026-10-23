@@ -254,14 +254,21 @@ fn go05_filtered_picker_keeps_composer_commit_and_captures_target_scope() {
     public.model_id.clear();
     public.variant = None;
     state.apply_picker_catalog(public.clone());
+    state.open_scoped_model_dialog("OpenCode Go".into());
     assert_eq!(state.model_selection.committed, committed);
     assert_eq!(state.chrome, chrome);
     assert_eq!(state.picker_provider_filter(), Some("opencode-go"));
     assert!(state.captured_model_commit().is_none());
     // Same slash ID under another provider cannot inherit the custom variant.
+    state.apply_catalog_refresh(current.clone());
+    assert_eq!(state.picker_provider_filter(), Some("opencode-go"));
+    assert_eq!(state.picker.as_ref().unwrap().provider(), "opencode-go");
     state.picker.as_mut().unwrap().refresh(ModelCatalog {
         provider: "opencode-go".into(),
-        models: BTreeMap::from([("same/slash".into(), serde_json::json!({"name":"Go row"}))]),
+        models: BTreeMap::from([
+            ("other".into(), serde_json::json!({"name":"Earlier Go row"})),
+            ("same/slash".into(), serde_json::json!({"name":"Go row"})),
+        ]),
     });
     state.draft_model("same/slash").unwrap();
     let commit = state.captured_model_commit().unwrap();
@@ -271,6 +278,15 @@ fn go05_filtered_picker_keeps_composer_commit_and_captures_target_scope() {
     assert!(commit.variant.is_none());
     assert_eq!(state.model_selection.committed, committed);
     assert_eq!(state.model_selection.recent.len(), 2);
+    state.open_scoped_model_dialog("OpenCode Go".into());
+    assert_eq!(state.modal_options().len(), 2);
+    state.select.cursor = 1;
+    state.apply_catalog_refresh(current);
+    assert_eq!(state.captured_model_commit().unwrap(), commit);
+    assert_eq!(
+        state.select.cursor, 1,
+        "canonical rows cannot move scoped focus"
+    );
     assert!(
         state
             .model_selection

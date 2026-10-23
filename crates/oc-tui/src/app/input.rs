@@ -196,12 +196,22 @@ impl TuiState {
                         false,
                     ));
                 }
-                if let Some(refusal) = &self.refused_submission {
+                if self.refused_submission.is_some() || self.failed_submission_note().is_some() {
                     options.push(item(
                         "submission-refusal".into(),
-                        "Last request — refused".into(),
+                        "Last request — retained/refused".into(),
                         "Services",
-                        refusal.code.as_str().into(),
+                        self.failed_submission_note().map_or_else(
+                            || {
+                                self.refused_submission
+                                    .as_ref()
+                                    .expect("refusal")
+                                    .code
+                                    .as_str()
+                                    .into()
+                            },
+                            |_| "Ctrl+U restore (empty editor) · Ctrl+D discard".into(),
+                        ),
                         false,
                     ));
                 }
@@ -372,7 +382,7 @@ impl TuiState {
         {
             return Some("child session: read-only history; saved tabs are unchanged");
         }
-        if matches!(action, CommandAction::NewSession | CommandAction::CloseTab)
+        if matches!(action, CommandAction::CloseTab)
             && (self.has_pending_submission() || self.has_pending_model_commit())
         {
             return Some("submission or model selection pending");
@@ -838,7 +848,7 @@ impl TuiState {
         })
     }
 
-    fn prompt_history_key_owner(&self) -> bool {
+    pub(super) fn prompt_history_key_owner(&self) -> bool {
         self.prompt_mouse_editable()
             && self.slash_options().is_none()
             && self.mention_request().is_none()
@@ -1016,8 +1026,14 @@ impl TuiState {
         }
         let raw = crate::events::binding(event)?;
         let raw = if raw == " " { "space".to_owned() } else { raw };
-        if self.panel == TuiPanel::QueuedPrompts && self.leader.is_none() && raw == "ctrl+u" {
+        if (self.panel == TuiPanel::QueuedPrompts || self.failed_submission_selected())
+            && self.leader.is_none()
+            && raw == "ctrl+u"
+        {
             return Some(KeyAction::QueuedUndo);
+        }
+        if self.failed_submission_selected() && self.leader.is_none() && raw == "ctrl+d" {
+            return Some(KeyAction::DeleteOrQuit);
         }
         let candidate = if self.leader.is_some() {
             format!("{} {raw}", self.leader_key)
@@ -1292,7 +1308,6 @@ impl TuiState {
         (self.prompt_mouse_editable()
             && !self.prompt_shell_mode()
             && !self.user_shell_pending()
-            && self.pending.is_none()
             && self.clipboard_mode != ClipboardMode::Disabled)
             .then(|| ClipboardTarget {
                 session: self.session.clone(),
@@ -1462,7 +1477,11 @@ impl TuiState {
     /// even when the canonical path and prompt text did not change.
     pub fn refresh_configuration(&mut self, catalog: CatalogSnapshot) {
         self.close_panel();
-        self.invalidate_file_suggestions();
+        if self.chrome.location == catalog.chrome.location {
+            self.resume_retained_view();
+        } else {
+            self.invalidate_file_suggestions();
+        }
         self.slash_selected = 0;
         self.slash_dismissed = None;
         self.sessions.clear();
@@ -2232,16 +2251,18 @@ impl TuiState {
                             }
                             let (_, after) =
                                 self.visible_transcript(rect.width, area.width, rect.height);
-                            self.scroll = after
-                                .saturating_sub(rect.height as usize)
-                                .saturating_sub(first);
-                            self.observe_transcript_viewport(
-                                rect.width,
-                                area.width,
-                                rect.height,
-                                after,
-                                self.scroll,
-                            );
+                            if self.projection_ready((rect.width, area.width, rect.height)) {
+                                self.scroll = after
+                                    .saturating_sub(rect.height as usize)
+                                    .saturating_sub(first);
+                                self.observe_transcript_viewport(
+                                    rect.width,
+                                    area.width,
+                                    rect.height,
+                                    after,
+                                    self.scroll,
+                                );
+                            }
                         }
                     }
                 }
@@ -2774,6 +2795,7 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        self.poll_prompt_history();
         self.cancel_text_selection();
         self.cancel_sidebar_press();
         self.child_notice_down = None;
@@ -2821,7 +2843,7 @@ impl TuiState {
         {
             return self.run_command(command);
         }
-        self.poll_submission();
+        self.poll_submission_receipts();
         if self
             .leader_deadline()
             .is_some_and(|until| Instant::now() >= until)
@@ -3278,7 +3300,7 @@ impl TuiState {
                     self.status = TuiStatus::Quit;
                 } else {
                     if self.retain_cleared_prompt()
-                        && let Err(error) = self.app.prompt_history(Some(self.input.clone())).await
+                        && let Err(error) = self.remember_prompt_history(self.input.clone())
                     {
                         return KeyOutcome {
                             note: Some(format!("prompt history: {error}")),
@@ -3295,12 +3317,18 @@ impl TuiState {
                 KeyOutcome::default()
             }
             KeyAction::Cancel => {
+                // A prepared blank-Enter promotion has not crossed the
+                // controller boundary yet. Esc can still suppress that action.
+                self.submission_intent = None;
                 if self.is_busy() {
                     // Pending submission cancellation retains its existing
                     // safety semantics. Once a turn is accepted, the focused
                     // prompt follows the original's two-Esc interrupt guard.
                     if self.active_turn.is_some()
-                        || self.compactions.iter().any(crate::compaction::active)
+                        || self
+                            .compactions
+                            .iter()
+                            .any(|snapshot| crate::compaction::active(snapshot))
                     {
                         let now = Instant::now();
                         if self.interrupt_armed_until.is_none_or(|until| now >= until) {
@@ -3315,6 +3343,16 @@ impl TuiState {
                         .map(|p| &p.session)
                         .or(self.session.as_ref())
                         .cloned();
+                    // A busy-input fallback can await a new admission while
+                    // the previous turn is still painted. Cancel that exact
+                    // native admission, not the stale painted turn.
+                    let turn = if self.pending.as_ref().is_some_and(|pending| {
+                        matches!(pending.phase, SubmissionPhase::AwaitingTurn(_))
+                    }) {
+                        None
+                    } else {
+                        self.active_turn.clone()
+                    };
                     if let Some(pending) = &mut self.pending {
                         pending.cancelling = true;
                     }
@@ -3324,28 +3362,16 @@ impl TuiState {
                             ..KeyOutcome::default()
                         };
                     };
-                    let compaction = self.compactions.iter().any(crate::compaction::active);
-                    if compaction {
-                        if let Err(error) = self.app.cancel_compaction(session.clone()).await {
-                            return KeyOutcome {
-                                note: Some(format!("cancel: {error}")),
-                                ..KeyOutcome::default()
-                            };
-                        }
-                        if self.active_turn.is_none() && self.pending.is_none() {
-                            return KeyOutcome::default();
-                        }
-                    }
-                    match if let Some(turn) = self.active_turn.clone() {
-                        self.app.cancel_turn(session, turn).await
-                    } else {
-                        self.app.cancel(session).await
-                    } {
-                        Ok(()) => KeyOutcome::default(),
-                        Err(error) => KeyOutcome {
-                            note: Some(format!("cancel: {error}")),
-                            ..KeyOutcome::default()
-                        },
+                    KeyOutcome {
+                        intent: Some(PanelIntent::CancelSession {
+                            session,
+                            turn,
+                            cancel_compaction: self
+                                .compactions
+                                .iter()
+                                .any(|snapshot| crate::compaction::active(snapshot)),
+                        }),
+                        ..Default::default()
                     }
                 } else {
                     // The original binds Esc only to `session.interrupt`, enabled
@@ -3353,16 +3379,13 @@ impl TuiState {
                     let Some(session) = self.session.clone() else {
                         return KeyOutcome::default();
                     };
-                    match self.app.cancel(session).await {
-                        Ok(()) => KeyOutcome {
-                            note: Some("background shell cancellation requested".into()),
-                            ..KeyOutcome::default()
-                        },
-                        Err(CoreError::TurnNotActive) => KeyOutcome::default(),
-                        Err(error) => KeyOutcome {
-                            note: Some(format!("cancel: {error}")),
-                            ..KeyOutcome::default()
-                        },
+                    KeyOutcome {
+                        intent: Some(PanelIntent::CancelSession {
+                            session,
+                            turn: None,
+                            cancel_compaction: false,
+                        }),
+                        ..Default::default()
                     }
                 }
             }
@@ -3410,26 +3433,7 @@ impl TuiState {
         &mut self,
         previous: bool,
     ) -> Result<bool, oc_core::session::CoreError> {
-        if !self.prompt_history_key_owner() {
-            return Ok(false);
-        }
-        let entries = if self.editor.browsing_history() {
-            Vec::new()
-        } else if previous {
-            self.app.prompt_history(None).await?
-        } else {
-            return Ok(false);
-        };
-        let changed = self.editor.recall(&mut self.input, previous, entries);
-        if changed {
-            // Keep the frozen vis07/v05 native caret policy, including draft return.
-            self.editor
-                .move_to(if previous { 0 } else { self.input.len() }, false);
-            self.input_revision += 1;
-            self.slash_selected = 0;
-            self.clear_mentions();
-        }
-        Ok(changed)
+        self.start_prompt_recall(previous)
     }
 
     pub(super) async fn handle_enter(&mut self) -> KeyOutcome {
@@ -3453,41 +3457,36 @@ impl TuiState {
                 ..Default::default()
             };
         }
-        if self.input.trim().is_empty() {
-            // OC2 blank Enter commits the composer's agent, then its model.
-            if let Err(error) = self.commit_agent_draft().await {
-                return KeyOutcome {
-                    note: Some(error),
-                    ..Default::default()
-                };
-            }
-            return match self.commit_composer_model() {
-                // OC2 onEmptySubmit: the first queued prompt joins the turn.
-                Ok(()) => KeyOutcome {
-                    intent: self.promote_first_queued(),
-                    ..Default::default()
-                },
-                Err(error) => KeyOutcome {
-                    note: Some(format!("model commit: {error}")),
-                    ..Default::default()
-                },
-            };
-        }
-        if self.pending.is_some() {
-            if let Some(
-                action @ (CommandAction::OpenModelPicker
-                | CommandAction::OpenVariants
-                | CommandAction::OpenAgents),
-            ) = dispatch(self.input.trim())
+        if self.has_occupied_submission() {
+            if let Some(action) = dispatch(self.input.trim())
+                && (matches!(
+                    action,
+                    CommandAction::OpenModelPicker
+                        | CommandAction::OpenVariants
+                        | CommandAction::OpenAgents
+                        | CommandAction::NewSession
+                ) || (self.failed_submission_note().is_some()
+                    && matches!(
+                        action,
+                        CommandAction::OpenSettings
+                            | CommandAction::ReloadConfiguration
+                            | CommandAction::OpenConnect
+                            | CommandAction::OpenAccounts
+                            | CommandAction::Quit
+                    )))
             {
+                // A retained refusal still owns its captured payload, not the
+                // independent editor or the routes needed to repair/recover it.
+                // Outstanding admission keeps its narrower command boundary.
                 if let Err(error) = self.remember_slash_input(&action).await {
                     return KeyOutcome {
                         note: Some(error),
                         ..Default::default()
                     };
                 }
+                let local_new = action == CommandAction::NewSession;
                 let outcome = self.run_command(action);
-                if outcome.note.is_none() {
+                if outcome.note.is_none() && !local_new {
                     self.input.clear();
                     self.editor.clear();
                     self.input_revision += 1;
@@ -3503,8 +3502,24 @@ impl TuiState {
                 };
             }
             return KeyOutcome {
-                note: Some("submission pending; Esc to cancel".into()),
+                note: Some(self.submission_occupied_note().into()),
                 ..KeyOutcome::default()
+            };
+        }
+        if self.input.trim().is_empty() {
+            // Blank Enter prepares the captured agent before the captured model.
+            if self.staged_agent().is_some() && self.session.is_some() && !self.home {
+                return self.request_composer_submission(SubmissionPurpose::Empty);
+            }
+            return match self.commit_composer_model() {
+                Ok(()) => KeyOutcome {
+                    intent: self.promote_first_queued(),
+                    ..Default::default()
+                },
+                Err(error) => KeyOutcome {
+                    note: Some(format!("model commit: {error}")),
+                    ..Default::default()
+                },
             };
         }
         let text = self.input.trim().to_string();
@@ -3568,53 +3583,10 @@ impl TuiState {
             }
         }
         // OC2 steer: input sent while the agent works joins the running turn.
-        if self.active_turn.is_some()
-            && let Some(outcome) = self
-                .enqueue_input(oc_core::queries::InboxDelivery::Steer)
-                .await
-        {
-            return outcome;
+        if self.active_turn.is_some() {
+            return self.enqueue_input(oc_core::queries::InboxDelivery::Steer);
         }
-        // OC2 prepareAgent: a staged agent is committed before the captured
-        // model commit, so this send (not the running turn) carries it.
-        if let Err(error) = self.commit_agent_draft().await {
-            return KeyOutcome {
-                note: Some(error),
-                ..KeyOutcome::default()
-            };
-        }
-        // Capture now; owner preparation commits only after earlier admissions.
-        let fresh = self.session.is_none();
-        let session = self.session.clone().unwrap_or_else(fresh_session_id);
-        let prompt = self.editor.prompt(&self.input).trimmed();
-        let result = if fresh {
-            let selection =
-                self.captured_model_commit()
-                    .map(|commit| oc_core::core_app::FreshSelection {
-                        binding: Some(commit.binding.clone()),
-                        agent_id: commit.binding.agent_id,
-                        model_id: commit.model_id,
-                        variant: commit.variant,
-                    });
-            self.app
-                .request_submit_input_fresh(session.clone(), prompt, selection)
-        } else {
-            self.app.request_submit_input_selected(
-                session.clone(),
-                prompt,
-                self.captured_model_commit(),
-            )
-        };
-        match result {
-            Ok(receipt) => {
-                self.begin_submission(receipt, session, fresh, false);
-                KeyOutcome::default()
-            }
-            Err(error) => KeyOutcome {
-                note: Some(self.submission_note(&error)),
-                ..KeyOutcome::default()
-            },
-        }
+        self.request_composer_submission(SubmissionPurpose::Turn)
     }
 
     fn retain_cleared_prompt(&self) -> bool {
@@ -3624,7 +3596,7 @@ impl TuiState {
             || self.editor.has_prompt_parts()
     }
 
-    async fn remember_slash_input(&self, action: &CommandAction) -> Result<(), String> {
+    async fn remember_slash_input(&mut self, action: &CommandAction) -> Result<(), String> {
         if let Some(reason) = self.command_unavailable(action) {
             return Err(reason.into());
         }
@@ -3643,10 +3615,14 @@ impl TuiState {
                 ));
             }
         }
-        match self.app.prompt_history(Some(self.input.clone())).await {
+        match self.remember_prompt_history(self.input.clone()) {
             // Quit is a local terminal/lifetime action. A dead owner cannot
             // persist this last command, but must not trap its disconnected UI.
-            Err(oc_core::session::CoreError::Shutdown) if *action == CommandAction::Quit => Ok(()),
+            Err(oc_core::session::CoreError::Shutdown | oc_core::session::CoreError::QueueFull)
+                if matches!(action, CommandAction::Quit | CommandAction::NewSession) =>
+            {
+                Ok(())
+            }
             result => result
                 .map(|_| ())
                 .map_err(|error| format!("prompt history: {error}")),
@@ -3933,6 +3909,11 @@ impl TuiState {
                 }),
                 ..Default::default()
             };
+        }
+        if matches!(action, KeyAction::DeleteOrQuit | KeyAction::QueuedUndo)
+            && self.failed_submission_selected()
+        {
+            return self.recover_submission(action == KeyAction::QueuedUndo);
         }
         if matches!(action, KeyAction::DeleteOrQuit | KeyAction::QueuedUndo)
             && let Some(outcome) = self.queued_prompt_key(&action)
@@ -4415,6 +4396,14 @@ impl TuiState {
                                 .as_ref()
                                 .map(ToString::to_string)
                                 .unwrap_or_else(|| option.footer.clone()),
+                            "submission-refusal"
+                                if self.refused_submission.is_none()
+                                    && self.failed_submission_note().is_some() =>
+                            {
+                                self.failed_submission_note()
+                                    .expect("failed draft")
+                                    .to_owned()
+                            }
                             value => value
                                 .strip_prefix("plugin:")
                                 .and_then(|index| index.parse::<usize>().ok())

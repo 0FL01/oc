@@ -38,18 +38,44 @@ fn binary_viewport_resize_draft_sidebar_and_debug() {
         .unwrap();
     }
     let text = (0..90).map(|i| format!("ROW-{i:03}\n")).collect::<String>();
-    for session in ["long", "child"] {
-        db.append_message(session, "assistant", &text).unwrap();
+    let wrapped = format!(
+        "FIRST-ANCHOR {} LAST-ANCHOR",
+        "wrapped payload ".repeat(800)
+    );
+    for (session, text) in [
+        ("long", text.as_str()),
+        ("child", text.as_str()),
+        ("wrapped", wrapped.as_str()),
+    ] {
+        let message = db.append_message(session, "assistant", text).unwrap();
+        // Persist measured display metadata on the existing message. Text size
+        // alone is deliberately not a source of context accounting in the UI.
+        let turn = format!("geometry-{session}");
+        db.begin_turn(&turn, session, "seeded history").unwrap();
+        db.finish_turn(
+            &turn,
+            "completed",
+            Some(
+                &serde_json::json!({
+                    "assistant_message": message,
+                    "display_parts": [{"message": 0}],
+                    "input": [{"content": [{"type": "output_text", "text": text}]}],
+                    "display": {"context_usage": [8000, 380], "context_usage_limit": 0}
+                })
+                .to_string(),
+            ),
+        )
+        .unwrap();
     }
-    db.append_message(
-        "wrapped",
-        "assistant",
-        &format!(
-            "FIRST-ANCHOR {} LAST-ANCHOR",
-            "wrapped payload ".repeat(800)
-        ),
-    )
-    .unwrap();
+    // This genuinely empty session has no usage/message to invent. Its title
+    // is a spatial sidebar witness instead of an invalid Context placeholder.
+    rusqlite::Connection::open(home.join("data/oc/oc.sqlite"))
+        .unwrap()
+        .execute(
+            "UPDATE sessions SET title = 'Empty sidebar witness' WHERE id = 'empty'",
+            [],
+        )
+        .unwrap();
     drop(db);
     // Optional qualification uses the same real persisted fixtures and external
     // xterm/Chromium runner. Normal Cargo tests have no Node/browser dependency.
@@ -98,67 +124,9 @@ fn binary_viewport_resize_draft_sidebar_and_debug() {
             );
         }
     }
-    // The shared geometry fixture still assumes one Ctrl+C quits even when its
-    // pasted prompt is nonempty. Adapt only this invocation until that fixture
-    // can be changed: the first interrupt must clear, the second must exit.
     let geometry = include_str!("support/geometry.py");
-    let old_stop = r#"def stop(child, fd):
-    # Ctrl+C uses the existing quit route; no draft gets submitted to the peer.
-    os.write(fd, b'\x03')
-    drain(fd)
-    try:
-        code = child.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        child.kill(); child.wait(); raise
-    finally:
-        os.close(fd)
-    assert code == 0, code
-"#;
-    let new_stop = r#"def stop(child, fd, draft_session=None):
-    if draft_session is not None:
-        import sqlite3
-        db_path = home / 'data/oc/oc.sqlite'
-        def user_count():
-            with sqlite3.connect(db_path) as db:
-                return db.execute('SELECT COUNT(*) FROM messages WHERE session_id=? AND role=?',
-                                  (draft_session, 'user')).fetchone()[0]
-        before = user_count()
-        os.write(fd, b'\x03')
-        cleared = drain(fd, .3)
-        assert child.poll() is None, 'nonempty Ctrl+C exited instead of clearing'
-        assert '[Pasted ~3 lines]' not in cleared, 'draft still visible after Ctrl+C'
-        assert user_count() == before, 'cleared draft was submitted'
-    os.write(fd, b'\x03')
-    restored = drain(fd)
-    try:
-        code = child.wait(timeout=5)
-        restored += drain(fd, .1)
-        flags = termios.tcgetattr(fd)[3]
-    except subprocess.TimeoutExpired:
-        child.kill(); child.wait(); raise
-    finally:
-        os.close(fd)
-    assert code == 0, code
-    assert '\x1b[?1049l' in restored, 'alternate screen not left'
-    assert flags & (termios.ICANON | termios.ECHO) == (termios.ICANON | termios.ECHO), 'terminal not restored'
-"#;
-    assert!(
-        geometry.contains(old_stop),
-        "geometry cleanup fixture changed"
-    );
-    let geometry = geometry.replacen(old_stop, new_stop, 1);
-    let old_call = "        stop(child, fd)\n\n(home / 'config/opencode/cli.json')";
-    assert!(
-        geometry.contains(old_call),
-        "geometry resize fixture changed"
-    );
-    let geometry = geometry.replacen(
-        old_call,
-        "        stop(child, fd, 'child' if mode == 'child' else 'long')\n\n(home / 'config/opencode/cli.json')",
-        1,
-    );
     let output = Command::new("python3")
-        .args(["-c", &geometry, env!("CARGO_BIN_EXE_oc2")])
+        .args(["-c", geometry, env!("CARGO_BIN_EXE_oc2")])
         .arg(root.path())
         .output()
         .unwrap();

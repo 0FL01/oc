@@ -358,9 +358,13 @@ async fn immediate_quit_reconciles_only_accepted_fresh_root_before_owner_shutdow
             assert_eq!(state.status(), &TuiStatus::Quit);
             reconcile_exit(&app, &mut state, &mut deck).await.unwrap();
             assert_eq!(state.status(), &TuiStatus::Quit);
-            assert_eq!(state.input(), "first prompt!");
+            assert_eq!(state.input(), "!");
             assert_eq!(state.attached_session(), accepted.then_some(&session));
-            assert_eq!(deck.tabs.len(), usize::from(accepted));
+            assert_eq!(
+                deck.tabs.len(),
+                1,
+                "rejected/unknown provisional remains locally owned"
+            );
             app.shutdown().await.unwrap();
             assert_eq!(worker.await.unwrap(), usize::from(accepted));
         }
@@ -389,13 +393,11 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
         })
         .unwrap();
         // Ctrl+C polls the receipt before the next frame's poll_and_sync.
-        let retained = state.input().to_owned();
-        let mut input_history = Vec::new();
-        tokio::join!(
-            state.handle_key(KeyAction::Interrupt),
-            accept_prompt_input(&mut inbox, &mut input_history, &retained)
+        state.handle_key(KeyAction::Interrupt).await;
+        assert!(
+            inbox.try_recv().is_err(),
+            "short independent next draft does not enter clear history"
         );
-        assert_eq!(input_history, vec![retained]);
         assert_eq!(state.input(), "");
         assert_eq!(
             state.status(),
@@ -439,7 +441,10 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
             saves
         });
         poll_and_sync(&app, &mut state, &mut deck).await;
-        assert_eq!(deck.tabs.len(), usize::from(accepted));
+        if accepted {
+            settle_deck(&app, &mut state, &mut deck).await;
+        }
+        assert_eq!(deck.tabs.len(), 1);
         assert_eq!(deck.revision.as_deref(), accepted.then_some("saved"));
         poll_and_sync(&app, &mut state, &mut deck).await;
         state.handle_key(KeyAction::Interrupt).await;
@@ -461,16 +466,14 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
         panic!("one pending fresh submission")
     };
     state.handle_paste("unsent draft");
-    let retained = state.input().to_owned();
-    let mut input_history = Vec::new();
-    tokio::join!(
-        state.handle_key(KeyAction::Interrupt),
-        accept_prompt_input(&mut inbox, &mut input_history, &retained)
-    );
-    assert_eq!(input_history, vec![retained]);
+    state.handle_key(KeyAction::Interrupt).await;
     poll_and_sync(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
-    assert!(deck.active_tab.is_none());
+    assert_eq!(
+        deck.active_tab,
+        Some(0),
+        "pending receipt has a provisional owner"
+    );
     assert!(inbox.try_recv().is_err(), "pending root cannot save");
     drop(ack);
 }
@@ -496,7 +499,7 @@ async fn quit_with_pending_existing_tab_does_not_wait_for_receipt_or_save() {
     state.handle_key(KeyAction::Quit).await;
     reconcile_exit(&app, &mut state, &mut deck).await.unwrap();
     assert_eq!(state.status(), &TuiStatus::Quit);
-    assert_eq!(state.input(), "followup");
+    assert_eq!(state.input(), "");
     assert_eq!(deck.tabs.len(), 1);
     assert!(
         inbox.try_recv().is_err(),
@@ -852,6 +855,10 @@ async fn vis34_manual_admission_event_race_parked_view_and_read_failure_keep_rec
     assert!(deck.compaction_job.is_none());
     let before = state.transcript_rows();
     let worker = tokio::spawn(async move {
+        let Some(InboxMsg::ChildJobs { ack, .. }) = inbox.recv().await else {
+            panic!("source resource inventory")
+        };
+        ack.send(Ok(Vec::new())).unwrap();
         let Some(InboxMsg::CompactionHistory { ack, .. }) = inbox.recv().await else {
             panic!("read only")
         };
@@ -861,7 +868,8 @@ async fn vis34_manual_admission_event_race_parked_view_and_read_failure_keep_rec
             "refresh never repeats compaction/provider work"
         );
     });
-    refresh_compactions(&app, &mut state).await;
+    deck.reads.request(&state, false);
+    settle_reads(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     assert_eq!(
         state.transcript_rows(),
@@ -1100,6 +1108,7 @@ async fn quit_pending_fork_saves_accepted_identity_even_when_refresh_fails() {
             (saved.unwrap(), inbox)
         });
         settle_conversation(&app, &mut state, &mut deck).await;
+        settle_deck(&app, &mut state, &mut deck).await;
         let (saved, mut inbox) = worker.await.unwrap();
         assert_eq!(
             saved.sessions,
@@ -1530,6 +1539,7 @@ async fn interrupted_first_prompt_opens_message_actions_without_shared_refresh()
             ..Default::default()
         }))
         .unwrap();
+        empty_view_resources(&mut inbox, "interrupted-click").await;
         inbox
     });
     let mut deck = LoopState::default();
@@ -1546,6 +1556,7 @@ async fn interrupted_first_prompt_opens_message_actions_without_shared_refresh()
     .await
     .unwrap()
     .unwrap();
+    settle_reads(&app, &mut state, &mut deck).await;
     let users: Vec<_> = state
         .history()
         .rows()
@@ -1702,6 +1713,7 @@ async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure(
             .unwrap();
         }
         worker.await.unwrap();
+        settle_history(&app, &mut state, &mut deck).await;
         assert!(state.take_copy_request().is_none());
         assert_eq!(state.input(), "unfinished draft");
         assert_eq!(
@@ -2050,6 +2062,7 @@ async fn closing_tab_with_pending_title_cancels_only_title_and_survivor_can_subm
     .await
     .expect("close stalled on title provider")
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.attached_session(), Some(&survivor));
     assert_eq!(deck.snapshot(&state).sessions, vec![survivor.clone()]);
     let (_, job) = deck
@@ -2129,19 +2142,22 @@ async fn refused_close_leaves_pending_title_uncancelled_and_tab_intact() {
             "title completion adds no turn or cancellation"
         );
     });
+    tokio::time::timeout(
+        Duration::from_secs(1),
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::CloseTab { index: 0 },
+        ),
+    )
+    .await
+    .expect("refused close stalled on title provider")
+    .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(
-        tokio::time::timeout(
-            Duration::from_secs(1),
-            apply_intent(
-                &app,
-                &mut state,
-                &mut deck,
-                PanelIntent::CloseTab { index: 0 }
-            )
-        )
-        .await
-        .expect("refused close stalled on title provider"),
-        Err("tab close refused; saved tabs unavailable".into())
+        state.note(),
+        Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
     );
     assert_eq!(state.attached_session(), Some(&title));
     assert_eq!(deck.snapshot(&state).sessions.len(), 2);
@@ -2232,11 +2248,23 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
         assert_eq!(deck.revision.as_deref(), Some("rev-1"));
         assert_eq!(deck.rail_width, Some(5));
         ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+        let Some(InboxMsg::TabDeck { ack }) = inbox.recv().await else {
+            panic!("conflicting selection requires an authoritative read before a newer choice");
+        };
+        ack.send(Ok(TabDeckSnapshot {
+            location: "/fixture".into(),
+            revision: Some("observed".into()),
+            sessions: vec![SessionId("one".into()), SessionId("two".into())],
+            active: None,
+            new_session_titles: Vec::new(),
+            rail_width: Some(5),
+        }))
+        .unwrap();
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
-            panic!("another action retains the expected token")
+            panic!("newer focus persists only from an authoritative token")
         };
         assert_eq!(deck.location, "/fixture");
-        assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+        assert_eq!(deck.revision.as_deref(), Some("observed"));
         assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("two"));
         ack.send(Err(CoreError::TabDeckConflict)).unwrap();
         assert!(
@@ -2259,11 +2287,12 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
     .await
     .unwrap();
     assert_eq!(state.session().0, "one");
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(deck.tabs.len(), 2);
     assert_eq!(deck.revision.as_deref(), Some("rev-1"));
     assert_eq!(
         state.note(),
-        Some("tab deck could not be saved; saved tabs changed or storage unavailable")
+        Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
     );
     apply_intent(
         &app,
@@ -2274,7 +2303,8 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
     .await
     .unwrap();
     assert_eq!(state.session().0, "two");
-    assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+    settle_deck(&app, &mut state, &mut deck).await;
+    assert_eq!(deck.revision.as_deref(), Some("observed"));
     worker.await.unwrap();
 }
 
@@ -2444,6 +2474,8 @@ async fn explicit_restore_adopts_successful_revision_for_next_save() {
     apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
         .await
         .unwrap();
+    settle_home(&app, &mut state, &mut deck).await;
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(deck.revision.as_deref(), Some("after-home"));
     worker.await.unwrap();
 }
@@ -2511,6 +2543,7 @@ async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does
         mouse(MouseEventKind::Up(MouseButton::Left)),
     )
     .await;
+    settle_deck(&app, &mut state, &mut deck).await;
     let after = oc_tui::shell::tab_strip(&state, area).unwrap();
     assert!(deck.home.is_none());
     assert_eq!(state.session().0, "kept");
@@ -2598,6 +2631,7 @@ async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does
     let outcome = state.handle_mouse(middle, area);
     assert_eq!(outcome.intent, Some(PanelIntent::CloseTab { index: 1 }));
     apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, middle).await;
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(deck.home.is_none());
     assert_eq!(state.session().0, "kept");
     assert_eq!(state.input(), "middle survivor Ω界");
@@ -2677,6 +2711,7 @@ async fn keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold(
         mouse(MouseEventKind::Up(MouseButton::Left)),
     )
     .await;
+    settle_home(&app, &mut state, &mut deck).await;
     let mut inbox = worker.await.unwrap();
     assert!(state.home);
     assert_eq!(state.mouse_position(), Some((pointer, add.y, area)));
@@ -2684,6 +2719,7 @@ async fn keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold(
     let close = state.handle_key(KeyAction::Char('w')).await;
     assert_eq!(close.intent, Some(PanelIntent::CloseTab { index: 1 }));
     apply_outcome(&app, &mut state, &mut deck, close, false).await;
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(!state.home);
     assert_eq!(state.session().0, "kept");
     assert_eq!(state.mouse_position(), Some((pointer, add.y, area)));
@@ -2986,9 +3022,10 @@ async fn failed_preclose_save_keeps_accepted_home_root_and_parked_cursor() {
             false,
         )
         .await;
+        settle_deck(&app, &mut state, &mut deck).await;
         assert_eq!(
             state.note(),
-            Some("tab close refused; saved tabs unavailable")
+            Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
         );
         assert_eq!(state.input(), "retained draft");
         assert_eq!(state.session().0, "fresh");
@@ -3089,10 +3126,14 @@ async fn real_close_commits_candidate_before_removal_or_retains_full_deck_on_fai
             PanelIntent::CloseTab { index: 0 },
         )
         .await;
+        result.unwrap();
+        settle_deck(&app, &mut state, &mut deck).await;
         if failed {
             assert_eq!(
-                result.unwrap_err(),
-                "tab close refused; saved tabs unavailable"
+                state.note(),
+                Some(
+                    "tab deck save refused or outcome unknown; refresh saved tabs before retrying"
+                )
             );
             assert_eq!(state.session().0, "fresh");
             assert_eq!(state.input(), "retained draft");
@@ -3102,7 +3143,6 @@ async fn real_close_commits_candidate_before_removal_or_retains_full_deck_on_fai
             assert_eq!(deck.tab_cards_before, [None]);
             assert_eq!(deck.revision.as_deref(), Some("marker-retired"));
         } else {
-            result.unwrap();
             assert!(state.attached_session().is_none());
             assert!(deck.tabs.is_empty());
             assert_eq!(deck.revision.as_deref(), Some("closed"));
@@ -3183,6 +3223,7 @@ async fn selected_middle_close_saves_order_and_previous_survivor_before_changing
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "a");
     assert_eq!(deck.cards_before, Some(10));
     assert_eq!(deck.tab_cards_before, [Some(10), Some(30)]);
@@ -3252,9 +3293,10 @@ async fn rejected_candidate_close_keeps_parked_tab_draft_and_cursor() {
         false,
     )
     .await;
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(
         state.note(),
-        Some("tab close refused; saved tabs unavailable")
+        Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
     );
     assert_eq!(state.session().0, "b");
     assert_eq!(state.input(), "active draft");
@@ -3295,6 +3337,7 @@ async fn close_selected_real_tab_prefers_previous_and_preserves_survivors() {
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "b");
     assert_eq!(state.input(), "middle draft");
     assert_eq!(deck.active_tab, Some(1));
@@ -3308,6 +3351,7 @@ async fn close_selected_real_tab_prefers_previous_and_preserves_survivors() {
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "b");
     assert_eq!(deck.active_tab, Some(0));
     assert_eq!(state.tab_presentation().0.len(), 1);
@@ -3343,6 +3387,7 @@ async fn close_selected_or_parked_synthetic_home_never_creates_a_root() {
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "kept");
     assert_eq!(state.input(), "kept draft");
     assert!(deck.home.is_none());
@@ -3359,6 +3404,7 @@ async fn close_selected_or_parked_synthetic_home_never_creates_a_root() {
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(deck.home.is_none());
     assert_eq!(state.input(), "kept draft");
     deck.open_home(&mut state, TuiState::new_home(app.clone()));
@@ -3370,6 +3416,7 @@ async fn close_selected_or_parked_synthetic_home_never_creates_a_root() {
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
     assert!(deck.tabs.is_empty() && deck.tab_cards_before.is_empty());
     assert!(state.tab_presentation().0.is_empty());
@@ -3406,9 +3453,11 @@ async fn close_refuses_pending_admission_and_preserves_deck() {
     .unwrap_err();
     assert_eq!(
         error,
-        "submission or model selection pending; session switch refused"
+        "submission or model selection pending; target close refused"
     );
-    assert_eq!(state.input(), "pending draft");
+    assert_eq!(state.input(), "");
+    state.handle_paste("independent next draft");
+    assert_eq!(state.input(), "independent next draft");
     assert_eq!(state.session().0, "busy");
     assert_eq!(deck.tabs.len(), 1);
     assert!(inbox.try_recv().is_err());
@@ -3458,12 +3507,17 @@ async fn closing_a_running_tab_saves_the_deck_and_never_cancels_the_run() {
         saves
     };
     let (result, saves) = tokio::join!(
-        apply_intent(
-            &app,
-            &mut state,
-            &mut deck,
-            PanelIntent::CloseTab { index: 0 }
-        ),
+        async {
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::CloseTab { index: 0 },
+            )
+            .await?;
+            settle_deck(&app, &mut state, &mut deck).await;
+            Ok::<_, String>(())
+        },
         owner
     );
     result.unwrap();
@@ -3551,6 +3605,7 @@ async fn typed_new_consumes_only_successful_command_before_parking() {
     apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
         .await
         .unwrap();
+    settle_home(&app, &mut state, &mut deck).await;
     deck.activate(&mut state, 0).unwrap();
     assert_eq!(state.input(), "ordinary draft");
     state.accept_intent();
@@ -3567,6 +3622,7 @@ async fn typed_new_consumes_only_successful_command_before_parking() {
     state.handle_paste("/new");
     let outcome = state.handle_key(KeyAction::Enter).await;
     apply_outcome(&app, &mut state, &mut deck, outcome, true).await;
+    settle_home(&app, &mut state, &mut deck).await;
     deck.activate(&mut state, 0).unwrap();
     assert_eq!(state.input(), "");
     worker.await.unwrap();
@@ -3588,74 +3644,235 @@ async fn rejected_typed_new_keeps_editable_command() {
     });
     let outcome = state.handle_key(KeyAction::Enter).await;
     apply_outcome(&app, &mut state, &mut deck, outcome, true).await;
+    settle_home(&app, &mut state, &mut deck).await;
+    assert!(
+        state.attached_session().is_none(),
+        "first local Home frame precedes catalog ACK"
+    );
+    deck.activate(&mut state, 0).unwrap();
     assert_eq!(state.input(), "/new");
     assert_eq!(deck.tabs.len(), 1);
+    assert!(
+        deck.home.is_some(),
+        "unresolved Home is retained, not an admitted session"
+    );
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::CloseTab { index: 1 },
+    )
+    .await
+    .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(deck.home.is_none());
+    assert!(deck.unresolved_homes.is_empty());
+    assert!(deck.home_commands.is_empty());
+    assert_eq!(
+        state.input(),
+        "/new",
+        "dismissal never consumes the source draft"
+    );
     worker.await.unwrap();
 }
 
 #[tokio::test]
 async fn cards_cursor_follows_parked_view_and_pages_from_oldest_loaded_row() {
-    let (app, mut inbox, _) = CoreApp::channel(4);
-    let mut state = TuiState::new(app.clone(), SessionId::new("cards-a").unwrap());
-    let mut deck = LoopState::default();
-    deck.sync_tabs(&mut state);
-    let worker = tokio::spawn(async move {
-        for (before, ids, has_older) in [(None, vec![30, 20], true), (Some(20), vec![10], false)] {
+    for coalesce in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app.clone(), SessionId::new("cards-a").unwrap());
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("Tool cards");
+        state.handle_key(KeyAction::Enter).await;
+        assert_eq!(state.panel(), &TuiPanel::Cards);
+        let mut deck = LoopState::default();
+        deck.sync_tabs(&mut state);
+        let (held, receipt) = tokio::sync::oneshot::channel();
+        let worker = tokio::spawn(async move {
             let Some(InboxMsg::ToolOps {
-                before_rowid, ack, ..
+                session,
+                before_rowid,
+                ack,
+                ..
             }) = inbox.recv().await
             else {
-                panic!("expected cards query")
+                panic!("held cards query")
             };
-            assert_eq!(before_rowid, before);
-            ack.send(Ok(ToolOpPage {
-                rows: ids
-                    .into_iter()
-                    .map(|rowid| ToolOpView {
-                        child_job: None,
-                        output_presentation: None,
-                        question: None,
-                        op: format!("op-{rowid}"),
-                        rowid,
-                        name: "read".into(),
-                        state: "completed".into(),
-                        input: None,
-                        output: None,
-                        output_bytes: 0,
-                        output_truncated: false,
-                        patch_effects: None,
-                        dcp: None,
-                        dcp_topic: None,
-                    })
-                    .collect(),
-                total: 3,
-                has_older,
-            }))
+            assert_eq!(session.0, "cards-a");
+            assert_eq!(before_rowid, None);
+            held.send(ack).unwrap();
+            for (before, ids, has_older) in
+                [(None, vec![30, 20], true), (Some(20), vec![10], false)]
+            {
+                let Some(InboxMsg::ToolOps {
+                    before_rowid, ack, ..
+                }) = inbox.recv().await
+                else {
+                    panic!("expected cards query")
+                };
+                assert_eq!(before_rowid, before);
+                ack.send(Ok(ToolOpPage {
+                    rows: ids
+                        .into_iter()
+                        .map(|rowid| ToolOpView {
+                            child_job: None,
+                            output_presentation: None,
+                            question: None,
+                            op: format!("op-{rowid}"),
+                            rowid,
+                            name: "read".into(),
+                            state: "completed".into(),
+                            input: None,
+                            output: None,
+                            output_bytes: 0,
+                            output_truncated: false,
+                            patch_effects: None,
+                            dcp: None,
+                            dcp_topic: None,
+                        })
+                        .collect(),
+                    total: 3,
+                    has_older,
+                }))
+                .unwrap();
+            }
+        });
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
+            .await
             .unwrap();
+        let ack = receipt.await.unwrap();
+        state.cover_projection(state.projection_floor() + 1, false);
+        if coalesce {
+            for _ in 0..2 {
+                apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
+                    .await
+                    .unwrap();
+            }
         }
+        ack.send(Ok(ToolOpPage {
+            rows: Vec::new(),
+            total: 0,
+            has_older: false,
+        }))
+        .unwrap();
+        settle_history(&app, &mut state, &mut deck).await;
+        assert_eq!(deck.cards_before, Some(20));
+        assert!(state.cards_need_older());
+        let next = TuiState::new(app.clone(), SessionId::new("cards-b").unwrap());
+        deck.tabs[0] = Some(std::mem::replace(&mut state, next));
+        deck.tab_cards_before[0] = deck.cards_before;
+        deck.active_tab = Some(1);
+        deck.tabs.push(None);
+        deck.tab_cards_before.push(None);
+        deck.cards_before = None;
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(deck.cards_before, Some(20));
+        assert!(state.cards_need_older());
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
+            .await
+            .unwrap();
+        settle_history(&app, &mut state, &mut deck).await;
+        assert_eq!(deck.cards_before, Some(10));
+        assert!(!state.cards_need_older());
+        worker.await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn off_deck_picker_delete_keeps_local_deck_and_refreshes_after_foreign_ack_once() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId("local".into()));
+    state.chrome.location = Some("/local".into());
+    state.restore_prompt("kept local draft".into());
+    let mut deck = LoopState {
+        location: Some("/local".into()),
+        revision: Some("local-token".into()),
+        ..Default::default()
+    };
+    deck.sync_tabs(&mut state);
+    deck.authoritative_deck = Some(deck.snapshot(&state));
+    let before = deck.snapshot(&state);
+    state.handle_key(KeyAction::Leader).await;
+    state
+        .handle_key(KeyAction::SequenceKey("l".into(), Some('l')))
+        .await;
+    state.apply_session_picker_context(oc_core::queries::SessionPickerContext {
+        all_projects: true,
+        canonical: Some("/local".into()),
+        project_name: None,
     });
-    apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
-        .await
+    state.handle_paste("foreign");
+    assert_eq!(state.panel(), &TuiPanel::Sessions);
+    let owner = tokio::spawn(async move {
+        let InboxMsg::PickerSessionAction {
+            session,
+            search,
+            all_projects,
+            action,
+            ack,
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("exact off-deck deletion, no local preflight save")
+        };
+        assert_eq!(session.0, "foreign");
+        assert_eq!(search, "foreign");
+        assert!(all_projects);
+        assert!(matches!(
+            action,
+            oc_core::queries::SessionPickerAction::Delete
+        ));
+        ack.send(Ok(oc_core::queries::SessionPickerResult::Deleted(
+            TabDeckSnapshot {
+                location: "/foreign".into(),
+                revision: Some("foreign-token".into()),
+                ..Default::default()
+            },
+        )))
         .unwrap();
-    assert_eq!(deck.cards_before, Some(20));
-    assert!(state.cards_need_older());
-    let next = TuiState::new(app.clone(), SessionId::new("cards-b").unwrap());
-    deck.tabs[0] = Some(std::mem::replace(&mut state, next));
-    deck.tab_cards_before[0] = deck.cards_before;
-    deck.active_tab = Some(1);
-    deck.tabs.push(None);
-    deck.tab_cards_before.push(None);
-    deck.cards_before = None;
-    deck.activate(&mut state, 0).unwrap();
-    assert_eq!(deck.cards_before, Some(20));
-    assert!(state.cards_need_older());
-    apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadCards)
-        .await
+        let InboxMsg::SessionPickerContext { ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("refresh current picker")
+        };
+        ack.send(Ok(oc_core::queries::SessionPickerContext {
+            all_projects: true,
+            canonical: Some("/local".into()),
+            project_name: None,
+        }))
         .unwrap();
-    assert_eq!(deck.cards_before, Some(10));
-    assert!(!state.cards_need_older());
-    worker.await.unwrap();
+        let InboxMsg::SessionList {
+            search,
+            all_projects,
+            ack,
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("refresh rows")
+        };
+        assert_eq!(search, "foreign");
+        assert!(all_projects);
+        ack.send(Ok(Vec::new())).unwrap();
+        inbox
+    });
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::DeleteSelectedSession {
+            id: "foreign".into(),
+        },
+    )
+    .await
+    .unwrap();
+    assert!(deck.owns_receipt(&state));
+    settle_picker(&app, &mut state, &mut deck).await;
+    assert_eq!(state.input(), "kept local draft");
+    assert_eq!(state.chrome.location.as_deref(), Some("/local"));
+    assert_eq!(deck.snapshot(&state), before);
+    assert_eq!(deck.authoritative_deck.as_ref(), Some(&before));
+    assert!(!deck.selection_blocked);
+    assert!(state.session_entries().is_empty());
+    assert!(
+        owner.await.unwrap().try_recv().is_err(),
+        "no local save, foreign token adoption, or deletion replay"
+    );
 }
 
 #[tokio::test]
@@ -3669,14 +3886,34 @@ async fn sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_sur
         tabs: vec![Some(parked), None],
         tab_cards_before: vec![None, None],
         active_tab: Some(1),
+        location: Some("/project".into()),
+        revision: Some("initial".into()),
         ..LoopState::default()
     };
     let worker = tokio::spawn(async move {
+        let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+            panic!("delete preflight");
+        };
+        assert_eq!(deck.revision.as_deref(), Some("initial"));
+        ack.send(Ok(TabDeckSnapshot {
+            revision: Some("preflight-0".into()),
+            ..deck
+        }))
+        .unwrap();
         let Some(InboxMsg::PickerSessionAction { session, ack, .. }) = inbox.recv().await else {
             panic!("delete action")
         };
         assert_eq!(session.0, "current");
         ack.send(Err(CoreError::SessionNotFound)).unwrap();
+        let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
+            panic!("new delete preflight");
+        };
+        assert_eq!(deck.revision.as_deref(), Some("preflight-0"));
+        ack.send(Ok(TabDeckSnapshot {
+            revision: Some("preflight-1".into()),
+            ..deck
+        }))
+        .unwrap();
         let Some(InboxMsg::PickerSessionAction { session, ack, .. }) = inbox.recv().await else {
             panic!("delete action")
         };
@@ -3692,6 +3929,15 @@ async fn sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_sur
             },
         )))
         .unwrap();
+        let Some(InboxMsg::SessionPickerContext { ack, .. }) = inbox.recv().await else {
+            panic!("refresh scope");
+        };
+        ack.send(Ok(oc_core::queries::SessionPickerContext {
+            all_projects: false,
+            project_name: None,
+            canonical: Some("/project".into()),
+        }))
+        .unwrap();
         let Some(InboxMsg::SessionList { ack, .. }) = inbox.recv().await else {
             panic!("refresh")
         };
@@ -3704,16 +3950,19 @@ async fn sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_sur
         .await
         .unwrap();
     assert_eq!(state.attached_session().unwrap().0, "current");
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.input(), "current draft");
     assert_eq!(deck.tabs.len(), 2);
     apply_intent(&app, &mut state, &mut deck, intent)
         .await
         .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.attached_session().unwrap().0, "survivor");
     assert_eq!(state.input(), "survivor draft");
     assert_eq!(deck.tabs.len(), 1);
     assert_eq!(deck.active_tab, Some(0));
     assert_eq!(deck.revision.as_deref(), Some("accepted"));
+    settle_picker(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
 }
 
@@ -3813,6 +4062,8 @@ async fn pending_submission_refuses_session_and_location_switches() {
     state.handle_paste("immutable draft");
     state.handle_key(KeyAction::Enter).await;
     let _request = inbox.recv().await.unwrap(); // retain acceptance sender
+    assert!(state.input().is_empty());
+    state.handle_paste("independent next draft");
     let mut loop_state = LoopState::default();
     for intent in [
         PanelIntent::SwitchSession { id: "other".into() },
@@ -3825,7 +4076,7 @@ async fn pending_submission_refuses_session_and_location_switches() {
             .unwrap_err();
         assert!(error.contains("switch refused"));
         assert_eq!(state.session(), &session);
-        assert_eq!(state.input(), "immutable draft");
+        assert_eq!(state.input(), "independent next draft");
         assert!(inbox.try_recv().is_err(), "switch reached runtime");
     }
     // Session-scoped events cannot match even a coincident turn id.

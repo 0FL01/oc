@@ -1137,6 +1137,24 @@ fn submit(pty: &mut PtySession, text: &str) -> usize {
     off
 }
 
+fn discard_failed_submission(pty: &mut PtySession) {
+    recover_failed_submission(pty, false);
+}
+
+fn recover_failed_submission(pty: &mut PtySession, restore: bool) {
+    // Submitted payloads belong to Last request, not the now-empty editor.
+    // The palette leaves any independent next draft and prompt history alone.
+    pty.send(b"\x10");
+    wait_screen_row(pty, "Commands", DEADLINE);
+    pty.send(b"Settings\r");
+    wait_screen_row(pty, "Settings", DEADLINE);
+    pty.send(b"Last request");
+    wait_screen_row(pty, "Last request", DEADLINE);
+    pty.send(if restore { b"\x15" } else { b"\x04" });
+    dismissed(pty, "Settings");
+    wait_idle(pty);
+}
+
 /// Echo bytes may be drawn before TurnFinished. Wait for the actual terminal
 /// status before starting the next idle action, rather than racing that event.
 fn wait_idle(pty: &PtySession) {

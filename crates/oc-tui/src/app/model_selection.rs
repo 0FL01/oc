@@ -48,11 +48,58 @@ impl Default for ComposerSelection {
 }
 
 impl TuiState {
+    /// Canonical owner facts do not own an independently scoped browse dialog.
+    /// Keep its binding and rows until its own fenced provider refresh arrives.
+    pub fn apply_catalog_refresh(&mut self, snapshot: CatalogSnapshot) {
+        let browse = self
+            .model_selection
+            .picker_binding
+            .as_ref()
+            .filter(|binding| {
+                binding.location == snapshot.chrome.location
+                    && self
+                        .model_selection
+                        .binding
+                        .as_ref()
+                        .is_some_and(|composer| composer.provider != binding.provider)
+                    && binding.provider != snapshot.provider
+            })
+            .cloned()
+            .map(|binding| {
+                (
+                    self.picker.take(),
+                    binding,
+                    self.model_selection.picker_readiness.clone(),
+                    self.model_selection.picker_custom,
+                    self.select.cursor,
+                )
+            });
+        self.apply_catalog(snapshot);
+        if let Some((picker, binding, readiness, custom, cursor)) = browse {
+            self.picker = picker;
+            self.model_selection.picker_binding = Some(binding);
+            self.model_selection.picker_readiness = readiness;
+            self.model_selection.picker_custom = custom;
+            self.select.cursor = cursor;
+            self.sync_modal_cursor();
+        }
+    }
+
     /// Carry only client-owned composer state across a freshly loaded native
     /// projection. Keep the owner's new committed choice and configuration.
     pub fn preserve_shared_composer(&mut self, mut previous: Self) {
         self.restore_composer_draft(previous.composer_draft());
-        if self.chrome.location == previous.chrome.location && self.session == previous.session {
+        let same_route =
+            self.chrome.location == previous.chrome.location && self.session == previous.session;
+        if same_route {
+            self.provisional_session = previous.provisional_session.take();
+            self.pending = previous.pending.take();
+            self.submission_intent = previous.submission_intent.take();
+            self.refused_submission = previous.refused_submission.take();
+            self.agent_draft_revision = previous.agent_draft_revision;
+            if self.active_turn.is_none() && self.has_pending_submission() {
+                self.status = TuiStatus::PendingSubmission;
+            }
             let _ = previous.execute_capture();
             // A canonical refresh updates facts, not this client's interaction
             // owner. Preserve complete modal state, not just its panel enum.
@@ -140,6 +187,11 @@ impl TuiState {
             && self.active_agent.as_deref() != draft.agent_id.as_deref()
         {
             let _ = self.apply_agent_preview(draft);
+        }
+        if same_route {
+            // Reconstructing a local preview is not a new user selection. Keep
+            // the exact revision captured by a transferred preparation receipt.
+            self.agent_draft_revision = previous.agent_draft_revision;
         }
         if self.model_selection.binding == previous.model_selection.binding {
             let preserve_picker = !previous.model_selection.drafts.is_empty()
@@ -458,7 +510,12 @@ impl TuiState {
             old.location == binding.location && old.provider == binding.provider
         });
         if !compatible {
+            // Catalog facts can change provider while an older captured commit
+            // is still awaiting its reply. It keeps its own caller/binding and
+            // must settle, never be dropped or acknowledged into the new one.
+            let pending = std::mem::take(&mut self.model_selection.pending);
             self.model_selection = ComposerSelection::default();
+            self.model_selection.pending = pending;
         }
         self.model_selection.committed = snapshot.selected_model();
         if !snapshot.model_id.is_empty() {
@@ -659,13 +716,23 @@ impl TuiState {
         if self.parent_id.is_some() {
             return Err("child session is read-only".into());
         }
+        self.commit_captured_model(
+            self.session.clone().expect("existing session"),
+            self.captured_model_commit(),
+        )
+    }
+
+    pub(super) fn commit_captured_model(
+        &mut self,
+        session: SessionId,
+        commit: Option<ModelCommit>,
+    ) -> Result<(), String> {
         if self.model_selection.pending.len() >= oc_core::session::MAX_QUEUE_ITEMS {
             return Err("model commit receipts full".into());
         }
-        let Some(commit) = self.captured_model_commit() else {
+        let Some(commit) = commit else {
             return Ok(());
         };
-        let session = self.session.clone().expect("existing session");
         let receipt = self
             .app
             .request_model_commit(session.clone(), commit.clone())

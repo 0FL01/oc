@@ -47,6 +47,14 @@ fn exploration_named_inline_glyphs_styles_and_spacers_are_semantic() {
             }
             let mut row = operation(name, "", None);
             row.state = "started".into();
+            let card = card_from_row(&row);
+            assert_eq!(
+                exploration_member(&card, theme, 80, false)[0].animation_cells(),
+                [(
+                    crate::messages::MESSAGE_PADDING,
+                    styled::AnimationSource::Tool(card.op.clone())
+                )]
+            );
             assert!(
                 tool_block(&card_from_row(&row), theme, 80)[0]
                     .plain_text()
@@ -263,7 +271,7 @@ fn vis35_failed_patch_detail_uses_child_gap_muted_text_and_unstyled_padding() {
             seq: 1,
             message_id: None,
             role: "tool".into(),
-            text: String::new(),
+            text: String::new().into(),
             agent: None,
             agent_color_index: None,
             chips: Vec::new(),
@@ -436,7 +444,7 @@ fn vis37_answered_question_full_and_cached_transcripts_bypass_generic_expansion(
         message_id: None,
         seq: 1,
         role: "tool".into(),
-        text: String::new(),
+        text: String::new().into(),
         agent: None,
         agent_color_index: None,
         chips: Vec::new(),
@@ -555,7 +563,7 @@ fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_re
         message_id: None,
         seq: 1,
         role: "tool".into(),
-        text: String::new(),
+        text: String::new().into(),
         agent: None,
         agent_color_index: None,
         chips: Vec::new(),
@@ -675,7 +683,7 @@ fn vis37_cancelled_question_uses_muted_struck_inline_and_preserves_raw_other_err
         message_id: None,
         seq: 1,
         role: "tool".into(),
-        text: String::new(),
+        text: String::new().into(),
         agent: None,
         agent_color_index: None,
         chips: Vec::new(),
@@ -1165,7 +1173,7 @@ fn generic_summary_paints_only_fitting_source_wrap_separators() {
             message_id: None,
             seq: 1,
             role: "tool".into(),
-            text: String::new(),
+            text: String::new().into(),
             agent: None,
             agent_color_index: None,
             chips: Vec::new(),
@@ -1283,7 +1291,7 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
         message_id: None,
         seq: 1,
         role: "tool".into(),
-        text: String::new(),
+        text: String::new().into(),
         agent: None,
         agent_color_index: None,
         chips: Vec::new(),

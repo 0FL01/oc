@@ -12,11 +12,48 @@ use ratatui::text::Text;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+thread_local! {
+    static RENDER_CANCEL: std::cell::RefCell<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Worker-local cooperative cancellation, not another executor or cache.
+pub(crate) fn with_render_cancellation<T>(
+    cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    run: impl FnOnce() -> T,
+) -> T {
+    struct Restore(Option<std::sync::Arc<std::sync::atomic::AtomicBool>>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            RENDER_CANCEL.set(self.0.take());
+        }
+    }
+    let _restore = Restore(RENDER_CANCEL.replace(Some(cancel)));
+    run()
+}
+
+pub(crate) fn render_cancelled() -> bool {
+    RENDER_CANCEL.with_borrow(|flag| {
+        flag.as_ref()
+            .is_some_and(|flag| flag.load(std::sync::atomic::Ordering::Relaxed))
+    })
+}
+
+/// Generated cells only. Source text that happens to contain a spinner glyph
+/// never receives this tag. Geometry stores tags; paint resolves their clocks.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum AnimationSource {
+    Tool(String),
+    Delegation(usize),
+    Reasoning,
+    Compaction,
+}
+
 /// A piece of text with a single style.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Span {
     content: String,
     style: Style,
+    animation: Option<AnimationSource>,
 }
 
 impl Span {
@@ -25,6 +62,7 @@ impl Span {
         Self {
             content: content.into(),
             style,
+            animation: None,
         }
     }
 
@@ -35,6 +73,14 @@ impl Span {
 
     pub fn content(&self) -> &str {
         &self.content
+    }
+
+    pub(crate) fn with_content(&self, content: String) -> Self {
+        Self {
+            content,
+            style: self.style,
+            animation: self.animation.clone(),
+        }
     }
 
     pub fn style(&self) -> Style {
@@ -55,17 +101,80 @@ impl From<&str> for Span {
 }
 
 /// One styled row. `style` is patched over every span style by Ratatui.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default)]
 pub struct Line {
     spans: Vec<Span>,
     style: Style,
+    source_range: Option<std::ops::Range<usize>>,
 }
 
+impl PartialEq for Line {
+    fn eq(&self, other: &Self) -> bool {
+        self.spans == other.spans && self.style == other.style
+    }
+}
+impl Eq for Line {}
+
 impl Line {
+    pub(crate) fn animate(mut self, byte: usize, source: AnimationSource) -> Self {
+        let mut offset = 0;
+        let mut spans = Vec::new();
+        for span in self.spans {
+            let end = offset + span.content.len();
+            if byte >= offset && byte < end {
+                let at = byte - offset;
+                if let Some(glyph) = span.content[at..].graphemes(true).next() {
+                    if at > 0 {
+                        spans.push(Span::styled(&span.content[..at], span.style));
+                    }
+                    let mut cell = Span::styled(glyph, span.style);
+                    cell.animation = Some(source.clone());
+                    spans.push(cell);
+                    if at + glyph.len() < span.content.len() {
+                        spans.push(Span::styled(&span.content[at + glyph.len()..], span.style));
+                    }
+                }
+            } else {
+                spans.push(span);
+            }
+            offset = end;
+        }
+        self.spans = spans;
+        self
+    }
+
+    pub(crate) fn animation_cells(&self) -> Vec<(usize, AnimationSource)> {
+        let mut byte = 0;
+        self.spans
+            .iter()
+            .filter_map(|span| {
+                let at = byte;
+                byte += span.content.len();
+                span.animation.clone().map(|source| (at, source))
+            })
+            .collect()
+    }
+
+    /// Preserve hover/selection styling; replace exactly one generated grapheme.
+    pub(crate) fn patch_cell(&mut self, byte: usize, glyph: &str) {
+        let mut offset = 0;
+        for span in &mut self.spans {
+            if byte >= offset && byte < offset + span.content.len() {
+                let at = byte - offset;
+                if let Some(old) = span.content[at..].graphemes(true).next() {
+                    let end = at + old.len();
+                    span.content.replace_range(at..end, glyph);
+                }
+                break;
+            }
+            offset += span.content.len();
+        }
+    }
     pub fn new(spans: Vec<Span>) -> Self {
         Self {
             spans,
             style: Style::default(),
+            source_range: None,
         }
     }
 
@@ -81,6 +190,10 @@ impl Line {
 
     pub fn spans(&self) -> &[Span] {
         &self.spans
+    }
+
+    pub(crate) fn source_range(&self) -> Option<std::ops::Range<usize>> {
+        self.source_range.clone()
     }
 
     pub fn style(&self) -> Style {
@@ -143,7 +256,7 @@ impl Line {
                 } else {
                     span.style
                 };
-                spans.push((glyph.to_string(), style));
+                spans.push((glyph.to_string(), style, None, 0..0));
                 offset += glyph.len();
             }
         }
@@ -243,7 +356,7 @@ pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) ->
     let mut current = Vec::new();
     let mut used = 0;
     for span in line.spans() {
-        for glyph in span.content().graphemes(true) {
+        for (byte, glyph) in span.content().grapheme_indices(true) {
             if out.len() >= limit {
                 return out;
             }
@@ -260,7 +373,12 @@ pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) ->
                     return out;
                 }
             }
-            current.push((glyph.to_owned(), span.style()));
+            current.push((
+                glyph.to_owned(),
+                span.style(),
+                (byte == 0).then(|| span.animation.clone()).flatten(),
+                byte..byte + glyph.len(),
+            ));
             used += cells;
         }
     }
@@ -279,6 +397,27 @@ pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -
 /// Stream the same source-space rows without retaining a whole long message.
 pub(crate) fn visit_source_space_line(line: &Line, width: usize, emit: impl FnMut(Line)) {
     visit_wrapped_line(line, width, usize::MAX, true, true, emit);
+}
+
+/// The same wrapper over a borrowed source, with exact source-byte boundaries.
+/// A checkpoint starts at an already chosen visual-row boundary.
+pub(crate) fn visit_source_rows(
+    text: &str,
+    width: usize,
+    limit: usize,
+    has_word: bool,
+    emit: impl FnMut(Line),
+) {
+    let glyphs = text.grapheme_indices(true).map(|(byte, glyph)| {
+        let range = byte..byte + glyph.len();
+        let glyph = if glyph.chars().any(char::is_control) {
+            "�"
+        } else {
+            glyph
+        };
+        (glyph, Style::default(), None, range)
+    });
+    visit_wrapped_glyphs(glyphs, width, limit, true, true, has_word, emit);
 }
 
 /// Plain permission text uses OpenTUI word boundaries,
@@ -319,31 +458,87 @@ fn visit_wrapped_line(
     limit: usize,
     preserve_break_space: bool,
     opentui_breaks: bool,
+    emit: impl FnMut(Line),
+) {
+    let mut base = 0;
+    let glyphs = line.spans().iter().flat_map(|span| {
+        let start = base;
+        base += span.content().len();
+        span.content()
+            .grapheme_indices(true)
+            .map(move |(byte, glyph)| {
+                (
+                    glyph,
+                    span.style(),
+                    (byte == 0).then(|| span.animation.clone()).flatten(),
+                    start + byte..start + byte + glyph.len(),
+                )
+            })
+    });
+    visit_wrapped_glyphs(
+        glyphs,
+        width,
+        limit,
+        preserve_break_space,
+        opentui_breaks,
+        false,
+        emit,
+    );
+}
+
+type WrappedCell = (
+    String,
+    Style,
+    Option<AnimationSource>,
+    std::ops::Range<usize>,
+);
+
+fn source_line(cells: Vec<WrappedCell>) -> Line {
+    let range = cells
+        .first()
+        .zip(cells.last())
+        .map(|(first, last)| first.3.start..last.3.end);
+    let mut line = Line::new(coalesce(cells));
+    line.source_range = range;
+    line
+}
+
+fn visit_wrapped_glyphs<'a>(
+    glyphs: impl Iterator<
+        Item = (
+            &'a str,
+            Style,
+            Option<AnimationSource>,
+            std::ops::Range<usize>,
+        ),
+    >,
+    width: usize,
+    limit: usize,
+    preserve_break_space: bool,
+    opentui_breaks: bool,
+    initial_has_word: bool,
     mut emit: impl FnMut(Line),
 ) {
     let max = width.max(1);
     let mut emitted = 0;
-    let mut current: Vec<(String, Style)> = Vec::new();
+    let mut current: Vec<WrappedCell> = Vec::new();
     let mut used = 0usize;
     // Last break and whether its head is logical-leading indentation. That
     // property belongs to the break, not the subsequently collected word.
     let mut break_at: Option<(usize, bool)> = None;
     // Only continuation rows drop their leading spaces; the first row keeps
     // the indentation of the source line.
-    let mut continuation = false;
-    let mut source_has_word = false;
+    let mut continuation = initial_has_word;
+    let mut source_has_word = initial_has_word;
     let mut previous_class = 0;
     let mut previous_glyph: Option<&str> = None;
-    let mut glyphs = line
-        .spans()
-        .iter()
-        .flat_map(|span| {
-            span.content()
-                .graphemes(true)
-                .map(move |glyph| (glyph, span.style()))
-        })
-        .peekable();
-    while let Some((glyph, style)) = glyphs.next() {
+    let mut glyphs = glyphs.peekable();
+    let mut visited = 0usize;
+    while let Some((glyph, style, animation, source_range)) = glyphs.next() {
+        visited += 1;
+        if visited.is_multiple_of(256) && render_cancelled() {
+            return;
+        }
         if emitted >= limit {
             break;
         }
@@ -361,7 +556,7 @@ fn visit_wrapped_line(
         previous_glyph = Some(glyph);
         let whitespace = if opentui_breaks {
             wrap_whitespace(glyph)
-                && !glyphs.peek().is_some_and(|(next, _)| {
+                && !glyphs.peek().is_some_and(|(next, _, _, _)| {
                     // A styled-span edge is not a grapheme boundary. Keep a
                     // whitespace base when the next span carries its accent.
                     UnicodeWidthStr::width(*next) == 0
@@ -385,7 +580,7 @@ fn visit_wrapped_line(
             let boundary = if whitespace {
                 break_at = None;
                 if !preserve_break_space && (!opentui_breaks || source_has_word) {
-                    while current.last().is_some_and(|(ch, _)| {
+                    while current.last().is_some_and(|(ch, _, _, _)| {
                         if opentui_breaks {
                             wrap_whitespace(ch)
                         } else {
@@ -403,7 +598,7 @@ fn visit_wrapped_line(
                 Some((index, leading_indent)) => {
                     let mut rest = current.split_off(index);
                     while (!opentui_breaks || source_has_word)
-                        && rest.first().is_some_and(|(ch, _)| {
+                        && rest.first().is_some_and(|(ch, _, _, _)| {
                             if opentui_breaks {
                                 wrap_whitespace(ch)
                             } else {
@@ -415,7 +610,7 @@ fn visit_wrapped_line(
                     }
                     let mut head = std::mem::take(&mut current);
                     if !preserve_break_space && (!opentui_breaks || !leading_indent) {
-                        while head.last().is_some_and(|(ch, _)| {
+                        while head.last().is_some_and(|(ch, _, _, _)| {
                             if opentui_breaks {
                                 wrap_whitespace(ch)
                             } else {
@@ -425,16 +620,16 @@ fn visit_wrapped_line(
                             head.pop();
                         }
                     }
-                    emit(Line::new(coalesce(head)));
+                    emit(source_line(head));
                     emitted += 1;
                     current = rest;
                     used = current
                         .iter()
-                        .map(|(ch, _)| UnicodeWidthStr::width(ch.as_str()))
+                        .map(|(ch, _, _, _)| UnicodeWidthStr::width(ch.as_str()))
                         .sum();
                 }
                 None => {
-                    emit(Line::new(coalesce(std::mem::take(&mut current))));
+                    emit(source_line(std::mem::take(&mut current)));
                     emitted += 1;
                     used = 0;
                 }
@@ -458,7 +653,7 @@ fn visit_wrapped_line(
         } else {
             opentui_breaks && whitespace && !source_has_word
         };
-        current.push((glyph.to_string(), style));
+        current.push((glyph.to_string(), style, animation, source_range));
         used += cells;
         source_has_word |= !whitespace;
         // A zero-cell combining suffix in another style span keeps the
@@ -471,7 +666,7 @@ fn visit_wrapped_line(
         }
     }
     if emitted < limit && (!current.is_empty() || emitted == 0) {
-        emit(Line::new(coalesce(current)));
+        emit(source_line(current));
     }
 }
 
@@ -483,7 +678,7 @@ fn wrap_whitespace(glyph: &str) -> bool {
     glyph.chars().all(wrap_whitespace_char)
 }
 
-fn wrap_whitespace_char(ch: char) -> bool {
+pub(crate) fn wrap_whitespace_char(ch: char) -> bool {
     matches!(
         ch,
         ' ' | '\t' | '\u{00a0}' | '\u{1680}' | '\u{2000}'
@@ -552,12 +747,20 @@ pub fn wrap_lines(lines: &[Line], width: usize) -> Vec<Line> {
 }
 
 /// Merge consecutive cells with the same style back into spans.
-fn coalesce(cells: Vec<(String, Style)>) -> Vec<Span> {
+fn coalesce(cells: Vec<WrappedCell>) -> Vec<Span> {
     let mut spans: Vec<Span> = Vec::new();
-    for (ch, style) in cells {
+    for (ch, style, animation, _) in cells {
         match spans.last_mut() {
-            Some(span) if span.style() == style => span.content.push_str(&ch),
-            _ => spans.push(Span { content: ch, style }),
+            Some(span)
+                if span.style() == style && span.animation.is_none() && animation.is_none() =>
+            {
+                span.content.push_str(&ch)
+            }
+            _ => spans.push(Span {
+                content: ch,
+                style,
+                animation,
+            }),
         }
     }
     spans

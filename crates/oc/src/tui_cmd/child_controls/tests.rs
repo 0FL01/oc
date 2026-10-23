@@ -1,5 +1,9 @@
+use super::super::tests::{
+    settle_children, settle_controls, settle_notices, settle_reads, settle_work,
+};
 use super::*;
 use oc_core::core_app::InboxMsg;
+use oc_core::core_app::WorkerTurnId;
 use oc_core::queries::{ChildState, HistoryPage, ShellNotice};
 
 #[tokio::test]
@@ -95,6 +99,10 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
         };
         assert_eq!(session, expected.parent);
         ack.send(Ok(vec![])).unwrap();
+        let Some(InboxMsg::CompactionHistory { ack, .. }) = inbox.recv().await else {
+            panic!("same-session compactions")
+        };
+        ack.send(Ok(vec![])).unwrap();
         let Some(InboxMsg::ShellJobs { session, ack }) = inbox.recv().await else {
             panic!("same-session inventory")
         };
@@ -105,6 +113,8 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
     apply_intent(&app, &mut state, &mut deck, intent)
         .await
         .unwrap();
+    settle_work(&app, &mut state, &mut deck).await;
+    settle_reads(&app, &mut state, &mut deck).await;
     let mut inbox = worker.await.unwrap();
     assert_eq!(state.input(), "original unsent root draft");
     assert_eq!(state.active_turn(), Some(&turn));
@@ -246,13 +256,34 @@ async fn stale_running_child_capture_outside_inventory_reads_current_original_ow
             ..Default::default()
         }))
         .unwrap();
+        let Some(InboxMsg::ReadChild {
+            session,
+            selected: requested,
+            ack,
+            ..
+        }) = inbox.recv().await
+        else {
+            panic!("qualified retained resource read")
+        };
+        assert_eq!(session, selected.parent);
+        assert_eq!(requested.child, selected.child);
+        ack.send(Ok(HistoryPage::default())).unwrap();
         let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
-            panic!("current parent inventory");
+            panic!("existing child inventory");
+        };
+        assert_eq!(session, selected.child);
+        ack.send(Ok(Vec::new())).unwrap();
+        let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
+            panic!("current parent inventory")
         };
         assert_eq!(session, selected.parent);
         ack.send(Ok(newer)).unwrap();
-        let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
-            panic!("existing child inventory");
+        let Some(InboxMsg::CompactionHistory { ack, .. }) = inbox.recv().await else {
+            panic!("child compactions")
+        };
+        ack.send(Ok(Vec::new())).unwrap();
+        let Some(InboxMsg::ShellJobs { session, ack }) = inbox.recv().await else {
+            panic!("child shells")
         };
         assert_eq!(session, selected.child);
         ack.send(Ok(Vec::new())).unwrap();
@@ -272,6 +303,9 @@ async fn stale_running_child_capture_outside_inventory_reads_current_original_ow
     open(&app, &mut state, &mut deck, captured.clone())
         .await
         .unwrap();
+    settle_children(&app, &mut state, &mut deck).await;
+    settle_reads(&app, &mut state, &mut deck).await;
+    settle_controls(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     assert_eq!(state.session(), &captured.child);
     assert_eq!(state.linked_child(), Some(&current));
@@ -325,68 +359,92 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
     let mut deck = LoopState::default();
     deck.child_views.insert(job.child.clone(), child);
     let expected = job.clone();
+    let phase = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed_phase = phase.clone();
     let worker = tokio::spawn(async move {
-        for phase in 0..3 {
-            let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
-                panic!("one bounded inventory on owned lifecycle phase {phase}")
-            };
-            assert_eq!(session, expected.parent);
-            let mut current = expected.clone();
-            if phase == 0 {
-                current.state = ChildState::Admitted;
-                current.turn = None;
-            }
-            current.background = phase == 2;
-            ack.send(Ok(vec![current])).unwrap();
-        }
-        let Some(InboxMsg::ReadChild {
-            session,
-            selected,
-            window,
-            ack,
-        }) = inbox.recv().await
-        else {
-            panic!("actual child terminal refresh")
-        };
-        assert_eq!(session, expected.parent);
-        assert_eq!(selected, expected);
-        assert_eq!(window, Some(Default::default()));
-        ack.send(Ok(HistoryPage {
-            rows: vec![oc_core::queries::HistoryMessage {
-                id: oc_core::session::MessageId("child-answer".into()),
-                seq: 42,
-                role: oc_core::session::Role::Assistant,
-                text: "aggregate must not be replayed".into(),
-                images: Vec::new(),
-                model_switch: None,
-                agent_switch: None,
-                user_shell: None,
-                child: None,
-                shell_notice: None,
-                turn: Some(oc_core::queries::HistoryTurn {
-                    parts: vec![oc_core::queries::TranscriptPart::Text(
-                        "actual completed child".into(),
-                    )],
-                    window: Some(oc_core::queries::HistoryPartWindow {
-                        start: 0,
-                        end: 1,
+        let mut parents = [0; 4];
+        let mut children = [0; 4];
+        let mut qualified = [0; 4];
+        for _ in 0..17 {
+            let message = inbox.recv().await.unwrap();
+            let phase = observed_phase.load(std::sync::atomic::Ordering::SeqCst);
+            match message {
+                InboxMsg::ChildJobs { session, ack } => {
+                    if session == expected.parent {
+                        parents[phase] += 1;
+                        let mut current = expected.clone();
+                        if phase == 0 {
+                            current.state = ChildState::Admitted;
+                            current.turn = None;
+                        }
+                        if phase == 3 {
+                            current.state = ChildState::Completed;
+                        }
+                        current.background = phase >= 2;
+                        ack.send(Ok(vec![current])).unwrap();
+                    } else {
+                        assert_eq!(session, expected.child);
+                        children[phase] += 1;
+                        ack.send(Ok(Vec::new())).unwrap();
+                    }
+                }
+                InboxMsg::ReadChild {
+                    session,
+                    selected,
+                    window,
+                    ack,
+                } => {
+                    assert_eq!(session, expected.parent);
+                    assert_eq!(selected, expected);
+                    assert_eq!(window, Some(Default::default()));
+                    qualified[phase] += 1;
+                    if phase != 3 {
+                        ack.send(Ok(HistoryPage::default())).unwrap();
+                        continue;
+                    }
+                    ack.send(Ok(HistoryPage {
+                        rows: vec![oc_core::queries::HistoryMessage {
+                            id: oc_core::session::MessageId("child-answer".into()),
+                            seq: 42,
+                            role: oc_core::session::Role::Assistant,
+                            text: "aggregate must not be replayed".into(),
+                            images: Vec::new(),
+                            model_switch: None,
+                            agent_switch: None,
+                            user_shell: None,
+                            child: None,
+                            shell_notice: None,
+                            turn: Some(oc_core::queries::HistoryTurn {
+                                parts: vec![oc_core::queries::TranscriptPart::Text(
+                                    "actual completed child".into(),
+                                )],
+                                window: Some(oc_core::queries::HistoryPartWindow {
+                                    start: 0,
+                                    end: 1,
+                                    total: 1,
+                                }),
+                                ..Default::default()
+                            }),
+                        }],
                         total: 1,
-                    }),
-                    ..Default::default()
-                }),
-            }],
-            total: 1,
-            ..Default::default()
-        }))
-        .unwrap();
-        let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
-            panic!("terminal child status while composer stays closed")
-        };
-        assert_eq!(session, expected.parent);
-        let mut current = expected;
-        current.state = ChildState::Completed;
-        current.background = true;
-        ack.send(Ok(vec![current])).unwrap();
+                        ..Default::default()
+                    }))
+                    .unwrap();
+                }
+                InboxMsg::CompactionHistory { session, ack, .. } => {
+                    assert!(session == expected.parent || session == expected.child);
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                InboxMsg::ShellJobs { session, ack } => {
+                    assert!(session == expected.parent || session == expected.child);
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                _ => panic!("only qualified child and source resource reads"),
+            }
+        }
+        assert_eq!(parents, [1, 1, 1, 2]);
+        assert_eq!(children, [0, 0, 0, 1]);
+        assert_eq!(qualified, [0, 0, 0, 1]);
         assert!(inbox.try_recv().is_err());
     });
     handle_worker_event(
@@ -406,6 +464,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
     )
     .await
     .unwrap();
+    settle_reads(&app, &mut state, &mut deck).await;
     assert!(!state.children_open());
     assert_eq!(
         state.transcript_rows()[1]
@@ -418,6 +477,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
             .state,
         ChildState::Admitted
     );
+    phase.store(1, std::sync::atomic::Ordering::SeqCst);
     handle_worker_event(
         &app,
         &mut state,
@@ -431,6 +491,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
     )
     .await
     .unwrap();
+    settle_reads(&app, &mut state, &mut deck).await;
     assert_eq!(
         state.transcript_rows()[1]
             .tool
@@ -440,6 +501,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
             .as_deref(),
         Some(&job)
     );
+    phase.store(2, std::sync::atomic::Ordering::SeqCst);
     handle_worker_event(
         &app,
         &mut state,
@@ -462,7 +524,9 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
     )
     .await
     .unwrap();
+    settle_reads(&app, &mut state, &mut deck).await;
     assert!(state.viewport().join("\n").contains("Background"));
+    phase.store(3, std::sync::atomic::Ordering::SeqCst);
     handle_worker_event(
         &app,
         &mut state,
@@ -479,6 +543,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
     )
     .await
     .unwrap();
+    settle_reads(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     let child_rows = deck.child_views.get(&job.child).unwrap().transcript_rows();
     assert!(
@@ -556,6 +621,26 @@ async fn readonly_child_enter_preserves_real_question_binding_and_owner_reply() 
             QuestionDecision::Answers(vec![vec!["A".into()]])
         );
         ack.send(Err(QuestionReplyError::Unavailable)).unwrap();
+        let Some(InboxMsg::PendingApprovals { ack }) = inbox.recv().await else {
+            panic!("control refresh")
+        };
+        ack.send(Ok(Vec::new())).unwrap();
+        let Some(InboxMsg::PendingQuestions { ack }) = inbox.recv().await else {
+            panic!("question refresh")
+        };
+        ack.send(Ok(vec![request])).unwrap();
+        let Some(InboxMsg::History {
+            session,
+            limit,
+            ack,
+            ..
+        }) = inbox.recv().await
+        else {
+            panic!("single ancestry query")
+        };
+        assert_eq!(session.0, "child");
+        assert_eq!(limit, 1);
+        ack.send(Ok(HistoryPage::default())).unwrap();
         assert!(inbox.try_recv().is_err());
     });
     handle_event(
@@ -566,6 +651,7 @@ async fn readonly_child_enter_preserves_real_question_binding_and_owner_reply() 
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     assert_eq!(state.input(), "unsubmitted readonly draft");
     assert!(state.questions.active().is_some());
@@ -624,6 +710,19 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
     assert_eq!(deck.child_parent.as_ref().unwrap().input(), "root draft α");
     let exact = job.clone();
     let worker = tokio::spawn(async move {
+        let Some(InboxMsg::ReadChild {
+            session,
+            selected,
+            window,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("captured launch before notice resources")
+        };
+        assert_eq!(session, exact.parent);
+        assert_eq!(selected, exact);
+        assert_eq!(window, Some(Default::default()));
+        ack.send(Ok(HistoryPage::default())).unwrap();
         let Some(InboxMsg::History {
             session,
             message,
@@ -662,21 +761,6 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
             ..Default::default()
         }))
         .unwrap();
-        let Some(InboxMsg::ReadChild {
-            session,
-            selected,
-            window,
-            ack,
-        }) = inbox.recv().await
-        else {
-            panic!(
-                "linked notice must read the captured family fence, not current Location history"
-            )
-        };
-        assert_eq!(session, exact.parent);
-        assert_eq!(selected, exact);
-        assert_eq!(window, Some(Default::default()));
-        ack.send(Ok(HistoryPage::default())).unwrap();
         assert!(inbox.try_recv().is_err());
     });
     handle_worker_event(
@@ -696,6 +780,7 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut child, &mut deck).await;
     worker.await.unwrap();
     assert_eq!(child.chrome.location.as_deref(), Some("/A"));
     assert!(deck.read_only);

@@ -13,7 +13,14 @@ pub(super) struct Activity {
     refresh: bool,
     retry_at: Option<Instant>,
     retry_delay: Duration,
+    viewed_job: Option<ViewedJob>,
 }
+
+type ViewedJob = (
+    SessionId,
+    u64,
+    tokio::task::JoinHandle<Result<SessionActivity, CoreError>>,
+);
 
 impl Activity {
     pub(super) fn apply(&mut self, snapshot: &WorkspaceSnapshot, route: Option<SessionId>) {
@@ -75,6 +82,19 @@ impl Activity {
         self.retry_at
     }
 
+    pub(super) fn pending(&self) -> bool {
+        self.viewed_job.is_some()
+    }
+    pub(super) fn ready(&self) -> bool {
+        self.viewed_job
+            .as_ref()
+            .is_some_and(|(_, _, job)| job.is_finished())
+    }
+
+    pub(super) fn needs_workspace(&self, route: Option<&SessionId>) -> bool {
+        self.refresh || self.route.as_ref() != route
+    }
+
     fn retry(&mut self) {
         self.retry_delay = if self.retry_delay.is_zero() {
             Duration::from_millis(250)
@@ -92,24 +112,34 @@ impl Activity {
             self.retry_at = None;
             self.retry_delay = Duration::ZERO;
         }
-        if self.retry_at.is_some_and(|at| at > Instant::now()) {
-            return false;
-        }
-        self.retry_at = None;
         let mut changed = false;
-        if self.refresh {
-            match app.workspace(route.clone()).await {
-                Ok(snapshot) => {
-                    self.apply(&snapshot, route);
+        if self.ready() {
+            let (session, idle, job) = self.viewed_job.take().expect("finished viewed watermark");
+            match job.await.unwrap_or(Err(CoreError::Shutdown)) {
+                Ok(mut activity) if activity.session == session => {
+                    activity.viewed_seq = activity.viewed_seq.map(|viewed| viewed.min(idle));
+                    if let Some(current) = self.entries.get_mut(&session) {
+                        // A captured ACK for idle 10 cannot replace idle 20 or
+                        // erase its error/outcome when the owner read finishes late.
+                        if activity.idle_seq > current.idle_seq {
+                            *current = activity;
+                        } else if let Some(viewed) = activity.viewed_seq {
+                            current.viewed_seq = Some(current.viewed_seq.unwrap_or(0).max(viewed));
+                        }
+                    } else {
+                        self.entries.insert(session, activity);
+                    }
                     self.retry_delay = Duration::ZERO;
                     changed = true;
                 }
-                Err(_) => {
-                    self.retry();
-                    return false;
-                }
+                _ => self.retry(),
             }
+            return changed;
         }
+        if self.retry_at.is_some_and(|at| at > Instant::now()) {
+            return changed;
+        }
+        self.retry_at = None;
         let viewed = self
             .root
             .as_ref()
@@ -121,15 +151,16 @@ impl Activity {
                     .idle_seq
                     .map(|idle| (activity.session.clone(), idle))
             });
-        if let Some((session, idle)) = viewed {
-            match app.session_viewed(session.clone(), idle).await {
-                Ok(activity) => {
-                    self.entries.insert(session, activity);
-                    self.retry_delay = Duration::ZERO;
-                    changed = true;
-                }
-                Err(_) => self.retry(),
-            }
+        if self.viewed_job.is_none()
+            && let Some((session, idle)) = viewed
+        {
+            let owner = app.clone();
+            let captured = session.clone();
+            self.viewed_job = Some((
+                session,
+                idle,
+                tokio::spawn(async move { owner.session_viewed(captured, idle).await }),
+            ));
         }
         changed
     }
@@ -183,7 +214,12 @@ mod tests {
             assert_eq!(idle_seq, 10);
             ack.send(Err(CoreError::Shutdown)).unwrap();
         };
-        tokio::join!(controls.sync(&app, Some(child.clone())), failed);
+        controls.sync(&app, Some(child.clone())).await;
+        failed.await;
+        while !controls.ready() {
+            tokio::task::yield_now().await;
+        }
+        controls.sync(&app, Some(child.clone())).await;
         assert_eq!(controls.unread(&root), Some(TabUnread::Activity));
         assert!(controls.deadline().is_some());
         assert!(
@@ -210,7 +246,12 @@ mod tests {
             }))
             .unwrap();
         };
-        let (changed, ()) = tokio::join!(controls.sync(&app, Some(child.clone())), raced);
+        controls.sync(&app, Some(child.clone())).await;
+        raced.await;
+        while !controls.ready() {
+            tokio::task::yield_now().await;
+        }
+        let changed = controls.sync(&app, Some(child.clone())).await;
         assert!(changed);
         assert_eq!(controls.unread(&root), Some(TabUnread::Error));
         controls.focus(&CEvent::FocusLost);
@@ -241,7 +282,12 @@ mod tests {
             }))
             .unwrap();
         };
-        tokio::join!(controls.sync(&app, Some(child.clone())), viewed);
+        controls.sync(&app, Some(child.clone())).await;
+        viewed.await;
+        while !controls.ready() {
+            tokio::task::yield_now().await;
+        }
+        controls.sync(&app, Some(child.clone())).await;
         controls.observe(&CoreEvent::SessionViewed {
             session: root.clone(),
             viewed_seq: 10,

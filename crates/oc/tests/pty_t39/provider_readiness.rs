@@ -405,6 +405,10 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     submit(&mut initial, "ui07 durable local history");
     wait_screen_row(&initial, "echo: ui07 durable local history", DEADLINE);
     assert_eq!(fixture.wait_requests(1)[0]["model"], ALT_MODEL);
+    // Title work is concurrent with the main answer and is cancelled on last
+    // disconnect. This restart/count test requires the first durable title,
+    // rather than accidentally testing cancellation and a later title retry.
+    wait_screen_row(&initial, "Fixture session title", DEADLINE);
     clean_exit(&mut initial);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 1);
     config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:UI07_ABSENT_KEY}".into();
@@ -419,7 +423,7 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     wait_screen_row(&pty, "ui07 retained refused draft", DEADLINE);
     assert_eq!(main_count(&fixture), 1);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 1);
-    pty.send(b"\x03");
+    discard_failed_submission(&mut pty);
     config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
     publish(&fixture, &config);
     pty.send(b"/reload\r");
@@ -582,7 +586,7 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     wait_screen_row(&pty, "Request unavailable", DEADLINE);
     wait_screen_row(&pty, "unauthorized", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());
-    pty.send(b"\x03");
+    discard_failed_submission(&mut pty);
     fixture.catalog_control.status.store(200, Ordering::Relaxed);
     config["model"] = format!("ludka2/{DYNAMIC}").into();
     publish(&fixture, &config);
@@ -623,7 +627,7 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     wait_screen_row(&pty, "forbidden", DEADLINE);
     wait_screen_row(&pty, "ui07 refused after failed refresh", DEADLINE);
     assert_eq!(main_count(&fixture), 1);
-    pty.send(b"\x03");
+    discard_failed_submission(&mut pty);
     fixture.catalog_control.status.store(200, Ordering::Relaxed);
     config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
     config["providers"]["ludka2"]["settings"]["headers"]
@@ -675,7 +679,7 @@ fn ui07_native_discovery_deadline_is_local_and_explicit_known_model_works() {
     wait_screen_row(&pty, "provider_pending", DEADLINE);
     wait_screen_row(&pty, "ui07 pending retained draft", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());
-    pty.send(b"\x03");
+    discard_failed_submission(&mut pty);
     pty.send(b"/settings\r");
     // Exercise the actual unchanged 30s discovery budget; ordinary PTY deadlines
     // remain unchanged. The application must paint and accept local input now.
@@ -728,7 +732,7 @@ fn ui07_native_refused_connection_keeps_picker_alive_without_generation() {
     wait_screen_row(&pty, "connection_failed", DEADLINE);
     wait_screen_row(&pty, "ui07 disconnected refusal", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());
-    pty.send(b"\x03");
+    discard_failed_submission(&mut pty);
     clean_exit(&mut pty);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 0);
     assert_wire_counts(&fixture, 0, 0);

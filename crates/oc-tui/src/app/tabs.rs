@@ -842,7 +842,7 @@ impl TuiState {
     pub fn tab_presentation(&self) -> (&[TabPresentation], usize, bool) {
         (
             &self.tabs,
-            if self.home && !self.tabs.is_empty() {
+            if self.home && self.tab_route_session().is_none() && !self.tabs.is_empty() {
                 self.tabs.len()
             } else {
                 self.active_tab
@@ -855,6 +855,12 @@ impl TuiState {
     /// action; Home itself becomes a synthetic final slot only in the renderer.
     pub fn set_tab_strip(&mut self, tabs: Vec<TabPresentation>, active: usize, can_add: bool) {
         self.set_tab_strip_at(tabs, active, can_add, Instant::now());
+    }
+
+    /// A structural controller acknowledgement must not replace the hit-test
+    /// geometry between a real pointer press and its matching release.
+    pub fn tab_gesture_active(&self) -> bool {
+        self.tab_down.is_some() || self.tab_view.borrow().drag.is_some()
     }
 
     pub(crate) fn preview_tab_strip(&self, strip: &mut crate::layout::HorizontalTabStrip) {

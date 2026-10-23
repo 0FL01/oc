@@ -114,6 +114,12 @@ pub(crate) fn block(
         ]),
         target: Some(Target::Parent),
     }];
+    if tool_spinner_animated(card) {
+        rows[0].line = std::mem::take(&mut rows[0].line).animate(
+            crate::messages::MESSAGE_PADDING,
+            crate::styled::AnimationSource::Tool(card.op.clone()),
+        );
+    }
     for (index, call) in facts.calls.iter().enumerate() {
         let open = expanded(ToolExpansion::ExecuteCall(&card.op, index));
         let style = if call.status == ExecuteCallStatus::Error {

@@ -1,4 +1,5 @@
 //! Actual binary intent dispatcher over the real application owner and Responses wire.
+use super::tests::{settle_controls, settle_reload};
 use super::*;
 use oc_core::approval::{ApprovalDecision, ApprovalReply, ApprovalRequest};
 use std::{
@@ -414,6 +415,7 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     apply_intent(&app, &mut state, &mut deck, rejection)
         .await
         .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     tokio::time::timeout(Duration::from_secs(3), async {
         loop {
             match events.recv().await.unwrap() {
@@ -492,6 +494,7 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     apply_intent(&app, &mut state, &mut deck, change)
         .await
         .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     assert_eq!(state.modal_options()[0].footer, "auto accept");
     assert!(app.catalog().await.unwrap().chrome.permissions_auto);
     for width in [79, 80, 120, 121] {
@@ -513,11 +516,11 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     let saved = std::fs::read_to_string(&source).unwrap();
     std::fs::write(&source, "{").unwrap();
     let change = state.handle_panel_key(KeyAction::Right).intent.unwrap();
-    assert!(
-        apply_intent(&app, &mut state, &mut deck, change)
-            .await
-            .is_err()
-    );
+    apply_intent(&app, &mut state, &mut deck, change)
+        .await
+        .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
+    assert!(state.note().is_some_and(|note| note.contains("unchanged")));
     assert!(oc_tui::views::render_test(&state, 80, 40)[13].contains("permission"));
     assert_eq!(state.modal_options()[0].footer, "auto accept");
     state.handle_panel_key(KeyAction::Cancel);
@@ -743,6 +746,7 @@ async fn real_child_pending_routes_to_root_tab_with_feedback_and_actual_binding(
     apply_intent(&app, &mut state, &mut deck, reply)
         .await
         .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     complete(&mut events).await;
     assert!(!fixture.root.path().join("project/child-marker").exists());
     app.shutdown().await.unwrap();
@@ -859,8 +863,6 @@ async fn complete(events: &mut tokio::sync::broadcast::Receiver<CoreEvent>) {
 
 #[tokio::test]
 async fn vis36_cli_auto_prompt_save_keeps_one_effective_consumer_at_the_owner_boundary() {
-    use std::{future::Future, task::Poll};
-
     let fixture = Fixture::new(vec![tool("cli-priority-marker"), finished()]);
     let (app, guard) = fixture.app().await;
     let session = SessionId("cli-priority".into());
@@ -873,20 +875,24 @@ async fn vis36_cli_auto_prompt_save_keeps_one_effective_consumer_at_the_owner_bo
     deck.cli_auto = true;
     state.handle_paste("owned draft Ω界");
     let mut events = app.subscribe();
-    let mut save = Box::pin(apply_intent(
+    apply_intent(
         &app,
         &mut state,
         &mut deck,
         PanelIntent::SetPermissionMode { auto_once: false },
-    ));
+    )
+    .await
+    .unwrap();
     // Queue the real Settings owner command, then observe its committed state
     // before polling the frontend again. A second re-registration cannot hide
     // an intermediate Prompt consumer from this FIFO query barrier.
-    std::future::poll_fn(|cx| {
-        assert!(save.as_mut().poll(cx).is_pending());
-        Poll::Ready(())
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !deck.controls.ready() {
+            tokio::task::yield_now().await;
+        }
     })
-    .await;
+    .await
+    .unwrap();
     let snapshot = app.catalog().await.unwrap();
     assert_eq!(
         snapshot.auto_accept,
@@ -925,7 +931,7 @@ async fn vis36_cli_auto_prompt_save_keeps_one_effective_consumer_at_the_owner_bo
     .await
     .unwrap();
     assert_eq!(once_replies, 1);
-    save.await.unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     assert!(
         fixture
             .root
@@ -989,6 +995,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     assert_eq!(state.approvals.active(), Some(&request));
     assert!(!fixture.root.path().join("project/once-marker").exists());
     let db = rusqlite::Connection::open(fixture.root.path().join("data/oc.sqlite")).unwrap();
@@ -1000,20 +1007,19 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     );
     let mut binding = request.binding.clone();
     binding.generation += 1;
-    assert!(
-        apply_intent(
-            &app,
-            &mut state,
-            &mut deck,
-            PanelIntent::ReplyApproval(ApprovalReply {
-                id: request.id,
-                binding,
-                decision: ApprovalDecision::Once
-            })
-        )
-        .await
-        .is_err()
-    );
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::ReplyApproval(ApprovalReply {
+            id: request.id,
+            binding,
+            decision: ApprovalDecision::Once,
+        }),
+    )
+    .await
+    .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     assert!(state.approvals.error.is_some());
     assert_eq!(state.approvals.active(), Some(&request));
     handle_event(
@@ -1027,6 +1033,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     complete(&mut events).await;
     assert!(fixture.root.path().join("project/once-marker").exists());
     assert!(state.approvals.active().is_none());
@@ -1050,6 +1057,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     complete(&mut events).await;
     assert!(app.pending_approvals().await.unwrap().is_empty());
     assert!(fixture.root.path().join("project/pending-auto").exists());
@@ -1071,6 +1079,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     assert_eq!(
         app.catalog().await.unwrap().auto_accept,
         oc_core::queries::AutoAcceptState::Disabled
@@ -1128,6 +1137,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     assert_eq!(
         app.catalog().await.unwrap().auto_accept,
         oc_core::queries::AutoAcceptState::Enabled
@@ -1141,16 +1151,16 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
         app.catalog().await.unwrap().auto_accept,
         oc_core::queries::AutoAcceptState::Enabled
     );
-    assert!(
-        apply_intent(
-            &app,
-            &mut state,
-            &mut deck,
-            PanelIntent::SetPermissionMode { auto_once: false }
-        )
-        .await
-        .is_err()
-    );
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::SetPermissionMode { auto_once: false },
+    )
+    .await
+    .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
+    assert!(state.note().is_some_and(|note| note.contains("unchanged")));
     assert_eq!(state.input(), "composer 🦊 is retained");
     std::fs::write(&cli, &saved).unwrap();
     let snapshot = app.reload_location().await.unwrap();
@@ -1158,6 +1168,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     finish_reload(&app, &mut state, &mut deck, snapshot, None)
         .await
         .unwrap();
+    settle_reload(&app, &mut state, &mut deck).await;
     deck.sync_tabs(&mut state);
     assert_eq!(
         state.auto_accept,

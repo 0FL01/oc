@@ -49,6 +49,95 @@ fn pending() -> AuthAttempt {
     }
 }
 
+#[tokio::test]
+async fn parked_auth_begin_receipt_cancels_only_original_attempt_without_blocking_home() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let (mut state, _) = starting(app.clone()).await;
+    let origin = state.view_identity().0;
+    let mut deck = LoopState::default();
+    deck.sync_tabs(&mut state);
+    sync_authentication(&app, &mut state, &mut deck).await;
+    let InboxMsg::Authenticate {
+        action: AuthAction::Begin { .. },
+        ack: begin,
+        ..
+    } = inbox.recv().await.unwrap()
+    else {
+        panic!("owned authentication begin")
+    };
+    apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+        .await
+        .unwrap();
+    let identity = state.view_identity();
+    tokio::time::timeout(Duration::from_millis(100), async {
+        handle_event(&app, &mut state, &mut deck, CEvent::Resize(100, 32))
+            .await
+            .unwrap();
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            CEvent::Key(crossterm::event::KeyEvent::new(
+                crossterm::event::KeyCode::Char('Ж'),
+                crossterm::event::KeyModifiers::NONE,
+            )),
+        )
+        .await
+        .unwrap();
+        assert!(
+            oc_tui::views::render_test(&state, 100, 32)
+                .iter()
+                .any(|row| row.contains('Ж'))
+        );
+    })
+    .await
+    .unwrap();
+    begin.send(Ok(pending())).unwrap();
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !deck.authentication.ready() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    deck.retire_parked_auth();
+    sync_authentication(&app, &mut state, &mut deck).await;
+    let InboxMsg::Authenticate {
+        provider,
+        action: AuthAction::Cancel { attempt },
+        ack,
+    } = inbox.recv().await.unwrap()
+    else {
+        panic!("late acknowledgement must retire its exact original owner")
+    };
+    assert_eq!(provider, "openai");
+    assert_eq!(attempt, "owned-attempt");
+    let mut stopped = pending();
+    stopped.state = AuthAttemptState::Failed(oc_core::queries::AuthAttemptFailure::Cancelled);
+    stopped.url = None;
+    ack.send(Ok(stopped)).unwrap();
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !deck.authentication.ready() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    sync_authentication(&app, &mut state, &mut deck).await;
+    assert_eq!(state.view_identity(), identity);
+    assert_eq!(state.input(), "Ж");
+    assert!(state.auth_detail(false).is_none());
+    let source = deck.tabs[0].as_ref().unwrap();
+    assert_eq!(source.view_identity().0, origin);
+    assert_eq!(source.input(), "PARKED_DRAFT");
+    assert!(!deck.authentication.pending());
+    assert!(deck.authentication.deadline().is_none());
+    assert!(
+        inbox.try_recv().is_err(),
+        "no repeated Begin, wrong-surface auth or model commit"
+    );
+}
+
 async fn finish(controls: &mut Controls, app: &CoreApp, state: &mut TuiState) {
     tokio::time::timeout(Duration::from_secs(3), async {
         while !controls.ready() {

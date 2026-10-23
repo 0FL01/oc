@@ -420,11 +420,16 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     let mut active = PtySession::spawn_sized(fixture.clone(), ACTIVE, None, 120, 40);
     wait_screen_row(&active, "echo: r4a seeded history", DEADLINE);
     inspect_settings_code(&mut active, "agent_unavailable");
-    submit(&mut active, "r4a retained refused draft");
+    wait_idle(&active);
+    active.send(b"r4a retained refused draft\r");
     wait_screen_row(&active, "Request unavailable: agent_unavailable", DEADLINE);
     wait_screen_row(&active, "agent_unavailable", DEADLINE);
-    wait_screen_row(&active, "r4a retained refused draft", DEADLINE);
-    // Inspect the captured refusal while the ordinary draft is still unsent.
+    wait_screen_row(
+        &active,
+        "request retained: r4a retained refused draft",
+        DEADLINE,
+    );
+    // Inspect the captured refusal independently of the now-empty editor.
     // Palette/modal filtering is not a request, selection repair or grant.
     active.send(b"\x10");
     wait_screen_row(&active, "Commands", DEADLINE);
@@ -445,7 +450,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     let before_active = effects(&fixture);
     assert_eq!(before_active.0, old_effects.0 + 3);
     assert_eq!(main_count(&fixture), old_main + 3);
-    active.send(b"\x03");
+    discard_failed_submission(&mut active);
     wait_idle(&active);
     active.send(b"/agents\r");
     wait_screen_row(&active, "Saved agent agent-", DEADLINE);
@@ -652,10 +657,21 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     let mut active = PtySession::spawn_sized(fixture.clone(), ACTIVE, None, 120, 40);
     wait_screen_row(&active, "echo: r4a seeded history", DEADLINE);
     inspect_settings_code(&mut active, "model_unavailable");
-    submit(&mut active, "r4a blocked pin retained draft");
+    wait_idle(&active);
+    active.send(b"r4a blocked pin retained draft\r");
     wait_screen_row(&active, "Request unavailable: model_unavailable", DEADLINE);
+    wait_screen_row(
+        &active,
+        "request retained: r4a blocked pin retained draft",
+        DEADLINE,
+    );
+    // Preserve the explicit clear/history contract: first restore the capture
+    // into the empty editor, then clear that editable text without sending it.
+    recover_failed_submission(&mut active, true);
+    dismissed(&active, "request retained:");
     wait_screen_row(&active, "r4a blocked pin retained draft", DEADLINE);
     active.send(b"\x03");
+    dismissed(&active, "r4a blocked pin retained draft");
     wait_idle(&active);
     // Restore the original Home route without submitting a command or changing
     // any independently saved Home/session selection or input-history entry.

@@ -1064,61 +1064,85 @@ fn submit_turn(pty: &mut PtySession, text: &str) -> usize {
     off
 }
 
-/// Settle the worker: a second single-flight turn is accepted only after the
-/// previous one finished, then a pause lets the drain persist it. Without
-/// this, quitting could abandon a turn whose finished event is still queued.
-///
-/// Every attempt types a unique marker, so the accepted transcript row
-/// (the fixture's `echo: <marker>` answer) can never be confused with a stale
-/// row that a redraw re-emitted: the upstream shell keeps the transcript
-/// sticky-bottom (`routes/session/index.tsx:1299-1300`), so a new live row
-/// shifts the existing rows and the cell diff rewrites them. Retained input
-/// from a rejected attempt is cleared with Backspace before the next marker.
+/// Wait for the existing turn, then run one real marker turn to completion.
+/// Busy input is steer, not a single-flight Busy probe: submitting earlier
+/// would legitimately join the first assistant answer and change its history.
+/// A unique marker proves a fresh answer rather than a re-emitted sticky row.
 fn settle_turn(pty: &mut PtySession) {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     static SETTLE: AtomicUsize = AtomicUsize::new(0);
     let start = Instant::now();
-    let mut attempt = 0;
-    let mut typed = 0usize;
-    loop {
-        attempt += 1;
-        let marker = format!("zzz{}", SETTLE.fetch_add(1, Ordering::Relaxed));
-        if typed > 0 {
-            pty.send(&vec![0x7f; typed]);
-        }
-        pty.send(marker.as_bytes());
-        pty.send(b"\r");
-        typed = marker.len();
-        // The prompt box also renders `┃  <input>`, so acceptance is proven by
-        // the committed assistant answer, never by the input row.
-        let want = format!("echo: {marker}");
-        let inner = Instant::now();
-        loop {
-            if render_screen(&pty.snapshot())
-                .rows()
+    let idle = |pty: &PtySession| {
+        let rows = render_screen(&pty.snapshot()).rows();
+        // The existing active-tab spinner owns admission as well as streaming.
+        // The answer/footer can finish first, while its acceptance ACK is still
+        // outstanding; absence of the streaming hint alone is not readiness.
+        let admission = rows.first().is_some_and(|row| {
+            row.chars()
+                .any(|ch| ('\u{2800}'..='\u{28ff}').contains(&ch))
+        });
+        !admission
+            && !rows
                 .iter()
-                .any(|row| row.contains(&want))
-            {
-                std::thread::sleep(Duration::from_secs(1));
-                return;
-            }
-            if inner.elapsed() > Duration::from_secs(2) {
-                break; // still busy: resend after the active turn drains
-            }
-            std::thread::sleep(POLL);
-        }
-        if start.elapsed() > DEADLINE {
-            let buf = pty.snapshot();
-            let path = std::env::temp_dir().join("pty-settle-dump.bin");
-            std::fs::write(&path, &buf).ok();
-            eprintln!("SETTLE DUMP {} bytes -> {}", buf.len(), path.display());
-            panic!("worker never settled");
-        }
-        eprintln!(
-            "settle attempt {attempt}: snapshot len {}",
-            pty.snapshot().len()
+                .any(|row| row.contains("esc interrupt") || row.contains("submission pending"))
+    };
+    while !idle(pty) {
+        assert!(start.elapsed() < DEADLINE, "original turn did not finish");
+        std::thread::sleep(POLL);
+    }
+    let marker = format!("zzz{}", SETTLE.fetch_add(1, Ordering::Relaxed));
+    pty.send(marker.as_bytes());
+    // The user block can paint before its admission receipt/status. Require a
+    // new editor frame after typing before deciding that Enter is idle; an
+    // earlier frame's absent busy hint is not an acknowledgement.
+    let editor = format!("┃  {marker}");
+    while !render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains(&editor))
+        || !idle(pty)
+    {
+        assert!(
+            start.elapsed() < DEADLINE,
+            "marker editor did not become ready"
         );
+        std::thread::sleep(POLL);
+    }
+    pty.send(b"\r");
+    let want = format!("echo: {marker}");
+    let mut diagnostics = Vec::new();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows.iter().any(|row| row.contains(&want)) {
+            break;
+        }
+        for row in rows.iter().filter(|row| {
+            [
+                "retained",
+                "request",
+                "pending",
+                "unavailable",
+                "failed",
+                "steer",
+                "turn",
+            ]
+            .iter()
+            .any(|word| row.contains(word))
+        }) {
+            if diagnostics.len() < 32 && !diagnostics.contains(row) {
+                diagnostics.push(row.clone());
+            }
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "marker answer {want:?} did not arrive; screen: {rows:?}; transient fixture feedback: {diagnostics:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+    while !idle(pty) {
+        assert!(start.elapsed() < DEADLINE, "marker turn did not finish");
+        std::thread::sleep(POLL);
     }
 }
 

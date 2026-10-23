@@ -10,6 +10,169 @@ pub(super) struct ChildNoticePress {
     point: (u16, u16),
 }
 
+/// Retain only semantic matching data across a history-window replacement.
+/// This never pins an OPEN mutable source: legacy matching retains only the
+/// existing bounded presentation prefix, not another transcript payload.
+#[derive(Clone)]
+pub(super) enum CompletionPart {
+    Durable {
+        message: std::sync::Arc<oc_core::session::MessageId>,
+        position: Option<crate::history::HistoryPosition>,
+        ordinal: usize,
+    },
+    Live {
+        role: String,
+        operation: Option<String>,
+        text: String,
+        reasoning: Option<String>,
+        text_bytes: Option<usize>,
+        reasoning_bytes: Option<usize>,
+        ordinal: usize,
+    },
+}
+
+impl CompletionPart {
+    pub(super) fn capture(rows: &[HistoryRow], index: usize, open: bool) -> Self {
+        let row = &rows[index];
+        if let Some(message) = &row.message_id {
+            Self::Durable {
+                message: message.clone(),
+                position: row.position.clone(),
+                ordinal: rows[..index]
+                    .iter()
+                    .filter(|row| row.message_id.as_ref() == Some(message))
+                    .count(),
+            }
+        } else {
+            let mut part = Self::Live {
+                role: row.role.clone(),
+                operation: row.tool.as_ref().map(|tool| tool.op.clone()),
+                text: row
+                    .text
+                    .completion_prefix(crate::messages::LIVE_MARKDOWN_BYTES)
+                    .to_owned(),
+                reasoning: row.reasoning.as_ref().map(|reasoning| {
+                    reasoning
+                        .text
+                        .completion_prefix(crate::messages::LIVE_MARKDOWN_BYTES)
+                        .to_owned()
+                }),
+                text_bytes: (!open).then_some(row.text.len()),
+                reasoning_bytes: (!open)
+                    .then(|| row.reasoning.as_ref().map_or(0, |part| part.text.len())),
+                ordinal: 0,
+            };
+            let after = rows[index + 1..]
+                .iter()
+                .filter(|row| part.matches_live(row))
+                .count();
+            if let Self::Live { ordinal, .. } = &mut part {
+                *ordinal = after;
+            }
+            part
+        }
+    }
+
+    fn matches_live(&self, row: &HistoryRow) -> bool {
+        let Self::Live {
+            role,
+            operation,
+            text,
+            reasoning,
+            text_bytes,
+            reasoning_bytes,
+            ..
+        } = self
+        else {
+            return false;
+        };
+        row.role == *role
+            && match (operation, &row.tool) {
+                (Some(old), Some(new)) => *old == new.op,
+                (None, None) => {
+                    text_bytes.is_none_or(|bytes| bytes == row.text.len())
+                        && row.text.starts_with(text)
+                        && match (reasoning, &row.reasoning) {
+                            (Some(old), Some(new)) => {
+                                reasoning_bytes.is_none_or(|bytes| bytes == new.text.len())
+                                    && new.text.starts_with(old)
+                            }
+                            (None, None) => true,
+                            _ => false,
+                        }
+                }
+                _ => false,
+            }
+    }
+
+    pub(super) fn resolve(&self, rows: &[HistoryRow]) -> Option<usize> {
+        match self {
+            Self::Durable {
+                message,
+                position: Some(position),
+                ..
+            } => rows.iter().position(|row| {
+                row.position.as_ref().is_some_and(|new| {
+                    new.same_turn_component(position)
+                        || (row.message_id.as_ref() == Some(message)
+                            && new.component == position.component)
+                })
+            }),
+            Self::Durable {
+                message, ordinal, ..
+            } => rows
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| row.message_id.as_ref() == Some(message))
+                .nth(*ordinal)
+                .map(|(index, _)| index),
+            Self::Live {
+                ordinal,
+                text,
+                reasoning,
+                text_bytes,
+                reasoning_bytes,
+                operation,
+                ..
+            } => {
+                let mut candidates = rows
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .filter(|(_, row)| self.matches_live(row));
+                // Without a durable component, an ambiguous truncated prefix is
+                // not evidence that two canonical payloads are the same part.
+                let bounded = operation.is_none()
+                    && (text_bytes.is_none_or(|bytes| bytes > text.len())
+                        || reasoning_bytes
+                            .is_none_or(|bytes| bytes > reasoning.as_ref().map_or(0, String::len)));
+                if bounded {
+                    let first = candidates.next()?;
+                    candidates.next().is_none().then_some(first.0)
+                } else {
+                    candidates.nth(*ordinal).map(|(index, _)| index)
+                }
+            }
+        }
+    }
+}
+
+fn open_snapshot(
+    source: &crate::history::SourceText,
+    reasoning: bool,
+) -> crate::history::SourceText {
+    let marker = if reasoning {
+        "\n\n… [reasoning preview limited]"
+    } else {
+        "\n\n… [Live Markdown preview limited; full response available in history after completion]"
+    };
+    if reasoning {
+        source.reasoning_preview(crate::messages::LIVE_MARKDOWN_BYTES, marker)
+    } else {
+        source.preview(crate::messages::LIVE_MARKDOWN_BYTES, marker)
+    }
+}
+
 /// One bounded render row for a tool card.
 pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
     // `apply_patch` shows a bounded diff (touched files with +/- counts and
@@ -124,7 +287,8 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
         text: format!(
             "{} {}{}{} ({}){}",
             card.name, card.state, files, output, card.op, facts
-        ),
+        )
+        .into(),
         agent: None,
         agent_color_index: None,
         chips: Vec::new(),
@@ -147,7 +311,7 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
         message_id: None,
         seq: i64::MAX,
         role: "assistant".to_string(),
-        text: String::new(),
+        text: String::new().into(),
         agent,
         agent_color_index: None,
         chips: Vec::new(),
@@ -400,24 +564,22 @@ impl TuiState {
         }
         self.remember_compaction_turns(page);
         let view = self.viewport.get().filter(|_| self.scroll > 0);
-        let (old_rows, old_live) = self.compose_transcript();
-        let mut anchor = None;
-        if let Some(view) = view {
-            let top = view
-                .total
-                .saturating_sub(view.height as usize)
-                .saturating_sub(view.displayed_scroll);
-            self.transcript_part_positions(
-                &old_rows,
-                old_live,
-                (view.width, view.terminal_width),
-                |index, start, end| {
-                    if start <= top && top < end {
-                        anchor = Some((index, top - start));
-                    }
-                },
-            );
-        }
+        let (old_rows, old_live, _) = self.compose_structure(true);
+        let anchor = view
+            .and_then(|_| self.projection_work.borrow().painted_top.clone())
+            .filter(|top| top.requested_scroll == self.scroll)
+            .map(|top| (top.part, top.row));
+        let expanded: Vec<_> = old_rows
+            .iter()
+            .enumerate()
+            .filter_map(|(index, row)| {
+                let identity = row.reasoning.as_ref()?.identity?;
+                self.reasoning_expanded
+                    .contains(&identity)
+                    .then(|| CompletionPart::capture(&old_rows, index, old_live == Some(index)))
+            })
+            .collect();
+        drop(old_rows);
         self.reverted = page.reverted.clone();
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
@@ -426,21 +588,16 @@ impl TuiState {
         self.refresh_running_user_shell_output();
         self.invalidate_transcript();
         self.completion_anchor.get_mut().take();
-        let rows = self.transcript_rows();
-        self.reasoning_expanded = old_rows
+        let (rows, _, _) = self.compose_structure(true);
+        self.reasoning_expanded = expanded
             .iter()
-            .enumerate()
-            .filter_map(|(index, row)| {
-                let identity = row.reasoning.as_ref()?.identity?;
-                if !self.reasoning_expanded.contains(&identity) {
-                    return None;
-                }
-                let index = Self::refreshed_part(&old_rows, &rows, index)?;
+            .filter_map(|part| {
+                let index = part.resolve(&rows)?;
                 rows[index].reasoning.as_ref()?.identity
             })
             .collect();
-        if let Some((index, row_offset)) = anchor {
-            let matched = Self::refreshed_part(&old_rows, &rows, index);
+        if let Some((part, row_offset)) = anchor {
+            let matched = part.resolve(&rows);
             if let Some(index) = matched
                 && let Some(message) = rows[index].message_id.clone()
             {
@@ -463,70 +620,6 @@ impl TuiState {
         }
         // Keep the painted geometry for sticky-bottom and fallback clamping.
         // The semantic anchor resolves against the new cached part positions.
-    }
-
-    fn refreshed_part(old_rows: &[HistoryRow], rows: &[HistoryRow], index: usize) -> Option<usize> {
-        let old = &old_rows[index];
-        if let Some(id) = &old.message_id {
-            if let Some(position) = &old.position {
-                return rows.iter().position(|row| {
-                    row.position.as_ref().is_some_and(|new| {
-                        new.same_turn_component(position)
-                            || (row.message_id.as_ref() == Some(id)
-                                && new.component == position.component)
-                    })
-                });
-            }
-            let ordinal = old_rows[..index]
-                .iter()
-                .filter(|row| row.message_id.as_ref() == Some(id))
-                .count();
-            rows.iter()
-                .enumerate()
-                .filter(|(_, row)| row.message_id.as_ref() == Some(id))
-                .nth(ordinal)
-                .map(|(index, _)| index)
-        } else {
-            // Live parts have no durable ID yet; operation ID or the exact
-            // final text binds them to the newly committed part once.
-            let same = |row: &HistoryRow| {
-                row.role == old.role
-                    && match (&old.tool, &row.tool) {
-                        (Some(old), Some(new)) => old.op == new.op,
-                        (None, None) => {
-                            old.text == row.text
-                                && old.reasoning.as_ref().map(|r| &r.text)
-                                    == row.reasoning.as_ref().map(|r| &r.text)
-                        }
-                        _ => false,
-                    }
-            };
-            let ordinal = old_rows[index + 1..].iter().filter(|row| same(row)).count();
-            rows.iter()
-                .enumerate()
-                .rev()
-                .filter(|(_, row)| same(row))
-                .nth(ordinal)
-                .map(|(index, _)| index)
-        }
-    }
-
-    fn transcript_part_positions(
-        &self,
-        rows: &[HistoryRow],
-        live: Option<usize>,
-        widths: (u16, u16),
-        part: impl FnMut(usize, usize, usize),
-    ) -> usize {
-        crate::messages::transcript_part_positions(
-            rows,
-            Theme::dark(),
-            (widths.0, widths.1, live),
-            &|agent| self.agent_color(agent),
-            &self.markdown_cache,
-            &|target| self.tool_expanded(target),
-            part,
-        )
     }
 
     /// Add an older page at the front of the window.
@@ -592,6 +685,22 @@ impl TuiState {
         frame: Option<Rect>,
         user_targets: &[Option<crate::messages::UserMessageTarget>],
     ) -> Vec<Line> {
+        if let Some(frame) = frame
+            && !self.projection_ready((area.width, frame.width, area.height))
+        {
+            if self.painted_transcript.borrow_mut().take().is_some() {
+                self.paint_generation
+                    .set(self.paint_generation.get().wrapping_add(1));
+            }
+            return rows.to_vec();
+        }
+        if let Some(view) = self.visible_projection.borrow().as_ref()
+            && view.lines == rows
+            && view.total == total
+            && view.scroll == scroll
+        {
+            self.projection_work.borrow_mut().painted_top = view.top.clone();
+        }
         let theme = Theme::dark();
         let hovered_user = frame.and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
@@ -628,26 +737,6 @@ impl TuiState {
                 || area != crate::shell::transcript_area(self, frame)
                 || !area.contains((x, y).into())
                 || self.transcript_overpainted(frame, x, y)
-            {
-                return None;
-            }
-            let row = (y - area.y) as usize;
-            // A short transcript does not paint every row in its viewport.
-            // A pointer retained from the composer can land in that blank
-            // space after submission; it cannot authorize a tool hover.
-            let painted = rows.get(row)?;
-            let range = crate::messages::tool_hover_range(rows, theme, row);
-            let block = painted.style().bg == Some(theme.background_raised());
-            let header = rows.get(range.start)?.plain_text();
-            // Reject other painted surfaces before another indexed hit lookup.
-            // Text is only a cheap candidate filter: the owner hit still decides.
-            if !block
-                && !header.trim_start().starts_with("→ Explored")
-                && !header.trim_start().starts_with("⋯ Exploring")
-                && !header.trim_start().starts_with(['✓', '✗', '⋯', '│', '↳'])
-                && !crate::compaction::FRAMES
-                    .iter()
-                    .any(|glyph| header.trim_start().starts_with(glyph))
             {
                 return None;
             }
@@ -701,31 +790,13 @@ impl TuiState {
                 || self.shell_viewer().is_some()
                 || !area.contains((x, y).into())
                 || self.transcript_overpainted(frame, x, y)
-                || !self.live_parts.iter().any(|part| {
-                    matches!(
-                        part,
-                        LivePart::Tool {
-                            delegation: Some(_),
-                            ..
-                        }
-                    )
-                })
             {
                 return None;
             }
-            let (history, live) = self.compose_transcript();
-            crate::messages::pending_subagent_hover_at(
-                &history,
-                theme,
-                (area.width, frame.width),
-                (area.height as usize, scroll, live),
-                |agent| self.agent_color(agent),
-                &self.markdown_cache,
-                (
-                    &|target| self.tool_expanded(target),
-                    ((x - area.x) as usize, (y - area.y) as usize),
-                ),
-            )
+            match self.cached_transcript_hit(frame, x, y) {
+                Some(crate::messages::TranscriptHit::PendingSubagentHover(range)) => Some(range),
+                _ => None,
+            }
         });
         let hover_child = frame.filter(|_| hover_pending.is_none()).and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
@@ -739,7 +810,8 @@ impl TuiState {
                     .as_ref()
                     .is_some_and(|current| self.transcript_selection_current(selected, current))
         });
-        rows.iter()
+        let mut painted_rows: Vec<Line> = rows
+            .iter()
             .enumerate()
             .map(|(row, line)| {
                 let hovered;
@@ -820,7 +892,56 @@ impl TuiState {
                 }
                 line.clone()
             })
-            .collect()
+            .collect();
+        if let Some(view) = self
+            .visible_projection
+            .borrow()
+            .as_ref()
+            .filter(|view| view.lines == rows && view.total == total && view.scroll == scroll)
+        {
+            for (row, byte, source) in &view.animations {
+                if let Some(line) = painted_rows.get_mut(*row) {
+                    line.patch_cell(*byte, self.animation_glyph(source));
+                }
+            }
+        }
+        painted_rows
+    }
+
+    fn animation_glyph(&self, source: &crate::styled::AnimationSource) -> &'static str {
+        use crate::styled::AnimationSource;
+        if self.chrome.animations == Some(false)
+            || (!self.tool_spinner_clocks_attached
+                && matches!(
+                    source,
+                    AnimationSource::Tool(_) | AnimationSource::Reasoning
+                ))
+        {
+            return crate::tools::SPINNER;
+        }
+        let frame = match source {
+            AnimationSource::Tool(op) => self
+                .tool_spinner_clocks
+                .get(op)
+                .map_or(0, |clock| clock.frame),
+            AnimationSource::Delegation(slot) => slot
+                .checked_sub(self.live_part_offset)
+                .and_then(|index| self.live_parts.get(index))
+                .and_then(|part| match part {
+                    LivePart::Tool {
+                        delegation: Some(clock),
+                        ..
+                    } => Some(clock.frame),
+                    _ => None,
+                })
+                .unwrap_or(0),
+            AnimationSource::Reasoning => self
+                .reasoning_spinner_clock
+                .as_ref()
+                .map_or(0, |clock| clock.frame),
+            AnimationSource::Compaction => self.compaction_frame,
+        };
+        crate::compaction::FRAMES[frame]
     }
 
     /// Configuration/test override of the platform's native clipboard mode.
@@ -934,6 +1055,7 @@ impl TuiState {
         snapshot: &oc_core::queries::ConversationSnapshot,
         page: &HistoryPage,
     ) {
+        self.projection_epoch = self.projection_epoch.wrapping_add(1);
         let draft = snapshot
             .draft
             .clone()
@@ -1385,22 +1507,31 @@ impl TuiState {
         if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
             return None;
         }
-        let (rows, live_row) = self.compose_transcript();
-        crate::messages::exploration_header_at_with_range(
-            &rows,
-            Theme::dark(),
-            (rect.width, area.width),
-            (
-                rect.height as usize,
-                self.scroll_for_current_view(),
-                live_row,
-            ),
-            |agent| self.agent_color(agent),
-            &self.markdown_cache,
-            (
-                &|target| self.tool_expanded(target),
-                ((x - rect.x) as usize, (y - rect.y) as usize),
-            ),
+        match self.cached_transcript_hit(area, x, y) {
+            Some(crate::messages::TranscriptHit::Exploration(op, range)) => Some((op, range)),
+            _ => None,
+        }
+    }
+
+    fn cached_transcript_hit(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<crate::messages::TranscriptHit> {
+        let rect = crate::shell::transcript_area(self, frame);
+        if !rect.contains((x, y).into()) {
+            return None;
+        }
+        self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        if !self.projection_ready((rect.width, frame.width, rect.height)) {
+            return None;
+        }
+        let view = self.visible_projection.borrow();
+        crate::messages::transcript_hit(
+            &view.as_ref()?.hits,
+            (x - rect.x) as usize,
+            (y - rect.y) as usize,
         )
     }
 
@@ -1417,23 +1548,10 @@ impl TuiState {
         if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
             return None;
         }
-        let (rows, live_row) = self.compose_transcript();
-        crate::messages::reasoning_header_at(
-            &rows,
-            Theme::dark(),
-            (rect.width, area.width),
-            (
-                rect.height as usize,
-                self.scroll_for_current_view(),
-                live_row,
-            ),
-            |agent| self.agent_color(agent),
-            &self.markdown_cache,
-            (
-                &|target| self.tool_expanded(target),
-                ((x - rect.x) as usize, (y - rect.y) as usize),
-            ),
-        )
+        match self.cached_transcript_hit(area, x, y) {
+            Some(crate::messages::TranscriptHit::Reasoning(id)) => Some(id),
+            _ => None,
+        }
     }
 
     pub(super) fn transcript_overpainted(&self, area: Rect, x: u16, y: u16) -> bool {
@@ -1602,19 +1720,12 @@ impl TuiState {
         {
             return None;
         }
-        let (rows, live) = self.compose_transcript();
-        crate::messages::captured_child_at_with_range(
-            &rows,
-            Theme::dark(),
-            (rect.width, frame.width),
-            (rect.height as usize, scroll, live),
-            |agent| self.agent_color(agent),
-            &self.markdown_cache,
-            (
-                &|target| self.tool_expanded(target),
-                ((x - rect.x) as usize, (y - rect.y) as usize),
-            ),
-        )
+        match self.cached_transcript_hit(frame, x, y) {
+            Some(crate::messages::TranscriptHit::ChildNotice(target, range, tool)) => {
+                Some((target, range, tool))
+            }
+            _ => None,
+        }
         .filter(|(target, _, _)| match target {
             crate::messages::CapturedChildTarget::Navigate(job) => {
                 self.attached_session() == Some(&job.parent)
@@ -1728,7 +1839,7 @@ impl TuiState {
         let first = before
             .saturating_sub(usize::from(rect.height))
             .saturating_sub(displayed);
-        let rows = self.transcript_rows();
+        let (rows, _, _) = self.compose_structure(true);
         self.inline_errors_expanded.retain(|id| {
             rows.iter()
                 .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
@@ -1738,6 +1849,9 @@ impl TuiState {
         }
         self.invalidate_transcript();
         let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
+        if !self.projection_ready((rect.width, frame.width, rect.height)) {
+            return;
+        }
         self.scroll = if displayed == 0 && !self.window.has_newer() {
             0
         } else {
@@ -1755,7 +1869,7 @@ impl TuiState {
         let first = before
             .saturating_sub(usize::from(rect.height))
             .saturating_sub(displayed);
-        let rows = self.transcript_rows();
+        let (rows, _, _) = self.compose_structure(true);
         self.instructions_expanded.retain(|id| {
             rows.iter()
                 .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
@@ -1765,6 +1879,9 @@ impl TuiState {
         }
         self.invalidate_transcript();
         let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
+        if !self.projection_ready((rect.width, frame.width, rect.height)) {
+            return;
+        }
         self.scroll = if displayed == 0 && !self.window.has_newer() {
             0
         } else {
@@ -1781,7 +1898,7 @@ impl TuiState {
         let (_, before, displayed) =
             self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
         let first = before.saturating_sub(height).saturating_sub(displayed);
-        let rows = self.transcript_rows();
+        let (rows, _, _) = self.compose_structure(true);
         // GenericTool keeps ScrollBox sticky follow; the Explored group has
         // a separate header-anchor interaction that must remain unchanged.
         let following = displayed == 0
@@ -1805,6 +1922,9 @@ impl TuiState {
             self.exploration_expanded.remove(operation);
         }
         let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
+        if !self.projection_ready((rect.width, frame.width, rect.height)) {
+            return;
+        }
         self.scroll = if following {
             0
         } else {
@@ -1815,7 +1935,8 @@ impl TuiState {
 
     pub(super) fn prune_reasoning(&mut self) {
         let retained: BTreeSet<_> = self
-            .transcript_rows()
+            .compose_structure(true)
+            .0
             .iter()
             .filter_map(|row| row.reasoning.as_ref()?.identity)
             .collect();
@@ -1916,6 +2037,27 @@ impl TuiState {
     }
 
     pub(super) fn compose_transcript(&self) -> (Vec<HistoryRow>, Option<usize>) {
+        let (mut rows, live, runs) = self.compose_structure(false);
+        projection::finish_reasoning(
+            &mut rows,
+            &runs,
+            self.thinking_expanded,
+            &self.reasoning_expanded,
+        );
+        self.reasoning_spinner_running.set(
+            self.tool_spinner_clocks_attached && crate::messages::has_running_reasoning(&rows),
+        );
+        (rows, live)
+    }
+
+    pub(super) fn compose_structure(
+        &self,
+        bounded_open: bool,
+    ) -> (
+        Vec<HistoryRow>,
+        Option<usize>,
+        Vec<Vec<crate::messages::ReasoningIdentity>>,
+    ) {
         #[cfg(test)]
         self.transcript_row_copies
             .set(self.transcript_row_copies.get() + self.window.len());
@@ -2003,12 +2145,20 @@ impl TuiState {
                 seq: i64::MAX,
                 message_id: None,
                 role: "assistant".to_string(),
-                text: self.live_text.clone(),
+                text: if bounded_open {
+                    open_snapshot(&self.live_text, false)
+                } else {
+                    self.live_text.clone()
+                },
                 agent: self.active_agent.clone(),
                 agent_color_index: self.live_agent_color_index,
                 chips: Vec::new(),
                 reasoning: (!self.live_reasoning.is_empty()).then(|| ReasoningBlock {
-                    text: self.live_reasoning.clone(),
+                    text: if bounded_open {
+                        open_snapshot(&self.live_reasoning, true)
+                    } else {
+                        self.live_reasoning.clone()
+                    },
                     duration_ms: None,
                     running: true,
                     expanded: false,
@@ -2028,25 +2178,24 @@ impl TuiState {
         }
         let mut live_row = live.then(|| rows.len() - 1);
         self.place_child_notices(&mut rows, &live_sources, &mut live_row);
-        let mut group_first = None;
-        for row in &mut rows {
-            let adjacent = crate::messages::reasoning_group_member(row);
-            if !adjacent {
-                group_first = None;
+        // Keep the pre-compaction run order. Visibility/cleanup is worker work.
+        let mut runs: Vec<Vec<crate::messages::ReasoningIdentity>> = Vec::new();
+        let mut adjacent = false;
+        for row in &rows {
+            let member = crate::messages::reasoning_group_member(row);
+            if !member || !adjacent {
+                runs.push(Vec::new());
             }
-            let visible = crate::messages::visible_reasoning(row);
-            if let Some(reasoning) = &mut row.reasoning {
-                let id = reasoning.identity;
-                let first = if adjacent && visible {
-                    *group_first.get_or_insert(id)
-                } else {
-                    id
-                };
-                reasoning.expanded = self.thinking_expanded
-                    || first.is_some_and(|id| self.reasoning_expanded.contains(&id));
-                reasoning.toggleable = !self.thinking_expanded;
+            if let Some(id) = row
+                .reasoning
+                .as_ref()
+                .and_then(|reasoning| reasoning.identity)
+            {
+                runs.last_mut().expect("reasoning run").push(id);
             }
+            adjacent = member;
         }
+        runs.retain(|run| !run.is_empty());
         if let Some(reverted) = &self.reverted
             && !self.window.has_newer()
         {
@@ -2055,7 +2204,7 @@ impl TuiState {
                 message_id: Some(std::sync::Arc::new(reverted.message.clone())),
                 seq: i64::MAX,
                 role: "reverted".into(),
-                text: reverted.user_messages.to_string(),
+                text: reverted.user_messages.to_string().into(),
                 agent: Some(self.conversation_shortcut(false)),
                 agent_color_index: None,
                 chips: Vec::new(),
@@ -2069,6 +2218,30 @@ impl TuiState {
         self.interleave_compactions(&mut rows, &mut live_row);
         if !self.window.has_newer() {
             rows.extend(self.inbox_rows());
+            if let Some(pending) = &self.pending
+                && !matches!(pending.purpose, SubmissionPurpose::Empty)
+            {
+                rows.push(HistoryRow {
+                    position: None,
+                    message_id: None,
+                    seq: i64::MAX,
+                    role: if pending.outstanding() {
+                        "pending"
+                    } else {
+                        "request retained"
+                    }
+                    .into(),
+                    text: pending.source.clone(),
+                    agent: pending.agent.clone(),
+                    agent_color_index: pending.agent_color_index,
+                    chips: Vec::new(),
+                    reasoning: None,
+                    meta: None,
+                    tool: None,
+                    child_notice: None,
+                    shell_notice: None,
+                });
+            }
         }
         if let Some(key) = self.background_hint_key() {
             rows.push(HistoryRow {
@@ -2159,10 +2332,7 @@ impl TuiState {
                 }
             }
         }
-        self.reasoning_spinner_running.set(
-            self.tool_spinner_clocks_attached && crate::messages::has_running_reasoning(&rows),
-        );
-        (rows, live_row)
+        (rows, live_row, runs)
     }
 
     fn place_child_notices(
@@ -2372,11 +2542,7 @@ impl TuiState {
             }
             rows.insert(
                 position,
-                crate::compaction::row(
-                    snapshot,
-                    self.compaction_frame,
-                    self.chrome.animations != Some(false),
-                ),
+                snapshot.row(self.compaction_frame, self.chrome.animations != Some(false)),
             );
         }
     }
@@ -2398,6 +2564,26 @@ impl TuiState {
     /// reasoning, assistant footer). `width == 0` is the unbounded text
     /// projection used for scroll metrics and plain-text assertions.
     pub fn transcript_lines(&self, width: u16, terminal_width: u16) -> Vec<Line> {
+        if self.has_pending_transcript_projection()
+            || (tokio::runtime::Handle::try_current().is_ok() && self.large_projection())
+        {
+            let previous = self.viewport.get();
+            return self
+                .visible_transcript_at_viewport(
+                    if width == 0 {
+                        previous.map_or(80, |view| view.width)
+                    } else {
+                        width
+                    },
+                    if terminal_width == u16::MAX {
+                        previous.map_or(80, |view| view.terminal_width)
+                    } else {
+                        terminal_width
+                    },
+                    previous.map_or(VIEWPORT_LINES as u16, |view| view.height),
+                )
+                .0;
+        }
         let theme = Theme::dark();
         crate::messages::transcript_with_expansion(
             &self.transcript_rows(),
@@ -2457,164 +2643,41 @@ impl TuiState {
         usize,
         Vec<Option<crate::messages::UserMessageTarget>>,
     ) {
-        let theme = Theme::dark();
-        if let Some(view) = self.visible_projection.borrow().as_ref().filter(|view| {
-            view.revision == self.transcript_revision
-                && view.window_revision == self.window.revision()
-                && view.viewport == self.viewport.get()
-                && view.live_lengths == (self.live_text.len(), self.live_reasoning.len())
-                && view.dimensions == (width, terminal_width, height)
-                && view.requested_scroll == self.scroll
-                && view.chrome == self.chrome
-                && view.theme == theme.mode()
-                && view.thinking == self.thinking_expanded
-                && view.reasoning == self.reasoning_expanded
-                && view.exploration == self.exploration_expanded
-                && view.compaction_frame == self.compaction_frame
-        }) {
-            return (
-                view.lines.clone(),
-                view.total,
-                view.scroll,
-                view.targets.clone(),
-            );
+        self.poll_transcript_projection();
+        let dimensions = (width, terminal_width, height);
+        self.request_projection(dimensions);
+        let ready = self.projection_ready(dimensions);
+        if let Some(view) = self.visible_projection.borrow().as_ref() {
+            let lines: Vec<_> = view.lines.iter().take(height as usize).cloned().collect();
+            let targets = if ready {
+                view.targets.clone()
+            } else {
+                vec![None; lines.len()]
+            };
+            return (lines, view.total, view.scroll, targets);
         }
-        #[cfg(test)]
-        self.visible_projection_builds
-            .set(self.visible_projection_builds.get() + 1);
-        let (rows, live_row) = self.compose_transcript();
-        let render = |height, scroll| {
-            crate::messages::visible_transcript_targets(
-                &rows,
-                Theme::dark(),
-                (width, terminal_width),
-                (height, scroll, live_row),
-                |agent| self.agent_color(agent),
-                &self.markdown_cache,
-                &|target| self.tool_expanded(target),
-            )
-        };
-        let previous = self.viewport.get();
-        let resized = previous.is_some_and(|view| {
-            (view.width, view.terminal_width, view.height) != (width, terminal_width, height)
-        });
-        let semantic_scroll = self
-            .completion_anchor
-            .borrow()
-            .as_ref()
-            .filter(|anchor| {
-                anchor.requested_scroll == self.scroll
-                    && self.scroll > 0
-                    && (anchor.pending || resized)
-            })
-            .and_then(|anchor| {
-                let index = if let Some(component) = &anchor.component {
-                    rows.iter().position(|row| {
-                        row.message_id.as_ref() == Some(&anchor.message)
-                            && row
-                                .position
-                                .as_ref()
-                                .is_some_and(|position| &position.component == component)
-                    })
-                } else {
-                    rows.iter()
-                        .enumerate()
-                        .filter(|(_, row)| row.message_id.as_ref() == Some(&anchor.message))
-                        .nth(anchor.part)
-                        .map(|(index, _)| index)
-                }?;
-                let mut top = None;
-                let total = self.transcript_part_positions(
-                    &rows,
-                    live_row,
-                    (width, terminal_width),
-                    |part, start, end| {
-                        if part == index && end > start {
-                            top = Some(start + anchor.row.min(end - start - 1));
-                        }
-                    },
-                );
-                top.map(|top| total.saturating_sub(height as usize).saturating_sub(top))
-            });
-        let scroll = if self.scroll == 0 {
-            0
-        } else if let Some(scroll) = semantic_scroll {
-            scroll
-        } else if resized && previous.is_some_and(|view| view.requested_scroll == self.scroll) {
-            let view = previous.expect("resized viewport");
-            // Count-only indexing is needed on resize, not on every draw.
-            let (_, total, _, _) = render(0, 0);
-            let top = view
-                .total
-                .saturating_sub(view.height as usize)
-                .saturating_sub(view.displayed_scroll);
-            total.saturating_sub(height as usize).saturating_sub(top)
-        } else if previous.is_some_and(|view| view.requested_scroll == self.scroll) {
-            self.display_scroll()
-        } else {
-            self.scroll
-        };
-        let (mut lines, total, mut targets, mut children) = render(height as usize, scroll);
-        // A bottom-relative offset alone follows appended rows even when the
-        // reader detached. Preserve the last painted top row during live tail
-        // growth. Prepending deliberately clears the viewport: its new rows
-        // precede that anchor, so the bottom-relative offset already holds it.
-        let scroll = if self.scroll > 0
-            && semantic_scroll.is_none()
-            && !resized
-            && let Some(view) = previous.filter(|view| view.requested_scroll == self.scroll)
-            && view.total != total
-        {
-            let top = view
-                .total
-                .saturating_sub(view.height as usize)
-                .saturating_sub(view.displayed_scroll);
-            let anchored = total.saturating_sub(height as usize).saturating_sub(top);
-            (lines, _, targets, children) = render(height as usize, anchored);
-            anchored
-        } else {
-            scroll
-        };
-        let scroll = scroll.min(total.saturating_sub(height as usize));
-        *self.visible_projection.borrow_mut() = Some(VisibleTranscriptProjection {
-            revision: self.transcript_revision,
-            window_revision: self.window.revision(),
-            viewport: Some(TranscriptViewport {
-                width,
-                terminal_width,
-                height,
-                total,
-                requested_scroll: self.scroll,
-                displayed_scroll: scroll,
-            }),
-            live_lengths: (self.live_text.len(), self.live_reasoning.len()),
-            dimensions: (width, terminal_width, height),
-            requested_scroll: self.scroll,
-            chrome: self.chrome.clone(),
-            theme: theme.mode(),
-            thinking: self.thinking_expanded,
-            reasoning: self.reasoning_expanded.clone(),
-            exploration: self.exploration_expanded.clone(),
-            compaction_frame: self.compaction_frame,
-            lines: lines.clone(),
-            total,
-            scroll,
-            targets: targets.clone(),
-            child_targets: children,
-        });
-        (lines, total, scroll, targets)
+        // Unknown geometry is deliberately not observed or authorized. Zero is
+        // an absence sentinel, never a replacement exact height/scroll anchor.
+        (
+            vec![Line::styled(
+                "   … Loading transcript…",
+                ratatui::style::Style::default().fg(Theme::dark().text_muted()),
+            )],
+            0,
+            0,
+            Vec::new(),
+        )
     }
 
     pub(super) fn invalidate_transcript(&mut self) {
         self.transcript_revision = self.transcript_revision.wrapping_add(1);
-        self.visible_projection.get_mut().take();
     }
 
     /// Wheel/scrollbox navigation never changes the focused editor, even
     /// when keyboard Up/Down would move its caret or recall prompt history.
     pub fn scroll_transcript(&mut self, up: bool) -> KeyOutcome {
         self.wheel_motion = None;
-        self.poll_submission();
+        self.poll_submission_receipts();
         if self.panel != TuiPanel::None {
             return KeyOutcome::default();
         }
@@ -2741,6 +2804,11 @@ impl TuiState {
     }
 
     fn line_count(&self) -> usize {
+        if self.has_pending_transcript_projection()
+            || (tokio::runtime::Handle::try_current().is_ok() && self.large_projection())
+        {
+            return self.viewport.get().map_or(0, |view| view.total);
+        }
         self.transcript_lines(0, u16::MAX).len()
     }
 
@@ -2749,18 +2817,6 @@ impl TuiState {
             || self.line_count().saturating_sub(VIEWPORT_LINES),
             |view| view.total.saturating_sub(view.height as usize),
         )
-    }
-
-    fn scroll_for_current_view(&self) -> usize {
-        if self
-            .viewport
-            .get()
-            .is_some_and(|view| view.requested_scroll == self.scroll)
-        {
-            self.display_scroll()
-        } else {
-            self.scroll
-        }
     }
 
     /// Actual rendered geometry for input-driven row scrolling.
@@ -2776,6 +2832,11 @@ impl TuiState {
         total: usize,
         displayed_scroll: usize,
     ) {
+        if (width != 0 && !self.projection_ready((width, terminal_width, height)))
+            || self.has_pending_transcript_projection() && width == 0
+        {
+            return;
+        }
         let mut anchor = self.completion_anchor.borrow_mut();
         if anchor
             .as_ref()

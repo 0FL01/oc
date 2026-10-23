@@ -777,6 +777,49 @@ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {
     }
 }
 
+// Home mounts before its owner-selected catalog is ready. A title or a typed
+// /location path is not that acknowledgement; require the prepared footer and
+// empty composer in the actual target Location before the one prompt Enter.
+fn wait_home_selection(pty: &PtySession, project: &Path) {
+    let start = Instant::now();
+    let name = project.file_name().unwrap().to_str().unwrap();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        if rows.iter().any(|row| row.contains("Ask anything"))
+            && rows.iter().any(|row| row.contains("Build · T42 model"))
+            && rows
+                .iter()
+                .any(|row| row.contains(name) && row.contains("tab agents"))
+        {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "Home selection not ready for {name}: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
+// A prepared Home catalog is independent from the persisted focus CAS. Require
+// its owner-side acknowledgement before the next one-shot Location command.
+fn wait_saved_home(pty: &PtySession, project: &Path) {
+    wait_home_selection(pty, project);
+    let start = Instant::now();
+    loop {
+        let saved: serde_json::Value =
+            serde_json::from_str(&live_deck_record(&pty.fixture, project)).unwrap();
+        if saved["active"].is_null() {
+            return;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "Home focus was not saved: {saved}"
+        );
+        std::thread::sleep(POLL);
+    }
+}
+
 fn norm_needle(text: &str) -> Vec<u8> {
     text.bytes().filter(|b| !b.is_ascii_whitespace()).collect()
 }
@@ -1850,6 +1893,7 @@ fn corrupt_parked_selection_keeps_good_tabs_and_original_preference() {
     wait_idle(&seed);
     seed.send(b"/new\r");
     wait_screen_row(&seed, "New session", DEADLINE);
+    wait_home_selection(&seed, &project);
     submit(&mut seed, "parked prompt");
     wait_screen_row(&seed, "echo: parked prompt", DEADLINE);
     wait_idle(&seed);
@@ -2090,6 +2134,7 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     wait_idle(&pty);
     pty.send(b"/new\r");
     wait_screen_row(&pty, "New session", DEADLINE);
+    wait_home_selection(&pty, &project);
     submit(&mut pty, "second deck prompt");
     wait_screen_row(&pty, "echo: second deck prompt", DEADLINE);
     wait_idle(&pty);
@@ -2492,7 +2537,7 @@ fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
     wait_screen_row(&pty, "echo: alpha location prompt", DEADLINE);
     wait_idle(&pty);
     pty.send(format!("/location {}\r", beta.display()).as_bytes());
-    wait_screen_row(&pty, "proj-beta", DEADLINE);
+    wait_home_selection(&pty, &beta);
     assert_eq!(
         journal_counts(&fixture).0,
         1,
@@ -2528,13 +2573,16 @@ fn deck_location_isolation_and_corrupt_preference_are_safe_on_restart() {
     wait_screen_row(&roaming, "beta location prompt", DEADLINE);
     roaming.send(b"/new\r");
     wait_screen_row(&roaming, "New session", DEADLINE);
+    wait_saved_home(&roaming, &beta);
     roaming.send(format!("/location {}\r", alpha.display()).as_bytes());
     wait_screen_row(&roaming, "alpha location prompt", DEADLINE);
     roaming.send(format!("/location {}\r", beta.display()).as_bytes());
     wait_screen_row(&roaming, "New session", DEADLINE);
+    wait_home_selection(&roaming, &beta);
     quit(&mut roaming);
     let mut beta_home = PtySession::spawn(fixture.clone(), &beta, &[], Some(&path));
     wait_screen_row(&beta_home, "New session", DEADLINE);
+    wait_home_selection(&beta_home, &beta);
     quit(&mut beta_home);
     assert!(metrics(&path)["session"].is_null());
     assert_eq!(metrics(&path)["tab_count"], 1);
@@ -3294,8 +3342,7 @@ fn home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit() {
         fixture.project_b(),
     ] {
         pty.send(format!("/location {}\r", project.display()).as_bytes());
-        let name = project.file_name().unwrap().to_str().unwrap();
-        wait_screen_row(&pty, name, DEADLINE);
+        wait_home_selection(&pty, &project);
         // A successful Home switch still has no candidate root, even if B
         // configured additional skills/MCP resources.
         assert_eq!(journal_counts(&fixture), (0, 0, 0, 0, 0));
@@ -3534,9 +3581,10 @@ fn new_from_attached_returns_home_without_an_extra_root() {
     pty.wait_visible(READY, DEADLINE);
     pty.send(b"/new\r");
     pty.wait_visible("█▀▀█", DEADLINE);
+    wait_home_selection(&pty, &fixture.project_a());
     let path = fixture.project_b().canonicalize().expect("target Location");
     pty.send(format!("/location {}\r", path.display()).as_bytes());
-    wait_screen_row(&pty, "proj-beta", DEADLINE);
+    wait_home_selection(&pty, &path);
     assert_eq!(
         journal_counts(&fixture),
         (1, 1, 0, 0, 1),

@@ -50,11 +50,17 @@ async fn clipboard_images_atomic_edit_restore_receipt_chips_and_plain_history() 
         &text.text[text.images[0].mark.start..text.images[0].mark.end],
         "[Image 1]"
     );
-    restored.handle_key(KeyAction::Char('!')).await; // receipt cannot clear revised draft
+    restored.handle_paste("!"); // receipt cannot clear the independent next draft
+    assert!(restored.clipboard_target().is_some());
+    restored.paste_clipboard_image(b"independent-next-image".as_slice().into());
+    let next_prompt = restored.editor.prompt(restored.input());
+    let next_cursor = restored.editor.cursor;
+    assert_eq!(next_prompt.images.len(), 1);
     ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
     restored.poll_submission();
     assert_eq!(restored.history().rows()[0].chips.len(), 2);
-    assert!(restored.input().ends_with('!'));
+    assert_eq!(restored.editor.prompt(restored.input()), next_prompt);
+    assert_eq!(restored.editor.cursor, next_cursor);
     let mut row = msg(1, Role::User, &text.text);
     row.images = text.images.iter().map(|i| i.mark.clone()).collect();
     restored.attach_page(&page(vec![row], 1, false, false));

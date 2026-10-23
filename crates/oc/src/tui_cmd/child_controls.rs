@@ -1,70 +1,47 @@
-//! Linked read-only navigation over the existing owner; root deck never changes.
+//! Linked read-only routing; durable launch reads belong to child_jobs.
 use super::*;
-use oc_core::core_app::WorkerTurnId;
-use oc_core::queries::{ChildJob, HistoryPage};
-
+use oc_core::queries::ChildJob;
 #[cfg(test)]
 mod tests;
 
-fn park(deck: &mut LoopState, view: TuiState) {
+pub(super) fn park(deck: &mut LoopState, view: TuiState) {
     if deck.child_views.len() >= 16 && !deck.child_views.contains_key(view.session()) {
         let retired = deck
             .child_views
             .iter()
-            .find(|(id, v)| !v.is_busy() && view.linked_child().is_none_or(|j| &j.parent != *id))
+            .find(|(id, v)| {
+                retirable(deck, v) && view.linked_child().is_none_or(|j| &j.parent != *id)
+            })
             .map(|(id, _)| id.clone());
         if let Some(retired) = retired {
             deck.child_views.remove(&retired);
         }
     }
-    if deck.child_views.len() < 16 || deck.child_views.contains_key(view.session()) {
+    // The current child has one reserved return slot. New opens cannot grow
+    // this reserve, and an unresolved surface is never an eviction candidate.
+    if deck.child_views.len() < 17 || deck.child_views.contains_key(view.session()) {
         deck.child_views.insert(view.session().clone(), view);
     }
 }
-
-pub(super) async fn refresh(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {
-    let parent = state
-        .linked_child()
-        .map(|j| j.parent.clone())
-        .or_else(|| state.attached_session().cloned());
-    if let Some(parent) = parent {
-        let mut rows = app.child_jobs(parent).await.map_err(|e| e.to_string())?;
-        if let Some(linked) = state.linked_child().cloned() {
-            if let Some(current) = rows.iter().find(|j| j.operation == linked.operation) {
-                state.refresh_linked_child(current.clone());
-            }
-            if let Some(current) = state.linked_child().cloned()
-                && !matches!(
-                    current.state,
-                    oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
-                )
-                && state.active_turn().is_some()
-            {
-                let page = app
-                    .read_child_transcript(current.parent.clone(), current.clone())
-                    .await
-                    .map_err(|e| e.to_string())?;
-                state.reconcile_linked_terminal(&current, &page);
-            }
-            rows.extend(
-                app.child_jobs(linked.child)
-                    .await
-                    .map_err(|e| e.to_string())?,
-            );
+fn retirable(deck: &LoopState, view: &TuiState) -> bool {
+    !view.is_busy()
+        && !deck.owns_receipt(view)
+        && !view.has_occupied_submission()
+        && view.input().is_empty()
+        && !deck.children.opening(view.session())
+        && if view.has_pending_transcript_projection() {
+            view.cancel_transcript_projection();
+            false
+        } else {
+            true
         }
-        rows.sort_by_key(|j| {
-            !matches!(
-                j.state,
-                oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
-            )
-        });
-        rows.truncate(16);
-        state.apply_child_jobs(rows);
-    }
-    Ok(())
 }
-
-fn same_launch(a: &ChildJob, b: &ChildJob) -> bool {
+pub(super) fn room_for(deck: &LoopState, session: &SessionId) -> bool {
+    deck.child_views.contains_key(session)
+        || deck.child_views.len() < 16
+        || deck.child_views.values().any(|view| retirable(deck, view))
+}
+pub(super) fn same_launch(a: &ChildJob, b: &ChildJob) -> bool {
     a.parent == b.parent
         && a.child == b.child
         && a.operation == b.operation
@@ -72,129 +49,16 @@ fn same_launch(a: &ChildJob, b: &ChildJob) -> bool {
         && a.location == b.location
         && a.delivery_id == b.delivery_id
 }
-
-async fn view(
-    app: &CoreApp,
-    selected: ChildJob,
-    page: Option<&HistoryPage>,
-) -> Result<TuiState, String> {
-    let loaded;
-    let page = if let Some(page) = page {
-        page
-    } else {
-        loaded = app
-            .read_child_transcript(selected.parent.clone(), selected.clone())
-            .await
-            .map_err(|e| e.to_string())?;
-        &loaded
-    };
-    let selected = page
-        .child_job
-        .as_deref()
-        .filter(|job| same_launch(job, &selected))
-        .cloned()
-        .unwrap_or(selected);
-    let mut catalog = app.catalog().await.map_err(|e| e.to_string())?;
-    if let Some((provider, model)) = selected.model.split_once('/') {
-        catalog.provider = provider.into();
-        let (model, variant) = model
-            .split_once('#')
-            .map_or((model, None), |(m, v)| (m, Some(v.to_owned())));
-        catalog.model_id = model.into();
-        catalog.variant = variant;
-    }
-    catalog.agent_id = Some(selected.agent.clone());
-    catalog.chrome.location = Some(selected.location.clone());
-    catalog.chrome.selection_generation = selected.generation;
-    let mut view = TuiState::new(app.clone(), selected.child.clone());
-    view.attach_page(page);
-    view.apply_catalog(catalog);
-    view.attach_linked_child(selected);
-    if let Some(job) = view.linked_child()
-        && job.state == oc_core::queries::ChildState::Running
-        && let Some(turn) = job.turn.clone()
-    {
-        view.begin_linked_turn(WorkerTurnId(turn));
-    }
-    shared::attach(app, &mut view).await?;
-    Ok(view)
-}
-
 pub(super) async fn open(
     app: &CoreApp,
     state: &mut TuiState,
     deck: &mut LoopState,
     selected: ChildJob,
 ) -> Result<(), String> {
-    deck.departure_ready(state)?;
-    let parent = deck
-        .child_parent
-        .as_ref()
-        .and_then(|v| v.attached_session())
-        .or_else(|| state.attached_session());
-    let sibling_parent = state.linked_child().map(|j| &j.parent);
-    if parent != Some(&selected.parent)
-        && state.attached_session() != Some(&selected.parent)
-        && sibling_parent != Some(&selected.parent)
-    {
-        return Err("foreign child selection".into());
-    }
-    // Always validate the exact current fence even when reusing a live view.
-    let current = app
-        .child_jobs(selected.parent.clone())
-        .await
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .find(|j| same_launch(j, &selected));
-    let page = app
-        .read_child_transcript(selected.parent.clone(), selected.clone())
-        .await
-        .map_err(|e| e.to_string())?;
-    // The exact read owner returns current original-launch facts even when the
-    // old Running capture just terminalized outside the bounded inventory.
-    let selected = page
-        .child_job
-        .as_deref()
-        .filter(|job| same_launch(job, &selected))
-        .cloned()
-        .or(current)
-        .or_else(|| {
-            (!matches!(
-                selected.state,
-                oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
-            ))
-            .then_some(selected)
-        })
-        .ok_or_else(|| "child generation unavailable".to_owned())?;
-    let mut next = if let Some(view) = deck.child_views.remove(&selected.child) {
-        view
-    } else {
-        view(app, selected.clone(), Some(&page)).await?
-    };
-    next.attach_linked_child(selected);
-    if let Some(current) = next.linked_child().cloned()
-        && !matches!(
-            current.state,
-            oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
-        )
-    {
-        next.reconcile_linked_terminal(&current, &page);
-    }
-    state.hide_children();
-    if deck.child_parent.is_some() {
-        let old = std::mem::replace(state, next);
-        park(deck, old);
-    } else {
-        deck.child_parent_read_only = deck.read_only;
-        deck.child_parent = Some(Box::new(std::mem::replace(state, next)));
-    }
-    deck.read_only = true;
-    refresh(app, state).await?;
-    refresh_approvals(app, state).await?;
-    Ok(())
+    child_jobs::open(app, state, deck, selected)
 }
-
 pub(super) fn return_parent(state: &mut TuiState, deck: &mut LoopState) {
+    deck.navigation_revision = deck.navigation_revision.wrapping_add(1);
     if let Some(parent_id) = state.linked_child().map(|j| j.parent.clone())
         && deck
             .child_parent
@@ -204,47 +68,30 @@ pub(super) fn return_parent(state: &mut TuiState, deck: &mut LoopState) {
         && let Some(parent) = deck.child_views.remove(&parent_id)
     {
         let child = std::mem::replace(state, parent);
+        state.resume_transcript_projection();
         park(deck, child);
         return;
     }
     return_root(state, deck);
 }
-
 pub(super) fn return_root(state: &mut TuiState, deck: &mut LoopState) {
     if let Some(parent) = deck.child_parent.take() {
         let child = std::mem::replace(state, *parent);
+        state.resume_transcript_projection();
         park(deck, child);
         deck.read_only = deck.child_parent_read_only;
+        deck.navigation_revision = deck.navigation_revision.wrapping_add(1);
     }
 }
-
-async fn refresh_parent(
-    app: &CoreApp,
-    state: &mut TuiState,
-    deck: &mut LoopState,
-    parent: &SessionId,
-) -> Result<(), String> {
-    let view = if state.attached_session() == Some(parent) {
-        Some(state)
-    } else if deck
-        .child_parent
-        .as_ref()
-        .is_some_and(|v| v.attached_session() == Some(parent))
+pub(super) fn refresh_parent(state: &mut TuiState, deck: &mut LoopState, parent: &SessionId) {
+    let mut reads = std::mem::take(&mut deck.reads);
+    for view in
+        read_jobs::views_mut(state, deck).filter(|view| view.attached_session() == Some(parent))
     {
-        deck.child_parent.as_deref_mut()
-    } else {
-        deck.tabs
-            .iter_mut()
-            .flatten()
-            .find(|v| v.attached_session() == Some(parent))
-            .or_else(|| deck.child_views.get_mut(parent))
-    };
-    if let Some(view) = view {
-        refresh(app, view).await?;
+        reads.request(view, false);
     }
-    Ok(())
+    deck.reads = reads;
 }
-
 pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
     match event {
         CoreEvent::TurnStarted { session, .. }
@@ -267,14 +114,14 @@ pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::ShellChanged { session }
         | CoreEvent::TerminalChanged { session }
-        | CoreEvent::RetryScheduled { session, .. } => Some(session),
+        | CoreEvent::InboxChanged { session, .. }
+        | CoreEvent::RetryScheduled { session, .. }
+        | CoreEvent::ParentContinuationRefused { session, .. } => Some(session),
         CoreEvent::ChildNotice(n) => Some(&n.job.parent),
-        CoreEvent::ParentContinuationRefused { session, .. } => Some(session),
         CoreEvent::ShellNotice(n) => Some(&n.session),
         _ => None,
     }
 }
-
 pub(super) async fn route_event(
     app: &CoreApp,
     state: &mut TuiState,
@@ -310,54 +157,21 @@ pub(super) async fn route_event(
         result?;
         return Ok(true);
     }
-    if !deck.child_views.contains_key(&owner) && matches!(event, CoreEvent::TurnStarted { .. }) {
-        let root = deck
-            .child_parent
-            .as_ref()
-            .and_then(|v| v.attached_session())
-            .or_else(|| state.attached_session());
-        if let Some(root) = root {
-            let mut parents = vec![root.clone()];
-            if state.linked_child().is_some() {
-                parents.push(state.session().clone());
-            }
-            parents.extend(deck.child_views.keys().cloned());
-            parents.extend(
-                deck.tabs
-                    .iter()
-                    .flatten()
-                    .filter_map(|v| v.attached_session().cloned()),
-            );
-            parents.sort_by(|a, b| a.0.cmp(&b.0));
-            parents.dedup();
-            for parent in parents {
-                let jobs = app.child_jobs(parent).await.map_err(|e| e.to_string())?;
-                if let Some(selected) = jobs.iter().find(|j| {
-                    j.child == owner
-                        && j.state == oc_core::queries::ChildState::Running
-                        && matches!(event, CoreEvent::TurnStarted { turn, .. } if j.turn.as_deref() == Some(turn.0.as_str()))
-                }) {
-                    if deck.child_views.len() >= 16 {
-                        let retired = deck
-                            .child_views
-                            .iter()
-                            .find(|(_, v)| !v.is_busy())
-                            .map(|(id, _)| id.clone());
-                        if let Some(retired) = retired {
-                            deck.child_views.remove(&retired);
-                        }
-                    }
-                    if deck.child_views.len() < 16 {
-                        deck.child_views
-                            .insert(owner.clone(), view(app, selected.clone(), None).await?);
-                    }
-                    if !deck.child_views.contains_key(&owner) {
-                        refresh_parent(app, state, deck, &selected.parent).await?;
-                    }
-                    break;
-                }
-            }
-        }
+    if !replay
+        && !deck.child_views.contains_key(&owner)
+        && let CoreEvent::TurnStarted { turn, .. } = event
+    {
+        let mut parents: Vec<_> = std::iter::once(&*state)
+            .chain(deck.child_parent.as_deref())
+            .chain(deck.tabs.iter().flatten())
+            .chain(deck.child_views.values())
+            .filter_map(read_jobs::Route::capture)
+            .collect();
+        parents.sort_by(|a, b| a.session.0.cmp(&b.session.0));
+        parents.dedup_by(|a, b| a.session == b.session);
+        deck.children
+            .discover(app, owner.clone(), turn.clone(), parents);
+        return Ok(true);
     }
     if let Some(mut child) = deck.child_views.remove(&owner) {
         let parent = child.linked_child().map(|job| job.parent.clone());
@@ -373,30 +187,25 @@ pub(super) async fn route_event(
         .await;
         park(deck, child);
         result?;
-        if let Some(parent) = &parent
-            && matches!(
-                event,
-                CoreEvent::TurnStarted { .. }
-                    | CoreEvent::TurnFinished { .. }
-                    | CoreEvent::TurnFailed { .. }
-                    | CoreEvent::TurnInterrupted { .. }
-            )
-        {
-            refresh_parent(app, state, deck, parent).await?;
-        }
-        if parent.as_ref() != state.attached_session()
-            && (state.children_open()
-                || state.linked_child().is_some()
-                || state.has_subagent_cards()
-                    && matches!(
-                        event,
-                        CoreEvent::TurnStarted { .. }
-                            | CoreEvent::TurnFinished { .. }
-                            | CoreEvent::TurnFailed { .. }
-                            | CoreEvent::TurnInterrupted { .. }
-                    ))
-        {
-            refresh(app, state).await?;
+        if !replay {
+            if let Some(parent) = &parent
+                && matches!(
+                    event,
+                    CoreEvent::TurnStarted { .. }
+                        | CoreEvent::TurnFinished { .. }
+                        | CoreEvent::TurnFailed { .. }
+                        | CoreEvent::TurnInterrupted { .. }
+                )
+            {
+                refresh_parent(state, deck, parent);
+            }
+            if parent.as_ref() != state.attached_session()
+                && (state.children_open()
+                    || state.linked_child().is_some()
+                    || state.has_subagent_cards())
+            {
+                deck.reads.request(state, false);
+            }
         }
         return Ok(true);
     }

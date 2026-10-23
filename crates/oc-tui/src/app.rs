@@ -146,6 +146,13 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    /// Captured cancellation; the binary must use the existing native-priority
+    /// CoreApp cancellation ports, never enqueue cancellation as ordinary work.
+    CancelSession {
+        session: SessionId,
+        turn: Option<WorkerTurnId>,
+        cancel_compaction: bool,
+    },
     /// Captured work only; the binary uses the existing per-operation owners.
     BackgroundSession {
         session: SessionId,
@@ -439,10 +446,10 @@ enum LivePart {
     /// Removed transient slot; keeps subsequent live reasoning identities stable.
     Vacant,
     /// Frozen assistant text segment.
-    Text(String),
+    Text(crate::history::SourceText),
     /// Frozen reasoning segment with its measured window.
     Reasoning {
-        text: String,
+        text: crate::history::SourceText,
         duration_ms: Option<u64>,
     },
     /// One tool call card plus the recorded input of an in-flight call.
@@ -500,7 +507,7 @@ impl LivePart {
                 message_id: None,
                 seq: i64::MAX,
                 role: "assistant".to_string(),
-                text: String::new(),
+                text: String::new().into(),
                 agent,
                 agent_color_index: None,
                 chips: Vec::new(),
@@ -523,7 +530,7 @@ impl LivePart {
                 message_id: None,
                 seq: i64::MAX,
                 role: "tool".to_string(),
-                text: String::new(),
+                text: String::new().into(),
                 agent,
                 agent_color_index: None,
                 chips: Vec::new(),
@@ -557,22 +564,46 @@ impl std::ops::AddAssign for LiveViewMetrics {
     }
 }
 
-/// Immutable submission identity plus the editable draft's revision at enqueue.
+#[derive(Clone, Copy)]
+enum SubmissionPurpose {
+    Turn,
+    Inbox(oc_core::queries::InboxDelivery),
+    Compress,
+    Empty,
+}
+
+enum SubmissionPhase {
+    PreparingAgent(oc_core::core_app::ModelCommitReceipt),
+    AwaitingTurn(SubmissionReceipt),
+    AwaitingInbox(oc_core::core_app::EnqueueReceipt),
+    Failed(String),
+}
+
+/// One occupied admission, including an explicitly recoverable failed draft.
+/// Its payload is never reconstructed from the next editable composer.
 struct PendingSubmission {
     selection: Option<oc_core::queries::ModelCommit>,
     request_id: u64,
     generation: u64,
     session: SessionId,
     fresh: bool,
-    draft: String,
-    images: Vec<oc_core::prompt::PromptImage>,
+    draft: crate::ComposerDraft,
+    prompt: oc_core::prompt::PromptInput,
+    source: crate::history::SourceText,
     mentions: Vec<(usize, usize)>,
-    revision: u64,
-    receipt: SubmissionReceipt,
+    phase: SubmissionPhase,
+    purpose: SubmissionPurpose,
+    promote: Option<PanelIntent>,
+    agent_revision: u64,
     agent: Option<String>,
     agent_color_index: Option<usize>,
     cancelling: bool,
-    compress: bool,
+}
+
+impl PendingSubmission {
+    fn outstanding(&self) -> bool {
+        !matches!(self.phase, SubmissionPhase::Failed(_))
+    }
 }
 
 /// Upstream Home normal-mode examples (`routes/home.tsx:19-23`).
@@ -595,23 +626,17 @@ struct TranscriptViewport {
 /// One warm screen, never another retained-history/archive cache. Selection
 /// highlighting is applied after this projection on every paint.
 struct VisibleTranscriptProjection {
-    revision: u64,
-    window_revision: u64,
+    key: projection::Key,
     viewport: Option<TranscriptViewport>,
-    live_lengths: (usize, usize),
     dimensions: (u16, u16, u16),
-    requested_scroll: usize,
-    chrome: oc_core::queries::TuiChrome,
-    theme: crate::theme::ThemeMode,
-    thinking: bool,
-    reasoning: BTreeSet<crate::messages::ReasoningIdentity>,
-    exploration: BTreeSet<String>,
-    compaction_frame: usize,
     lines: Vec<Line>,
     total: usize,
     scroll: usize,
     targets: Vec<Option<crate::messages::UserMessageTarget>>,
     child_targets: Vec<crate::messages::ChildNavigationHit>,
+    animations: Vec<(usize, usize, crate::styled::AnimationSource)>,
+    hits: Vec<crate::messages::TranscriptRegion>,
+    top: Option<projection::PaintedTop>,
 }
 
 /// Visible editor insertion stops and chip cells from the latest prompt paint.
@@ -632,6 +657,7 @@ struct PaintedPrompt {
     chips: Vec<(Rect, usize)>,
 }
 
+#[derive(Clone)]
 struct CompletionAnchor {
     message: std::sync::Arc<oc_core::session::MessageId>,
     part: usize,
@@ -701,14 +727,20 @@ pub struct TuiState {
     pub auto_accept: oc_core::queries::AutoAcceptState,
     app: CoreApp,
     session: Option<SessionId>,
+    /// Stable local tab route after fresh bounded admission. Recovery can drop
+    /// the failed receipt without turning its retained tab back into Home.
+    provisional_session: Option<SessionId>,
     status: TuiStatus,
     scanner_frame: usize,
-    compactions: Vec<oc_core::compaction::CompactionSnapshot>,
+    compactions: Vec<crate::compaction::SnapshotView>,
     compaction_at: Option<Instant>,
     compaction_frame: usize,
     compaction_turn_messages: std::collections::BTreeMap<String, String>,
     scanner_at: Option<Instant>,
     tool_spinner_clocks: BTreeMap<String, ToolSpinnerClock>,
+    tool_spinner_membership: Option<(u64, u64, bool)>,
+    #[cfg(test)]
+    tool_spinner_membership_builds: usize,
     reasoning_spinner_clock: Option<ToolSpinnerClock>,
     /// Cached from composed rows so timer ticks never rebuild the transcript.
     reasoning_spinner_running: std::cell::Cell<bool>,
@@ -769,15 +801,16 @@ pub struct TuiState {
     regenerate_pending: Option<u64>,
     window: HistoryWindow,
     markdown_cache: std::cell::RefCell<crate::messages::MarkdownCache>,
+    projection_work: std::cell::RefCell<projection::Work>,
     transcript_revision: u64,
     visible_projection: std::cell::RefCell<Option<VisibleTranscriptProjection>>,
     #[cfg(test)]
     transcript_row_copies: std::cell::Cell<usize>,
     #[cfg(test)]
     visible_projection_builds: std::cell::Cell<usize>,
-    live_text: String,
+    live_text: crate::history::SourceText,
     /// Reasoning text streamed for the active turn (never persisted).
-    live_reasoning: String,
+    live_reasoning: crate::history::SourceText,
     thinking_expanded: bool,
     /// Frozen live parts (text/reasoning segments and tool cards) of the
     /// active turn, in arrival order.
@@ -820,6 +853,7 @@ pub struct TuiState {
     live_span: Option<(WorkerTurnId, String)>,
     live_projection_revision: Option<(WorkerTurnId, u64)>,
     projection_floor: u64,
+    projection_epoch: u64,
     root_navigation: bool,
     retry_due: Option<Instant>,
     foreground_hint: Option<foreground::Hint>,
@@ -827,11 +861,13 @@ pub struct TuiState {
     /// interrupts it (pinned prompt/index.tsx:499–528).
     interrupt_armed_until: Option<Instant>,
     pending: Option<PendingSubmission>,
+    submission_intent: Option<PanelIntent>,
     user_shell: user_shell::UserShellState,
     compress_turn: Option<WorkerTurnId>,
     request_id: u64,
     generation: u64,
     input_revision: u64,
+    history_receipts: prompt_history::Receipts,
     slash_selected: usize,
     slash_dismissed: Option<u64>,
     view_id: u64,
@@ -855,6 +891,7 @@ pub struct TuiState {
     /// Owner preview of the composer's next-send agent while it differs from
     /// the session's committed one; committed right before the next send.
     agent_draft: Option<CatalogSnapshot>,
+    agent_draft_revision: u64,
     /// Agents cursor.
     pub(crate) agents_cursor: usize,
     /// Session ids for the Sessions panel.
@@ -966,6 +1003,7 @@ impl TuiState {
             tab_attention: Default::default(),
             app,
             session,
+            provisional_session: None,
             status: TuiStatus::Idle,
             scanner_frame: 0,
             compactions: Vec::new(),
@@ -974,6 +1012,9 @@ impl TuiState {
             compaction_turn_messages: Default::default(),
             scanner_at: None,
             tool_spinner_clocks: BTreeMap::new(),
+            tool_spinner_membership: None,
+            #[cfg(test)]
+            tool_spinner_membership_builds: 0,
             reasoning_spinner_clock: None,
             reasoning_spinner_running: std::cell::Cell::new(false),
             tool_spinner_clocks_attached: true,
@@ -1018,14 +1059,15 @@ impl TuiState {
             regenerate_pending: None,
             window: HistoryWindow::new(),
             markdown_cache: std::cell::RefCell::new(Default::default()),
+            projection_work: Default::default(),
             transcript_revision: 0,
             visible_projection: Default::default(),
             #[cfg(test)]
             transcript_row_copies: Default::default(),
             #[cfg(test)]
             visible_projection_builds: Default::default(),
-            live_text: String::new(),
-            live_reasoning: String::new(),
+            live_text: String::new().into(),
+            live_reasoning: String::new().into(),
             thinking_expanded: false,
             live_parts: Vec::new(),
             pending_tool_seen: Vec::new(),
@@ -1055,17 +1097,20 @@ impl TuiState {
             live_span: None,
             live_projection_revision: None,
             projection_floor: 0,
+            projection_epoch: 0,
             root_navigation: true,
             retry_due: None,
             foreground_hint: None,
             interrupt_armed_until: None,
             pending: None,
+            submission_intent: None,
             user_shell: Default::default(),
             composer: Default::default(),
             compress_turn: None,
             request_id: 0,
             generation: 0,
             input_revision: 0,
+            history_receipts: Default::default(),
             slash_selected: 0,
             slash_dismissed: None,
             view_id: NEXT_VIEW_ID.fetch_add(1, Ordering::Relaxed),
@@ -1081,6 +1126,7 @@ impl TuiState {
             agents: Vec::new(),
             active_agent: None,
             agent_draft: None,
+            agent_draft_revision: 0,
             agents_cursor: 0,
             sessions: Vec::new(),
             session_entries: Vec::new(),
@@ -1117,6 +1163,38 @@ impl TuiState {
         self.session.as_ref()
     }
 
+    /// Provisional admission route, including rejected/unknown fresh roots.
+    /// This is deliberately not an attached/accepted session.
+    pub fn submission_session(&self) -> Option<&SessionId> {
+        self.pending.as_ref().map(|pending| &pending.session)
+    }
+
+    /// Local routing only. A provisional ID is not evidence of attachment or
+    /// durable membership, and must never authorize a canonical history read.
+    pub fn tab_route_session(&self) -> Option<&SessionId> {
+        self.session.as_ref().or(self.provisional_session.as_ref())
+    }
+
+    /// Local fresh-request provenance, never evidence of accepted attachment.
+    pub fn has_provisional_tab_route(&self) -> bool {
+        self.provisional_session.is_some()
+    }
+
+    /// Distinguishes a retained view from its replacement at the same route.
+    pub fn view_identity(&self) -> (u64, u64) {
+        (self.view_id, self.generation)
+    }
+
+    /// Read fence that survives idle/active/idle ABA within one retained view.
+    pub fn projection_epoch(&self) -> u64 {
+        self.projection_epoch
+    }
+
+    /// A durable notice can change canonical rows without starting another turn.
+    pub fn observe_history_commit(&mut self) {
+        self.projection_epoch = self.projection_epoch.wrapping_add(1);
+    }
+
     /// Attached session ID. Only call after checking `attached_session()`.
     pub fn session(&self) -> &SessionId {
         self.attached_session()
@@ -1131,8 +1209,11 @@ impl TuiState {
     /// workspace commands) belongs to the previous Location: the next panel
     /// open must reload from the new generation instead of showing it.
     pub fn reset_workspace(&mut self) {
+        self.reset_transcript_projection();
+        self.provisional_session = None;
         self.tool_spinner_clocks_attached = false;
         self.tool_spinner_clocks.clear();
+        self.tool_spinner_membership = None;
         self.reasoning_spinner_clock = None;
         self.reasoning_spinner_running.set(false);
         self.invalidate_transcript();
@@ -1192,6 +1273,7 @@ impl TuiState {
     pub fn set_session(&mut self, session: SessionId) {
         self.tool_spinner_clocks_attached = true;
         self.tool_spinner_clocks.clear();
+        self.tool_spinner_membership = None;
         self.reasoning_spinner_clock = None;
         self.reasoning_spinner_running.set(false);
         self.terminals = Default::default();
@@ -1232,11 +1314,12 @@ impl TuiState {
         self.invalidate_submission();
         self.session = Some(session);
         self.projection_floor = 0;
+        self.projection_epoch = self.projection_epoch.wrapping_add(1);
         self.root_navigation = true;
         self.input.clear();
         self.editor.clear();
         self.window = HistoryWindow::new();
-        *self.markdown_cache.get_mut() = Default::default();
+        self.reset_transcript_projection();
         self.live_text.clear();
         self.live_reasoning.clear();
         self.live_parts.clear();
@@ -1268,6 +1351,7 @@ impl TuiState {
         // Called only after an accepted switch (binary refuses busy switches).
         // Invalidate local receipts even if a caller has an old completion queued.
         self.pending = None;
+        self.submission_intent = None;
         self.active_turn = None;
         self.compress_turn = None;
         if self.status != TuiStatus::Quit {
@@ -1283,7 +1367,15 @@ impl TuiState {
     /// Owner receipts need reconciliation until accepted, independently from
     /// streaming and animation. A settled view has no receipt polling work.
     pub fn has_pending_submission(&self) -> bool {
-        self.pending.is_some() || self.user_shell_pending()
+        self.pending
+            .as_ref()
+            .is_some_and(PendingSubmission::outstanding)
+            || self.user_shell_pending()
+    }
+
+    /// Failed admissions occupy the recovery slot but require no polling.
+    pub fn has_occupied_submission(&self) -> bool {
+        self.pending.is_some() || self.submission_intent.is_some()
     }
 
     /// Active view deadlines only; input/provider paints never reset these
@@ -1314,6 +1406,8 @@ impl TuiState {
             self.next_tab_deadline(),
             self.retry_due,
             self.foreground_hint_deadline(),
+            self.has_pending_transcript_projection()
+                .then(|| Instant::now() + Duration::from_millis(16)),
         ]
         .into_iter()
         .flatten()
@@ -1322,6 +1416,7 @@ impl TuiState {
 
     /// True only when a deadline actually changes visible state.
     pub fn tick_ui(&mut self, now: Instant) -> bool {
+        let projection = self.poll_transcript_projection();
         let retry_due = self.retry_due.is_some_and(|at| now >= at);
         if retry_due {
             self.retry_due = None;
@@ -1344,7 +1439,8 @@ impl TuiState {
         if leader {
             self.leader = None;
         }
-        expired
+        projection
+            || expired
             || scanner
             || delegation
             || tools
@@ -1408,9 +1504,6 @@ impl TuiState {
                 clock.at = now.checked_sub(Duration::from_nanos((elapsed % 80_000_000) as u64));
             }
         }
-        if changed {
-            self.invalidate_transcript();
-        }
         changed
     }
 
@@ -1423,6 +1516,19 @@ impl TuiState {
     }
 
     fn sync_tool_spinner_clocks(&mut self) {
+        let stamp = (
+            self.transcript_revision,
+            self.window.revision(),
+            self.tool_spinner_clocks_attached,
+        );
+        if self.tool_spinner_membership == Some(stamp) {
+            return;
+        }
+        self.tool_spinner_membership = Some(stamp);
+        #[cfg(test)]
+        {
+            self.tool_spinner_membership_builds += 1;
+        }
         let mut clocks = std::mem::take(&mut self.tool_spinner_clocks);
         if self.tool_spinner_clocks_attached {
             let cards = self.effective_tool_cards();
@@ -1496,9 +1602,6 @@ impl TuiState {
                 clock.at = now.checked_sub(Duration::from_nanos((elapsed % 80_000_000) as u64));
             }
         }
-        if changed {
-            self.invalidate_transcript();
-        }
         changed
     }
 
@@ -1561,9 +1664,15 @@ impl TuiState {
     /// True while a submission awaits acceptance or a turn streams.
     pub fn is_busy(&self) -> bool {
         self.active_turn.is_some()
-            || self.pending.is_some()
+            || self
+                .pending
+                .as_ref()
+                .is_some_and(PendingSubmission::outstanding)
             || self.user_shell_pending()
-            || self.compactions.iter().any(crate::compaction::active)
+            || self
+                .compactions
+                .iter()
+                .any(|snapshot| crate::compaction::active(snapshot))
     }
 
     /// Status note, if any (intent errors and hints; never chat history).
@@ -1580,7 +1689,7 @@ impl TuiState {
     /// window caps.
     pub fn retained_bytes(&self) -> usize {
         self.window.retained_bytes()
-            + self.markdown_cache.borrow().retained_bytes()
+            + self.projection_cache_bytes()
             + self.visible_projection.borrow().as_ref().map_or(0, |view| {
                 view.lines
                     .iter()
@@ -1629,7 +1738,10 @@ impl TuiState {
                 .map_or(0, |key| key.query.len() + key.location.len())
             + self.editor.retained_bytes()
             + self.pending.as_ref().map_or(0, |pending| {
-                pending.draft.len() + pending.images.iter().map(|i| i.png.len()).sum::<usize>()
+                pending.draft.text.len()
+                    + pending.draft.editor.retained_bytes()
+                    + pending.prompt.text.len()
+                    + pending.source.len()
             })
     }
 
@@ -1641,7 +1753,7 @@ impl TuiState {
             text_bytes: self.live_text.len(),
             reasoning_bytes: self.live_reasoning.len(),
             part_count: self.live_parts.len(),
-            markdown_cache_retained_bytes: self.markdown_cache.borrow().retained_bytes(),
+            markdown_cache_retained_bytes: self.projection_cache_bytes(),
         };
         for part in &self.live_parts {
             match part {
@@ -1766,11 +1878,13 @@ pub use accounts::AuthRequest;
 mod foreground;
 mod inbox;
 mod input;
+mod prompt_history;
 pub use foreground::ForegroundWork;
 pub use input::ClipboardTarget;
 mod live;
 mod mcp;
 mod model_selection;
+mod projection;
 mod services;
 mod tabs;
 pub(crate) mod text_selection;

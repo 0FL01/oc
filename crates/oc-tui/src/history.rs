@@ -14,6 +14,9 @@ use oc_core::session::Role;
 use crate::messages::{AssistantMeta, Chip, ReasoningBlock, ReasoningIdentity};
 use crate::tools::ToolRender;
 
+mod source;
+pub use source::SourceText;
+
 /// Max rows retained by the window.
 pub const WINDOW_ROWS: usize = 240;
 /// Max retained payload bytes (including durable identity and presentation metadata).
@@ -39,7 +42,7 @@ pub struct HistoryRow {
     pub role: String,
     /// Message text. A hidden `shell_input_delivered` row retains only its
     /// exact native operation identity here, not RAW text or a render payload.
-    pub text: String,
+    pub text: SourceText,
     /// Agent that owns the row: the session agent for user rows, the turn
     /// agent for live assistant rows. `None` when unknown; the renderer then
     /// falls back to the session agent / upstream's default agent color.
@@ -534,7 +537,7 @@ impl HistoryWindow {
             message_id: None,
             seq: i64::MAX,
             role: role.to_string(),
-            text: text.to_string(),
+            text: text.into(),
             agent,
             agent_color_index,
             chips: Vec::new(),
@@ -645,7 +648,7 @@ impl HistoryWindow {
             message_id: None,
             seq: i64::MAX,
             role: "shell_input".into(),
-            text: String::new(),
+            text: String::new().into(),
             agent: None,
             agent_color_index: None,
             chips: Vec::new(),
@@ -762,7 +765,7 @@ impl HistoryWindow {
                     {
                         row.role = "shell_input_delivered".into();
                         row.tool = None;
-                        row.text = shell.operation.clone();
+                        row.text = shell.operation.clone().into();
                         changed = true;
                     }
                 }
@@ -966,7 +969,13 @@ impl HistoryWindow {
                     .as_ref()
                     .is_some_and(|card| results.contains(&card.op))
             {
-                row.text = row.tool.as_ref().expect("matched Shell input").op.clone();
+                row.text = row
+                    .tool
+                    .as_ref()
+                    .expect("matched Shell input")
+                    .op
+                    .clone()
+                    .into();
                 row.role = "shell_input_delivered".into();
                 row.tool = None;
             }
@@ -988,7 +997,7 @@ impl HistoryWindow {
                     message_id: None,
                     seq: i64::MAX,
                     role: "model_switch".into(),
-                    text,
+                    text: text.into(),
                     agent: None,
                     agent_color_index: None,
                     chips: Vec::new(),
@@ -1105,7 +1114,8 @@ fn row_from_page(
                     .map(model_switch_text)
                     .or_else(|| row.agent_switch.as_ref().map(agent_switch_text))
                     .unwrap_or_else(|| row.text.clone())
-            }),
+            })
+            .into(),
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
         chips: clipboard_chips(row.images.len()),
@@ -1212,7 +1222,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         result.text.clear();
         if shell.superseded_input {
             result.role = "shell_input_delivered".into();
-            result.text = shell.operation.clone();
+            result.text = shell.operation.clone().into();
             return vec![result];
         }
         result.role = if shell.input { "shell_input" } else { "shell" }.into();
@@ -1256,7 +1266,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         message_id: Some(message_id.clone()),
         seq: row.seq,
         role: "assistant".to_string(),
-        text: String::new(),
+        text: String::new().into(),
         agent: turn.agent.clone(),
         agent_color_index: turn.agent_color_index,
         chips: Vec::new(),
@@ -1298,10 +1308,10 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
             });
         }
         match part {
-            TranscriptPart::Text(text) => part_row.text = text.clone(),
+            TranscriptPart::Text(text) => part_row.text = text.clone().into(),
             TranscriptPart::Reasoning { text, duration_ms } => {
                 part_row.reasoning = Some(ReasoningBlock {
-                    text: text.clone(),
+                    text: text.clone().into(),
                     duration_ms: *duration_ms,
                     running: turn.status == "started" && duration_ms.is_none(),
                     expanded: false,
@@ -1378,7 +1388,8 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                     .filter(|c| !c.is_control())
                     .take(512)
                     .collect::<String>()
-            );
+            )
+            .into();
             rows.push(notice);
         }
     }

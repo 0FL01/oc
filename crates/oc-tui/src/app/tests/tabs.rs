@@ -152,6 +152,15 @@ async fn close_tab_chord_uses_the_presented_active_slot_without_mutating_the_dec
 #[tokio::test]
 async fn vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_rows() {
     use ratatui::{Terminal, backend::TestBackend};
+    async fn paint(terminal: &mut Terminal<TestBackend>, state: &TuiState) {
+        terminal
+            .draw(|frame| crate::shell::render(frame, state))
+            .unwrap();
+        state.finish_transcript_projection().await;
+        terminal
+            .draw(|frame| crate::shell::render(frame, state))
+            .unwrap();
+    }
     let mut state = fresh_state("tab-projection-cost").await;
     let body = "durable offscreen text line\n".repeat(240);
     let mut messages: Vec<_> = (1..=32)
@@ -176,27 +185,30 @@ async fn vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_r
     ];
     state.set_tab_strip(tabs, 0, false);
     let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
-    terminal
-        .draw(|frame| crate::shell::render(frame, &state))
-        .unwrap();
+    paint(&mut terminal, &state).await;
     let copies = state.transcript_row_copies.get();
     let builds = state.visible_projection_builds.get();
-    let retained = state.visible_projection.borrow();
-    let view = retained.as_ref().unwrap();
-    assert!(view.total > 1000 && view.lines.len() <= 24);
-    assert!(
-        view.lines
-            .iter()
-            .any(|line| line.plain_text().contains("50.0 tok/s"))
-    );
-    let expected = view.lines.clone();
-    drop(retained);
+    let expected = {
+        let retained = state.visible_projection.borrow();
+        let view = retained.as_ref().unwrap();
+        assert!(view.total > 1000 && view.lines.len() <= 24);
+        assert!(
+            view.lines
+                .iter()
+                .any(|line| line.plain_text().contains("50.0 tok/s"))
+        );
+        view.lines.clone()
+    };
     let at = Instant::now();
     for frame in 1..=60 {
         assert!(state.tick_tabs(at + Duration::from_millis(frame * 80)));
         terminal
             .draw(|frame| crate::shell::render(frame, &state))
             .unwrap();
+        assert!(
+            !state.has_pending_transcript_projection(),
+            "warm tab clocks do not start projection work"
+        );
     }
     assert_eq!(
         state.transcript_row_copies.get(),
@@ -214,9 +226,7 @@ async fn vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_r
     );
 
     state.chrome.session_tps = Some(false);
-    terminal
-        .draw(|frame| crate::shell::render(frame, &state))
-        .unwrap();
+    paint(&mut terminal, &state).await;
     assert!(
         !state
             .visible_projection
@@ -231,9 +241,7 @@ async fn vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_r
     let turn = WorkerTurnId("new-content".into());
     state.begin_compress_turn(turn.clone());
     state.apply_delta(&turn, "fresh live text");
-    terminal
-        .draw(|frame| crate::shell::render(frame, &state))
-        .unwrap();
+    paint(&mut terminal, &state).await;
     assert!(
         state
             .visible_projection
@@ -245,9 +253,7 @@ async fn vis39_tab_only_ticks_reuse_one_warm_viewport_without_copying_retained_r
             .any(|line| line.plain_text().contains("fresh live text"))
     );
     terminal.resize(Rect::new(0, 0, 120, 40)).unwrap();
-    terminal
-        .draw(|frame| crate::shell::render(frame, &state))
-        .unwrap();
+    paint(&mut terminal, &state).await;
     assert!(
         state
             .visible_projection
@@ -918,7 +924,7 @@ async fn close_tab_home_last_and_busy_availability() {
         Some("submission or model selection pending")
     );
     assert_eq!(last.panel(), &TuiPanel::Commands);
-    assert_eq!(last.input(), "pending draft");
+    assert!(last.input().is_empty());
     last.handle_panel_key(KeyAction::Cancel);
     assert_eq!(last.run_command(CommandAction::CloseTab).intent, None);
     assert!(inbox.try_recv().is_err());

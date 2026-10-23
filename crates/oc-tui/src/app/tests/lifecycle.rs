@@ -316,7 +316,10 @@ async fn scripted_notice_after_submit_refusal_refreshes_idle_tail_without_raw_pr
             PumpOutcome::Idle
         );
         let mut inbox = owner.await.unwrap();
-        assert_eq!(state.input(), "draft retained after refusal");
+        assert!(state.input().is_empty());
+        let retained = state.pending.as_ref().expect("retained refusal");
+        assert_eq!(retained.prompt.text, "draft retained after refusal");
+        assert_eq!(retained.draft.text, "draft retained after refusal");
         let text = state
             .transcript_lines(120, 120)
             .iter()
@@ -449,9 +452,19 @@ async fn fresh_rejection_preserves_home_draft_and_retry_uses_new_candidate() {
     state.poll_submission();
     assert!(state.home);
     assert!(state.attached_session().is_none());
-    assert_eq!(state.input(), "retry me");
+    assert!(state.input().is_empty());
+    assert!(!state.has_pending_submission());
+    assert!(state.has_occupied_submission());
+    assert_eq!(state.submission_session(), Some(&first));
     assert!(state.history().rows().is_empty());
     assert_eq!(state.status(), &TuiStatus::Idle);
+    assert!(state.handle_key(KeyAction::Enter).await.note.is_some());
+    assert!(
+        inbox.try_recv().is_err(),
+        "a failed draft is not implicitly resent"
+    );
+    state.recover_submission(true);
+    assert_eq!(state.input(), "retry me");
     state.handle_key(KeyAction::Enter).await;
     let Some(InboxMsg::SubmitFresh {
         session: retry,
@@ -483,6 +496,9 @@ async fn mock_busy_rejection_creates_no_fresh_root() {
     assert!(state.home);
     assert_eq!(state.attached_session(), None);
     assert_eq!(state.status(), &TuiStatus::Idle);
+    assert!(state.input().is_empty());
+    assert!(state.has_occupied_submission());
+    state.recover_submission(true);
     assert_eq!(state.input(), "retry later");
     assert!(state.history().rows().is_empty());
     assert_eq!(app.list_sessions().await.unwrap(), vec![existing.clone()]);
@@ -507,7 +523,7 @@ async fn mock_fresh_acceptance_binds_only_on_receipt_and_preserves_pending_edit(
     await_submission(&mut state).await;
     let accepted = state.attached_session().expect("accepted ID").clone();
     assert!(!state.home);
-    assert_eq!(state.input(), "first prompt edited");
+    assert_eq!(state.input(), " edited");
     assert_eq!(state.history().rows()[0].text, "first prompt");
     assert_eq!(state.status(), &TuiStatus::Streaming);
     assert_eq!(app.list_sessions().await.unwrap(), vec![accepted.clone()]);
@@ -550,25 +566,33 @@ async fn fresh_cancel_pending_uses_candidate_and_keeps_draft_on_late_accept() {
         panic!("fresh request")
     };
     assert!(state.attached_session().is_none());
-    let cancel = tokio::spawn(async move {
-        let Some(InboxMsg::Cancel { session, ack }) = inbox.recv().await else {
-            panic!("candidate cancel")
-        };
-        assert_eq!(session, candidate);
-        ack.send(Ok(())).unwrap();
-        submit_ack
-            .send(Ok(WorkerTurnId("accepted-after-cancel".into())))
-            .unwrap();
-        session
-    });
-    assert_eq!(state.handle_key(KeyAction::Cancel).await.note, None);
-    let candidate = cancel.await.unwrap();
+    state.handle_paste("next draft");
+    let cancel = state.handle_key(KeyAction::Cancel).await;
+    assert_eq!(
+        cancel.intent,
+        Some(PanelIntent::CancelSession {
+            session: candidate.clone(),
+            turn: None,
+            cancel_compaction: false,
+        })
+    );
+    assert!(
+        state.has_pending_submission(),
+        "cancel intent must not consume original receipt"
+    );
+    assert!(
+        inbox.try_recv().is_err(),
+        "priority cancellation is delegated, never queued as work"
+    );
+    submit_ack
+        .send(Ok(WorkerTurnId("accepted-after-cancel".into())))
+        .unwrap();
     await_submission(&mut state).await;
     assert_eq!(state.attached_session(), Some(&candidate));
     assert_eq!(
         state.input(),
-        "cancel me",
-        "cancel keeps the editable draft"
+        "next draft",
+        "late acceptance after cancel cannot clear the next editor"
     );
     assert!(!state.home);
     assert_eq!(state.history().rows()[0].text, "cancel me");
@@ -592,7 +616,7 @@ async fn pending_receipt_preserves_edits_and_ignores_old_generation() {
     state.poll_submission();
     assert_eq!(
         state.input(),
-        "original edited",
+        " edited",
         "acceptance cannot clear later edits"
     );
     assert_eq!(state.history().rows()[0].text, "original");
@@ -629,7 +653,7 @@ async fn pending_receipt_preserves_edits_and_ignores_old_generation() {
         &WorkerTurnId("old".into()),
         &CoreError::Application("stale failure".into()),
     );
-    assert_eq!(state.input(), "new generation draft edited after enqueue");
+    assert_eq!(state.input(), " edited after enqueue");
     assert_eq!(state.history().rows().len(), 1);
     assert_eq!(state.active_turn(), Some(&WorkerTurnId("new".into())));
     assert_eq!(state.status(), &TuiStatus::Streaming);
@@ -646,14 +670,15 @@ async fn workspace_reset_invalidates_pending_state_without_waiting_for_old_recei
     let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
         panic!("submission")
     };
+    state.handle_paste("next draft");
     state.reset_workspace();
     assert_eq!(state.status(), &TuiStatus::Idle);
     assert!(!state.is_busy());
-    assert_eq!(state.input(), "retained draft");
+    assert_eq!(state.input(), "next draft");
     assert!(ack.send(Ok(WorkerTurnId("old".into()))).is_err());
     state.poll_submission();
     assert_eq!(state.status(), &TuiStatus::Idle);
-    assert_eq!(state.input(), "retained draft");
+    assert_eq!(state.input(), "next draft");
 }
 
 #[tokio::test]
@@ -669,8 +694,10 @@ async fn pending_failure_keeps_draft_and_quit_is_not_overwritten() {
     ack.send(Err(CoreError::Application("safe failure".into())))
         .unwrap();
     state.poll_submission();
-    assert_eq!(state.input(), "retry me");
+    assert!(state.input().is_empty());
     assert_eq!(state.status(), &TuiStatus::Idle);
+    state.recover_submission(true);
+    assert_eq!(state.input(), "retry me");
     state.handle_key(KeyAction::Enter).await;
     let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
         panic!("retry")
@@ -680,7 +707,7 @@ async fn pending_failure_keeps_draft_and_quit_is_not_overwritten() {
         .unwrap();
     state.poll_submission();
     assert_eq!(state.status(), &TuiStatus::Quit);
-    assert_eq!(state.input(), "retry me");
+    assert!(state.input().is_empty());
 }
 
 #[tokio::test]
@@ -695,7 +722,10 @@ async fn accepted_submit_clears_input_and_streams() {
     assert_eq!(outcome.note, None);
     assert_eq!(outcome.intent, None);
     assert_eq!(state.status(), &TuiStatus::PendingSubmission);
-    assert_eq!(state.input(), "hi");
+    assert!(
+        state.input().is_empty(),
+        "local acceptance moves the submitted draft immediately"
+    );
     await_submission(&mut state).await;
     assert!(state.input().is_empty());
     assert_eq!(state.status(), &TuiStatus::Streaming);
@@ -758,7 +788,7 @@ async fn clipped_hover_draw_uses_only_its_visible_indexed_traversal() {
     let faded = ratatui::style::Color::Rgb(0x97, 0x68, 0x2c);
     let bright = super::Theme::dark().warning();
     let (normal_work, normal_color) = draw(&state);
-    assert_eq!(normal_work, 1, "one indexed viewport traversal per draw");
+    assert_eq!(normal_work, 0, "the measured viewport is already warm");
     assert_eq!(normal_color, faded);
     state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
     assert_eq!(
@@ -774,12 +804,12 @@ async fn clipped_hover_draw_uses_only_its_visible_indexed_traversal() {
     state.live_text = "streaming frame".into();
     assert_eq!(
         draw(&state),
-        (normal_work, bright),
+        (1, bright),
         "streaming hover keeps the clipped header and re-indexes once"
     );
     state.live_text.clear();
     state.handle_mouse(selection_mouse(MouseEventKind::Moved, rect.x + 2, y), frame);
-    assert_eq!(draw(&state), (normal_work, faded), "padding is not a hit");
+    assert_eq!(draw(&state), (1, faded), "padding is not a hit");
     state.handle_mouse(
         selection_mouse(MouseEventKind::Moved, rect.x + 10, y),
         frame,
@@ -1675,6 +1705,26 @@ async fn actual_subagent_clocks_survive_parent_completion_and_shared_refresh() {
     assert_eq!(refreshed.next_tool_spinner_deadline(), None);
 }
 
+fn rendered_transcript(state: &TuiState, width: u16, height: u16) -> Vec<String> {
+    let mut terminal =
+        ratatui::Terminal::new(ratatui::backend::TestBackend::new(width, height)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, state))
+        .unwrap();
+    let area =
+        crate::shell::transcript_area(state, ratatui::layout::Rect::new(0, 0, width, height));
+    let buffer = terminal.backend().buffer();
+    (area.y..area.bottom())
+        .map(|y| {
+            (area.x..area.right())
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_owned()
+        })
+        .collect()
+}
+
 #[tokio::test]
 async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
     let (app, _, _) = CoreApp::channel(4);
@@ -1691,16 +1741,12 @@ async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
         20,
         "not limited by child inventory16"
     );
-    let paint = |state: &TuiState| {
-        let mut terminal =
-            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
-        terminal
-            .draw(|frame| crate::shell::render(frame, state))
-            .unwrap();
-    };
+    let paint = |state: &TuiState| rendered_transcript(state, 120, 40);
     paint(&state);
     let copies = state.transcript_row_copies.get();
     let builds = state.visible_projection_builds.get();
+    let discoveries = state.tool_spinner_membership_builds;
+    let traversals = crate::messages::indexed_traversals();
     assert!(!state.tick_tool_spinners(now + Duration::from_millis(79)));
     paint(&state);
     assert_eq!(state.transcript_row_copies.get(), copies);
@@ -1719,6 +1765,15 @@ async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
             state.next_tool_spinner_deadline(),
             Some(now + Duration::from_millis((step + 1) * 80))
         );
+        let lines = paint(&state);
+        assert!(lines.iter().any(|line| line.contains(&format!(
+            "{} Explore Subagent",
+            crate::compaction::FRAMES[step as usize % 10]
+        ))));
+        assert_eq!(state.visible_projection_builds.get(), builds);
+        assert_eq!(state.transcript_row_copies.get(), copies);
+        assert_eq!(state.tool_spinner_membership_builds, discoveries);
+        assert_eq!(crate::messages::indexed_traversals(), traversals);
     }
     paint(&state);
     let builds = state.visible_projection_builds.get();
@@ -1726,6 +1781,7 @@ async fn actual_subagent_clock_ticks_keep_warm_cache_and_bounded_membership() {
     paint(&state);
     assert_eq!(state.visible_projection_builds.get(), builds);
     state.live_parts[0] = LivePart::Text("Non-tool replacement".into());
+    state.invalidate_transcript();
     state.tick_tool_spinners(now + Duration::from_millis(1610));
     assert!(!state.tool_spinner_clocks.contains_key("op-0"));
     state.set_session(sid("other"));
@@ -1752,32 +1808,41 @@ async fn ordinary_tool_spinner_animates_without_events_and_retires_when_settled(
         Some(now + Duration::from_millis(80))
     );
     let frame = |state: &TuiState| {
-        let mut terminal =
-            ratatui::Terminal::new(ratatui::backend::TestBackend::new(100, 30)).unwrap();
-        terminal
-            .draw(|frame| crate::shell::render(frame, state))
-            .unwrap();
-        state
-            .visible_projection
-            .borrow()
-            .as_ref()
+        rendered_transcript(state, 100, 30)
+            .into_iter()
+            .find(|line| line.contains("sleep 300"))
             .unwrap()
-            .lines
-            .iter()
-            .find(|line| line.plain_text().contains("sleep 300"))
-            .unwrap()
-            .plain_text()
-            .trim_end()
-            .to_string()
     };
     assert_eq!(frame(&state), "┃  ⠋ sleep 300 && echo 'hello ⋯'");
+    let area = crate::shell::transcript_area(&state, ratatui::layout::Rect::new(0, 0, 100, 30));
+    let header = rendered_transcript(&state, 100, 30)
+        .iter()
+        .position(|line| line.contains("sleep 300"))
+        .unwrap();
+    state.last_mouse = Some((
+        area.x + 8,
+        area.y + header as u16,
+        ratatui::layout::Rect::new(0, 0, 100, 30),
+    ));
+    frame(&state);
     let builds = state.visible_projection_builds.get();
+    let copies = state.transcript_row_copies.get();
+    let discoveries = state.tool_spinner_membership_builds;
+    let traversals = crate::messages::indexed_traversals();
     assert!(!state.tick_tool_spinners(now + Duration::from_millis(79)));
     frame(&state);
     assert_eq!(state.visible_projection_builds.get(), builds);
     // Only the UI deadline advances: there are no input/provider/tool events.
     assert!(state.tick_ui(now + Duration::from_millis(80)));
     assert_eq!(frame(&state), "┃  ⠙ sleep 300 && echo 'hello ⋯'");
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    assert_eq!(state.transcript_row_copies.get(), copies);
+    assert_eq!(state.tool_spinner_membership_builds, discoveries);
+    assert_eq!(
+        crate::messages::indexed_traversals(),
+        traversals,
+        "stationary Shell hover uses visible hit metadata"
+    );
     assert!(
         state
             .live_parts
@@ -1821,19 +1886,8 @@ async fn reasoning_spinner_animates_without_events_and_retires_when_settled() {
     state.begin_linked_turn(turn.clone());
     state.apply_reasoning_delta(&turn, "**Inspecting**\n\nfirst body");
     let headers = |state: &TuiState| {
-        let mut terminal =
-            ratatui::Terminal::new(ratatui::backend::TestBackend::new(100, 30)).unwrap();
-        terminal
-            .draw(|frame| crate::shell::render(frame, state))
-            .unwrap();
-        state
-            .visible_projection
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .lines
-            .iter()
-            .map(crate::styled::Line::plain_text)
+        rendered_transcript(state, 100, 30)
+            .into_iter()
             .filter(|line| line.contains("Thinking") || line.contains("Thought"))
             .map(|line| line.trim_end().to_string())
             .collect::<Vec<_>>()
@@ -1848,6 +1902,8 @@ async fn reasoning_spinner_animates_without_events_and_retires_when_settled() {
     );
     let builds = state.visible_projection_builds.get();
     let copies = state.transcript_row_copies.get();
+    let traversals = crate::messages::indexed_traversals();
+    let discoveries = state.tool_spinner_membership_builds;
     assert!(!state.tick_tool_spinners(now + Duration::from_millis(79)));
     headers(&state);
     assert_eq!(state.visible_projection_builds.get(), builds);
@@ -1855,6 +1911,10 @@ async fn reasoning_spinner_animates_without_events_and_retires_when_settled() {
     // Only the UI deadline advances, with no provider or input event.
     assert!(state.tick_ui(now + Duration::from_millis(80)));
     assert_eq!(headers(&state), ["   ⠙ Thinking: Inspecting"]);
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    assert_eq!(state.transcript_row_copies.get(), copies);
+    assert_eq!(crate::messages::indexed_traversals(), traversals);
+    assert_eq!(state.tool_spinner_membership_builds, discoveries);
 
     // A running group takes its header from the already-completed first part.
     state.apply_reasoning_item_ended(&turn);
@@ -1892,7 +1952,11 @@ async fn reasoning_spinner_animates_without_events_and_retires_when_settled() {
     headers(&state);
     state.tick_tool_spinners(now + Duration::from_millis(400));
     state.reset_workspace();
-    headers(&state);
+    assert!(
+        headers(&state)
+            .iter()
+            .any(|line| line.contains("⋯ Thinking: New step"))
+    );
     state.tick_tool_spinners(now + Duration::from_millis(480));
     assert!(state.reasoning_spinner_clock.is_none());
     assert_eq!(state.next_tool_spinner_deadline(), None);
@@ -1920,24 +1984,26 @@ async fn pending_delegation_clock_is_local_cached_and_demand_driven() {
     let now = Instant::now();
     assert!(!state.tick_delegations(now));
     let frame = |state: &TuiState| {
-        let mut terminal =
-            ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
-        terminal
-            .draw(|frame| crate::shell::render(frame, state))
-            .unwrap();
-        state
-            .visible_projection
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .lines
-            .iter()
-            .filter(|line| line.plain_text().contains("Delegating…"))
-            .map(crate::styled::Line::plain_text)
+        rendered_transcript(state, 80, 24)
+            .into_iter()
+            .filter(|line| line.contains("Delegating…"))
             .collect::<Vec<_>>()
     };
     assert_eq!(frame(&state), ["   ⠋ Delegating…"]);
+    let area = crate::shell::transcript_area(&state, ratatui::layout::Rect::new(0, 0, 80, 24));
+    let header = rendered_transcript(&state, 80, 24)
+        .iter()
+        .position(|line| line.contains("Delegating…"))
+        .unwrap();
+    state.last_mouse = Some((
+        area.x + 8,
+        area.y + header as u16,
+        ratatui::layout::Rect::new(0, 0, 80, 24),
+    ));
+    frame(&state);
     let builds = state.visible_projection_builds.get();
+    let copies = state.transcript_row_copies.get();
+    let traversals = crate::messages::indexed_traversals();
     assert!(!state.tick_delegations(now + Duration::from_millis(79)));
     frame(&state);
     assert_eq!(state.visible_projection_builds.get(), builds);
@@ -1955,6 +2021,13 @@ async fn pending_delegation_clock_is_local_cached_and_demand_driven() {
         assert_eq!(
             state.next_delegation_deadline(),
             Some(now + Duration::from_millis((i + 1) * 80))
+        );
+        assert_eq!(state.visible_projection_builds.get(), builds);
+        assert_eq!(state.transcript_row_copies.get(), copies);
+        assert_eq!(
+            crate::messages::indexed_traversals(),
+            traversals,
+            "stationary pending hover never composes or traverses history"
         );
     }
     let builds = state.visible_projection_builds.get();
@@ -2024,6 +2097,48 @@ async fn pending_delegation_clock_is_local_cached_and_demand_driven() {
     // The real paint above also arms the independent tab-completion animation.
     assert_eq!(state.next_delegation_deadline(), None);
     assert!(state.live_parts.is_empty());
+}
+
+#[tokio::test]
+async fn compaction_animation_patches_only_paint_and_resize_rebuilds_geometry() {
+    use oc_core::compaction::{
+        CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+    };
+    let mut state = fresh_state("compaction-paint").await;
+    state.apply_compaction(CompactionSnapshot {
+        id: "checkpoint".into(),
+        session: state.session.as_ref().unwrap().0.clone(),
+        model: None,
+        profile: None,
+        anchor: CompactionAnchor::default(),
+        reason: CompactionReason::Manual,
+        state: CompactionState::Running,
+        summary: "streamed summary ⋯".into(),
+        usage: None,
+        provider_native: false,
+        error: None,
+    });
+    let now = state.compaction_at.unwrap();
+    let first = rendered_transcript(&state, 100, 30);
+    assert!(first.iter().any(|line| line.contains("⠋ Compaction")));
+    let builds = state.visible_projection_builds.get();
+    let copies = state.transcript_row_copies.get();
+    assert!(state.tick_compaction(now + Duration::from_millis(80)));
+    let second = rendered_transcript(&state, 100, 30);
+    assert!(second.iter().any(|line| line.contains("⠙ Compaction")));
+    assert!(
+        second
+            .iter()
+            .any(|line| line.contains("streamed summary ⋯"))
+    );
+    assert_eq!(state.visible_projection_builds.get(), builds);
+    assert_eq!(state.transcript_row_copies.get(), copies);
+    assert!(
+        rendered_transcript(&state, 70, 30)
+            .iter()
+            .any(|line| line.contains("⠙ Compaction"))
+    );
+    assert_eq!(state.visible_projection_builds.get(), builds + 1);
 }
 
 #[tokio::test]
@@ -2406,14 +2521,7 @@ async fn argument_stream_exploration_groups_like_upstream_and_survives_admission
             },
         );
     }
-    let shown = |state: &TuiState| {
-        state
-            .visible_transcript(80, 80, 40)
-            .0
-            .iter()
-            .map(|line| line.plain_text().trim_end().to_string())
-            .collect::<Vec<_>>()
-    };
+    let shown = |state: &TuiState| rendered_transcript(state, 80, 40);
     let collapsed = shown(&state);
     assert!(
         collapsed.contains(&"   ⠋ Exploring: 2 reads, 1 search".to_string()),
@@ -2588,6 +2696,8 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
     assert_eq!(state.pending_tool_seen.len(), PENDING_TOOL_MAX);
     assert!(state.live_parts.len() <= super::LIVE_PARTS_MAX);
     // GenericTool's streaming row is the inline spinner and bare tool name.
+    state.viewport();
+    state.finish_transcript_projection().await;
     let shown = state.viewport();
     assert!(
         shown
@@ -2604,7 +2714,7 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
     for i in 0..super::LIVE_PARTS_MAX {
         state
             .live_parts
-            .push(super::LivePart::Text(format!("tail-{i}")));
+            .push(super::LivePart::Text(format!("tail-{i}").into()));
     }
     state.enforce_parts();
     let count = state.live_parts.len();
@@ -2757,6 +2867,18 @@ async fn cancel_releases_turn() {
     );
     let outcome = state.handle_key(KeyAction::Cancel).await;
     assert_eq!(outcome.note, None);
+    let turn = state.active_turn.clone();
+    assert_eq!(
+        outcome.intent,
+        Some(PanelIntent::CancelSession {
+            session: sid("s-cancel"),
+            turn: turn.clone(),
+            cancel_compaction: false,
+        })
+    );
+    app.cancel_turn(sid("s-cancel"), turn.unwrap())
+        .await
+        .unwrap();
     assert!(!state.interrupt_armed());
 
     let outcome = driver

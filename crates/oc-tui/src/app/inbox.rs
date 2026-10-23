@@ -5,6 +5,53 @@ use super::*;
 use oc_core::queries::{InboxAction, InboxDelivery, InboxItem};
 
 impl TuiState {
+    pub(super) fn failed_submission_selected(&self) -> bool {
+        self.panel == TuiPanel::Settings
+            && self.failed_submission_note().is_some()
+            && self
+                .modal_options()
+                .get(self.select.cursor)
+                .is_some_and(|option| option.value == "submission-refusal")
+    }
+
+    pub(super) fn recover_submission(&mut self, restore: bool) -> KeyOutcome {
+        if self.failed_submission_note().is_none() {
+            return KeyOutcome::default();
+        }
+        if restore
+            && (!self.input.is_empty() || self.editor.has_images() || self.prompt_shell_mode())
+        {
+            return KeyOutcome {
+                note: Some(
+                    "Empty the editor and leave shell mode before restoring the retained request"
+                        .into(),
+                ),
+                ..Default::default()
+            };
+        }
+        let pending = self.pending.take().expect("failed admission");
+        if restore && !matches!(pending.purpose, SubmissionPurpose::Empty) {
+            self.restore_composer_draft(pending.draft);
+            self.clear_mentions();
+            self.slash_selected = 0;
+            self.slash_dismissed = None;
+        }
+        self.refused_submission = None;
+        self.invalidate_transcript();
+        self.close_panel();
+        KeyOutcome {
+            note: Some(
+                if restore {
+                    "Draft restored; nothing resent"
+                } else {
+                    "Retained request discarded; nothing resent"
+                }
+                .into(),
+            ),
+            ..Default::default()
+        }
+    }
+
     /// Owner snapshot or event of this session's pending input.
     pub fn apply_inbox(&mut self, session: &SessionId, items: Vec<InboxItem>) {
         if self.session.as_ref() != Some(session) || self.inbox == items {
@@ -30,46 +77,9 @@ impl TuiState {
             .filter(|item| item.delivery == InboxDelivery::Queue)
     }
 
-    /// OC2 `submit(delivery)` while a turn runs. `None` means the turn already
-    /// ended: the caller submits the prompt as an ordinary new turn instead.
-    pub(super) async fn enqueue_input(&mut self, delivery: InboxDelivery) -> Option<KeyOutcome> {
-        let note = |text: &str| {
-            Some(KeyOutcome {
-                note: Some(text.into()),
-                ..KeyOutcome::default()
-            })
-        };
-        let session = self.session.clone().filter(|_| !self.home)?;
-        if self.parent_id.is_some() {
-            return note("child session is read-only");
-        }
-        let prompt = self.editor.prompt(&self.input).trimmed();
-        // OC2 prepareAgent/commitModel: the composer's choice travels with it.
-        if let Err(error) = self.commit_agent_draft().await {
-            return note(&error);
-        }
-        let selection = self.captured_model_commit();
-        match self
-            .app
-            .enqueue_selected(session.clone(), prompt, delivery, selection.clone())
-            .await
-        {
-            Ok(item) => {
-                self.model_submission_accepted(&session, selection.as_ref());
-                if !self.inbox.iter().any(|known| known.id == item.id) {
-                    self.inbox.push(item);
-                }
-                self.input.clear();
-                self.editor.clear();
-                self.input_revision += 1;
-                self.clear_mentions();
-                self.invalidate_transcript();
-                Some(KeyOutcome::default())
-            }
-            Err(CoreError::TurnNotActive) => None,
-            Err(CoreError::QueueFull) => note("too many pending prompts"),
-            Err(error) => note(&format!("prompt not accepted: {error}")),
-        }
+    /// OC2 `submit(delivery)` shares the same captured admission as idle input.
+    pub(super) fn enqueue_input(&mut self, delivery: InboxDelivery) -> KeyOutcome {
+        self.request_composer_submission(SubmissionPurpose::Inbox(delivery))
     }
 
     /// `<leader>Enter` (OC2 `prompt.queue`).
@@ -84,13 +94,17 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        if self.has_occupied_submission() {
+            return KeyOutcome {
+                note: Some(self.submission_occupied_note().into()),
+                ..Default::default()
+            };
+        }
         if text.is_empty() {
             return KeyOutcome::default();
         }
-        if self.active_turn.is_some()
-            && let Some(outcome) = self.enqueue_input(InboxDelivery::Queue).await
-        {
-            return outcome;
+        if self.active_turn.is_some() {
+            return self.enqueue_input(InboxDelivery::Queue);
         }
         // Idle: a queued prompt starts at once, exactly like Enter.
         self.handle_enter().await
@@ -223,7 +237,7 @@ impl TuiState {
             message_id: None,
             seq: i64::MAX,
             role: role.into(),
-            text,
+            text: text.into(),
             agent: None,
             agent_color_index: None,
             chips: Vec::new(),

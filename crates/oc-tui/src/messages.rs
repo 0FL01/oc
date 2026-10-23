@@ -49,9 +49,9 @@ pub const FOOTER_DURATION_MIN_WIDTH: u16 = 36;
 /// `InlineToolRow` icon column width (`message-parts.tsx:18,213-219`).
 pub const INLINE_ICON_WIDTH: usize = 2;
 const MAX_MARKDOWN_ROWS: usize = 512;
-const MAX_CACHED_BYTES: usize = 512 * 1024;
-const MAX_INDEX_BYTES: usize = 2 * 1024 * 1024;
-const LIVE_MARKDOWN_BYTES: usize = 16 * 1024;
+pub(crate) const MAX_CACHED_BYTES: usize = 512 * 1024;
+pub(crate) const MAX_INDEX_BYTES: usize = 2 * 1024 * 1024;
+pub(crate) const LIVE_MARKDOWN_BYTES: usize = 16 * 1024;
 // One indexed frame can include every history row, every retained live part,
 // and the still-open live row. A smaller LRU thrashes during the count pass.
 const MAX_REASONING_HEIGHTS: usize = crate::history::WINDOW_ROWS + crate::app::LIVE_PARTS_MAX + 1;
@@ -80,10 +80,71 @@ struct CachedBlock {
 // Only the pages intersecting the viewport are sent to the Markdown parser.
 struct IndexedPart {
     part: (i64, usize),
-    revision: u64,
-    width: u16,
-    pages: Vec<SourcePage>,
+    key: GeometryKey,
+    used: u64,
+    pages: std::sync::Arc<Vec<SourcePage>>,
     bytes: usize,
+}
+
+struct SourceHeight {
+    key: GeometryKey,
+    height: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum SourceKind {
+    Assistant,
+    Footer,
+    Reasoning,
+    User,
+}
+
+/// Actual normalized source, not its temporary position in composed history.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct GeometryKey {
+    token: u64,
+    start: usize,
+    end: usize,
+    kind: SourceKind,
+    width: u16,
+}
+
+impl GeometryKey {
+    fn new(
+        source: &crate::history::SourceText,
+        bounds: std::ops::Range<usize>,
+        kind: SourceKind,
+        width: u16,
+    ) -> Self {
+        Self {
+            token: source.token(),
+            start: bounds.start,
+            end: bounds.end,
+            kind,
+            width,
+        }
+    }
+
+    fn revision(self) -> u64 {
+        let mut hash = std::collections::hash_map::DefaultHasher::new();
+        self.hash(&mut hash);
+        hash.finish()
+    }
+}
+
+#[derive(Clone)]
+struct UserCheckpoint {
+    row: usize,
+    byte: usize,
+    has_word: bool,
+}
+
+struct UserGeometry {
+    token: u64,
+    width: u16,
+    checkpoints: std::sync::Arc<Vec<UserCheckpoint>>,
+    bytes: usize,
+    used: u64,
 }
 
 struct ReasoningHeight {
@@ -91,6 +152,9 @@ struct ReasoningHeight {
     revision: u64,
     width: u16,
     height: usize,
+    // Reuse the existing reasoning slot; a row may also have ordinary text.
+    // Do not spend a second compact-source-height slot on its indexed body.
+    indexed: Option<(GeometryKey, usize)>,
 }
 
 #[derive(Clone)]
@@ -146,6 +210,14 @@ pub(crate) struct MarkdownCache {
     index_bytes: usize,
     reasoning_heights: VecDeque<ReasoningHeight>,
     footer_sources: VecDeque<(u64, usize)>,
+    source_heights: VecDeque<SourceHeight>,
+    user_indexes: VecDeque<UserGeometry>,
+    user_index_bytes: usize,
+    use_clock: u64,
+    #[cfg(test)]
+    user_source_wraps: usize,
+    #[cfg(test)]
+    source_indexes: usize,
     #[cfg(test)]
     parses: usize,
     #[cfg(test)]
@@ -153,13 +225,15 @@ pub(crate) struct MarkdownCache {
 }
 
 impl MarkdownCache {
-    fn footer_source<'a>(&mut self, text: &'a str) -> &'a str {
+    #[cfg(test)]
+    pub(crate) fn source_index_builds(&self) -> usize {
+        self.source_indexes
+    }
+    fn footer_source<'a>(&mut self, text: &'a crate::history::SourceText) -> &'a str {
         if !text.ends_with('\n') {
             return text;
         }
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        text.hash(&mut hasher);
-        let revision = hasher.finish();
+        let revision = text.token();
         if let Some((_, end)) = self.footer_sources.iter().find(|(key, _)| *key == revision) {
             return &text[..*end];
         }
@@ -168,6 +242,7 @@ impl MarkdownCache {
         if self.footer_sources.len() > MAX_REASONING_HEIGHTS {
             self.footer_sources.pop_front();
         }
+        self.evict_source_details();
         source
     }
     fn reasoning_height(
@@ -177,18 +252,12 @@ impl MarkdownCache {
         theme: &Theme,
         width: u16,
     ) -> usize {
-        let content = reasoning_content(reasoning);
-        let mut end = content.len().min(LIVE_MARKDOWN_BYTES);
-        while !content.is_char_boundary(end) {
-            end -= 1;
-        }
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        content[..end].hash(&mut hasher);
-        content.len().hash(&mut hasher);
-        let revision = hasher.finish();
-        if let Some(position) = self.reasoning_heights.iter().position(|entry| {
-            entry.part == part && entry.revision == revision && entry.width == width
-        }) {
+        let revision = reasoning.text.token();
+        if let Some(position) = self
+            .reasoning_heights
+            .iter()
+            .position(|entry| entry.revision == revision && entry.width == width)
+        {
             let entry = self
                 .reasoning_heights
                 .remove(position)
@@ -212,35 +281,304 @@ impl MarkdownCache {
         width: u16,
         height: usize,
     ) {
+        if styled::render_cancelled() {
+            return;
+        }
         self.reasoning_heights.retain(|entry| entry.part != part);
         self.reasoning_heights.push_back(ReasoningHeight {
             part,
             revision,
             width,
             height,
+            indexed: None,
         });
         if self.reasoning_heights.len() > MAX_REASONING_HEIGHTS {
             self.reasoning_heights.pop_front();
         }
+        self.evict_source_details();
     }
 
-    fn pages(&mut self, part: (i64, usize), text: &str, width: u16) -> Vec<SourcePage> {
+    #[cfg(test)]
+    fn pages(
+        &mut self,
+        part: (i64, usize),
+        text: &str,
+        width: u16,
+    ) -> std::sync::Arc<Vec<SourcePage>> {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        part.hash(&mut hasher);
         text.hash(&mut hasher);
         let revision = hasher.finish();
-        if let Some(index) = self
-            .indexes
+        self.pages_shared(
+            part,
+            text,
+            GeometryKey {
+                token: revision,
+                start: 0,
+                end: text.len(),
+                kind: SourceKind::Assistant,
+                width,
+            },
+        )
+    }
+
+    fn source_height(&self, key: GeometryKey) -> Option<usize> {
+        if key.kind == SourceKind::Reasoning {
+            return self.reasoning_heights.iter().find_map(|entry| {
+                entry
+                    .indexed
+                    .filter(|(current, _)| *current == key)
+                    .map(|(_, height)| height)
+            });
+        }
+        self.source_heights
             .iter()
-            .find(|p| p.part == part && p.revision == revision && p.width == width)
+            .find(|entry| entry.key == key)
+            .map(|entry| entry.height)
+    }
+
+    fn retain_source_heights(&mut self, rows: &[HistoryRow], width: u16) {
+        // Revisions from an ongoing stream must not evict the exact summaries
+        // of still-reachable retained sources after a long enough turn.
+        let mut keys = Vec::new();
+        for (index, row) in rows.iter().enumerate() {
+            if styled::render_cancelled() {
+                return;
+            }
+            if row.role == "user" {
+                keys.push(GeometryKey::new(
+                    &row.text,
+                    0..row.text.len(),
+                    SourceKind::User,
+                    width.saturating_sub(1 + USER_PADDING as u16).max(1),
+                ));
+            } else if row.role == "assistant" {
+                let footer = row.meta.is_some() || footer_follows(rows, index);
+                let end = if footer {
+                    self.footer_source(&row.text).len()
+                } else {
+                    row.text.len()
+                };
+                keys.push(GeometryKey::new(
+                    &row.text,
+                    0..end,
+                    if footer {
+                        SourceKind::Footer
+                    } else {
+                        SourceKind::Assistant
+                    },
+                    width,
+                ));
+                if let Some(reasoning) = &row.reasoning
+                    && let Some(bounds) = reasoning.text.reasoning_bounds()
+                {
+                    keys.push(GeometryKey::new(
+                        &reasoning.text,
+                        bounds,
+                        SourceKind::Reasoning,
+                        width.saturating_sub(2).max(1),
+                    ));
+                }
+            }
+        }
+        keys.sort_unstable();
+        self.source_heights
+            .retain(|entry| keys.binary_search(&entry.key).is_ok());
+        self.reasoning_heights.retain_mut(|entry| {
+            let current = rows.iter().enumerate().find(|(_, row)| {
+                row.reasoning
+                    .as_ref()
+                    .is_some_and(|part| part.text.token() == entry.revision)
+            });
+            if entry.width == width
+                && let Some((index, row)) = current
+            {
+                entry.part = (row.seq, index);
+                entry.indexed = entry
+                    .indexed
+                    .filter(|(key, _)| keys.binary_search(key).is_ok());
+                true
+            } else {
+                false
+            }
+        });
+        self.footer_sources
+            .retain(|(token, _)| rows.iter().any(|row| row.text.token() == *token));
+    }
+
+    fn set_source_height(&mut self, key: GeometryKey, height: usize) {
+        if styled::render_cancelled() {
+            return;
+        }
+        if key.kind == SourceKind::Reasoning {
+            if let Some(entry) = self.reasoning_heights.iter_mut().find(|entry| {
+                entry.revision == key.token && entry.width.saturating_sub(2).max(1) == key.width
+            }) {
+                entry.indexed = Some((key, height));
+            }
+            return;
+        }
+        self.source_heights.retain(|entry| entry.key != key);
+        self.source_heights.push_back(SourceHeight { key, height });
+        while self.source_heights.len() > MAX_REASONING_HEIGHTS {
+            self.source_heights.pop_front();
+        }
+    }
+
+    fn user_height(&mut self, source: &crate::history::SourceText, width: u16) -> usize {
+        let key = GeometryKey::new(source, 0..source.len(), SourceKind::User, width);
+        if let Some(height) = self.source_height(key) {
+            return height;
+        }
+        self.user_geometry(source, width);
+        self.source_height(key).unwrap_or(0)
+    }
+
+    fn user_geometry(
+        &mut self,
+        source: &crate::history::SourceText,
+        width: u16,
+    ) -> std::sync::Arc<Vec<UserCheckpoint>> {
+        self.use_clock = self.use_clock.wrapping_add(1);
+        if let Some(index) = self
+            .user_indexes
+            .iter_mut()
+            .find(|index| index.token == source.token() && index.width == width)
         {
+            index.used = self.use_clock;
+            return index.checkpoints.clone();
+        }
+        #[cfg(test)]
+        {
+            self.user_source_wraps += 1;
+        }
+        let mut checkpoints = Vec::new();
+        let mut stride = 64;
+        let mut height = 0;
+        let mut base = 0;
+        if !source.is_empty() {
+            for raw in source.split('\n') {
+                if styled::render_cancelled() {
+                    return std::sync::Arc::new(Vec::new());
+                }
+                let mut original = raw.char_indices();
+                let mut raw_byte = 0;
+                let mut has_word = false;
+                styled::visit_source_rows(raw, width as usize, usize::MAX, false, |line| {
+                    if height % stride == 0 {
+                        let at = line.source_range().map_or(0, |range| range.start);
+                        while raw_byte < at {
+                            let Some((byte, ch)) = original.next() else {
+                                break;
+                            };
+                            raw_byte = byte + ch.len_utf8();
+                            has_word |= ch.is_control() || !styled::wrap_whitespace_char(ch);
+                        }
+                        checkpoints.push(UserCheckpoint {
+                            row: height,
+                            byte: base + raw_byte,
+                            has_word,
+                        });
+                        if checkpoints.len() * std::mem::size_of::<UserCheckpoint>()
+                            > MAX_INDEX_BYTES / 4
+                        {
+                            stride *= 2;
+                            checkpoints.retain(|checkpoint| checkpoint.row % stride == 0);
+                        }
+                    }
+                    height += 1;
+                });
+                base += raw.len() + 1;
+            }
+        }
+        if styled::render_cancelled() {
+            return std::sync::Arc::new(Vec::new());
+        }
+        self.set_source_height(
+            GeometryKey::new(source, 0..source.len(), SourceKind::User, width),
+            height,
+        );
+        if styled::render_cancelled() {
+            return std::sync::Arc::new(Vec::new());
+        }
+        let bytes = checkpoints.capacity() * std::mem::size_of::<UserCheckpoint>();
+        let checkpoints = std::sync::Arc::new(checkpoints);
+        self.user_indexes.retain(|index| {
+            if index.token == source.token() {
+                self.user_index_bytes -= index.bytes;
+                false
+            } else {
+                true
+            }
+        });
+        self.user_index_bytes += bytes;
+        self.user_indexes.push_back(UserGeometry {
+            token: source.token(),
+            width,
+            checkpoints: checkpoints.clone(),
+            bytes,
+            used: self.use_clock,
+        });
+        self.evict_source_details();
+        checkpoints
+    }
+
+    fn evict_source_details(&mut self) {
+        while self.indexes.len() + self.user_indexes.len() > 32
+            || self.index_bytes() > MAX_INDEX_BYTES
+        {
+            let markdown = self
+                .indexes
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, index)| index.used);
+            let user = self
+                .user_indexes
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, index)| index.used);
+            if let Some((position, _)) =
+                markdown.filter(|(_, index)| user.is_none_or(|(_, user)| index.used <= user.used))
+            {
+                let index = self.indexes.remove(position).expect("source detail");
+                self.index_bytes -= index.bytes;
+            } else if let Some((position, _)) = user {
+                let index = self
+                    .user_indexes
+                    .remove(position)
+                    .expect("user source detail");
+                self.user_index_bytes -= index.bytes;
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn pages_shared(
+        &mut self,
+        part: (i64, usize),
+        text: &str,
+        key: GeometryKey,
+    ) -> std::sync::Arc<Vec<SourcePage>> {
+        self.use_clock = self.use_clock.wrapping_add(1);
+        if let Some(index) = self.indexes.iter_mut().find(|p| p.key == key) {
+            index.part = part;
+            index.used = self.use_clock;
             return index.pages.clone();
         }
-        let mut pages = index_source(text, width);
+        #[cfg(test)]
+        {
+            self.source_indexes += 1;
+        }
+        let mut pages = index_source(text, key.width);
+        if styled::render_cancelled() {
+            return std::sync::Arc::new(Vec::new());
+        }
         for page in &mut pages {
-            page.source_revision = revision;
+            page.source_revision = key.revision();
         }
         self.indexes.retain(|p| {
-            if p.part == part {
+            if p.part == part && p.key.kind == key.kind {
                 self.index_bytes -= p.bytes;
                 false
             } else {
@@ -248,37 +586,65 @@ impl MarkdownCache {
             }
         });
         let bytes = Self::pages_bytes(&pages);
+        let height = pages.iter().map(|page| page.height).sum();
+        self.set_source_height(key, height);
+        if styled::render_cancelled() {
+            return std::sync::Arc::new(Vec::new());
+        }
+        let pages = std::sync::Arc::new(pages);
         self.index_bytes += bytes;
         self.indexes.push_back(IndexedPart {
             part,
-            revision,
-            width,
+            key,
+            used: self.use_clock,
             pages: pages.clone(),
             bytes,
         });
         // The index is bounded by the loaded history window, with a fixed
         // ceiling for pathological numbers of independently paged parts.
-        while self.indexes.len() > 32 || self.index_bytes() > MAX_INDEX_BYTES {
-            if let Some(index) = self.indexes.pop_front() {
-                self.index_bytes -= index.bytes;
-            }
-        }
+        self.evict_source_details();
         pages
     }
 
-    fn update_page_height(&mut self, part: (i64, usize), width: u16, page: usize, height: usize) {
-        if let Some(index) = self
-            .indexes
-            .iter_mut()
-            .find(|p| p.part == part && p.width == width)
-            && let Some(entry) = index.pages.get_mut(page)
+    fn update_page_height(&mut self, key: GeometryKey, page: usize, height: usize) {
+        if styled::render_cancelled() {
+            return;
+        }
+        if let Some(index) = self.indexes.iter_mut().find(|p| p.key == key)
+            && index
+                .pages
+                .get(page)
+                .is_some_and(|entry| entry.height != height)
         {
+            let entry = &mut std::sync::Arc::make_mut(&mut index.pages)[page];
+            let old = entry.height;
             entry.height = height;
+            if key.kind == SourceKind::Reasoning
+                && let Some((_, total)) = self.reasoning_heights.iter_mut().find_map(|entry| {
+                    entry
+                        .indexed
+                        .as_mut()
+                        .filter(|(current, _)| *current == key)
+                })
+            {
+                *total = total.saturating_sub(old) + height;
+            }
+            if let Some(summary) = self
+                .source_heights
+                .iter_mut()
+                .find(|entry| entry.key == key)
+            {
+                summary.height = summary.height.saturating_sub(old) + height;
+            }
         }
     }
 
-    fn index_bytes(&self) -> usize {
+    pub(crate) fn index_bytes(&self) -> usize {
         self.index_bytes
+            + self.user_index_bytes
+            + self.source_heights.capacity() * std::mem::size_of::<SourceHeight>()
+            + self.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
+            + self.footer_sources.capacity() * std::mem::size_of::<(u64, usize)>()
     }
 
     fn pages_bytes(pages: &[SourcePage]) -> usize {
@@ -376,7 +742,7 @@ impl MarkdownCache {
             .flat_map(Line::spans)
             .map(|s| s.content().len())
             .sum();
-        if bytes <= MAX_CACHED_BYTES {
+        if bytes <= MAX_CACHED_BYTES && !styled::render_cancelled() {
             if let Some(position) = self
                 .blocks
                 .iter()
@@ -410,10 +776,7 @@ impl MarkdownCache {
     }
 
     pub(crate) fn retained_bytes(&self) -> usize {
-        self.bytes
-            + self.index_bytes()
-            + self.reasoning_heights.capacity() * std::mem::size_of::<ReasoningHeight>()
-            + self.footer_sources.capacity() * std::mem::size_of::<(u64, usize)>()
+        self.bytes + self.index_bytes()
     }
 }
 
@@ -460,7 +823,7 @@ pub struct Chip {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReasoningBlock {
     /// Raw reasoning text (summary deltas concatenated).
-    pub text: String,
+    pub text: crate::history::SourceText,
     /// Reasoning duration in milliseconds; `None`/`0` hides the field.
     pub duration_ms: Option<u64>,
     /// True while the block still streams (`!completed` upstream).
@@ -574,7 +937,7 @@ pub(crate) fn transcript_with_expansion(
         }
         if let Some(group) = reasoning_group(rows, index) {
             grouped_until = index + group.members.len();
-            visit_reasoning_group(&group, theme, width, index, cache, |_, render| {
+            visit_reasoning_group(&group, theme, width, index, cache, false, |_, render| {
                 out.extend(render())
             });
             continue;
@@ -689,6 +1052,7 @@ fn expandable_tool_entry(
 
 /// BlockTool hover darkens the whole raised box; exploration hover changes text only.
 /// Call only after an eligible operation hit from exploration_header_at.
+#[cfg(test)]
 pub(crate) fn tool_hover_range(rows: &[Line], theme: &Theme, row: usize) -> std::ops::Range<usize> {
     let block = |line: &Line| line.style().bg == Some(theme.background_raised());
     let mut start = row;
@@ -860,6 +1224,7 @@ fn visit_reasoning_group(
     width: u16,
     first_index: usize,
     cache: Option<&RefCell<MarkdownCache>>,
+    count_only: bool,
     mut emit: impl FnMut(usize, &mut dyn FnMut() -> Vec<Line>),
 ) {
     let lines = vec![Line::plain(""), reasoning_group_header(group, theme, width)];
@@ -881,7 +1246,9 @@ fn visit_reasoning_group(
                 if reasoning_content(part).len() > LIVE_MARKDOWN_BYTES
                     || height >= MAX_MARKDOWN_ROWS
                 {
-                    visit_reasoning_body_indexed(part, key, theme, width, cache, &mut emit);
+                    visit_reasoning_body_indexed(
+                        part, key, theme, width, cache, count_only, &mut emit,
+                    );
                 } else {
                     emit(height, &mut render);
                 }
@@ -912,13 +1279,19 @@ fn visit_reasoning_body_indexed(
     theme: &Theme,
     width: u16,
     cache: &RefCell<MarkdownCache>,
+    count_only: bool,
     emit: &mut ReasoningBodyEmitter<'_>,
 ) {
-    let source = HistoryRow {
-        seq: key.0,
-        role: "assistant".into(),
-        text: reasoning_content(part).into_owned(),
-        ..Default::default()
+    // The common nonredacted body keeps the immutable source/token. Only the
+    // redaction transform needs owned cleanup, on the projection worker.
+    cache.borrow_mut().reasoning_height(key, part, theme, width);
+    let cleaned;
+    let (source, bounds) = if let Some(bounds) = part.text.reasoning_bounds() {
+        (&part.text, bounds)
+    } else {
+        cleaned = crate::history::SourceText::from(reasoning_content(part).into_owned());
+        let end = cleaned.len();
+        (&cleaned, 0..end)
     };
     let body_width = width.saturating_sub(2).max(1);
     let border = Style::default().fg(theme.decrease(if part.toggleable {
@@ -928,8 +1301,12 @@ fn visit_reasoning_body_indexed(
     }));
     let mut separator = true;
     visit_assistant_indexed(
-        &source,
-        (key.1, false, false),
+        AssistantInput::Body {
+            seq: key.0,
+            source,
+            bounds,
+        },
+        (key.1, false, false, count_only),
         theme,
         (body_width, body_width),
         &|_| Color::Reset,
@@ -973,7 +1350,7 @@ impl ReasoningGroup<'_> {
 
 fn reasoning_group_header(group: &ReasoningGroup<'_>, theme: &Theme, width: u16) -> Line {
     let mut header = group.first().clone();
-    header.text = format!("**{}**", group.title);
+    header.text = format!("**{}**", group.title).into();
     header.duration_ms = group.duration_ms;
     header.running = group.running;
     if group.running {
@@ -1118,7 +1495,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
         .collect::<Vec<_>>()
         .join(", ");
     let muted = Style::default().fg(theme.text_muted());
-    let header = vec![
+    let mut header = vec![
         Line::plain(""),
         Line::new(vec![
             Span::plain(" ".repeat(MESSAGE_PADDING)),
@@ -1140,6 +1517,18 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
             ),
         ]),
     ];
+    if let Some(card) = members
+        .iter()
+        .map(|index| &rows[*index])
+        .find(|row| exploration_kind(row).is_some_and(|(_, done)| !done))
+        .and_then(|row| row.tool.as_ref())
+        .filter(|card| crate::tools::tool_spinner_animated(card))
+    {
+        header[1] = std::mem::take(&mut header[1]).animate(
+            MESSAGE_PADDING,
+            styled::AnimationSource::Tool(card.op.clone()),
+        );
+    }
     Some(ExplorationGroup {
         end,
         members,
@@ -1257,7 +1646,7 @@ fn render_row(
             );
             lines
         }
-        "compaction" | "compaction_failed" | "compaction_queued" => {
+        "compaction" | "compaction_running" | "compaction_failed" | "compaction_queued" => {
             crate::compaction::block(row, theme, width)
         }
         "reverted" => reverted_block(&row.text, row.agent.as_deref().unwrap_or(""), theme, width),
@@ -1320,7 +1709,7 @@ fn sanitize_line(line: Line) -> Line {
     Line::new(
         line.spans()
             .iter()
-            .map(|span| Span::styled(safe_text(span.content()), span.style()))
+            .map(|span| span.with_content(safe_text(span.content())))
             .collect(),
     )
     .with_style(line.style())
@@ -1398,8 +1787,8 @@ fn visit_row_blocks(
     }
     if row.role == "assistant" && width > 0 {
         visit_assistant_indexed(
-            row,
-            (index, live, footer_after),
+            AssistantInput::Row(row),
+            (index, live, footer_after, false),
             theme,
             (width, terminal_width),
             agent_color,
@@ -1419,29 +1808,66 @@ fn visit_row_blocks(
     ));
 }
 
+enum AssistantInput<'a> {
+    Row(&'a HistoryRow),
+    Body {
+        seq: i64,
+        source: &'a crate::history::SourceText,
+        bounds: std::ops::Range<usize>,
+    },
+}
+
 fn visit_assistant_indexed(
-    row: &HistoryRow,
-    identity: (usize, bool, bool),
+    input: AssistantInput<'_>,
+    identity: (usize, bool, bool, bool),
     theme: &Theme,
     widths: (u16, u16),
     agent_color: &impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     mut emit: impl FnMut(usize, bool, &mut dyn FnMut() -> Vec<Line>),
 ) {
-    let (index, live, footer_after) = identity;
+    let (index, live, footer_after, count_only) = identity;
     let (width, terminal_width) = widths;
-    let text = if row.meta.is_some() || footer_after {
-        cache.borrow_mut().footer_source(&row.text)
-    } else {
-        &row.text
+    let (row, seq, text, geometry) = match input {
+        AssistantInput::Row(row) => {
+            let footer = row.meta.is_some() || footer_after;
+            let text: &str = if footer {
+                cache.borrow_mut().footer_source(&row.text)
+            } else {
+                &row.text
+            };
+            (
+                Some(row),
+                row.seq,
+                text,
+                GeometryKey::new(
+                    &row.text,
+                    0..text.len(),
+                    if footer {
+                        SourceKind::Footer
+                    } else {
+                        SourceKind::Assistant
+                    },
+                    width,
+                ),
+            )
+        }
+        AssistantInput::Body {
+            seq,
+            source,
+            bounds,
+        } => {
+            let geometry = GeometryKey::new(source, bounds.clone(), SourceKind::Reasoning, width);
+            (None, seq, &source[bounds], geometry)
+        }
     };
-    if let Some(reasoning) = &row.reasoning {
+    if let Some(reasoning) = row.and_then(|row| row.reasoning.as_ref()) {
         if reasoning.expanded
             && !reasoning_content(reasoning).is_empty()
             && (reasoning_content(reasoning).len() > LIVE_MARKDOWN_BYTES
                 || cache
                     .borrow_mut()
-                    .reasoning_height((row.seq, index), reasoning, theme, width)
+                    .reasoning_height((seq, index), reasoning, theme, width)
                     >= MAX_MARKDOWN_ROWS)
         {
             emit(2, false, &mut || {
@@ -1452,10 +1878,11 @@ fn visit_assistant_indexed(
             });
             visit_reasoning_body_indexed(
                 reasoning,
-                (row.seq, index),
+                (seq, index),
                 theme,
                 width,
                 cache,
+                count_only,
                 &mut |height, render| emit(height, false, render),
             );
         } else {
@@ -1475,117 +1902,120 @@ fn visit_assistant_indexed(
             // full and can be scrolled, including the region past this limit.
             let height = estimated_lines(preview, width) + 1;
             emit(height, false, &mut || {
-                let mut lines =
-                    cache
-                        .borrow_mut()
-                        .render((row.seq, index, 0), preview, theme, width);
+                let mut lines = cache
+                    .borrow_mut()
+                    .render((seq, index, 0), preview, theme, width);
                 lines.push(Line::styled("   … [Live Markdown preview limited; full response available in history after completion]", Style::default().fg(theme.text_muted())));
                 lines
             });
         } else {
-            let pages = cache.borrow_mut().pages((row.seq, index), text, width);
-            for (number, page) in pages.into_iter().enumerate() {
-                let height = page.height;
-                emit(height, false, &mut || {
-                    let mut source = String::new();
-                    if let Some((start, end)) = page.table_header {
-                        source.push_str(&text[start..end]);
-                    }
-                    if let Some(open) = &page.fence {
-                        source.push_str(open);
-                        source.push('\n');
-                    }
-                    let chunk = &text[page.start..page.end];
-                    if let Some(segment) = &page.table_segment {
-                        source.push_str(&segment.prefix);
-                        source.push_str(chunk);
-                        source.push_str(&segment.suffix);
-                    } else if let Some(number) = page.list_number {
-                        // CommonMark numbers following a page boundary must
-                        // continue from the original list, even if all source
-                        // markers read `1.`.
-                        if let Some((_, rest)) = ordered_marker(chunk.lines().next().unwrap_or(""))
-                        {
-                            source.push_str(&number.to_string());
-                            let marker_len = chunk.lines().next().unwrap_or("").len() - rest.len();
-                            source.push(chunk.as_bytes()[marker_len - 1] as char);
-                            source.push_str(&chunk[marker_len..]);
+            let cached_height = cache.borrow().source_height(geometry);
+            if count_only && let Some(height) = cached_height {
+                emit(height, false, &mut Vec::new);
+            } else {
+                let pages = cache
+                    .borrow_mut()
+                    .pages_shared((seq, index), text, geometry);
+                for (number, page) in pages.iter().enumerate() {
+                    let height = page.height;
+                    emit(height, false, &mut || {
+                        let mut source = String::new();
+                        if let Some((start, end)) = page.table_header {
+                            source.push_str(&text[start..end]);
+                        }
+                        if let Some(open) = &page.fence {
+                            source.push_str(open);
+                            source.push('\n');
+                        }
+                        let chunk = &text[page.start..page.end];
+                        if let Some(segment) = &page.table_segment {
+                            source.push_str(&segment.prefix);
+                            source.push_str(chunk);
+                            source.push_str(&segment.suffix);
+                        } else if let Some(number) = page.list_number {
+                            // CommonMark numbers following a page boundary must
+                            // continue from the original list, even if all source
+                            // markers read `1.`.
+                            if let Some((_, rest)) =
+                                ordered_marker(chunk.lines().next().unwrap_or(""))
+                            {
+                                source.push_str(&number.to_string());
+                                let marker_len =
+                                    chunk.lines().next().unwrap_or("").len() - rest.len();
+                                source.push(chunk.as_bytes()[marker_len - 1] as char);
+                                source.push_str(&chunk[marker_len..]);
+                            } else {
+                                source.push_str(chunk);
+                            }
                         } else {
                             source.push_str(chunk);
                         }
-                    } else {
-                        source.push_str(chunk);
-                    }
-                    if page.table_header.is_some() && !page.last_table_page {
-                        // Table pages are stitched at a row separator. A
-                        // synthetic header is needed by CommonMark on each
-                        // continuation but must not appear in the viewport.
-                        if source.ends_with('\n') {
+                        if page.table_header.is_some() && !page.last_table_page {
+                            // Table pages are stitched at a row separator. A
+                            // synthetic header is needed by CommonMark on each
+                            // continuation but must not appear in the viewport.
+                            if source.ends_with('\n') {
+                                source.pop();
+                            }
+                        } else if !page
+                            .table_segment
+                            .as_ref()
+                            .is_some_and(|s| s.terminal_newline)
+                            && page.end < text.len()
+                            && source.ends_with('\n')
+                        {
                             source.pop();
                         }
-                    } else if !page
-                        .table_segment
-                        .as_ref()
-                        .is_some_and(|s| s.terminal_newline)
-                        && page.end < row.text.len()
-                        && source.ends_with('\n')
-                    {
-                        source.pop();
-                    }
-                    let mut lines = if let Some(columns) = &page.table_widths {
-                        // All slices of the same table share widths measured
-                        // over its actual source rows, including off-screen
-                        // cells that could otherwise change the grid mid-table.
-                        let mut cache = cache.borrow_mut();
-                        cache.render_table_page(
-                            (row.seq, index, number),
-                            &source,
-                            theme,
-                            width,
-                            columns,
-                        )
-                    } else {
-                        cache.borrow_mut().render_page(
-                            (row.seq, index, number),
-                            &source,
-                            theme,
-                            width,
-                            PageSyntax {
-                                source: text,
-                                page: &page,
-                            },
-                        )
-                    };
-                    if page.table_header.is_some() {
-                        if page.continuation {
-                            let hidden = if page.table_segment.as_ref().is_some_and(|s| s.same_row)
+                        let mut lines = if let Some(columns) = &page.table_widths {
+                            // All slices of the same table share widths measured
+                            // over its actual source rows, including off-screen
+                            // cells that could otherwise change the grid mid-table.
+                            let mut cache = cache.borrow_mut();
+                            cache.render_table_page(
+                                (seq, index, number),
+                                &source,
+                                theme,
+                                width,
+                                columns,
+                            )
+                        } else {
+                            cache.borrow_mut().render_page(
+                                (seq, index, number),
+                                &source,
+                                theme,
+                                width,
+                                PageSyntax { source: text, page },
+                            )
+                        };
+                        if page.table_header.is_some() {
+                            if page.continuation {
+                                let hidden =
+                                    if page.table_segment.as_ref().is_some_and(|s| s.same_row) {
+                                        3
+                                    } else {
+                                        2
+                                    };
+                                lines.drain(..hidden.min(lines.len()));
+                            }
+                            if !page.last_table_page
+                                && lines
+                                    .last()
+                                    .is_some_and(|line| line.plain_text().contains('└'))
                             {
-                                3
-                            } else {
-                                2
-                            };
-                            lines.drain(..hidden.min(lines.len()));
+                                lines.pop();
+                            }
                         }
-                        if !page.last_table_page
-                            && lines
-                                .last()
-                                .is_some_and(|line| line.plain_text().contains('└'))
-                        {
-                            lines.pop();
-                        }
-                    }
-                    cache.borrow_mut().update_page_height(
-                        (row.seq, index),
-                        width,
-                        number,
-                        lines.len(),
-                    );
-                    lines
-                });
+                        cache
+                            .borrow_mut()
+                            .update_page_height(geometry, number, lines.len());
+                        lines
+                    });
+                }
             }
         }
     }
-    if let Some(meta) = &row.meta
+    if let Some(row) = row
+        && let Some(meta) = &row.meta
         && let Some(footer) = footer_line(
             row.agent.as_deref(),
             meta,
@@ -1863,6 +2293,9 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
     let mut lines = Vec::new();
     let mut start = 0;
     for line in text.split_inclusive('\n') {
+        if styled::render_cancelled() {
+            return Vec::new();
+        }
         // A table row's pipes/inline Markdown are one semantic source line.
         // Split only after its cell ranges have been identified below.
         if table_source(line).0.starts_with('|') {
@@ -1872,6 +2305,9 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
         }
         let mut offset = 0;
         while line.len() - offset > 4096 {
+            if styled::render_cancelled() {
+                return Vec::new();
+            }
             let segment = &line[offset..];
             let mut boundary = 0;
             let mut word_boundary = 0;
@@ -1908,6 +2344,9 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
     let mut at_line_start = true;
     let mut next_list_number: Option<u64> = None;
     while i < lines.len() {
+        if styled::render_cancelled() {
+            return Vec::new();
+        }
         let (begin, _) = lines[i];
         let line = |n: usize| &text[lines[n].0..lines[n].1];
         let (header, quote_depth) = table_source(line(i));
@@ -1924,11 +2363,21 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
                 && table_source(line(j)).1 == quote_depth
                 && table_source(line(j)).0.starts_with('|')
             {
+                if styled::render_cancelled() {
+                    return Vec::new();
+                }
                 j += 1;
             }
             let table_rows: Vec<Vec<String>> = std::iter::once(table_cells(header))
-                .chain((i + 2..j).map(|n| table_cells(table_source(line(n)).0)))
+                .chain(
+                    (i + 2..j)
+                        .take_while(|_| !styled::render_cancelled())
+                        .map(|n| table_cells(table_source(line(n)).0)),
+                )
                 .collect();
+            if styled::render_cancelled() {
+                return Vec::new();
+            }
             let available = (width as usize).saturating_sub(MESSAGE_PADDING).max(1);
             let widths = table_column_widths(&table_rows, available);
             let heights: Vec<usize> = table_rows
@@ -1955,6 +2404,9 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
             }
             let mut first = true;
             while first || cursor < j {
+                if styled::render_cancelled() {
+                    return Vec::new();
+                }
                 if cursor < j && line(cursor).len() > 4096 {
                     let budget = widths
                         .last()
@@ -1971,6 +2423,9 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
                         let blank_prefix = blank_table_label(&prefix);
                         let fragments_len = fragments.len();
                         for (fragment_number, (start, end)) in fragments.into_iter().enumerate() {
+                            if styled::render_cancelled() {
+                                return Vec::new();
+                            }
                             let same_row = fragment_number != 0;
                             let final_page =
                                 cursor + 1 == j && fragment_number + 1 == fragments_len;
@@ -2124,6 +2579,9 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
     let mut regions = Vec::new();
     for line in text.split_inclusive('\n') {
         let before = opened.is_some();
+        if styled::render_cancelled() {
+            return Vec::new();
+        }
         advance_fence(line, &mut opened, &mut at_start);
         if !before && opened.is_some() {
             current = Some(CodeFence {
@@ -2168,7 +2626,7 @@ pub(crate) fn visible_transcript(
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _, _, _) = visible_transcript_indexed(
+    let (lines, total, _, _, _, _) = visible_transcript_indexed(
         rows,
         theme,
         (width, terminal_width),
@@ -2178,6 +2636,7 @@ pub(crate) fn visible_transcript(
         ExplorationOptions {
             expanded: &|_| false,
             point: None,
+            regions: None,
             retries: 2,
         },
     );
@@ -2202,6 +2661,7 @@ pub(crate) fn exploration_header_at(
 }
 
 /// Owner-derived visible hover extent, separate from untrusted parameter/body text.
+#[cfg(test)]
 pub(crate) fn exploration_header_at_with_range(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -2221,6 +2681,7 @@ pub(crate) fn exploration_header_at_with_range(
         ExplorationOptions {
             expanded: hit.0,
             point: Some(hit.1),
+            regions: None,
             retries: 2,
         },
     )
@@ -2233,6 +2694,7 @@ pub(crate) fn exploration_header_at_with_range(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn reasoning_header_at(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -2252,6 +2714,7 @@ pub(crate) fn reasoning_header_at(
         ExplorationOptions {
             expanded: hit.0,
             point: Some(hit.1),
+            regions: None,
             retries: 2,
         },
     )
@@ -2264,6 +2727,7 @@ pub(crate) fn reasoning_header_at(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn captured_child_at_with_range(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -2283,41 +2747,13 @@ pub(crate) fn captured_child_at_with_range(
         ExplorationOptions {
             expanded: hit.0,
             point: Some(hit.1),
+            regions: None,
             retries: 2,
         },
     )
     .2
     .and_then(|hit| match hit {
         TranscriptHit::ChildNotice(job, range, tool) => Some((job, range, tool)),
-        _ => None,
-    })
-}
-
-pub(crate) fn pending_subagent_hover_at(
-    rows: &[HistoryRow],
-    theme: &Theme,
-    widths: (u16, u16),
-    viewport: (usize, usize, Option<usize>),
-    agent_color: impl Fn(Option<&str>) -> Color,
-    cache: &RefCell<MarkdownCache>,
-    hit: (&impl Fn(ToolExpansion<'_>) -> bool, (usize, usize)),
-) -> Option<std::ops::Range<usize>> {
-    visible_transcript_indexed(
-        rows,
-        theme,
-        widths,
-        viewport,
-        &agent_color,
-        cache,
-        ExplorationOptions {
-            expanded: hit.0,
-            point: Some(hit.1),
-            retries: 2,
-        },
-    )
-    .2
-    .and_then(|hit| match hit {
-        TranscriptHit::PendingSubagentHover(range) => Some(range),
         _ => None,
     })
 }
@@ -2364,7 +2800,7 @@ pub(crate) fn visible_transcript_expanded(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _, _, _) = visible_transcript_indexed(
+    let (lines, total, _, _, _, _) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -2374,6 +2810,7 @@ pub(crate) fn visible_transcript_expanded(
         ExplorationOptions {
             expanded,
             point: None,
+            regions: None,
             retries: 2,
         },
     );
@@ -2464,10 +2901,19 @@ pub(crate) fn visible_transcript_user_targets(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize, Vec<Option<UserMessageTarget>>) {
-    let (lines, total, targets, _) =
+    let (lines, total, targets, _, _, _) =
         visible_transcript_targets(rows, theme, widths, viewport, agent_color, cache, expanded);
     (lines, total, targets)
 }
+
+type VisibleTranscriptTargets = (
+    Vec<Line>,
+    usize,
+    Vec<Option<UserMessageTarget>>,
+    Vec<ChildNavigationHit>,
+    Vec<TranscriptRegion>,
+    Option<(usize, usize)>,
+);
 
 pub(crate) fn visible_transcript_targets(
     rows: &[HistoryRow],
@@ -2477,13 +2923,9 @@ pub(crate) fn visible_transcript_targets(
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
-) -> (
-    Vec<Line>,
-    usize,
-    Vec<Option<UserMessageTarget>>,
-    Vec<ChildNavigationHit>,
-) {
-    let (lines, total, _, targets, children) = visible_transcript_indexed(
+) -> VisibleTranscriptTargets {
+    let regions = RefCell::new(Vec::new());
+    let (lines, total, _, targets, children, top) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -2493,10 +2935,11 @@ pub(crate) fn visible_transcript_targets(
         ExplorationOptions {
             expanded,
             point: None,
+            regions: Some(&regions),
             retries: 2,
         },
     );
-    (lines, total, targets, children)
+    (lines, total, targets, children, regions.into_inner(), top)
 }
 
 /// Only visible label cells, indexed during the same traversal as their pixels.
@@ -2533,6 +2976,7 @@ pub(crate) fn same_child_launch(
 struct ExplorationOptions<'a> {
     expanded: &'a dyn Fn(ToolExpansion<'_>) -> bool,
     point: Option<(usize, usize)>,
+    regions: Option<&'a RefCell<Vec<TranscriptRegion>>>,
     retries: u8,
 }
 
@@ -2548,11 +2992,80 @@ pub(crate) enum CapturedChildTarget {
     },
 }
 
-enum TranscriptHit {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum TranscriptHit {
     PendingSubagentHover(std::ops::Range<usize>),
     Exploration(String, std::ops::Range<usize>),
     Reasoning(ReasoningIdentity),
     ChildNotice(CapturedChildTarget, std::ops::Range<usize>, bool),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TranscriptRegion {
+    spans: Vec<(usize, std::ops::Range<usize>)>,
+    target: TranscriptHit,
+}
+
+pub(crate) fn transcript_hit(
+    regions: &[TranscriptRegion],
+    x: usize,
+    y: usize,
+) -> Option<TranscriptHit> {
+    regions
+        .iter()
+        .rev()
+        .find(|region| {
+            region
+                .spans
+                .iter()
+                .any(|(row, columns)| *row == y && columns.contains(&x))
+        })
+        .map(|region| region.target.clone())
+}
+
+fn record_region(
+    options: ExplorationOptions<'_>,
+    lines: &[Line],
+    at: usize,
+    viewport: (usize, usize),
+    width: u16,
+    rectangle: bool,
+    target: TranscriptHit,
+) {
+    let Some(regions) = options.regions else {
+        return;
+    };
+    let (start, end) = viewport;
+    let minimum = match &target {
+        TranscriptHit::Reasoning(_)
+        | TranscriptHit::ChildNotice(CapturedChildTarget::Execute { .. }, _, _) => MESSAGE_PADDING,
+        _ => 0,
+    };
+    let spans = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(offset, line)| {
+            let row = at + offset;
+            if row < start || row >= end {
+                return None;
+            }
+            let text = line.plain_text();
+            let (first, last) = if rectangle {
+                (0, width as usize)
+            } else {
+                (
+                    (text.width() - text.trim_start().width()).max(minimum),
+                    text.trim_end().width().min(width as usize),
+                )
+            };
+            (first < last).then_some((row - start, first..last))
+        })
+        .collect::<Vec<_>>();
+    if !spans.is_empty() {
+        regions
+            .borrow_mut()
+            .push(TranscriptRegion { spans, target });
+    }
 }
 
 type IndexedTranscript = (
@@ -2561,6 +3074,7 @@ type IndexedTranscript = (
     Option<TranscriptHit>,
     Vec<Option<UserMessageTarget>>,
     Vec<ChildNavigationHit>,
+    Option<(usize, usize)>,
 );
 
 fn visible_transcript_indexed(
@@ -2576,6 +3090,10 @@ fn visible_transcript_indexed(
     INDEXED_TRAVERSALS.set(INDEXED_TRAVERSALS.get() + 1);
     let (width, terminal_width) = widths;
     let (height, scroll, live_row) = viewport;
+    if let Some(regions) = options.regions {
+        regions.borrow_mut().clear();
+    }
+    let mut positions = vec![(0, 0); rows.len()];
     let total = transcript_part_positions(
         rows,
         theme,
@@ -2583,10 +3101,14 @@ fn visible_transcript_indexed(
         agent_color,
         cache,
         options.expanded,
-        |_, _, _| {},
+        |index, start, end| positions[index] = (start, end),
     );
     let end = total.saturating_sub(scroll.min(total.saturating_sub(height)));
     let start = end.saturating_sub(height);
+    let top = positions
+        .iter()
+        .enumerate()
+        .find_map(|(index, &(at, end))| (at <= start && start < end).then(|| (index, start - at)));
     let mut visible = Vec::with_capacity(height);
     let mut user_targets = vec![None; height];
     let mut child_targets = Vec::new();
@@ -2598,14 +3120,32 @@ fn visible_transcript_indexed(
     let mut hit = None;
     let mut grouped_until = 0;
     for (index, row) in rows.iter().enumerate() {
+        if styled::render_cancelled() {
+            break;
+        }
         if position >= end {
             break;
         }
         if index < grouped_until {
             continue;
         }
+        if positions[index].1 <= start {
+            position = position.max(positions[index].1);
+            continue;
+        }
         if let Some(group) = reasoning_group(rows, index) {
             grouped_until = index + group.members.len();
+            if let Some(id) = group.first().identity {
+                record_region(
+                    options,
+                    &[reasoning_group_header(&group, theme, width)],
+                    position + 1,
+                    (start, end),
+                    width,
+                    false,
+                    TranscriptHit::Reasoning(id),
+                );
+            }
             if let Some((x, y)) = options.point
                 && let Some(id) = group.first().identity
                 && position + 1 == start + y
@@ -2623,6 +3163,7 @@ fn visible_transcript_indexed(
                 width,
                 index,
                 Some(cache),
+                false,
                 |height, render| {
                     if position < end && position + height > start {
                         let lines = render();
@@ -2643,6 +3184,22 @@ fn visible_transcript_indexed(
         }
         if let Some(group) = exploration_entry(rows, index, theme) {
             grouped_until = group.end;
+            let header: Vec<_> =
+                styled::wrap_line_limited(&group.header[1], width as usize, MAX_MARKDOWN_ROWS);
+            let header_start = position + 1;
+            record_region(
+                options,
+                &header,
+                header_start,
+                (start, end),
+                width,
+                false,
+                TranscriptHit::Exploration(
+                    row.tool.as_ref().expect("tool group").op.clone(),
+                    header_start.saturating_sub(start)
+                        ..(header_start + header.len()).min(end).saturating_sub(start),
+                ),
+            );
             let is_expanded = (options.expanded)(ToolExpansion::Operation(
                 &row.tool.as_ref().expect("group has tool").op,
             ));
@@ -2697,6 +3254,28 @@ fn visible_transcript_indexed(
                 for &member in &group.members {
                     let member = &rows[member];
                     let card = member.tool.as_ref().expect("group has tool");
+                    if crate::tools::inline_error_expandable(card) {
+                        let header: Vec<_> = exploration_member(member, theme, width, &|_| false)
+                            .iter()
+                            .flat_map(|line| {
+                                styled::wrap_line_limited(line, width as usize, MAX_MARKDOWN_ROWS)
+                            })
+                            .collect();
+                        record_region(
+                            options,
+                            &header,
+                            position,
+                            (start, end),
+                            width,
+                            false,
+                            TranscriptHit::ChildNotice(
+                                CapturedChildTarget::InlineError(card.op.clone()),
+                                position.saturating_sub(start)
+                                    ..(position + header.len()).min(end).saturating_sub(start),
+                                false,
+                            ),
+                        );
+                    }
                     if crate::tools::inline_error_expandable(card)
                         && let Some((x, y)) = options.point
                     {
@@ -2740,6 +3319,23 @@ fn visible_transcript_indexed(
                 theme,
                 (options.expanded)(ToolExpansion::Instructions(op)),
             );
+            if let Some(header) = instructions.first() {
+                let header = styled::wrap_line_limited(header, width as usize, MAX_MARKDOWN_ROWS);
+                record_region(
+                    options,
+                    &header,
+                    position,
+                    (start, end),
+                    width,
+                    false,
+                    TranscriptHit::ChildNotice(
+                        CapturedChildTarget::Instructions(op.clone()),
+                        position.saturating_sub(start)
+                            ..(position + header.len()).min(end).saturating_sub(start),
+                        false,
+                    ),
+                );
+            }
             if let Some(header) = instructions.first()
                 && let Some((x, y)) = options.point
             {
@@ -2775,6 +3371,111 @@ fn visible_transcript_indexed(
             shell_leading_margin(rows, index),
         ) {
             let margin = usize::from(shell_leading_margin(rows, index));
+            if let Some(card) = &row.tool {
+                let at = position + margin;
+                let range = |extent: usize| {
+                    at.saturating_sub(start)..(at + extent).min(end).saturating_sub(start)
+                };
+                match &card.render {
+                    crate::tools::ToolRender::Shell(_)
+                        if crate::tools::shell_expandable(card, width) =>
+                    {
+                        record_region(
+                            options,
+                            &lines[margin..],
+                            at,
+                            (start, end),
+                            width,
+                            true,
+                            TranscriptHit::Exploration(
+                                card.op.clone(),
+                                range(lines.len() - margin),
+                            ),
+                        );
+                    }
+                    crate::tools::ToolRender::Subagent(subagent) => {
+                        let header = crate::tools::subagent_block_expanded(
+                            subagent, card, theme, width, false,
+                        );
+                        let target = if crate::tools::subagent_failed(card) {
+                            Some(TranscriptHit::ChildNotice(
+                                CapturedChildTarget::ErrorDetails(card.op.clone()),
+                                range(header.len()),
+                                true,
+                            ))
+                        } else if let Some(job) = &card.child_job {
+                            Some(TranscriptHit::ChildNotice(
+                                CapturedChildTarget::Navigate(job.clone()),
+                                range(header.len()),
+                                true,
+                            ))
+                        } else if crate::tools::subagent_pending(subagent, card)
+                            && card.state != "permission_pending"
+                        {
+                            Some(TranscriptHit::PendingSubagentHover(range(header.len())))
+                        } else {
+                            None
+                        };
+                        if let Some(target) = target {
+                            let rectangle =
+                                matches!(target, TranscriptHit::PendingSubagentHover(_));
+                            record_region(
+                                options,
+                                &header,
+                                at,
+                                (start, end),
+                                width,
+                                rectangle,
+                                target,
+                            );
+                        }
+                    }
+                    crate::tools::ToolRender::Inline(
+                        inline @ crate::tools::InlineRender::Generic { .. },
+                    ) if crate::tools::generic_expandable(card) => {
+                        let header =
+                            crate::tools::generic_block_expanded(inline, card, theme, width, false);
+                        record_region(
+                            options,
+                            &header,
+                            at,
+                            (start, end),
+                            width,
+                            false,
+                            TranscriptHit::Exploration(card.op.clone(), range(header.len())),
+                        );
+                    }
+                    crate::tools::ToolRender::Inline(crate::tools::InlineRender::Execute) => {
+                        for (offset, rendered) in
+                            crate::tools::execute::block(card, theme, width, options.expanded)
+                                .into_iter()
+                                .enumerate()
+                        {
+                            if let Some(call) = rendered.target {
+                                let y = at + offset;
+                                record_region(
+                                    options,
+                                    &[rendered.line],
+                                    y,
+                                    (start, end),
+                                    width,
+                                    false,
+                                    TranscriptHit::ChildNotice(
+                                        CapturedChildTarget::Execute {
+                                            operation: card.op.clone(),
+                                            call: call.index(),
+                                        },
+                                        y.saturating_sub(start)
+                                            ..(y + 1).min(end).saturating_sub(start),
+                                        false,
+                                    ),
+                                );
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
             if let Some(card) = &row.tool
                 && let crate::tools::ToolRender::Subagent(subagent) = &card.render
                 && !crate::tools::subagent_failed(card)
@@ -2925,6 +3626,23 @@ fn visible_transcript_indexed(
             );
             let header = position + usize::from(index > 0);
             if let Some(job) = &row.child_notice
+                && let Some(line) = lines.last()
+            {
+                record_region(
+                    options,
+                    std::slice::from_ref(line),
+                    header,
+                    (start, end),
+                    width,
+                    false,
+                    TranscriptHit::ChildNotice(
+                        CapturedChildTarget::Navigate(job.clone()),
+                        header.saturating_sub(start)..(header + 1).min(end).saturating_sub(start),
+                        false,
+                    ),
+                );
+            }
+            if let Some(job) = &row.child_notice
                 && header >= start
                 && header < end
                 && let Some(line) = lines.last()
@@ -2960,7 +3678,46 @@ fn visible_transcript_indexed(
                 &mut position,
                 &mut visible,
             );
+        } else if row.role == "user" && width > 3 {
+            let part_end = positions[index].1;
+            let local = start.saturating_sub(position)..(end.min(part_end) - position);
+            let first = visible.len();
+            let lines =
+                user_visible_rows(row, index, theme, width, &agent_color, cache, local.clone());
+            visible.extend(lines);
+            for (offset, slot) in user_targets
+                .iter_mut()
+                .skip(first)
+                .take(visible.len() - first)
+                .enumerate()
+            {
+                if local.start + offset >= usize::from(index > 0) {
+                    *slot = Some(UserMessageTarget {
+                        message_id: row.message_id.clone(),
+                        seq: row.seq,
+                        ordinal: index,
+                        reverted: false,
+                    });
+                }
+            }
+            position = part_end;
         } else if row.role == "assistant" && width > 0 {
+            if let Some(reasoning) = row
+                .reasoning
+                .as_ref()
+                .filter(|r| r.toggleable && !reasoning_content(r).is_empty())
+                && let Some(id) = reasoning.identity
+            {
+                record_region(
+                    options,
+                    &[clipped_reasoning_header(reasoning, theme, width)],
+                    position + 1,
+                    (start, end),
+                    width,
+                    false,
+                    TranscriptHit::Reasoning(id),
+                );
+            }
             if let Some((x, y)) = options.point
                 && let Some(reasoning) = row
                     .reasoning
@@ -2982,8 +3739,13 @@ fn visible_transcript_indexed(
                 }
             }
             visit_assistant_indexed(
-                row,
-                (index, live_row == Some(index), footer_follows(rows, index)),
+                AssistantInput::Row(row),
+                (
+                    index,
+                    live_row == Some(index),
+                    footer_follows(rows, index),
+                    false,
+                ),
                 theme,
                 (width, terminal_width),
                 &agent_color,
@@ -3055,7 +3817,7 @@ fn visible_transcript_indexed(
         );
     }
     user_targets.resize(visible.len(), None);
-    (visible, total, hit, user_targets, child_targets)
+    (visible, total, hit, user_targets, child_targets, top)
 }
 
 /// Count the same cached/grouped parts used by the painter, without materializing
@@ -3070,18 +3832,28 @@ pub(crate) fn transcript_part_positions(
     mut part: impl FnMut(usize, usize, usize),
 ) -> usize {
     let (width, terminal_width, live_row) = geometry;
+    cache.borrow_mut().retain_source_heights(rows, width);
     let mut total = 1usize;
     let mut grouped_until = 0;
     for (index, row) in rows.iter().enumerate() {
+        if styled::render_cancelled() {
+            break;
+        }
         if index < grouped_until {
             continue;
         }
         let start = total;
         if let Some(group) = reasoning_group(rows, index) {
             grouped_until = index + group.members.len();
-            visit_reasoning_group(&group, theme, width, index, Some(cache), |height, _| {
-                total += height
-            });
+            visit_reasoning_group(
+                &group,
+                theme,
+                width,
+                index,
+                Some(cache),
+                true,
+                |height, _| total += height,
+            );
             part(index, start, total);
             continue;
         }
@@ -3126,10 +3898,21 @@ pub(crate) fn transcript_part_positions(
             for line in lines {
                 total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }
+        } else if row.role == "user" && width > 3 {
+            let inner = width.saturating_sub(1 + USER_PADDING as u16).max(1);
+            total += usize::from(index > 0)
+                + 2
+                + cache.borrow_mut().user_height(&row.text, inner)
+                + user_chip_lines(row, theme, width, agent_color).len();
         } else if row.role == "assistant" && width > 0 {
             visit_assistant_indexed(
-                row,
-                (index, live_row == Some(index), footer_follows(rows, index)),
+                AssistantInput::Row(row),
+                (
+                    index,
+                    live_row == Some(index),
+                    footer_follows(rows, index),
+                    true,
+                ),
                 theme,
                 (width, terminal_width),
                 &agent_color,
@@ -3191,6 +3974,112 @@ fn add_visible_lines(
 /// User message block (`routes/session/index.tsx:2298-2398`): left `┃` border
 /// in the agent color, `background.raised.base`, `paddingTop/Bottom=1`,
 /// `paddingLeft=2`, then chip rows with `paddingTop=1` and `gap=1`.
+fn user_chip_lines(
+    row: &HistoryRow,
+    theme: &Theme,
+    width: u16,
+    agent_color: &impl Fn(Option<&str>) -> Color,
+) -> Vec<Line> {
+    if row.chips.is_empty() {
+        return Vec::new();
+    }
+    let bg = theme.user_message_background();
+    let border = Style::default()
+        .fg(user_agent_color(row, theme, agent_color))
+        .bg(bg);
+    let mut lines = vec![user_row(&[Span::styled("┃", border)], bg, width as usize)];
+    for chips in chip_rows(&row.chips, theme, width.saturating_sub(3).max(1) as usize) {
+        let mut spans = vec![
+            Span::styled("┃", border),
+            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+        ];
+        spans.extend(chips);
+        let line = sanitize_line(user_row(&spans, bg, width as usize));
+        lines.extend(
+            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                .into_iter()
+                .map(|wrapped| wrapped.with_style(line.style())),
+        );
+    }
+    lines
+}
+
+fn user_visible_rows(
+    row: &HistoryRow,
+    index: usize,
+    theme: &Theme,
+    width: u16,
+    agent_color: &impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    wanted: std::ops::Range<usize>,
+) -> Vec<Line> {
+    let bg = theme.user_message_background();
+    let border = Style::default()
+        .fg(user_agent_color(row, theme, agent_color))
+        .bg(bg);
+    let blank = || user_row(&[Span::styled("┃", border)], bg, width as usize);
+    let margin = usize::from(index > 0);
+    let inner = width.saturating_sub(1 + USER_PADDING as u16).max(1);
+    let body_height = cache.borrow_mut().user_height(&row.text, inner);
+    let body_start = margin + 1;
+    let body_end = body_start + body_height;
+    let mut out = Vec::new();
+    for local in wanted.start..wanted.end.min(body_start) {
+        out.push(if local < margin {
+            Line::plain("")
+        } else {
+            blank()
+        });
+    }
+    let from = wanted.start.max(body_start) - body_start;
+    let to = wanted.end.min(body_end).saturating_sub(body_start);
+    if from < to {
+        let checkpoints = cache.borrow_mut().user_geometry(&row.text, inner);
+        let Some(checkpoint) = checkpoints
+            .iter()
+            .rev()
+            .find(|checkpoint| checkpoint.row <= from)
+        else {
+            return out;
+        };
+        let mut ordinal = checkpoint.row;
+        for (physical, raw) in row.text[checkpoint.byte..].split('\n').enumerate() {
+            if ordinal >= to {
+                break;
+            }
+            styled::visit_source_rows(
+                raw,
+                inner as usize,
+                to - ordinal,
+                physical == 0 && checkpoint.has_word,
+                |line| {
+                    if ordinal >= from {
+                        let mut spans = vec![
+                            Span::styled("┃", border),
+                            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+                        ];
+                        spans.extend(line.spans().iter().map(|span| {
+                            Span::styled(span.content(), Style::default().fg(theme.text()).bg(bg))
+                        }));
+                        out.push(user_row(&spans, bg, width as usize));
+                    }
+                    ordinal += 1;
+                },
+            );
+        }
+    }
+    if wanted.end > body_end {
+        let mut tail = user_chip_lines(row, theme, width, agent_color);
+        tail.push(blank());
+        out.extend(
+            tail.into_iter()
+                .skip(wanted.start.saturating_sub(body_end))
+                .take(wanted.end - wanted.start.max(body_end)),
+        );
+    }
+    out
+}
+
 fn user_block(
     row: &HistoryRow,
     theme: &Theme,
@@ -3492,7 +4381,15 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
             text.push_str(title);
         }
         spans.push(Span::styled(text, style));
-        return Line::new(spans);
+        return Line::new(spans).animate(
+            MESSAGE_PADDING
+                + if reasoning.toggleable {
+                    0
+                } else {
+                    "┃ ".len()
+                },
+            styled::AnimationSource::Reasoning,
+        );
     }
     if reasoning.toggleable {
         spans.push(Span::styled(
@@ -3641,11 +4538,7 @@ fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec
 }
 
 fn reasoning_content(reasoning: &ReasoningBlock) -> Cow<'_, str> {
-    if reasoning.text.contains("[REDACTED]") {
-        Cow::Owned(reasoning.text.replace("[REDACTED]", "").trim().to_string())
-    } else {
-        Cow::Borrowed(reasoning.text.trim())
-    }
+    reasoning.text.reasoning_content()
 }
 
 /// OpenTUI's completed header uses `wrapMode="none"`: retain only complete
@@ -3763,6 +4656,16 @@ fn clipped_line(header: Line, width: u16) -> Line {
     if width == 0 {
         return header;
     }
+    let animations = header.animation_cells();
+    let restore = |mut line: Line| {
+        let len = line.plain_text().len();
+        for (byte, source) in &animations {
+            if *byte < len {
+                line = line.animate(*byte, source.clone());
+            }
+        }
+        line
+    };
     let mut remaining = width as usize;
     let mut spans = Vec::new();
     for span in header.spans() {
@@ -3771,14 +4674,14 @@ fn clipped_line(header: Line, width: u16) -> Line {
             let cells = UnicodeWidthStr::width(glyph);
             if cells > remaining {
                 spans.push(Span::styled(clipped, span.style()));
-                return Line::new(spans);
+                return restore(Line::new(spans));
             }
             clipped.push_str(glyph);
             remaining -= cells;
         }
         spans.push(Span::styled(clipped, span.style()));
     }
-    Line::new(spans)
+    restore(Line::new(spans))
 }
 
 /// Upstream `reasoningSummary` (`context/thinking.ts:10-19`): a leading

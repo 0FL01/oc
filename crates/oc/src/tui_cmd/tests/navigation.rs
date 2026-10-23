@@ -69,6 +69,7 @@ async fn pending_model_commit_refuses_close_and_delete_before_effects() {
     state.poll_submission();
     assert!(!state.has_pending_model_commit());
     deck.close_tab(&app, &mut state, 0).await.unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "other");
     assert_eq!(deck.tabs.len(), 1);
 }
@@ -110,6 +111,7 @@ async fn typed_new_consumes_only_child_command_not_retained_root_draft() {
         )
         .await
         .unwrap();
+        settle_home(&app, &mut state, &mut deck).await;
         inbox = owner.await.unwrap();
         assert!(state.home);
         assert_eq!(deck.tabs[0].as_ref().unwrap().input(), "private root draft");
@@ -219,6 +221,14 @@ async fn parked_parent_discovers_running_child_before_tool_completion() {
                 InboxMsg::Catalog { ack } => {
                     ack.send(Ok(catalog())).unwrap();
                 }
+                InboxMsg::CompactionHistory { session, ack, .. } => {
+                    assert_eq!(session, expected.parent);
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                InboxMsg::ShellJobs { session, ack } => {
+                    assert_eq!(session, expected.parent);
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
                 _ => panic!("navigation must not execute"),
             }
         }
@@ -236,6 +246,8 @@ async fn parked_parent_discovers_running_child_before_tool_completion() {
     )
     .await
     .unwrap();
+    settle_children(&app, &mut state, &mut deck).await;
+    settle_reads(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "root-B");
     assert_eq!(state.input(), "visible B draft");
     assert!(state.transcript_rows().is_empty());

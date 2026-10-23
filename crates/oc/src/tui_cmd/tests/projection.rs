@@ -1,6 +1,76 @@
 use super::*;
 use oc_core::queries::{LiveTurnSnapshot, TabDeckSnapshot, WorkspaceSnapshot};
 
+#[test]
+fn parked_projection_close_retains_and_polls_the_owned_join_before_removal() {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()
+        .unwrap()
+        .block_on(async {
+            let (app, _, _) = CoreApp::channel(8);
+            let mut state = TuiState::new(app.clone(), SessionId("active".into()));
+            state.restore_prompt("still editable".into());
+            let mut deck = LoopState {
+                tabs: vec![None, Some(TuiState::new(app, SessionId("parked".into())))],
+                active_tab: Some(0),
+                ..Default::default()
+            };
+            // Occupy the sole blocking thread so a real cold projection is
+            // deterministically queued. The sender drops before `deck` on an
+            // assertion failure, so cleanup cannot deadlock on this fixture.
+            let (release, held) = std::sync::mpsc::channel();
+            let (entered, started) = tokio::sync::oneshot::channel();
+            let blocker = tokio::task::spawn_blocking(move || {
+                let _ = entered.send(());
+                let _ = held.recv();
+            });
+            started.await.unwrap();
+            let mut page = tps_page();
+            page.rows[0].role = Role::User;
+            page.rows[0].turn = None;
+            page.rows[0].text = "cold source ".repeat(16_384);
+            let parked = deck.tabs[1].as_mut().unwrap();
+            parked.attach_page(&page);
+            let mut terminal =
+                ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 30)).unwrap();
+            terminal
+                .draw(|frame| oc_tui::shell::render(frame, parked))
+                .unwrap();
+            assert!(parked.has_pending_transcript_projection());
+            assert!(!deck_jobs::projection_drained(&state, &deck, 1));
+            assert!(
+                deck.tabs[1]
+                    .as_ref()
+                    .unwrap()
+                    .has_pending_transcript_projection()
+            );
+            assert_eq!(state.input(), "still editable");
+            assert!(deck.tabs[1].as_ref().unwrap().next_ui_deadline().is_some());
+            release.send(()).unwrap();
+            blocker.await.unwrap();
+            tokio::time::timeout(std::time::Duration::from_secs(2), async {
+                while deck.tabs[1]
+                    .as_ref()
+                    .unwrap()
+                    .has_pending_transcript_projection()
+                {
+                    for view in read_jobs::views(&state, &deck) {
+                        view.poll_transcript_projection();
+                    }
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .unwrap();
+            assert!(deck_jobs::projection_drained(&state, &deck, 1));
+            assert!(deck.tabs[1].as_ref().unwrap().next_ui_deadline().is_none());
+            assert_eq!(state.input(), "still editable");
+            deck.tabs[1].take();
+        });
+}
+
 fn live(session: &str, turn: &str, text: &str) -> LiveTurnSnapshot {
     let id = SessionId(session.into());
     let turn = WorkerTurnId(turn.into());
@@ -275,16 +345,28 @@ async fn linked_gap_stages_all_reads_and_repairs_parent_selected_and_retained_ch
             }
         }
     });
-    assert_eq!(
-        shared::sync(&app, &mut state, &mut deck).await,
-        Err(CoreError::Application("read failed".into()).to_string())
+    assert!(!shared::sync(&app, &mut state, &mut deck).await.unwrap());
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !deck.workspace_job.as_ref().is_some_and(shared::Job::ready) {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(shared::sync(&app, &mut state, &mut deck).await.unwrap());
+    assert!(
+        state
+            .note()
+            .is_some_and(|note| note.contains("read failed"))
     );
     assert!(deck.shared_gap && deck.read_only);
     assert_eq!(state.projection_floor(), 0);
     assert_eq!(deck.child_parent.as_ref().unwrap().projection_floor(), 0);
     assert!(state.viewport().join("\n").contains("old transient"));
     assert!(deck.child_views[&SessionId("B".into())].is_busy());
-    assert!(shared::sync(&app, &mut state, &mut deck).await.unwrap());
+    // A later refresh retries the read, never a partially applied projection.
+    deck.shared_refresh = true;
+    settle_workspace(&app, &mut state, &mut deck).await;
     assert!(!deck.shared_gap && !deck.shared_refresh);
     assert!(deck.read_only);
     assert_eq!(state.session().0, "A");

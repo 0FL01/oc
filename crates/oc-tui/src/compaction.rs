@@ -4,12 +4,46 @@ use ratatui::style::Style;
 use unicode_width::UnicodeWidthStr;
 
 use crate::{
-    history::HistoryRow,
+    history::{HistoryRow, SourceText},
     styled::{Line, Span},
     theme::Theme,
 };
 
 pub(crate) const FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+/// Frontend ownership only: move the displayed immutable body out of the
+/// snapshot metadata, then share it with structural projection snapshots.
+/// This representation is never persisted or sent back to the owner.
+pub(crate) struct SnapshotView {
+    snapshot: CompactionSnapshot,
+    pub(crate) body: SourceText,
+}
+
+impl From<CompactionSnapshot> for SnapshotView {
+    fn from(mut snapshot: CompactionSnapshot) -> Self {
+        let body = match snapshot.state {
+            CompactionState::Failed => snapshot.error.take().unwrap_or_default(),
+            CompactionState::Cancelled | CompactionState::Queued => String::new(),
+            _ if snapshot.provider_native => String::new(),
+            _ => std::mem::take(&mut snapshot.summary),
+        }
+        .into();
+        Self { snapshot, body }
+    }
+}
+
+impl std::ops::Deref for SnapshotView {
+    type Target = CompactionSnapshot;
+    fn deref(&self) -> &Self::Target {
+        &self.snapshot
+    }
+}
+
+impl SnapshotView {
+    pub(crate) fn row(&self, frame: usize, animations: bool) -> HistoryRow {
+        row_with_body(&self.snapshot, self.body.clone(), frame, animations)
+    }
+}
 
 pub(crate) fn active(snapshot: &CompactionSnapshot) -> bool {
     matches!(
@@ -31,7 +65,17 @@ fn number(value: u64) -> String {
     format!("{:.1}{suffix}", value as f64 / scale)
 }
 
+#[cfg(test)]
 pub(crate) fn row(snapshot: &CompactionSnapshot, frame: usize, animations: bool) -> HistoryRow {
+    SnapshotView::from(snapshot.clone()).row(frame, animations)
+}
+
+fn row_with_body(
+    snapshot: &CompactionSnapshot,
+    body: SourceText,
+    frame: usize,
+    animations: bool,
+) -> HistoryRow {
     let mut label = match snapshot.state {
         CompactionState::Queued => "◇ Compaction queued".into(),
         CompactionState::Running => format!(
@@ -70,15 +114,11 @@ pub(crate) fn row(snapshot: &CompactionSnapshot, frame: usize, animations: bool)
         role: match snapshot.state {
             CompactionState::Failed => "compaction_failed",
             CompactionState::Queued => "compaction_queued",
+            CompactionState::Running => "compaction_running",
             _ => "compaction",
         }
         .into(),
-        text: match snapshot.state {
-            CompactionState::Failed => snapshot.error.clone().unwrap_or_default(),
-            CompactionState::Cancelled | CompactionState::Queued => String::new(),
-            _ if snapshot.provider_native => String::new(),
-            _ => snapshot.summary.clone(),
-        },
+        text: body,
         agent: Some(label),
         agent_color_index: None,
         chips: vec![],
@@ -132,7 +172,14 @@ pub(crate) fn block(row: &HistoryRow, theme: &Theme, width: u16) -> Vec<Line> {
         Span::plain(" "),
         Span::styled("─".repeat(available / 2), border),
     ]);
-    let mut lines = vec![Line::plain(""), Line::new(divider)];
+    let mut divider = Line::new(divider);
+    if row.role == "compaction_running" {
+        divider = divider.animate(
+            available.div_ceil(2) * "─".len() + 1,
+            crate::styled::AnimationSource::Compaction,
+        );
+    }
+    let mut lines = vec![Line::plain(""), divider];
     if !row.text.trim().is_empty() {
         lines.push(Line::plain(""));
         lines.extend(crate::messages::compaction_markdown_block(
@@ -179,6 +226,19 @@ mod tests {
             provider_native: false,
             error: None,
         }
+    }
+
+    #[test]
+    fn retained_snapshot_rows_share_the_original_immutable_body_bytes() {
+        let mut snapshot = snapshot(CompactionState::Completed);
+        snapshot.summary = "retained compaction body 🧑‍💻 ".repeat(2000);
+        let pointer = snapshot.summary.as_ptr();
+        let view = SnapshotView::from(snapshot);
+        let first = view.row(0, true);
+        let second = view.row(1, true);
+        assert_eq!(first.text.as_ptr(), pointer);
+        assert_eq!(second.text.as_ptr(), pointer);
+        assert_eq!(first.text.token(), second.text.token());
     }
 
     #[test]
@@ -395,7 +455,7 @@ mod tests {
     #[tokio::test]
     async fn vis34_owner_lifecycle_clock_usage_and_two_escape_cancel() {
         let (app, mut inbox, _) = CoreApp::channel(8);
-        let mut view = TuiState::new(app, SessionId("session".into()));
+        let mut view = TuiState::new(app.clone(), SessionId("session".into()));
         assert_eq!(dispatch("/compact"), Some(CommandAction::CompactSession));
         assert_eq!(
             spec(&CommandAction::CompactSession).unavailable(true, false),
@@ -450,7 +510,16 @@ mod tests {
                 "no turn or extra provider submission"
             );
         });
-        view.handle_key(KeyAction::Cancel).await;
+        let cancel = view.handle_key(KeyAction::Cancel).await;
+        let Some(PanelIntent::CancelSession {
+            session,
+            turn: None,
+            cancel_compaction: true,
+        }) = cancel.intent
+        else {
+            panic!("second Esc captures the controller-owned compaction cancellation");
+        };
+        app.cancel_compaction(session).await.unwrap();
         worker.await.unwrap();
         view.apply_compaction(snapshot(CompactionState::Completed));
         let lines = view.transcript_lines(80, 80);

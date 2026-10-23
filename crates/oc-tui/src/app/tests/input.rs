@@ -1038,6 +1038,7 @@ async fn vis25_up_owns_selection_then_history_recovers_after_escape() {
     );
     assert_eq!(state.editor.cursor, 0);
     state.handle_key(KeyAction::Up).await;
+    settle_history(&mut state).await;
     assert_eq!(state.input(), "older prompt");
     state.handle_key(KeyAction::Down).await;
     assert_eq!(state.input(), "older prompt");
@@ -1633,6 +1634,7 @@ async fn accepted_text_only_mention_recalled_in_same_session() {
     assert!(state.input.is_empty());
     assert_eq!(state.window.rows()[0].text, "@file.rs");
     assert!(state.recall_history(true).await.unwrap());
+    settle_history(&mut state).await;
     assert_eq!(state.input, "@file.rs");
     assert_eq!(
         state.editor.layout(&state.input, 80).0[0].spans[0],
@@ -1706,6 +1708,10 @@ async fn v05_review_overlimit_selection_during_pending_cannot_lose_draft() {
         panic!("submission")
     };
     assert_eq!(text.len(), MAX_INPUT_BYTES);
+    assert!(state.input().is_empty());
+    assert_eq!(state.handle_paste(&full[..MAX_INPUT_BYTES - 1]).note, None);
+    state.handle_key(KeyAction::Char('z')).await;
+    assert_eq!(state.input(), full);
     state.handle_key(KeyAction::SelectLeft).await;
     let outcome = state.handle_key(KeyAction::Char('🦊')).await;
     assert!(outcome.note.is_some(), "replacement cannot fit");
@@ -1953,6 +1959,7 @@ async fn vis07_up_down_use_painted_width_before_history_and_select_raw_wrap() {
     );
     assert_eq!(state.editor.cursor, 0);
     state.handle_key(KeyAction::Up).await;
+    settle_history(&mut state).await;
     assert_eq!(
         state.input(),
         "previous prompt",
@@ -2020,8 +2027,8 @@ async fn v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable() {
     assert!(inbox.try_recv().is_err());
     ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
     state.poll_submission();
-    assert_eq!(state.input(), "a\nb\ncZ");
-    assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~3 lines] Z");
+    assert_eq!(state.input(), "Z");
+    assert_eq!(state.prompt_layout(80).0[0].text, "Z");
     assert_eq!(state.history().rows()[0].text, text.text);
 }
 
@@ -2316,6 +2323,7 @@ async fn ctrl_c_clears_slash_draft_and_editor_history_before_empty_exit() {
     state.handle_key(KeyAction::Undo).await;
     assert_eq!(state.input(), "", "root clear must not be undoable");
     state.handle_key(KeyAction::Up).await;
+    settle_history(&mut state).await;
     assert_eq!(
         state.input(),
         "stored prompt",
@@ -2392,7 +2400,7 @@ async fn ctrl_c_clears_mention_and_multiline_chip_without_reusing_stale_suggesti
 }
 
 #[tokio::test]
-async fn ctrl_c_clears_pending_draft_without_cancelling_accepted_turn() {
+async fn ctrl_c_clears_next_draft_without_cancelling_pending_turn() {
     use oc_core::core_app::InboxMsg;
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("interrupt-pending"));
@@ -2401,6 +2409,7 @@ async fn ctrl_c_clears_pending_draft_without_cancelling_accepted_turn() {
     let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
         panic!("submission")
     };
+    type_text(&mut state, "next draft").await;
     state.handle_key(KeyAction::Interrupt).await;
     assert_eq!(state.status(), &TuiStatus::PendingSubmission);
     assert_eq!(state.input(), "");
@@ -2445,6 +2454,7 @@ async fn v05_review_empty_draft_up_recalls_durable_history() {
     ));
     assert_eq!(state.input(), "");
     state.handle_key(KeyAction::Up).await;
+    settle_history(&mut state).await;
     assert_eq!(state.input(), "stored prompt");
     assert_eq!(state.editor.cursor, 0);
     state.handle_key(KeyAction::Down).await;
@@ -2604,24 +2614,17 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
     };
     state.handle_key(KeyAction::Commands).await;
     state.handle_paste("New session");
-    assert!(
-        state.modal_options()[0]
-            .footer
-            .contains("submission or model selection pending")
-    );
+    assert!(!state.modal_options()[0].footer.contains("pending"));
     let outcome = state.handle_panel_key(KeyAction::Enter);
-    assert_eq!(outcome.intent, None);
-    assert_eq!(
-        outcome.note.as_deref(),
-        Some("submission or model selection pending")
-    );
+    assert_eq!(outcome.intent, Some(PanelIntent::NewSession));
+    assert_eq!(outcome.note, None);
     assert_eq!(state.panel(), &TuiPanel::Commands);
     state.handle_panel_key(KeyAction::Cancel);
-    assert_eq!(state.input(), "pending prompt");
+    assert!(state.input().is_empty());
     assert_eq!(state.status(), &TuiStatus::PendingSubmission);
     let outcome = state.run_command(CommandAction::NewSession);
-    assert_eq!(outcome.intent, None);
-    assert!(outcome.note.is_some());
+    assert_eq!(outcome.intent, Some(PanelIntent::NewSession));
+    assert_eq!(outcome.note, None);
     assert_eq!(state.panel(), &TuiPanel::None);
     let outcome = state.run_command(CommandAction::OpenSessions);
     assert_eq!(outcome.intent, Some(PanelIntent::LoadSessions));
@@ -2652,7 +2655,7 @@ async fn v04_pending_command_availability_preserves_receipt_focus_and_draft() {
         assert_eq!(outcome.intent, intent);
         assert_eq!(outcome.note, None);
         assert_eq!(state.panel(), &panel);
-        assert_eq!(state.input(), "pending prompt");
+        assert!(state.input().is_empty());
         assert_eq!(state.status(), &TuiStatus::PendingSubmission);
         state.close_panel();
     }
@@ -2747,13 +2750,17 @@ async fn variant_cycle_keeps_draft_and_modal_focus_and_allows_local_pending_choi
     assert_eq!(state.panel(), &TuiPanel::Agents);
     state.handle_key(KeyAction::Cancel).await;
     state.handle_key(KeyAction::Enter).await;
-    let Some(oc_core::core_app::InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+    let Some(oc_core::core_app::InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
         panic!("submit")
     };
+    assert_eq!(text.text, "unchanged draft");
+    assert!(state.input().is_empty());
+    type_text(&mut state, "independent next draft").await;
     let result = state.handle_key(KeyAction::CycleVariant).await;
     assert_eq!(result.intent, Some(PanelIntent::CycleVariant));
     assert_eq!(result.note, None);
-    assert_eq!(state.input(), "unchanged draft");
+    assert_eq!(state.input(), "independent next draft");
+    assert_eq!(state.pending.as_ref().unwrap().prompt.text, text.text);
     assert!(inbox.try_recv().is_err());
     drop(ack);
 }
@@ -3261,6 +3268,7 @@ async fn busy_agent_choice_is_a_next_send_draft_committed_before_the_model() {
     };
     let (outcome, ()) = tokio::join!(state.handle_key(KeyAction::Enter), responder);
     assert_eq!(outcome.note, None);
+    state.poll_submission();
     assert_eq!(state.active_agent(), Some("plan"));
     assert_eq!(state.composer_agent(), Some("plan"));
     let Some(InboxMsg::SessionSelection {
@@ -3294,10 +3302,17 @@ async fn refused_agent_commit_keeps_the_prompt_and_the_draft() {
             .unwrap();
     };
     let (outcome, ()) = tokio::join!(state.handle_key(KeyAction::Enter), responder);
-    assert!(outcome.note.unwrap().starts_with("agent switch:"));
-    assert_eq!(state.input(), "keep me");
+    assert_eq!(
+        outcome.note, None,
+        "local preparation returns before its ACK"
+    );
+    assert_eq!(state.input(), "");
+    state.poll_submission();
+    assert!(state.failed_submission_note().is_some());
     assert_eq!(state.composer_agent(), Some("plan"));
     assert!(inbox.try_recv().is_err(), "no submit after a refused agent");
+    state.recover_submission(true);
+    assert_eq!(state.input(), "keep me");
 }
 
 #[tokio::test]

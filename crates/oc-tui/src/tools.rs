@@ -617,6 +617,31 @@ pub(crate) fn tool_spinner_animated(card: &ToolCard) -> bool {
 /// Render one tool card as transcript rows. `width == 0` is the unbounded
 /// text projection (no background padding).
 pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
+    let mut lines = tool_block_inner(card, theme, width);
+    if tool_spinner_animated(card) {
+        let (row, byte) = match &card.render {
+            ToolRender::Shell(_) => (1, 5),
+            ToolRender::Patch(_) if card.name == "write" && card.state == "argument_stream" => {
+                (0, 3)
+            }
+            ToolRender::Patch(_) => (1, 5),
+            ToolRender::Subagent(_) => (0, if width != 0 && width <= 5 { 0 } else { 3 }),
+            ToolRender::Inline(_) | ToolRender::Dcp(_) => (0, 3),
+        };
+        mark_tool_animation(&mut lines, row, byte, card);
+    }
+    lines
+}
+
+fn mark_tool_animation(lines: &mut [Line], row: usize, byte: usize, card: &ToolCard) {
+    if tool_spinner_animated(card)
+        && let Some(line) = lines.get_mut(row)
+    {
+        *line = std::mem::take(line).animate(byte, styled::AnimationSource::Tool(card.op.clone()));
+    }
+}
+
+fn tool_block_inner(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
     if let ToolRender::Dcp(view) = &card.render
         && !matches!(
             card.state.as_str(),
@@ -899,6 +924,7 @@ pub(crate) fn shell_block_expanded(
             Span::styled("Writing command…", text),
         ]));
         out.push(frame.row(&[]));
+        mark_tool_animation(&mut out, 1, 5, card);
         return out;
     }
     let mut header = vec![Span::styled(
@@ -1037,6 +1063,9 @@ pub(crate) fn shell_block_expanded(
         );
     }
     out.push(frame.row(&[]));
+    if running {
+        mark_tool_animation(&mut out, 1, 5, card);
+    }
     out
 }
 
@@ -1567,6 +1596,18 @@ pub(crate) fn subagent_block_expanded(
             }
         }
     }
+    if (subagent_animated(card) || pending && subagent.spinner.is_some())
+        && let Some(line) = out.first_mut()
+    {
+        *line = std::mem::take(line).animate(
+            if width != 0 && width as usize <= indent {
+                0
+            } else {
+                3
+            },
+            styled::AnimationSource::Tool(card.op.clone()),
+        );
+    }
     out
 }
 
@@ -1687,6 +1728,9 @@ fn inline_rows_expanded(
     }
     spans.push(Span::styled(label, style));
     let mut out = vec![Line::new(spans)];
+    if spinning {
+        mark_tool_animation(&mut out, 0, crate::messages::MESSAGE_PADDING, card);
+    }
     // Read's Loaded rows require upstream metadata.loaded (:3097–3121).
     // Our recorded operation has no such metadata; a path is not evidence of it.
     if failed && (!exploration || expanded || card.state == "unknown") {
@@ -1889,6 +1933,7 @@ pub(crate) fn generic_block_expanded(
         Line::new(spans)
     })
     .collect::<Vec<_>>();
+    mark_tool_animation(&mut rows, 0, 3, card);
     if !expanded {
         return rows;
     }
@@ -2044,7 +2089,7 @@ mod tests {
             message_id: None,
             seq: i64::MAX,
             role: "tool".to_string(),
-            text: String::new(),
+            text: String::new().into(),
             agent: Some("build".to_string()),
             agent_color_index: None,
             chips: Vec::<Chip>::new(),

@@ -15,10 +15,12 @@ enum Outcome {
         snapshot: ProviderAccounts,
         methods: Result<Vec<AuthMethod>, CoreError>,
         catalog: Box<Result<CatalogSnapshot, CoreError>>,
+        canonical: Option<Box<Result<CatalogSnapshot, CoreError>>>,
     },
     Custom {
         reply: CustomProviderReply,
         catalog: Option<Box<Result<CatalogSnapshot, CoreError>>>,
+        canonical: Option<Box<Result<CatalogSnapshot, CoreError>>>,
     },
     Closed,
 }
@@ -95,6 +97,8 @@ impl Controls {
             return Err("connection operation pending".into());
         }
         let owner = app.clone();
+        let session = state.attached_session().cloned();
+        let home = state.home;
         let (revision, kind, task) = match intent {
             PanelIntent::LoadProviderConnections { revision } => (
                 revision,
@@ -121,7 +125,23 @@ impl Controls {
                 revision,
                 Kind::Accounts,
                 tokio::spawn(async move {
+                    let changed = action.is_some();
                     let snapshot = owner.provider_accounts(provider.clone(), action).await?;
+                    // Publish the mutation's current facts before its explicit
+                    // ACK feedback. A later same-cause catalog must not replace
+                    // the final-account disconnect toast before it can paint.
+                    let canonical = if changed {
+                        Some(Box::new(match session {
+                            Some(session) => {
+                                owner
+                                    .session_selection(session, home, SelectionAction::Current)
+                                    .await
+                            }
+                            None => owner.home_selection(SelectionAction::Current).await,
+                        }))
+                    } else {
+                        None
+                    };
                     let methods = if snapshot.accounts.is_empty() {
                         owner.auth_methods(provider.clone()).await
                     } else {
@@ -134,6 +154,7 @@ impl Controls {
                         snapshot,
                         methods,
                         catalog,
+                        canonical,
                     })
                 }),
             ),
@@ -186,6 +207,18 @@ impl Controls {
                     Kind::Custom,
                     tokio::spawn(async move {
                         let reply = owner.custom_provider(action).await?;
+                        let canonical = if matches!(&reply, CustomProviderReply::Saved(_)) {
+                            Some(Box::new(match session {
+                                Some(session) => {
+                                    owner
+                                        .session_selection(session, home, SelectionAction::Current)
+                                        .await
+                                }
+                                None => owner.home_selection(SelectionAction::Current).await,
+                            }))
+                        } else {
+                            None
+                        };
                         let catalog = if let CustomProviderReply::Saved(connection) = &reply {
                             Some(Box::new(
                                 owner.provider_catalog(connection.provider.clone()).await,
@@ -193,7 +226,11 @@ impl Controls {
                         } else {
                             None
                         };
-                        Ok(Outcome::Custom { reply, catalog })
+                        Ok(Outcome::Custom {
+                            reply,
+                            catalog,
+                            canonical,
+                        })
                     }),
                 )
             }
@@ -255,14 +292,29 @@ impl Controls {
                         snapshot,
                         methods,
                         catalog,
+                        canonical,
                     }) => {
+                        if let Some(canonical) = canonical
+                            && let Ok(canonical) = *canonical
+                        {
+                            state.apply_catalog_refresh(canonical);
+                        }
                         if state.apply_provider_accounts(Ok(snapshot)) {
                             Self::show_catalog(state, *catalog);
                         } else if let Some((provider, current)) = state.account_methods_request() {
                             state.apply_auth_methods(&provider, current, methods.map_err(|_| ()));
                         }
                     }
-                    Ok(Outcome::Custom { reply, catalog }) => {
+                    Ok(Outcome::Custom {
+                        reply,
+                        catalog,
+                        canonical,
+                    }) => {
+                        if let Some(canonical) = canonical
+                            && let Ok(canonical) = *canonical
+                        {
+                            state.apply_catalog_refresh(canonical);
+                        }
                         if state.apply_custom_provider(revision, Ok(reply)).is_some()
                             && let Some(catalog) = catalog
                         {

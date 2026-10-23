@@ -37,17 +37,62 @@ def launch(session, columns=160, rows=80):
     os.close(slave)
     return child, master
 
-def stop(child, fd):
-    # Ctrl+C uses the existing quit route; no draft gets submitted to the peer.
+def stop(child, fd, draft_session=None):
+    if draft_session is not None:
+        import sqlite3
+        def user_count():
+            with sqlite3.connect(home / 'data/oc/oc.sqlite') as db:
+                return db.execute('SELECT COUNT(*) FROM messages WHERE session_id=? AND role=?',
+                                  (draft_session, 'user')).fetchone()[0]
+        before = user_count()
+        assert before == 0, 'resize/paste submitted a user message'
+        os.write(fd, b'\x03')
+        cleared = drain(fd, .3)
+        assert child.poll() is None, 'nonempty Ctrl+C exited instead of clearing'
+        assert '[Pasted ~3 lines]' not in cleared, 'draft still visible after Ctrl+C'
+        assert user_count() == before, 'cleared draft was submitted'
     os.write(fd, b'\x03')
-    drain(fd)
+    restored = drain(fd)
     try:
         code = child.wait(timeout=5)
+        restored += drain(fd, .1)
+        flags = termios.tcgetattr(fd)[3]
     except subprocess.TimeoutExpired:
         child.kill(); child.wait(); raise
     finally:
         os.close(fd)
     assert code == 0, code
+    assert '\x1b[?1049l' in restored, 'alternate screen not left'
+    assert flags & (termios.ICANON | termios.ECHO) == (termios.ICANON | termios.ECHO), 'terminal not restored'
+
+def screen_rows(output, columns, height):
+    # Reconstruct cells so a sidebar title cannot accidentally match its tab.
+    cells = [[' '] * columns for _ in range(height)]
+    x = y = 0
+    for token in re.findall(r'\x1b\[[0-?]*[ -/]*[@-~]|.', output, re.S):
+        if token.startswith('\x1b['):
+            code, args = token[-1], token[2:-1]
+            if args.startswith('?'): continue
+            values = [int(p) if p else 0 for p in args.split(';')]
+            n = values[0] or 1
+            if code in 'Hf':
+                y, x = n - 1, (values[1] if len(values) > 1 and values[1] else 1) - 1
+            elif code == 'G': x = n - 1
+            elif code == 'd': y = n - 1
+            elif code == 'A': y = max(0, y - n)
+            elif code == 'B': y += n
+            elif code == 'C': x += n
+            elif code == 'D': x = max(0, x - n)
+            elif code == 'J' and values[0] in (2, 3): cells = [[' '] * columns for _ in range(height)]
+            elif code == 'K' and 0 <= y < height:
+                start, end = (0 if values[0] in (1, 2) else x), (columns if values[0] in (0, 2) else x + 1)
+                cells[y][start:end] = [' '] * max(0, end - start)
+        elif token == '\r': x = 0
+        elif token == '\n': y += 1
+        elif token >= ' ':
+            if 0 <= y < height and 0 <= x < columns: cells[y][x] = token
+            x += 1
+    return [''.join(row) for row in cells]
 
 for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
     config = {'session': {'sidebar': 'hide' if mode == 'hidden' else 'auto'},
@@ -56,12 +101,14 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
     if mode == 'default-debug': del config['debug']
     (home / 'config/opencode/cli.json').write_text(json.dumps(config))
     child, fd = launch('child' if mode == 'child' else 'long')
+    drafted = False
     try:
         initial = drain(fd, .8)
         assert len(set(re.findall(r'ROW-\d+', initial))) > 35, (mode, initial)
         assert ('Native runtime' in initial) == (mode == 'debug'), mode
         assert ('Context' in initial) == (mode not in ['hidden', 'child', 'vertical']), mode
         os.write(fd, b'\x1b[200~draft-one\ndraft-two\ndraft-three\x1b[201~')
+        drafted = True
         drain(fd)
         for width, height in [(80,24),(120,40),(160,48),(43,48),(44,48),(119,48),(120,48),(121,48),(160,48)]:
             size(fd, width, height)
@@ -73,7 +120,7 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
             assert ('Native runtime' in frame) == (mode == 'debug'), (mode, width)
         print(mode, 'resize/draft/sidebar/debug PASS')
     finally:
-        stop(child, fd)
+        stop(child, fd, ('child' if mode == 'child' else 'long') if drafted else None)
 
 (home / 'config/opencode/cli.json').write_text('{}')
 child, fd = launch('wrapped', 120, 80)
@@ -100,7 +147,8 @@ for session in [None, 'empty']:
             assert '█▀▀█' not in initial and 'LAST-ANCHOR' in initial, initial
             assert 'Context' in initial, initial
         else:
-            assert '█▀▀█' not in initial and 'Context' in initial, initial
+            assert '█▀▀█' not in initial and 'Context' not in initial, initial
+            assert any('Empty sidebar witness' in row[160-42:] for row in screen_rows(initial, 160, 80)[1:]), initial
             assert 'LAST-ANCHOR' not in initial, initial
     finally:
         stop(child, fd)

@@ -1,6 +1,7 @@
-//! Shared workspace adoption. Editor objects stay local; an authoritative deck
-//! never replaces another chat's unsent text, image bytes, caret or undo stack.
+//! Prepared workspace adoption. Retained editors and receipts never cross a
+//! task boundary; one read slot coalesces publications during an owner read.
 use super::*;
+use oc_core::queries::{ChildJob, HistoryPage, WorkspaceSnapshot};
 
 pub(super) fn turn_event(event: &CoreEvent) -> bool {
     matches!(
@@ -23,60 +24,120 @@ pub(super) fn turn_event(event: &CoreEvent) -> bool {
     )
 }
 
+#[derive(Clone)]
+struct Target {
+    route: Option<read_jobs::Route>,
+    identity: (u64, u64),
+    id: SessionId,
+    location: Option<String>,
+    floor: u64,
+    child: Option<ChildJob>,
+    summaries: Vec<(String, usize)>,
+}
+
+impl Target {
+    fn capture(view: &TuiState) -> Option<Self> {
+        Some(Self {
+            route: read_jobs::Route::capture(view),
+            identity: view.view_identity(),
+            id: view.attached_session()?.clone(),
+            location: view.chrome.location.clone(),
+            floor: view.projection_floor(),
+            child: view.linked_child().cloned(),
+            summaries: view.dcp_summary_requests(),
+        })
+    }
+}
+
 struct Projection {
     revision: u64,
-    page: oc_core::queries::HistoryPage,
+    page: HistoryPage,
     live: Option<oc_core::queries::LiveTurnSnapshot>,
-    jobs: Vec<oc_core::queries::ChildJob>,
+    jobs: Vec<ChildJob>,
     compactions: Vec<oc_core::compaction::CompactionSnapshot>,
     mcp: oc_core::queries::McpSnapshot,
     shells: Option<Vec<oc_core::queries::ShellJob>>,
+    summaries: Vec<(String, oc_core::dcp_view::DcpSummaryPage)>,
+}
+
+pub(super) struct Attached {
+    projection: Option<Projection>,
+    inbox: Vec<oc_core::queries::InboxItem>,
+}
+pub(super) async fn prepare_attached(
+    app: &CoreApp,
+    id: SessionId,
+    location: Option<String>,
+    child: Option<ChildJob>,
+    floor: u64,
+) -> Result<Option<Attached>, String> {
+    if !app.shares_workspace() {
+        return Ok(None);
+    }
+    let snapshot = app
+        .workspace(Some(id.clone()))
+        .await
+        .map_err(|error| error.to_string())?;
+    let target = Target {
+        route: None,
+        identity: (0, 0),
+        id,
+        location,
+        floor,
+        child,
+        summaries: Vec::new(),
+    };
+    Ok(Some(Attached {
+        projection: prepare_projection(app, &target, &snapshot).await?,
+        inbox: snapshot.inbox,
+    }))
+}
+pub(super) async fn apply_attached(app: &CoreApp, view: &mut TuiState, attached: Option<Attached>) {
+    if let Some(attached) = attached {
+        if let Some(projection) = attached.projection {
+            apply_projection(app, view, projection).await;
+        }
+        if let Some(session) = view.attached_session().cloned() {
+            view.apply_inbox(&session, attached.inbox);
+        }
+    }
 }
 
 async fn prepare_projection(
     app: &CoreApp,
-    view: &TuiState,
-    snapshot: &oc_core::queries::WorkspaceSnapshot,
+    target: &Target,
+    snapshot: &WorkspaceSnapshot,
 ) -> Result<Option<Projection>, String> {
-    let Some(id) = view.attached_session() else {
-        return Ok(None);
-    };
-    if snapshot.revision < view.projection_floor() {
+    if snapshot.revision < target.floor {
         return Ok(None);
     }
-    if view.chrome.location.as_deref() != Some(snapshot.deck.location.as_str()) {
-        if view.linked_child().is_none() {
+    if target.location.as_deref() != Some(snapshot.deck.location.as_str()) {
+        if target.child.is_none() {
             return Err(CoreError::LocationChanged.to_string());
         }
-        if !snapshot.turns.iter().any(|live| &live.session == id) {
-            // An old launch can still be read through its exact fence after
-            // the parent moves. Its historical Source is not workspace
-            // coverage: retain that view, never infer idle from this absence.
+        if !snapshot.turns.iter().any(|live| live.session == target.id) {
             return Ok(None);
         }
     }
-    // Always read canonical state AFTER the snapshot, even with a running T2:
-    // its terminal predecessor T1 is no longer in the live materialization.
-    let page = if let Some(job) = view.linked_child().cloned() {
-        app.read_child_transcript(job.parent.clone(), job).await
+    let page = if let Some(job) = &target.child {
+        app.read_child_transcript(job.parent.clone(), job.clone())
+            .await
     } else {
-        app.transcript_page(id.clone(), None, None, HISTORY_PAGE_LIMIT)
+        app.transcript_page(target.id.clone(), None, None, HISTORY_PAGE_LIMIT)
             .await
     }
     .map_err(|error| error.to_string())?;
-    // Preserve the existing shared-refresh resource reconciliation when a wire
-    // gap also loses a compaction, Shell or MCP publication.
     let compactions = app
-        .compaction_history(id.clone())
+        .compaction_history(target.id.clone())
         .await
         .map_err(|error| error.to_string())?;
     let mcp = app.mcp_status().await.map_err(|error| error.to_string())?;
-    let shells = app.shell_jobs(id.clone()).await.ok();
+    let shells = app.shell_jobs(target.id.clone()).await.ok();
     let mut jobs = app
-        .child_jobs(id.clone())
+        .child_jobs(target.id.clone())
         .await
         .map_err(|error| error.to_string())?;
-    if let Some(job) = view.linked_child() {
+    if let Some(job) = &target.child {
         jobs.extend(
             app.child_jobs(job.parent.clone())
                 .await
@@ -90,21 +151,39 @@ async fn prepare_projection(
         )
     });
     jobs.truncate(16);
+    let mut summaries = Vec::new();
+    for (op, index) in &target.summaries {
+        if let Ok(Some(page)) = app
+            .dcp_summary_page(
+                target.id.clone(),
+                op.clone(),
+                *index,
+                0,
+                oc_tui::dcp_view::SUMMARY_PAGE_BYTES,
+            )
+            .await
+        {
+            summaries.push((op.clone(), page));
+        }
+    }
     Ok(Some(Projection {
         revision: snapshot.revision,
         page,
         live: snapshot
             .turns
             .iter()
-            .find(|live| &live.session == id)
+            .find(|live| live.session == target.id)
             .cloned(),
         jobs,
         compactions,
         mcp,
         shells,
+        summaries,
     }))
 }
 
+// This async signature is shared with replay routing, but the replay path is
+// deliberately pure: it must never query the owner or execute effects.
 async fn apply_projection(app: &CoreApp, view: &mut TuiState, projection: Projection) {
     if projection.revision < view.projection_floor() {
         return;
@@ -126,8 +205,6 @@ async fn apply_projection(app: &CoreApp, view: &mut TuiState, projection: Projec
             {
                 notice.display_name = live.display_name.clone();
             }
-            // Prepared snapshot replay contains only target turn presentation.
-            // No owner reads, route changes or execution effects occur here.
             Box::pin(handle_worker_event_at(
                 app,
                 view,
@@ -138,7 +215,7 @@ async fn apply_projection(app: &CoreApp, view: &mut TuiState, projection: Projec
                 true,
             ))
             .await
-            .expect("prepared target turn projection is infallible");
+            .expect("prepared target projection is infallible");
         }
     }
     view.apply_child_jobs(projection.jobs);
@@ -147,10 +224,15 @@ async fn apply_projection(app: &CoreApp, view: &mut TuiState, projection: Projec
     if let Some(shells) = projection.shells {
         view.apply_shell_jobs(shells);
     }
+    if let Some(session) = view.attached_session().cloned() {
+        for (op, page) in projection.summaries {
+            view.apply_dcp_summary(&session, &op, page);
+        }
+    }
     view.cover_projection(projection.revision, truncated);
-    refresh_dcp_summaries(app, view).await;
 }
 
+/// Startup/explicit exact-child attach, before a mounted input loop exists.
 pub(super) async fn attach(app: &CoreApp, view: &mut TuiState) -> Result<(), String> {
     if !app.shares_workspace() {
         return Ok(());
@@ -159,14 +241,175 @@ pub(super) async fn attach(app: &CoreApp, view: &mut TuiState) -> Result<(), Str
         .workspace(view.attached_session().cloned())
         .await
         .map_err(|error| error.to_string())?;
-    if let Some(projection) = prepare_projection(app, view, &snapshot).await? {
+    if let Some(target) = Target::capture(view)
+        && let Some(projection) = prepare_projection(app, &target, &snapshot).await?
+    {
         apply_projection(app, view, projection).await;
     }
-    // OC2 steer/queue input pending for this session survives a reattach.
     if let Some(session) = view.attached_session().cloned() {
         view.apply_inbox(&session, snapshot.inbox);
     }
     Ok(())
+}
+
+struct Root {
+    id: SessionId,
+    title: bool,
+    catalog: Option<CatalogSnapshot>,
+    projection: Option<Projection>,
+}
+
+struct Request {
+    selected: Option<SessionId>,
+    navigation: u64,
+    location: Option<String>,
+    deck_revision: Option<String>,
+    targets: Vec<Target>,
+    roots: Vec<(SessionId, (u64, u64))>,
+    gap: bool,
+    read_only: bool,
+    pending: std::collections::HashSet<SessionId>,
+    provisional: std::collections::HashSet<SessionId>,
+}
+
+struct Prepared {
+    snapshot: WorkspaceSnapshot,
+    roots: Vec<Root>,
+    repairs: Vec<(Target, Projection)>,
+    home: Option<CatalogSnapshot>,
+    unavailable: Vec<oc_core::queries::ServiceDiagnostic>,
+    save_disabled: bool,
+}
+
+pub(super) struct Job {
+    request: Request,
+    job: tokio::task::JoinHandle<Result<Prepared, String>>,
+}
+impl Job {
+    pub(super) fn ready(&self) -> bool {
+        self.job.is_finished()
+    }
+}
+
+async fn prepare(app: &CoreApp, request: &Request) -> Result<Prepared, String> {
+    let snapshot = app
+        .workspace(request.selected.clone())
+        .await
+        .map_err(|error| error.to_string())?;
+    let mut repairs = Vec::new();
+    if request.gap {
+        for target in &request.targets {
+            let selected;
+            let covered = if snapshot.deck.sessions.contains(&target.id)
+                || request.selected.as_ref() == Some(&target.id)
+            {
+                &snapshot
+            } else {
+                selected = app
+                    .workspace(Some(target.id.clone()))
+                    .await
+                    .map_err(|error| error.to_string())?;
+                &selected
+            };
+            if let Some(projection) = prepare_projection(app, target, covered).await? {
+                repairs.push((target.clone(), projection));
+            }
+        }
+    }
+    let mut roots = Vec::new();
+    let mut unavailable = Vec::new();
+    let mut save_disabled = snapshot.deck.projected();
+    if !request.read_only && !request.gap {
+        for (index, id) in snapshot.deck.sessions.iter().enumerate() {
+            if request.provisional.contains(id) {
+                roots.push(Root {
+                    id: id.clone(),
+                    title: snapshot
+                        .deck
+                        .new_session_titles
+                        .get(index)
+                        .copied()
+                        .unwrap_or(false),
+                    catalog: None,
+                    projection: None,
+                });
+                continue;
+            }
+            let retained = request.targets.iter().find(|target| {
+                &target.id == id
+                    && target.location.as_deref() == Some(snapshot.deck.location.as_str())
+                    && !request.pending.contains(id)
+            });
+            let result = async {
+                let catalog = app
+                    .session_selection(id.clone(), false, SelectionAction::Current)
+                    .await?;
+                let projection = if retained.is_none() {
+                    let target = Target {
+                        route: None,
+                        identity: (0, 0),
+                        id: id.clone(),
+                        location: Some(snapshot.deck.location.clone()),
+                        floor: 0,
+                        child: None,
+                        summaries: Vec::new(),
+                    };
+                    prepare_projection(app, &target, &snapshot)
+                        .await
+                        .map_err(CoreError::Application)?
+                } else {
+                    None
+                };
+                Ok::<_, CoreError>((catalog, projection))
+            }
+            .await;
+            match result {
+                Ok((catalog, projection)) => roots.push(Root {
+                    id: id.clone(),
+                    title: snapshot
+                        .deck
+                        .new_session_titles
+                        .get(index)
+                        .copied()
+                        .unwrap_or(false),
+                    catalog: Some(catalog),
+                    projection,
+                }),
+                Err(error)
+                    if restore_error_is_fatal(
+                        &error,
+                        false,
+                        snapshot.deck.active.as_ref() == Some(id),
+                    ) =>
+                {
+                    return Err(error.to_string());
+                }
+                Err(error) => {
+                    if let CoreError::Diagnostic(diagnostic) = error {
+                        unavailable.push(diagnostic);
+                    }
+                    save_disabled = true;
+                }
+            }
+        }
+    }
+    let home = if !request.read_only && !request.gap {
+        Some(
+            app.home_selection(SelectionAction::Current)
+                .await
+                .map_err(|error| error.to_string())?,
+        )
+    } else {
+        None
+    };
+    Ok(Prepared {
+        snapshot,
+        roots,
+        repairs,
+        home,
+        unavailable,
+        save_disabled,
+    })
 }
 
 pub(super) async fn sync(
@@ -174,250 +417,612 @@ pub(super) async fn sync(
     state: &mut TuiState,
     deck: &mut LoopState,
 ) -> Result<bool, String> {
-    if state.has_pending_submission()
-        || state.has_pending_model_commit()
-        || deck
-            .home
-            .as_ref()
-            .is_some_and(|view| view.has_pending_submission() || view.has_pending_model_commit())
-        || deck
-            .child_parent
-            .as_deref()
-            .is_some_and(|view| view.has_pending_submission() || view.has_pending_model_commit())
-        || deck
-            .tabs
-            .iter()
-            .flatten()
-            .any(TuiState::has_pending_submission)
-        || deck
-            .tabs
-            .iter()
-            .flatten()
-            .any(TuiState::has_pending_model_commit)
-        || deck.conversation_job.is_some()
-        || deck.reload_job.is_some()
-    {
-        return Ok(false);
-    }
-    if deck.read_only && !deck.shared_gap {
-        deck.shared_refresh = false;
-        return Ok(false);
-    }
-    let snapshot = match app.workspace(state.attached_session().cloned()).await {
-        Ok(snapshot) => snapshot,
-        Err(CoreError::StoredTabDeck | CoreError::InvalidTabDeck) => {
-            // Malformed preferences are not repaired on read. Keep the safe
-            // initial Home (or the prior projection), with saving disabled.
-            deck.save_disabled = true;
-            deck.shared_refresh = false;
-            deck.shared_gap = false;
-            state.push_note("saved tab deck unavailable; review saved tabs");
-            return Ok(true);
-        }
-        Err(error) => return Err(error.to_string()),
-    };
-    deck.activity
-        .apply(&snapshot, state.attached_session().cloned());
-    if deck.shared_gap {
-        // Stage every bounded repair before touching an existing owner. Child
-        // snapshots also contain roots; apply each response only to its target.
-        let mut repairs = Vec::new();
-        for view in std::iter::once(&*state)
-            .chain(deck.tabs.iter().flatten())
-            .chain(deck.child_parent.as_deref())
-            .chain(deck.child_views.values())
+    let mut changed = false;
+    if deck.workspace_job.as_ref().is_some_and(Job::ready) {
+        let Job { request, job } = deck.workspace_job.take().expect("finished workspace read");
+        let prepared = match job
+            .await
+            .unwrap_or_else(|_| Err("workspace read interrupted".into()))
         {
-            let Some(id) = view.attached_session() else {
-                continue;
-            };
-            let selected;
-            let covered =
-                if snapshot.deck.sessions.contains(id) || state.attached_session() == Some(id) {
-                    &snapshot
-                } else {
-                    selected = app
-                        .workspace(Some(id.clone()))
-                        .await
-                        .map_err(|error| error.to_string())?;
-                    &selected
-                };
-            if let Some(projection) = prepare_projection(app, view, covered).await? {
-                repairs.push((id.clone(), projection));
-            }
-        }
-        for (id, projection) in repairs {
-            if let Some(view) = std::iter::once(&mut *state)
-                .chain(deck.tabs.iter_mut().flatten())
-                .chain(deck.child_parent.as_deref_mut())
-                .chain(deck.child_views.values_mut())
-                .find(|view| view.attached_session() == Some(&id))
-            {
-                apply_projection(app, view, projection).await;
-                deck.picker_pending_tabs.remove(&id);
-            }
-        }
-        refresh_control_views(app, state, deck).await?;
-        deck.shared_gap = false;
-        // Reconcile deck/catalog separately, without throwing repaired windows
-        // away. A linked route does not adopt another root selection.
-        deck.shared_refresh = !deck.read_only;
-        deck.sync_tabs(state);
-        return Ok(true);
-    }
-
-    // Ordinary WorkspaceChanged must not reload healthy retained history. Stage
-    // only missing views and catalogs, then move the existing complete owners.
-    let mut prepared = Vec::new();
-    let mut unavailable = Vec::new();
-    let mut save_disabled = snapshot.deck.projected();
-    for (index, id) in snapshot.deck.sessions.iter().enumerate() {
-        let retained = std::iter::once(&*state)
-            .chain(deck.tabs.iter().flatten())
-            .find(|view| {
-                view.attached_session() == Some(id)
-                    && view.chrome.location.as_deref() == Some(snapshot.deck.location.as_str())
-                    && !deck.picker_pending_tabs.contains(id)
-            });
-        let loaded = if retained.is_some() {
-            app.session_selection(id.clone(), false, SelectionAction::Current)
-                .await
-                .map(|catalog| (None, Some(catalog)))
-        } else {
-            load_tab(app, id.clone())
-                .await
-                .map(|view| (Some(view), None))
-        };
-        let (mut view, catalog) = match loaded {
-            Ok(loaded) => loaded,
-            Err(error)
-                if restore_error_is_fatal(
-                    &error,
-                    false,
-                    snapshot.deck.active.as_ref() == Some(id),
-                ) =>
-            {
-                return Err(error.to_string());
-            }
+            Ok(prepared) => prepared,
             Err(error) => {
-                if let CoreError::Diagnostic(diagnostic) = error {
-                    unavailable.push(diagnostic);
+                deck.shared_gap |= request.gap;
+                // A failed read is never an excuse to replace retained owners.
+                if deck.save_disabled && deck.authoritative_deck.is_none() {
+                    // Startup already refused a malformed preference. A failed
+                    // background read must not erase that actionable contract,
+                    // nor replace a newer explicit save-refusal message.
+                    if !state
+                        .note()
+                        .is_some_and(|note| note.starts_with("tab deck could not be saved"))
+                    {
+                        state.push_note(&format!(
+                            "saved tab deck unavailable; workspace refresh failed: {error}"
+                        ));
+                    }
+                } else {
+                    state.push_note(&format!("Workspace refresh failed: {error}"));
                 }
-                save_disabled = true;
-                continue;
+                return Ok(true);
             }
         };
-        if let Some(view) = view.as_mut()
-            && let Some(projection) = prepare_projection(app, view, &snapshot).await?
-        {
-            apply_projection(app, view, projection).await;
+        if deck.location != request.location {
+            return Ok(false);
         }
-        let new_title = snapshot
-            .deck
-            .new_session_titles
-            .get(index)
-            .copied()
-            .unwrap_or(false);
-        prepared.push((id.clone(), new_title, view, catalog));
+        if deck.navigation_revision == request.navigation {
+            deck.activity
+                .apply(&prepared.snapshot, request.selected.clone());
+        } else {
+            deck.shared_refresh = true;
+        }
+        for (target, projection) in prepared.repairs {
+            let mut applied = false;
+            let mut stale = false;
+            if let Some(view) = read_jobs::views_mut(state, deck)
+                .find(|view| view.view_identity() == target.identity)
+            {
+                if target
+                    .route
+                    .as_ref()
+                    .is_some_and(|route| route.matches(view))
+                {
+                    apply_projection(app, view, projection).await;
+                    applied = true;
+                } else {
+                    stale = true;
+                }
+            }
+            if applied {
+                deck.picker_pending_tabs.remove(&target.id);
+            }
+            if stale {
+                deck.shared_gap = true;
+                deck.shared_refresh = true;
+            }
+        }
+        if request.gap {
+            deck.shared_refresh |= !deck.read_only;
+            deck.controls.request();
+            changed = true;
+        } else if !deck.read_only
+            && deck.child_parent.is_none()
+            && deck.deck_job.is_none()
+            && deck.navigation_job.is_none()
+            && deck.moved_pending.is_none()
+            && !deck.scope_uncertain
+            && deck.revision == request.deck_revision
+        {
+            adopt(
+                app,
+                state,
+                deck,
+                request,
+                prepared.snapshot,
+                prepared.roots,
+                prepared.home,
+                prepared.save_disabled,
+                prepared.unavailable,
+            )
+            .await?;
+            changed = true;
+        } else if !deck.read_only {
+            deck.shared_refresh = true;
+        }
     }
-    let active_tab = snapshot
-        .deck
-        .active
-        .as_ref()
-        .and_then(|id| prepared.iter().position(|(target, ..)| target == id));
-    let mut next_home = if active_tab.is_none() {
-        let mut home = TuiState::new_home(app.clone());
-        home.apply_catalog(
-            app.home_selection(SelectionAction::Current)
-                .await
-                .map_err(|error| error.to_string())?,
-        );
-        Some(home)
-    } else {
-        None
-    };
-    // Validate geometry before taking any retained view.
+    if deck.workspace_job.is_none() && deck.shared_refresh {
+        if (deck.navigation_job.is_some() || deck.moved_pending.is_some() || deck.scope_uncertain)
+            && !deck.shared_gap
+        {
+            return Ok(changed);
+        }
+        if deck.read_only && !deck.shared_gap {
+            deck.shared_refresh = false;
+            return Ok(changed);
+        }
+        let request = Request {
+            selected: state.attached_session().cloned(),
+            navigation: deck.navigation_revision,
+            location: deck.location.clone(),
+            deck_revision: deck.revision.clone(),
+            gap: deck.shared_gap,
+            read_only: deck.read_only,
+            pending: deck.picker_pending_tabs.clone(),
+            targets: std::iter::once(&*state)
+                .chain(deck.tabs.iter().flatten())
+                .chain(deck.home.iter())
+                .chain(deck.child_parent.as_deref())
+                .chain(deck.child_views.values())
+                .filter_map(Target::capture)
+                .collect(),
+            roots: std::iter::once(&*state)
+                .chain(deck.tabs.iter().flatten())
+                .filter_map(|view| {
+                    view.attached_session()
+                        .cloned()
+                        .map(|id| (id, view.view_identity()))
+                })
+                .collect(),
+            provisional: std::iter::once(&*state)
+                .chain(deck.tabs.iter().flatten())
+                .filter(|view| view.attached_session().is_none())
+                .filter_map(|view| tab_route_session(view).cloned())
+                .collect(),
+        };
+        deck.shared_refresh = false;
+        deck.shared_gap = false;
+        let captured = Request {
+            selected: request.selected.clone(),
+            navigation: request.navigation,
+            location: request.location.clone(),
+            targets: request.targets.clone(),
+            roots: request.roots.clone(),
+            deck_revision: request.deck_revision.clone(),
+            gap: request.gap,
+            read_only: request.read_only,
+            pending: request.pending.clone(),
+            provisional: request.provisional.clone(),
+        };
+        let owner = app.clone();
+        deck.workspace_job = Some(Job {
+            request,
+            job: tokio::spawn(async move { prepare(&owner, &captured).await }),
+        });
+    }
+    Ok(changed)
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn adopt(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    request: Request,
+    snapshot: WorkspaceSnapshot,
+    roots: Vec<Root>,
+    home_catalog: Option<CatalogSnapshot>,
+    save_disabled: bool,
+    unavailable: Vec<oc_core::queries::ServiceDiagnostic>,
+) -> Result<(), String> {
     TuiState::new_home(app.clone())
         .apply_tab_rail_width(snapshot.deck.rail_width)
         .map_err(|error| error.to_string())?;
-    let mut cursors: std::collections::HashMap<_, _> = deck
-        .snapshot(state)
-        .sessions
-        .into_iter()
-        .enumerate()
-        .map(|(index, id)| {
-            (
-                id,
-                if deck.active_tab == Some(index) {
-                    deck.cards_before
-                } else {
-                    deck.tab_cards_before[index]
-                },
-            )
-        })
-        .collect();
-    let mut local = std::collections::HashMap::new();
+    let local_focus = tab_route_session(state).cloned();
+    let local_identity = state.view_identity();
+    // A read may observe an external focus edit before the deferred local CAS
+    // starts. Adopt those facts, but do not silently erase its conflict feedback
+    // merely because the external focus happens to equal the local destination.
+    let selection_superseded = deck.selection_dirty
+        && deck.location.as_deref() == Some(snapshot.deck.location.as_str())
+        && deck.revision != snapshot.deck.revision
+        && deck.authoritative_deck.as_ref().is_some_and(|saved| {
+            saved.sessions == snapshot.deck.sessions
+                && saved.new_session_titles == snapshot.deck.new_session_titles
+        });
+    let preserve_focus = deck.navigation_revision != request.navigation
+        || deck.selection_dirty
+        || deck.deck_job.is_some()
+        // A retained fresh candidate has no durable deck membership yet. An
+        // empty owner deck cannot choose a replacement Home behind its dialog.
+        || state.tab_route_session().is_some() && state.attached_session().is_none()
+        || state.has_occupied_submission()
+        || deck.owns_receipt(state);
+    let mut local = Vec::new();
     let mut home = deck.home.take();
-    for view in deck.tabs.iter_mut().filter_map(Option::take) {
-        if let Some(id) = view.attached_session().cloned() {
-            local.insert(id, view);
-        }
+    for (index, view) in deck
+        .tabs
+        .iter_mut()
+        .enumerate()
+        .filter_map(|(index, view)| view.take().map(|view| (index, view)))
+    {
+        local.push((view, deck.tab_cards_before[index]));
     }
     let old = std::mem::replace(state, TuiState::new_home(app.clone()));
-    if let Some(id) = old.attached_session().cloned() {
-        local.insert(id, old);
+    if deck.active_tab.is_some() || tab_route_session(&old).is_some() {
+        local.push((old, deck.cards_before));
     } else {
         home = Some(old);
     }
     let mut tabs = Vec::new();
-    let mut tab_cursors = Vec::new();
-    for (id, new_title, fresh, catalog) in prepared {
-        tab_cursors.push(cursors.remove(&id).flatten());
-        deck.picker_pending_tabs.remove(&id);
-        let mut view = if let Some(mut fresh) = fresh {
-            if let Some(previous) = local.remove(&id) {
-                fresh.preserve_shared_composer(previous);
-            }
-            fresh
-        } else {
-            local.remove(&id).expect("prepared retained root")
-        };
-        if let Some(catalog) = catalog {
-            view.apply_catalog(catalog);
-        }
-        view.new_session_tab = new_title;
-        tabs.push(Some(view));
-    }
-    let mut selected = if let Some(index) = active_tab {
-        deck.home = home;
-        tabs[index].take().expect("selected shared root")
-    } else {
-        let mut selected = next_home.take().expect("prepared Home");
-        if let Some(home) = home {
-            selected.preserve_shared_composer(home);
-        }
-        deck.home = None;
-        selected
+    let mut cursors = Vec::new();
+    let retained = |view: &TuiState, deck: &LoopState| {
+        let captured = request
+            .roots
+            .iter()
+            .any(|(_, identity)| *identity == view.view_identity());
+        view.attached_session().is_none()
+            || view.has_occupied_submission()
+            || deck.owns_receipt(view)
+            || tab_route_session(view).is_some_and(|id| {
+                snapshot.deck.sessions.contains(id) || deck.closed_owners.contains_key(id)
+            })
+            || !captured
     };
-    selected
-        .apply_tab_rail_width(snapshot.deck.rail_width)
-        .expect("validated tab geometry");
+    let mut spare = MAX_TABS.saturating_sub(
+        local
+            .iter()
+            .filter(|(view, _)| retained(view, deck) || view.has_pending_transcript_projection())
+            .count(),
+    );
+    for root in roots {
+        let previous = local
+            .iter()
+            .position(|(view, _)| tab_route_session(view) == Some(&root.id))
+            .map(|index| local.remove(index));
+        if previous.is_none() && root.catalog.is_none() {
+            deck.shared_refresh = true;
+            continue;
+        }
+        if previous.is_none() {
+            if spare == 0 {
+                deck.picker_pending_tabs.insert(root.id);
+                continue;
+            }
+            spare -= 1;
+        }
+        let (mut view, cursor) = if let Some(previous) = previous {
+            previous
+        } else {
+            (TuiState::new(app.clone(), root.id.clone()), None)
+        };
+        view.resume_transcript_projection();
+        // A fresh provisional's receipt is the sole authority to attach it.
+        // Workspace membership may become durable before that ACK arrives.
+        if view.attached_session().is_some() {
+            if let Some(projection) = root.projection
+                && request
+                    .targets
+                    .iter()
+                    .find(|target| target.identity == view.view_identity())
+                    .is_none_or(|target| {
+                        target
+                            .route
+                            .as_ref()
+                            .is_some_and(|route| route.matches(&view))
+                    })
+            {
+                apply_projection(app, &mut view, projection).await;
+            }
+            if !view.has_pending_model_commit()
+                && !view.has_pending_submission()
+                && let Some(catalog) = root.catalog
+            {
+                let generation = view.chrome.selection_generation;
+                view.apply_catalog_refresh(catalog);
+                if generation != view.chrome.selection_generation
+                    && view.picker_provider_filter().is_some()
+                {
+                    deck.catalogs
+                        .request(app, &mut view, catalog_jobs::Request::Provider);
+                }
+            }
+        }
+        view.new_session_tab = root.title;
+        deck.picker_pending_tabs.remove(&root.id);
+        tabs.push(Some(view));
+        cursors.push(cursor);
+    }
+    // No authoritative read may retire an occupied receipt, a fresh candidate
+    // (including Failed/unknown), or a route created after this read began.
+    for (view, cursor) in local {
+        let keep = retained(&view, deck);
+        if !keep && view.has_pending_transcript_projection() {
+            view.cancel_transcript_projection();
+            view.poll_transcript_projection();
+            deck.shared_refresh = true;
+        }
+        if keep || view.has_pending_transcript_projection() {
+            tabs.push(Some(view));
+            cursors.push(cursor);
+        }
+    }
+    let active = if preserve_focus {
+        tabs.iter().position(|view| {
+            view.as_ref().is_some_and(|view| {
+                view.view_identity() == local_identity
+                    || local_focus
+                        .as_ref()
+                        .is_some_and(|id| tab_route_session(view) == Some(id))
+            })
+        })
+    } else {
+        snapshot.deck.active.as_ref().and_then(|id| {
+            tabs.iter().position(|view| {
+                view.as_ref()
+                    .is_some_and(|view| tab_route_session(view) == Some(id))
+            })
+        })
+    };
+    let mut selected = if let Some(index) = active {
+        tabs[index].take().expect("selected retained root")
+    } else if let Some(home) = home.take() {
+        home
+    } else {
+        let mut home = TuiState::new_home(app.clone());
+        if let Some(catalog) = home_catalog {
+            home.apply_catalog(catalog);
+        }
+        home
+    };
+    if selected.tab_rail_preference() != snapshot.deck.rail_width {
+        selected
+            .apply_tab_rail_width(snapshot.deck.rail_width)
+            .expect("validated geometry");
+    }
     if save_disabled {
-        selected.chrome.service_diagnostics.extend(unavailable);
-        selected.push_note("saved tabs partially unavailable; review saved tabs");
+        for diagnostic in unavailable {
+            if !selected.chrome.service_diagnostics.contains(&diagnostic) {
+                selected.chrome.service_diagnostics.push(diagnostic);
+            }
+        }
+        // Repeated background publication must not replace the explicit
+        // feedback for a user's refused save/activation on this same deck.
+        if !deck.save_disabled || deck.location.as_deref() != Some(snapshot.deck.location.as_str())
+        {
+            selected.push_note("saved tabs partially unavailable; review saved tabs");
+        }
+    } else if selection_superseded {
+        selected.push_note(
+            "tab deck could not be saved; saved tabs changed before local selection; refresh saved tabs before retrying",
+        );
     }
     *state = selected;
+    deck.home = if active.is_some() { home } else { None };
     deck.tabs = tabs;
-    deck.active_tab = active_tab;
-    deck.tab_cards_before = tab_cursors;
-    deck.cards_before = deck
-        .active_tab
-        .and_then(|index| deck.tab_cards_before[index]);
+    deck.tab_cards_before = cursors;
+    deck.active_tab = active;
+    deck.cards_before = active.and_then(|index| deck.tab_cards_before[index]);
+    deck.authoritative_deck = Some(snapshot.deck.clone());
+    deck.selection_blocked = false;
     deck.save_disabled = save_disabled;
     deck.location = Some(snapshot.deck.location);
-    deck.revision = snapshot.deck.revision;
-    deck.shared_refresh = false;
-    deck.shared_gap = false;
+    // Never race a read's older token over an in-flight CAS acknowledgement.
+    if deck.deck_job.is_none() {
+        deck.revision = snapshot.deck.revision;
+    }
+    deck.controls.request();
     deck.sync_tabs(state);
-    refresh_control_views(app, state, deck).await?;
-    Ok(true)
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn failed_workspace_read_keeps_malformed_deck_contract_and_newer_save_refusal() {
+        let (app, mut inbox, _, _, _admissions) = CoreApp::native_channel(8, 78);
+        let mut state = TuiState::new_home(app.clone());
+        state.chrome.location = Some("/fixture".into());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            save_disabled: true,
+            ..Default::default()
+        };
+        for explicit in [false, true] {
+            state.push_note(if explicit {
+                "tab deck could not be saved; review saved tabs"
+            } else {
+                "saved tab deck unavailable; review saved tabs"
+            });
+            deck.workspace_job = Some(Job {
+                request: Request {
+                    selected: None,
+                    navigation: deck.navigation_revision,
+                    location: deck.location.clone(),
+                    deck_revision: None,
+                    targets: Vec::new(),
+                    roots: Vec::new(),
+                    gap: false,
+                    read_only: false,
+                    pending: Default::default(),
+                    provisional: Default::default(),
+                },
+                job: tokio::spawn(async { Err("invalid stored tab deck".into()) }),
+            });
+            tokio::time::timeout(Duration::from_secs(1), async {
+                while !deck.workspace_job.as_ref().unwrap().ready() {
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .unwrap();
+            assert!(sync(&app, &mut state, &mut deck).await.unwrap());
+            if explicit {
+                assert_eq!(
+                    state.note(),
+                    Some("tab deck could not be saved; review saved tabs")
+                );
+            } else {
+                assert!(
+                    state
+                        .note()
+                        .unwrap()
+                        .starts_with("saved tab deck unavailable")
+                );
+                assert!(state.note().unwrap().contains("invalid stored tab deck"));
+            }
+            assert!(deck.save_disabled);
+            assert!(deck.revision.is_none());
+            assert!(deck.authoritative_deck.is_none());
+            assert!(inbox.try_recv().is_err(), "no repair write or admission");
+        }
+    }
+
+    #[tokio::test]
+    async fn repeated_partial_deck_publication_keeps_explicit_save_failure_and_original_membership()
+    {
+        let (app, mut inbox, _, _, _admissions) = CoreApp::native_channel(8, 75);
+        let id = SessionId("good".into());
+        let mut state = TuiState::new(app.clone(), id.clone());
+        state.chrome.location = Some("/fixture".into());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            revision: Some("original".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        let saved = TabDeckSnapshot {
+            location: "/fixture".into(),
+            revision: Some("original".into()),
+            sessions: vec![id.clone(), SessionId("unreadable".into())],
+            active: Some(id.clone()),
+            ..Default::default()
+        };
+        for repeated in [false, true] {
+            let request = Request {
+                selected: Some(id.clone()),
+                navigation: deck.navigation_revision,
+                location: deck.location.clone(),
+                deck_revision: deck.revision.clone(),
+                targets: Vec::new(),
+                roots: vec![(id.clone(), state.view_identity())],
+                gap: false,
+                read_only: false,
+                pending: Default::default(),
+                provisional: Default::default(),
+            };
+            adopt(
+                &app,
+                &mut state,
+                &mut deck,
+                request,
+                WorkspaceSnapshot {
+                    revision: 1,
+                    deck: saved.clone(),
+                    turns: Vec::new(),
+                    inbox: Vec::new(),
+                    activity: Vec::new(),
+                    selected_root: Some(id.clone()),
+                },
+                vec![Root {
+                    id: id.clone(),
+                    title: false,
+                    catalog: None,
+                    projection: None,
+                }],
+                None,
+                true,
+                Vec::new(),
+            )
+            .await
+            .unwrap();
+            if !repeated {
+                assert_eq!(
+                    state.note(),
+                    Some("saved tabs partially unavailable; review saved tabs")
+                );
+                apply_intent(
+                    &app,
+                    &mut state,
+                    &mut deck,
+                    PanelIntent::ActivateTab { index: 0 },
+                )
+                .await
+                .unwrap();
+            }
+            assert_eq!(
+                state.note(),
+                Some("tab deck could not be saved; review saved tabs")
+            );
+            assert!(deck.save_disabled);
+            assert_eq!(deck.authoritative_deck.as_ref(), Some(&saved));
+            deck_jobs::sync(&app, &mut state, &mut deck).await;
+            assert!(inbox.try_recv().is_err(), "no pruned membership save");
+        }
+        for _ in 0..2 {
+            apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+                .await
+                .unwrap();
+            assert_eq!(
+                state.note(),
+                Some("tab deck could not be saved; review saved tabs")
+            );
+            assert!(deck.save_disabled);
+            assert_eq!(deck.authoritative_deck.as_ref(), Some(&saved));
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::ActivateTab { index: 0 },
+            )
+            .await
+            .unwrap();
+        }
+        assert!(
+            inbox.try_recv().is_err(),
+            "new and restored Home do not save a pruned deck"
+        );
+    }
+
+    #[tokio::test]
+    async fn external_focus_read_reports_superseded_local_selection_without_replaying_write() {
+        let (app, mut inbox, _, _, _admissions) = CoreApp::native_channel(8, 76);
+        let id = SessionId("root".into());
+        let mut state = TuiState::new(app.clone(), id.clone());
+        state.chrome.location = Some("/fixture".into());
+        let mut deck = LoopState {
+            location: Some("/fixture".into()),
+            revision: Some("original".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        deck.authoritative_deck = Some(deck.snapshot(&state));
+        apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+            .await
+            .unwrap();
+        let external = TabDeckSnapshot {
+            revision: Some("external".into()),
+            active: None,
+            ..deck.authoritative_deck.clone().unwrap()
+        };
+        let request = Request {
+            selected: None,
+            navigation: deck.navigation_revision,
+            location: deck.location.clone(),
+            deck_revision: deck.revision.clone(),
+            targets: Vec::new(),
+            roots: vec![(id.clone(), deck.tabs[0].as_ref().unwrap().view_identity())],
+            gap: false,
+            read_only: false,
+            pending: Default::default(),
+            provisional: Default::default(),
+        };
+        adopt(
+            &app,
+            &mut state,
+            &mut deck,
+            request,
+            WorkspaceSnapshot {
+                revision: 1,
+                deck: external.clone(),
+                turns: Vec::new(),
+                inbox: Vec::new(),
+                activity: Vec::new(),
+                selected_root: None,
+            },
+            vec![Root {
+                id,
+                title: false,
+                catalog: None,
+                projection: None,
+            }],
+            None,
+            false,
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+        assert!(
+            state
+                .note()
+                .unwrap()
+                .starts_with("tab deck could not be saved")
+        );
+        assert_eq!(deck.authoritative_deck.as_ref(), Some(&external));
+        deck_jobs::sync(&app, &mut state, &mut deck).await;
+        assert!(
+            inbox.try_recv().is_err(),
+            "read alignment never replays the old CAS"
+        );
+    }
 }

@@ -49,7 +49,8 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
     let Some(InboxMsg::SubmitFresh { text, ack, .. }) = inbox.recv().await else {
         panic!("fresh request receipt")
     };
-    assert_eq!(text.text, state.input());
+    assert_eq!(text.text, "keep the refused unsent draft");
+    assert!(state.input().is_empty());
     let mut issue = diagnostic(ServiceKind::Selection);
     issue.code = ServiceCode::ModelUnavailable;
     issue.action = ServiceAction::SelectModel;
@@ -60,7 +61,7 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
         state.note(),
         Some("Request unavailable: model_unavailable · /models")
     );
-    assert_eq!(state.input(), "keep the refused unsent draft");
+    assert!(state.input().is_empty());
     assert!(state.attached_session().is_none());
     assert!(state.window.rows().is_empty());
     assert!(state.active_turn().is_none());
@@ -90,9 +91,11 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
             .is_none()
     );
     assert_eq!(state.note(), Some(issue.investigation_draft().as_str()));
-    assert_eq!(state.input(), "keep the refused unsent draft");
+    assert!(state.input().is_empty());
     assert!(!state.has_pending_submission());
     state.close_panel();
+    state.recover_submission(true);
+    assert_eq!(state.input(), "keep the refused unsent draft");
 
     let mut next_location = snapshot();
     next_location.chrome.location = Some("/next-location".into());
@@ -124,9 +127,10 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
         state
             .modal_options()
             .iter()
-            .all(|option| option.value != "submission-refusal")
+            .any(|option| option.value == "submission-refusal")
     );
     state.close_panel();
+    state.recover_submission(true);
     state.handle_key(KeyAction::Enter).await;
     let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
         panic!("new captured refusal receipt")
@@ -141,6 +145,7 @@ async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_surviv
             .any(|option| option.value == "submission-refusal")
     );
     state.close_panel();
+    state.recover_submission(true);
     state.handle_key(KeyAction::Enter).await;
     let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
         panic!("accepted retry receipt")

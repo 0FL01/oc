@@ -46,6 +46,7 @@ async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_se
         let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
         terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
         state.handle_key(KeyAction::Up).await;
+        settle_history(&mut state).await;
         assert_eq!(state.input(), latest);
         state.handle_key(KeyAction::Undo).await;
         assert_eq!(
@@ -57,6 +58,7 @@ async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_se
         state.editor.move_to(0, false);
         state.handle_key(KeyAction::Up).await;
         state.handle_key(KeyAction::Up).await;
+        settle_history(&mut state).await;
         assert_eq!(state.input(), "FIRST @src/demo.rs Ω界");
         state.handle_key(KeyAction::Down).await;
         assert_eq!(
@@ -75,6 +77,7 @@ async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_se
         assert_eq!(state.editor.cursor, draft.len());
         state.editor.move_to(0, false);
         state.handle_key(KeyAction::Up).await;
+        settle_history(&mut state).await;
         state.handle_key(KeyAction::Char('X')).await;
         state.editor.move_to(0, false);
         state.handle_key(KeyAction::Up).await;
@@ -100,6 +103,7 @@ async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_se
             .terminal_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE))
             .unwrap();
         state.handle_key(previous).await;
+        settle_history(&mut state).await;
         assert_eq!(state.input(), latest);
         assert_eq!(state.editor.browsing_history(), expected_history);
     }
@@ -116,6 +120,7 @@ async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_se
         .unwrap();
     assert_eq!(previous, KeyAction::PromptHistoryPrevious);
     state.handle_key(previous).await;
+    settle_history(&mut state).await;
     assert_eq!(state.input(), latest);
     state.editor.move_to(state.input.len(), false);
     let next = state
@@ -147,6 +152,7 @@ async fn vis12_shared_history_recall_undo_draft_and_effective_keys_do_not_use_se
     state.editor.move_to(0, false);
     state.chrome.prompt_history_shortcuts.previous = "up".into();
     state.handle_key(KeyAction::Up).await;
+    settle_history(&mut state).await;
     assert_eq!(
         state.input(),
         latest,
@@ -205,7 +211,8 @@ async fn vis12_clear_retention_slash_admission_and_history_failure_preserve_auth
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
 
-    // Both accepted slash and retained clear fail closed before local effects.
+    // Auxiliary persistence never blocks local command/clear handling. A late
+    // refusal retains the original input for explicit recall, never a resend.
     for slash in [true, false] {
         let (app, mut inbox, _) = CoreApp::channel(2);
         let mut state = TuiState::new_home(app);
@@ -231,9 +238,24 @@ async fn vis12_clear_retention_slash_admission_and_history_failure_preserve_auth
             .unwrap();
         };
         let (outcome, ()) = tokio::join!(state.handle_key(action), owner);
-        assert!(outcome.note.unwrap().contains("history fixture refusal"));
-        assert!(outcome.intent.is_none());
-        assert_eq!(state.input(), text);
+        assert!(outcome.note.is_none());
+        assert_eq!(outcome.intent, slash.then_some(PanelIntent::LoadMcps));
+        assert!(state.input().is_empty());
+        state.close_panel();
+        state.restore_prompt("independent next draft".into());
+        settle_history(&mut state).await;
+        assert!(state.note().unwrap().contains("history fixture refusal"));
+        state.handle_key(KeyAction::Home).await;
+        state.handle_key(KeyAction::PromptHistoryPrevious).await;
+        assert_eq!(
+            state.input(),
+            text,
+            "known/unknown failure retains exact original payload"
+        );
+        state.handle_key(KeyAction::End).await;
+        state.handle_key(KeyAction::Cancel).await;
+        state.handle_key(KeyAction::PromptHistoryNext).await;
+        assert_eq!(state.input(), "independent next draft");
         assert_eq!(state.panel, TuiPanel::None);
         assert!(state.pending.is_none());
         assert!(inbox.try_recv().is_err());

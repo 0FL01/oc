@@ -87,13 +87,18 @@ async fn tab_reorder_saves_before_moving_owners_cursors_flags_and_selecting_a_ru
             }
         };
         let (result, ()) = tokio::join!(deck.move_tab(&app, &state, a.clone(), 2), owner);
+        result.unwrap();
+        settle_deck(&app, &mut state, &mut deck).await;
         if refusal.is_some() {
-            assert!(result.is_err());
+            assert!(
+                state
+                    .note()
+                    .unwrap()
+                    .contains("save refused or outcome unknown")
+            );
             assert_eq!(deck.snapshot(&state), before);
             assert_eq!(deck.cards_before, Some(33));
             assert_eq!(state.input(), "c draft");
-        } else {
-            deck.activate(&mut state, result.unwrap()).unwrap();
         }
     }
     assert_eq!(state.session(), &a);
@@ -108,6 +113,7 @@ async fn tab_reorder_saves_before_moving_owners_cursors_flags_and_selecting_a_ru
     // Moving the active None placeholder backwards preserves the mounted owner.
     deck.location = None;
     let index = deck.move_tab(&app, &state, a.clone(), 0).await.unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     deck.activate(&mut state, index).unwrap();
     assert_eq!(deck.active_tab, Some(0));
     assert_eq!(state.active_turn(), Some(&turn));
@@ -120,6 +126,7 @@ async fn tab_reorder_saves_before_moving_owners_cursors_flags_and_selecting_a_ru
         .move_tab(&app, &state, SessionId("move-b".into()), 2)
         .await
         .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     deck.activate(&mut state, index).unwrap();
     assert_eq!(state.input(), "b draft");
     assert_eq!(deck.cards_before, Some(22));
@@ -199,7 +206,8 @@ async fn sidebar_mcp_preference_ack_preserves_drafts_and_projects_on_activation(
             ),
             owner
         );
-        assert_eq!(result.is_ok(), success);
+        result.unwrap();
+        settle_resources(&mut state, &mut deck).await;
         assert_eq!(deck.sidebar_mcp_open, Some(!success));
         assert!(paint(&state).contains(if success { "▶ MCP" } else { "▼ MCP" }));
         assert_eq!(state.input(), "preserved fold draft Ω界");
@@ -367,37 +375,37 @@ async fn parked_root_events_keep_exact_view_and_restore_it_after_read_failure() 
         ack.send(Err(CoreError::Shutdown)).unwrap();
         inbox
     });
-    assert!(
-        handle_worker_event(
-            &app,
-            &mut state,
-            &mut deck,
-            &home_session,
-            CoreEvent::TurnFinished {
-                session: root.clone(),
-                turn,
-                text: "captured parked ROOT delta".into(),
-                duration_ms: 123,
-                warnings: Vec::new(),
-                service_warning_range: 0..0,
-            },
-        )
-        .await
-        .is_err()
-    );
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut deck,
+        &home_session,
+        CoreEvent::TurnFinished {
+            session: root.clone(),
+            turn,
+            text: "captured parked ROOT delta".into(),
+            duration_ms: 123,
+            warnings: Vec::new(),
+            service_warning_range: 0..0,
+        },
+    )
+    .await
+    .unwrap();
+    settle_reads(&app, &mut state, &mut deck).await;
     let mut inbox = owner.await.unwrap();
     let parked = deck.tabs[0]
         .as_ref()
         .expect("root survives error propagation");
     assert_eq!(parked.attached_session(), Some(&root));
     assert!(!parked.is_busy());
+    assert!(parked.note().unwrap().contains("Refresh failed"));
     assert_eq!(parked.input(), "unfinished root draft");
     assert_eq!(state.input(), "unsent Home draft");
     assert!(inbox.try_recv().is_err());
 }
 
 #[tokio::test]
-async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
+async fn busy_root_strip_add_parks_locally_then_persists_and_keeps_cancel_route() {
     for (refuse_save, intent) in [
         (true, PanelIntent::NewSession),
         (false, PanelIntent::NewSession),
@@ -433,13 +441,6 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
         assert!(inbox.try_recv().is_err());
         let before = deck.snapshot(&state);
         deck.conversation_recovery = Some((root.clone(), Instant::now()));
-        assert!(
-            apply_intent(&app, &mut state, &mut deck, PanelIntent::AddSessionTab)
-                .await
-                .is_err()
-        );
-        deck.conversation_recovery = None;
-        assert_eq!(deck.snapshot(&state), before);
         assert!(inbox.try_recv().is_err());
 
         let expected_root = root.clone();
@@ -457,7 +458,7 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
                 ack,
             } = inbox.recv().await.unwrap()
             else {
-                panic!("CAS before replacing the selected root")
+                panic!("captured selection CAS after local Home first frame")
             };
             assert_eq!(snapshot.sessions, vec![expected_root]);
             assert_eq!(
@@ -479,27 +480,36 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
             inbox
         });
         let result = apply_intent(&app, &mut state, &mut deck, intent).await;
+        result.unwrap();
+        assert!(state.attached_session().is_none());
+        assert_eq!(
+            deck.tabs[0].as_ref().unwrap().input(),
+            "unfinished accepted-root draft"
+        );
+        assert_eq!(deck.revision.as_deref(), Some("before-add"));
+        settle_home(&app, &mut state, &mut deck).await;
+        settle_deck(&app, &mut state, &mut deck).await;
         inbox = owner.await.unwrap();
         assert!(
             inbox.try_recv().is_err(),
             "no submit, cancel, replay or extra save"
         );
         if refuse_save {
-            assert!(result.is_err());
-            assert_eq!(deck.snapshot(&state), before);
-            assert_eq!(state.attached_session(), Some(&root));
-            assert_eq!(state.active_turn(), Some(&turn));
-            assert_eq!(state.input(), "unfinished accepted-root draft");
-            assert!(deck.tabs[0].is_none(), "the selected root is still unique");
-            continue;
+            assert_eq!(deck.revision.as_deref(), Some("before-add"));
+            assert!(
+                state
+                    .note()
+                    .unwrap()
+                    .contains("save refused or outcome unknown")
+            );
+        } else {
+            assert_eq!(deck.revision.as_deref(), Some("after-add"));
         }
-        result.unwrap();
         assert!(state.attached_session().is_none());
         let parked = deck.tabs[0].as_ref().unwrap();
         assert_eq!(parked.attached_session(), Some(&root));
         assert_eq!(parked.active_turn(), Some(&turn));
         assert_eq!(parked.input(), "unfinished accepted-root draft");
-        assert_eq!(deck.revision.as_deref(), Some("after-add"));
         assert!(inbox.try_recv().is_err());
         // Home is idle: the root's same mounted state can be selected and stopped.
         deck.activate(&mut state, 0).unwrap();
@@ -518,7 +528,8 @@ async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
             ack.send(Ok(())).unwrap();
             inbox
         });
-        state.handle_key(KeyAction::Cancel).await;
+        let outcome = state.handle_key(KeyAction::Cancel).await;
+        apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
         inbox = owner.await.unwrap();
         assert!(inbox.try_recv().is_err());
         assert_eq!(state.input(), "unfinished accepted-root draft");
@@ -578,26 +589,19 @@ async fn parked_root_controls_keep_bindings_without_selecting_home_or_replying()
     let expected_question = question.clone();
     let expected_root = root.clone();
     let owner = tokio::spawn(async move {
-        for _ in 0..2 {
-            let InboxMsg::PendingApprovals { ack } = inbox.recv().await.unwrap() else {
-                panic!("bounded permission snapshot")
-            };
-            ack.send(Ok(vec![expected_permission.clone()])).unwrap();
-            let InboxMsg::History { session, ack, .. } = inbox.recv().await.unwrap() else {
-                panic!("permission ancestry")
-            };
-            assert_eq!(session, expected_root);
-            ack.send(Ok(HistoryPage::default())).unwrap();
-            let InboxMsg::PendingQuestions { ack } = inbox.recv().await.unwrap() else {
-                panic!("bounded question snapshot")
-            };
-            ack.send(Ok(vec![expected_question.clone()])).unwrap();
-            let InboxMsg::History { session, ack, .. } = inbox.recv().await.unwrap() else {
-                panic!("question ancestry")
-            };
-            assert_eq!(session, expected_root);
-            ack.send(Ok(HistoryPage::default())).unwrap();
-        }
+        let InboxMsg::PendingApprovals { ack } = inbox.recv().await.unwrap() else {
+            panic!("bounded permission snapshot")
+        };
+        ack.send(Ok(vec![expected_permission.clone()])).unwrap();
+        let InboxMsg::PendingQuestions { ack } = inbox.recv().await.unwrap() else {
+            panic!("bounded question snapshot")
+        };
+        ack.send(Ok(vec![expected_question.clone()])).unwrap();
+        let InboxMsg::History { session, ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("one shared permission/question ancestry read")
+        };
+        assert_eq!(session, expected_root);
+        ack.send(Ok(HistoryPage::default())).unwrap();
         inbox
     });
     handle_worker_event(
@@ -609,6 +613,7 @@ async fn parked_root_controls_keep_bindings_without_selecting_home_or_replying()
     )
     .await
     .unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
     let inbox = owner.await.unwrap();
     assert!(
         inbox.is_empty(),
@@ -713,33 +718,26 @@ async fn fresh_shell_permission_stays_with_its_receipt_without_parked_history_lo
         ..Default::default()
     };
     let expected = permission.clone();
-    let fresh = session.clone();
     let owner = tokio::spawn(async move {
-        for _ in 0..2 {
-            let InboxMsg::PendingApprovals { ack } = inbox.recv().await.unwrap() else {
-                panic!("current permission snapshot")
-            };
-            ack.send(Ok(vec![expected.clone()])).unwrap();
-            match inbox.recv().await.unwrap() {
-                InboxMsg::PendingQuestions { ack } => {
-                    ack.send(Ok(Vec::new())).unwrap();
-                }
-                InboxMsg::History { session, ack, .. } => {
-                    assert_eq!(session, fresh, "baseline queried the unadmitted candidate");
-                    ack.send(Err(CoreError::Shutdown)).unwrap();
-                    return inbox;
-                }
-                _ => panic!("projection must not admit or answer the shell"),
+        let InboxMsg::PendingApprovals { ack } = inbox.recv().await.unwrap() else {
+            panic!("current permission snapshot")
+        };
+        ack.send(Ok(vec![expected.clone()])).unwrap();
+        match inbox.recv().await.unwrap() {
+            InboxMsg::PendingQuestions { ack } => {
+                ack.send(Ok(Vec::new())).unwrap();
             }
+            _ => panic!("projection must not admit or answer the shell"),
         }
         inbox
     });
-    let result = refresh_control_views(&app, &mut state, &mut deck).await;
+    deck.controls.request();
+    control_jobs::sync(&app, &mut state, &mut deck).await;
     let inbox = owner.await.unwrap();
-    assert!(
-        result.is_ok(),
-        "unadmitted history is not a valid projection source: {result:?}"
-    );
+    while !deck.controls.ready() {
+        tokio::task::yield_now().await;
+    }
+    control_jobs::sync(&app, &mut state, &mut deck).await;
     assert!(
         inbox.is_empty(),
         "no Submit, Reply, Cancel or session creation"
@@ -872,10 +870,11 @@ async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live
         .unwrap();
         inbox
     });
+    let mut deck = LoopState::default();
     handle_worker_event(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         &session,
         CoreEvent::ShellNotice(ShellNotice {
             session: session.clone(),
@@ -889,6 +888,7 @@ async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut state, &mut deck).await;
     let mut inbox = owner.await.unwrap();
     let rows = state.transcript_rows();
     assert_eq!(
@@ -927,7 +927,7 @@ async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live
     handle_worker_event(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         &session,
         CoreEvent::ShellNotice(ShellNotice {
             session: session.clone(),
@@ -941,6 +941,7 @@ async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut state, &mut deck).await;
     let mut inbox = hidden.await.unwrap();
     assert_eq!(state.transcript_rows(), rows);
     assert!(state.note().is_none());
@@ -1069,10 +1070,11 @@ async fn exact_child_notice_terminalizes_retained_launch_outside_inventory_witho
                 inbox
             });
             for _ in 0..2 {
+                let mut deck = LoopState::default();
                 handle_worker_event(
                     &app,
                     &mut state,
-                    &mut LoopState::default(),
+                    &mut deck,
                     &parent,
                     CoreEvent::ChildNotice(ChildNotice {
                         job: finished.clone(),
@@ -1081,6 +1083,7 @@ async fn exact_child_notice_terminalizes_retained_launch_outside_inventory_witho
                 )
                 .await
                 .unwrap();
+                settle_notices(&app, &mut state, &mut deck).await;
                 terminal
                     .draw(|frame| oc_tui::shell::render(frame, &state))
                     .unwrap();
@@ -1147,6 +1150,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
     state.poll_submission();
     state.apply_delta(&current, "live assistant only once");
     state.restore_prompt("new unfinished draft".into());
+    let mut deck = LoopState::default();
     let job = ChildJob {
         parent: session.clone(),
         child: SessionId("actual-child".into()),
@@ -1197,6 +1201,11 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
             ..Default::default()
         }))
         .unwrap();
+        let InboxMsg::ChildJobs { session, ack } = inbox.recv().await.unwrap() else {
+            panic!("same-source child inventory")
+        };
+        assert_eq!(session.0, "busy-child-notice");
+        ack.send(Ok(Vec::new())).unwrap();
         let InboxMsg::History {
             message,
             limit,
@@ -1241,7 +1250,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
     handle_worker_event(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         &session,
         CoreEvent::ChildNotice(ChildNotice {
             job,
@@ -1250,6 +1259,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut state, &mut deck).await;
     let mut inbox = owner.await.unwrap();
     let text = state
         .transcript_lines(120, 120)
@@ -1337,6 +1347,7 @@ async fn shell_changed_updates_closed_owner_footer_and_parked_view_without_cross
         )
         .await
         .unwrap();
+        settle_reads(&app, &mut state, &mut deck).await;
         inbox = owner.await.unwrap();
         assert!(
             inbox.try_recv().is_err(),
@@ -1371,6 +1382,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     state.poll_submission();
     state.apply_delta(&current, "live assistant text");
     state.restore_prompt("unfinished newer draft".into());
+    let mut deck = LoopState::default();
     let mut output = Presentation::new("user process output", 19, false);
     output.shell = Some(Shell {
         background: false,
@@ -1434,7 +1446,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     handle_worker_event(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         &session,
         CoreEvent::ShellNotice(ShellNotice {
             session: session.clone(),
@@ -1448,6 +1460,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut state, &mut deck).await;
     let mut inbox = owner.await.unwrap();
     let text = state
         .transcript_lines(120, 120)
@@ -1477,7 +1490,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     handle_worker_event(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         &session,
         CoreEvent::ShellNotice(ShellNotice {
             session: session.clone(),
@@ -1491,6 +1504,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut state, &mut deck).await;
     let mut inbox = hidden_owner.await.unwrap();
     assert!(
         state.note().is_none(),
@@ -1515,7 +1529,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     handle_worker_event(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         &session,
         CoreEvent::ShellNotice(ShellNotice {
             session: session.clone(),
@@ -1529,6 +1543,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     )
     .await
     .unwrap();
+    settle_notices(&app, &mut state, &mut deck).await;
     let mut inbox = model_owner.await.unwrap();
     assert!(
         state.note().is_none(),
@@ -1835,15 +1850,7 @@ async fn accepted_conversation_survives_refresh_failure_and_retries_queries_only
             while !deck.recovery_job.as_ref().unwrap().is_finished() {
                 tokio::task::yield_now().await;
             }
-            let current_history = tokio::spawn(async move {
-                let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
-                    panic!("current recovery history")
-                };
-                ack.send(Ok(HistoryPage::default())).unwrap();
-                inbox
-            });
             finish_conversation(&app, &mut state, &mut deck).await;
-            let mut inbox = current_history.await.unwrap();
             assert!(deck.conversation_recovery.is_none());
             assert_eq!(state.input(), "owner restored");
             assert!(inbox.try_recv().is_err());
@@ -1897,8 +1904,10 @@ async fn conversation_recovery_cannot_restore_reverted_page_after_new_admission(
             panic!("current branch history")
         };
         ack.send(Ok(HistoryPage::default())).unwrap();
+        empty_view_resources(&mut inbox, "recovery-branch").await;
     });
     finish_conversation(&app, &mut state, &mut deck).await;
+    settle_reads(&app, &mut state, &mut deck).await;
     assert!(
         !state
             .transcript_lines(120, 120)
@@ -1967,6 +1976,7 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
     )
     .await
     .unwrap();
+    settle_history(&app, &mut state, &mut deck).await;
     assert_eq!(expected, "full public user text\n".repeat(500));
     assert!(
         state.take_copy_request().is_none(),
@@ -2206,6 +2216,7 @@ async fn home_model_pick_outlives_a_restart_over_the_configured_model() {
         apply_intent(&app, &mut state, &mut deck, intent)
             .await
             .unwrap();
+        settle_catalog(&app, &mut state, &mut deck).await;
     }
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
@@ -2307,16 +2318,18 @@ async fn selecting_agent_stages_a_next_send_draft_without_selection_toast() {
             ack.send(Ok(selected)).unwrap();
             assert!(inbox.try_recv().is_err());
         });
+        let mut deck = LoopState::default();
         apply_intent(
             &app,
             &mut state,
-            &mut LoopState::default(),
+            &mut deck,
             PanelIntent::SelectAgent {
                 id: "build-yolo".into(),
             },
         )
         .await
         .unwrap();
+        settle_catalog(&app, &mut state, &mut deck).await;
         assert_eq!(state.composer_agent(), Some("build-yolo"));
         assert_eq!(state.active_agent(), Some("build"));
         assert_eq!(state.input(), "preserved draft");
@@ -2334,6 +2347,11 @@ async fn selecting_agent_stages_a_next_send_draft_without_selection_toast() {
     state.apply_catalog(catalog());
     state.restore_prompt("retry draft".into());
     state.handle_key(oc_tui::events::KeyAction::Agents).await;
+    assert_eq!(
+        state.panel(),
+        &oc_tui::app::TuiPanel::Agents,
+        "open agent dialog before owner request"
+    );
     let worker = tokio::spawn(async move {
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("Home selection")
@@ -2341,17 +2359,19 @@ async fn selecting_agent_stages_a_next_send_draft_without_selection_toast() {
         ack.send(Err(CoreError::Application("unknown agent".into())))
             .unwrap();
     });
-    let error = apply_intent(
+    let mut deck = LoopState::default();
+    apply_intent(
         &app,
         &mut state,
-        &mut LoopState::default(),
+        &mut deck,
         PanelIntent::SelectAgent {
             id: "missing".into(),
         },
     )
     .await
-    .unwrap_err();
-    assert!(error.contains("unknown agent"));
+    .unwrap();
+    settle_catalog(&app, &mut state, &mut deck).await;
+    assert!(state.note().unwrap().contains("unknown agent"));
     assert_eq!(state.panel(), &oc_tui::app::TuiPanel::Agents);
     assert_eq!(state.input(), "retry draft");
     worker.await.unwrap();
@@ -2607,6 +2627,7 @@ async fn variant_cycle_persists_and_next_real_request_uses_selected_overlay() {
     apply_intent(&app, &mut state, &mut deck, PanelIntent::CycleVariant)
         .await
         .unwrap();
+    settle_catalog(&app, &mut state, &mut deck).await;
     assert_eq!(
         app.session_selection(session.clone(), false, SelectionAction::Current)
             .await
@@ -2853,8 +2874,10 @@ async fn refused_reload_consumes_provider_facts_before_feedback_and_late_hint() 
     });
     let message = "Configuration reload failed; check native settings";
     finish_reload_refusal(&app, &mut state, &mut deck, message.into()).await;
+    settle_provider(&app, &mut state, &mut deck).await;
     assert_eq!(state.note(), Some(message));
     refresh_provider_views(&app, &mut state, &mut deck).await;
+    settle_provider(&app, &mut state, &mut deck).await;
     assert_eq!(
         state.note(),
         Some(message),
@@ -2906,36 +2929,57 @@ async fn conn05_provider_publication_refreshes_mounted_parked_and_home_filtered_
         ..Default::default()
     }];
     let worker = tokio::spawn(async move {
-        for expected in [Some("mounted"), Some("parked"), None] {
-            match (inbox.recv().await.unwrap(), expected) {
-                (InboxMsg::SessionSelection { session, ack, .. }, Some(expected)) => {
-                    assert_eq!(session.0, expected);
+        let mut roots = std::collections::BTreeSet::new();
+        let mut providers = 0;
+        let mut mcp = false;
+        for _ in 0..7 {
+            match inbox.recv().await.unwrap() {
+                InboxMsg::SessionSelection {
+                    session,
+                    action,
+                    ack,
+                    ..
+                } => {
+                    assert_eq!(action, SelectionAction::Current);
+                    assert!(roots.insert(session.0));
                     ack.send(Ok(old.clone())).unwrap();
                 }
-                (InboxMsg::HomeSelection { ack, .. }, None) => {
+                InboxMsg::HomeSelection { action, ack } => {
+                    assert_eq!(action, SelectionAction::Current);
+                    assert!(roots.insert("home".into()));
                     ack.send(Ok(old.clone())).unwrap();
                 }
-                _ => panic!("publication must query the original view owner"),
+                InboxMsg::ProviderCatalog { provider, ack } => {
+                    assert_eq!(provider, "custom-exact");
+                    providers += 1;
+                    ack.send(Ok(fresh.clone())).unwrap();
+                }
+                InboxMsg::McpStatus { ack } => {
+                    assert!(!mcp);
+                    mcp = true;
+                    ack.send(Ok(McpSnapshot {
+                        binding: McpBinding {
+                            location: "/fixture".into(),
+                            generation: 1,
+                            instance: 1,
+                        },
+                        revision: 1,
+                        servers: vec![],
+                    }))
+                    .unwrap();
+                }
+                _ => panic!("publication must read only exact retained catalog/provider/MCP facts"),
             }
-            let InboxMsg::ProviderCatalog { provider, ack } = inbox.recv().await.unwrap() else {
-                panic!("filtered provider view")
-            };
-            assert_eq!(provider, "custom-exact");
-            ack.send(Ok(fresh.clone())).unwrap();
         }
-        let InboxMsg::McpStatus { ack } = inbox.recv().await.unwrap() else {
-            panic!("surviving MCP facts")
-        };
-        ack.send(Ok(McpSnapshot {
-            binding: McpBinding {
-                location: "/fixture".into(),
-                generation: 1,
-                instance: 1,
-            },
-            revision: 1,
-            servers: vec![],
-        }))
-        .unwrap();
+        assert_eq!(
+            roots,
+            ["mounted", "parked", "home"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect()
+        );
+        assert_eq!(providers, 3);
+        assert!(mcp);
         assert!(
             inbox.try_recv().is_err(),
             "metadata refresh must not issue a selection mutation"
@@ -2947,6 +2991,7 @@ async fn conn05_provider_publication_refreshes_mounted_parked_and_home_filtered_
     )
     .await
     .unwrap();
+    settle_provider(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     for view in [
         &state,
@@ -3054,7 +3099,7 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
         };
         ack.send(Ok(worker_mcp)).unwrap();
     });
-    let error = finish_reload(
+    finish_reload(
         &app,
         &mut state,
         &mut deck,
@@ -3068,9 +3113,9 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
         Some("/reload".into()),
     )
     .await
-    .unwrap_err();
-    assert!(error.contains("selection refresh failed"));
-    state.apply_intent_error(error);
+    .unwrap();
+    settle_reload(&app, &mut state, &mut deck).await;
+    assert!(state.note().unwrap().contains("selection refresh failed"));
     assert!(state.note().unwrap().contains("reload incomplete"));
     assert_eq!(state.input(), "/reload");
     assert!(state.is_workspace_command("/old-command"));
@@ -3121,6 +3166,7 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     );
     let refusal = deck.reload_job.take().unwrap().await.unwrap().unwrap_err();
     finish_reload_refusal(&app, &mut state, &mut deck, reload_error(refusal)).await;
+    settle_provider(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     assert!(
         state
@@ -3333,6 +3379,7 @@ async fn vis27_reload_projects_owner_mode_to_active_parked_and_home() {
     )
     .await
     .unwrap();
+    settle_reload(&app, &mut state, &mut deck).await;
     worker.await.unwrap();
     for view in [&state, deck.tabs[0].as_ref().unwrap()] {
         let text = view
@@ -3424,16 +3471,16 @@ async fn vis27_invalid_owner_location_does_not_replace_mode_or_write_tabs() {
             "failed config must not save tabs"
         );
     });
-    assert!(
-        apply_intent(
-            &app,
-            &mut state,
-            &mut deck,
-            PanelIntent::SwitchLocation { path: "/B".into() },
-        )
-        .await
-        .is_err()
-    );
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::SwitchLocation { path: "/B".into() },
+    )
+    .await
+    .unwrap();
+    settle_navigation(&app, &mut state, &mut deck).await;
+    assert!(state.note().is_some());
     apply_intent(
         &app,
         &mut state,
@@ -3509,6 +3556,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
         ..Default::default()
     };
     adopt_location(&app, &mut state, &mut deck, b_catalog, "/B").await;
+    settle_navigation(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
     assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
     assert_eq!(deck.location.as_deref(), Some("/B"));
@@ -3524,6 +3572,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
     .unwrap();
     assert_eq!(state.session().0, "b-root");
     assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(deck.revision.as_deref(), Some("B-saved"));
     worker.await.unwrap();
 }
@@ -3568,6 +3617,7 @@ async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(deck.active_tab, Some(1));
     assert_eq!(deck.tab_cards_before, [Some(11), None]);
     assert_eq!(deck.cards_before, Some(33));
@@ -3694,11 +3744,17 @@ async fn rail_release_saves_once_and_only_acknowledged_width_changes_the_deck() 
             apply_intent(&app, &mut state, &mut deck, outcome.intent.unwrap()),
             owner,
         );
+        finished.unwrap();
+        settle_deck(&app, &mut state, &mut deck).await;
         if result < 2 {
-            assert!(finished.is_err());
+            assert!(
+                state
+                    .note()
+                    .unwrap()
+                    .contains("save refused or outcome unknown")
+            );
             assert_eq!(deck.snapshot(&state), before);
         } else {
-            finished.unwrap();
             assert_eq!(state.tab_rail_preference(), Some(5));
             assert_eq!(deck.revision.as_deref(), Some("accepted-revision"));
         }
@@ -3790,10 +3846,15 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
         .unwrap();
     });
     let intent = PanelIntent::CloseTab { index: 0 };
+    apply_intent(&app, &mut state, &mut deck, intent.clone())
+        .await
+        .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(
-        apply_intent(&app, &mut state, &mut deck, intent.clone())
-            .await
-            .is_err()
+        state
+            .note()
+            .unwrap()
+            .contains("save refused or outcome unknown")
     );
     assert_eq!(state.input(), "saved draft");
     assert_eq!(state.session().0, "durable");
@@ -3801,6 +3862,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
     apply_intent(&app, &mut state, &mut deck, intent)
         .await
         .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
     assert_eq!(deck.active_tab, None);
     assert!(deck.tabs.is_empty() && deck.tab_cards_before.is_empty());
@@ -3816,6 +3878,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
     )
     .await
     .unwrap();
+    settle_navigation(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "durable");
     assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(deck.tabs.len(), 1);
@@ -3829,6 +3892,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
     assert!(deck.home.is_none() && deck.tabs.is_empty());
     assert_eq!(state.tab_rail_preference(), Some(5));
@@ -3853,6 +3917,7 @@ async fn closing_last_real_tab_restores_parked_home_draft_without_query() {
     )
     .await
     .unwrap();
+    settle_deck(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
     assert_eq!(state.input(), "parked Home draft");
     assert!(deck.tabs.is_empty() && deck.home.is_none());
@@ -3908,6 +3973,7 @@ async fn sessions_query_uses_owner_metadata_and_scope_without_legacy_id_enumerat
     apply_intent(&app, &mut state, &mut deck, PanelIntent::LoadSessions)
         .await
         .unwrap();
+    settle_picker(&app, &mut state, &mut deck).await;
     assert_eq!(state.modal_options()[0].title, "Named owner title");
     assert_eq!(
         state.handle_panel_key(KeyAction::Enter).intent,
@@ -4014,11 +4080,11 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
         empty_compactions(&mut inbox).await;
     });
     let intent = PanelIntent::SwitchSession { id: "b".into() };
-    assert!(
-        apply_intent(&app, &mut state, &mut deck, intent.clone())
-            .await
-            .is_err()
-    );
+    apply_intent(&app, &mut state, &mut deck, intent.clone())
+        .await
+        .unwrap();
+    settle_navigation(&app, &mut state, &mut deck).await;
+    assert!(state.note().is_some());
     assert_eq!(state.session().0, "a");
     assert_eq!(state.input(), "kept A draft");
     assert_eq!(deck.location.as_deref(), Some("/a"));
@@ -4026,6 +4092,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
     apply_intent(&app, &mut state, &mut deck, intent)
         .await
         .unwrap();
+    settle_navigation(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "b");
     assert_eq!(deck.location.as_deref(), Some("/b"));
     assert_eq!(deck.revision.as_deref(), Some("accepted-b"));
@@ -4043,6 +4110,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
     )
     .await
     .unwrap();
+    settle_navigation(&app, &mut state, &mut deck).await;
     assert_eq!(state.session().0, "a");
     assert_eq!(state.input(), "kept A draft");
     assert_eq!(deck.tabs.len(), 1);
@@ -4119,6 +4187,14 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         ..Default::default()
     };
     deck.sync_tabs(&mut state);
+    let mut home = TuiState::new_home(app.clone());
+    home.chrome.location = Some("/a".into());
+    home.restore_prompt("Home unsent draft".into());
+    home.handle_key(KeyAction::Leader).await;
+    home.handle_key(KeyAction::SequenceKey("l".into(), Some('l')))
+        .await;
+    assert_eq!(*home.panel(), TuiPanel::Sessions);
+    deck.open_home(&mut state, home);
     let worker = tokio::spawn(async move {
         let Some(InboxMsg::OpenPickerSession {
             session,
@@ -4132,6 +4208,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         let mut catalog = catalog();
         catalog.chrome.location = Some("/a".into());
         let mut accepted = old_deck.clone();
+        accepted.active = Some(session.clone());
         accepted.rail_width = Some(5);
         ack.send(Ok(oc_core::queries::SessionPickerOpen {
             session,
@@ -4164,6 +4241,14 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
             panic!("retained view refreshes catalog, not transcript")
         };
+        ack.send(Ok(catalog.clone())).unwrap();
+        let Some(InboxMsg::HomeSelection {
+            action: SelectionAction::Current,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("prepared sessionless Home facts")
+        };
         ack.send(Ok(catalog)).unwrap();
         let Some(InboxMsg::PendingApprovals { ack }) = inbox.recv().await else {
             panic!("retained approval projection")
@@ -4182,6 +4267,9 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     )
     .await
     .unwrap();
+    settle_navigation(&app, &mut state, &mut deck).await;
+    assert_eq!(*deck.home.as_ref().unwrap().panel(), TuiPanel::None);
+    assert_eq!(deck.home.as_ref().unwrap().input(), "Home unsent draft");
     assert_eq!(state.history().rows()[0].seq, 1);
     assert!(state.history().has_newer());
     assert_eq!(state.input(), "retained draft");
@@ -4189,7 +4277,8 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     assert_eq!(state.session_title.as_deref(), Some("real title"));
     deck.shared_refresh = true;
     deck.cards_before = Some(73);
-    assert!(shared::sync(&app, &mut state, &mut deck).await.unwrap());
+    settle_workspace(&app, &mut state, &mut deck).await;
+    settle_controls(&app, &mut state, &mut deck).await;
     assert_eq!(state.history().rows()[0].seq, 1);
     assert!(state.history().has_newer());
     assert_eq!(state.input(), "retained draft");
@@ -4325,6 +4414,7 @@ async fn mouse_picker_open_rehits_only_after_same_location_owner_acceptance() {
                 )
                 .await;
             }
+            settle_navigation(&app, &mut state, &mut deck).await;
             if accepted {
                 assert_eq!(state.attached_session(), Some(&target));
                 assert_eq!(state.mouse_position(), Some((x, y, area)));
@@ -4332,6 +4422,11 @@ async fn mouse_picker_open_rehits_only_after_same_location_owner_acceptance() {
                 if retained {
                     assert_eq!(state.input(), "untouched source draft");
                 } else {
+                    assert_eq!(
+                        *deck.home.as_ref().unwrap().panel(),
+                        TuiPanel::None,
+                        "successful picker navigation must not park its modal on Home"
+                    );
                     assert_eq!(
                         deck.home.as_ref().unwrap().input(),
                         "untouched source draft"
@@ -4397,28 +4492,33 @@ async fn sessions_retained_views_read_latest_scope_and_only_ctrl_a_writes() {
         apply_intent(&app, state, &mut deck, PanelIntent::LoadSessions)
             .await
             .unwrap();
+        settle_picker(&app, state, &mut deck).await;
     }
     a.handle_panel_key(KeyAction::CtrlA);
     apply_intent(&app, &mut a, &mut deck, PanelIntent::LoadSessions)
         .await
         .unwrap();
+    settle_picker(&app, &mut a, &mut deck).await;
     b.close_panel();
     b.handle_paste("/sessions");
     b.handle_key(KeyAction::Enter).await;
     apply_intent(&app, &mut b, &mut deck, PanelIntent::LoadSessions)
         .await
         .unwrap();
+    settle_picker(&app, &mut b, &mut deck).await;
     assert!(b.sessions_all_projects());
     b.handle_panel_key(KeyAction::CtrlA);
     apply_intent(&app, &mut b, &mut deck, PanelIntent::LoadSessions)
         .await
         .unwrap();
+    settle_picker(&app, &mut b, &mut deck).await;
     a.close_panel();
     a.handle_paste("/sessions");
     a.handle_key(KeyAction::Enter).await;
     apply_intent(&app, &mut a, &mut deck, PanelIntent::LoadSessions)
         .await
         .unwrap();
+    settle_picker(&app, &mut a, &mut deck).await;
     assert!(!a.sessions_all_projects());
     worker.await.unwrap();
 }

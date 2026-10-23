@@ -170,7 +170,7 @@ fn notice_order_unknown_revision_and_live_sidecar_bytes_remain_bounded() {
         0,
         "a rejected newer replacement must fail closed"
     );
-    window.rows[0].text = "x".repeat(WINDOW_BYTES / 2);
+    window.rows[0].text = "x".repeat(WINDOW_BYTES / 2).into();
     window.push_synthetic(
         "assistant",
         &"y".repeat(WINDOW_BYTES / 2 - 4096),

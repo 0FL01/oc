@@ -1760,6 +1760,32 @@ impl PtyProcess {
         }
     }
 
+    fn wait_home_selection(&self, location: &Path) {
+        let name = location.file_name().unwrap().to_string_lossy();
+        let deadline = Instant::now() + TIMEOUT;
+        loop {
+            let screen = self.screen();
+            if screen.iter().any(|row| row.contains("Ask anything"))
+                && !screen
+                    .iter()
+                    .any(|row| row.trim_start().starts_with("Commands"))
+                && screen
+                    .iter()
+                    .any(|row| row.contains("Build · MCP application fixture"))
+                && screen
+                    .iter()
+                    .any(|row| row.contains("tab agents") && row.contains(name.as_ref()))
+            {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "Home selection not ready for {name}: {screen:?}"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+
     fn raw(&mut self, bytes: &[u8]) {
         self.master.write_all(bytes).expect("raw PTY input");
         self.master.flush().expect("raw PTY flush");
@@ -1861,7 +1887,13 @@ impl PtyProcess {
     // Ctrl+C belongs to the focused root editor here: it clears a nonempty
     // draft without cancelling/accepting it, then exits only on empty input.
     // Use one deadline for both keys so pending-shutdown's 2s bound is intact.
-    fn clear_draft_then_exit(&mut self, draft: &str, deadline: Instant) -> ExitStatus {
+    fn clear_draft_then_exit(&mut self, deadline: Instant) -> ExitStatus {
+        // Admission already moved the submitted payload out of the editor.
+        // A unique unsent suffix identifies editable text, never its retained
+        // transcript/banner, even when an independent next draft also exists.
+        let draft = "unsent_exit_editor_9184";
+        assert!(!self.screen().iter().any(|row| row.contains(draft)));
+        self.raw(draft.as_bytes());
         while !self.screen().iter().any(|row| row.contains(draft)) {
             assert!(
                 Instant::now() < deadline,
@@ -1894,6 +1926,26 @@ impl PtyProcess {
             assert!(
                 Instant::now() < deadline,
                 "pending shutdown exceeded deadline"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+
+    fn discard_failed_submission(&mut self) {
+        // Use the palette so an independent next draft is not overwritten by a
+        // slash command. Selecting the recovery row is not a request/retry.
+        self.raw(b"\x10");
+        self.wait_screen("Commands", IO_TIMEOUT);
+        self.raw(b"Settings\r");
+        self.wait_screen("Settings", IO_TIMEOUT);
+        self.raw(b"Last request");
+        self.wait_screen("Last request", IO_TIMEOUT);
+        self.raw(b"\x04");
+        let deadline = Instant::now() + IO_TIMEOUT;
+        while self.screen().iter().any(|row| row.contains("Settings")) {
+            assert!(
+                Instant::now() < deadline,
+                "explicit discard did not close Settings"
             );
             std::thread::sleep(POLL);
         }
@@ -2492,7 +2544,10 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
         assert!(Instant::now() < deadline, "MCP initialize did not stall");
         std::thread::sleep(POLL);
     }
-    tui.wait_screen(draft, IO_TIMEOUT); // the pending submission retains its draft
+    tui.wait_screen(draft, IO_TIMEOUT); // captured pending payload, not editor text
+    let next_draft = "next edited draft";
+    tui.raw(next_draft.as_bytes());
+    tui.wait_screen(next_draft, IO_TIMEOUT);
 
     // Inspecting Sessions must not abandon the pending submission owner.
     tui.raw(b"\x18l");
@@ -2512,14 +2567,14 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
     }
 
     // There is no direct Location key: the slash command goes through the
-    // editor. Replace the draft temporarily and restore it after the refusal.
-    tui.raw(&vec![0x7f; draft.len()]);
+    // editor. Replace only the independent next draft, not the captured input.
+    tui.raw(&vec![0x7f; next_draft.len()]);
     let command = format!("/location {}", other.display());
     tui.send_line(&command);
     tui.wait_screen("submission pending; Esc to cancel", IO_TIMEOUT);
     tui.raw(&vec![0x7f; command.len()]);
-    tui.raw(draft.as_bytes());
-    tui.wait_screen(draft, IO_TIMEOUT);
+    tui.raw(next_draft.as_bytes());
+    tui.wait_screen(next_draft, IO_TIMEOUT);
     assert!(
         responses.requests().is_empty(),
         "unaccepted turn reached provider"
@@ -2562,7 +2617,11 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
     std::thread::sleep(Duration::from_millis(250));
     assert!(
         tui.screen().iter().any(|row| row.contains(draft)),
-        "draft lost after cancel"
+        "captured request lost after cancel"
+    );
+    assert!(
+        tui.screen().iter().any(|row| row.contains(next_draft)),
+        "independent draft lost after cancel"
     );
     assert!(
         responses.requests().is_empty(),
@@ -2578,7 +2637,7 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
         .unwrap();
     assert_eq!(messages, 0, "late turn reached transcript");
     assert!(
-        tui.clear_draft_then_exit(draft, Instant::now() + TIMEOUT)
+        tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success()
     );
     assert!(
@@ -2676,7 +2735,11 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
     let resize_offset = tui.output.lock().unwrap().len();
     tui.raw(b"\r"); // duplicate Enter while acceptance is stalled
     tui.resize(120, 40);
-    tui.raw(b" edited");
+    tui.raw(if manual_compress {
+        b"/dcp-compress pending draft edited"
+    } else {
+        b"pending draft edited"
+    });
     let deadline = start + IO_TIMEOUT;
     // Diff paints may interleave cursor-addressed characters with other rows:
     // a complete prompt need not occur contiguously in the accumulated VT bytes.
@@ -2744,7 +2807,8 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
     // current screen, not contiguous bytes in ratatui's delta stream, proves
     // that the cancellation diagnostic is actually visible.
     tui.wait_screen("cancelled", IO_TIMEOUT);
-    let offset = tui.send_line(""); // retry exact retained, edited draft
+    tui.discard_failed_submission();
+    let offset = tui.send_line(""); // explicitly send the independent edited draft
     tui.wait_visible_after(
         offset,
         if manual_compress {
@@ -2837,11 +2901,7 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
         }
         assert!(quitting.wait_exit().success());
     } else {
-        assert!(
-            quitting
-                .clear_draft_then_exit("quit before acceptance", deadline)
-                .success()
-        );
+        assert!(quitting.clear_draft_then_exit(deadline).success());
     }
     assert!(!release.exists());
     let requests = responses.requests();
@@ -2866,7 +2926,7 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
         );
     }
     eprintln!(
-        "V01 raw (manual_compress={manual_compress}): prompt+CR, CR, resize 120x40, ' edited', ESC; cancel/reap before release within {:?}; retry CR, Ctrl+C",
+        "V01 raw (manual_compress={manual_compress}): prompt+CR, CR, resize 120x40, independent edited draft, ESC; cancel/reap before release within {:?}; explicit discard, next-draft CR, Ctrl+C",
         cancel_elapsed
     );
 }
@@ -3144,7 +3204,7 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     );
     assert!(responses.requests().is_empty());
     assert!(
-        tui.clear_draft_then_exit("remote draft", Instant::now() + TIMEOUT)
+        tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success()
     );
     assert!(
@@ -3255,7 +3315,7 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
         "remote still owns first operation; retry must not overlap"
     );
     assert!(
-        tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
+        tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success()
     );
     assert_eq!(responses.requests().len(), first_provider_requests);
@@ -3330,7 +3390,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     tui.send_line(&format!("/location {}", b.display()));
     // New service failure feedback may supersede the generic switch toast;
     // the current canonical Location remains visible in the ordinary footer.
-    tui.wait_screen("project-b", TIMEOUT);
+    tui.wait_home_selection(&b);
     // Switching to B now publishes a sessionless Home; the unsafe remote
     // retry below must not create a B root before an accepted first turn.
     assert_eq!(
@@ -3338,7 +3398,6 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
             .unwrap(),
         1
     );
-    std::thread::sleep(Duration::from_millis(750)); // allow the terminal switch event to settle
     let from = tui.send_line("explicit retry in B");
     let deadline = Instant::now() + TIMEOUT;
     while mcp
@@ -3392,17 +3451,24 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
 
     // A different Location with a local-only MCP owner is unrelated to the
     // remote uncertainty; its explicitly submitted tool may run after switch.
-    tui.raw(&[0x7f; 160]); // preflight refusal keeps B's draft; clear it before /location
-    std::thread::sleep(Duration::from_millis(200));
+    tui.raw(&[0x7f; 160]);
+    // Refusal retains the submitted snapshot separately from the empty editor.
+    tui.discard_failed_submission();
+    // Discard releases the failed snapshot, not its retained provisional tab.
+    // Explicit local Close retires that source without cancel/delete/replay,
+    // after which Location navigation may leave B under the normal contract.
+    tui.raw(b"\x10");
+    tui.wait_screen("Commands", IO_TIMEOUT);
+    tui.raw(b"Close tab\r");
+    tui.wait_home_selection(&b);
     tui.send_line(&format!("/location {}", c.display()));
-    tui.wait_screen("project-c", TIMEOUT);
+    tui.wait_home_selection(&c);
     assert_eq!(
         db.query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, i64>(0))
             .unwrap(),
         1,
         "neither a refused B retry nor C's Home creates a root"
     );
-    std::thread::sleep(Duration::from_millis(750));
     let from = tui.send_line("local-only tool in C");
     tui.wait_visible_after(from, "retry complete");
     assert_eq!(
@@ -3516,7 +3582,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
         );
     }
     assert!(
-        tui.clear_draft_then_exit("retry again in B", Instant::now() + TIMEOUT)
+        tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success()
     );
     assert_eq!(
@@ -3574,7 +3640,7 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
     );
     let first_requests = responses.requests().len();
     assert!(
-        !tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
+        !tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success(),
         "cleanup failure was reported as clean shutdown"
     );
@@ -3670,7 +3736,7 @@ fn v07b_remote_unverified_result(tool: &str) {
         "unsupported response content leaked"
     );
     assert!(
-        tui.clear_draft_then_exit("explicit retry", Instant::now() + TIMEOUT)
+        tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success()
     );
     assert_eq!(

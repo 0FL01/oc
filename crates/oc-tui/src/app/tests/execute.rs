@@ -25,6 +25,32 @@ fn facts() -> Execute {
 }
 
 #[tokio::test]
+async fn execute_animation_marks_only_the_eligible_generated_parent_glyph() {
+    let (state, _) = live().await;
+    let mut card = state.execute_card("execute-ui-op").unwrap().clone();
+    let rows = crate::tools::execute::block(&card, crate::theme::Theme::dark(), 80, &|_| false);
+    assert_eq!(
+        rows[0].line.animation_cells(),
+        [(3, crate::styled::AnimationSource::Tool(card.op.clone()))]
+    );
+    assert!(
+        rows[1..]
+            .iter()
+            .all(|row| row.line.animation_cells().is_empty())
+    );
+    card.state = "permission_pending".into();
+    let rows = crate::tools::execute::block(&card, crate::theme::Theme::dark(), 80, &|_| false);
+    assert_eq!(
+        rows[0].line.animation_cells(),
+        [(3, crate::styled::AnimationSource::Tool(card.op.clone()))]
+    );
+    assert!(rows[0].line.plain_text().starts_with("   ⋯"));
+    card.state = "completed".into();
+    let rows = crate::tools::execute::block(&card, crate::theme::Theme::dark(), 80, &|_| false);
+    assert!(rows.iter().all(|row| row.line.animation_cells().is_empty()));
+}
+
+#[tokio::test]
 async fn vis46_error_preview_limits_logical_text_and_empty_inputs_are_not_actions() {
     let (mut state, turn) = live().await;
     let mut facts = facts();
