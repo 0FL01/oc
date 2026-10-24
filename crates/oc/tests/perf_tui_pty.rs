@@ -42,18 +42,6 @@ struct Output {
 }
 
 impl Output {
-    /// Arrival of the chunk holding the final byte of `needle` after `from`.
-    fn received(&self, from: usize, needle: &[u8]) -> Option<Instant> {
-        let at = self.bytes[from.min(self.bytes.len())..]
-            .windows(needle.len())
-            .position(|window| window == needle)?;
-        let end = from + at + needle.len();
-        self.chunks
-            .iter()
-            .find(|(chunk_end, _)| *chunk_end >= end)
-            .map(|(_, at)| *at)
-    }
-
     /// Arrival of the first chunk ending after `from`.
     fn first_after(&self, from: usize) -> Option<Instant> {
         self.chunks
@@ -330,18 +318,35 @@ impl Tui {
     }
 
     fn wait_for(&self, from: usize, needle: &str, timeout: Duration) -> Instant {
+        self.wait_found(from, needle, timeout).0
+    }
+
+    /// Arrival of `needle` after `from` and the start of its chunk. Only new
+    /// bytes are copied under the lock and searched outside it: a long scan
+    /// must never stall the reader, or a full PTY would block the TUI's write
+    /// and the observer would measure its own back-pressure.
+    fn wait_found(&self, from: usize, needle: &str, timeout: Duration) -> (Instant, usize) {
+        let needle = needle.as_bytes();
         let start = Instant::now();
+        let mut checked = from;
         loop {
-            if let Some(at) = self
-                .output
-                .lock()
-                .unwrap()
-                .received(from, needle.as_bytes())
-            {
-                return at;
+            let base = checked.saturating_sub(needle.len() - 1).max(from);
+            let window = {
+                let output = self.output.lock().unwrap();
+                output.bytes[base.min(output.bytes.len())..].to_vec()
+            };
+            if let Some(at) = window.windows(needle.len()).position(|w| w == needle) {
+                let end = base + at + needle.len();
+                let output = self.output.lock().unwrap();
+                let index = output
+                    .chunks
+                    .partition_point(|(chunk_end, _)| *chunk_end < end);
+                let chunk_start = index.checked_sub(1).map_or(0, |i| output.chunks[i].0);
+                return (output.chunks[index].1, chunk_start);
             }
+            checked = base + window.len();
             assert!(start.elapsed() < timeout, "timeout waiting for {needle:?}");
-            std::thread::sleep(Duration::from_millis(1));
+            std::thread::sleep(Duration::from_micros(200));
         }
     }
 
@@ -374,6 +379,11 @@ fn monotonic_ns() -> u128 {
 }
 
 static SENT: Mutex<Vec<u128>> = Mutex::new(Vec::new());
+/// Monotonic send time and latency of every sample over 20 ms.
+static OUTLIERS: Mutex<Vec<(u128, Duration)>> = Mutex::new(Vec::new());
+/// Output chunks around one outlier: (offset ms, bytes, has glyph, has previous glyph).
+type ChunkTrace = Vec<(f64, usize, bool, bool)>;
+static OUTLIER_CHUNKS: Mutex<Vec<ChunkTrace>> = Mutex::new(Vec::new());
 
 fn enabled(scenario: char) -> bool {
     std::env::var("OC_TUI_SCENARIOS").map_or(true, |list| list.contains(scenario))
@@ -447,13 +457,42 @@ fn type_glyphs(tui: &mut Tui, hz: u32, count: u32, base: u32, clear: bool) -> Ve
             std::thread::sleep(due.saturating_duration_since(Instant::now()));
             let glyph = char::from_u32(base + batch + index).unwrap().to_string();
             let at = Instant::now();
-            SENT.lock().unwrap().push(monotonic_ns());
+            let mono = monotonic_ns();
+            SENT.lock().unwrap().push(mono);
             tui.send(glyph.as_bytes());
-            sent.push((at, glyph));
+            sent.push((at, mono, glyph));
         }
-        for (at, glyph) in sent {
-            let painted = tui.wait_for(from, &glyph, Duration::from_secs(10));
-            latencies.push(painted.saturating_duration_since(at));
+        // Keys are handled in order: a glyph is never painted before the
+        // chunk that painted the previous one.
+        let mut floor = from;
+        for (at, mono, glyph) in sent {
+            let (painted, chunk) = tui.wait_found(floor, &glyph, Duration::from_secs(10));
+            floor = chunk;
+            let latency = painted.saturating_duration_since(at);
+            if latency > Duration::from_millis(20) {
+                OUTLIERS.lock().unwrap().push((mono, latency));
+                let previous = char::from_u32(glyph.chars().next().unwrap() as u32 - 1)
+                    .unwrap()
+                    .to_string();
+                let output = tui.output.lock().unwrap();
+                let mut begin = 0;
+                let chunks = output
+                    .chunks
+                    .iter()
+                    .filter_map(|(end, arrived)| {
+                        let start = std::mem::replace(&mut begin, *end);
+                        let offset = arrived.saturating_duration_since(at).as_secs_f64() * 1e3
+                            - at.saturating_duration_since(*arrived).as_secs_f64() * 1e3;
+                        (offset > -5.0 && offset < 80.0).then(|| {
+                            let bytes = &output.bytes[start..*end];
+                            let has = |g: &str| bytes.windows(g.len()).any(|w| w == g.as_bytes());
+                            (offset, end - start, has(&glyph), has(&previous))
+                        })
+                    })
+                    .collect();
+                OUTLIER_CHUNKS.lock().unwrap().push(chunks);
+            }
+            latencies.push(latency);
         }
         if clear {
             tui.send(b"\x03");
@@ -659,5 +698,28 @@ fn decompose(metrics: &serde_json::Value) {
     if !start.is_empty() {
         report("decompose send->frame start", start);
         report("decompose frame duration", work);
+    }
+    for chunks in OUTLIER_CHUNKS.lock().unwrap().iter() {
+        eprintln!("PROBE outlier chunks (ms, bytes, glyph, previous)={chunks:?}");
+    }
+    // Timeline around each outlier: frames (offset, duration) and wakes.
+    for (sent, latency) in OUTLIERS.lock().unwrap().iter() {
+        let window = |at: u128| at + 5_000_000 >= *sent && at <= sent + 80_000_000;
+        let offset = |at: u128| (at as i128 - *sent as i128) as f64 / 1e6;
+        let frames_near: Vec<String> = frames
+            .iter()
+            .zip(durations.iter())
+            .filter(|(at, _)| window(**at))
+            .map(|(at, d)| format!("{:.1}+{:.1}", offset(*at), *d as f64 / 1e6))
+            .collect();
+        let wakes_near: Vec<String> = wakes
+            .iter()
+            .filter(|at| window(**at))
+            .map(|at| format!("{:.1}", offset(*at)))
+            .collect();
+        eprintln!(
+            "PROBE outlier latency={:.1}ms frames(start+dur)={frames_near:?} wakes={wakes_near:?}",
+            latency.as_secs_f64() * 1e3
+        );
     }
 }
