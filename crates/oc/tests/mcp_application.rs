@@ -1680,6 +1680,7 @@ impl PtyProcess {
         let mut chars = text.chars().peekable();
         let mut cells = vec![vec![' '; 160]; 50];
         let (mut row, mut col) = (0usize, 0usize);
+        let mut region: Option<(usize, usize)> = None;
         while let Some(ch) = chars.next() {
             match ch {
                 '\x1b' if chars.peek() == Some(&'[') => {
@@ -1706,6 +1707,33 @@ impl PtyProcess {
                                 'K' if row < cells.len() => {
                                     let start = if first == 2 { 0 } else { col.min(160) };
                                     cells[row][start..].fill(' ');
+                                }
+                                // DECSTBM with explicit bounds, then SU/SD
+                                // inside it (the painter resets right after).
+                                'r' => {
+                                    region = match values[..] {
+                                        [top, bottom] if 0 < top && top < bottom => {
+                                            Some((top - 1, (bottom - 1).min(cells.len() - 1)))
+                                        }
+                                        _ => None,
+                                    };
+                                    (row, col) = (0, 0);
+                                }
+                                'S' | 'T' => {
+                                    if let Some((top, bottom)) = region {
+                                        let band = &mut cells[top..=bottom];
+                                        let count = first.max(1).min(band.len());
+                                        if c == 'S' {
+                                            band.rotate_left(count);
+                                            let len = band.len();
+                                            band[len - count..]
+                                                .iter_mut()
+                                                .for_each(|r| r.fill(' '));
+                                        } else {
+                                            band.rotate_right(count);
+                                            band[..count].iter_mut().for_each(|r| r.fill(' '));
+                                        }
+                                    }
                                 }
                                 _ => {}
                             }
