@@ -384,7 +384,7 @@ struct TextPoint {
 #[derive(Clone)]
 struct PaintedTranscript {
     area: Rect,
-    rows: Vec<Line>,
+    rows: std::sync::Arc<[Line]>,
     user_targets: Vec<Option<crate::messages::UserMessageTarget>>,
     child_targets: Vec<crate::messages::ChildNavigationHit>,
     total: usize,
@@ -629,7 +629,8 @@ struct VisibleTranscriptProjection {
     key: projection::Key,
     viewport: Option<TranscriptViewport>,
     dimensions: (u16, u16, u16),
-    lines: Vec<Line>,
+    /// Shared with each frame that paints it: no per-frame copy or deep compare.
+    lines: std::sync::Arc<[Line]>,
     total: usize,
     scroll: usize,
     targets: Vec<Option<crate::messages::UserMessageTarget>>,

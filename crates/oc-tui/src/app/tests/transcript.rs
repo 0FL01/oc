@@ -751,6 +751,37 @@ async fn vis34_session_tps_is_current_presentation_for_finished_and_replayed_foo
 }
 
 #[tokio::test]
+async fn frames_share_projected_rows_and_borrow_every_unhovered_row() {
+    // A frame neither copies the projection's rows nor deep-compares them;
+    // only overlaid rows (hover, selection, animation) are owned copies.
+    let mut state = fresh_state("shared-rows").await;
+    let boundary = oc_core::queries::RevertedConversation {
+        message: oc_core::session::MessageId("first-hidden".into()),
+        user_messages: 3,
+    };
+    state.attach_page(&HistoryPage {
+        reverted: Some(boundary),
+        ..Default::default()
+    });
+    let frame = Rect::new(0, 0, 120, 40);
+    let area = crate::shell::transcript_area(&state, frame);
+    let (first, total, scroll, targets) =
+        state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+    let (second, ..) =
+        state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+    assert!(!first.is_empty());
+    assert!(
+        std::sync::Arc::ptr_eq(&first, &second),
+        "one shared row set"
+    );
+    let painted = state.paint_transcript_rows(area, &second, total, scroll, Some(frame), &targets);
+    assert_eq!(painted.len(), second.len());
+    for (painted, source) in painted.iter().zip(second.iter()) {
+        assert!(matches!(painted, std::borrow::Cow::Borrowed(row) if std::ptr::eq(*row, source)));
+    }
+}
+
+#[tokio::test]
 async fn reverted_card_owner_count_render_click_selection_and_reopen() {
     use crossterm::event::{MouseButton, MouseEventKind};
     let mut state = fresh_state("reverted-card").await;
@@ -4468,7 +4499,7 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
     let rect = crate::shell::transcript_area(&state, frame);
     let painted = super::PaintedTranscript {
         area: rect,
-        rows: vec![crate::styled::Line::plain(&large)],
+        rows: vec![crate::styled::Line::plain(&large)].into(),
         user_targets: vec![],
         child_targets: vec![],
         total: 1,

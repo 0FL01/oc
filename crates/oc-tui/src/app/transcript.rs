@@ -692,6 +692,7 @@ impl TuiState {
 
     /// The terminal frame is the pointer's owner. The visible rows already
     /// have the clipped header and styles; drawing must not re-index history.
+    #[cfg(test)]
     pub(crate) fn paint_transcript_at(
         &self,
         area: Rect,
@@ -701,6 +702,24 @@ impl TuiState {
         frame: Option<Rect>,
         user_targets: &[Option<crate::messages::UserMessageTarget>],
     ) -> Vec<Line> {
+        self.paint_transcript_rows(area, rows, total, scroll, frame, user_targets)
+            .into_iter()
+            .map(std::borrow::Cow::into_owned)
+            .collect()
+    }
+
+    /// Painted rows borrowing every unchanged source row; only hovered,
+    /// selected or animated rows are copied.
+    pub(crate) fn paint_transcript_rows<'a>(
+        &self,
+        area: Rect,
+        rows: &'a [Line],
+        total: usize,
+        scroll: usize,
+        frame: Option<Rect>,
+        user_targets: &[Option<crate::messages::UserMessageTarget>],
+    ) -> Vec<std::borrow::Cow<'a, Line>> {
+        use std::borrow::Cow;
         if let Some(frame) = frame
             && !self.projection_ready((area.width, frame.width, area.height))
         {
@@ -708,10 +727,10 @@ impl TuiState {
                 self.paint_generation
                     .set(self.paint_generation.get().wrapping_add(1));
             }
-            return rows.to_vec();
+            return rows.iter().map(Cow::Borrowed).collect();
         }
         if let Some(view) = self.visible_projection.borrow().as_ref()
-            && view.lines == rows
+            && same_rows(&view.lines, rows)
             && view.total == total
             && view.scroll == scroll
         {
@@ -762,17 +781,15 @@ impl TuiState {
         // Derive child hover from this frame's unhovered geometry, including a
         // just-expanded row. Navigation captures only its painted label cells.
         {
-            let children = self
-                .visible_projection
-                .borrow()
-                .as_ref()
-                .filter(|view| {
-                    view.lines == rows
-                        && view.total == total
-                        && view.scroll == scroll
-                        && view.dimensions.0 == area.width
-                        && view.dimensions.2 == area.height
-                })
+            let projection = self.visible_projection.borrow();
+            let current = projection.as_ref().filter(|view| {
+                same_rows(&view.lines, rows)
+                    && view.total == total
+                    && view.scroll == scroll
+                    && view.dimensions.0 == area.width
+                    && view.dimensions.2 == area.height
+            });
+            let children = current
                 .map(|view| view.child_targets.clone())
                 .unwrap_or_default();
             let mut painted = self.painted_transcript.borrow_mut();
@@ -780,7 +797,7 @@ impl TuiState {
                 previous.area == area
                     && previous.total == total
                     && previous.scroll == scroll
-                    && previous.rows == rows
+                    && same_rows(&previous.rows, rows)
                     && previous.user_targets == user_targets
                     && previous.child_targets == children
             }) {
@@ -788,7 +805,7 @@ impl TuiState {
                     .set(self.paint_generation.get().wrapping_add(1));
                 *painted = Some(PaintedTranscript {
                     area,
-                    rows: rows.to_vec(),
+                    rows: current.map_or_else(|| rows.into(), |view| view.lines.clone()),
                     user_targets: user_targets.to_vec(),
                     child_targets: children,
                     total,
@@ -826,12 +843,12 @@ impl TuiState {
                     .as_ref()
                     .is_some_and(|current| self.transcript_selection_current(selected, current))
         });
-        let mut painted_rows: Vec<Line> = rows
+        let mut painted_rows: Vec<Cow<'a, Line>> = rows
             .iter()
             .enumerate()
             .map(|(row, line)| {
                 let hovered;
-                let line = if hovered_user.is_some()
+                let overlaid = if hovered_user.is_some()
                     && user_targets.get(row).cloned().flatten() == hovered_user
                 {
                     hovered = if hovered_user.as_ref().is_some_and(|target| target.reverted) {
@@ -878,6 +895,8 @@ impl TuiState {
                 } else {
                     line
                 };
+                let line = overlaid;
+                let copied = !std::ptr::eq(line, &rows[row]);
                 if let Some(selected) = selected
                     && let Some(source_row) = (total
                         .saturating_sub(area.height as usize)
@@ -903,21 +922,28 @@ impl TuiState {
                     };
                     let begin = begin.max(selectable_start(line));
                     if begin < finish && !line.plain_text().trim().is_empty() {
-                        return line.highlight(begin, finish, theme.text(), theme.background());
+                        return Cow::Owned(line.highlight(
+                            begin,
+                            finish,
+                            theme.text(),
+                            theme.background(),
+                        ));
                     }
                 }
-                line.clone()
+                if copied {
+                    Cow::Owned(line.clone())
+                } else {
+                    Cow::Borrowed(&rows[row])
+                }
             })
             .collect();
-        if let Some(view) = self
-            .visible_projection
-            .borrow()
-            .as_ref()
-            .filter(|view| view.lines == rows && view.total == total && view.scroll == scroll)
-        {
+        if let Some(view) = self.visible_projection.borrow().as_ref().filter(|view| {
+            same_rows(&view.lines, rows) && view.total == total && view.scroll == scroll
+        }) {
             for (row, byte, source) in &view.animations {
                 if let Some(line) = painted_rows.get_mut(*row) {
-                    line.patch_cell(*byte, self.animation_glyph(source));
+                    line.to_mut()
+                        .patch_cell(*byte, self.animation_glyph(source));
                 }
             }
         }
@@ -1289,7 +1315,7 @@ impl TuiState {
             .borrow()
             .as_ref()
             .is_some_and(|painted| {
-                painted.total == total && painted.scroll == scroll && painted.rows == rows
+                painted.total == total && painted.scroll == scroll && painted.rows[..] == rows[..]
             })
             || matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
                 && event.modifiers.is_empty()
@@ -1731,7 +1757,7 @@ impl TuiState {
                 painted.area == rect
                     && painted.total == total
                     && painted.scroll == scroll
-                    && painted.rows == visible
+                    && painted.rows[..] == visible[..]
             })
         {
             return None;
@@ -2687,7 +2713,7 @@ impl TuiState {
     ) -> (Vec<Line>, usize, usize) {
         let (lines, total, scroll, _) =
             self.visible_transcript_at_viewport_with_targets(width, terminal_width, height);
-        (lines, total, scroll)
+        (lines.to_vec(), total, scroll)
     }
 
     pub(crate) fn visible_transcript_at_viewport_with_targets(
@@ -2696,7 +2722,7 @@ impl TuiState {
         terminal_width: u16,
         height: u16,
     ) -> (
-        Vec<Line>,
+        std::sync::Arc<[Line]>,
         usize,
         usize,
         Vec<Option<crate::messages::UserMessageTarget>>,
@@ -2706,7 +2732,11 @@ impl TuiState {
         self.request_projection(dimensions);
         let ready = self.projection_ready(dimensions);
         if let Some(view) = self.visible_projection.borrow().as_ref() {
-            let lines: Vec<_> = view.lines.iter().take(height as usize).cloned().collect();
+            let lines = if view.lines.len() <= height as usize {
+                view.lines.clone()
+            } else {
+                view.lines[..height as usize].into()
+            };
             let targets = if ready {
                 view.targets.clone()
             } else {
@@ -2717,10 +2747,10 @@ impl TuiState {
         // Unknown geometry is deliberately not observed or authorized. Zero is
         // an absence sentinel, never a replacement exact height/scroll anchor.
         (
-            vec![Line::styled(
+            std::sync::Arc::from([Line::styled(
                 "   … Loading transcript…",
                 ratatui::style::Style::default().fg(Theme::dark().text_muted()),
-            )],
+            )]),
             0,
             0,
             Vec::new(),
@@ -2958,4 +2988,9 @@ impl TuiState {
             .filter(|v| *v > 0);
         Some((usage.0.saturating_add(usage.1), limit))
     }
+}
+
+/// The same painted rows: one shared projection (pointer) or equal content.
+fn same_rows(a: &[Line], b: &[Line]) -> bool {
+    (a.len() == b.len() && std::ptr::eq(a.as_ptr(), b.as_ptr())) || a == b
 }

@@ -3870,7 +3870,11 @@ fn cached_row_painter_matches_paragraph_rendering() {
             Paragraph::new(crate::styled::Lines::from(lines.clone()).into_text())
                 .render(area, &mut expected);
             let mut actual = fresh();
-            paint_rows(&mut actual, area, lines.clone());
+            paint_rows(
+                &mut actual,
+                area,
+                lines.iter().map(std::borrow::Cow::Borrowed).collect(),
+            );
             assert_eq!(actual, expected, "frame {index} canvas {canvas:?}");
         }
     }

@@ -1922,9 +1922,9 @@ fn render_transcript(frame: &mut Frame<'_>, state: &TuiState, area: Rect, termin
     let (lines, total, scroll, targets) =
         state.visible_transcript_at_viewport_with_targets(area.width, terminal_width, area.height);
     state.observe_transcript_viewport(area.width, terminal_width, area.height, total, scroll);
-    let lines =
-        state.paint_transcript_at(area, &lines, total, scroll, Some(frame.area()), &targets);
-    paint_rows(frame.buffer_mut(), area, lines);
+    let painted =
+        state.paint_transcript_rows(area, &lines, total, scroll, Some(frame.area()), &targets);
+    paint_rows(frame.buffer_mut(), area, painted);
 }
 
 /// One painted transcript row: its source line, the cells under it before
@@ -1947,7 +1947,11 @@ thread_local! {
 /// Exactly `Paragraph::new(lines)` over `area` (no wrap): rows are independent
 /// truncated lines, and rows past the text keep their cells. A row whose line,
 /// position and underlying cells equal the previous frame's reuses its cells.
-fn paint_rows(buf: &mut ratatui::buffer::Buffer, area: Rect, lines: Vec<crate::styled::Line>) {
+fn paint_rows(
+    buf: &mut ratatui::buffer::Buffer,
+    area: Rect,
+    lines: Vec<std::borrow::Cow<'_, crate::styled::Line>>,
+) {
     use ratatui::widgets::Widget as _;
     let area = area.intersection(buf.area);
     if area.is_empty() {
@@ -1962,17 +1966,17 @@ fn paint_rows(buf: &mut ratatui::buffer::Buffer, area: Rect, lines: Vec<crate::s
             let cells = start..start + usize::from(rect.width);
             if let Some(painted) = cache.get(row)
                 && painted.rect == rect
-                && painted.line == line
+                && painted.line == *line
                 && buf.content[cells.clone()] == painted.before[..]
             {
                 buf.content[cells].clone_from_slice(&painted.after);
                 continue;
             }
             let before = buf.content[cells.clone()].to_vec();
-            Paragraph::new(line.clone().into_ratatui()).render(rect, buf);
+            Paragraph::new(crate::styled::Line::clone(&line).into_ratatui()).render(rect, buf);
             let painted = PaintedRow {
                 rect,
-                line,
+                line: line.into_owned(),
                 before,
                 after: buf.content[cells].to_vec(),
             };

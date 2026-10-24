@@ -2208,7 +2208,7 @@ impl TuiState {
                                 painted.area == rect
                                     && painted.total == total
                                     && painted.scroll == scroll
-                                    && painted.rows == rows
+                                    && painted.rows[..] == rows[..]
                             })
                             .and_then(|_| self.reasoning_hit(area, event.column, event.row))
                             .map(|id| {

@@ -301,7 +301,7 @@ fn build(
             key: input.key,
             dimensions: (width, terminal_width, height),
             viewport,
-            lines,
+            lines: lines.into(),
             total,
             scroll,
             targets,
