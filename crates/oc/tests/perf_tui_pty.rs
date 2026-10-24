@@ -8,6 +8,8 @@
 //! * A: unique glyphs typed at 60/165/250 Hz into the open long session;
 //! * B: the same typing while a scripted Responses peer streams markdown;
 //! * C: PageUp through the history (scroll-to-paint, including older pages);
+//! * F: typing while a `shell` tool runs: F1 streams output lines, F2 only
+//!   shows its spinner (CPU, frames and wakes of the tool's window);
 //! * E: idle CPU ticks of the TUI and owner and terminal bytes.
 //!
 //! `OC_TUI_PERF=<dir>` additionally records `perf` call graphs of the TUI and
@@ -67,6 +69,32 @@ fn stream_reply() -> Vec<String> {
     deltas
 }
 
+/// F scenarios: the prompt names the command; the tool result gets a short answer.
+fn shell_reply(request: &serde_json::Value) -> Option<String> {
+    let input = request["input"].as_array()?;
+    let last = input.last()?;
+    let output = if last["type"] == "function_call_output" {
+        serde_json::json!({"type":"message","role":"assistant","id":"m-shell",
+            "status":"completed","content":[{"type":"output_text","text":"SHELL-DONE"}]})
+    } else {
+        let text = last.to_string();
+        let command = if text.contains("probe shell stream") {
+            "for i in $(seq 1 1500); do echo \"   Compiling crate-$i v0.1.0 (/work/crate-$i)\"; sleep 0.005; done"
+        } else if text.contains("probe shell sleep") {
+            "sleep 8"
+        } else {
+            return None;
+        };
+        serde_json::json!({"type":"function_call","id":"fc_shell","call_id":"call-shell",
+            "name":"shell","arguments":serde_json::json!({"command":command}).to_string(),
+            "status":"completed"})
+    };
+    let done = serde_json::json!({"type":"response.output_item.done","item":output});
+    let completed = serde_json::json!({"type":"response.completed","response":{
+        "status":"completed","output":[output],"usage":{"input_tokens":1000,"output_tokens":100}}});
+    Some(format!("data: {done}\n\ndata: {completed}\n\n"))
+}
+
 /// Streams one slow markdown answer per main request; titles answer at once.
 struct Peer {
     stop: Arc<AtomicBool>,
@@ -119,6 +147,11 @@ impl Peer {
                         socket,
                         "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n"
                     );
+                    if !title && let Some(sse) = shell_reply(&request) {
+                        let _ = socket.write_all(sse.as_bytes());
+                        let _ = socket.flush();
+                        return;
+                    }
                     let deltas = if title {
                         vec!["Probe".to_string()]
                     } else {
@@ -384,6 +417,8 @@ static OUTLIERS: Mutex<Vec<(u128, Duration)>> = Mutex::new(Vec::new());
 /// Output chunks around one outlier: (offset ms, bytes, has glyph, has previous glyph).
 type ChunkTrace = Vec<(f64, usize, bool, bool)>;
 static OUTLIER_CHUNKS: Mutex<Vec<ChunkTrace>> = Mutex::new(Vec::new());
+/// Labelled monotonic windows whose frames and wakes are counted at exit.
+static WINDOWS: Mutex<Vec<(String, u128, u128)>> = Mutex::new(Vec::new());
 
 fn enabled(scenario: char) -> bool {
     std::env::var("OC_TUI_SCENARIOS").map_or(true, |list| list.contains(scenario))
@@ -610,6 +645,46 @@ fn probe() {
         tui.send(b"\x03");
         tui.settle(Duration::from_millis(300), DEADLINE);
     }
+    // F: a shell tool streams output (F1) or only spins (F2). First its
+    // steady load with no input, then typing latency while it still runs.
+    for (label, prompt, running, base) in [
+        (
+            "F1 shell stream",
+            "probe shell stream",
+            "Compiling crate-",
+            0x6400,
+        ),
+        ("F2 shell spinner", "probe shell sleep", "sleep 8", 0x6800),
+    ] {
+        if !enabled('F') {
+            break;
+        }
+        let from = tui.len();
+        tui.send(prompt.as_bytes());
+        tui.send(b"\r");
+        tui.wait_for(from, running, DEADLINE);
+        std::thread::sleep(Duration::from_millis(300));
+        let (tui_cpu, owner_cpu, bytes) = (cpu_ticks(tui_pid), cpu_ticks(owner), tui.len());
+        let started = monotonic_ns();
+        std::thread::sleep(Duration::from_millis(2500));
+        let ended = monotonic_ns();
+        eprintln!(
+            "PROBE {label} load 2.5s: tui_cpu_ticks={} owner_cpu_ticks={} terminal_bytes={}",
+            cpu_ticks(tui_pid) - tui_cpu,
+            cpu_ticks(owner) - owner_cpu,
+            tui.len() - bytes
+        );
+        WINDOWS
+            .lock()
+            .unwrap()
+            .push((format!("{label} load"), started, ended));
+        let latencies = type_glyphs(&mut tui, 60, 120, base, false);
+        report(&format!("{label} type 60Hz"), latencies);
+        tui.wait_for(from, "SHELL-DONE", DEADLINE);
+        tui.settle(Duration::from_millis(1500), DEADLINE);
+        tui.send(b"\x03");
+        tui.settle(Duration::from_millis(300), DEADLINE);
+    }
     eprintln!(
         "PROBE rss_pss_kb at end: tui={:?} owner={:?}",
         rss_kb(tui_pid),
@@ -680,6 +755,22 @@ fn decompose(metrics: &serde_json::Value) {
                 .collect()
         })
         .unwrap_or_default();
+    for (label, from, to) in WINDOWS.lock().unwrap().iter() {
+        let seconds = (to - from) as f64 / 1e9;
+        let count = |list: &[u128]| list.iter().filter(|at| (*from..*to).contains(at)).count();
+        let busy: u128 = frames
+            .iter()
+            .zip(durations.iter())
+            .filter(|(at, _)| (*from..*to).contains(*at))
+            .map(|(_, d)| *d)
+            .sum();
+        eprintln!(
+            "PROBE {label} window: frames={:.1}/s wakes={:.1}/s frame_busy={:.1}%",
+            count(&frames) as f64 / seconds,
+            count(&wakes) as f64 / seconds,
+            busy as f64 / 1e7 / seconds
+        );
+    }
     let (mut wake, mut start, mut work) = (Vec::new(), Vec::new(), Vec::new());
     for sent in SENT.lock().unwrap().iter() {
         if let Some(w) = wakes.iter().find(|w| *w >= sent) {
