@@ -26,6 +26,13 @@ const CAPTURES: usize = 8192;
 const CACHE_BYTES: usize = 256 * 1024;
 const CACHE_ENTRIES: usize = 8;
 const PARSE_TIME: Duration = Duration::from_millis(30);
+/// Per-capture loops read the clock once per this many captures: a clock
+/// read is a syscall where the clocksource has no vDSO path (e.g. HPET).
+const CLOCK_STRIDE: usize = 64;
+
+fn expired(count: usize, deadline: Instant) -> bool {
+    count.is_multiple_of(CLOCK_STRIDE) && Instant::now() >= deadline
+}
 
 struct Grammar {
     name: &'static str,
@@ -230,7 +237,7 @@ impl Syntax {
             );
             while let Some((matched, index)) = found.next() {
                 let capture = matched.captures[*index];
-                if captures.len() >= CAPTURES || Instant::now() >= *deadline {
+                if captures.len() >= CAPTURES || expired(captures.len(), *deadline) {
                     return Err(Error::Limit);
                 }
                 let start = capture.node.start_byte();
@@ -345,8 +352,8 @@ impl Syntax {
             }
             // OpenTUI derives metadata from actual containment, not from the
             // query which emitted a capture. Equal ranges are injections first.
-            for capture in &mut captures {
-                if Instant::now() >= *deadline {
+            for (index, capture) in captures.iter_mut().enumerate() {
+                if expired(index, *deadline) {
                     return Err(Error::Limit);
                 }
                 capture.is_injection = false;
