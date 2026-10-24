@@ -5,6 +5,7 @@ struct Held {
     project: PathBuf,
     db: Db,
     jobs: Arc<Jobs>,
+    timeout: Duration,
 }
 
 impl Held {
@@ -28,6 +29,7 @@ impl Held {
             project,
             db,
             jobs,
+            timeout: Duration::ZERO,
         }
     }
 
@@ -57,7 +59,7 @@ impl Held {
                 BTreeMap::new(),
                 argv,
                 ".".into(),
-                Duration::ZERO,
+                self.timeout,
                 pinned,
                 Provenance {
                     version: 1,
@@ -190,6 +192,27 @@ async fn user_shell_consumes_committed_admission_and_reuses_supervised_job_owner
     assert!(h.db.deliver_shell_notices().unwrap().is_empty());
     assert_eq!(h.db.prompt_history(None).unwrap(), [command]);
     h.jobs.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn tool13_conversion_clears_execution_timeout() {
+    let held = Held {
+        timeout: Duration::from_secs(1),
+        ..Held::new()
+    };
+    held.launch("fg-timeout", "source", true, false).await;
+    assert!(held.jobs.background("source", "fg-timeout").unwrap());
+    tokio::time::sleep(held.timeout + Duration::from_millis(100)).await;
+    let state = held.jobs.snapshot("source", "fg-timeout").unwrap().state;
+    held.release("fg-timeout");
+    held.terminal("fg-timeout", "source").await;
+    let outcome = held.db.shell_job_outcome("source", "fg-timeout").unwrap();
+    held.jobs.shutdown().await.unwrap();
+
+    assert_eq!(state, "running");
+    assert_eq!(outcome.state, "completed");
+    assert!(!outcome.timeout);
+    assert!(held.project.join("fg-timeout.effect").exists());
 }
 
 #[tokio::test]
@@ -526,6 +549,7 @@ async fn tool13_early_wake_cannot_strand_join_or_capacity_when_owner_returns_idl
             _slot: slots.next().unwrap(),
             session: "source".into(),
             cancel: Arc::new(AtomicBool::new(false)),
+            timeout_cleared: Arc::new(AtomicBool::new(false)),
             completion: async move { matches!(task.await, Ok(Ok(()))) }
                 .boxed()
                 .shared(),
@@ -603,6 +627,7 @@ async fn tool13_cancelled_owner_wait_keeps_worker_then_failed_join_is_durable_an
             _slot: jobs.reserve().unwrap(),
             session: "source".into(),
             cancel: cancel.clone(),
+            timeout_cleared: Arc::new(AtomicBool::new(false)),
             completion: async move { matches!(task.await, Ok(Ok(()))) }
                 .boxed()
                 .shared(),

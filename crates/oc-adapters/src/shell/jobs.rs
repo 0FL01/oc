@@ -342,6 +342,7 @@ struct Work {
     _slot: tokio::sync::OwnedSemaphorePermit,
     session: String,
     cancel: Arc<AtomicBool>,
+    timeout_cleared: Arc<AtomicBool>,
     // All waiters poll the same owned join. Cancelling an idle/select waiter
     // drops only its clone, never the worker or the owner's completion receipt.
     completion: Shared<BoxFuture<'static, bool>>,
@@ -567,6 +568,8 @@ impl Jobs {
         let id = provenance.operation.clone();
         let cancel = Arc::new(AtomicBool::new(false));
         let owned_cancel = cancel.clone();
+        let timeout_cleared = Arc::new(AtomicBool::new(false));
+        let owned_timeout_cleared = timeout_cleared.clone();
         let (started_tx, started_rx) = tokio::sync::oneshot::channel();
         let db = self.db.shared_handle();
         let failed = self.failed.clone();
@@ -599,6 +602,7 @@ impl Jobs {
                     retain_cap: output::RECENT_CAP,
                 },
                 &owned_cancel,
+                Some(&owned_timeout_cleared),
                 Some(&approved),
                 true,
                 Some(&owned_capture),
@@ -761,6 +765,7 @@ impl Jobs {
                 _slot: slot,
                 session: provenance.session.clone(),
                 cancel: cancel.clone(),
+                timeout_cleared,
                 completion: async move { matches!(task.await, Ok(Ok(()))) }
                     .boxed()
                     .shared(),
@@ -842,6 +847,8 @@ impl Jobs {
         if !self.db.background_shell_job(id)? {
             return Ok(false);
         }
+        // Match OC2 conversion without clearing an initially background call's explicit timeout.
+        job.timeout_cleared.store(true, Ordering::Release);
         control.background = true;
         job.converted.notify_one();
         self.wake.notify_one();

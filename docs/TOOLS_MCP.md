@@ -118,7 +118,8 @@ webfetch retain their own environment/credential policies.
 
 Owner amendment 2026-10-01 extends T50/R2/TOOL13 with authoritative source-session
 running shell inventory/status, bounded live output/final flush, selected-job kill
-and same-process foreground Ctrl+B conversion. Immutable initial `running` result
+and same-process foreground Ctrl+B conversion, which clears the execution timeout.
+Immutable initial `running` result
 is not live job status. Original session/Location/generation and durable notice
 identity remain; repeated/terminal/cancel races never spawn again or duplicate results.
 T44/VIS39 owns paired Shell rows/output viewer. This is command-shell lifecycle,

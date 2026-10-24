@@ -248,6 +248,7 @@ impl Shell {
             stdin,
             limits,
             cancel,
+            None,
             approved,
             false,
             None,
@@ -266,6 +267,7 @@ impl Shell {
         stdin: Option<&[u8]>,
         limits: ShellLimits,
         cancel: &AtomicBool,
+        timeout_cleared: Option<&AtomicBool>,
         approved: Option<&PinnedCwd>,
         finish_group: bool,
         capture: Option<&jobs::Capture>,
@@ -371,7 +373,10 @@ impl Shell {
             match exited_without_reap(pid)? {
                 true => break,
                 false => {
-                    if !limits.timeout.is_zero() && start.elapsed() >= limits.timeout {
+                    if !limits.timeout.is_zero()
+                        && start.elapsed() >= limits.timeout
+                        && !timeout_cleared.is_some_and(|flag| flag.load(Ordering::Acquire))
+                    {
                         outcome_kind = OutcomeKind::TimedOut;
                         break;
                     }
