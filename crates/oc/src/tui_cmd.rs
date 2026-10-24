@@ -1474,6 +1474,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     let mut paint_at = Instant::now();
     // Paint no faster than the display refreshes; detected once, 60 Hz until known.
     let mut frame_interval = display_rate::interval(display_rate::DEFAULT_HZ);
+    // A change caused by local input may paint at half that spacing.
+    let mut input_paint_at = Instant::now();
+    let mut input_dirty = false;
     let mut rate_probe = Some(display_rate::spawn_probe());
     let mut woke_by_completion = false;
     let idle_release = idle_release::IdleRelease::spawn();
@@ -1509,7 +1512,11 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         }
         loop_state.retire_parked_auth();
         dirty |= sync_authentication(app, &mut state, &mut loop_state).await;
-        dirty |= poll_and_sync(app, &mut state, &mut loop_state).await;
+        // Receipts answer local actions (submit, history, attach): their
+        // frame belongs to the input's latency, not to worker throughput.
+        let receipts = poll_and_sync(app, &mut state, &mut loop_state).await;
+        dirty |= receipts;
+        input_dirty |= receipts;
         if app.shares_workspace()
             && loop_state
                 .activity
@@ -1615,7 +1622,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= state.tick_scanner(Instant::now());
         dirty |= state.tick_delegations(Instant::now());
         dirty |= state.tick_tool_spinners(Instant::now());
-        if dirty && Instant::now() >= paint_at {
+        if dirty
+            && Instant::now() >= display_rate::next_paint(paint_at, input_paint_at, input_dirty)
+        {
             let frame_start = Instant::now();
             let draw_start = frame_metrics
                 .as_ref()
@@ -1679,6 +1688,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             // Pace from the frame start without catch-up: a slow frame delays
             // the next one, it never queues a burst.
             paint_at = (frame_start + frame_interval).max(Instant::now());
+            input_paint_at = frame_start + display_rate::input_interval(frame_interval);
+            input_dirty = false;
             if loop_state.reload_pending() {
                 loop_state.reload_painted = true;
             }
@@ -1728,6 +1739,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             if let Some((cev, ticks)) = input_pending.pop_front() {
                 handle_event_ticks(app, &mut state, &mut loop_state, cev, ticks).await?;
                 dirty = true;
+                input_dirty = true;
                 if *state.status() == TuiStatus::Quit || handling_start.elapsed() >= BURST_BUDGET {
                     break;
                 }
@@ -1816,7 +1828,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             if let Some(metrics) = &mut frame_metrics {
                 metrics.worker_events += 1;
             }
-            dirty |= poll_and_sync(app, &mut state, &mut loop_state).await;
+            let receipts = poll_and_sync(app, &mut state, &mut loop_state).await;
+            dirty |= receipts;
+            input_dirty |= receipts;
             if let CoreEvent::Compaction(snapshot) = event {
                 apply_compaction_to_view(&mut state, &mut loop_state, snapshot);
             } else if let CoreEvent::McpChanged(snapshot) = event {
@@ -1872,7 +1886,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
         }
-        if dirty && Instant::now() >= paint_at {
+        let paint_due = display_rate::next_paint(paint_at, input_paint_at, input_dirty);
+        if dirty && Instant::now() >= paint_due {
             continue;
         }
         let mut deadline = state.next_ui_deadline();
@@ -1883,7 +1898,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             deadline = Some(deadline.map_or(at, |d| d.min(at)));
         }
         if dirty {
-            deadline = Some(deadline.map_or(paint_at, |at| at.min(paint_at)));
+            deadline = Some(deadline.map_or(paint_due, |at| at.min(paint_due)));
         }
         if std::iter::once(&state)
             .chain(loop_state.tabs.iter().flatten())

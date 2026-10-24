@@ -23,6 +23,27 @@ pub(super) fn interval(hz: u32) -> Duration {
     Duration::from_nanos(1_000_000_000 / u64::from(hz.clamp(MIN_HZ, MAX_HZ)))
 }
 
+/// Ceiling for the spacing of input-driven frames. Typing latency is the
+/// wait for the next paint slot plus the frame; on a 60 Hz cap that wait alone
+/// reached ~17 ms at p95 while a frame took ~2 ms.
+const INPUT_PACING_MAX: Duration = Duration::from_millis(8);
+
+/// Spacing of frames whose change came from local input: half the display
+/// interval, at most `INPUT_PACING_MAX`. Worker/animation frames keep the
+/// display interval, so throughput stays capped while input stays immediate.
+pub(super) fn input_interval(frame: Duration) -> Duration {
+    (frame / 2).min(INPUT_PACING_MAX)
+}
+
+/// Earliest paint for the pending change.
+pub(super) fn next_paint(paint_at: Instant, input_paint_at: Instant, input_dirty: bool) -> Instant {
+    if input_dirty {
+        paint_at.min(input_paint_at)
+    } else {
+        paint_at
+    }
+}
+
 /// Detect once in the background; `None` keeps the default rate.
 pub(super) fn spawn_probe() -> tokio::task::JoinHandle<Option<u32>> {
     oc_core::wake::spawn(async {
@@ -209,6 +230,33 @@ fn current_xrandr_rate(text: &str) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn input_frames_are_paced_tighter_than_display_frames() {
+        use super::{input_interval, interval, next_paint};
+        assert_eq!(
+            input_interval(interval(60)),
+            std::time::Duration::from_millis(8)
+        );
+        assert_eq!(input_interval(interval(165)), interval(165) / 2);
+        assert_eq!(
+            input_interval(interval(30)),
+            std::time::Duration::from_millis(8)
+        );
+        let now = std::time::Instant::now();
+        let display = now + interval(60);
+        let input = now + input_interval(interval(60));
+        assert_eq!(
+            next_paint(display, input, false),
+            display,
+            "worker change waits"
+        );
+        assert_eq!(
+            next_paint(display, input, true),
+            input,
+            "input change paints sooner"
+        );
+    }
+
     use super::*;
     use std::os::unix::net::UnixListener;
 
