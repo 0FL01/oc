@@ -269,3 +269,190 @@ fn restore_output_ends_partial_sync_before_releasing_modes_and_showing_cursor() 
     assert!(bytes.windows(8).any(|part| part == b"\x1b[?1006l"));
     assert!(bytes.windows(8).any(|part| part == b"\x1b[?1004l"));
 }
+
+/// Frames of a scrolling, styled document with a fixed side panel and a
+/// footer that sometimes changes; `None` clears the terminal.
+fn scroll_frames() -> Vec<Option<(usize, usize, usize)>> {
+    let mut frames = Vec::new();
+    let mut offset = 0usize;
+    let mut step = |delta: isize, footer: usize, side: usize, frames: &mut Vec<_>| {
+        offset = offset.saturating_add_signed(delta).min(180);
+        frames.push(Some((offset, footer, side)));
+    };
+    for _ in 0..20 {
+        step(1, 0, 0, &mut frames);
+    }
+    for _ in 0..8 {
+        step(3, 0, 0, &mut frames);
+    }
+    for _ in 0..8 {
+        step(-2, 0, 0, &mut frames);
+    }
+    for footer in 1..4 {
+        step(0, footer, 0, &mut frames);
+    }
+    for side in 1..4 {
+        step(1, 3, side, &mut frames);
+    }
+    for _ in 0..4 {
+        step(12, 3, 3, &mut frames);
+    }
+    frames.push(None);
+    for delta in [5, -7, 1, 1, -1, 40, -3, 0, 2] {
+        step(delta, 4, 4, &mut frames);
+    }
+    frames
+}
+
+fn scroll_document(row: usize) -> ratatui::text::Line<'static> {
+    use ratatui::style::{Color, Modifier, Style};
+    use ratatui::text::{Line, Span};
+    if row.is_multiple_of(11) {
+        return Line::default();
+    }
+    let bg = match row % 5 {
+        0 => Color::Rgb(32, 64, 32),
+        1 => Color::Rgb(64, 32, 32),
+        _ => Color::Rgb(24, 24, 32),
+    };
+    let fg = Color::Rgb((row * 37 % 256) as u8, 200, (row * 11 % 256) as u8);
+    let mut spans = vec![
+        Span::styled(format!("{row:>4} "), Style::default().fg(fg).bg(bg)),
+        Span::styled(
+            format!("let value_{row} = compute({row});"),
+            Style::default()
+                .fg(Color::Rgb(220, 220, 220))
+                .bg(bg)
+                .add_modifier(if row.is_multiple_of(3) {
+                    Modifier::BOLD
+                } else {
+                    Modifier::empty()
+                }),
+        ),
+    ];
+    if row.is_multiple_of(7) {
+        spans.push(Span::styled(" 界面", Style::default().bg(bg)));
+    }
+    Line::from(spans).style(Style::default().bg(bg))
+}
+
+fn draw_scroll_frame(frame: &mut ratatui::Frame, (offset, footer, side): (usize, usize, usize)) {
+    use ratatui::style::{Color, Style};
+    let area = frame.area();
+    let body = Rect::new(0, 0, area.width - 12, area.height - 4);
+    let lines: Vec<_> = (offset..offset + usize::from(body.height))
+        .map(scroll_document)
+        .collect();
+    frame.render_widget(Paragraph::new(lines), body);
+    frame.render_widget(
+        Paragraph::new(format!("side {side}\nstatic"))
+            .style(Style::default().bg(Color::Rgb(40, 40, 60))),
+        Rect::new(body.width, 0, 12, body.height),
+    );
+    frame.render_widget(
+        Paragraph::new(format!("prompt draft {footer}"))
+            .style(Style::default().bg(Color::Rgb(50, 50, 50))),
+        Rect::new(0, body.height, area.width, 4),
+    );
+}
+
+fn vt_color(color: ratatui::style::Color) -> vt100::Color {
+    match color {
+        ratatui::style::Color::Reset => vt100::Color::Default,
+        ratatui::style::Color::Rgb(r, g, b) => vt100::Color::Rgb(r, g, b),
+        other => panic!("unexpected fixture color {other:?}"),
+    }
+}
+
+/// Run the frames through `FrameBackend` into a VT parser, asserting after
+/// every frame that the emulated screen equals Ratatui's buffer; returns the
+/// published bytes per frame.
+fn publish_scroll_frames(track: bool) -> Vec<usize> {
+    let (width, height) = (48u16, 16u16);
+    let recorded = Rc::new(RefCell::new(Recorded::default()));
+    let backend = FrameBackend::new(Output {
+        recorded: recorded.clone(),
+        fragment: usize::MAX,
+        fail_at: None,
+        fail_flush: false,
+    });
+    if track {
+        backend
+            .assume_size(ratatui::layout::Size::new(width, height))
+            .unwrap();
+    }
+    let mut terminal = Terminal::with_options(
+        backend,
+        TerminalOptions {
+            viewport: Viewport::Fixed(Rect::new(0, 0, width, height)),
+        },
+    )
+    .unwrap();
+    let mut parser = vt100::Parser::new(height, width, 0);
+    let mut sizes = Vec::new();
+    for (index, frame) in scroll_frames().into_iter().enumerate() {
+        let start = recorded.borrow().bytes.len();
+        terminal.backend_mut().begin_frame().unwrap();
+        let Some(frame) = frame else {
+            // `Terminal::clear` of a full screen, without its cursor query.
+            terminal
+                .backend_mut()
+                .clear_region(ratatui::backend::ClearType::All)
+                .unwrap();
+            terminal.swap_buffers();
+            terminal.backend_mut().finish_frame().unwrap();
+            parser.process(&recorded.borrow().bytes[start..]);
+            continue;
+        };
+        let expected = terminal
+            .draw(|f| draw_scroll_frame(f, frame))
+            .unwrap()
+            .buffer
+            .clone();
+        terminal.backend_mut().finish_frame().unwrap();
+        let bytes = recorded.borrow().bytes[start..].to_vec();
+        sizes.push(bytes.len());
+        parser.process(&bytes);
+        let screen = parser.screen();
+        for y in 0..height {
+            for x in 0..width {
+                let cell = &expected[(x, y)];
+                let shown = screen.cell(y, x).unwrap();
+                if shown.is_wide_continuation() {
+                    continue;
+                }
+                let symbol = if shown.contents().is_empty() {
+                    " "
+                } else {
+                    shown.contents()
+                };
+                let at = format!("frame {index} {frame:?} cell ({x}, {y})");
+                assert_eq!(symbol, cell.symbol(), "{at}");
+                assert_eq!(shown.fgcolor(), vt_color(cell.fg), "{at}");
+                assert_eq!(shown.bgcolor(), vt_color(cell.bg), "{at}");
+                assert_eq!(
+                    shown.bold(),
+                    cell.modifier.contains(ratatui::style::Modifier::BOLD),
+                    "{at}"
+                );
+            }
+        }
+    }
+    sizes
+}
+
+/// Scrolled frames published as terminal scrolls leave exactly Ratatui's
+/// cells on an emulated terminal, and cost far fewer bytes than repainting.
+#[test]
+fn scrolled_frames_publish_as_terminal_scrolls_with_identical_cells() {
+    let plain = publish_scroll_frames(false);
+    let scrolled = publish_scroll_frames(true);
+    let wheel = |sizes: &[usize]| sizes[..20].iter().sum::<usize>();
+    assert!(
+        wheel(&scrolled) * 3 < wheel(&plain),
+        "wheel steps publish {} bytes as scrolls vs {} repainted",
+        wheel(&scrolled),
+        wheel(&plain)
+    );
+    assert!(scrolled.iter().sum::<usize>() < plain.iter().sum::<usize>());
+}

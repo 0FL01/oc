@@ -78,6 +78,10 @@ pub struct FrameBackend<W: Write> {
     output: FrameOutput<W>,
     show_after_paint: bool,
     sizes: Mutex<FrameSizes>,
+    /// What the terminal shows, while known (from a cleared screen on).
+    screen: Option<scroll::Screen>,
+    /// The terminal is blank: the next draw may start tracking it.
+    cleared: bool,
 }
 
 #[derive(Default)]
@@ -119,7 +123,36 @@ impl<W: Write> FrameBackend<W> {
             },
             show_after_paint: false,
             sizes: Mutex::new(FrameSizes::default()),
+            screen: None,
+            cleared: true,
         }
+    }
+
+    /// Treat `size` as the observed full-screen size, for an output that is
+    /// not the controlling terminal (benchmarks, fixtures).
+    pub fn assume_size(&self, size: ratatui::layout::Size) -> io::Result<()> {
+        self.observe_size(size).map(|_| ())
+    }
+
+    /// The tracked screen for this draw at the observed full-screen size.
+    fn take_screen(&mut self) -> io::Result<Option<scroll::Screen>> {
+        let observed = self
+            .sizes
+            .get_mut()
+            .map_err(|_| io::Error::other("terminal size state poisoned"))?
+            .observed;
+        let screen = match (self.screen.take(), observed) {
+            (Some(screen), Some(size)) if screen.size() == size => Some(screen),
+            (None, Some(size)) if self.cleared => Some(scroll::Screen::blank(size)),
+            _ => None,
+        };
+        self.cleared = false;
+        Ok(screen)
+    }
+
+    fn forget_screen(&mut self, cleared: bool) {
+        self.screen = None;
+        self.cleared = cleared;
     }
 
     /// Include first background, resize/clear, color and content in one paint.
@@ -147,8 +180,14 @@ impl<W: Write> FrameBackend<W> {
             .resized = None;
         let output = &mut self.output;
         let pending = output.pending.take().expect("active frame");
-        output.output.write_all(&pending)?;
-        output.output.flush()
+        let published = output
+            .output
+            .write_all(&pending)
+            .and_then(|()| output.output.flush());
+        if published.is_err() {
+            self.forget_screen(false);
+        }
+        published
     }
 
     // CrosstermBackend only holds its writer; all bookkeeping lives in Terminal.
@@ -216,7 +255,31 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
     where
         I: Iterator<Item = (u16, u16, &'a ratatui::buffer::Cell)>,
     {
-        self.backend().draw(content)
+        let Some(mut screen) = self.take_screen()? else {
+            return self.backend().draw(content);
+        };
+        let changes: Vec<_> = content.collect();
+        if !screen.covers(&changes) {
+            return self.backend().draw(changes.into_iter());
+        }
+        let rows = scroll::touched_rows(&changes);
+        if rows.len() < scroll::MIN_ROWS {
+            screen.apply(&changes, &rows);
+            self.backend().draw(changes.into_iter())?;
+        } else {
+            let previous = screen.clone();
+            screen.apply(&changes, &rows);
+            if let Some(plan) = previous.plan(&screen) {
+                self.output.write_all(plan.escape().as_bytes())?;
+                let scrolled = previous.scrolled(plan);
+                self.backend()
+                    .draw(scrolled.diff(screen.buffer()).into_iter())?;
+            } else {
+                self.backend().draw(changes.into_iter())?;
+            }
+        }
+        self.screen = Some(screen);
+        Ok(())
     }
     fn hide_cursor(&mut self) -> io::Result<()> {
         if self.output.pending.is_some() {
@@ -244,22 +307,24 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
         self.backend().set_cursor_position(position)
     }
     fn clear(&mut self) -> io::Result<()> {
-        if self.clear_resized_viewport()? {
-            Ok(())
-        } else {
-            self.backend().clear()
+        self.forget_screen(false);
+        if !self.clear_resized_viewport()? {
+            self.backend().clear()?;
         }
+        self.forget_screen(true);
+        Ok(())
     }
     fn clear_region(&mut self, clear_type: ratatui::backend::ClearType) -> io::Result<()> {
-        if matches!(&clear_type, ratatui::backend::ClearType::All)
-            && self.clear_resized_viewport()?
-        {
-            Ok(())
-        } else {
-            self.backend().clear_region(clear_type)
+        let all = matches!(&clear_type, ratatui::backend::ClearType::All);
+        self.forget_screen(false);
+        if !(all && self.clear_resized_viewport()?) {
+            self.backend().clear_region(clear_type)?;
         }
+        self.forget_screen(all);
+        Ok(())
     }
     fn append_lines(&mut self, n: u16) -> io::Result<()> {
+        self.forget_screen(false);
         self.backend().append_lines(n)
     }
     fn size(&self) -> io::Result<ratatui::layout::Size> {
@@ -273,6 +338,7 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
     }
 }
 
+mod scroll;
 #[cfg(test)]
 mod tests;
 

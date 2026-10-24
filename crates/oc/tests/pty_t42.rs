@@ -629,6 +629,20 @@ impl Screen {
         self.cells[row][col] = ch;
     }
 
+    /// SU (`up`) / SD inside the DECSTBM band `top..=bottom`.
+    fn scroll(&mut self, (top, bottom): (usize, usize), count: usize, up: bool) {
+        self.ensure(bottom, 0);
+        for _ in 0..count.min(bottom + 1 - top) {
+            if up {
+                self.cells.remove(top);
+                self.cells.insert(bottom, Vec::new());
+            } else {
+                self.cells.remove(bottom);
+                self.cells.insert(top, Vec::new());
+            }
+        }
+    }
+
     fn clear_line_from(&mut self, row: usize, col: usize) {
         if row < self.cells.len() {
             for cell in self.cells[row].iter_mut().skip(col) {
@@ -651,6 +665,7 @@ fn render_screen(buf: &[u8]) -> Screen {
     let mut screen = Screen::blank();
     let (mut row, mut col) = (0usize, 0usize);
     let mut saved = (0usize, 0usize);
+    let mut region: Option<(usize, usize)> = None;
     let bytes = text.as_bytes();
     let chars: Vec<(char, usize)> = {
         let mut out = Vec::new();
@@ -717,6 +732,20 @@ fn render_screen(buf: &[u8]) -> Screen {
                             screen = Screen::blank();
                         } else {
                             screen.clear_line_from(row, col);
+                        }
+                    }
+                    // DECSTBM with explicit bounds (the painter always
+                    // gives both and resets right after its scroll).
+                    'r' => {
+                        region = match nums[..] {
+                            [top, bottom] if top < bottom => Some((top - 1, bottom - 1)),
+                            _ => None,
+                        };
+                        (row, col) = (0, 0);
+                    }
+                    'S' | 'T' => {
+                        if let Some(region) = region {
+                            screen.scroll(region, n, final_ == 'S');
                         }
                     }
                     's' => saved = (row, col),

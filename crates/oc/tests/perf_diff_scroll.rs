@@ -25,7 +25,9 @@ use std::time::{Duration, Instant};
 
 fn code_line(seed: usize) -> String {
     match seed % 7 {
-        0 => format!("    let value_{seed} = state.transcript_rows().last().unwrap().text.as_ptr();"),
+        0 => {
+            format!("    let value_{seed} = state.transcript_rows().last().unwrap().text.as_ptr();")
+        }
         1 => format!(
             "    assert_eq!(commit.binding.agent_id.as_deref(), Some(\"agent-{seed}\"), \"profile {seed} keeps its binding across reloads\");"
         ),
@@ -35,7 +37,10 @@ fn code_line(seed: usize) -> String {
             "    state.handle_key(KeyAction::Enter).await; inbox.try_recv().unwrap_or_else(|_| panic!(\"prepare {seed}\"));"
         ),
         5 => "    }".to_string(),
-        _ => format!("    fn helper_{seed}(&self, value: u64) -> Result<u64, Error> {{ Ok(value.rotate_left({})) }}", seed % 13),
+        _ => format!(
+            "    fn helper_{seed}(&self, value: u64) -> Result<u64, Error> {{ Ok(value.rotate_left({})) }}",
+            seed % 13
+        ),
     }
 }
 
@@ -63,17 +68,32 @@ fn file(card: usize, index: usize, hunks: usize, size: usize) -> FileEffect {
             let seed = card * 1000 + index * 100 + hunk * 10 + step;
             match step % 6 {
                 2 => {
-                    lines.push(line(PatchLineKind::Removed, Some(old), None, code_line(seed)));
+                    lines.push(line(
+                        PatchLineKind::Removed,
+                        Some(old),
+                        None,
+                        code_line(seed),
+                    ));
                     old += 1;
                     deletions += 1;
                 }
                 3 | 4 => {
-                    lines.push(line(PatchLineKind::Added, None, Some(new), code_line(seed + 3)));
+                    lines.push(line(
+                        PatchLineKind::Added,
+                        None,
+                        Some(new),
+                        code_line(seed + 3),
+                    ));
                     new += 1;
                     additions += 1;
                 }
                 _ => {
-                    lines.push(line(PatchLineKind::Context, Some(old), Some(new), code_line(seed)));
+                    lines.push(line(
+                        PatchLineKind::Context,
+                        Some(old),
+                        Some(new),
+                        code_line(seed),
+                    ));
                     old += 1;
                     new += 1;
                 }
@@ -107,7 +127,9 @@ fn file(card: usize, index: usize, hunks: usize, size: usize) -> FileEffect {
 fn synthetic(cards: usize) -> Vec<PatchEffects> {
     (0..cards)
         .map(|card| {
-            let files: Vec<_> = (0..1 + card % 3).map(|index| file(card, index, 3, 40)).collect();
+            let files: Vec<_> = (0..1 + card % 3)
+                .map(|index| file(card, index, 3, 40))
+                .collect();
             PatchEffects {
                 total_files: files.len(),
                 additions: files.iter().map(|f| f.additions).sum(),
@@ -138,7 +160,11 @@ fn page(effects: Vec<PatchEffects>) -> HistoryPage {
             text: format!("Apply change {index} to the selection fixtures"),
         });
         seq += 1;
-        let name = if index % 4 == 3 { "edit" } else { "apply_patch" };
+        let name = if index % 4 == 3 {
+            "edit"
+        } else {
+            "apply_patch"
+        };
         rows.push(HistoryMessage {
             images: Vec::new(),
             id: oc_core::session::MessageId(format!("assistant-{seq}")),
@@ -192,7 +218,12 @@ fn stats(label: &str, mut samples: Vec<Duration>) {
     }
     samples.sort_unstable();
     let at = |q: f64| samples[((samples.len() - 1) as f64 * q).round() as usize];
-    let over = |ms: u64| samples.iter().filter(|d| **d > Duration::from_millis(ms)).count();
+    let over = |ms: u64| {
+        samples
+            .iter()
+            .filter(|d| **d > Duration::from_millis(ms))
+            .count()
+    };
     eprintln!(
         "DIFF {label}: n={} p50={:.2}ms p95={:.2}ms p99={:.2}ms max={:.2}ms over8ms={} over16ms={}",
         samples.len(),
@@ -213,15 +244,90 @@ async fn settle(state: &mut TuiState) {
     }
 }
 
+#[derive(Clone, Default)]
+struct Sink(std::rc::Rc<std::cell::RefCell<Vec<u8>>>);
+
+impl std::io::Write for Sink {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0.borrow_mut().extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Terminal bytes of the last frames: the plain Crossterm cell diff, and the
+/// real `FrameBackend` publication (which scrolls moved rows).
+struct Output {
+    previous: Option<ratatui::buffer::Buffer>,
+    sink: Sink,
+    backend: oc_tui::terminal::FrameBackend<Sink>,
+    plain: Vec<usize>,
+    bytes: Vec<usize>,
+    encode: Vec<Duration>,
+}
+
+impl Output {
+    fn new(width: u16, height: u16) -> Self {
+        let sink = Sink::default();
+        let backend = oc_tui::terminal::FrameBackend::new(sink.clone());
+        backend
+            .assume_size(ratatui::layout::Size::new(width, height))
+            .unwrap();
+        Self {
+            previous: None,
+            sink,
+            backend,
+            plain: Vec::new(),
+            bytes: Vec::new(),
+            encode: Vec::new(),
+        }
+    }
+
+    /// Publish the cells changed since the last call and record the bytes
+    /// and the publication time.
+    fn record(&mut self, terminal: &Terminal<TestBackend>) {
+        use ratatui::backend::Backend;
+        let current = terminal.backend().buffer().clone();
+        let empty = ratatui::buffer::Buffer::empty(current.area);
+        let previous = self.previous.as_ref().unwrap_or(&empty);
+        let changed = previous.diff(&current);
+        let mut plain = Vec::new();
+        ratatui::backend::CrosstermBackend::new(&mut plain)
+            .draw(changed.iter().copied())
+            .unwrap();
+        self.plain.push(plain.len());
+        let started = Instant::now();
+        self.backend.begin_frame().unwrap();
+        self.backend.draw(changed.into_iter()).unwrap();
+        self.backend.finish_frame().unwrap();
+        self.encode.push(started.elapsed());
+        self.bytes
+            .push(std::mem::take(&mut *self.sink.0.borrow_mut()).len());
+        self.previous = Some(current);
+    }
+}
+
 /// One frame like the event loop: projection (off-thread when large), draw.
-async fn frame(terminal: &mut Terminal<TestBackend>, state: &mut TuiState) -> Duration {
+async fn frame(
+    terminal: &mut Terminal<TestBackend>,
+    state: &mut TuiState,
+    output: &mut Output,
+) -> Duration {
     let started = Instant::now();
-    terminal.draw(|frame| oc_tui::shell::render(frame, state)).unwrap();
+    terminal
+        .draw(|frame| oc_tui::shell::render(frame, state))
+        .unwrap();
     if state.has_pending_transcript_projection() {
         settle(state).await;
-        terminal.draw(|frame| oc_tui::shell::render(frame, state)).unwrap();
+        terminal
+            .draw(|frame| oc_tui::shell::render(frame, state))
+            .unwrap();
     }
-    started.elapsed()
+    let elapsed = started.elapsed();
+    output.record(terminal);
+    elapsed
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -261,8 +367,12 @@ async fn probe() {
         let mut state = TuiState::new(app.clone(), SessionId::new("s-diff-scroll").unwrap());
         state.attach_page(&history);
         let mut terminal = Terminal::new(TestBackend::new(width, 60)).unwrap();
-        let first = frame(&mut terminal, &mut state).await;
-        eprintln!("DIFF width={width} first frame {:.2}ms", first.as_secs_f64() * 1e3);
+        let mut output = Output::new(width, 60);
+        let first = frame(&mut terminal, &mut state, &mut output).await;
+        eprintln!(
+            "DIFF width={width} first frame {:.2}ms",
+            first.as_secs_f64() * 1e3
+        );
         // Mouse wheel: one tick per step, animation run to its end like the
         // display-paced loop (a frame per animation tick).
         let mut wheel = Vec::new();
@@ -272,17 +382,34 @@ async fn probe() {
             loop {
                 now += Duration::from_micros(6060);
                 let moving = state.tick_scroll_animation(now);
-                wheel.push(frame(&mut terminal, &mut state).await);
+                wheel.push(frame(&mut terminal, &mut state, &mut output).await);
                 if !moving {
                     break;
                 }
             }
         }
         stats(&format!("width={width} wheel frame"), wheel);
+        for (label, mut bytes) in [
+            ("plain diff", std::mem::take(&mut output.plain)),
+            ("published", std::mem::take(&mut output.bytes)),
+        ] {
+            bytes.remove(0);
+            let total: usize = bytes.iter().sum();
+            bytes.sort_unstable();
+            eprintln!(
+                "DIFF width={width} wheel {label} bytes p50={} p95={} max={} total={total}",
+                bytes[bytes.len() / 2],
+                bytes[(bytes.len() - 1) * 95 / 100],
+                bytes[bytes.len() - 1]
+            );
+        }
+        let mut encode = std::mem::take(&mut output.encode);
+        encode.remove(0);
+        stats(&format!("width={width} wheel publish"), encode);
         let mut pages = Vec::new();
         for _ in 0..steps / 5 {
             state.scroll_transcript(false);
-            pages.push(frame(&mut terminal, &mut state).await);
+            pages.push(frame(&mut terminal, &mut state, &mut output).await);
         }
         stats(&format!("width={width} PageDown frame"), pages);
     }

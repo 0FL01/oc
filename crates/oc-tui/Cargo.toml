@@ -28,6 +28,9 @@ tree-sitter = "=0.25.10"
 tree-sitter-language = "=0.1.7"
 streaming-iterator = "=0.1.9"
 
+[dev-dependencies]
+vt100 = "=0.16.2"
+
 [build-dependencies]
 cc = "1.2"
 lzma-rust2 = { version = "0.20.1", default-features = false, features = ["std", "xz"] }

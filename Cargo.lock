@@ -1788,6 +1788,7 @@ dependencies = [
  "unicode-script",
  "unicode-segmentation",
  "unicode-width",
+ "vt100",
 ]
 
 [[package]]
