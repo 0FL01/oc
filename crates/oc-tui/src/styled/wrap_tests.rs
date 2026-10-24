@@ -165,3 +165,36 @@ fn source_word_wrap_preserves_indentation_unicode_boundaries_and_width_limits() 
         ["中文\u{0301}", "abc"]
     );
 }
+
+#[test]
+fn counted_rows_match_built_rows_for_every_width_and_limit() {
+    // Height measurement counts rows without building them; it must agree
+    // with the rows the renderer wraps, including every break rule.
+    let accent = Style::default().fg(Color::Rgb(255, 190, 100));
+    let lines = [
+        Line::plain(""),
+        Line::plain("abc def ghi"),
+        Line::plain("   leading and  double  spaces "),
+        Line::plain("x".repeat(53)),
+        Line::plain("字字字 字字 字"),
+        Line::plain("👩‍💻 dev 🇺🇦 flag e\u{301}cole"),
+        Line::plain("path/to/some-file.rs:12:4, then; more"),
+        Line::new(vec![
+            Span::styled("styled ", accent),
+            Span::from("edge"),
+            Span::styled("\u{301} combining", accent),
+        ]),
+    ];
+    for line in &lines {
+        for width in 1..=24 {
+            for limit in [1, 2, 3, usize::MAX] {
+                assert_eq!(
+                    wrapped_rows(line, width, limit),
+                    wrap_line_limited(line, width, limit).len(),
+                    "{:?} width={width} limit={limit}",
+                    line.plain_text()
+                );
+            }
+        }
+    }
+}

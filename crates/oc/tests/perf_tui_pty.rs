@@ -466,15 +466,10 @@ fn type_glyphs(tui: &mut Tui, hz: u32, count: u32, base: u32, clear: bool) -> Ve
 
 fn perf_record(dir: &Path, name: &str, pid: u32) -> Child {
     Command::new("perf")
-        .args([
-            "record",
-            "-F",
-            "499",
-            "-g",
-            "--call-graph",
-            "dwarf,32768",
-            "-o",
-        ])
+        .args(["record", "-F", "999", "-g", "--call-graph"])
+        // Frame-pointer builds unwind far better than sampled DWARF stacks.
+        .arg(std::env::var("OC_TUI_PERF_CALLGRAPH").unwrap_or_else(|_| "dwarf,32768".into()))
+        .arg("-o")
         .arg(dir.join(format!("{name}.data")))
         .args(["-p", &pid.to_string()])
         .stdout(Stdio::null())
@@ -580,6 +575,21 @@ fn probe() {
         "PROBE rss_pss_kb at end: tui={:?} owner={:?}",
         rss_kb(tui_pid),
         rss_kb(owner)
+    );
+    eprintln!(
+        "PROBE total cpu ticks: tui={} owner={}",
+        cpu_ticks(tui_pid),
+        cpu_ticks(owner)
+    );
+    // Settled idle after all work (the first window includes startup work
+    // such as the public catalog refresh).
+    let (tui_cpu, owner_cpu, bytes) = (cpu_ticks(tui_pid), cpu_ticks(owner), tui.len());
+    std::thread::sleep(Duration::from_secs(10));
+    eprintln!(
+        "PROBE E2 settled idle 10s: tui_cpu_ticks={} owner_cpu_ticks={} terminal_bytes={}",
+        cpu_ticks(tui_pid) - tui_cpu,
+        cpu_ticks(owner) - owner_cpu,
+        tui.len() - bytes
     );
 
     if let Some(recorders) = recorders {

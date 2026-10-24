@@ -256,11 +256,11 @@ impl Line {
                 } else {
                     span.style
                 };
-                spans.push((glyph.to_string(), style, None, 0..0));
+                spans.push((glyph, style, None, 0..0));
                 offset += glyph.len();
             }
         }
-        Self::new(coalesce(spans)).with_style(self.style)
+        Self::new(coalesce(&spans)).with_style(self.style)
     }
 }
 
@@ -348,6 +348,15 @@ pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     wrap_line_with_space_mode(line, width, limit, false, false)
 }
 
+/// The number of rows `wrap_line_limited` produces, without building them.
+/// Height measurement runs over every retained row; only visible rows need
+/// their wrapped spans.
+pub fn wrapped_rows(line: &Line, width: usize, limit: usize) -> usize {
+    let mut rows = 0;
+    visit_wrapped_line(line, width, limit, false, false, |_| rows += 1);
+    rows
+}
+
 /// OpenTUI character wrap keeps separators at their actual cell boundary.
 /// Used by collapsed Shell commands, whose continuation may start with space.
 pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
@@ -367,14 +376,15 @@ pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) ->
                 (glyph, cells)
             };
             if used + cells > max && !current.is_empty() {
-                out.push(Line::new(coalesce(std::mem::take(&mut current))));
+                out.push(Line::new(coalesce(&current)));
+                current.clear();
                 used = 0;
                 if out.len() >= limit {
                     return out;
                 }
             }
             current.push((
-                glyph.to_owned(),
+                glyph,
                 span.style(),
                 (byte == 0).then(|| span.animation.clone()).flatten(),
                 byte..byte + glyph.len(),
@@ -383,7 +393,7 @@ pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) ->
         }
     }
     if out.len() < limit && (!current.is_empty() || out.is_empty()) {
-        out.push(Line::new(coalesce(current)));
+        out.push(Line::new(coalesce(&current)));
     }
     out
 }
@@ -395,8 +405,10 @@ pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -
 }
 
 /// Stream the same source-space rows without retaining a whole long message.
-pub(crate) fn visit_source_space_line(line: &Line, width: usize, emit: impl FnMut(Line)) {
-    visit_wrapped_line(line, width, usize::MAX, true, true, emit);
+pub(crate) fn visit_source_space_line(line: &Line, width: usize, mut emit: impl FnMut(Line)) {
+    visit_wrapped_line(line, width, usize::MAX, true, true, |cells| {
+        emit(source_line(cells))
+    });
 }
 
 /// The same wrapper over a borrowed source, with exact source-byte boundaries.
@@ -406,7 +418,7 @@ pub(crate) fn visit_source_rows(
     width: usize,
     limit: usize,
     has_word: bool,
-    emit: impl FnMut(Line),
+    mut emit: impl FnMut(Line),
 ) {
     let glyphs = text.grapheme_indices(true).map(|(byte, glyph)| {
         let range = byte..byte + glyph.len();
@@ -417,7 +429,9 @@ pub(crate) fn visit_source_rows(
         };
         (glyph, Style::default(), None, range)
     });
-    visit_wrapped_glyphs(glyphs, width, limit, true, true, has_word, emit);
+    visit_wrapped_glyphs(glyphs, width, limit, true, true, has_word, |cells| {
+        emit(source_line(cells))
+    });
 }
 
 /// Plain permission text uses OpenTUI word boundaries,
@@ -445,20 +459,20 @@ fn wrap_line_with_space_mode(
         limit,
         preserve_break_space,
         opentui_breaks,
-        |row| {
-            out.push(row);
+        |cells| {
+            out.push(source_line(cells));
         },
     );
     out
 }
 
-fn visit_wrapped_line(
-    line: &Line,
+fn visit_wrapped_line<'a>(
+    line: &'a Line,
     width: usize,
     limit: usize,
     preserve_break_space: bool,
     opentui_breaks: bool,
-    emit: impl FnMut(Line),
+    emit: impl FnMut(&[WrappedCell<'a>]),
 ) {
     let mut base = 0;
     let glyphs = line.spans().iter().flat_map(|span| {
@@ -486,14 +500,15 @@ fn visit_wrapped_line(
     );
 }
 
-type WrappedCell = (
-    String,
+/// One display grapheme borrowed from its source span (no per-glyph copy).
+type WrappedCell<'a> = (
+    &'a str,
     Style,
     Option<AnimationSource>,
     std::ops::Range<usize>,
 );
 
-fn source_line(cells: Vec<WrappedCell>) -> Line {
+fn source_line(cells: &[WrappedCell]) -> Line {
     let range = cells
         .first()
         .zip(cells.last())
@@ -517,11 +532,19 @@ fn visit_wrapped_glyphs<'a>(
     preserve_break_space: bool,
     opentui_breaks: bool,
     initial_has_word: bool,
-    mut emit: impl FnMut(Line),
+    mut emit: impl FnMut(&[WrappedCell<'a>]),
 ) {
+    let is_space = |ch: &str| {
+        if opentui_breaks {
+            wrap_whitespace(ch)
+        } else {
+            ch == " "
+        }
+    };
     let max = width.max(1);
     let mut emitted = 0;
-    let mut current: Vec<WrappedCell> = Vec::new();
+    // One row buffer for the whole line: emitted heads are slices of it.
+    let mut current: Vec<WrappedCell<'a>> = Vec::new();
     let mut used = 0usize;
     // Last break and whether its head is logical-leading indentation. That
     // property belongs to the break, not the subsequently collected word.
@@ -580,13 +603,7 @@ fn visit_wrapped_glyphs<'a>(
             let boundary = if whitespace {
                 break_at = None;
                 if !preserve_break_space && (!opentui_breaks || source_has_word) {
-                    while current.last().is_some_and(|(ch, _, _, _)| {
-                        if opentui_breaks {
-                            wrap_whitespace(ch)
-                        } else {
-                            ch == " "
-                        }
-                    }) {
+                    while current.last().is_some_and(|(ch, _, _, _)| is_space(ch)) {
                         current.pop();
                     }
                 }
@@ -596,40 +613,29 @@ fn visit_wrapped_glyphs<'a>(
             };
             match boundary {
                 Some((index, leading_indent)) => {
-                    let mut rest = current.split_off(index);
-                    while (!opentui_breaks || source_has_word)
-                        && rest.first().is_some_and(|(ch, _, _, _)| {
-                            if opentui_breaks {
-                                wrap_whitespace(ch)
-                            } else {
-                                ch == " "
-                            }
-                        })
-                    {
-                        rest.remove(0);
-                    }
-                    let mut head = std::mem::take(&mut current);
-                    if !preserve_break_space && (!opentui_breaks || !leading_indent) {
-                        while head.last().is_some_and(|(ch, _, _, _)| {
-                            if opentui_breaks {
-                                wrap_whitespace(ch)
-                            } else {
-                                ch == " "
-                            }
-                        }) {
-                            head.pop();
+                    let mut rest = index;
+                    if !opentui_breaks || source_has_word {
+                        while current.get(rest).is_some_and(|(ch, _, _, _)| is_space(ch)) {
+                            rest += 1;
                         }
                     }
-                    emit(source_line(head));
+                    let mut head = index;
+                    if !preserve_break_space && (!opentui_breaks || !leading_indent) {
+                        while head > 0 && is_space(current[head - 1].0) {
+                            head -= 1;
+                        }
+                    }
+                    emit(&current[..head]);
                     emitted += 1;
-                    current = rest;
+                    current.drain(..rest);
                     used = current
                         .iter()
-                        .map(|(ch, _, _, _)| UnicodeWidthStr::width(ch.as_str()))
+                        .map(|(ch, _, _, _)| UnicodeWidthStr::width(*ch))
                         .sum();
                 }
                 None => {
-                    emit(source_line(std::mem::take(&mut current)));
+                    emit(&current);
+                    current.clear();
                     emitted += 1;
                     used = 0;
                 }
@@ -653,7 +659,7 @@ fn visit_wrapped_glyphs<'a>(
         } else {
             opentui_breaks && whitespace && !source_has_word
         };
-        current.push((glyph.to_string(), style, animation, source_range));
+        current.push((glyph, style, animation, source_range));
         used += cells;
         source_has_word |= !whitespace;
         // A zero-cell combining suffix in another style span keeps the
@@ -666,7 +672,7 @@ fn visit_wrapped_glyphs<'a>(
         }
     }
     if emitted < limit && (!current.is_empty() || emitted == 0) {
-        emit(source_line(current));
+        emit(&current);
     }
 }
 
@@ -747,19 +753,19 @@ pub fn wrap_lines(lines: &[Line], width: usize) -> Vec<Line> {
 }
 
 /// Merge consecutive cells with the same style back into spans.
-fn coalesce(cells: Vec<WrappedCell>) -> Vec<Span> {
+fn coalesce(cells: &[WrappedCell]) -> Vec<Span> {
     let mut spans: Vec<Span> = Vec::new();
     for (ch, style, animation, _) in cells {
         match spans.last_mut() {
             Some(span)
-                if span.style() == style && span.animation.is_none() && animation.is_none() =>
+                if span.style() == *style && span.animation.is_none() && animation.is_none() =>
             {
-                span.content.push_str(&ch)
+                span.content.push_str(ch)
             }
             _ => spans.push(Span {
-                content: ch,
-                style,
-                animation,
+                content: (*ch).to_owned(),
+                style: *style,
+                animation: animation.clone(),
             }),
         }
     }

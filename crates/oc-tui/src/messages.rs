@@ -890,7 +890,7 @@ fn tool_row_body(
     };
     let height = lines
         .iter()
-        .map(|line| styled::wrap_line_limited(line, width as usize, MAX_MARKDOWN_ROWS).len())
+        .map(|line| styled::wrapped_rows(line, width as usize, MAX_MARKDOWN_ROWS))
         .sum();
     let bytes = lines
         .iter()
@@ -2242,7 +2242,7 @@ fn estimated_lines(text: &str, width: u16) -> usize {
         count += if line.trim_start().starts_with("- ") {
             wrap_markdown_line(Line::plain(line.trim()), available, MAX_MARKDOWN_ROWS, true).len()
         } else {
-            styled::wrap_line_limited(&Line::plain(content), available, MAX_MARKDOWN_ROWS).len()
+            styled::wrapped_rows(&Line::plain(content), available, MAX_MARKDOWN_ROWS)
         };
     }
     count + usize::from(text.ends_with('\n'))
@@ -4032,14 +4032,12 @@ pub(crate) fn transcript_part_positions(
                 &row.tool.as_ref().expect("group has tool").op,
             ));
             for line in group.header {
-                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+                total += styled::wrapped_rows(&line, width as usize, MAX_MARKDOWN_ROWS);
             }
             if is_expanded {
                 for &member in &group.members {
                     for line in exploration_member(&rows[member], theme, width, expanded) {
-                        total +=
-                            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
-                                .len();
+                        total += styled::wrapped_rows(&line, width as usize, MAX_MARKDOWN_ROWS);
                     }
                 }
             }
@@ -4050,7 +4048,7 @@ pub(crate) fn transcript_part_positions(
                 theme,
                 expanded(ToolExpansion::Instructions(op)),
             ) {
-                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+                total += styled::wrapped_rows(&line, width as usize, MAX_MARKDOWN_ROWS);
             }
             part(index, start, total);
             for absorbed in index + 1..grouped_until {
@@ -4074,7 +4072,7 @@ pub(crate) fn transcript_part_positions(
             shell_leading_margin(rows, index),
         ) {
             for line in lines {
-                total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
+                total += styled::wrapped_rows(&line, width as usize, MAX_MARKDOWN_ROWS);
             }
         } else if row.role == "user" && width > 3 {
             let inner = width.saturating_sub(1 + USER_PADDING as u16).max(1);
@@ -4107,9 +4105,7 @@ pub(crate) fn transcript_part_positions(
                 cache,
                 |lines| {
                     for line in lines {
-                        total +=
-                            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
-                                .len();
+                        total += styled::wrapped_rows(&line, width as usize, MAX_MARKDOWN_ROWS);
                     }
                 },
             );
@@ -4128,16 +4124,21 @@ fn add_visible_lines(
 ) {
     let (start, end) = viewport;
     for line in lines {
-        let wrapped = if let Some(width) = width {
-            styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
-                .into_iter()
-                .map(|wrapped| wrapped.with_style(line.style()))
-                .collect()
-        } else {
-            vec![line]
-        };
-        let next = *position + wrapped.len();
+        // Count first: only a line intersecting the viewport is wrapped into
+        // rows; the rest of the window is measured without building them.
+        let rows = width.map_or(1, |width| {
+            styled::wrapped_rows(&line, width as usize, MAX_MARKDOWN_ROWS)
+        });
+        let next = *position + rows;
         if *position < end && next > start {
+            let wrapped = if let Some(width) = width {
+                styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS)
+                    .into_iter()
+                    .map(|wrapped| wrapped.with_style(line.style()))
+                    .collect()
+            } else {
+                vec![line]
+            };
             visible.extend(
                 wrapped
                     .into_iter()
