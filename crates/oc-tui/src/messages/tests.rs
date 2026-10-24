@@ -4868,6 +4868,59 @@ fn patch_row(index: usize) -> HistoryRow {
     row
 }
 
+/// The measured visible pass over a tool block yields exactly the rows and
+/// end position of wrapping every line, for every viewport around it.
+#[test]
+fn measured_tool_lines_match_wrapping_every_line() {
+    let width = 24u16;
+    let lines: Vec<Line> = (0..30)
+        .map(|index| match index % 5 {
+            0 => Line::plain(""),
+            1 => Line::styled(format!("short {index}"), Style::default().fg(Color::Red)),
+            2 => Line::new(vec![
+                Span::plain("a long line that wraps over several rows "),
+                Span::styled(format!("tail {index}"), Style::default().fg(Color::Green)),
+            ]),
+            3 => Line::plain("漢字".repeat(20)),
+            _ => Line::plain(format!("{index}")),
+        })
+        .collect();
+    let ends: Vec<usize> = lines
+        .iter()
+        .scan(0, |end, line| {
+            *end += styled::wrapped_rows(line, width as usize, MAX_MARKDOWN_ROWS);
+            Some(*end)
+        })
+        .collect();
+    let height = *ends.last().unwrap();
+    for base in [0, 7] {
+        for start in 0..height + base + 2 {
+            for rows in [1, 5, 40] {
+                let viewport = (start, start + rows);
+                let (mut expected, mut position) = (Vec::new(), base);
+                add_visible_lines(
+                    lines.clone(),
+                    Some(width),
+                    viewport,
+                    &mut position,
+                    &mut expected,
+                );
+                let (mut actual, mut measured) = (Vec::new(), base);
+                add_visible_measured_lines(
+                    &lines,
+                    &ends,
+                    width,
+                    viewport,
+                    &mut measured,
+                    &mut actual,
+                );
+                assert_eq!(measured, position, "{base} {viewport:?}");
+                assert_eq!(actual, expected, "{base} {viewport:?}");
+            }
+        }
+    }
+}
+
 /// A window whose card layouts exceed the layout byte budget still scrolls
 /// without re-rendering every card per frame: measuring uses the retained
 /// heights, so only cards entering the screen are rendered again.

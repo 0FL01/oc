@@ -217,7 +217,8 @@ struct ToolRowLayout {
     _card: std::sync::Arc<crate::history::ToolCard>,
     lines: std::sync::Arc<Vec<Line>>,
     expandable: bool,
-    height: usize,
+    /// Cumulative wrapped rows after each line; the last is the height.
+    ends: std::sync::Arc<[usize]>,
     bytes: usize,
     used: u64,
 }
@@ -949,12 +950,16 @@ fn tool_row_height(
             return Some(known.height);
         }
     }
-    let (_, _, height) = tool_row_body(row, theme, width, expanded, leading, cache)?;
+    let (_, _, ends) = tool_row_body(row, theme, width, expanded, leading, cache)?;
+    let height = ends.last().copied().unwrap_or(0);
     if !styled::render_cancelled() {
         cache.borrow_mut().store_tool_height(key, card, height);
     }
     Some(height)
 }
+
+/// Lines, whether they are an expandable entry, and cumulative row ends.
+type ToolRowBody = (std::sync::Arc<Vec<Line>>, bool, std::sync::Arc<[usize]>);
 
 fn tool_row_body(
     row: &HistoryRow,
@@ -963,14 +968,14 @@ fn tool_row_body(
     expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
     leading: bool,
     cache: &RefCell<MarkdownCache>,
-) -> Option<(std::sync::Arc<Vec<Line>>, bool, usize)> {
+) -> Option<ToolRowBody> {
     let (key, card) = tool_row_key(row, theme, width, expanded, leading)?;
     let mut store = cache.borrow_mut();
     store.use_clock = store.use_clock.wrapping_add(1);
     let clock = store.use_clock;
     if let Some(layout) = store.tool_rows.get_mut(&key) {
         layout.used = clock;
-        return Some((layout.lines.clone(), layout.expandable, layout.height));
+        return Some((layout.lines.clone(), layout.expandable, layout.ends.clone()));
     }
     drop(store);
     let (lines, expandable) = match expandable_tool_entry(row, theme, width, expanded, leading) {
@@ -985,10 +990,13 @@ fn tool_row_body(
             (lines.into_iter().map(sanitize_line).collect(), false)
         }
     };
-    let height = lines
+    let ends: std::sync::Arc<[usize]> = lines
         .iter()
-        .map(|line| styled::wrapped_rows(line, width as usize, MAX_MARKDOWN_ROWS))
-        .sum();
+        .scan(0, |end, line| {
+            *end += styled::wrapped_rows(line, width as usize, MAX_MARKDOWN_ROWS);
+            Some(*end)
+        })
+        .collect();
     let bytes = lines
         .iter()
         .flat_map(|line| line.spans())
@@ -1008,13 +1016,13 @@ fn tool_row_body(
                 _card: card.clone(),
                 lines: lines.clone(),
                 expandable,
-                height,
+                ends: ends.clone(),
                 bytes,
                 used: clock,
             },
         );
     }
-    Some((lines, expandable, height))
+    Some((lines, expandable, ends))
 }
 
 fn with_preview_limit(mut lines: Vec<Line>, theme: &Theme) -> Vec<Line> {
@@ -3600,7 +3608,7 @@ fn visible_transcript_indexed(
                 &mut position,
                 &mut visible,
             );
-        } else if let Some(lines) = tool_row_body(
+        } else if let Some((lines, ends)) = tool_row_body(
             row,
             theme,
             width,
@@ -3617,8 +3625,9 @@ fn visible_transcript_indexed(
                     options.expanded,
                     shell_leading_margin(rows, index),
                 )
+                .map(|lines| (std::sync::Arc::new(lines), None))
             },
-            |(lines, expandable, _)| expandable.then(|| lines.as_ref().clone()),
+            |(lines, expandable, ends)| expandable.then_some((lines, Some(ends))),
         ) {
             let margin = usize::from(shell_leading_margin(rows, index));
             if let Some(card) = &row.tool {
@@ -3857,13 +3866,23 @@ fn visible_transcript_indexed(
                     ));
                 }
             }
-            add_visible_lines(
-                lines,
-                Some(width),
-                (start, end),
-                &mut position,
-                &mut visible,
-            );
+            match ends {
+                Some(ends) => add_visible_measured_lines(
+                    &lines,
+                    &ends,
+                    width,
+                    (start, end),
+                    &mut position,
+                    &mut visible,
+                ),
+                None => add_visible_lines(
+                    std::sync::Arc::unwrap_or_clone(lines),
+                    Some(width),
+                    (start, end),
+                    &mut position,
+                    &mut visible,
+                ),
+            }
         } else if row.role == "child_notice" {
             let lines = render_row(
                 row,
@@ -4019,7 +4038,7 @@ fn visible_transcript_indexed(
                     }
                 },
             );
-        } else if let Some((lines, _, _)) = tool_row_body(
+        } else if let Some((lines, _, ends)) = tool_row_body(
             row,
             theme,
             width,
@@ -4028,9 +4047,10 @@ fn visible_transcript_indexed(
             cache,
         ) {
             // A plain tool block (expandable bodies were handled above).
-            add_visible_lines(
-                lines.as_ref().clone(),
-                Some(width),
+            add_visible_measured_lines(
+                &lines,
+                &ends,
+                width,
                 (start, end),
                 &mut position,
                 &mut visible,
@@ -4210,6 +4230,36 @@ pub(crate) fn transcript_part_positions(
         part(index, start, total);
     }
     total
+}
+
+/// `add_visible_lines` over lines whose cumulative wrapped row `ends` are
+/// known: only the lines intersecting the viewport are visited and wrapped.
+fn add_visible_measured_lines(
+    lines: &[Line],
+    ends: &[usize],
+    width: u16,
+    viewport: (usize, usize),
+    position: &mut usize,
+    visible: &mut Vec<Line>,
+) {
+    let (start, end) = viewport;
+    let base = *position;
+    let first = ends.partition_point(|row| base + row <= start);
+    let mut at = base + first.checked_sub(1).map_or(0, |index| ends[index]);
+    for (line, &line_end) in lines.iter().zip(ends).skip(first) {
+        if at >= end {
+            break;
+        }
+        visible.extend(
+            styled::wrap_line_limited(line, width as usize, MAX_MARKDOWN_ROWS)
+                .into_iter()
+                .map(|wrapped| wrapped.with_style(line.style()))
+                .skip(start.saturating_sub(at))
+                .take(end.saturating_sub(at.max(start))),
+        );
+        at = base + line_end;
+    }
+    *position = base + ends.last().copied().unwrap_or(0);
 }
 
 fn add_visible_lines(
