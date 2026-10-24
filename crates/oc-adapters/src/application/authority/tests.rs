@@ -883,7 +883,9 @@ async fn busy_agent_commit_applies_from_the_next_request_of_the_running_root() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let mut source = config(&format!("http://{}/v1", listener.local_addr().unwrap()));
     source["agents"]["alpha"] = json!({"system":"ALPHA_PRIMARY_SENTINEL"});
-    source["agents"]["beta"] = json!({"system":"BETA_PRIMARY_SENTINEL"});
+    source["agents"]["beta"] = json!({"system":"BETA_PRIMARY_SENTINEL", "model":"fixture/retired"});
+    source["providers"]["fixture"]["models"]["replacement"] =
+        source["providers"]["fixture"]["models"]["m"].clone();
     source["default_agent"] = json!("alpha");
     source["permissions"] = json!([{"action": "*", "resource": "*", "effect": "allow"}]);
     std::fs::write(project.join("opencode.json"), source.to_string()).unwrap();
@@ -925,6 +927,10 @@ async fn busy_agent_commit_applies_from_the_next_request_of_the_running_root() {
         .await
         .unwrap();
     assert_eq!(preview.agent_id.as_deref(), Some("beta"));
+    assert_eq!(
+        preview.chrome.selection.as_ref().unwrap().diagnostic.code,
+        oc_core::queries::ServiceCode::ModelUnavailable
+    );
     let current = location
         .app
         .session_selection(session.clone(), false, SessionSelectionAction::Current)
@@ -955,16 +961,31 @@ async fn busy_agent_commit_applies_from_the_next_request_of_the_running_root() {
         .session_selection(
             session.clone(),
             false,
-            SessionSelectionAction::Agent("beta".into()),
+            SessionSelectionAction::AgentCommit(oc_core::queries::ModelCommit {
+                attachment: 0,
+                caller: 1,
+                binding: oc_core::queries::SelectionBinding {
+                    location: preview.chrome.location,
+                    generation: preview.chrome.selection_generation,
+                    provider: "fixture".into(),
+                    agent_id: preview.agent_id,
+                },
+                model_id: "replacement".into(),
+                variant: None,
+                draft_revision: 1,
+            }),
         )
         .await
         .unwrap();
     assert_eq!(switched.agent_id.as_deref(), Some("beta"));
+    assert_eq!(switched.model_id, "replacement");
     release.send(()).unwrap();
     let bodies = tokio::time::timeout(Duration::from_secs(5), server)
         .await
         .unwrap()
         .unwrap();
+    assert_eq!(bodies[0]["model"], "m");
+    assert_eq!(bodies[1]["model"], "replacement");
     let (issued, next) = (bodies[0].to_string(), bodies[1].to_string());
     assert!(issued.contains("ALPHA_PRIMARY_SENTINEL") && !issued.contains("BETA_PRIMARY_SENTINEL"));
     assert!(next.contains("BETA_PRIMARY_SENTINEL") && !next.contains("ALPHA_PRIMARY_SENTINEL"));

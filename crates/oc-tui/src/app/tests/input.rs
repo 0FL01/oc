@@ -3208,7 +3208,7 @@ async fn vis07_submit_pointer_in_unpainted_transcript_space_is_inert() {
 }
 
 #[tokio::test]
-async fn busy_agent_choice_is_a_next_send_draft_committed_before_the_model() {
+async fn busy_agent_choice_is_a_next_send_draft_committed_with_the_model() {
     use oc_core::core_app::InboxMsg;
     use oc_core::queries::SessionSelectionAction;
     let (app, mut inbox, _) = CoreApp::channel(4);
@@ -3258,12 +3258,12 @@ async fn busy_agent_choice_is_a_next_send_draft_committed_before_the_model() {
     assert_eq!(state.active_agent(), Some("build"));
     assert!(inbox.try_recv().is_err(), "staging writes nothing");
 
-    // Blank Enter commits the agent first, then the model under its binding.
+    // Blank Enter commits the exact agent/model pair in one owner operation.
     let responder = async {
         let Some(InboxMsg::SessionSelection { action, ack, .. }) = inbox.recv().await else {
             panic!("agent commit")
         };
-        assert_eq!(action, SessionSelectionAction::Agent("plan".into()));
+        assert_eq!(action, SessionSelectionAction::AgentCommit(staged.clone()));
         ack.send(Ok(preview.clone())).unwrap();
     };
     let (outcome, ()) = tokio::join!(state.handle_key(KeyAction::Enter), responder);
@@ -3271,15 +3271,7 @@ async fn busy_agent_choice_is_a_next_send_draft_committed_before_the_model() {
     state.poll_submission();
     assert_eq!(state.active_agent(), Some("plan"));
     assert_eq!(state.composer_agent(), Some("plan"));
-    let Some(InboxMsg::SessionSelection {
-        action: SessionSelectionAction::Commit(commit),
-        ..
-    }) = inbox.recv().await
-    else {
-        panic!("model commit")
-    };
-    assert_eq!(commit.binding.agent_id.as_deref(), Some("plan"));
-    assert_eq!(commit.model_id, "b");
+    assert!(inbox.try_recv().is_err(), "no second model commit");
 }
 
 #[tokio::test]

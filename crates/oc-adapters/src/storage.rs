@@ -2254,6 +2254,8 @@ impl Db {
         values: &[(String, String)],
         session: &str,
         payload: &str,
+        reminder: Option<&str>,
+        agent: Option<&oc_core::queries::AgentSwitchNotice>,
         notice: Option<&oc_core::queries::ModelSwitchNotice>,
     ) -> Result<Vec<oc_core::session::MessageId>, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
@@ -2265,7 +2267,10 @@ impl Db {
             "INSERT INTO events(session_id,kind,payload) VALUES(?1,'session_model_selected',?2)",
             params![session, payload],
         )?;
-        let messages = Self::insert_selection_notices(&tx, session, None, notice)?;
+        if let Some(text) = reminder {
+            Self::insert_message(&tx, session, "system", text)?;
+        }
+        let messages = Self::insert_selection_notices(&tx, session, agent, notice)?;
         tx.commit()?;
         Ok(messages)
     }

@@ -4,6 +4,225 @@ use oc_core::queries::SessionSelectionAction as Action;
 use oc_core::queries::{ServiceAction, ServiceCode, ServiceStage};
 
 #[tokio::test]
+async fn unavailable_profile_models_allow_selection_and_atomic_explicit_repair() {
+    use oc_core::queries::{ModelCommit, SelectionBinding};
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir(&project).unwrap();
+    let path = project.join("opencode.json");
+    let mut config = serde_json::json!({
+        "model":"fixture/main", "default_agent":"build",
+        "providers":{
+            "fixture":{"settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"fixture"},
+                "models":{"main":{"variants":[{"id":"old"}]},"retired":{}}},
+            "foreign":{"settings":{"baseURL":"http://127.0.0.1:9/foreign","apiKey":"fixture"},
+                "models":{"other":{}}}},
+        "agents":{"empty":{"mode":"primary"},"retired":{"mode":"primary"},
+            "foreign":{"mode":"primary"},"variant":{"mode":"primary"},
+            "pinned":{"mode":"primary","model":"fixture/retired"},
+            "helper":{"mode":"subagent"}},
+        "experimental":{"policies":[
+            {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+            {"action":"provider.use","resource":"openai","effect":"deny"}]}
+    });
+    std::fs::write(&path, config.to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let session = SessionId::new("profile-repair").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    // Save genuine choices before their provider/model/variant is retired.
+    for (agent, provider, model, variant) in [
+        ("retired", "fixture", "retired", None),
+        ("foreign", "foreign", "other", None),
+        ("variant", "fixture", "main", Some("old")),
+    ] {
+        let home = app
+            .home_selection(Action::Agent(agent.into()))
+            .await
+            .unwrap();
+        let commit = ModelCommit {
+            attachment: 0,
+            caller: 7,
+            binding: SelectionBinding {
+                location: home.chrome.location,
+                generation: home.chrome.selection_generation,
+                provider: provider.into(),
+                agent_id: Some(agent.into()),
+            },
+            model_id: model.into(),
+            variant: variant.map(str::to_owned),
+            draft_revision: 1,
+        };
+        app.home_selection(Action::Commit(commit.clone()))
+            .await
+            .unwrap();
+        app.session_selection(session.clone(), false, Action::Agent(agent.into()))
+            .await
+            .unwrap();
+        app.session_selection(session.clone(), false, Action::Commit(commit))
+            .await
+            .unwrap();
+    }
+    app.session_selection(session.clone(), false, Action::Agent("plan".into()))
+        .await
+        .unwrap();
+    app.home_selection(Action::Agent("plan".into()))
+        .await
+        .unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    config.as_object_mut().unwrap().remove("model");
+    config["providers"]
+        .as_object_mut()
+        .unwrap()
+        .remove("foreign");
+    config["providers"]["fixture"]["models"]
+        .as_object_mut()
+        .unwrap()
+        .remove("retired");
+    config["providers"]["fixture"]["models"]["main"] = serde_json::json!({});
+    std::fs::write(&path, config.to_string()).unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    let prefs = || {
+        conn.prepare("SELECT key,value,updated_at FROM prefs ORDER BY key")
+            .unwrap()
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    };
+    for agent in ["empty", "retired", "foreign", "variant", "pinned"] {
+        let saved = prefs();
+        let before = app
+            .session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap();
+        let history = app
+            .history_page(session.clone(), None, None, 100)
+            .await
+            .unwrap();
+        let preview = app
+            .session_selection(session.clone(), false, Action::Preview(agent.into()))
+            .await
+            .unwrap();
+        assert_eq!(preview.agent_id.as_deref(), Some(agent));
+        assert!(preview.chrome.selection.is_some(), "{agent}");
+        assert_eq!(prefs(), saved, "preview cannot persist a choice");
+        assert_eq!(
+            app.session_selection(session.clone(), false, Action::Current)
+                .await
+                .unwrap(),
+            before
+        );
+
+        let mut commit = ModelCommit {
+            attachment: 0,
+            caller: 7,
+            binding: SelectionBinding {
+                location: preview.chrome.location.clone(),
+                generation: preview.chrome.selection_generation,
+                provider: "fixture".into(),
+                agent_id: Some(agent.into()),
+            },
+            model_id: "still-missing".into(),
+            variant: None,
+            draft_revision: 2,
+        };
+        assert!(
+            app.session_selection(session.clone(), false, Action::AgentCommit(commit.clone()))
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            prefs(),
+            saved,
+            "invalid replacement must not select the profile"
+        );
+        assert_eq!(
+            app.history_page(session.clone(), None, None, 100)
+                .await
+                .unwrap(),
+            history
+        );
+        commit.model_id = "main".into();
+        if agent == "empty" {
+            // Failure after inserting the Plan-leave reminder rolls back the pair and event too.
+            conn.execute_batch("CREATE TRIGGER refuse_profile BEFORE INSERT ON messages WHEN NEW.role='agent_switch' BEGIN SELECT RAISE(ABORT,'fixture'); END").unwrap();
+            assert!(
+                app.session_selection(session.clone(), false, Action::AgentCommit(commit.clone()))
+                    .await
+                    .is_err()
+            );
+            assert_eq!(prefs(), saved);
+            assert_eq!(
+                app.history_page(session.clone(), None, None, 100)
+                    .await
+                    .unwrap(),
+                history
+            );
+            conn.execute_batch("DROP TRIGGER refuse_profile").unwrap();
+        }
+        let repaired = app
+            .session_selection(session.clone(), false, Action::AgentCommit(commit))
+            .await
+            .unwrap();
+        assert_eq!(repaired.agent_id.as_deref(), Some(agent));
+        assert_eq!(repaired.model_id, "main");
+        assert!(repaired.chrome.selection.is_none());
+        // Home can select the same unavailable profile and explicitly repair across providers.
+        let home = app
+            .home_selection(Action::Agent(agent.into()))
+            .await
+            .unwrap();
+        assert_eq!(home.agent_id.as_deref(), Some(agent));
+        assert!(home.chrome.selection.is_some());
+        let home = app
+            .home_selection(Action::Commit(ModelCommit {
+                attachment: 0,
+                caller: 7,
+                binding: SelectionBinding {
+                    location: home.chrome.location,
+                    generation: home.chrome.selection_generation,
+                    provider: "fixture".into(),
+                    agent_id: home.agent_id,
+                },
+                model_id: "main".into(),
+                variant: None,
+                draft_revision: 3,
+            }))
+            .await
+            .unwrap();
+        assert!(home.chrome.selection.is_none());
+    }
+    for agent in ["absent", "helper"] {
+        assert!(
+            app.home_selection(Action::Agent(agent.into()))
+                .await
+                .is_err()
+        );
+        assert!(
+            app.session_selection(session.clone(), false, Action::Preview(agent.into()))
+                .await
+                .is_err()
+        );
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn r4a_missing_saved_primary_keeps_home_and_both_tabs_without_rewriting_preferences() {
     let root = tempfile::tempdir().unwrap();
     let project = root.path().join("project");

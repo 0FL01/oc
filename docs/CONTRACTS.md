@@ -279,8 +279,10 @@ T45/PRM01 consumes the view, T44/VIS35/VIS36 qualifies separate cards/previews.
   not create a request; subsequent work uses the committed selection.
 - Agent/profile follows OC2 `switchAgent`: in an existing session the picker/Tab choice
   is a composer draft (owner `Preview`, no write) and the running turn keeps its profile.
-  Message/command preparation and blank Enter commit the agent before the captured model
-  commit. A commit while busy is staged for the running root's next fresh request
+  Preview and Home agent selection validate the primary independently of model readiness,
+  so an unavailable model/provider/variant stays visible and can be replaced in `/models`.
+  Message/command preparation and blank Enter atomically commit the staged primary and
+  captured model/variant after full admission. A commit while busy applies at the next fresh request
   (prompt, tools, permissions, request overlay); the prepared request and its tool
   batch keep their captured profile. A child session cannot switch. Home persists its
   own agent choice immediately.
@@ -319,7 +321,7 @@ the ordinary command authority and selection semantics. Direct user Shell uses o
 separate admission future under the active root, with normal Ask and supervised jobs;
 receipt cancellation is local, root cancellation includes it. It is not chat input
 or a second model turn. Reopen does not execute pending input without a new explicit
-promotion. The inbox schema is forward-upgraded; private native wire is version 4.
+promotion. The inbox schema is forward-upgraded; private native wire is version 7.
 Not general
 config-reload parity. T50 owns TOOL12, T45/PRM01
 consumes prompt/draft lifecycle, T47 owns VAR01 ordering and T44 separately qualifies

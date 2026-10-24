@@ -3507,7 +3507,7 @@ impl TuiState {
             };
         }
         if self.input.trim().is_empty() {
-            // Blank Enter prepares the captured agent before the captured model.
+            // Blank Enter accepts the captured agent and model together.
             if self.staged_agent().is_some() && self.session.is_some() && !self.home {
                 return self.request_composer_submission(SubmissionPurpose::Empty);
             }

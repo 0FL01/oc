@@ -1671,7 +1671,7 @@ async fn deferred_blank_promotion_dispatches_once_to_parked_source_without_waiti
     state.handle_key(KeyAction::Enter).await;
     let InboxMsg::SessionSelection {
         ack,
-        action: SessionSelectionAction::Agent(_),
+        action: SessionSelectionAction::AgentCommit(_),
         ..
     } = inbox.recv().await.unwrap()
     else {
@@ -1687,16 +1687,6 @@ async fn deferred_blank_promotion_dispatches_once_to_parked_source_without_waiti
     )
     .await
     .unwrap();
-    let InboxMsg::SessionSelection {
-        session,
-        action: SessionSelectionAction::Commit(_),
-        ack: model_ack,
-        ..
-    } = inbox.recv().await.unwrap()
-    else {
-        panic!("captured model commit")
-    };
-    assert_eq!(session, source);
     let InboxMsg::Inbox {
         session,
         action,
@@ -1742,7 +1732,6 @@ async fn deferred_blank_promotion_dispatches_once_to_parked_source_without_waiti
         inbox.try_recv().is_err(),
         "unknown delivery is not replayed"
     );
-    drop(model_ack);
 }
 
 #[tokio::test]

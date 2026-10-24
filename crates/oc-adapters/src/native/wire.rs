@@ -208,7 +208,8 @@ impl Request {
                 ..
             }
             | Self::SessionSelection {
-                action: SessionSelectionAction::Commit(commit),
+                action:
+                    SessionSelectionAction::Commit(commit) | SessionSelectionAction::AgentCommit(commit),
                 ..
             }
             | Self::HomeSelection {

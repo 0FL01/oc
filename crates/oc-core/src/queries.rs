@@ -260,6 +260,8 @@ pub fn append_prompt_history(
 pub enum SessionSelectionAction {
     /// Commit one exact captured composer choice, with its owner scope.
     Commit(ModelCommit),
+    /// Commit a target primary and its exact captured model together.
+    AgentCommit(ModelCommit),
     /// Read/initialize the session's selection.
     Current,
     /// Select a model, retaining the current choice or its remembered variant.
@@ -269,7 +271,7 @@ pub enum SessionSelectionAction {
     /// Select an agent and restore that session/agent's model draft.
     Agent(String),
     /// Read-only: the choice this session would resolve for an agent. The
-    /// composer stages it as a draft; `Agent` commits it before the next send.
+    /// composer stages it as a draft; `AgentCommit` accepts the pair before send.
     Preview(String),
     /// Initialize a new Home route for the current agent.
     New(Option<String>),

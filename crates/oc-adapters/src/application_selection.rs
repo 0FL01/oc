@@ -336,6 +336,24 @@ fn resolve(
     Ok(selected)
 }
 
+fn admit_agent(c: &Composition, selected: &Effective) -> Result<(), CoreError> {
+    if selected
+        .agent_id
+        .as_ref()
+        .and_then(|id| c.agents.get(id))
+        .is_some_and(|agent| agent.primary_capable())
+    {
+        Ok(())
+    } else {
+        Err(CoreError::Diagnostic(selection_diagnostic(
+            c,
+            &["selection", "agent"],
+            oc_core::queries::ServiceCode::AgentUnavailable,
+            oc_core::queries::ServiceAction::SelectAgent,
+        )))
+    }
+}
+
 pub(super) fn for_turn(
     db: &Db,
     c: &Composition,
@@ -703,23 +721,29 @@ pub(super) fn home(
             Ok(selected)
         }
         Action::Current => Ok(current.clone()),
+        Action::AgentCommit(_) => Err(app_error("agent/model commit requires a session")),
         Action::Preview(agent) => {
             let selected = home_for_agent(db, c, fallback, Some(&agent))?;
-            selected.admit_selection(c)?;
+            admit_agent(c, &selected)?;
             Ok(selected)
         }
-        Action::Agent(agent) | Action::New(Some(agent)) => {
+        Action::Agent(agent) => {
             let selected = home_for_agent(db, c, fallback, Some(&agent))?;
-            selected.admit_selection(c)?;
+            admit_agent(c, &selected)?;
             db.set_pref(&home_agent_key(c), &record(home_agent_key(c), &agent)?.1)
                 .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
             Ok(selected)
         }
-        Action::New(None) => {
+        Action::New(agent) => {
             // An explicit new Home route resets to the configured/persisted
             // primary's admitted draft, even after another Home agent was
             // explicitly selected. It also records the user's reset.
-            let selected = home_for_agent(db, c, fallback, fallback.agent_id.as_deref())?;
+            let selected = home_for_agent(
+                db,
+                c,
+                fallback,
+                agent.as_deref().or(fallback.agent_id.as_deref()),
+            )?;
             selected.admit_selection(c)?;
             if let Some(agent) = &selected.agent_id {
                 db.set_pref(&home_agent_key(c), &record(home_agent_key(c), agent)?.1)
@@ -845,22 +869,44 @@ pub(super) fn apply(
         choice.inline_command = None;
         choice.command_parents.clear();
         let selected = resolve(db, c, fallback, &choice)?;
-        selected.admit_selection(c)?;
+        admit_agent(c, &selected)?;
         return Ok((selected, Vec::new()));
     }
     if let Action::Agent(agent) = &action {
         choice.agent = Some(agent.clone());
         choice.inline_command = None;
         choice.command_parents.clear();
+    } else if let Action::AgentCommit(commit) = &action {
+        let agent = commit
+            .binding
+            .agent_id
+            .as_ref()
+            .ok_or_else(|| app_error("agent/model commit requires a primary"))?;
+        choice.agent = Some(agent.clone());
+        choice.inline_command = None;
+        choice.command_parents.clear();
+        let target = resolve(db, c, fallback, &choice)?;
+        admit_agent(c, &target)?;
+        validate_commit(db, c, &target, session, generation, commit)?;
+        let visible = target.snapshot(c, generation);
+        if visible.provider == commit.binding.provider
+            && visible.model_id == commit.model_id
+            && normalized_variant(&visible.variant) == normalized_variant(&commit.variant)
+        {
+            // An unchanged opaque unavailable identity is not a replacement.
+            target.admit_selection(c)?;
+        }
     } else if let Action::New(agent) = &action {
         choice.agent = agent.clone();
         choice.inline_command = None;
         choice.command_parents.clear();
     }
-    let mut selected = if matches!(action, Action::Model(_) | Action::Commit(_))
-        || (choice.models.is_empty()
-            && fallback.legacy_epoch != 0
-            && !matches!(action, Action::Agent(_)))
+    let mut selected = if matches!(
+        action,
+        Action::Model(_) | Action::Commit(_) | Action::AgentCommit(_)
+    ) || (choice.models.is_empty()
+        && fallback.legacy_epoch != 0
+        && !matches!(action, Action::Agent(_)))
     {
         // Replacing a retired model must never require resolving the old id.
         if choice.inline_command.is_some() {
@@ -876,7 +922,7 @@ pub(super) fn apply(
     }
     let mut records = Vec::new();
     match &action {
-        Action::Commit(commit) => {
+        Action::Commit(commit) | Action::AgentCommit(commit) => {
             set_model(
                 &mut selected,
                 c,
@@ -950,7 +996,7 @@ pub(super) fn apply(
     selected.admit_selection(c)?;
     let model_action = matches!(
         action,
-        Action::Model(_) | Action::Variant(_) | Action::Commit(_)
+        Action::Model(_) | Action::Variant(_) | Action::Commit(_) | Action::AgentCommit(_)
     );
     if model_action
         && selected.provider_id == previous.provider_id
@@ -997,6 +1043,11 @@ pub(super) fn apply(
     } else {
         None
     };
+    let reminder = crate::plan::switched(
+        previous.agent_id.as_deref(),
+        selected.agent_id.as_deref(),
+        c.parent_env.get("HOME").map(String::as_str),
+    );
     let persisted = if model_action {
         let commit = publication(c, &selected, generation, &action);
         let effort = |choice: &Effective| {
@@ -1033,14 +1084,11 @@ pub(super) fn apply(
             &records,
             session,
             &payload.to_string(),
+            reminder.as_deref(),
+            agent_notice.as_ref(),
             model_notice.as_ref(),
         )
     } else {
-        let reminder = crate::plan::switched(
-            previous.agent_id.as_deref(),
-            selected.agent_id.as_deref(),
-            c.parent_env.get("HOME").map(String::as_str),
-        );
         db.commit_session_agent_choice(
             &records,
             session,
@@ -1105,12 +1153,12 @@ pub(super) fn publication(
     action: &Action,
 ) -> oc_core::queries::ModelCommit {
     oc_core::queries::ModelCommit {
-        attachment: if let Action::Commit(commit) = action {
+        attachment: if let Action::Commit(commit) | Action::AgentCommit(commit) = action {
             commit.attachment
         } else {
             0
         },
-        caller: if let Action::Commit(commit) = action {
+        caller: if let Action::Commit(commit) | Action::AgentCommit(commit) = action {
             commit.caller
         } else {
             0
@@ -1123,7 +1171,7 @@ pub(super) fn publication(
         },
         model_id: selected.model_id.clone(),
         variant: normalized_variant(&selected.variant).map(str::to_owned),
-        draft_revision: if let Action::Commit(commit) = action {
+        draft_revision: if let Action::Commit(commit) | Action::AgentCommit(commit) = action {
             commit.draft_revision
         } else {
             0

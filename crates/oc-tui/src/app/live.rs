@@ -1355,9 +1355,14 @@ impl TuiState {
                 .request_session_selection(
                     pending.session.clone(),
                     false,
-                    oc_core::queries::SessionSelectionAction::Agent(
-                        pending.agent.clone().expect("staged agent"),
-                    ),
+                    match &pending.selection {
+                        Some(commit) => {
+                            oc_core::queries::SessionSelectionAction::AgentCommit(commit.clone())
+                        }
+                        None => oc_core::queries::SessionSelectionAction::Agent(
+                            pending.agent.clone().expect("staged agent"),
+                        ),
+                    },
                 )
                 .map(SubmissionPhase::PreparingAgent)
         } else {
@@ -1450,6 +1455,12 @@ impl TuiState {
                                 || snapshot.chrome.selection_generation
                                     != self.chrome.selection_generation
                                 || snapshot.agent_id != pending.agent
+                                || pending.selection.as_ref().is_some_and(|commit| {
+                                    snapshot.provider != commit.binding.provider
+                                        || snapshot.model_id != commit.model_id
+                                        || snapshot.variant.as_deref().filter(|v| *v != "default")
+                                            != commit.variant.as_deref()
+                                })
                             {
                                 self.fail_submission(
                                     pending,
@@ -1459,14 +1470,11 @@ impl TuiState {
                                 );
                                 return None;
                             }
-                            if let Some(commit) = &mut pending.selection {
-                                // Keep the exact selected provider (including a cross-provider
-                                // picker draft), model, variant, caller and revision.
-                                commit.binding.location = snapshot.chrome.location.clone();
-                                commit.binding.generation = snapshot.chrome.selection_generation;
-                                commit.binding.agent_id = snapshot.agent_id.clone();
-                            }
                             self.apply_catalog_inner(snapshot, false);
+                            self.model_submission_accepted(
+                                &pending.session,
+                                pending.selection.as_ref(),
+                            );
                             if self.agent_draft_revision == pending.agent_revision {
                                 self.agent_draft = None;
                             }
@@ -1480,14 +1488,6 @@ impl TuiState {
                                 return None;
                             }
                             if matches!(pending.purpose, SubmissionPurpose::Empty) {
-                                let result = self.commit_captured_model(
-                                    pending.session.clone(),
-                                    pending.selection.clone(),
-                                );
-                                if let Err(error) = result {
-                                    self.fail_submission(pending, CoreError::Application(error));
-                                    return None;
-                                }
                                 if self.active_turn.is_none() {
                                     self.status = TuiStatus::Idle;
                                 }

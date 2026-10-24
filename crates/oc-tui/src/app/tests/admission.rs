@@ -89,13 +89,16 @@ async fn retained_refusal_allows_recovery_routes_without_replaying_or_releasing_
 }
 
 #[tokio::test]
-async fn admission_prepares_agent_then_sends_exact_capture_without_clobbering_next_drafts() {
+async fn admission_commits_agent_and_model_then_sends_exact_capture_without_clobbering_next_drafts()
+{
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("prepare"));
     state.apply_catalog(snapshot());
-    let prepared = stage(&mut state, "y");
+    let mut prepared = stage(&mut state, "y");
     state.draft_model("b").unwrap();
     state.draft_variant(Some("low")).unwrap();
+    prepared.model_id = "b".into();
+    prepared.variant = Some("low".into());
     type_text(&mut state, "captured Ω").await;
     state.handle_key(KeyAction::Enter).await;
     assert!(state.input().is_empty());
@@ -113,14 +116,16 @@ async fn admission_prepares_agent_then_sends_exact_capture_without_clobbering_ne
         "paints share immutable pending source"
     );
     let InboxMsg::SessionSelection {
-        action: SessionSelectionAction::Agent(agent),
+        action: SessionSelectionAction::AgentCommit(commit),
         ack,
         ..
     } = inbox.try_recv().unwrap()
     else {
         panic!("prepare")
     };
-    assert_eq!(agent, "y");
+    assert_eq!(commit.binding.agent_id.as_deref(), Some("y"));
+    assert_eq!(commit.model_id, "b");
+    assert_eq!(commit.variant.as_deref(), Some("low"));
     assert!(
         inbox.try_recv().is_err(),
         "input waits for preparation ACK, not the UI"
@@ -302,6 +307,8 @@ async fn admission_preparation_keeps_explicit_provider_and_rejection_never_sends
         } else {
             let mut prepared = snapshot();
             prepared.agent_id = Some("y".into());
+            prepared.provider = "explicit-other-provider".into();
+            prepared.model_id = "b".into();
             ack.send(Ok(prepared)).unwrap();
             state.poll_submission();
             let InboxMsg::Submit {
@@ -455,8 +462,9 @@ async fn admission_initial_full_queue_keeps_editor_and_blank_preparation_defers_
     assert!(!state.has_occupied_submission());
     drop(inbox.try_recv().unwrap());
     state.restore_prompt(String::new());
-    let prepared = stage(&mut state, "y");
+    let mut prepared = stage(&mut state, "y");
     state.draft_model("b").unwrap();
+    prepared.model_id = "b".into();
     state.apply_inbox(
         &sid("bounded"),
         vec![InboxItem {
@@ -469,13 +477,15 @@ async fn admission_initial_full_queue_keeps_editor_and_blank_preparation_defers_
     );
     assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
     let InboxMsg::SessionSelection {
-        action: SessionSelectionAction::Agent(_),
+        action: SessionSelectionAction::AgentCommit(captured),
         ack,
         ..
     } = inbox.try_recv().unwrap()
     else {
         panic!("prepare empty")
     };
+    assert_eq!(captured.model_id, "b");
+    assert_eq!(captured.binding.agent_id.as_deref(), Some("y"));
     state.apply_inbox(&sid("bounded"), Vec::new());
     state.draft_model("a").unwrap();
     ack.send(Ok(prepared)).unwrap();
@@ -494,15 +504,7 @@ async fn admission_initial_full_queue_keeps_editor_and_blank_preparation_defers_
         })
     );
     assert_eq!(state.poll_submission(), None, "intent returned once");
-    let InboxMsg::SessionSelection {
-        action: SessionSelectionAction::Commit(captured),
-        ..
-    } = inbox.try_recv().unwrap()
-    else {
-        panic!("captured blank model")
-    };
-    assert_eq!(captured.model_id, "b");
-    assert_eq!(captured.binding.agent_id.as_deref(), Some("y"));
+    assert!(inbox.try_recv().is_err(), "no second model commit");
     assert_eq!(state.captured_model_commit().unwrap().model_id, "a");
     assert_eq!(state.input(), "n");
 }
@@ -535,12 +537,5 @@ async fn admission_cancel_suppresses_a_prepared_but_not_dispatched_blank_promoti
     ));
     assert_eq!(state.poll_submission(), None);
     assert_eq!(state.inbox_items()[0].id, "still-queued");
-    let InboxMsg::SessionSelection {
-        action: SessionSelectionAction::Commit(_),
-        ..
-    } = inbox.try_recv().unwrap()
-    else {
-        panic!("only the captured model commit was already admitted")
-    };
     assert!(inbox.try_recv().is_err());
 }

@@ -10,6 +10,8 @@ fn prm01_idle_effort_boundary_skips_nonprojected_model_switch_notice() {
         "root",
         &serde_json::json!({"effort_update":{"effort":"low","previous":null}}).to_string(),
         None,
+        None,
+        None,
     )
     .unwrap();
     let notice = db

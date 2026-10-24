@@ -3861,6 +3861,7 @@ async fn query(
                         oc_core::queries::SessionSelectionAction::Model(_)
                             | oc_core::queries::SessionSelectionAction::Variant(_)
                             | oc_core::queries::SessionSelectionAction::Agent(_)
+                            | oc_core::queries::SessionSelectionAction::AgentCommit(_)
                     )
                     && db
                         .session_meta(&session.0)
@@ -3881,8 +3882,11 @@ async fn query(
                     location_epoch.load(Ordering::SeqCst),
                 )?;
                 runtime.publish_selection_notices(&session, notices);
-                if matches!(action, oc_core::queries::SessionSelectionAction::Agent(_))
-                    && runtime.turn_active()
+                if matches!(
+                    action,
+                    oc_core::queries::SessionSelectionAction::Agent(_)
+                        | oc_core::queries::SessionSelectionAction::AgentCommit(_)
+                ) && runtime.turn_active()
                     && previous.agent_id != selected.agent_id
                 {
                     // The prepared request and its tool batch keep their
@@ -3899,6 +3903,7 @@ async fn query(
                     oc_core::queries::SessionSelectionAction::Model(_)
                         | oc_core::queries::SessionSelectionAction::Variant(_)
                         | oc_core::queries::SessionSelectionAction::Commit(_)
+                        | oc_core::queries::SessionSelectionAction::AgentCommit(_)
                 ) && (previous.provider_id != selected.provider_id
                     || previous.model_id != selected.model_id
                     || previous.variant.as_deref().filter(|v| *v != "default")
