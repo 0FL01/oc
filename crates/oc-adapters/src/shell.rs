@@ -629,6 +629,12 @@ impl Drop for Drain {
     }
 }
 
+/// Live output is published (synced to its artifact, recorded, announced to
+/// viewers) at most once per window per stream: a process printing a line
+/// every few milliseconds costs one publication per frame budget, not one
+/// fsync + SQLite update + viewer refresh per line.
+const LIVE_PUBLISH_WINDOW: Duration = Duration::from_millis(50);
+
 fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
     pipe: Option<R>,
     cap: usize,
@@ -662,9 +668,9 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
             } else {
                 // Preserve durable admission for every published chunk, but
                 // coalesce a burst before paying its file+SQLite sync cost.
-                // The coalescing window is bounded by 32 KiB / 2 ms (not a
-                // write-latency guarantee). Sparse output and cancellation
-                // never wait for a full buffer.
+                // The coalescing window is bounded by 32 KiB /
+                // `LIVE_PUBLISH_WINDOW` (not a write-latency guarantee).
+                // EOF and cancellation publish the pending tail at once.
                 let mut tmp = [0u8; 32 * 1024];
                 let mut pending = 0;
                 let mut since = Instant::now();
@@ -677,7 +683,7 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
                         Ok(0) => break,
                         Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                             if pending > 0 {
-                                if since.elapsed() >= Duration::from_millis(2) {
+                                if since.elapsed() >= LIVE_PUBLISH_WINDOW {
                                     if let Some((capture, stream)) = &live {
                                         capture.ingest(*stream, &tmp[..pending], false, true);
                                     }
@@ -709,9 +715,7 @@ fn spawn_drain_live<R: Read + AsRawFd + Send + 'static>(
                                     since = Instant::now();
                                 }
                                 pending += n;
-                                if pending == tmp.len()
-                                    || since.elapsed() >= Duration::from_millis(2)
-                                {
+                                if pending == tmp.len() || since.elapsed() >= LIVE_PUBLISH_WINDOW {
                                     capture.ingest(*stream, &tmp[..pending], false, true);
                                     pending = 0;
                                 }
@@ -993,6 +997,45 @@ mod tests {
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect()
+    }
+
+    /// A process printing a line every few milliseconds is published a
+    /// handful of times per second, not once per line, and loses nothing.
+    #[test]
+    fn live_output_coalesces_lines_into_windowed_publications() {
+        use std::io::Write as _;
+        let capture = super::jobs::Capture::new(std::sync::Arc::default());
+        let (reader, mut writer) = std::os::unix::net::UnixStream::pair().expect("pair");
+        let drain = super::spawn_drain_live(
+            Some(reader),
+            super::RETAIN_CAP_BYTES,
+            Some((&capture, super::jobs::Stream::Stdout)),
+        );
+        let started = std::time::Instant::now();
+        for line in 0..60 {
+            writeln!(writer, "line {line}").expect("write");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        drop(writer);
+        while !drain.finished() {
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        // At most one publication per 40 ms of output (plus the tail): about
+        // one per frame budget, not one per 5 ms line.
+        let windows = started.elapsed().as_millis() as usize / 40;
+        let publications = capture
+            .publications
+            .load(std::sync::atomic::Ordering::Relaxed);
+        assert!(
+            publications <= windows + 2,
+            "{publications} publications for 60 lines over {windows} windows"
+        );
+        let stdout = capture.stdout.lock().expect("stdout");
+        let text = String::from_utf8_lossy(&stdout.bytes);
+        assert!(
+            (0..60).all(|line| text.contains(&format!("line {line}\n"))),
+            "{text}"
+        );
     }
 
     fn limits(timeout_ms: u64) -> ShellLimits {

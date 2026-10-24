@@ -380,15 +380,20 @@ pub(super) struct Capture {
     pub(super) stderr: Arc<Mutex<DrainState>>,
     pub(super) wake: Arc<tokio::sync::Notify>,
     stream: Arc<Mutex<output::StreamCapture>>,
+    /// Non-empty publications, for the coalescing tests.
+    #[cfg(test)]
+    pub(super) publications: Arc<std::sync::atomic::AtomicUsize>,
 }
 
 impl Capture {
-    fn new(wake: Arc<tokio::sync::Notify>) -> Arc<Self> {
+    pub(super) fn new(wake: Arc<tokio::sync::Notify>) -> Arc<Self> {
         Arc::new(Self {
             stdout: Arc::default(),
             stderr: Arc::default(),
             wake,
             stream: Arc::new(Mutex::new(output::StreamCapture::new())),
+            #[cfg(test)]
+            publications: Arc::default(),
         })
     }
     pub(super) fn shared(&self) -> Self {
@@ -397,10 +402,16 @@ impl Capture {
             stderr: self.stderr.clone(),
             wake: self.wake.clone(),
             stream: self.stream.clone(),
+            #[cfg(test)]
+            publications: self.publications.clone(),
         }
     }
 
     pub(super) fn ingest(&self, stream: Stream, bytes: &[u8], end: bool, complete: bool) {
+        #[cfg(test)]
+        if !bytes.is_empty() {
+            self.publications.fetch_add(1, Ordering::Relaxed);
+        }
         let mut capture = self.stream.lock().expect("stream admission");
         let admitted = capture.ingest(stream, bytes, end, complete);
         let state = match stream {
