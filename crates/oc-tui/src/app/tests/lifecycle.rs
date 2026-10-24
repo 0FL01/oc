@@ -1245,6 +1245,14 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
         reopened.chrome.diffs
     );
     assert_ne!(reopened.transcript_lines(80, 120), original);
+    // The overlay maps to one derived card: its cached layout (and syntax
+    // highlight) survives every projection instead of re-rendering per frame.
+    let first = reopened.transcript_rows()[0].tool.clone().unwrap();
+    let second = reopened.transcript_rows()[0].tool.clone().unwrap();
+    assert!(
+        std::sync::Arc::ptr_eq(&first, &second),
+        "stable overlaid card"
+    );
     assert_eq!(
         reopened.history().rows()[0]
             .tool

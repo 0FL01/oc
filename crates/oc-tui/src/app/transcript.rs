@@ -2319,6 +2319,7 @@ impl TuiState {
                 shell_notice: None,
             });
         }
+        let mut overlays = std::collections::HashMap::new();
         // Apply current owner configuration to the render copy, including
         // replayed/parked footer metadata. Retain every measured statistic in
         // the history/live state. Indexed footers are generated outside the
@@ -2370,10 +2371,7 @@ impl TuiState {
                         }
                     }
                 }
-                if card.diff_settings != self.chrome.diffs {
-                    std::sync::Arc::make_mut(card).diff_settings = self.chrome.diffs;
-                }
-                if let crate::tools::ToolRender::Dcp(view) = &card.render {
+                let dcp = if let crate::tools::ToolRender::Dcp(view) = &card.render {
                     let color_index = row.agent_color_index.or(view.color_index).or_else(|| {
                         row.agent.as_ref().and_then(|id| {
                             self.agents
@@ -2384,16 +2382,47 @@ impl TuiState {
                     });
                     let spinner = (self.chrome.animations != Some(false))
                         .then(|| crate::compaction::FRAMES[self.compaction_frame].to_string());
-                    if (view.config != self.chrome.dcp
+                    (view.config != self.chrome.dcp
                         || view.color_index != color_index
                         || view.spinner != spinner)
-                        && let crate::tools::ToolRender::Dcp(view) =
-                            &mut std::sync::Arc::make_mut(card).render
-                    {
-                        view.config = self.chrome.dcp.clone();
-                        view.color_index = color_index;
-                        view.spinner = spinner;
+                        .then(|| (self.chrome.dcp.clone(), color_index, spinner))
+                } else {
+                    None
+                };
+                if card.diff_settings != self.chrome.diffs || dcp.is_some() {
+                    let key = OverlayKey {
+                        diffs: self.chrome.diffs,
+                        dcp,
+                    };
+                    let source = std::sync::Arc::as_ptr(card) as usize;
+                    let reused = self.card_overlays.borrow().get(&source).and_then(|entry| {
+                        (std::sync::Arc::ptr_eq(&entry.source, card) && entry.key == key)
+                            .then(|| entry.derived.clone())
+                    });
+                    let original = card.clone();
+                    if let Some(derived) = reused {
+                        *card = derived;
+                    } else {
+                        let derived = std::sync::Arc::make_mut(card);
+                        derived.diff_settings = key.diffs;
+                        if let (
+                            Some((config, color_index, spinner)),
+                            crate::tools::ToolRender::Dcp(view),
+                        ) = (key.dcp.clone(), &mut derived.render)
+                        {
+                            view.config = config;
+                            view.color_index = color_index;
+                            view.spinner = spinner;
+                        }
                     }
+                    overlays.insert(
+                        source,
+                        CardOverlay {
+                            source: original,
+                            key,
+                            derived: card.clone(),
+                        },
+                    );
                 }
             }
             if let Some(meta) = &mut row.meta {
@@ -2412,6 +2441,7 @@ impl TuiState {
                 }
             }
         }
+        *self.card_overlays.borrow_mut() = overlays;
         (rows, live_row, runs)
     }
 
@@ -2993,4 +3023,23 @@ impl TuiState {
 /// The same painted rows: one shared projection (pointer) or equal content.
 fn same_rows(a: &[Line], b: &[Line]) -> bool {
     (a.len() == b.len() && std::ptr::eq(a.as_ptr(), b.as_ptr())) || a == b
+}
+
+/// Overlay inputs that turn a shared window card into its rendered form.
+#[derive(PartialEq)]
+pub(super) struct OverlayKey {
+    diffs: oc_core::queries::DiffSettings,
+    dcp: Option<(
+        oc_core::dcp_view::DcpDisplayConfig,
+        Option<usize>,
+        Option<String>,
+    )>,
+}
+
+/// One remembered overlay: the window's source card, its overlay inputs and
+/// the derived card handed to projections (identity keys the layout cache).
+pub(super) struct CardOverlay {
+    source: std::sync::Arc<crate::history::ToolCard>,
+    key: OverlayKey,
+    derived: std::sync::Arc<crate::history::ToolCard>,
 }

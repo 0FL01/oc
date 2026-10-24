@@ -808,6 +808,10 @@ pub struct TuiState {
     /// live text/reasoning; membership derived from rows and cards keys on it.
     transcript_structure: u64,
     visible_projection: std::cell::RefCell<Option<VisibleTranscriptProjection>>,
+    /// Presentation overlays (diff settings, DCP config) of shared window
+    /// cards: the same source and overlay map to the same derived card, so
+    /// its cached layout survives every projection instead of re-rendering.
+    card_overlays: std::cell::RefCell<std::collections::HashMap<usize, transcript::CardOverlay>>,
     #[cfg(test)]
     transcript_row_copies: std::cell::Cell<usize>,
     #[cfg(test)]
@@ -1067,6 +1071,7 @@ impl TuiState {
             transcript_revision: 0,
             transcript_structure: 0,
             visible_projection: Default::default(),
+            card_overlays: Default::default(),
             #[cfg(test)]
             transcript_row_copies: Default::default(),
             #[cfg(test)]
