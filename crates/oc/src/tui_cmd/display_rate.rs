@@ -44,6 +44,40 @@ pub(super) fn next_paint(paint_at: Instant, input_paint_at: Instant, input_dirty
     }
 }
 
+/// Paint slots of the UI loop. Every frame waits the display interval after
+/// the previous frame; a frame carrying local input waits only the input
+/// interval after the previous input frame. Animation and worker frames
+/// (spinners, tab sweeps, tool output) therefore never delay typing, while
+/// both kinds stay bounded at their own rate.
+pub(super) struct Pacing {
+    paint_at: Instant,
+    input_paint_at: Instant,
+}
+
+impl Pacing {
+    pub(super) fn new(now: Instant) -> Self {
+        Self {
+            paint_at: now,
+            input_paint_at: now,
+        }
+    }
+
+    /// Earliest paint for the pending change.
+    pub(super) fn due(&self, input: bool) -> Instant {
+        next_paint(self.paint_at, self.input_paint_at, input)
+    }
+
+    /// A frame started at `frame_start` was painted; `input` if it carried input.
+    pub(super) fn painted(&mut self, frame_start: Instant, frame: Duration, input: bool) {
+        // Pace from the frame start without catch-up: a slow frame delays
+        // the next one, it never queues a burst.
+        self.paint_at = (frame_start + frame).max(Instant::now());
+        if input {
+            self.input_paint_at = frame_start + input_interval(frame);
+        }
+    }
+}
+
 /// Detect once in the background; `None` keeps the default rate.
 pub(super) fn spawn_probe() -> tokio::task::JoinHandle<Option<u32>> {
     oc_core::wake::spawn(async {
@@ -254,6 +288,35 @@ mod tests {
             next_paint(display, input, true),
             input,
             "input change paints sooner"
+        );
+    }
+
+    /// An animation frame (tool spinner, tab sweep) right before a keystroke
+    /// must not hold the keystroke for the input slot; input frames still
+    /// keep their spacing among themselves, animation frames the display's.
+    #[test]
+    fn animation_frames_do_not_delay_the_next_input_frame() {
+        use super::{Pacing, input_interval, interval};
+        let frame = interval(60);
+        let start = std::time::Instant::now();
+        let mut pacing = Pacing::new(start);
+        pacing.painted(start, frame, false);
+        assert!(
+            pacing.due(true) <= start,
+            "input paints at once after an animation frame"
+        );
+        assert!(
+            pacing.due(false) >= start + frame,
+            "animation keeps the display rate"
+        );
+        pacing.painted(start, frame, true);
+        assert_eq!(pacing.due(true), start + input_interval(frame));
+        let later = start + std::time::Duration::from_millis(2);
+        pacing.painted(later, frame, false);
+        assert_eq!(
+            pacing.due(true),
+            start + input_interval(frame),
+            "the input slot follows the last input frame only"
         );
     }
 

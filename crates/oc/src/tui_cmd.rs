@@ -1471,11 +1471,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     let mut dirty = true;
     let mut first_paint = true;
     let mut painted_cursor_color = ratatui::style::Color::Reset;
-    let mut paint_at = Instant::now();
+    let mut pacing = display_rate::Pacing::new(Instant::now());
     // Paint no faster than the display refreshes; detected once, 60 Hz until known.
     let mut frame_interval = display_rate::interval(display_rate::DEFAULT_HZ);
     // A change caused by local input may paint at half that spacing.
-    let mut input_paint_at = Instant::now();
     let mut input_dirty = false;
     let mut rate_probe = Some(display_rate::spawn_probe());
     let mut woke_by_completion = false;
@@ -1622,9 +1621,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= state.tick_scanner(Instant::now());
         dirty |= state.tick_delegations(Instant::now());
         dirty |= state.tick_tool_spinners(Instant::now());
-        if dirty
-            && Instant::now() >= display_rate::next_paint(paint_at, input_paint_at, input_dirty)
-        {
+        if dirty && Instant::now() >= pacing.due(input_dirty) {
             let frame_start = Instant::now();
             let draw_start = frame_metrics
                 .as_ref()
@@ -1685,10 +1682,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 metrics.writes = output_metrics.as_ref().expect("metrics enabled").get();
             }
             dirty = false;
-            // Pace from the frame start without catch-up: a slow frame delays
-            // the next one, it never queues a burst.
-            paint_at = (frame_start + frame_interval).max(Instant::now());
-            input_paint_at = frame_start + display_rate::input_interval(frame_interval);
+            pacing.painted(frame_start, frame_interval, input_dirty);
             input_dirty = false;
             if loop_state.reload_pending() {
                 loop_state.reload_painted = true;
@@ -1886,7 +1880,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         } else if *state.panel() != TuiPanel::Dcp {
             loop_state.dcp_seen = false;
         }
-        let paint_due = display_rate::next_paint(paint_at, input_paint_at, input_dirty);
+        let paint_due = pacing.due(input_dirty);
         if dirty && Instant::now() >= paint_due {
             continue;
         }
