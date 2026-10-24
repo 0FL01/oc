@@ -4841,41 +4841,87 @@ fn footer_omits_unavailable_fields() {
     assert_eq!(tokens_without_duration.plain_text(), "   Build");
 }
 
-/// Scrolling a window of patch cards renders each card once: later frames
-/// reuse the card-identity layout, and match a cold cache exactly.
+fn patch_row(index: usize) -> HistoryRow {
+    let mut row = exploration_tool("apply_patch", "completed", false);
+    let body: String = (0..12)
+        .map(|line| format!("+fn item_{index}_{line}(v: u64) -> u64 {{ v ^ {line} }}\n"))
+        .collect();
+    let input = serde_json::json!({
+        "patchText": format!("*** Begin Patch\n*** Add File: src/f{index}.rs\n{body}*** End Patch")
+    });
+    row.tool = Some(std::sync::Arc::new(card_from_row(&ToolOpView {
+        child_job: None,
+        output_presentation: None,
+        question: None,
+        rowid: index as i64,
+        op: format!("patch-{index}"),
+        name: "apply_patch".into(),
+        state: "completed".into(),
+        input: Some(input.to_string()),
+        output: Some("Success. Updated the following files:\nA src/f.rs".into()),
+        output_bytes: 40,
+        output_truncated: false,
+        patch_effects: None,
+        dcp: None,
+        dcp_topic: None,
+    })));
+    row
+}
+
+/// A window whose card layouts exceed the layout byte budget still scrolls
+/// without re-rendering every card per frame: measuring uses the retained
+/// heights, so only cards entering the screen are rendered again.
 #[test]
-fn scrolling_reuses_tool_card_layout_without_rerendering_patches() {
-    let patch = |index: usize| {
-        let mut row = exploration_tool("apply_patch", "completed", false);
-        let body: String = (0..12)
-            .map(|line| format!("+fn item_{index}_{line}(v: u64) -> u64 {{ v ^ {line} }}\n"))
-            .collect();
-        let input = serde_json::json!({
-            "patchText": format!("*** Begin Patch\n*** Add File: src/f{index}.rs\n{body}*** End Patch")
-        });
-        row.tool = Some(std::sync::Arc::new(card_from_row(&ToolOpView {
-            child_job: None,
-            output_presentation: None,
-            question: None,
-            rowid: index as i64,
-            op: format!("patch-{index}"),
-            name: "apply_patch".into(),
-            state: "completed".into(),
-            input: Some(input.to_string()),
-            output: Some("Success. Updated the following files:\nA src/f.rs".into()),
-            output_bytes: 40,
-            output_truncated: false,
-            patch_effects: None,
-            dcp: None,
-            dcp_topic: None,
-        })));
-        row
-    };
+fn scrolling_past_layout_budget_renders_only_cards_entering_the_screen() {
     let rows: Vec<HistoryRow> = (0..40)
         .flat_map(|index| {
             [
                 user(&format!("change {index}"), vec![]),
-                patch(index),
+                patch_row(index),
+                assistant("done"),
+            ]
+        })
+        .collect();
+    let theme = Theme::dark();
+    let frame = |cache: &RefCell<MarkdownCache>, scroll: usize| {
+        visible_transcript_targets(
+            &rows,
+            theme,
+            (100, 100),
+            (30, scroll, None),
+            |_| Color::Reset,
+            cache,
+            &|_| false,
+        )
+        .0
+    };
+    let full = RefCell::new(MarkdownCache::default());
+    frame(&full, 0);
+    let per_card = full.borrow().tool_row_bytes() / 40;
+    let cache = RefCell::new(MarkdownCache::default());
+    cache.borrow_mut().cap_tool_row_bytes(per_card * 4);
+    frame(&cache, 0);
+    assert_eq!(cache.borrow().tool_row_renders(), 40);
+    for scroll in (1..400).step_by(7) {
+        let warm = frame(&cache, scroll);
+        assert_eq!(warm, frame(&RefCell::new(MarkdownCache::default()), scroll));
+    }
+    let again = cache.borrow().tool_row_renders() - 40;
+    assert!(
+        again <= 40,
+        "each card renders again at most when it scrolls onto the screen, got {again}"
+    );
+}
+
+/// Scrolling a window of patch cards renders each card once: later frames
+/// reuse the card-identity layout, and match a cold cache exactly.
+#[test]
+fn scrolling_reuses_tool_card_layout_without_rerendering_patches() {
+    let rows: Vec<HistoryRow> = (0..40)
+        .flat_map(|index| {
+            [
+                user(&format!("change {index}"), vec![]),
+                patch_row(index),
                 assistant("done"),
             ]
         })

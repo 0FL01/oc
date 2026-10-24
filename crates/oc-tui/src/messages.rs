@@ -222,6 +222,12 @@ struct ToolRowLayout {
     used: u64,
 }
 
+struct ToolHeight {
+    _card: std::sync::Arc<crate::history::ToolCard>,
+    height: usize,
+    used: u64,
+}
+
 /// Rendered tool bodies retained across projections (bounded by count/bytes).
 const MAX_TOOL_ROWS: usize = 4 * crate::history::WINDOW_ROWS + crate::app::LIVE_PARTS_MAX;
 const MAX_TOOL_ROW_BYTES: usize = 8 * 1024 * 1024;
@@ -240,6 +246,10 @@ pub(crate) struct MarkdownCache {
     user_indexes: VecDeque<UserGeometry>,
     user_index_bytes: usize,
     tool_rows: std::collections::HashMap<ToolRowKey, ToolRowLayout>,
+    /// Heights outlive layouts: measuring a whole window never needs every
+    /// card's rendered lines, so off-screen diff cards cannot evict on-screen
+    /// ones (and force a re-highlight) from the byte-bounded layout cache.
+    tool_heights: std::collections::HashMap<ToolRowKey, ToolHeight>,
     tool_row_bytes: usize,
     use_clock: u64,
     #[cfg(test)]
@@ -250,6 +260,8 @@ pub(crate) struct MarkdownCache {
     parses: usize,
     #[cfg(test)]
     tool_row_renders: usize,
+    #[cfg(test)]
+    tool_row_cap: Option<usize>,
     #[cfg(test)]
     parsed_bytes: usize,
 }
@@ -814,12 +826,59 @@ impl MarkdownCache {
         self.tool_row_renders
     }
 
+    #[cfg(test)]
+    pub(crate) fn tool_row_bytes(&self) -> usize {
+        self.tool_row_bytes
+    }
+
+    #[cfg(test)]
+    pub(crate) fn cap_tool_row_bytes(&mut self, cap: usize) {
+        self.tool_row_cap = Some(cap);
+    }
+
+    fn tool_row_byte_cap(&self) -> usize {
+        #[cfg(test)]
+        if let Some(cap) = self.tool_row_cap {
+            return cap;
+        }
+        MAX_TOOL_ROW_BYTES
+    }
+
+    fn store_tool_height(
+        &mut self,
+        key: ToolRowKey,
+        card: &std::sync::Arc<crate::history::ToolCard>,
+        height: usize,
+    ) {
+        let used = self.use_clock;
+        self.tool_heights.insert(
+            key,
+            ToolHeight {
+                _card: card.clone(),
+                height,
+                used,
+            },
+        );
+        while self.tool_heights.len() > MAX_TOOL_ROWS {
+            let Some(oldest) = self
+                .tool_heights
+                .iter()
+                .min_by_key(|(_, known)| known.used)
+                .map(|(key, _)| *key)
+            else {
+                break;
+            };
+            self.tool_heights.remove(&oldest);
+        }
+    }
+
     fn store_tool_row(&mut self, key: ToolRowKey, layout: ToolRowLayout) {
         self.tool_row_bytes += layout.bytes;
         if let Some(previous) = self.tool_rows.insert(key, layout) {
             self.tool_row_bytes -= previous.bytes;
         }
-        while self.tool_rows.len() > MAX_TOOL_ROWS || self.tool_row_bytes > MAX_TOOL_ROW_BYTES {
+        while self.tool_rows.len() > MAX_TOOL_ROWS || self.tool_row_bytes > self.tool_row_byte_cap()
+        {
             let Some(oldest) = self
                 .tool_rows
                 .iter()
@@ -839,14 +898,13 @@ impl MarkdownCache {
 /// stable card is rendered (and its patch highlighted) once, not per frame.
 /// `None` for rows without a card and for Execute cards, whose per-call
 /// expansion state is not part of the key.
-fn tool_row_body(
-    row: &HistoryRow,
+fn tool_row_key<'a>(
+    row: &'a HistoryRow,
     theme: &Theme,
     width: u16,
     expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
     leading: bool,
-    cache: &RefCell<MarkdownCache>,
-) -> Option<(std::sync::Arc<Vec<Line>>, bool, usize)> {
+) -> Option<(ToolRowKey, &'a std::sync::Arc<crate::history::ToolCard>)> {
     let role = match row.role.as_str() {
         "tool" => 0,
         "shell" => 1,
@@ -868,6 +926,45 @@ fn tool_row_body(
         expanded: expanded(ToolExpansion::Operation(&card.op)),
         leading,
     };
+    Some((key, card))
+}
+
+/// Height of a tool row body (see `tool_row_body`) without keeping or
+/// rebuilding its lines once it has been measured.
+fn tool_row_height(
+    row: &HistoryRow,
+    theme: &Theme,
+    width: u16,
+    expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
+    leading: bool,
+    cache: &RefCell<MarkdownCache>,
+) -> Option<usize> {
+    let (key, card) = tool_row_key(row, theme, width, expanded, leading)?;
+    {
+        let mut store = cache.borrow_mut();
+        store.use_clock = store.use_clock.wrapping_add(1);
+        let clock = store.use_clock;
+        if let Some(known) = store.tool_heights.get_mut(&key) {
+            known.used = clock;
+            return Some(known.height);
+        }
+    }
+    let (_, _, height) = tool_row_body(row, theme, width, expanded, leading, cache)?;
+    if !styled::render_cancelled() {
+        cache.borrow_mut().store_tool_height(key, card, height);
+    }
+    Some(height)
+}
+
+fn tool_row_body(
+    row: &HistoryRow,
+    theme: &Theme,
+    width: u16,
+    expanded: &dyn Fn(ToolExpansion<'_>) -> bool,
+    leading: bool,
+    cache: &RefCell<MarkdownCache>,
+) -> Option<(std::sync::Arc<Vec<Line>>, bool, usize)> {
+    let (key, card) = tool_row_key(row, theme, width, expanded, leading)?;
     let mut store = cache.borrow_mut();
     store.use_clock = store.use_clock.wrapping_add(1);
     let clock = store.use_clock;
@@ -4055,7 +4152,7 @@ pub(crate) fn transcript_part_positions(
                 part(absorbed, total, total);
             }
             continue;
-        } else if let Some((_, _, height)) = tool_row_body(
+        } else if let Some(height) = tool_row_height(
             row,
             theme,
             width,
