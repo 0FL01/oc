@@ -927,3 +927,35 @@ fn tool21_registered_identity_swap_interruption_and_blob_orphan_quota() {
         CaptureState::Interrupted
     );
 }
+
+/// Streaming a capture scans the quota directories once, not per append,
+/// and a blob written mid-stream still counts against the same quota.
+#[test]
+fn appends_reuse_the_quota_bound_and_stay_within_quota() {
+    let quota = 64 * 1024;
+    let (_dir, db) = fixture(quota);
+    let mut writer = db
+        .begin_tool_output("op", "s", "/project", 7, "pinned", vec![])
+        .unwrap();
+    let scans = db.quota_scans();
+    for _ in 0..50 {
+        writer.append(&"x".repeat(100)).unwrap();
+    }
+    assert!(
+        db.quota_scans() - scans <= 1,
+        "{} scans for 50 appends",
+        db.quota_scans() - scans
+    );
+    db.write_blob(&[b'b'; 40 * 1024]).unwrap();
+    for _ in 0..40 {
+        writer.append(&"y".repeat(1000)).unwrap();
+    }
+    let resource = writer.finish(false).unwrap();
+    assert_eq!(resource.state, CaptureState::Quota);
+    let used = db.resource_used().unwrap();
+    assert!(
+        used <= quota,
+        "{used} bytes on disk over a {quota}-byte quota"
+    );
+    assert!(used + 1000 > quota, "the capture used the remaining quota");
+}

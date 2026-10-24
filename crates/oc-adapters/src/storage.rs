@@ -366,6 +366,12 @@ pub struct Db {
     pub(crate) response_channels: crate::provider::websocket::Channels,
     // Last projected wire-log read, valid while this connection made no write.
     wire_log_memo: Arc<Mutex<Option<dcp_view::WireLogMemo>>>,
+    // Upper bound of quota-counted bytes: the last directory scan plus every
+    // later quota-counted write (deletions only make it looser). Live output
+    // rescans only when a write would cross the quota under this bound.
+    quota_used: Arc<Mutex<Option<u64>>>,
+    #[cfg(test)]
+    quota_scans: Arc<std::sync::atomic::AtomicUsize>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -649,6 +655,9 @@ impl Db {
             credential_epochs: Arc::new(Mutex::new(std::collections::BTreeMap::new())),
             response_channels: Default::default(),
             wire_log_memo: Default::default(),
+            quota_used: Default::default(),
+            #[cfg(test)]
+            quota_scans: Default::default(),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -671,6 +680,9 @@ impl Db {
             credential_epochs: self.credential_epochs.clone(),
             response_channels: self.response_channels.clone(),
             wire_log_memo: self.wire_log_memo.clone(),
+            quota_used: self.quota_used.clone(),
+            #[cfg(test)]
+            quota_scans: self.quota_scans.clone(),
             _lock: self._lock.clone(),
         }
     }
@@ -4111,6 +4123,8 @@ impl Db {
         if used > self.quota_bytes {
             return Err(StorageError::StorageFull);
         }
+        // Exact once this blob is on disk (it is counted in `used`).
+        *self.quota_used.lock().expect("quota bound") = Some(used);
         if existing {
             // An orphan may have been left before file/directory sync completed.
             File::open(&target)?.sync_all()?;

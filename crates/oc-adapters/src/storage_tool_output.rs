@@ -368,6 +368,9 @@ impl Db {
     }
 
     fn resource_used(&self) -> Result<u64, StorageError> {
+        #[cfg(test)]
+        self.quota_scans
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let mut used = self.output_disk_bytes()?;
         for entry in fs::read_dir(&self.blob_dir)? {
             let meta = fs::symlink_metadata(entry?.path())?;
@@ -378,6 +381,32 @@ impl Db {
             }
         }
         Ok(used)
+    }
+
+    /// Quota-counted bytes for a write of `bytes`: the cached upper bound
+    /// while the write fits under it, else an exact rescan (which also
+    /// reclaims headroom from deletions since the last scan).
+    fn quota_used_for(&self, bytes: u64) -> Result<u64, StorageError> {
+        let mut bound = self.quota_used.lock().expect("quota bound");
+        if let Some(used) = *bound
+            && used.saturating_add(bytes) <= self.quota_bytes
+        {
+            return Ok(used);
+        }
+        let used = self.resource_used()?;
+        *bound = Some(used);
+        Ok(used)
+    }
+
+    fn quota_grew(&self, bytes: u64) {
+        if let Some(used) = self.quota_used.lock().expect("quota bound").as_mut() {
+            *used = used.saturating_add(bytes);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn quota_scans(&self) -> usize {
+        self.quota_scans.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -765,7 +794,11 @@ impl Writer {
         let _conn = self.db.conn.lock().expect("db mutex");
         if self.resource.state == CaptureState::Active {
             let available = CAP.saturating_sub(self.resource.bytes);
-            let quota = self.db.quota_bytes.saturating_sub(self.db.resource_used()?);
+            // The pinned directory is still the root's before any byte lands,
+            // whether or not this write rescans the quota directories.
+            self.db.verify_output_dir()?;
+            let used = self.db.quota_used_for(text.len() as u64)?;
+            let quota = self.db.quota_bytes.saturating_sub(used);
             let kept = text.floor_char_boundary(text.len().min(available.min(quota) as usize));
             if kept > 0 {
                 if self.file.write_all(&text.as_bytes()[..kept]).is_err() {
@@ -773,6 +806,7 @@ impl Writer {
                     self.file.sync_all()?;
                     self.resource.state = CaptureState::Io;
                 } else {
+                    self.db.quota_grew(kept as u64);
                     self.resource.bytes += kept as u64;
                     self.published_newlines +=
                         text[..kept].bytes().filter(|b| *b == b'\n').count() as u64;
