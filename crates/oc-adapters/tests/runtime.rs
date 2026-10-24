@@ -305,7 +305,8 @@ fn split_title_server() -> (
                     return;
                 }
                 let request: serde_json::Value = serde_json::from_slice(&body).unwrap();
-                let title = request["model"] == "title-model";
+                let title = request["model"] == "title-model"
+                    || request["input"].to_string().contains("TITLE_AGENT_ONLY");
                 requests.lock().unwrap().push(request);
                 let stream = reader.get_mut();
                 let _ = stream.write_all(b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\n\r\n");
@@ -749,15 +750,28 @@ async fn title_fixture(
     oc_core::core_app::CoreApp,
     oc_core::core_app::WorkerGuard,
 ) {
-    let project = tempfile::tempdir().unwrap();
-    let data = tempfile::tempdir().unwrap();
-    let home = tempfile::tempdir().unwrap();
-    std::fs::write(project.path().join("opencode.json"), serde_json::json!({
+    title_fixture_with(serde_json::json!({
         "model": "fixture/main",
         "providers": {"fixture": {"package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
             "models": {"main": {}, "title-model": {}}}},
         "agents": {"title": {"mode": "subagent", "model": "fixture/title-model", "system": "TITLE_AGENT_ONLY"}}
-    }).to_string()).unwrap();
+    }))
+    .await
+}
+
+async fn title_fixture_with(
+    config: serde_json::Value,
+) -> (
+    tempfile::TempDir,
+    tempfile::TempDir,
+    tempfile::TempDir,
+    oc_core::core_app::CoreApp,
+    oc_core::core_app::WorkerGuard,
+) {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.path().to_string_lossy().into_owned()),
         ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),

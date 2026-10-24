@@ -169,6 +169,8 @@ pub const TOOL_OPS_PAGE_LIMIT: usize = 100;
 /// A normal exit may finish an already accepted title, but cannot wait for the
 /// provider's full request timeout when it stalls.
 const TITLE_SHUTDOWN_GRACE: std::time::Duration = std::time::Duration::from_secs(2);
+// Bounded, but long enough for a local/proxied provider serving the main turn.
+const TITLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
 struct AutomaticTitleResult {
     session: SessionId,
@@ -4950,7 +4952,7 @@ async fn worker(
                             (
                                 selected.provider_id.clone(),
                                 selected.model_id,
-                                agent.and_then(|a| a.variant.clone()).or(selected.variant),
+                                agent.and_then(|a| a.variant.clone()),
                             )
                         };
                     let catalog = composition
@@ -4960,7 +4962,12 @@ async fn worker(
                         .request_provider(&provider_id)
                         .ok_or_else(|| app_error("title provider unavailable"))?;
                     let selection = crate::models::select_model(catalog, &id)
-                        .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
+                        .and_then(|base| {
+                            let variant = variant
+                                .as_deref()
+                                .or_else(|| crate::models::ancillary_variant(&base.entry));
+                            crate::models::select_variant(&base, variant)
+                        })
                         .map_err(|_| app_error("title agent model/variant unavailable"))?;
                     runtime
                         .admit_provider_variant(
@@ -5031,40 +5038,37 @@ async fn worker(
                 };
                 let title_env = composition.parent_env.clone();
                 let operation = async {
-                    let generation =
-                        tokio::time::timeout(std::time::Duration::from_secs(10), async {
-                            let provider = crate::auth::prepare_request(
-                                &provider,
-                                db,
-                                &title_env,
-                                &provider_id,
-                                &selection.id,
-                                selection.variant.as_ref().map(|v| v.name.as_str()),
-                                &cancel,
-                            )
-                            .await
-                            .map_err(|_| crate::provider::ProviderError::InvalidConfig)?;
-                            crate::provider::stream_input_counted(
-                                &provider,
-                                &selection.id,
-                                selection.variant.as_ref(),
-                                &input,
-                                &[],
-                                output,
-                                &cancel,
-                                &mut |_| {},
-                                &mut || async {
-                                    db.generation_dispatch(&session.0, &title_operation, "title")
-                                        .map_err(|_| {
-                                            crate::provider::ProviderError::DispatchRefused
-                                        })
-                                },
-                            )
-                            .await
-                        })
+                    let generation = tokio::time::timeout(TITLE_TIMEOUT, async {
+                        let provider = crate::auth::prepare_request(
+                            &provider,
+                            db,
+                            &title_env,
+                            &provider_id,
+                            &selection.id,
+                            selection.variant.as_ref().map(|v| v.name.as_str()),
+                            &cancel,
+                        )
                         .await
-                        .map_err(|_| app_error("title request timed out"))?
-                        .map_err(|_| app_error("title request failed"))?;
+                        .map_err(|_| crate::provider::ProviderError::InvalidConfig)?;
+                        crate::provider::stream_input_counted(
+                            &provider,
+                            &selection.id,
+                            selection.variant.as_ref(),
+                            &input,
+                            &[],
+                            output,
+                            &cancel,
+                            &mut |_| {},
+                            &mut || async {
+                                db.generation_dispatch(&session.0, &title_operation, "title")
+                                    .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                            },
+                        )
+                        .await
+                    })
+                    .await
+                    .map_err(|_| app_error("title request timed out"))?
+                    .map_err(|_| app_error("title request failed"))?;
                     if cancel.load(Ordering::Relaxed) {
                         return Err(app_error("title request cancelled"));
                     }
@@ -5524,9 +5528,7 @@ async fn worker(
                         (
                             turn_selection.provider_id.clone(),
                             turn_selection.model_id.clone(),
-                            title_agent
-                                .and_then(|a| a.variant.clone())
-                                .or(turn_selection.variant.clone()),
+                            title_agent.and_then(|a| a.variant.clone()),
                         )
                     };
                     let catalog = composition
@@ -5536,7 +5538,12 @@ async fn worker(
                         .request_provider(&provider_id)
                         .ok_or("title provider unavailable")?;
                     crate::models::select_model(catalog, &id)
-                        .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
+                        .and_then(|base| {
+                            let variant = variant
+                                .as_deref()
+                                .or_else(|| crate::models::ancillary_variant(&base.entry));
+                            crate::models::select_variant(&base, variant)
+                        })
                         .map(|selection| (selection, provider, provider_id))
                         .map_err(|e| e.to_string())
                 })();
@@ -5694,7 +5701,7 @@ async fn worker(
                                                     let provider = provider.ok()?;
                                                     let cancel = AtomicBool::new(false);
                                                     let generation = tokio::time::timeout(
-                                                        std::time::Duration::from_secs(10),
+                                                        TITLE_TIMEOUT,
                                                         async {
                                                             let provider = crate::auth::prepare_request(
                                                                 &provider,

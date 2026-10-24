@@ -537,7 +537,9 @@ default output request for known models; explicit output requests are clamped.
 The same budget/admission applies to primary, child, every tool continuation and
 title requests. Missing/zero metadata produces visible fallback warnings; title
 admission failure skips only the ancillary title. No selected variant means no
-reasoning overlay; an explicitly selected variant must be enabled.
+reasoning overlay; an explicitly selected variant must be enabled. A title without
+an explicit variant uses its model's lowest declared effort up to `low`, never the
+primary turn's variant.
 
 Универсального точного токенизатора для всех aliases не предполагается. Использовать доступный validated tokenizer или conservative estimate с отметкой estimated, затем калибровку по usage. В estimate входят instructions, tool schemas, summaries, opaque items и attachments (для неизвестной image token cost — дополнительный reserve, не нулевой учёт). Provider остаётся окончательным арбитром context error.
 

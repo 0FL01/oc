@@ -213,17 +213,28 @@ pub fn ordered_variants(entry: &serde_json::Value) -> Vec<(&str, &serde_json::Va
                 .filter_map(|value| Some((value.get("id")?.as_str()?, value))),
         );
     }
-    variants.sort_by_key(|(name, value)| {
-        let settings = value.get("settings").unwrap_or(value);
-        let effort = match settings.get("reasoningEffort") {
-            None | Some(serde_json::Value::Null) => Some(*name),
-            Some(explicit) => explicit.as_str(),
-        };
-        effort
-            .and_then(|effort| STANDARD_VARIANTS.iter().position(|known| *known == effort))
-            .unwrap_or(STANDARD_VARIANTS.len())
-    });
+    variants.sort_by_key(|(name, value)| effort_rank(name, value));
     variants
+}
+
+fn effort_rank(name: &str, value: &serde_json::Value) -> usize {
+    let settings = value.get("settings").unwrap_or(value);
+    let effort = match settings.get("reasoningEffort") {
+        None | Some(serde_json::Value::Null) => Some(name),
+        Some(explicit) => explicit.as_str(),
+    };
+    effort
+        .and_then(|effort| STANDARD_VARIANTS.iter().position(|known| *known == effort))
+        .unwrap_or(STANDARD_VARIANTS.len())
+}
+
+/// Lowest declared effort up to `low` for ancillary requests (title); never
+/// the primary turn's variant. Upstream parity: none/minimal/low.
+pub fn ancillary_variant(entry: &serde_json::Value) -> Option<&str> {
+    available_variants(entry)
+        .next()
+        .filter(|(name, value)| effort_rank(name, value) <= 2)
+        .map(|(name, _)| name)
 }
 
 /// Named selectable choices from the shared ordered view. Default is a

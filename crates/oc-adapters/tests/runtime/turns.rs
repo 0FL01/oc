@@ -2073,6 +2073,89 @@ async fn in_flight_title_is_independent_of_cancel_but_manual_rename_wins() {
 }
 
 #[tokio::test]
+async fn title_released_after_main_cancel_still_commits() {
+    use oc_core::core_app::CoreEvent;
+    use oc_core::domain::SessionId;
+    let (url, requests, _main_release, title_release, _) = split_title_server();
+    let (_project, _data, _home, app, guard) = title_fixture(&url).await;
+    let session = SessionId::new("title-after-cancel").unwrap();
+    let mut events = app.subscribe();
+    app.submit_fresh(session.clone(), "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    app.cancel(session.clone()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if matches!(
+                events.recv().await.unwrap(),
+                CoreEvent::TurnInterrupted { .. }
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    title_release.store(true, Ordering::Relaxed);
+    tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if let CoreEvent::SessionTitleUpdated { title, .. } = events.recv().await.unwrap() {
+                assert_eq!(title, "Real title");
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        app.history_page(session, None, None, 10)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Real title")
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn automatic_title_uses_lowest_variant_not_turn_effort() {
+    use oc_core::domain::SessionId;
+    let (url, requests, main_release, title_release, _) = split_title_server();
+    let (_project, _data, _home, app, guard) = title_fixture_with(serde_json::json!({
+        "model": "fixture/main#xhigh",
+        "providers": {"fixture": {"package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
+            "models": {"main": {"variants": [
+                {"id": "xhigh", "settings": {"reasoningEffort": "xhigh"}},
+                {"id": "low", "settings": {"reasoningEffort": "low"}}
+            ]}}}},
+        "agents": {"title": {"mode": "subagent", "system": "TITLE_AGENT_ONLY"}}
+    }))
+    .await;
+    let session = SessionId::new("title-variant").unwrap();
+    app.submit_fresh(session, "first prompt".into(), None)
+        .await
+        .unwrap();
+    wait_for_title_requests(&requests, 2).await;
+    let effort = |title: bool| {
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|r| r["input"].to_string().contains("TITLE_AGENT_ONLY") == title)
+            .map(|r| r["reasoning"]["effort"].clone())
+    };
+    assert_eq!(effort(true), Some(serde_json::json!("low")));
+    assert_eq!(effort(false), Some(serde_json::json!("xhigh")));
+    title_release.store(true, Ordering::Relaxed);
+    main_release.store(true, Ordering::Relaxed);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn cancelling_automatic_title_does_not_interrupt_main_and_allows_retry() {
     use oc_core::core_app::CoreEvent;
     use oc_core::domain::SessionId;
