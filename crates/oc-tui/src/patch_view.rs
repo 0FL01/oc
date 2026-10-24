@@ -643,6 +643,19 @@ fn fit(spans: Vec<Span>, width: usize, base: Style) -> Vec<Span> {
     let mut out = Vec::new();
     let mut used = 0;
     'spans: for span in spans {
+        // Printable ASCII is one single-cell grapheme per byte.
+        let content = span.content();
+        if content.bytes().all(|b| (0x20..0x7f).contains(&b)) {
+            let take = content.len().min(width - used);
+            if take > 0 {
+                out.push(Span::styled(&content[..take], span.style()));
+            }
+            used += take;
+            if take < content.len() {
+                break;
+            }
+            continue;
+        }
         let mut text = String::new();
         let safe: String = span
             .content()
@@ -739,6 +752,67 @@ pub(crate) mod tests {
             .map(Line::plain_text)
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    /// The printable-ASCII fast path cuts and pads exactly like the grapheme
+    /// walk, across span boundaries, control bytes and wide glyphs.
+    #[test]
+    fn fit_ascii_fast_path_matches_grapheme_walk() {
+        fn reference(spans: Vec<Span>, width: usize, base: Style) -> Vec<Span> {
+            let mut out = Vec::new();
+            let mut used = 0;
+            'spans: for span in spans {
+                let mut text = String::new();
+                let safe: String = span
+                    .content()
+                    .chars()
+                    .map(|c| if c.is_control() { '�' } else { c })
+                    .collect();
+                for glyph in safe.graphemes(true) {
+                    let cells = UnicodeWidthStr::width(glyph);
+                    if used + cells > width {
+                        if !text.is_empty() {
+                            out.push(Span::styled(text, span.style()));
+                        }
+                        break 'spans;
+                    }
+                    text.push_str(glyph);
+                    used += cells;
+                }
+                if !text.is_empty() {
+                    out.push(Span::styled(text, span.style()));
+                }
+            }
+            if used < width {
+                out.push(Span::styled(" ".repeat(width - used), base));
+            }
+            out
+        }
+        let red = Style::default().fg(ratatui::style::Color::Red);
+        let base = Style::default().bg(ratatui::style::Color::Blue);
+        let cases: Vec<Vec<&str>> = vec![
+            vec![],
+            vec![""],
+            vec!["let value = 42;"],
+            vec!["fn ", "", "main", "() {", " }"],
+            vec!["tab\there", "cr\r\nlf", "\u{7f}del"],
+            vec!["ascii ", "широкий 漢字", " tail"],
+            vec!["e\u{301}combining", "🙂 emoji", "~end"],
+        ];
+        for case in cases {
+            for width in 0..48 {
+                let spans: Vec<_> = case
+                    .iter()
+                    .enumerate()
+                    .map(|(i, text)| Span::styled(*text, if i % 2 == 0 { red } else { base }))
+                    .collect();
+                assert_eq!(
+                    fit(spans.clone(), width, base),
+                    reference(spans, width, base),
+                    "{case:?} at {width}"
+                );
+            }
+        }
     }
 
     #[test]
