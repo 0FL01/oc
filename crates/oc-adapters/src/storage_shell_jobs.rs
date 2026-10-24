@@ -1,6 +1,10 @@
 //! Minimal background outcome and history-delivery seam in the existing DB.
 use super::*;
 use crate::shell::jobs::{Outcome, ProcessIdentity, Provenance};
+use std::sync::atomic::Ordering;
+
+/// Notices admitted per delivery query; a full batch keeps delivery due.
+const SHELL_NOTICE_BATCH: usize = 8;
 
 // A single-use launch authority, created only by the committed user admission.
 // Recovery never recreates it or retries an unknown external effect.
@@ -168,6 +172,7 @@ impl Db {
             .query_row([operation], |r| r.get(0))?;
         if running {
             conn.execute("INSERT INTO events(session_id,kind,payload) SELECT session_id,'shell_background',operation_id FROM shell_jobs WHERE operation_id=?1", [operation])?;
+            self.shell_notices_due.store(true, Ordering::Release);
         }
         Ok(running)
     }
@@ -298,7 +303,32 @@ impl Db {
         Self::record_tool_presentation_in(&tx, operation, outcome.output_presentation.as_deref())?;
         tx.execute("INSERT INTO events(session_id,kind,payload) SELECT session_id,'shell_terminal',?1 FROM shell_jobs WHERE operation_id=?1",[operation])?;
         tx.commit()?;
+        // After the commit, so the next due query observes this terminal row.
+        self.shell_notices_due.store(true, Ordering::Release);
         Ok(())
+    }
+
+    /// `deliver_shell_notices` only when a notice may have become due since
+    /// the last query (a full batch or a failure keeps it due).
+    pub(crate) fn deliver_due_shell_notices(
+        &self,
+    ) -> Result<Vec<oc_core::queries::ShellNotice>, StorageError> {
+        if !self.shell_notices_due.swap(false, Ordering::AcqRel) {
+            return Ok(Vec::new());
+        }
+        let delivered = self.deliver_shell_notices();
+        if delivered
+            .as_ref()
+            .map_or(true, |notices| notices.len() >= SHELL_NOTICE_BATCH)
+        {
+            self.shell_notices_due.store(true, Ordering::Release);
+        }
+        delivered
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shell_notice_queries(&self) -> usize {
+        self.shell_notice_queries.load(Ordering::Relaxed)
     }
 
     pub(crate) fn recover_shell_jobs(&self) -> Result<(), StorageError> {
@@ -349,11 +379,13 @@ impl Db {
     pub(crate) fn deliver_shell_notices(
         &self,
     ) -> Result<Vec<oc_core::queries::ShellNotice>, StorageError> {
+        #[cfg(test)]
+        self.shell_notice_queries.fetch_add(1, Ordering::Relaxed);
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT operation_id,session_id,delivery_id,provenance,outcome FROM shell_jobs j WHERE phase='terminal' AND message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) ORDER BY rowid LIMIT 8")?;
-            stmt.query_map([], |r| {
+            let mut stmt = tx.prepare("SELECT operation_id,session_id,delivery_id,provenance,outcome FROM shell_jobs j WHERE phase='terminal' AND message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)) ORDER BY rowid LIMIT ?1")?;
+            stmt.query_map([SHELL_NOTICE_BATCH as i64], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, String>(1)?,

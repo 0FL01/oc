@@ -126,6 +126,43 @@ impl Held {
     }
 }
 
+/// Wakes of a running job (live output, viewers) deliver without re-running
+/// the notice query, whose cost grows with the session's shell history; the
+/// job turning terminal still delivers its notice on the next wake.
+#[tokio::test]
+async fn running_job_wakes_skip_the_notice_query_until_a_job_turns_terminal() {
+    let h = Held::new();
+    let (events, mut received) = tokio::sync::broadcast::channel(256);
+    h.jobs.deliver(&events).unwrap();
+    h.launch("bg", "source", false, false).await;
+    let queries = h.db.shell_notice_queries();
+    for _ in 0..20 {
+        h.jobs.deliver(&events).unwrap();
+    }
+    assert_eq!(
+        h.db.shell_notice_queries(),
+        queries,
+        "running-job wakes re-ran the notice query"
+    );
+    h.release("bg");
+    h.terminal("bg", "source").await;
+    let notice = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            h.jobs.deliver(&events).unwrap();
+            while let Ok(event) = received.try_recv() {
+                if let oc_core::core_app::CoreEvent::ShellNotice(notice) = event {
+                    return notice;
+                }
+            }
+            h.jobs.changed().await;
+        }
+    })
+    .await
+    .expect("terminal background job delivers its notice");
+    assert_eq!(notice.shell_id, "bg");
+    h.jobs.shutdown().await.unwrap();
+}
+
 #[tokio::test]
 async fn user_shell_consumes_committed_admission_and_reuses_supervised_job_owner() {
     let h = Held::new();

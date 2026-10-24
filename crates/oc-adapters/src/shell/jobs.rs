@@ -1268,7 +1268,7 @@ impl Jobs {
                 )?;
             }
         }
-        for notice in self.db.deliver_shell_notices()? {
+        for notice in self.db.deliver_due_shell_notices()? {
             let _ = events.send(oc_core::core_app::CoreEvent::ShellNotice(notice));
         }
         for session in sessions {

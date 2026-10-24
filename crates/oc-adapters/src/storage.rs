@@ -372,6 +372,12 @@ pub struct Db {
     quota_used: Arc<Mutex<Option<u64>>>,
     #[cfg(test)]
     quota_scans: Arc<std::sync::atomic::AtomicUsize>,
+    // A shell notice can become deliverable only when a job turns terminal or
+    // is converted to background: the notice query runs after such a commit
+    // (and once after open), not on every live-output wake.
+    shell_notices_due: Arc<std::sync::atomic::AtomicBool>,
+    #[cfg(test)]
+    shell_notice_queries: Arc<std::sync::atomic::AtomicUsize>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -658,6 +664,9 @@ impl Db {
             quota_used: Default::default(),
             #[cfg(test)]
             quota_scans: Default::default(),
+            shell_notices_due: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            #[cfg(test)]
+            shell_notice_queries: Default::default(),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -683,6 +692,9 @@ impl Db {
             quota_used: self.quota_used.clone(),
             #[cfg(test)]
             quota_scans: self.quota_scans.clone(),
+            shell_notices_due: self.shell_notices_due.clone(),
+            #[cfg(test)]
+            shell_notice_queries: self.shell_notice_queries.clone(),
             _lock: self._lock.clone(),
         }
     }
