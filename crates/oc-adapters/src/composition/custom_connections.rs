@@ -141,7 +141,7 @@ impl Composition {
         }
         let catalog = models::ModelCatalog {
             provider: id.clone(),
-            models: row.models,
+            models: row.models.into(),
         };
         self.custom_revisions.insert(id.clone(), row.revision);
         self.generation.providers.insert(id.clone(), entry.clone());

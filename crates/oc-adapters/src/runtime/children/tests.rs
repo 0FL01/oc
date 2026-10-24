@@ -32,7 +32,7 @@ async fn hot01_child_recovery_uses_saved_provenance_not_the_current_counter() {
         };
         let catalog = ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "m".into(),
                 json!({"limit":{"context":500000,"output":1000}}),
             )]),

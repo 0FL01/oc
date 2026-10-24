@@ -51,6 +51,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 
 - Allowlist/diagnostics/overlays: `config.rs`, `config/admission.rs`, `config/diagnostic.rs`, `config/providers.rs`, `config/request_bindings.rs`, `composition.rs`. Tests: unit `config::`, `application::effective_wire_tests`, `cfg10_`.
 - Profiles/definitions/models/variants: `defs.rs`, `models.rs`, `models/lookup.rs`, `composition.rs`. Tests: unit `r6_`, `models::`, `defs::`; target `runtime`, filter `model_session_tools`.
+- Process memory: `memory.rs` (owner allocator policy, post-turn/idle heap release), `shared.rs` (`Shared<T>` copy-on-write for captured bindings/catalogs). Tests: unit `models::tests::captured_catalog_clones_share_entries_and_mutate_copy_on_write`; target `memory_soak` (crate `oc2`).
 - Compiled plugin admission: `config.rs::classify_plugin`, `composition.rs`, `application.rs`. Tests: unit `cfg09_`; `oc2` targets `pty_t39`, `configured_workspace`.
 - Public catalogs/cache/list: `models_dev.rs`, `models_dev/document.rs`, `composition/go_catalog.rs`, `composition/openai_catalog.rs`, `composition/catalog.rs`. Tests: unit `models_dev::`, `composition::catalog`, `auth04_`.
 - Discovery/custom endpoints: `discovery.rs`, `custom_discovery.rs`, `endpoint.rs`, `composition/custom_connections.rs`, `storage_provider_connections.rs`. Tests: unit `endpoint::`, `conn0`; `oc2` target `configured_workspace`.
@@ -89,7 +90,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 
 ## Binary и test tooling
 
-- `crates/oc/src/tui_cmd.rs`, `tui_cmd/shared.rs` — event loop/shared deck; `tui_cmd/display_rate.rs` — paint cap from the display refresh (unit `tui_cmd::display_rate`); `tui_cmd/{child_controls,terminal_controls,auth_controls,connect_controls,clipboard}.rs` — captured effects/ACKs. Tests: binary unit `tui_cmd::`; targets `pty_t39`, `pty_t42`, `terminals`, `auth_tui`, `mcp_application`; opt-in long-session perf probe `perf_long_session` (see TEST_PLAN).
+- `crates/oc/src/tui_cmd.rs`, `tui_cmd/shared.rs` — event loop/shared deck; `tui_cmd/display_rate.rs` — paint cap from the display refresh (unit `tui_cmd::display_rate`); `tui_cmd/{child_controls,terminal_controls,auth_controls,connect_controls,clipboard}.rs` — captured effects/ACKs. Tests: binary unit `tui_cmd::`; targets `pty_t39`, `pty_t42`, `terminals`, `auth_tui`, `mcp_application`; opt-in long-session perf probe `perf_long_session`, retained-memory gate/probe `memory_soak` (see TEST_PLAN).
 - `crates/oc/src/{cli,bootstrap,headless,models_cmd,auth_cmd}.rs`, `clipboard/read.rs` — CLI/cancel/catalog/auth/PNG. Tests: binary unit `models_cmd`, `auth_cmd`, `clipboard`; targets `responses`, `configured_workspace`, `auth_cli`.
 - `crates/oc-adapters/tests/runtime.rs`, `tests/runtime/`, `tests/fixtures/` — fake-wire suites. `crates/oc/tests/pty_t39.rs`, `tests/pty_t39/`, `tests/support/` — actual-binary PTY fixtures; не отдельные targets на каждый файл.
 - `scripts/bounded_live.py`, `scripts/test_bounded_live.py`, `crates/oc/tests/live_bounded/envelope.rs` — live guards; `scripts/tui_capture/`, `tui-recovery/scripts/` — capture/comparator tooling, не runtime dependency. Запуск только по TEST_PLAN.

@@ -263,7 +263,7 @@ async fn auth04_runtime_channels_settle_read_followup_fork_and_partition_opaque_
         let config = f.config(&peer.base, subscription);
         let catalog = crate::models::ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "gpt-5.5".into(),
                 json!({"limit":{"context":500000,"output":2048}}),
             )]),
@@ -410,7 +410,7 @@ async fn auth04_runtime_channel_recovery_is_counted_and_delivered_failures_do_no
         let peer = Peer::new(reply).await;
         let catalog = crate::models::ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "gpt-5.5".into(),
                 json!({"limit":{"context":500000,"output":2048}}),
             )]),
@@ -531,7 +531,7 @@ async fn auth04_runtime_child_and_summary_channels_keep_actual_actors_and_restri
         let config = f.config(&peer.base, true);
         let catalog = crate::models::ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "gpt-5.5".into(),
                 json!({"limit":{"context":500000,"output":2048}}),
             )]),

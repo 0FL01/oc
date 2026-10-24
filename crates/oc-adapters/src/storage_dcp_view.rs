@@ -29,7 +29,19 @@ struct WireLogKey {
 
 pub(crate) struct WireLogMemo {
     key: WireLogKey,
-    logs: Option<Vec<String>>,
+    logs: Option<Vec<WireLog>>,
+}
+
+/// One public wire log, shared by the memo and every reader of one step.
+pub(crate) type WireLog = std::sync::Arc<str>;
+
+/// Only the fields the reader validates; other members are skipped, not built.
+#[derive(serde::Deserialize)]
+struct WireLogHead<'a> {
+    #[serde(borrow)]
+    turn_id: Option<std::borrow::Cow<'a, str>>,
+    #[serde(default)]
+    raw_prefix: Option<serde_json::Value>,
 }
 
 /// Public/retained wire logs of the active projection; see
@@ -270,7 +282,7 @@ impl Db {
         after_seq: i64,
         projected: &[(String, String, String)],
         blocks: &[crate::dcp::CompressionBlock],
-    ) -> Result<Option<Vec<String>>, StorageError> {
+    ) -> Result<Option<Vec<WireLog>>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         // One step reads the same projection several times (history, cadence,
         // measurement). Reuse it while this sole writer connection is unchanged.
@@ -314,7 +326,7 @@ impl Db {
         after_seq: i64,
         projected: &[(String, String, String)],
         blocks: &[crate::dcp::CompressionBlock],
-    ) -> Result<Option<Vec<String>>, StorageError> {
+    ) -> Result<Option<Vec<WireLog>>, StorageError> {
         let ids = serde_json::to_string(&projected.iter().map(|r| &r.0).collect::<Vec<_>>())
             .map_err(|_| StorageError::CompressionConflict)?;
         let blocks = serde_json::to_string(
@@ -344,15 +356,13 @@ impl Db {
                 return Ok(None);
             }
             budget -= raw.len();
-            let value: serde_json::Value =
+            let head: WireLogHead =
                 serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict)?;
-            let turn = value["turn_id"]
-                .as_str()
-                .ok_or(StorageError::CompressionConflict)?;
-            let prefix = crate::tools::turn_history::RawPrefix::parse(value.get("raw_prefix"))
+            let turn = head.turn_id.ok_or(StorageError::CompressionConflict)?;
+            let prefix = crate::tools::turn_history::RawPrefix::parse(head.raw_prefix.as_ref())
                 .map_err(|_| StorageError::CompressionConflict)?;
-            Self::validate_raw_prefix(conn, turn, prefix.as_ref())?;
-            logs.push(raw);
+            Self::validate_raw_prefix(conn, &turn, prefix.as_ref())?;
+            logs.push(WireLog::from(raw));
         }
         Ok(Some(logs))
     }

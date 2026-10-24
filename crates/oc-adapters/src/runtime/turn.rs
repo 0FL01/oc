@@ -1225,6 +1225,8 @@ impl<'a> Runtime<'a> {
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
+        // A turn is the owner's peak; hand its freed pages back afterwards.
+        let _release = crate::memory::ReleaseOnDrop;
         // Native application callers may have awaited MCP preparation since
         // taking their catalog. Admit the exact choice against this same source
         // view before creating a session, user message or turn.

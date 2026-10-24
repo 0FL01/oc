@@ -337,7 +337,7 @@ async fn go03_chronological_effort_reaches_wire_and_messages_beta_is_conditional
                 cache: crate::provider::CacheMode::None,
                 wire: WireBinding {
                     protocol,
-                    chronology: std::collections::BTreeMap::from([(
+                    chronology: crate::shared::Shared::from([(
                         "catalog".into(),
                         Chronology {
                             effort: supported,
@@ -369,7 +369,7 @@ async fn go03_chronological_effort_reaches_wire_and_messages_beta_is_conditional
             let selected = crate::models::select_model(
                 &crate::models::ModelCatalog {
                     provider: "custom-fixture".into(),
-                    models,
+                    models: models.into(),
                 },
                 "catalog",
             )

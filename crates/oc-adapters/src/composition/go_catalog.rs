@@ -60,11 +60,11 @@ impl Composition {
                 super::openai_catalog::transform(&mut outcome.models, view.provider.subscription());
             }
             let before = (view.state.catalog_status, view.readiness("", None));
-            let models_changed = view.catalog.models != outcome.models;
+            let models_changed = *view.catalog.models != outcome.models;
             view.state.finish_public(&outcome);
-            view.catalog.models = outcome.models;
+            view.catalog.models = outcome.models.into();
             view.provider.wire.requests =
-                public_bindings(&view.entry, &view.catalog, &view.provider);
+                public_bindings(&view.entry, &view.catalog, &view.provider).into();
             view.entry.options.request_bindings = view.provider.wire.requests.clone();
             if let Some(entry) = self.generation.providers.get_mut(id) {
                 entry.options.request_bindings = view.provider.wire.requests.clone();
@@ -160,7 +160,7 @@ impl Composition {
             self.provider.wire.requests.clear();
             return;
         };
-        self.provider.wire.requests = public_bindings(entry, &self.catalog, &self.provider);
+        self.provider.wire.requests = public_bindings(entry, &self.catalog, &self.provider).into();
         if let Some(entry) = self.generation.providers.get_mut(&self.catalog.provider) {
             entry.options.request_bindings = self.provider.wire.requests.clone();
         }

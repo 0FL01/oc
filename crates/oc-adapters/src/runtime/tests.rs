@@ -71,7 +71,7 @@ async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_
                     ("X-Duplicate".into(), key.clone()),
                     ("X-Empty".into(), String::new()),
                 ]),
-                request_bindings: bindings,
+                request_bindings: bindings.into(),
                 ..Default::default()
             },
         },
@@ -667,7 +667,7 @@ mod vis38_review_tests {
                 ))
         );
         assert!(requests[0]["input"].to_string().contains(&seed_text));
-        let identities = dcp_call_identities(&[], Some(&journal)).unwrap();
+        let identities = dcp_call_identities(&[] as &[String], Some(&journal)).unwrap();
         assert_eq!(
             identities[&("read-old".into(), 0)],
             (report.turn_id.clone(), "read-old".into(), 0)

@@ -18,7 +18,7 @@ struct PreparedCheckpoint {
     selection: Vec<serde_json::Value>,
     identities: BTreeMap<crate::storage::DcpCallKey, crate::storage::DcpCallIdentity>,
     marks: crate::storage::DcpToolProjection,
-    tail: Vec<String>,
+    tail: Vec<crate::storage::WireLog>,
     source_bytes: u64,
     omitted_prefix: bool,
     prior_selection_bytes: u64,
@@ -137,7 +137,7 @@ impl PreparedCheckpoint {
             .selection
             .iter()
             .filter(|v| v.get("protected_message").is_none() && v.get("legacy_protected").is_none())
-            .map(serde_json::Value::to_string)
+            .map(|value| crate::storage::WireLog::from(value.to_string()))
             .chain(self.tail.iter().cloned())
             .collect::<Vec<_>>();
         Ok(remap_projection(

@@ -13,10 +13,18 @@ mod tui_cmd;
 
 use clap::Parser as _;
 
-// A small fixed pool keeps the native host responsive without scaling one
-// process's resident stack footprint with the machine's CPU count.
-#[tokio::main(worker_threads = 2)]
-async fn main() -> std::process::ExitCode {
+fn main() -> std::process::ExitCode {
     let args = cli::Args::parse();
-    bootstrap::run(args).await
+    if matches!(args.command, Some(cli::Command::NativeOwner { .. })) {
+        // Before any worker thread exists, so every arena honours the limit.
+        oc_adapters::memory::tune_owner_allocator();
+    }
+    // A small fixed pool keeps the native host responsive without scaling one
+    // process's resident stack footprint with the machine's CPU count.
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .expect("tokio runtime")
+        .block_on(bootstrap::run(args))
 }

@@ -398,10 +398,11 @@ async fn measure() {
                     )
                     .await
                     .unwrap();
+                let read = load.elapsed();
                 state.prepend_page(&older);
                 pages.push(load.elapsed());
                 eprintln!(
-                    "PERF older page {} rows in {:?} at step {}",
+                    "PERF older page {} rows in {:?} (owner read {read:?}) at step {}",
                     older.rows.len(),
                     load.elapsed(),
                     frames.len()

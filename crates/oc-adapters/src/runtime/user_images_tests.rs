@@ -43,7 +43,7 @@ async fn clipboard_images_atomic_admission_wire_retirement_reopen_revert_and_for
     };
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"modalities":{"input":["text","image"]},"limit":{"context":500000,"output":2048}}),
         )]),
@@ -222,7 +222,7 @@ async fn clipboard_images_refuse_invalid_media_and_unknown_capability_before_fre
     let rt = owner(&db, project.path());
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":500000,"output":2048}}),
         )]),

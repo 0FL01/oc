@@ -460,27 +460,27 @@ impl CacheMode {
 pub struct WireBinding {
     pub(crate) selection_scope: Option<String>,
     pub(crate) provider_state: Option<crate::composition::ProviderState>,
-    pub(crate) providers: BTreeMap<String, CapturedProvider>,
+    pub(crate) providers: crate::shared::Shared<BTreeMap<String, CapturedProvider>>,
     pub(crate) auth_input: Option<AuthInput>,
     pub(crate) custom_scope: Option<crate::auth::AuthScope>,
     pub(crate) openai: Option<crate::auth::OpenAiBinding>,
     pub(crate) transport: Option<websocket::Transport>,
     pub(crate) channels: Option<websocket::Channels>,
-    pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
+    pub(crate) chronology: crate::shared::Shared<BTreeMap<String, protocol::Chronology>>,
     pub(crate) total_timeout_ms: Option<u64>,
     /// Raw provider override: absence keeps the WebSocket-specific frame default.
     pub(crate) websocket_chunk_timeout: Option<crate::config::ProviderTimeout>,
     pub(crate) go: bool,
     pub(crate) context: Option<context::RequestContext>,
     pub(crate) unsupported: bool,
-    pub(crate) requests: BTreeMap<(String, Option<String>), ResponsesConfig>,
+    pub(crate) requests: crate::shared::Shared<BTreeMap<(String, Option<String>), ResponsesConfig>>,
     pub(crate) api_model: Option<String>,
     pub(crate) settings: settings::WireSettings,
     pub(crate) endpoint: Option<crate::endpoint::EndpointBinding>,
     pub(crate) auth_policy: crate::auth::AuthPolicy,
     pub(crate) protocol: protocol::Protocol,
     pub(crate) default_compatibility: chat::ChatCompat,
-    pub(crate) compatibility: BTreeMap<String, chat::ChatCompat>,
+    pub(crate) compatibility: crate::shared::Shared<BTreeMap<String, chat::ChatCompat>>,
     pub(crate) messages_bearer: bool,
     /// Opt-in qualification only; absent from production builds and JSON config.
     #[cfg(test)]
@@ -520,7 +520,7 @@ impl WireBinding {
     pub(crate) fn chat(chat: BTreeMap<String, chat::ChatCompat>) -> Self {
         Self {
             protocol: protocol::Protocol::Chat,
-            compatibility: chat,
+            compatibility: chat.into(),
             ..Self::default()
         }
     }

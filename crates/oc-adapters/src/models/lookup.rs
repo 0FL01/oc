@@ -137,7 +137,7 @@ pub(crate) fn execute_with_catalogs(
         } else if provider == crate::models_dev::OPENAI && openai.is_some() {
             openai.map(|read| &read.models)
         } else if provider == selected.provider {
-            Some(&selected.models)
+            Some(&*selected.models)
         } else {
             configured.map(|p| &p.models)
         };

@@ -455,7 +455,7 @@ impl Composition {
             return Ok(());
         }
         let outcome =
-            Self::discover_provider(self.provider.clone(), self.catalog.models.clone()).await?;
+            Self::discover_provider(self.provider.clone(), (*self.catalog.models).clone()).await?;
         self.accept_provider_catalog(outcome);
         Ok(())
     }
@@ -494,7 +494,7 @@ impl Composition {
         };
         let before = (view.state.catalog_status, view.catalog.models.clone());
         view.state.finish(&outcome);
-        view.catalog.models = outcome.models;
+        view.catalog.models = outcome.models.into();
         self.generation.warnings.extend(outcome.warnings);
         before != (view.state.catalog_status, view.catalog.models.clone())
     }
@@ -517,7 +517,7 @@ impl Composition {
         } else {
             self.provider_state.finish(&outcome);
         }
-        self.catalog.models = outcome.models;
+        self.catalog.models = outcome.models.into();
         if self.catalog.provider == crate::models_dev::OPENAI {
             super::openai_catalog::transform(
                 &mut self.catalog.models,

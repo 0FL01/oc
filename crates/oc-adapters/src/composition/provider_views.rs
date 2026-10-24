@@ -100,7 +100,7 @@ impl Composition {
             .unwrap_or_default();
         let read = db.public_catalog().read_provider(id, &local).await;
         if read.fetched_at_ms.is_some() {
-            catalog.models = read.models;
+            catalog.models = read.models.into();
         }
         super::openai_catalog::transform(&mut catalog.models, config.subscription());
         let mut state = if id == self.catalog.provider {
@@ -174,7 +174,7 @@ impl Composition {
         }
         let mut config = providers.get(id)?.config.clone();
         config.wire.selection_scope = Some(self.catalog.provider.clone());
-        config.wire.providers = providers;
+        config.wire.providers = providers.into();
         Some(config)
     }
 
@@ -302,7 +302,7 @@ impl Composition {
                 ProviderView {
                     catalog: models::ModelCatalog {
                         provider: id,
-                        models: entry.models.clone(),
+                        models: entry.models.clone().into(),
                     },
                     entry,
                     provider,

@@ -79,7 +79,7 @@ for line in sys.stdin:
     };
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":500000,"output":8000}}),
         )]),
@@ -250,7 +250,7 @@ for line in sys.stdin:
     };
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":500000,"output":8000}}),
         )]),
@@ -945,7 +945,7 @@ async fn hot01_child_fresh_requests_intersect_launch_and_route_issued_approvals(
     };
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":500000,"output":8000}}),
         )]),
@@ -1183,7 +1183,7 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
     };
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":500000,"output":8000}}),
         )]),
@@ -1451,7 +1451,7 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
         };
         let catalog = ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "m".into(),
                 json!({
                     "limit":{"context":500000,"output":8000},
@@ -1472,13 +1472,14 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
         let mut next_provider = provider.clone();
         next_provider.base_url = format!("http://{}/g2", second.local_addr().unwrap());
         next_provider.api_key = "synthetic G2".into();
-        next_provider.wire.providers.insert(
-            "fixture".into(),
-            crate::provider::CapturedProvider {
-                catalog: next_catalog,
-                config: next_provider.clone(),
-            },
-        );
+        let captured = crate::provider::CapturedProvider {
+            catalog: next_catalog,
+            config: next_provider.clone(),
+        };
+        next_provider
+            .wire
+            .providers
+            .insert("fixture".into(), captured);
         let (received, held) = tokio::sync::oneshot::channel();
         let (release, released) = tokio::sync::oneshot::channel();
         let peer = tokio::spawn(async move {

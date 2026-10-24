@@ -93,7 +93,8 @@ pub struct ProviderOptions {
     pub redaction_material: Vec<String>,
     /// Admitted local model/variant templates; never deserialized from JSON.
     #[serde(skip)]
-    pub request_bindings: BTreeMap<(String, Option<String>), crate::provider::ResponsesConfig>,
+    pub request_bindings:
+        crate::shared::Shared<BTreeMap<(String, Option<String>), crate::provider::ResponsesConfig>>,
     /// Base URL template (may contain `{env:..}` before substitution).
     #[serde(rename = "baseURL", default)]
     pub base_url: String,
@@ -1395,7 +1396,8 @@ fn assemble_with_admission(
         .map_err(|error| diagnostic::LocatedError::new(path, error))?;
         entry.options.request_bindings =
             providers::request_bindings(id, raw, path, &provider_origins, sources, env, reader)
-                .map_err(|error| diagnostic::LocatedError::new(path, error))?;
+                .map_err(|error| diagnostic::LocatedError::new(path, error))?
+                .into();
         out_providers.insert(id.clone(), entry);
         provenance.insert(format!("provider.{id}"), path.clone());
     }
@@ -1650,7 +1652,7 @@ pub(crate) fn provider_wire(
         _ => Default::default(),
     };
     wire.default_compatibility = default_compatibility;
-    wire.compatibility = compatibility;
+    wire.compatibility = compatibility.into();
     for (field, value) in [
         ("timeout", entry.options.timeout),
         ("headerTimeout", entry.options.header_timeout),

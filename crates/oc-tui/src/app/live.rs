@@ -45,7 +45,7 @@ fn catalog_from_snapshot(snapshot: &CatalogSnapshot) -> ModelCatalog {
     }
     ModelCatalog {
         provider: snapshot.provider.clone(),
-        models,
+        models: models.into(),
     }
 }
 

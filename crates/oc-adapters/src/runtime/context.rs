@@ -260,11 +260,22 @@ pub(super) fn dcp_continuation(
     input
 }
 
+use crate::storage::WireLog;
+
+/// Ordering keys of one wire log; the log body is skipped, not materialized.
+#[derive(serde::Deserialize)]
+struct WireLogKeys<'a> {
+    #[serde(borrow, default)]
+    _dcp_block: Option<std::borrow::Cow<'a, str>>,
+    #[serde(borrow, default)]
+    user_message: Option<std::borrow::Cow<'a, str>>,
+}
+
 /// The existing durable journal establishes immutable call occurrence identity.
 /// Local occurrence counts include omitted pending calls, so window cuts cannot
 /// renumber coverage. Legacy compression outcomes are never backfilled.
 pub(crate) fn dcp_call_identities(
-    logs: &[String],
+    logs: &[impl AsRef<str>],
     current: Option<&TurnLog>,
 ) -> Result<BTreeMap<crate::storage::DcpCallKey, crate::storage::DcpCallIdentity>, RuntimeError> {
     let mut result = BTreeMap::new();
@@ -307,7 +318,7 @@ pub(crate) fn dcp_call_identities(
         }
     };
     for raw in logs {
-        let value = serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
+        let value = serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
         let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
         if let Some(working) = &log.working {
             add(
@@ -827,14 +838,14 @@ impl<'a> Runtime<'a> {
     }
     pub(super) fn select_history_facts(
         &self,
-        logs: &[String],
+        logs: &[impl AsRef<str>],
         config: &DcpConfig,
     ) -> Result<Vec<serde_json::Value>, RuntimeError> {
         self.select_history_facts_with_producers(logs, config, false)
     }
     fn select_history_facts_with_producers(
         &self,
-        logs: &[String],
+        logs: &[impl AsRef<str>],
         config: &DcpConfig,
         fresh_producers: bool,
     ) -> Result<Vec<serde_json::Value>, RuntimeError> {
@@ -842,7 +853,7 @@ impl<'a> Runtime<'a> {
         let mut bytes = 0usize;
         for raw in logs {
             let value: serde_json::Value =
-                serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
+                serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
             let fresh = fresh_producers && value["_dcp_block"].is_null();
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
             let live = self.db.live_shell_call_ids(&log.turn_id)?;
@@ -909,7 +920,7 @@ impl<'a> Runtime<'a> {
         after: i64,
         projected: &[(String, String, String)],
         blocks: &[crate::dcp::CompressionBlock],
-    ) -> Result<Vec<String>, RuntimeError> {
+    ) -> Result<Vec<WireLog>, RuntimeError> {
         let mut logs = self
             .db
             .presentation_wire_logs(session, after, projected, blocks)?
@@ -927,7 +938,7 @@ impl<'a> Runtime<'a> {
                 for value in hot["logs"].as_array().ok_or(RuntimeError::Storage)? {
                     let mut value = value.clone();
                     value["_dcp_block"] = block.id.clone().into();
-                    logs.push(value.to_string());
+                    logs.push(value.to_string().into());
                 }
             }
         }
@@ -941,7 +952,7 @@ impl<'a> Runtime<'a> {
                     continue;
                 }
                 value["_dcp_block"] = "session-checkpoint".into();
-                logs.push(value.to_string());
+                logs.push(value.to_string().into());
             }
         }
         let mut keyed = Vec::with_capacity(logs.len());
@@ -954,14 +965,15 @@ impl<'a> Runtime<'a> {
                     cap: ACTIVE_CONTEXT_BYTES_CAP,
                 });
             }
-            let value: serde_json::Value =
+            let head: WireLogKeys =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
-            let key = value["_dcp_block"]
-                .as_str()
-                .or(value["user_message"].as_str())
+            let key = head
+                ._dcp_block
+                .as_deref()
+                .or(head.user_message.as_deref())
                 .ok_or(RuntimeError::Storage)?;
             let position = *positions.get(key).ok_or(RuntimeError::Storage)?;
-            let anchor = value["user_message"].as_str().map(str::to_owned);
+            let anchor = head.user_message.map(std::borrow::Cow::into_owned);
             keyed.push((position, anchor, raw));
         }
         // Anchor sequences in one batched read rather than one query per log.

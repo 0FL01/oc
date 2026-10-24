@@ -107,8 +107,13 @@ pub struct ModelCatalog {
     /// Provider id this catalog belongs to.
     pub provider: String,
     /// Entries by model id.
-    pub models: BTreeMap<String, serde_json::Value>,
+    pub models: Models,
 }
+
+/// Catalog entries shared copy-on-write. Every prepared request captures the
+/// whole wire binding (all provider catalogs) several times; a clone is one
+/// reference count, a mutation copies only an actually shared map.
+pub type Models = crate::shared::Shared<BTreeMap<String, serde_json::Value>>;
 
 /// One typed metadata projection shared by snapshots, picker details and image admission.
 pub fn capabilities(entry: &serde_json::Value) -> oc_core::queries::ModelCapabilities {
@@ -455,8 +460,65 @@ mod tests {
         .collect();
         ModelCatalog {
             provider: "ludka2".to_string(),
-            models,
+            models: models.into(),
         }
+    }
+
+    #[test]
+    fn captured_catalog_clones_share_entries_and_mutate_copy_on_write() {
+        // A prepared request clones the whole wire binding (every provider
+        // catalog) several times; those clones must not copy model entries.
+        let original = catalog();
+        let config = crate::provider::ResponsesConfig {
+            base_url: "http://127.0.0.1:1/v1".into(),
+            api_key: String::new(),
+            timeout: None,
+            header_timeout_ms: None,
+            chunk_timeout_ms: None,
+            connect_timeout: std::time::Duration::from_secs(1),
+            allow_private: true,
+            headers: BTreeMap::new(),
+            cache: Default::default(),
+            wire: Default::default(),
+        };
+        let mut binding = config.clone();
+        binding.wire.providers.insert(
+            original.provider.clone(),
+            crate::provider::CapturedProvider {
+                catalog: original.clone(),
+                config,
+            },
+        );
+        let request = binding.clone();
+        binding
+            .wire
+            .requests
+            .insert(("org/future".into(), None), request);
+        let prepared = binding.clone();
+        assert!(prepared.wire.providers.shares(&binding.wire.providers));
+        assert!(prepared.wire.requests.shares(&binding.wire.requests));
+        assert!(
+            prepared.wire.providers["ludka2"]
+                .catalog
+                .models
+                .shares(&original.models)
+        );
+        let mut captured = binding.wire.providers["ludka2"].clone();
+        let request = captured.clone();
+        assert!(request.catalog.models.shares(&original.models));
+        assert!(captured.catalog.models.shares(&original.models));
+        captured
+            .catalog
+            .models
+            .insert("org/new".into(), serde_json::json!({"name": "New"}));
+        assert!(!captured.catalog.models.shares(&original.models));
+        assert!(request.catalog.models.shares(&original.models));
+        assert_eq!(original.models.len(), 2);
+        assert_eq!(request.catalog, original);
+        assert_eq!(captured.catalog.models.len(), 3);
+        let json = serde_json::to_value(&original.models).unwrap();
+        let back: super::Models = serde_json::from_value(json).unwrap();
+        assert_eq!(back, original.models);
     }
 
     #[test]

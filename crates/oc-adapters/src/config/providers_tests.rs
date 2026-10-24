@@ -107,7 +107,7 @@ fn go02_source_merge_preserves_fields_variants_and_connection_provenance() {
     );
     let catalog = crate::models::ModelCatalog {
         provider: "p".into(),
-        models: p.models.clone(),
+        models: p.models.clone().into(),
     };
     let selection = crate::models::select_model(&catalog, "m").unwrap();
     assert!(crate::models::select_variant(&selection, Some("custom-b")).is_ok());

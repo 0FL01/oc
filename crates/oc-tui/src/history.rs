@@ -192,6 +192,7 @@ impl HistoryWindow {
             .and_then(|turn| turn.window.as_ref())
             .map(|window| window.start);
         let mut refreshed: Vec<_> = page.rows.iter().flat_map(rows_from_page).collect();
+        share_unchanged_cards(&self.rows, &mut refreshed);
         let overlaps = refreshed
             .iter()
             .any(|new| self.rows.iter().any(|old| same_component(old, new)));
@@ -252,6 +253,7 @@ impl HistoryWindow {
         self.record_notice_orders(page);
         self.revision = self.revision.wrapping_add(1);
         let mut combined: Vec<HistoryRow> = page.rows.iter().flat_map(rows_from_page).collect();
+        share_unchanged_cards(&self.rows, &mut combined);
         let added = combined.len();
         self.rows
             .retain(|old| !combined.iter().any(|new| same_component(old, new)));
@@ -272,7 +274,8 @@ impl HistoryWindow {
         self.record_notice_orders(page);
         self.revision = self.revision.wrapping_add(1);
         let before = self.rows.len();
-        let added: Vec<_> = page.rows.iter().flat_map(rows_from_page).collect();
+        let mut added: Vec<_> = page.rows.iter().flat_map(rows_from_page).collect();
+        share_unchanged_cards(&self.rows, &mut added);
         self.rows
             .retain(|old| !added.iter().any(|new| same_component(old, new)));
         self.rows.extend(added);
@@ -373,12 +376,16 @@ impl HistoryWindow {
             let Some(card) = row.tool.as_mut().filter(|card| card.op == op) else {
                 return false;
             };
-            edit_card(card, |card| {
-                let ToolRender::Dcp(view) = &mut card.render else {
-                    return false;
-                };
-                view.apply_summary(page.clone())
-            })
+            edit_card(
+                card,
+                |card| matches!(card.render, ToolRender::Dcp(_)),
+                |card| {
+                    let ToolRender::Dcp(view) = &mut card.render else {
+                        return false;
+                    };
+                    view.apply_summary(page.clone())
+                },
+            )
         });
         if changed {
             self.revision = self.revision.wrapping_add(1);
@@ -401,9 +408,11 @@ impl HistoryWindow {
             if row.role == "tool"
                 && let Some(card) = &mut row.tool
             {
-                changed |= edit_card(card, |card| {
-                    card.refresh_subagent_job(session, jobs, picker)
-                });
+                changed |= edit_card(
+                    card,
+                    |card| matches!(card.render, ToolRender::Subagent(_)),
+                    |card| card.refresh_subagent_job(session, jobs, picker),
+                );
             }
         }
         if changed {
@@ -424,9 +433,11 @@ impl HistoryWindow {
         let mut changed = false;
         for row in &mut self.rows {
             if let Some(card) = &mut row.tool {
-                changed |= edit_card(card, |card| {
-                    card.apply_subagent_notice(receipt, jobs, picker)
-                });
+                changed |= edit_card(
+                    card,
+                    |card| matches!(card.render, ToolRender::Subagent(_)),
+                    |card| card.apply_subagent_notice(receipt, jobs, picker),
+                );
             }
         }
         if changed {
@@ -919,7 +930,7 @@ impl HistoryWindow {
             if row.role == "tool"
                 && let Some(card) = &mut row.tool
             {
-                changed |= edit_card(card, |card| {
+                changed |= edit_card(card, ToolCard::may_refresh_model_shell, |card| {
                     card.refresh_model_shell_output(session, None, jobs)
                 });
             }
@@ -942,7 +953,12 @@ impl HistoryWindow {
             if row.role == "tool"
                 && let Some(card) = &mut row.tool
             {
-                changed |= edit_card(card, |card| card.finish_model_shell_preview(snapshot));
+                let shell = &snapshot.job.shell_id;
+                changed |= edit_card(
+                    card,
+                    |card| card.is_model_shell(shell),
+                    |card| card.finish_model_shell_preview(snapshot),
+                );
             }
         }
         if changed {
@@ -1200,6 +1216,24 @@ fn agent_switch_text(notice: &oc_core::queries::AgentSwitchNotice) -> String {
         None => format!("Switched agent to {current}"),
     };
     text.chars().filter(|c| !c.is_control()).take(512).collect()
+}
+
+/// Keep the resident `Arc` of every refreshed card whose content is unchanged.
+/// Render caches key tool rows by card identity; a page refresh otherwise
+/// rebuilds every card and re-lays out the whole window after each turn.
+fn share_unchanged_cards(old: &[HistoryRow], new: &mut [HistoryRow]) {
+    let resident: std::collections::HashMap<&str, &std::sync::Arc<ToolCard>> = old
+        .iter()
+        .filter_map(|row| row.tool.as_ref().map(|card| (card.op.as_str(), card)))
+        .collect();
+    for card in new.iter_mut().filter_map(|row| row.tool.as_mut()) {
+        if let Some(previous) = resident.get(card.op.as_str())
+            && !std::sync::Arc::ptr_eq(previous, card)
+            && ***previous == **card
+        {
+            *card = std::sync::Arc::clone(previous);
+        }
+    }
 }
 
 fn same_component(a: &HistoryRow, b: &HistoryRow) -> bool {
@@ -1569,8 +1603,14 @@ pub struct ToolCard {
 /// identity, which keys cached layout; a changed card gets a fresh allocation.
 pub(crate) fn edit_card(
     card: &mut std::sync::Arc<ToolCard>,
+    applies: impl FnOnce(&ToolCard) -> bool,
     edit: impl FnOnce(&mut ToolCard) -> bool,
 ) -> bool {
+    // Refresh sweeps visit every card; only a card the edit can touch is
+    // copied (render caches share the others), never every card per sweep.
+    if !applies(card) {
+        return false;
+    }
     if let Some(unique) = std::sync::Arc::get_mut(card) {
         return edit(unique);
     }
@@ -1740,12 +1780,29 @@ impl ToolCard {
         true
     }
 
+    /// Whether `refresh_model_shell_output` can change this card at all:
+    /// settled shells only clear a stale live flag once.
+    pub(crate) fn may_refresh_model_shell(&self) -> bool {
+        let ToolRender::Shell(shell) = &self.render else {
+            return false;
+        };
+        let settled = shell.process_state.is_some()
+            || shell.exit.is_some()
+            || shell.signal
+            || shell.timed_out
+            || shell.cancelled;
+        !shell.direct_user && (!settled || shell.live_running)
+    }
+
     pub(crate) fn refresh_model_shell_output(
         &mut self,
         session: &oc_core::domain::SessionId,
         turn: Option<&str>,
         jobs: &[oc_core::queries::ShellJob],
     ) -> bool {
+        if !self.may_refresh_model_shell() {
+            return false;
+        }
         let ToolRender::Shell(shell) = &mut self.render else {
             return false;
         };
@@ -2610,6 +2667,62 @@ mod tests {
                 "indexed replay missing {expected}"
             );
         }
+    }
+
+    #[test]
+    fn page_refresh_keeps_unchanged_tool_cards_shared_for_render_caches() {
+        use oc_core::queries::{HistoryTurn, TranscriptPart};
+        let tool = |op: &str, state: &str| {
+            TranscriptPart::Tool(ToolOpView {
+                child_job: None,
+                output_presentation: None,
+                question: None,
+                rowid: 0,
+                op: op.into(),
+                name: "read".into(),
+                state: state.into(),
+                input: None,
+                output: None,
+                output_bytes: 0,
+                output_truncated: false,
+                patch_effects: None,
+                dcp: None,
+                dcp_topic: None,
+            })
+        };
+        let page = |second: &str| {
+            let mut message = row(7, Role::Assistant, "");
+            message.turn = Some(HistoryTurn {
+                id: "turn".into(),
+                parts: vec![tool("op-a", "completed"), tool("op-b", second)],
+                ..Default::default()
+            });
+            HistoryPage {
+                rows: vec![message],
+                total: 1,
+                ..Default::default()
+            }
+        };
+        let cards = |window: &HistoryWindow| {
+            window
+                .rows()
+                .iter()
+                .filter_map(|row| row.tool.clone())
+                .collect::<Vec<_>>()
+        };
+        let mut window = HistoryWindow::default();
+        window.reset(&page("running"));
+        let before = cards(&window);
+        assert_eq!(before.len(), 2);
+        window.refresh_completed(&page("running"), false);
+        let same = cards(&window);
+        assert!(std::sync::Arc::ptr_eq(&before[0], &same[0]));
+        assert!(std::sync::Arc::ptr_eq(&before[1], &same[1]));
+        window.refresh_completed(&page("completed"), false);
+        let after = cards(&window);
+        assert!(std::sync::Arc::ptr_eq(&before[0], &after[0]));
+        assert!(!std::sync::Arc::ptr_eq(&before[1], &after[1]));
+        assert_eq!(after[1].state, "completed");
     }
 
     #[test]

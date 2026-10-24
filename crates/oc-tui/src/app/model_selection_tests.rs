@@ -265,7 +265,7 @@ fn go05_filtered_picker_keeps_composer_commit_and_captures_target_scope() {
     assert_eq!(state.picker.as_ref().unwrap().provider(), "opencode-go");
     state.picker.as_mut().unwrap().refresh(ModelCatalog {
         provider: "opencode-go".into(),
-        models: BTreeMap::from([
+        models: oc_adapters::models::Models::from([
             ("other".into(), serde_json::json!({"name":"Earlier Go row"})),
             ("same/slash".into(), serde_json::json!({"name":"Go row"})),
         ]),

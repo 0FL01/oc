@@ -329,7 +329,7 @@ async fn hot01_initial_lane_is_captured_after_the_mcp_request_await() {
         };
         let catalog = crate::models::ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "m".into(),
                 serde_json::json!({"limit":{"context":500000,"output":8000}}),
             )]),

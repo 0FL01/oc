@@ -57,7 +57,7 @@ impl ProviderWork {
                 .contains_key(&composition.catalog.provider)
         {
             let provider = composition.provider.clone();
-            let models = composition.catalog.models.clone();
+            let models = (*composition.catalog.models).clone();
             Some(tokio::spawn(Composition::discover_provider(
                 provider, models,
             )))

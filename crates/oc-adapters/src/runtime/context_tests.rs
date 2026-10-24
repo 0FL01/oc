@@ -28,7 +28,7 @@ async fn full_background_notice_overflow_keeps_rejected_input_out_of_parent_chec
     // or automatic compaction, owns this refusal.
     let catalog = models::ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":50_000_000,"output":2048}}),
         )]),
@@ -142,7 +142,7 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
     };
     let mut models = models::ModelCatalog {
         provider: "fixture".into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "m".into(),
             json!({"limit":{"context":500000,"output":2048}}),
         )]),

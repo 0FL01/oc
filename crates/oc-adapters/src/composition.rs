@@ -1287,7 +1287,7 @@ async fn load_stages(
     );
     let catalog = models::ModelCatalog {
         provider: provider_id.to_string(),
-        models: entry.models.clone(),
+        models: entry.models.clone().into(),
     };
     let provider_state = ProviderState::new(
         provider_id,

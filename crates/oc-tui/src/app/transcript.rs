@@ -462,10 +462,14 @@ impl TuiState {
                 .apply_notice(receipt, &mut self.window, self.picker.as_ref());
         for part in &mut self.live_parts {
             if let LivePart::Tool { card, .. } = part {
-                changed |= crate::history::edit_card(card, |card| {
-                    self.children
-                        .apply_live_notice(receipt, card, self.picker.as_ref())
-                });
+                changed |= crate::history::edit_card(
+                    card,
+                    |card| matches!(card.render, crate::tools::ToolRender::Subagent(_)),
+                    |card| {
+                        self.children
+                            .apply_live_notice(receipt, card, self.picker.as_ref())
+                    },
+                );
             }
         }
         if changed {
@@ -499,9 +503,12 @@ impl TuiState {
                     .as_ref()
                     .is_some_and(|turn| turn.0 == snapshot.job.turn)
             {
-                changed |= crate::history::edit_card(card, |card| {
-                    card.finish_model_shell_preview(snapshot)
-                });
+                let shell = &snapshot.job.shell_id;
+                changed |= crate::history::edit_card(
+                    card,
+                    |card| card.is_model_shell(shell),
+                    |card| card.finish_model_shell_preview(snapshot),
+                );
             }
         }
         if changed {
@@ -518,9 +525,11 @@ impl TuiState {
             for part in &mut self.live_parts {
                 if let LivePart::Tool { card, .. } = part {
                     let turn = self.active_turn.as_ref().map(|turn| turn.0.as_str());
-                    changed |= crate::history::edit_card(card, |card| {
-                        self.shells.refresh_live_card(session, turn, card)
-                    });
+                    changed |= crate::history::edit_card(
+                        card,
+                        crate::history::ToolCard::may_refresh_model_shell,
+                        |card| self.shells.refresh_live_card(session, turn, card),
+                    );
                 }
             }
             if changed {
@@ -541,10 +550,14 @@ impl TuiState {
         if self.active_turn.is_some() {
             for part in &mut self.live_parts {
                 if let LivePart::Tool { card, .. } = part {
-                    changed |= crate::history::edit_card(card, |card| {
-                        self.children
-                            .refresh_live_card(session, card, self.picker.as_ref())
-                    });
+                    changed |= crate::history::edit_card(
+                        card,
+                        |card| matches!(card.render, crate::tools::ToolRender::Subagent(_)),
+                        |card| {
+                            self.children
+                                .refresh_live_card(session, card, self.picker.as_ref())
+                        },
+                    );
                 }
             }
         }

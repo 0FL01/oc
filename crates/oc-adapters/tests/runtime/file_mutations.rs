@@ -3,10 +3,8 @@ use oc_core::approval::{ApprovalDecision, ApprovalPreview, ApprovalReply};
 
 fn text_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generation) {
     let (mut harness, generation) = make_harness(permissions);
-    harness.catalog.models.insert(
-        "text-fixture".into(),
-        harness.catalog.models["gpt-fixture"].clone(),
-    );
+    let entry = harness.catalog.models["gpt-fixture"].clone();
+    harness.catalog.models.insert("text-fixture".into(), entry);
     (harness, generation)
 }
 fn text_params<'a>(

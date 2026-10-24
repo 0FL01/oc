@@ -108,10 +108,8 @@ async fn complete_foreground_report_uses_one_artifact_and_read_without_rerunning
 pub(super) async fn shared_child_preimage(background: bool) {
     use oc_core::approval::{ApprovalDecision, ApprovalReply};
     let (mut harness, generation) = make_harness(allow_all());
-    harness.catalog.models.insert(
-        "gpt-guarded".into(),
-        harness.catalog.models["agent-model"].clone(),
-    );
+    let entry = harness.catalog.models["agent-model"].clone();
+    harness.catalog.models.insert("gpt-guarded".into(), entry);
     std::fs::write(harness._project.path().join("shared"), "before\n").unwrap();
     let runtime = runtime_of(&harness, generation);
     let mut guarded = agent("guarded", false, Some("test/gpt-guarded"));

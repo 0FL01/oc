@@ -42,6 +42,7 @@ pub(crate) mod provider_connections;
 pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial, OAuthAccountMetadata};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;
+pub(crate) use dcp_view::WireLog;
 #[path = "storage_fork.rs"]
 mod fork;
 #[path = "storage_grants.rs"]

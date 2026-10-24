@@ -51,6 +51,7 @@ mod connect_controls;
 mod control_jobs;
 mod deck_jobs;
 mod display_rate;
+mod idle_release;
 mod inbox_jobs;
 mod notice_jobs;
 mod read_jobs;
@@ -132,6 +133,7 @@ struct FrameMetrics {
     wake_monotonic_ns: Vec<u128>,
     wakeups: u64,
     completion_wakeups: u64,
+    memory_releases: u64,
     display_hz: Option<u32>,
     input_events: u64,
     worker_events: u64,
@@ -1474,6 +1476,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     let mut frame_interval = display_rate::interval(display_rate::DEFAULT_HZ);
     let mut rate_probe = Some(display_rate::spawn_probe());
     let mut woke_by_completion = false;
+    let idle_release = idle_release::IdleRelease::spawn();
     let mut worker_ready = None;
     let mut input_pending = std::collections::VecDeque::new();
 
@@ -1922,8 +1925,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 let event = event.ok_or("terminal input closed")?.map_err(|e| format!("input: {e}"))?;
                 if let Some(metrics) = &mut frame_metrics { metrics.input_events += 1; }
                 input_pending.push_back((event, 1));
+                idle_release.touch();
             }
             result = rx.recv() => {
+                idle_release.touch();
                 match result {
                     Ok(event) => worker_ready = Some(event),
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
@@ -1938,6 +1943,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             }
             () = oc_core::wake::changed(wake_seen) => {
                 woke_by_completion = true;
+                idle_release.touch();
                 if let Some(metrics) = &mut frame_metrics { metrics.completion_wakeups += 1; }
             }
             _ = async {
@@ -1984,6 +1990,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     reconcile_exit(app, &mut state, &mut loop_state).await?;
     if let Some(metrics) = frame_metrics.as_mut() {
         metrics.sample_views(&state, &loop_state);
+        metrics.memory_releases = idle_release.releases();
     }
     write_metrics(&state, &loop_state, frame_metrics.as_ref());
     drop(_term);
@@ -4739,6 +4746,7 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "changed_frames": frames.map_or(0, |frames| frames.changed_frames),
         "wakeups": frames.map_or(0, |frames| frames.wakeups),
         "completion_wakeups": frames.map_or(0, |frames| frames.completion_wakeups),
+        "memory_releases": frames.map_or(0, |frames| frames.memory_releases),
         "display_hz": frames.and_then(|frames| frames.display_hz),
         "input_events": frames.map_or(0, |frames| frames.input_events),
         "worker_events": frames.map_or(0, |frames| frames.worker_events),

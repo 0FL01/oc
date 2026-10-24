@@ -993,7 +993,7 @@ impl Effective {
         use oc_core::queries::{ServiceAction as Action, ServiceCode as Code};
         let empty = crate::models::ModelCatalog {
             provider: self.provider_id.clone(),
-            models: BTreeMap::new(),
+            models: Default::default(),
         };
         let catalog = composition.catalog_for(&self.provider_id).unwrap_or(&empty);
         let status = composition
@@ -1140,7 +1140,7 @@ impl Effective {
     fn snapshot(&self, composition: &Composition, generation: u64) -> CatalogSnapshot {
         let empty = crate::models::ModelCatalog {
             provider: self.provider_id.clone(),
-            models: BTreeMap::new(),
+            models: Default::default(),
         };
         self.snapshot_catalog(
             composition,

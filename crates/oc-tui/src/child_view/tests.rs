@@ -660,7 +660,7 @@ async fn subagent_card_pointer_uses_painted_generation_and_failed_card_expands_i
 fn explicit_subagent_model_caption_and_continuation_are_not_current_selection_or_output_prose() {
     let picker = crate::picker::ModelPicker::new(oc_adapters::models::ModelCatalog {
         provider: "fixture".into(),
-        models: std::collections::BTreeMap::from([(
+        models: oc_adapters::models::Models::from([(
             "m".into(),
             serde_json::json!({"name":"Human Model"}),
         )]),

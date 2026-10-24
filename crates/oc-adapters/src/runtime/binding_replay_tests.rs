@@ -130,7 +130,7 @@ async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_repla
         provider.wire.messages_bearer = true;
         let models = models::ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "m".into(),
                 json!({"limit":{"context":500000,"output":2048}}),
             )]),
@@ -318,7 +318,7 @@ async fn go04_actual_wires_reopen_and_fork_preserve_settled_pairs_without_opaque
         );
         let models = models::ModelCatalog {
             provider: "fixture".into(),
-            models: BTreeMap::from([(
+            models: crate::models::Models::from([(
                 "m".into(),
                 json!({"limit":{"context":500_000,"output":4096}}),
             )]),

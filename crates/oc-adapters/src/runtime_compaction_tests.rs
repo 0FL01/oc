@@ -408,13 +408,14 @@ async fn hot01_summary_retry_and_correction_keep_the_operation_then_primary_adop
     let provider = config(&first);
     let catalog = catalog();
     let mut next_provider = config(&second);
-    next_provider.wire.providers.insert(
-        "fixture".into(),
-        crate::provider::CapturedProvider {
-            catalog: catalog.clone(),
-            config: next_provider.clone(),
-        },
-    );
+    let captured = crate::provider::CapturedProvider {
+        catalog: catalog.clone(),
+        config: next_provider.clone(),
+    };
+    next_provider
+        .wire
+        .providers
+        .insert("fixture".into(), captured);
     let (held, received) = tokio::sync::oneshot::channel();
     let (release, released) = tokio::sync::oneshot::channel();
     let peer = tokio::spawn(async move {

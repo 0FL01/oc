@@ -221,7 +221,7 @@ async fn go02_public_models_capture_independent_native_wires_and_retire_bindings
 fn catalog_mode_body_reaches_the_request_without_adapter_owned_fields() {
     let catalog = models::ModelCatalog {
         provider: crate::models_dev::OPENAI.into(),
-        models: BTreeMap::from([(
+        models: crate::models::Models::from([(
             "gpt-6-luna-fast".to_string(),
             json!({"modelID":"gpt-6-luna","package":"@ai-sdk/openai",
                 "body":{"service_tier":"priority","reasoning":{"mode":"pro"}}}),

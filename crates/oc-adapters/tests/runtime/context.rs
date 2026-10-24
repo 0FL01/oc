@@ -370,10 +370,8 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
 #[tokio::test]
 async fn v04_model_change_preserves_closed_tool_pairs_and_public_invocation_history() {
     let (mut harness, generation) = make_harness(allow_all());
-    harness.catalog.models.insert(
-        "other".into(),
-        harness.catalog.models["gpt-fixture"].clone(),
-    );
+    let entry = harness.catalog.models["gpt-fixture"].clone();
+    harness.catalog.models.insert("other".into(), entry);
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("model-change").unwrap();
     let (base, _, requests) = Fake::start_recording(

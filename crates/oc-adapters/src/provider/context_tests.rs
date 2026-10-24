@@ -158,10 +158,8 @@ async fn cfg15_shared_v2_cache_cases_reach_actual_requests() {
             config.base_url = base.clone();
             config.wire.endpoint = None;
             config.allow_private = true;
-            config
-                .wire
-                .requests
-                .insert(("m".to_owned(), None), config.clone());
+            let request = config.clone();
+            config.wire.requests.insert(("m".to_owned(), None), request);
             config.cache = if case["cache"] == "none" {
                 CacheMode::None
             } else {
@@ -311,7 +309,7 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                 protocol,
                 // A custom authToken flag cannot replace the Go native scheme.
                 messages_bearer: true,
-                compatibility: BTreeMap::from([(
+                compatibility: crate::shared::Shared::from([(
                     "model".into(),
                     crate::provider::chat::ChatCompat {
                         supports_prompt_cache_key: (protocol == Protocol::Chat)
