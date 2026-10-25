@@ -14,6 +14,7 @@
 *.sqlite-wal
 __pycache__/
 *.pyc
+.opencode
 
 # Evidence run artifacts — keep proofs/receipts, donor sources and live fixtures.
 # Tracked intermediates were removed from the index; these rules prevent re-adding.
