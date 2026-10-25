@@ -86,7 +86,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 - MCP/services: `app/mcp.rs`, `app/services.rs`, `dialog.rs`, `app/input.rs`. Tests: unit `app::tests::mcp`, `app::tests::services`, `shell::`.
 - Model/account/connect forms: `picker.rs`, `app/model_selection.rs`, `app/accounts.rs`, `dialog.rs`. Tests: unit `picker::`, `model_selection`, `accounts_tests`.
 - Prompt recall/clipboard/retry: `app/input.rs`, `app/live.rs`, `app/transcript.rs`. Tests: unit `prompt_history`, `clipboard_images`, `app::tests::retry`.
-- Terminal frame/cursor/restore: `terminal.rs::FrameBackend`; frames that move rows publish as DECSTBM scrolls plus the residual cell diff (`terminal/scroll.rs`). Tests: unit `terminal::` (vt100 equivalence); `oc2` targets `pty`, `pty_t39`, `pty_t42` (their screen parsers model DECSTBM/SU/SD).
+- Terminal frame/cursor/restore: `terminal.rs::FrameBackend`; frames that move rows publish as DECSTBM scrolls plus the residual cell diff (`terminal/scroll.rs`). A change confined to the tab strip (sweep/fades at the display rate) is repainted alone: `shell::render_tab_strip_only` + `FrameBackend::draw_region`, which the next Ratatui frame reconciles (`tui_cmd::draw_tab_strip`). Tests: unit `terminal::` (vt100 equivalence); `oc2` targets `pty`, `pty_t39`, `pty_t42` (their screen parsers model DECSTBM/SU/SD).
 
 ## Binary и test tooling
 

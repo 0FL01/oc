@@ -456,3 +456,156 @@ fn scrolled_frames_publish_as_terminal_scrolls_with_identical_cells() {
     );
     assert!(scrolled.iter().sum::<usize>() < plain.iter().sum::<usize>());
 }
+
+/// The cursor a frame leaves (shown at a position, or hidden) is what a
+/// later partial frame must repeat.
+#[test]
+fn painted_cursor_follows_the_last_frame() {
+    let recorded = Rc::new(RefCell::new(Recorded::default()));
+    let backend = FrameBackend::new(Output {
+        recorded,
+        fragment: usize::MAX,
+        fail_at: None,
+        fail_flush: false,
+    });
+    let mut terminal = Terminal::with_options(
+        backend,
+        TerminalOptions {
+            viewport: Viewport::Fixed(Rect::new(0, 0, 20, 4)),
+        },
+    )
+    .unwrap();
+    for (cursor, expected) in [
+        (Some((4, 2)), Some(ratatui::layout::Position::new(4, 2))),
+        (None, None),
+        (Some((1, 3)), Some(ratatui::layout::Position::new(1, 3))),
+    ] {
+        terminal.backend_mut().begin_frame().unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(Paragraph::new("prompt"), frame.area());
+                if let Some(cursor) = cursor {
+                    frame.set_cursor_position(cursor);
+                }
+            })
+            .unwrap();
+        terminal.backend_mut().finish_frame().unwrap();
+        assert_eq!(terminal.backend().painted_cursor(), expected);
+    }
+}
+
+fn assert_shown(parser: &vt100::Parser, expected: &ratatui::buffer::Buffer, at: &str) {
+    let screen = parser.screen();
+    for y in 0..expected.area.height {
+        for x in 0..expected.area.width {
+            let cell = &expected[(x, y)];
+            let shown = screen.cell(y, x).unwrap();
+            if shown.is_wide_continuation() {
+                continue;
+            }
+            let symbol = if shown.contents().is_empty() {
+                " "
+            } else {
+                shown.contents()
+            };
+            let at = format!("{at} cell ({x}, {y})");
+            assert_eq!(symbol, cell.symbol(), "{at}");
+            assert_eq!(shown.fgcolor(), vt_color(cell.fg), "{at}");
+            assert_eq!(shown.bgcolor(), vt_color(cell.bg), "{at}");
+        }
+    }
+}
+
+/// Regions published outside Ratatui (strip-only frames) leave the
+/// emulated terminal equal to the region, and the next Ratatui frames,
+/// whose diff is relative to Ratatui's stale previous buffer, still leave it
+/// exactly equal to Ratatui's buffer, including a frame that keeps the
+/// strip's old content and a scrolled one; the cursor is restored.
+#[test]
+fn region_frames_outside_ratatui_reconcile_with_the_next_frames() {
+    use ratatui::style::{Color, Style};
+    let (width, height) = (48u16, 16u16);
+    let recorded = Rc::new(RefCell::new(Recorded::default()));
+    let backend = FrameBackend::new(Output {
+        recorded: recorded.clone(),
+        fragment: usize::MAX,
+        fail_at: None,
+        fail_flush: false,
+    });
+    backend
+        .assume_size(ratatui::layout::Size::new(width, height))
+        .unwrap();
+    let mut terminal = Terminal::with_options(
+        backend,
+        TerminalOptions {
+            viewport: Viewport::Fixed(Rect::new(0, 0, width, height)),
+        },
+    )
+    .unwrap();
+    let mut parser = vt100::Parser::new(height, width, 0);
+    let publish = |terminal: &mut Terminal<FrameBackend<Output>>,
+                   parser: &mut vt100::Parser,
+                   draw: &mut dyn FnMut(&mut Terminal<FrameBackend<Output>>)| {
+        let start = recorded.borrow().bytes.len();
+        terminal.backend_mut().begin_frame().unwrap();
+        draw(terminal);
+        terminal.backend_mut().finish_frame().unwrap();
+        parser.process(&recorded.borrow().bytes[start..]);
+    };
+    let strip = |label: &str| {
+        let mut region = ratatui::buffer::Buffer::empty(Rect::new(0, 0, width, 1));
+        region.set_string(
+            0,
+            0,
+            format!("{label} 界面 strip"),
+            Style::default()
+                .fg(Color::Rgb(200, 100, 50))
+                .bg(Color::Rgb(20, 20, 30)),
+        );
+        region
+    };
+    let full = |offset: usize, header: &'static str| {
+        move |frame: &mut ratatui::Frame| {
+            frame.render_widget(
+                Paragraph::new(header.to_string())
+                    .style(Style::default().bg(Color::Rgb(20, 20, 30))),
+                Rect::new(0, 0, width, 1),
+            );
+            let lines: Vec<_> = (offset..offset + 14).map(scroll_document).collect();
+            frame.render_widget(Paragraph::new(lines), Rect::new(0, 1, width, 14));
+            frame.set_cursor_position((3, 15));
+        }
+    };
+    let mut expected = None;
+    publish(&mut terminal, &mut parser, &mut |terminal| {
+        expected = Some(terminal.draw(full(0, "header A")).unwrap().buffer.clone());
+    });
+    assert_shown(&parser, expected.as_ref().unwrap(), "first full frame");
+    for (index, label) in ["sweep one", "sweep 二"].into_iter().enumerate() {
+        let region = strip(label);
+        publish(&mut terminal, &mut parser, &mut |terminal| {
+            let cursor = terminal.backend().painted_cursor();
+            assert!(terminal.backend_mut().draw_region(&region, cursor).unwrap());
+        });
+        let mut shown = expected.clone().unwrap();
+        for at in region.area.positions() {
+            shown[at] = region[at].clone();
+        }
+        assert_shown(&parser, &shown, &format!("region {index}"));
+        assert_eq!(parser.screen().cursor_position(), (15, 3));
+        assert!(!parser.screen().hide_cursor());
+    }
+    for (step, (offset, header)) in [(0, "header A"), (1, "header A"), (4, "header B")]
+        .into_iter()
+        .enumerate()
+    {
+        publish(&mut terminal, &mut parser, &mut |terminal| {
+            expected = Some(terminal.draw(full(offset, header)).unwrap().buffer.clone());
+        });
+        assert_shown(
+            &parser,
+            expected.as_ref().unwrap(),
+            &format!("full frame {step}"),
+        );
+    }
+}

@@ -344,6 +344,29 @@ async fn vis41_activation_and_height_resize_preserve_same_id_including_completed
     assert!(inbox.try_recv().is_err());
 }
 
+/// A running tab's continuous sweep steps at the display's refresh interval
+/// once it is known (165 Hz here), and at 60 Hz before.
+#[tokio::test]
+async fn running_tab_sweep_steps_at_the_display_refresh_interval() {
+    let (app, _inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("first"));
+    let area = Rect::new(0, 0, 80, 24);
+    let now = Instant::now();
+    let mut first = TabPresentation::new(sid("first"));
+    first.busy = true;
+    state.set_tab_strip_at(
+        vec![first, TabPresentation::new(sid("second"))],
+        0,
+        false,
+        now,
+    );
+    state.prepare_tabs(area, now);
+    assert_eq!(state.next_tab_deadline(), Some(now + super::TAB_FADE_FRAME));
+    let frame = Duration::from_nanos(1_000_000_000 / 165);
+    state.set_animation_frame(frame);
+    assert_eq!(state.next_tab_deadline(), Some(now + frame));
+}
+
 #[tokio::test]
 async fn vis39_tab_spinner_mount_clocks_survive_updates_and_attention_supersedes_running() {
     let (app, mut inbox, _) = CoreApp::channel(4);
@@ -456,7 +479,7 @@ fn vis39_u48_running_release_completion_and_flash_use_source_clocks() {
         ..Default::default()
     };
     let mut pulse = TabPulse::new(target, at);
-    assert_eq!(pulse.deadline(), None);
+    assert_eq!(pulse.deadline(super::TAB_FADE_FRAME), None);
     target.runs = true;
     pulse.sync(target, at);
     assert_eq!(pulse.frame().whitecap, 0.85);
@@ -505,7 +528,7 @@ fn vis39_u48_running_release_completion_and_flash_use_source_clocks() {
             "{milliseconds}"
         );
     }
-    assert_eq!(pulse.deadline(), None);
+    assert_eq!(pulse.deadline(super::TAB_FADE_FRAME), None);
     assert!(!pulse.tick(completed + Duration::from_secs(60)));
 
     // No delayed activity flash once the release window has ended.
@@ -518,7 +541,7 @@ fn vis39_u48_running_release_completion_and_flash_use_source_clocks() {
     target.complete = true;
     pulse.sync(target, completed + Duration::from_secs(64));
     assert_eq!(pulse.frame().completion, 0.0);
-    assert_eq!(pulse.deadline(), None);
+    assert_eq!(pulse.deadline(super::TAB_FADE_FRAME), None);
 }
 
 #[test]
@@ -557,7 +580,7 @@ fn vis39_u48_glow_ignition_diffusion_and_off_mode_settle() {
         "release diffuses beyond the resting tail"
     );
     pulse.tick(released + Duration::from_millis(900));
-    assert_eq!(pulse.deadline(), None);
+    assert_eq!(pulse.deadline(super::TAB_FADE_FRAME), None);
     assert_eq!(pulse.frame().release, None);
     assert_eq!(pulse.frame().title_glow, 0.0);
     assert_eq!(pulse.frame().number_glow, 0.0);
@@ -567,14 +590,18 @@ fn vis39_u48_glow_ignition_diffusion_and_off_mode_settle() {
     pulse.sync(target, released + Duration::from_secs(61));
     pulse.tick(released + Duration::from_millis(61600));
     assert_eq!(pulse.frame().glow, 1.0);
-    assert_eq!(pulse.deadline(), None, "sustain is motionless");
+    assert_eq!(
+        pulse.deadline(super::TAB_FADE_FRAME),
+        None,
+        "sustain is motionless"
+    );
     target.animations = false;
     target.runs = true;
     pulse.sync(target, released + Duration::from_secs(62));
     assert_eq!(pulse.frame().running, 0.0);
     assert_eq!(pulse.frame().glow, 1.0);
     assert_eq!(pulse.frame().whitecap, 0.0);
-    assert_eq!(pulse.deadline(), None);
+    assert_eq!(pulse.deadline(super::TAB_FADE_FRAME), None);
     target.glows = false;
     pulse.sync(target, released + Duration::from_secs(63));
     assert_eq!(pulse.frame().glow, 0.0);
@@ -618,7 +645,7 @@ fn vis39_u48_retrigger_keeps_flash_and_reenable_keeps_sweep_position() {
     let position = pulse.frame().sweep_clock;
     target.animations = false;
     pulse.sync(target, at + Duration::from_millis(930));
-    assert_eq!(pulse.deadline(), None);
+    assert_eq!(pulse.deadline(super::TAB_FADE_FRAME), None);
     target.animations = true;
     pulse.sync(target, at + Duration::from_millis(2000));
     assert_eq!(pulse.frame().sweep_clock, position);

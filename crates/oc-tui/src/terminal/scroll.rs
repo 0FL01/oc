@@ -73,6 +73,18 @@ impl Screen {
         changes.iter().all(|&(x, y, _)| x < width && y < height)
     }
 
+    /// The cells of `area`, if the screen covers it.
+    pub(super) fn region(&self, area: Rect) -> Option<Buffer> {
+        if area.intersection(self.buffer.area) != area {
+            return None;
+        }
+        let mut cells = Buffer::empty(area);
+        for at in area.positions() {
+            cells[at].clone_from(&self.buffer[at]);
+        }
+        Some(cells)
+    }
+
     /// Apply covered `changes`, whose distinct rows are `rows`.
     pub(super) fn apply(&mut self, changes: &[(u16, u16, &Cell)], rows: &[usize]) {
         for &(x, y, cell) in changes {

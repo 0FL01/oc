@@ -71,6 +71,7 @@ pub(crate) const TAB_SPINNER_FRAMES: [&str; 10] =
 const TAB_STEP: Duration = Duration::from_millis(80);
 const TAB_MARQUEE_DELAY: Duration = Duration::from_millis(600);
 const TAB_FADE: Duration = Duration::from_millis(250);
+/// Animation step until the display rate is known (`set_animation_frame`).
 const TAB_FADE_FRAME: Duration = Duration::from_nanos(16_666_667);
 const TAB_RUN_ATTACK: Duration = Duration::from_millis(450);
 const TAB_RUN_RELEASE: Duration = Duration::from_millis(500);
@@ -514,7 +515,7 @@ impl TabPulse {
         }
     }
 
-    fn deadline(&self) -> Option<Instant> {
+    fn deadline(&self, frame: Duration) -> Option<Instant> {
         if !self.target.animations {
             return None;
         }
@@ -538,7 +539,7 @@ impl TabPulse {
         .flatten()
         .min();
         ((self.target.enabled() && self.target.runs) || remaining.is_some())
-            .then(|| self.last + remaining.unwrap_or(TAB_FADE_FRAME).min(TAB_FADE_FRAME))
+            .then(|| self.last + remaining.unwrap_or(frame).min(frame))
     }
 
     fn tick(&mut self, now: Instant) -> bool {
@@ -615,11 +616,11 @@ impl TabMarquee {
         self.first + TAB_STEP * self.cycle.saturating_sub(1) as u32
     }
 
-    fn deadline(&self) -> Option<Instant> {
+    fn deadline(&self, frame: Duration) -> Option<Instant> {
         let step = (!self.done).then(|| self.first + TAB_STEP * self.offset as u32);
-        let fade = self.fade_at.map(|at| {
-            (at + TAB_FADE_FRAME).min(if self.done { self.end() } else { self.first } + TAB_FADE)
-        });
+        let fade = self
+            .fade_at
+            .map(|at| (at + frame).min(if self.done { self.end() } else { self.first } + TAB_FADE));
         [step, fade].into_iter().flatten().min()
     }
 
@@ -664,6 +665,9 @@ pub(super) struct TabView {
     pub(super) leave: Option<Instant>,
     marquee: Option<TabMarquee>,
     motions: Vec<TabMotion>,
+    /// Display refresh interval once known: continuous tab effects (sweep,
+    /// fades) step at the display's rate, not a fixed 60 Hz.
+    frame: Option<Duration>,
 }
 
 impl TabView {
@@ -989,7 +993,7 @@ impl TuiState {
         self.tab_scroll.set(previous.tab_scroll.get());
     }
 
-    pub(super) fn set_tab_strip_at(
+    pub(crate) fn set_tab_strip_at(
         &mut self,
         tabs: Vec<TabPresentation>,
         active: usize,
@@ -1523,8 +1527,14 @@ impl TuiState {
             })
     }
 
+    /// Step continuous tab effects at the display's refresh interval.
+    pub fn set_animation_frame(&self, frame: Duration) {
+        self.tab_view.borrow_mut().frame = Some(frame);
+    }
+
     pub(super) fn next_tab_deadline(&self) -> Option<Instant> {
         let view = self.tab_view.borrow();
+        let frame = view.frame.unwrap_or(TAB_FADE_FRAME);
         let spinner = (self.chrome.animations != Some(false)
             && self.chrome.tab_indicators == oc_core::queries::TabIndicators::Status)
             .then(|| {
@@ -1538,18 +1548,20 @@ impl TuiState {
             spinner,
             view.motions
                 .iter()
-                .filter_map(|spinner| spinner.pulse.deadline())
+                .filter_map(|spinner| spinner.pulse.deadline(frame))
                 .min(),
             view.leave,
             view.motions
                 .iter()
                 .filter_map(|motion| {
-                    motion.read.map(|(start, at)| {
-                        (at + TAB_FADE_FRAME).min(start + Duration::from_millis(180))
-                    })
+                    motion
+                        .read
+                        .map(|(start, at)| (at + frame).min(start + Duration::from_millis(180)))
                 })
                 .min(),
-            view.marquee.as_ref().and_then(TabMarquee::deadline),
+            view.marquee
+                .as_ref()
+                .and_then(|marquee| marquee.deadline(frame)),
         ]
         .into_iter()
         .flatten()

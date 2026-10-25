@@ -82,6 +82,12 @@ pub struct FrameBackend<W: Write> {
     screen: Option<scroll::Screen>,
     /// The terminal is blank: the next draw may start tracking it.
     cleared: bool,
+    /// Cursor left by the last frame: position, and whether it is shown.
+    cursor: (Option<ratatui::layout::Position>, bool),
+    /// Cells `draw_region` changed behind Ratatui's back, with the value
+    /// Ratatui's previous buffer still holds for them: its next diff is
+    /// relative to those, so the next `draw` reconciles them exactly.
+    stale: std::collections::HashMap<(u16, u16), ratatui::buffer::Cell>,
 }
 
 #[derive(Default)]
@@ -125,7 +131,53 @@ impl<W: Write> FrameBackend<W> {
             sizes: Mutex::new(FrameSizes::default()),
             screen: None,
             cleared: true,
+            cursor: (None, false),
+            stale: std::collections::HashMap::new(),
         }
+    }
+
+    /// Publish `region` (cells of one area) as the terminal's content there,
+    /// outside Ratatui's buffers, then leave `cursor` as the last frame did.
+    /// Only the cells that differ from the tracked screen are written. `false`
+    /// (nothing written) when the screen is not tracked or does not cover the
+    /// area: the caller then draws a full frame.
+    pub fn draw_region(
+        &mut self,
+        region: &ratatui::buffer::Buffer,
+        cursor: Option<ratatui::layout::Position>,
+    ) -> io::Result<bool> {
+        use ratatui::backend::Backend as _;
+        let Some(mut screen) = self.take_screen()? else {
+            return Ok(false);
+        };
+        let Some(shown) = screen.region(region.area) else {
+            self.screen = Some(screen);
+            return Ok(false);
+        };
+        let changes = shown.diff(region);
+        for &(x, y, _) in &changes {
+            self.stale
+                .entry((x, y))
+                .or_insert_with(|| shown[(x, y)].clone());
+        }
+        let rows = scroll::touched_rows(&changes);
+        screen.apply(&changes, &rows);
+        self.backend().draw(changes.into_iter())?;
+        self.screen = Some(screen);
+        match cursor {
+            Some(position) => {
+                self.set_cursor_position(position)?;
+                self.show_cursor()?;
+            }
+            None => self.hide_cursor()?,
+        }
+        Ok(true)
+    }
+
+    /// The visible cursor position the last frame left, to repeat it in a
+    /// frame that repaints only part of the screen.
+    pub fn painted_cursor(&self) -> Option<ratatui::layout::Position> {
+        self.cursor.0.filter(|_| self.cursor.1)
     }
 
     /// Treat `size` as the observed full-screen size, for an output that is
@@ -153,6 +205,7 @@ impl<W: Write> FrameBackend<W> {
     fn forget_screen(&mut self, cleared: bool) {
         self.screen = None;
         self.cleared = cleared;
+        self.stale.clear();
     }
 
     /// Include first background, resize/clear, color and content in one paint.
@@ -256,11 +309,36 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
         I: Iterator<Item = (u16, u16, &'a ratatui::buffer::Cell)>,
     {
         let Some(mut screen) = self.take_screen()? else {
-            return self.backend().draw(content);
+            let stale = std::mem::take(&mut self.stale);
+            return self
+                .backend()
+                .draw(with_stale(content.collect(), &stale).into_iter());
         };
         let changes: Vec<_> = content.collect();
         if !screen.covers(&changes) {
-            return self.backend().draw(changes.into_iter());
+            let stale = std::mem::take(&mut self.stale);
+            return self.backend().draw(with_stale(changes, &stale).into_iter());
+        }
+        if !self.stale.is_empty() {
+            // Ratatui diffed against its own previous buffer, which still
+            // holds the stale cells: rebuild its target, publish the exact
+            // difference from what the terminal shows.
+            let stale = std::mem::take(&mut self.stale);
+            let believed: Vec<_> = stale.iter().map(|(&(x, y), cell)| (x, y, cell)).collect();
+            let mut next = screen.clone();
+            next.apply(&believed, &scroll::touched_rows(&believed));
+            next.apply(&changes, &scroll::touched_rows(&changes));
+            if let Some(plan) = screen.plan(&next) {
+                self.output.write_all(plan.escape().as_bytes())?;
+                let scrolled = screen.scrolled(plan);
+                self.backend()
+                    .draw(scrolled.diff(next.buffer()).into_iter())?;
+            } else {
+                self.backend()
+                    .draw(screen.buffer().diff(next.buffer()).into_iter())?;
+            }
+            self.screen = Some(next);
+            return Ok(());
         }
         let rows = scroll::touched_rows(&changes);
         if rows.len() < scroll::MIN_ROWS {
@@ -282,6 +360,7 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
         Ok(())
     }
     fn hide_cursor(&mut self) -> io::Result<()> {
+        self.cursor.1 = false;
         if self.output.pending.is_some() {
             self.show_after_paint = false;
             Ok(())
@@ -290,6 +369,7 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
         }
     }
     fn show_cursor(&mut self) -> io::Result<()> {
+        self.cursor.1 = true;
         if self.output.pending.is_some() {
             self.show_after_paint = true;
             Ok(())
@@ -304,6 +384,8 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
         &mut self,
         position: P,
     ) -> io::Result<()> {
+        let position = position.into();
+        self.cursor.0 = Some(position);
         self.backend().set_cursor_position(position)
     }
     fn clear(&mut self) -> io::Result<()> {
@@ -336,6 +418,22 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
     fn flush(&mut self) -> io::Result<()> {
         self.output.flush()
     }
+}
+
+/// Untracked fallback: also write the stale cells Ratatui left unchanged,
+/// as the values its previous buffer holds.
+fn with_stale<'a>(
+    mut changes: Vec<(u16, u16, &'a ratatui::buffer::Cell)>,
+    stale: &'a std::collections::HashMap<(u16, u16), ratatui::buffer::Cell>,
+) -> Vec<(u16, u16, &'a ratatui::buffer::Cell)> {
+    let sent: std::collections::HashSet<_> = changes.iter().map(|&(x, y, _)| (x, y)).collect();
+    changes.extend(
+        stale
+            .iter()
+            .filter(|(at, _)| !sent.contains(at))
+            .map(|(&(x, y), cell)| (x, y, cell)),
+    );
+    changes
 }
 
 mod scroll;

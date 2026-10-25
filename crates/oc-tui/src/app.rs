@@ -812,6 +812,10 @@ pub struct TuiState {
     /// cards: the same source and overlay map to the same derived card, so
     /// its cached layout survives every projection instead of re-rendering.
     card_overlays: std::cell::RefCell<std::collections::HashMap<usize, transcript::CardOverlay>>,
+    /// The tab strip region and its cells as painted before any later layer.
+    pub(crate) tab_strip_paint: std::cell::RefCell<Option<(Rect, Vec<ratatui::buffer::Cell>)>>,
+    /// The last full frame kept those cells: no overlay covered the strip.
+    pub(crate) tab_strip_clean: std::cell::Cell<bool>,
     #[cfg(test)]
     transcript_row_copies: std::cell::Cell<usize>,
     #[cfg(test)]
@@ -1072,6 +1076,8 @@ impl TuiState {
             transcript_structure: 0,
             visible_projection: Default::default(),
             card_overlays: Default::default(),
+            tab_strip_paint: Default::default(),
+            tab_strip_clean: Default::default(),
             #[cfg(test)]
             transcript_row_copies: Default::default(),
             #[cfg(test)]
@@ -1426,6 +1432,13 @@ impl TuiState {
 
     /// True only when a deadline actually changes visible state.
     pub fn tick_ui(&mut self, now: Instant) -> bool {
+        let (other, tabs) = self.tick_ui_parts(now);
+        other || tabs
+    }
+
+    /// `tick_ui` split into (any change outside the tab strip, tab strip
+    /// change): a tab-only change can repaint just the strip.
+    pub fn tick_ui_parts(&mut self, now: Instant) -> (bool, bool) {
         let projection = self.poll_transcript_projection();
         let retry_due = self.retry_due.is_some_and(|at| now >= at);
         if retry_due {
@@ -1449,17 +1462,19 @@ impl TuiState {
         if leader {
             self.leader = None;
         }
-        projection
-            || expired
-            || scanner
-            || delegation
-            || tools
-            || wheel
-            || compaction
-            || leader
-            || tabs
-            || retry_due
-            || foreground
+        (
+            projection
+                || expired
+                || scanner
+                || delegation
+                || tools
+                || wheel
+                || compaction
+                || leader
+                || retry_due
+                || foreground,
+            tabs,
+        )
     }
 
     fn delegation_animation_enabled(&self) -> bool {

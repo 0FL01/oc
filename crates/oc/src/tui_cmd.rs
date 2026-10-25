@@ -138,6 +138,10 @@ struct FrameMetrics {
     input_events: u64,
     worker_events: u64,
     changed_frames: u64,
+    /// Frames that repainted only the tab strip, and strip-only attempts
+    /// that fell back to a full frame.
+    strip_frames: u64,
+    strip_refused: u64,
     previous: Option<ratatui::buffer::Buffer>,
     writes: WriteMetrics,
 }
@@ -1469,6 +1473,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     // Mio reader with a second stdin readiness poller can lose edge events.
     let mut input = event::EventStream::new();
     let mut dirty = true;
+    // Only the tab strip animated since the last frame: it alone may repaint.
+    let mut tabs_dirty = false;
     let mut first_paint = true;
     let mut painted_cursor_color = ratatui::style::Color::Reset;
     let mut pacing = display_rate::Pacing::new(Instant::now());
@@ -1490,6 +1496,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             let probe = rate_probe.take().expect("finished display probe");
             if let Ok(Some(hz)) = probe.await {
                 frame_interval = display_rate::interval(hz);
+                state.set_animation_frame(frame_interval);
                 if let Some(metrics) = &mut frame_metrics {
                     metrics.display_hz = Some(hz);
                 }
@@ -1502,7 +1509,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         state.questions.share_drafts(&loop_state.questions);
         let job_lanes = loop_state.job_lanes();
         let job_ready = loop_state.ready_job(&state);
-        dirty |= state.tick_ui(Instant::now());
+        let (changed, tabs_changed) = state.tick_ui_parts(Instant::now());
+        dirty |= changed;
+        tabs_dirty |= tabs_changed;
         let active = state.view_identity();
         for view in read_jobs::views(&state, &loop_state) {
             if view.view_identity() != active {
@@ -1621,7 +1630,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         dirty |= state.tick_scanner(Instant::now());
         dirty |= state.tick_delegations(Instant::now());
         dirty |= state.tick_tool_spinners(Instant::now());
-        if dirty && Instant::now() >= pacing.due(input_dirty) {
+        if (dirty || tabs_dirty) && Instant::now() >= pacing.due(input_dirty) {
             let frame_start = Instant::now();
             let draw_start = frame_metrics
                 .as_ref()
@@ -1652,14 +1661,29 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     .map_err(|e| format!("cursor color: {e}"))?;
                 painted_cursor_color = color;
             }
-            let painted = terminal
-                .draw(|frame| render_frame(frame, &state))
-                .map_err(|e| format!("draw: {e}"))?;
-            if let Some(metrics) = &mut frame_metrics {
-                if metrics.previous.as_ref() != Some(painted.buffer) {
-                    metrics.changed_frames += 1;
+            // A tab-only change repaints just the strip, outside Ratatui's
+            // full-frame diff; anything else (or a refused strip) is a full frame.
+            let strip = (!dirty && tabs_dirty && !first_paint)
+                .then(|| draw_tab_strip(&mut terminal, &state, frame_start))
+                .transpose()
+                .map_err(|e| format!("draw tab strip: {e}"))?;
+            if strip != Some(true) {
+                let painted = terminal
+                    .draw(|frame| render_frame(frame, &state))
+                    .map_err(|e| format!("draw: {e}"))?;
+                if let Some(metrics) = &mut frame_metrics {
+                    if metrics.previous.as_ref() != Some(painted.buffer) {
+                        metrics.changed_frames += 1;
+                    }
+                    metrics.previous = Some(painted.buffer.clone());
                 }
-                metrics.previous = Some(painted.buffer.clone());
+            }
+            if let Some(metrics) = &mut frame_metrics {
+                match strip {
+                    Some(true) => metrics.strip_frames += 1,
+                    Some(false) => metrics.strip_refused += 1,
+                    None => {}
+                }
             }
             terminal
                 .backend_mut()
@@ -1682,6 +1706,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 metrics.writes = output_metrics.as_ref().expect("metrics enabled").get();
             }
             dirty = false;
+            tabs_dirty = false;
             pacing.painted(frame_start, frame_interval, input_dirty);
             input_dirty = false;
             if loop_state.reload_pending() {
@@ -1881,7 +1906,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             loop_state.dcp_seen = false;
         }
         let paint_due = pacing.due(input_dirty);
-        if dirty && Instant::now() >= paint_due {
+        if (dirty || tabs_dirty) && Instant::now() >= paint_due {
             continue;
         }
         let mut deadline = state.next_ui_deadline();
@@ -1891,7 +1916,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         if let Some(at) = loop_state.authentication.deadline() {
             deadline = Some(deadline.map_or(at, |d| d.min(at)));
         }
-        if dirty {
+        if dirty || tabs_dirty {
             deadline = Some(deadline.map_or(paint_due, |at| at.min(paint_due)));
         }
         if std::iter::once(&state)
@@ -2768,6 +2793,31 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
         .await
         .map_err(CoreError::Application)?;
     Ok(state)
+}
+
+/// Publish a tab-strip-only change: render the strip into Ratatui's blank
+/// current buffer, take its cells back out (leaving the buffer blank for the
+/// next full frame) and write them through `FrameBackend::draw_region`.
+/// `false` when the strip cannot be drawn alone; the caller draws a full frame.
+fn draw_tab_strip<W: Write>(
+    terminal: &mut Terminal<FrameBackend<W>>,
+    state: &TuiState,
+    now: Instant,
+) -> std::io::Result<bool> {
+    let cursor = terminal.backend().painted_cursor();
+    if !oc_tui::shell::render_tab_strip_only(&mut terminal.get_frame(), state, now) {
+        return Ok(false);
+    }
+    let Some(region) = oc_tui::shell::tab_strip_region(state) else {
+        return Ok(false);
+    };
+    let buffer = terminal.current_buffer_mut();
+    let region = region.intersection(buffer.area);
+    let mut strip = ratatui::buffer::Buffer::empty(region);
+    for at in region.positions() {
+        strip[at] = std::mem::take(&mut buffer[at]);
+    }
+    terminal.backend_mut().draw_region(&strip, cursor)
 }
 
 fn startup_failure<W: Write>(
@@ -4753,6 +4803,8 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "frame_sum_ns": frames.map_or(0, |frames| frames.sum_ns),
         "frame_max_ns": frames.map_or(0, |frames| frames.max_ns),
         "changed_frames": frames.map_or(0, |frames| frames.changed_frames),
+        "strip_frames": frames.map_or(0, |frames| frames.strip_frames),
+        "strip_refused": frames.map_or(0, |frames| frames.strip_refused),
         "wakeups": frames.map_or(0, |frames| frames.wakeups),
         "completion_wakeups": frames.map_or(0, |frames| frames.completion_wakeups),
         "memory_releases": frames.map_or(0, |frames| frames.memory_releases),

@@ -216,24 +216,33 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
 
 /// Establish the truecolor base canvas before drawing any session contents.
 pub fn render_background(frame: &mut Frame<'_>) {
-    let theme = Theme::dark();
     let area = frame.area();
-    // Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).
-    // Its blank canvas cells carry truecolor white, not the terminal's default
-    // foreground (which resolves differently under the shared PTY profile).
-    frame.render_widget(
-        Block::default().style(
-            Style::default()
-                .fg(ratatui::style::Color::Rgb(255, 255, 255))
-                .bg(theme.background()),
-        ),
-        area,
-    );
+    frame.render_widget(Block::default().style(background_style()), area);
+}
+
+/// Upstream paints the whole frame with `background.base` (`app.tsx:1310-1314`).
+/// Its blank canvas cells carry truecolor white, not the terminal's default
+/// foreground (which resolves differently under the shared PTY profile).
+fn background_style() -> Style {
+    Style::default()
+        .fg(ratatui::style::Color::Rgb(255, 255, 255))
+        .bg(Theme::dark().background())
+}
+
+fn region_cells(buffer: &ratatui::buffer::Buffer, region: Rect) -> Vec<ratatui::buffer::Cell> {
+    let region = region.intersection(buffer.area);
+    region.positions().map(|at| buffer[at].clone()).collect()
 }
 
 /// Render one whole frame: root background, tab strip, session area,
 /// devtools bar, then the toast overlay.
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    render_at(frame, state, std::time::Instant::now());
+}
+
+/// `render` with the tab clock at `now`. Records the painted tab strip and
+/// whether any later layer covered it (see `render_tab_strip_only`).
+pub fn render_at(frame: &mut Frame<'_>, state: &TuiState, now: std::time::Instant) {
     state.clear_prompt_paint();
     state.clear_sidebar_paint();
     state.clear_text_paint(frame.area());
@@ -242,10 +251,12 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let area = frame.area();
     render_background(frame);
     let regions = shell_regions(state, area);
-    state.prepare_tabs(area, std::time::Instant::now());
-    if let Some(strip) = tab_strip(state, area) {
+    state.prepare_tabs(area, now);
+    let strip = tab_strip(state, area).map(|strip| {
         render_deck_tabs(frame, state, theme, regions.tabs, &strip);
-    }
+        (regions.tabs, region_cells(frame.buffer_mut(), regions.tabs))
+    });
+    *state.tab_strip_paint.borrow_mut() = strip;
     let (route, terminal_pane) = crate::terminal_view::split(state, regions.session);
     let main = session_main(state, route);
     if let Some(sidebar) = sidebar_layout(state, area) {
@@ -260,6 +271,60 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     render_toast(frame, state, theme, area);
     crate::shell_jobs_view::render(frame, state, area);
     crate::dialog::render(frame, state);
+    state.tab_strip_clean.set(
+        state
+            .tab_strip_paint
+            .borrow()
+            .as_ref()
+            .is_some_and(|(region, cells)| region_cells(frame.buffer_mut(), *region) == *cells),
+    );
+}
+
+/// The region the tab strip was last painted in.
+pub fn tab_strip_region(state: &TuiState) -> Option<Rect> {
+    state
+        .tab_strip_paint
+        .borrow()
+        .as_ref()
+        .map(|(region, _)| *region)
+}
+
+/// Repaint only the tab strip into `frame`: valid when nothing but the strip
+/// changed since the last full frame, the strip keeps its region and no
+/// later layer covered it. The strip's cells equal `render_at`'s, and no
+/// cell outside the region is written.
+pub fn render_tab_strip_only(
+    frame: &mut Frame<'_>,
+    state: &TuiState,
+    now: std::time::Instant,
+) -> bool {
+    if !state.tab_strip_clean.get() {
+        return false;
+    }
+    let area = frame.area();
+    let regions = shell_regions(state, area);
+    if state
+        .tab_strip_paint
+        .borrow()
+        .as_ref()
+        .map(|(region, _)| *region)
+        != Some(regions.tabs)
+    {
+        return false;
+    }
+    state.prepare_tabs(area, now);
+    let Some(strip) = tab_strip(state, area) else {
+        return false;
+    };
+    let buffer = frame.buffer_mut();
+    for at in regions.tabs.intersection(buffer.area).positions() {
+        buffer[at] = ratatui::buffer::Cell::default();
+    }
+    frame.render_widget(Block::default().style(background_style()), regions.tabs);
+    render_deck_tabs(frame, state, Theme::dark(), regions.tabs, &strip);
+    *state.tab_strip_paint.borrow_mut() =
+        Some((regions.tabs, region_cells(frame.buffer_mut(), regions.tabs)));
+    true
 }
 
 /// The same Home row allocation is used by drawing and tab hit-testing.

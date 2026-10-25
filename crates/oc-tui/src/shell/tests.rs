@@ -3879,3 +3879,86 @@ fn cached_row_painter_matches_paragraph_rendering() {
         }
     }
 }
+
+/// A frame that repaints only the tab strip over the previous full frame
+/// is cell-for-cell the full frame at the same instant, for a running tab
+/// sweep on a horizontal strip and a vertical rail; an overlay over the
+/// strip (a dialog) forbids the strip-only path.
+#[tokio::test]
+async fn tab_strip_only_frames_equal_full_frames() {
+    use std::time::{Duration, Instant};
+    for (width, rail) in [(100u16, 0u16), (140, 30)] {
+        let (app, _guard) = CoreApp::spawn(MockProvider::echo());
+        let mut state = TuiState::new(app, SessionId::new("first").unwrap());
+        state.chrome.vertical_tabs_width = rail;
+        let start = Instant::now();
+        let mut running = TabPresentation::new(SessionId::new("first").unwrap());
+        running.title = Some("running tab with a long title".into());
+        running.busy = true;
+        let mut other = TabPresentation::new(SessionId::new("second").unwrap());
+        other.title = Some("second".into());
+        other.busy = true;
+        state.set_tab_strip_at(vec![running, other], 0, false, start);
+        let full = |state: &TuiState, now: Instant| {
+            let mut terminal = Terminal::new(TestBackend::new(width, 30)).unwrap();
+            terminal
+                .draw(|frame| crate::shell::render_at(frame, state, now))
+                .unwrap()
+                .buffer
+                .clone()
+        };
+        let mut last = full(&state, start);
+        assert!(state.tab_strip_clean.get(), "nothing covers the strip");
+        let mut changed = 0;
+        for step in 1..40u32 {
+            let now = start + Duration::from_millis(7) * step;
+            state.tick_ui_parts(now);
+            let mut terminal = Terminal::new(TestBackend::new(width, 30)).unwrap();
+            let mut repainted = false;
+            let partial = terminal
+                .draw(|frame| {
+                    frame.buffer_mut().clone_from(&last);
+                    repainted = crate::shell::render_tab_strip_only(frame, &state, now);
+                })
+                .unwrap()
+                .buffer
+                .clone();
+            assert!(repainted, "width {width} step {step}");
+            let mut blank = Terminal::new(TestBackend::new(width, 30)).unwrap();
+            let alone = blank
+                .draw(|frame| {
+                    assert!(crate::shell::render_tab_strip_only(frame, &state, now));
+                })
+                .unwrap()
+                .buffer
+                .clone();
+            let region = crate::shell::tab_strip_region(&state).unwrap();
+            for at in alone.area.positions() {
+                if region.contains(at) {
+                    assert_eq!(alone[at], partial[at], "width {width} step {step} {at:?}");
+                } else {
+                    assert_eq!(
+                        alone[at],
+                        ratatui::buffer::Cell::default(),
+                        "outside {at:?}"
+                    );
+                }
+            }
+            let expected = full(&state, now);
+            assert_eq!(partial, expected, "width {width} step {step}");
+            changed += usize::from(partial != last);
+            last = partial;
+        }
+        assert!(changed > 0, "the sweep animates at width {width}");
+        state.handle_key(KeyAction::Commands).await;
+        full(&state, start);
+        assert!(!state.tab_strip_clean.get(), "the dialog covers the strip");
+        let mut terminal = Terminal::new(TestBackend::new(width, 30)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.buffer_mut().clone_from(&last);
+                assert!(!crate::shell::render_tab_strip_only(frame, &state, start));
+            })
+            .unwrap();
+    }
+}
