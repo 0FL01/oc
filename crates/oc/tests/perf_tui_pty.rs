@@ -12,6 +12,12 @@
 //!   shows its spinner (CPU, frames and wakes of the tool's window);
 //! * E: idle CPU ticks of the TUI and owner and terminal bytes.
 //!
+//! `OC_TUI_PROBE_NOMETRICS=1` leaves the TUI's per-frame metrics off, so CPU
+//! ticks show the product's own cost (frame and wake reports are absent).
+//!
+//! `OC_TUI_PROBE_DISPLAY=1` lets the TUI detect the real display's refresh
+//! rate (it inherits the display variables) instead of the 60 Hz default.
+//!
 //! `OC_TUI_PERF=<dir>` additionally records `perf` call graphs of the TUI and
 //! owner for the run (`tui.data`, `owner.data`).
 //!
@@ -253,6 +259,14 @@ impl Fixture {
             .arg("--data-dir")
             .arg(self.root.join("data"))
             .current_dir(self.root.join("project"));
+        // Detect the real display's refresh rate instead of the 60 Hz default.
+        if std::env::var_os("OC_TUI_PROBE_DISPLAY").is_some() {
+            for name in ["WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "DISPLAY"] {
+                if let Some(value) = std::env::var_os(name) {
+                    command.env(name, value);
+                }
+            }
+        }
         command
     }
 
@@ -309,9 +323,12 @@ impl Tui {
             unsafe { OwnedFd::from_raw_fd(duped) }
         };
         let mut command = fixture.command();
+        command.args(["tui", "--session", SESSION]);
+        // Metrics clone and compare every frame; CPU-only runs can skip them.
+        if std::env::var_os("OC_TUI_PROBE_NOMETRICS").is_none() {
+            command.env("OC_TUI_TEST_METRICS", metrics);
+        }
         command
-            .args(["tui", "--session", SESSION])
-            .env("OC_TUI_TEST_METRICS", metrics)
             .stdin(Stdio::from(dup(&slave)))
             .stdout(Stdio::from(dup(&slave)))
             .stderr(Stdio::from(dup(&slave)));
@@ -722,11 +739,13 @@ fn probe() {
     if let Ok(bytes) = std::fs::read(&metrics) {
         let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or_default();
         eprintln!(
-            "PROBE metrics frames={} frame_max_ms={:.2} wakeups={} display_hz={}",
+            "PROBE metrics frames={} frame_max_ms={:.2} wakeups={} display_hz={} strip_frames={} strip_refused={}",
             value["frame_count"],
             value["frame_max_ns"].as_f64().unwrap_or(0.0) / 1e6,
             value["wakeups"],
-            value["display_hz"]
+            value["display_hz"],
+            value["strip_frames"],
+            value["strip_refused"]
         );
         decompose(&value);
     }
@@ -758,17 +777,27 @@ fn decompose(metrics: &serde_json::Value) {
     for (label, from, to) in WINDOWS.lock().unwrap().iter() {
         let seconds = (to - from) as f64 / 1e9;
         let count = |list: &[u128]| list.iter().filter(|at| (*from..*to).contains(at)).count();
-        let busy: u128 = frames
+        let mut window: Vec<u128> = frames
             .iter()
             .zip(durations.iter())
             .filter(|(at, _)| (*from..*to).contains(*at))
             .map(|(_, d)| *d)
-            .sum();
+            .collect();
+        window.sort_unstable();
+        let busy: u128 = window.iter().sum();
+        let at = |q: f64| {
+            window
+                .get(((window.len().max(1) - 1) as f64 * q) as usize)
+                .map_or(0.0, |d| *d as f64 / 1e6)
+        };
         eprintln!(
-            "PROBE {label} window: frames={:.1}/s wakes={:.1}/s frame_busy={:.1}%",
+            "PROBE {label} window: frames={:.1}/s wakes={:.1}/s frame_busy={:.1}% frame p10={:.2}ms p50={:.2}ms p90={:.2}ms",
             count(&frames) as f64 / seconds,
             count(&wakes) as f64 / seconds,
-            busy as f64 / 1e7 / seconds
+            busy as f64 / 1e7 / seconds,
+            at(0.1),
+            at(0.5),
+            at(0.9)
         );
     }
     let (mut wake, mut start, mut work) = (Vec::new(), Vec::new(), Vec::new());
