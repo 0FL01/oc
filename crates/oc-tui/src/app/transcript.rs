@@ -720,8 +720,11 @@ impl TuiState {
         user_targets: &[Option<crate::messages::UserMessageTarget>],
     ) -> Vec<std::borrow::Cow<'a, Line>> {
         use std::borrow::Cow;
+        // Rows of no projection (loading) carry no hover. A projection still
+        // painting while its successor builds keeps its own hover regions, so
+        // live output does not blink the hovered block off on every update.
         if let Some(frame) = frame
-            && !self.projection_ready((area.width, frame.width, area.height))
+            && !self.projection_painted((area.width, frame.width, area.height))
         {
             if self.painted_transcript.borrow_mut().take().is_some() {
                 self.paint_generation
@@ -737,6 +740,13 @@ impl TuiState {
             self.projection_work.borrow_mut().painted_top = view.top.clone();
         }
         let theme = Theme::dark();
+        // Hover targets of the painted projection (the caller's are empty while
+        // a newer projection builds; those stay strict for clicks).
+        let painted_targets = self.visible_projection.borrow().as_ref().and_then(|view| {
+            (same_rows(&view.lines, rows) && view.targets.len() >= rows.len())
+                .then(|| view.targets.clone())
+        });
+        let hover_targets = painted_targets.as_deref().unwrap_or(user_targets);
         let hovered_user = frame.and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
             if owner != frame
@@ -748,7 +758,7 @@ impl TuiState {
             {
                 return None;
             }
-            user_targets.get((y - area.y) as usize).cloned().flatten()
+            hover_targets.get((y - area.y) as usize).cloned().flatten()
         });
         let hover_row = frame.and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
@@ -775,8 +785,10 @@ impl TuiState {
             {
                 return None;
             }
-            self.exploration_hit_with_range(frame, x, y)
-                .map(|(_, range)| range)
+            match self.painted_transcript_hit(frame, x, y) {
+                Some(crate::messages::TranscriptHit::Exploration(_, range)) => Some(range),
+                _ => None,
+            }
         });
         // Derive child hover from this frame's unhovered geometry, including a
         // just-expanded row. Navigation captures only its painted label cells.
@@ -826,7 +838,7 @@ impl TuiState {
             {
                 return None;
             }
-            match self.cached_transcript_hit(frame, x, y) {
+            match self.painted_transcript_hit(frame, x, y) {
                 Some(crate::messages::TranscriptHit::PendingSubagentHover(range)) => Some(range),
                 _ => None,
             }
@@ -834,7 +846,7 @@ impl TuiState {
         let hover_child = frame.filter(|_| hover_pending.is_none()).and_then(|frame| {
             let (x, y, owner) = self.last_mouse?;
             (owner == frame).then_some(())?;
-            self.child_notice_hit(frame, x, y)
+            self.child_notice_hit(frame, x, y, true)
         });
         let painted = self.painted_transcript.borrow();
         let selected = self.selection.as_ref().filter(|selected| {
@@ -849,7 +861,7 @@ impl TuiState {
             .map(|(row, line)| {
                 let hovered;
                 let overlaid = if hovered_user.is_some()
-                    && user_targets.get(row).cloned().flatten() == hovered_user
+                    && hover_targets.get(row).cloned().flatten() == hovered_user
                 {
                     hovered = if hovered_user.as_ref().is_some_and(|target| target.reverted) {
                         crate::messages::hover_reverted_content(line, theme)
@@ -1561,12 +1573,34 @@ impl TuiState {
         x: u16,
         y: u16,
     ) -> Option<crate::messages::TranscriptHit> {
+        self.transcript_hit_in(frame, x, y, false)
+    }
+
+    /// The hit in the painted projection, also while a newer one builds:
+    /// for hover paint only, never for actions.
+    fn painted_transcript_hit(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<crate::messages::TranscriptHit> {
+        self.transcript_hit_in(frame, x, y, true)
+    }
+
+    fn transcript_hit_in(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+        painted: bool,
+    ) -> Option<crate::messages::TranscriptHit> {
         let rect = crate::shell::transcript_area(self, frame);
         if !rect.contains((x, y).into()) {
             return None;
         }
         self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
-        if !self.projection_ready((rect.width, frame.width, rect.height)) {
+        let dimensions = (rect.width, frame.width, rect.height);
+        if !(self.projection_ready(dimensions) || painted && self.projection_painted(dimensions)) {
             return None;
         }
         let view = self.visible_projection.borrow();
@@ -1714,11 +1748,14 @@ impl TuiState {
         None
     }
 
+    /// `painted`: for hover paint, from the painted projection even while a
+    /// newer one builds; actions require the current projection.
     fn child_notice_hit(
         &self,
         frame: Rect,
         x: u16,
         y: u16,
+        painted: bool,
     ) -> Option<(
         crate::messages::CapturedChildTarget,
         std::ops::Range<usize>,
@@ -1762,7 +1799,12 @@ impl TuiState {
         {
             return None;
         }
-        match self.cached_transcript_hit(frame, x, y) {
+        let hit = if painted {
+            self.painted_transcript_hit(frame, x, y)
+        } else {
+            self.cached_transcript_hit(frame, x, y)
+        };
+        match hit {
             Some(crate::messages::TranscriptHit::ChildNotice(target, range, tool)) => {
                 Some((target, range, tool))
             }
@@ -1788,7 +1830,7 @@ impl TuiState {
             MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
                 self.child_notice_down = self
                     .child_navigation_hit(frame, event.column, event.row)
-                    .or_else(|| self.child_notice_hit(frame, event.column, event.row))
+                    .or_else(|| self.child_notice_hit(frame, event.column, event.row, false))
                     .map(|(target, _, tool)| ChildNoticePress {
                         target,
                         tool,
@@ -1817,7 +1859,7 @@ impl TuiState {
                 let (target, _, tool) = if navigation {
                     self.child_navigation_hit(frame, event.column, event.row)?
                 } else {
-                    self.child_notice_hit(frame, event.column, event.row)?
+                    self.child_notice_hit(frame, event.column, event.row, false)?
                 };
                 let same = match (&target, &pressed.target) {
                     (

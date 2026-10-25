@@ -438,6 +438,20 @@ impl TuiState {
             })
     }
 
+    /// The visible projection was built for `dimensions`, possibly from
+    /// older content while its successor is in flight: its rows and hit
+    /// regions are what the transcript paints, so hover follows them.
+    pub(super) fn projection_painted(&self, dimensions: (u16, u16, u16)) -> bool {
+        self.visible_projection
+            .borrow()
+            .as_ref()
+            .is_some_and(|view| {
+                view.viewport.is_some_and(|view| {
+                    (view.width, view.terminal_width, view.height) == dimensions
+                })
+            })
+    }
+
     pub(super) fn request_projection(&self, dimensions: (u16, u16, u16)) {
         let key = self.projection_key(dimensions);
         let warm = self
@@ -640,6 +654,126 @@ impl TestHold {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A hovered expandable shell block keeps its hover highlight while live
+    /// output makes a newer projection build in the background: the painted
+    /// (older) projection's rows and hit regions still paint it. A click in
+    /// that window acts on nothing until the current projection lands.
+    #[tokio::test]
+    async fn hover_stays_on_the_painted_projection_while_a_newer_one_builds() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("hover-stable".into()));
+        let row = |role: &str, text: String, tool| crate::history::HistoryRow {
+            position: None,
+            message_id: None,
+            seq: 1,
+            role: role.into(),
+            text: text.into(),
+            agent: None,
+            agent_color_index: None,
+            chips: vec![],
+            reasoning: None,
+            child_notice: None,
+            shell_notice: None,
+            meta: None,
+            tool,
+        };
+        state
+            .window
+            .push_row(row("user", "filler line\n".repeat(8_000), None));
+        let output = format!(
+            "exit 0\n{}",
+            (0..30)
+                .map(|i| format!("recorded output {i}\n"))
+                .collect::<String>()
+        );
+        let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+            child_job: None,
+            output_presentation: None,
+            question: None,
+            rowid: 1,
+            op: "shell-op".into(),
+            name: "bash".into(),
+            state: "completed".into(),
+            input: Some(r#"{"argv":["fixture"]}"#.into()),
+            output_bytes: output.len() as i64,
+            output: Some(output),
+            output_truncated: false,
+            patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
+        });
+        state
+            .window
+            .push_row(row("tool", String::new(), Some(Arc::new(card))));
+        assert!(
+            state.large_projection(),
+            "the window builds in the background"
+        );
+        let frame = Rect::new(0, 0, 80, 48);
+        let area = crate::shell::transcript_area(&state, frame);
+        let dimensions = (area.width, frame.width, area.height);
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.finish_transcript_projection().await;
+        assert!(state.projection_ready(dimensions));
+        let (rows, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+        let shell = rows
+            .iter()
+            .position(|line| line.plain_text().contains("$ fixture"))
+            .unwrap();
+        let (x, y) = (area.x + 5, area.y + shell as u16);
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(mouse(MouseEventKind::Moved), frame);
+        let theme = crate::theme::Theme::dark();
+        let hovered = Some(theme.decrease(theme.background_raised()));
+        let painted = state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+        assert_eq!(painted[shell].style().bg, hovered);
+        // Live output: a newer projection is in flight; the older one paints.
+        let hold = Arc::new(TestHold::default());
+        state.projection_work.borrow_mut().hold = Some(hold.clone());
+        state.live_text.push_str("delta");
+        state.invalidate_transcript();
+        let (stale, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !hold.entered.load(Ordering::Acquire) {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        assert!(!state.projection_ready(dimensions));
+        assert_eq!(stale[..], rows[..]);
+        for _ in 0..3 {
+            let painted =
+                state.paint_transcript_at(area, &stale, total, scroll, Some(frame), &targets);
+            assert_eq!(
+                painted[shell].style().bg,
+                hovered,
+                "hover kept while building"
+            );
+        }
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            state.handle_mouse(mouse(kind), frame);
+        }
+        assert!(
+            state.exploration_expanded.is_empty(),
+            "actions wait for the current projection"
+        );
+        hold.release.store(true, Ordering::Release);
+        state.finish_transcript_projection().await;
+    }
 
     fn state() -> TuiState {
         let (app, _, _) = CoreApp::channel(4);
