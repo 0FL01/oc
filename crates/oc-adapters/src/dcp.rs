@@ -1241,6 +1241,23 @@ pub fn member_positions(
     out
 }
 
+/// Provider visibility is broader than compression authority: raw instruction
+/// rows and synthetic checkpoints are not conversation-range endpoints.
+pub(crate) fn compression_anchor_rows<'a>(
+    projected: &'a [(String, String, String)],
+    blocks: &[CompressionBlock],
+) -> Vec<&'a (String, String, String)> {
+    projected
+        .iter()
+        .filter(|(id, role, _)| {
+            matches!(role.as_str(), "user" | "assistant")
+                // Summaries render as system messages, but their exact block
+                // IDs resolve to raw endpoints and remain recompressible.
+                || blocks.iter().any(|block| block.id == *id)
+        })
+        .collect()
+}
+
 /// Project an already-bounded active history with block summaries.
 ///
 /// `active` holds only rows no block covers (in seq order, prune already

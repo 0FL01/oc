@@ -5,6 +5,47 @@ use crate::provider::protocol::Protocol;
 use serde_json::{Value, json};
 use tokio::io::AsyncWriteExt;
 
+#[test]
+fn compression_anchors_only_advertise_resolvable_endpoints() {
+    let blocks = vec![crate::dcp::CompressionBlock {
+        id: "b0001".into(),
+        session: "s".into(),
+        topic: "closed work".into(),
+        summary: "summary".into(),
+        start_msg: "m0001".into(),
+        end_msg: "m0002".into(),
+        members: vec!["m0001".into(), "m0002".into()],
+        hot: None,
+    }];
+    let rows = [
+        ("session-checkpoint", "developer", "checkpoint"),
+        ("m0000", "system", "runtime instructions"),
+        ("b0001", "system", "summary"),
+        ("m0003", "user", "closed task"),
+        ("m0004", "assistant", "closed answer"),
+        ("m0005", "user", "unfinished tail"),
+        ("b9999", "system", "not a captured block"),
+        ("m0006", "developer", "trailing instructions"),
+    ]
+    .map(|(id, role, text)| (id.into(), role.into(), text.into()));
+    let anchors = |rows: &[(String, String, String)]| {
+        let item = context::dcp_config_input(rows, &blocks, &DcpConfig::default(), true).unwrap();
+        let item = serde_json::to_value(item).unwrap();
+        let text = item["content"][0]["text"].as_str().unwrap();
+        serde_json::from_str::<Value>(text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: ").unwrap()).unwrap()
+    };
+    assert_eq!(
+        anchors(&rows),
+        json!([
+            {"id":"b0001","role":"system","closed":true},
+            {"id":"m0003","role":"user","closed":true},
+            {"id":"m0004","role":"assistant","closed":true},
+            {"id":"m0005","role":"user","closed":false},
+        ])
+    );
+    assert_eq!(anchors(&rows[..2]), json!([]));
+}
+
 #[tokio::test]
 async fn full_background_notice_overflow_keeps_rejected_input_out_of_parent_checkpoint() {
     use oc_core::queries::{ChildJob, ChildState};
@@ -149,6 +190,12 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
     };
     let db = Db::open(data.path()).unwrap();
     let runtime = owner(&db, project.path());
+    runtime.update_execution(|view| {
+        view.generation
+            .config
+            .permissions
+            .insert("compress".into(), Permission::Allow);
+    });
     runtime.create_session("resume-context").unwrap();
     let cancel = AtomicBool::new(false);
     fn parameters<'a>(
@@ -213,6 +260,29 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
     let peer = async {
         let (mut socket, resumed) = request(&listener).await;
         assert!(resumed.to_string().contains("SETTLED_NOTE"));
+        let anchors = resumed["input"]
+            .as_array().unwrap().iter()
+            .filter_map(|item| item["content"].as_array())
+            .flatten()
+            .filter_map(|part| part["text"].as_str())
+            .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: "))
+            .map(|text| serde_json::from_str::<Value>(text).unwrap()).unwrap();
+        let anchors = anchors.as_array().unwrap();
+        let ids = anchors
+            .iter()
+            .map(|anchor| anchor["id"].as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            ids.len(),
+            anchors.len(),
+            "resume cannot duplicate the unfinished anchor"
+        );
+        assert!(
+            anchors
+                .iter()
+                .filter(|anchor| anchor["id"].as_str() == user_message.as_deref())
+                .all(|anchor| anchor["closed"] == false)
+        );
         respond(&mut socket, Protocol::Responses, false).await; // no usage
     };
     let continuation = Box::pin(async {

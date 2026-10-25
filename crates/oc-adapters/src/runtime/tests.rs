@@ -729,10 +729,32 @@ mod vis38_review_tests {
                 &spec,
             )
             .unwrap();
+        let context = runtime.active_projection("s").unwrap();
+        let item = context::dcp_config_input(
+            &context.projected,
+            &context.blocks,
+            &DcpConfig::default(),
+            true,
+        )
+        .unwrap();
+        let item = serde_json::to_value(item).unwrap();
+        let text = item["content"][0]["text"].as_str().unwrap();
+        let anchors: serde_json::Value = serde_json::from_str(text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: ").unwrap()).unwrap();
+        let advertised = anchors
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|anchor| anchor["id"] == report.blocks[0])
+            .unwrap();
+        assert_eq!(advertised["closed"], true);
         let report = runtime
             .run_compress(
                 "s",
-                &args(&report.blocks[0], &report.blocks[0], "short"),
+                &args(
+                    advertised["id"].as_str().unwrap(),
+                    advertised["id"].as_str().unwrap(),
+                    "short",
+                ),
                 &spec,
             )
             .unwrap();
@@ -766,5 +788,55 @@ mod vis38_review_tests {
             .unwrap();
         assert!(!summary.2.contains(protected));
         assert_eq!(db.read_history_full("s").unwrap()[0].2, protected);
+    }
+
+    #[test]
+    fn compression_gain_keeps_the_unrelated_checkpoint() {
+        use oc_core::compaction::{
+            CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+        };
+        let project = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        let db = Db::open(data.path()).unwrap();
+        let runtime = runtime(&db, project.path(), data.path());
+        runtime.create_session("s").unwrap();
+        let cutoff = db.append_message("s", "user", "archived work").unwrap();
+        let snapshot = CompactionSnapshot {
+            id: "checkpoint".into(),
+            session: "s".into(),
+            model: None,
+            profile: None,
+            anchor: CompactionAnchor::default(),
+            reason: CompactionReason::Manual,
+            state: CompactionState::Completed,
+            summary: "UNCHANGED_CHECKPOINT ".repeat(2000),
+            usage: None,
+            provider_native: false,
+            error: None,
+        };
+        db.save_compaction(&snapshot).unwrap();
+        db.commit_checkpoint_selected(&snapshot, &cutoff, None, &BTreeMap::new(), &[], None)
+            .unwrap();
+        let first = db.append_message("s", "user", "small closed task").unwrap();
+        let last = db.append_message("s", "assistant", "small answer").unwrap();
+        db.append_message("s", "user", "unfinished tail").unwrap();
+        let raw = db.read_history_full("s").unwrap();
+        let checkpoint = db.session_checkpoint("s").unwrap();
+        assert!(
+            runtime
+                .run_compress(
+                    "s",
+                    &args(&first, &last, &"larger replacement ".repeat(32)),
+                    &ProtectedSpec::default()
+                )
+                .is_err()
+        );
+        assert_eq!(
+            db.list_tool_ops("s").unwrap().last().unwrap().state,
+            "no_gain"
+        );
+        assert_eq!(db.dcp_block_count("s").unwrap(), 0);
+        assert_eq!(db.session_checkpoint("s").unwrap(), checkpoint);
+        assert_eq!(db.read_history_full("s").unwrap(), raw);
     }
 }

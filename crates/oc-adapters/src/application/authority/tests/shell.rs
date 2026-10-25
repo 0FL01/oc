@@ -404,3 +404,355 @@ async fn episode(case: Case) {
         );
     }
 }
+
+#[tokio::test]
+async fn advertised_dcp_range_does_not_strand_large_context() {
+    use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
+
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut source = config(&format!("http://{}/v1", listener.local_addr().unwrap()));
+    source["providers"]["fixture"]["models"]["m"]["limit"] =
+        json!({"context":500000,"input":450000,"output":128000});
+    source["compaction"]["auto"] = json!(true);
+    source["dcp"] = json!({"compress":{
+        "permission":"allow", "minContextLimit":270000, "maxContextLimit":350000
+    }});
+    source["permissions"] = json!([
+        {"action":"shell","resource":"*","effect":"allow"},
+        {"action":"compress","resource":"*","effect":"allow"}
+    ]);
+    std::fs::write(project.join("opencode.json"), source.to_string()).unwrap();
+    let posts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let peer = {
+        let posts = posts.clone();
+        tokio::spawn(async move {
+            for index in 0..9 {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                // This incident-sized history exceeds the shared small-peer
+                // helper's 1 MiB request bound. Keep this peer bounded too.
+                let body: serde_json::Value = {
+                    let mut reader = tokio::io::BufReader::new(&mut socket);
+                    let mut length = None;
+                    let mut header_bytes = 0;
+                    loop {
+                        let mut line = String::new();
+                        assert!(reader.read_line(&mut line).await.unwrap() > 0);
+                        header_bytes += line.len();
+                        assert!(header_bytes <= 16 * 1024);
+                        if line == "\r\n" {
+                            break;
+                        }
+                        if let Some(value) =
+                            line.to_ascii_lowercase().strip_prefix("content-length:")
+                        {
+                            length = Some(value.trim().parse::<usize>().unwrap());
+                        }
+                    }
+                    let length = length.unwrap();
+                    assert!(length <= 2 * 1024 * 1024);
+                    let mut bytes = vec![0; length];
+                    reader.read_exact(&mut bytes).await.unwrap();
+                    serde_json::from_slice(&bytes).unwrap()
+                };
+                posts.fetch_add(1, Ordering::AcqRel);
+                let mut output = match index {
+                    2 => {
+                        let anchors: serde_json::Value = body["input"]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .rev()
+                            .flat_map(|item| item["content"].as_array().into_iter().flatten())
+                            .filter_map(|part| part["text"].as_str())
+                            .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: "))
+                            .map(|text| serde_json::from_str(text).unwrap())
+                            .expect("provider-visible DCP anchors");
+                        let closed = anchors
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .filter(|anchor| anchor["closed"] == true)
+                            .collect::<Vec<_>>();
+                        let first = closed.first().unwrap();
+                        let last = closed
+                            .iter()
+                            .rev()
+                            .find(|anchor| anchor["role"] == "assistant")
+                            .unwrap();
+                        eprintln!(
+                            "replayed advertised compress range: {}..{} (start role={})",
+                            first["id"], last["id"], first["role"]
+                        );
+                        json!([{"type":"function_call","id":"compress-item","call_id":"compress-call","name":"compress","arguments":json!({
+                        "topic":"closed eval history", "content":[{"startId":first["id"],"endId":last["id"],"summary":"The closed synthetic seed turns completed. Continue the current task."}]
+                    }).to_string()}])
+                    }
+                    3 => {
+                        json!([{"type":"function_call","id":"failed-item","call_id":"failed-call","name":"shell","arguments":json!({
+                        "command":"printf SYNTHETIC_FOREGROUND_FAILURE; exit 101", "timeout":120000
+                    }).to_string()}])
+                    }
+                    4 => {
+                        json!([{"type":"function_call","id":"passed-item","call_id":"passed-call","name":"shell","arguments":json!({
+                        "command":"printf SYNTHETIC_FOREGROUND_SUCCESS", "timeout":600000
+                    }).to_string()}])
+                    }
+                    5 => {
+                        json!([{"type":"function_call","id":"background-item","call_id":"background-call","name":"shell","arguments":json!({
+                        "command":"n=0; while [ ! -f release ] && [ $n -lt 1000 ]; do n=$((n+1)); sleep .01; done; [ -f release ] || exit 124; printf x >> effects; printf SYNTHETIC_BACKGROUND_FAILURE; exit 101",
+                        "background":true, "timeout":0
+                    }).to_string()}])
+                    }
+                    _ => {
+                        if index == 7 {
+                            assert!(
+                                body["input"]
+                                    .to_string()
+                                    .contains("SYNTHETIC_BACKGROUND_FAILURE")
+                            );
+                        }
+                        if index == 8 {
+                            assert!(body["input"].to_string().contains("continue"));
+                        }
+                        json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"CONTROL_SETTLED"}]}])
+                    }
+                };
+                // The real journal retained about 604k bytes of encrypted
+                // reasoning in the current profile. These opaque response
+                // items preserve that workload class without private payloads.
+                if matches!(index, 1 | 5) {
+                    output.as_array_mut().unwrap().insert(
+                        0,
+                        json!({
+                            "type":"reasoning", "id":format!("reasoning-{index}"),
+                            "summary":[], "content":[],
+                            "encrypted_content":"x".repeat(if index == 1 {600_000} else {100_000})
+                        }),
+                    );
+                }
+                let input_tokens = if index == 0 { 175_000 } else { 306_105 };
+                let body = format!(
+                    "data: {}\n\n",
+                    json!({"type":"response.completed", "response":{
+                        "status":"completed", "output":output,
+                        "usage":{"input_tokens":input_tokens,"output_tokens":1942,"total_tokens":input_tokens+1942}
+                    }})
+                );
+                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
+            }
+        })
+    };
+    let owner = Owner::new(
+        Db::open(&root.path().join("data")).unwrap(),
+        env(root.path()),
+    )
+    .unwrap();
+    let location = owner.location(&project, false).await.unwrap();
+    let session = SessionId("parent".into());
+    location.app.create_session(session.clone()).await.unwrap();
+    location
+        .app
+        .rename_session(session.clone(), "Reproduction".into())
+        .await
+        .unwrap();
+    // The copied incident starts with a raw system row before its first user
+    // row. Keep that reachable historical shape inside the sole fixture owner.
+    owner
+        .db
+        .append_message(&session.0, "system", "Replayed instruction prefix")
+        .unwrap();
+    let mut events = owner.events.subscribe();
+    let completed = tokio::time::timeout(Duration::from_secs(20), async {
+        // Both prompts pass the real public input limit; their combined
+        // history reaches the incident's 270k..350k DCP band without seeding Db.
+        for prompt in ["a".repeat(700_000), "b".repeat(400_000)] {
+            let origin = Arc::new(Origin::new(Kind::Run, false).at(location.clone()));
+            let running = owner
+                .begin(location.clone(), session.0.clone(), origin, 0, false, None)
+                .unwrap();
+            let turn = running.app.submit(session.clone(), prompt).await.unwrap();
+            loop {
+                let event = match events.recv().await.unwrap() {
+                    CoreEvent::Projection { event, .. } => *event,
+                    event => event,
+                };
+                match event {
+                    CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+                    CoreEvent::TurnFailed { error, .. } => panic!("seed failed: {error}"),
+                    _ => {}
+                }
+            }
+            owner.next_root().await.unwrap();
+        }
+        let facts = location.app.dcp_snapshot(session.clone()).await.unwrap();
+        assert!((270_000..350_000).contains(&facts.estimated_tokens));
+        eprintln!(
+            "reproduction projected_tokens={}; context=500000; output_capacity=128000",
+            facts.estimated_tokens
+        );
+        let origin = Arc::new(Origin::new(Kind::Run, false).at(location.clone()));
+        let running = owner
+            .begin(
+                location.clone(),
+                session.0.clone(),
+                origin.clone(),
+                0,
+                false,
+                None,
+            )
+            .unwrap();
+        let first = running
+            .app
+            .submit(session.clone(), "run the synthetic checks".into())
+            .await
+            .unwrap();
+        let mut shell_id = None;
+        loop {
+            let event = match events.recv().await.unwrap() {
+                CoreEvent::Projection { event, .. } => *event,
+                event => event,
+            };
+            match event {
+                CoreEvent::ToolCallFinished { name, state, output, .. } if name == "compress" => {
+                    eprintln!("replayed compress result: state={state}; {output}");
+                }
+                CoreEvent::ToolCallFinished {
+                    name,
+                    op,
+                    state,
+                    output,
+                    ..
+                } if name == "shell" => {
+                    if op.ends_with("-failed-call") {
+                        assert_eq!(state, "failed");
+                        assert!(output.contains("SYNTHETIC_FOREGROUND_FAILURE"), "{output}");
+                    } else if op.ends_with("-passed-call") {
+                        assert_eq!(state, "completed");
+                        assert!(output.contains("SYNTHETIC_FOREGROUND_SUCCESS"), "{output}");
+                    } else {
+                        assert!(op.ends_with("-background-call"), "{op}");
+                        assert_eq!(state, "completed");
+                        // Only the background launch receipt is JSON.
+                        let value: serde_json::Value = serde_json::from_str(&output).unwrap();
+                        assert_eq!(value["status"], "running");
+                        shell_id = Some(value["shellID"].as_str().unwrap().to_owned());
+                    }
+                }
+                CoreEvent::TurnFailed { turn, .. } | CoreEvent::TurnFinished { turn, .. }
+                    if turn == first => break,
+                _ => {}
+            }
+        }
+        owner.next_root().await.unwrap();
+        let (status, raw) = owner.db.turn_result(&first.0).unwrap();
+        let saved: serde_json::Value = serde_json::from_str(raw.as_deref().unwrap()).unwrap();
+        if status == "failed" {
+            let retry_origin = Arc::new(Origin::new(Kind::Run, false).at(location.clone()));
+            let retry = owner
+                .begin(location.clone(), session.0.clone(), retry_origin, 0, false, None)
+                .unwrap();
+            let receipt = retry.app.submit(session.clone(), "continue".into()).await;
+            return Err(format!(
+                "native replay stranded the session: terminal={}; next submit={receipt:?}; physical requests={}",
+                saved["display"]["terminal_diagnostic"],
+                posts.load(Ordering::Acquire)
+            ));
+        }
+        assert_eq!(status, "completed");
+        assert_eq!(
+            posts.load(Ordering::Acquire),
+            7,
+            "unexpected native replay request sequence: {}",
+            saved["display"]["terminal_diagnostic"]
+        );
+        let shell_id = shell_id.expect("background receipt");
+        assert!(owner.root(&session.0).is_none());
+        std::fs::write(project.join("release"), "").unwrap();
+        let notice = loop {
+            let event = match events.recv().await.unwrap() {
+                CoreEvent::Projection { event, .. } => *event,
+                event => event,
+            };
+            if let CoreEvent::ShellNotice(notice) = event {
+                break notice;
+            }
+        };
+        assert_eq!(notice.shell_id, shell_id);
+        let snapshot = owner
+            .resources
+            .shell
+            .snapshot(&session.0, &shell_id)
+            .unwrap();
+        assert_eq!(snapshot.state, "failed");
+        assert_eq!(snapshot.exit, Some(101));
+        loop {
+            let event = match events.recv().await.unwrap() {
+                CoreEvent::Projection { event, .. } => *event,
+                event => event,
+            };
+            match event {
+                CoreEvent::TurnFinished { turn, .. } if turn != first => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("shell handoff failed: {error}"),
+                CoreEvent::ParentContinuationRefused { diagnostic, .. } => {
+                    panic!("shell handoff refused: {diagnostic}")
+                }
+                _ => {}
+            }
+        }
+        owner.next_root().await.unwrap();
+        origin.settle().await;
+        let next_origin = Arc::new(Origin::new(Kind::Run, false).at(location.clone()));
+        let next = owner
+            .begin(
+                location.clone(),
+                session.0.clone(),
+                next_origin,
+                0,
+                false,
+                None,
+            )
+            .unwrap();
+        let receipt = next.app.submit(session.clone(), "continue".into()).await;
+        eprintln!("next submit after failed parent/background exit 101: {receipt:?}");
+        let turn = receipt.expect("the same session must admit its next short request");
+        loop {
+            let event = match events.recv().await.unwrap() {
+                CoreEvent::Projection { event, .. } => *event,
+                event => event,
+            };
+            match event {
+                CoreEvent::TurnFinished { turn: id, .. } if id == turn => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("next turn failed: {error}"),
+                _ => {}
+            }
+        }
+        owner.next_root().await.unwrap();
+        assert!(owner.root(&session.0).is_none());
+        assert!(
+            owner
+                .resources
+                .shell
+                .running(&session.0)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(owner.db.dcp_block_count(&session.0).unwrap(), 1);
+        assert_eq!(
+            std::fs::read(project.join("effects")).unwrap(),
+            b"x",
+            "no shell replay"
+        );
+        assert_eq!(posts.load(Ordering::Acquire), 9);
+        Ok(())
+    })
+    .await;
+    owner.shutdown().await.unwrap();
+    peer.abort();
+    let _ = peer.await;
+    completed
+        .expect("bounded native-owner reproduction")
+        .expect("advertised closed DCP spans must be usable before admission is exhausted");
+}

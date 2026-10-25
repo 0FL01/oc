@@ -1403,9 +1403,9 @@ impl<'a> Runtime<'a> {
             .map_or(0, |fact| fact.event_seq);
         // Outbound context honors compression blocks + prune mark: covered
         // members collapse to summaries, raw history is never rewritten.
-        let (mut projected, mut history, mut history_notices, history_scope) =
+        let (mut projected, mut projected_blocks, mut history, mut history_notices, history_scope) =
             if fresh_selection.is_some() {
-                (Vec::new(), Vec::new(), Vec::new(), None)
+                (Vec::new(), Vec::new(), Vec::new(), Vec::new(), None)
             } else {
                 let ActiveContext {
                     after_seq,
@@ -1443,7 +1443,7 @@ impl<'a> Runtime<'a> {
                             })
                     },
                 )?;
-                (projected, history, notices, Some((after_seq, blocks)))
+                (projected, blocks, history, notices, Some(after_seq))
             };
         let dcp_config = published.dcp_config.clone();
         let compression_policy =
@@ -1801,11 +1801,6 @@ impl<'a> Runtime<'a> {
             self.child_jobs.notify();
         }
         let user_message = accepted_turn.user_message;
-        let mut anchors = {
-            let mut rows = projected.clone();
-            rows.push((user_message.clone(), "user".into(), String::new()));
-            dcp_config_input(&rows, &dcp_config, compress_available)
-        };
         // Children retain the parent's exact admitted MCP capability view.
         let primary_request = self.db.session_meta(&params.session)?.parent_id.is_none();
         let mut text = String::new();
@@ -1870,7 +1865,7 @@ impl<'a> Runtime<'a> {
                 .await
                 .map(|report| TurnExecution::Report(Box::new(report)));
         }
-        if let Some((after_seq, blocks)) = history_scope {
+        if let Some(after_seq) = history_scope {
             (history, history_notices) = self.wire_history_with_child_notices(
                 &params.session,
                 &projected
@@ -1881,7 +1876,7 @@ impl<'a> Runtime<'a> {
                     })
                     .cloned()
                     .collect::<Vec<_>>(),
-                &blocks,
+                &projected_blocks,
                 &selection.id,
                 &params.catalog.provider,
                 lane.agent_digest.as_deref(),
@@ -2213,6 +2208,7 @@ impl<'a> Runtime<'a> {
                     },
                 )?;
                 projected = refreshed.projected;
+                projected_blocks = refreshed.blocks;
                 prepared_model = selection.id.clone();
                 prepared_binding = binding.clone();
                 prepared_digest = lane.agent_digest.clone();
@@ -2349,15 +2345,18 @@ impl<'a> Runtime<'a> {
                     lane.manual_compression,
                 )
                 .is_none();
-            if !Arc::ptr_eq(&prepared_publication, &published) {
+            // Rebuild from the captured rows/graph on every fresh preparation,
+            // including binding-only refreshes and resumed unfinished tails.
+            let anchors = {
                 let mut rows = projected.clone();
                 if turn_log.raw_prefix.is_none()
-                    && let Some(user) = &turn_log.user_message
-                    && !rows.iter().any(|row| &row.0 == user)
+                    && !rows.iter().any(|row| row.0 == user_message)
                 {
-                    rows.push((user.clone(), "user".into(), String::new()));
+                    rows.push((user_message.clone(), "user".into(), String::new()));
                 }
-                anchors = dcp_config_input(&rows, dcp_config, compress_available);
+                dcp_config_input(&rows, &projected_blocks, dcp_config, compress_available)
+            };
+            if !Arc::ptr_eq(&prepared_publication, &published) {
                 let (revision, sources) =
                     self.instruction_sources(&published, &params.session, &policy, params.cancel)?;
                 self.check_issued_turn(&turn_log, &params.session)?;
@@ -2609,6 +2608,7 @@ impl<'a> Runtime<'a> {
                     },
                 )?;
                 projected = refreshed.projected;
+                projected_blocks = refreshed.blocks;
                 let raw_context: Vec<_> = history
                     .iter()
                     .chain(
@@ -2626,7 +2626,6 @@ impl<'a> Runtime<'a> {
                 tool_projection = self
                     .db
                     .dcp_tool_projection_for_input(&params.session, &raw_context)?;
-                anchors = dcp_config_input(&projected, dcp_config, compress_available);
                 // Summary work may have waited while a busy selection committed.
                 // Rebuild the next primary through the same admission boundary.
                 continue 'step;
@@ -3330,6 +3329,7 @@ impl<'a> Runtime<'a> {
                                                 },
                                             )?;
                                         projected = refreshed.projected;
+                                        projected_blocks = refreshed.blocks;
                                         let raw_context: Vec<_> = history
                                             .iter()
                                             .chain(
@@ -3348,11 +3348,6 @@ impl<'a> Runtime<'a> {
                                             &params.session,
                                             &raw_context,
                                         )?;
-                                        anchors = dcp_config_input(
-                                            &projected,
-                                            dcp_config,
-                                            compress_available,
-                                        );
                                         turn_log.input.push(InputItem::message(InputRole::Developer,
                                     "The previous response was interrupted. Continue from where you left off without repeating completed content."));
                                         // Preserve the pending continuation span even
@@ -3802,7 +3797,7 @@ impl<'a> Runtime<'a> {
                             || turn_log.represents_notice(id)
                     },
                 )?;
-                anchors = dcp_config_input(&projected, dcp_config, compress_available);
+                projected_blocks = refreshed.blocks;
             }
             closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
             if turn_log.task_renewal.is_some()

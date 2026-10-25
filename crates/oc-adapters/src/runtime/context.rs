@@ -39,20 +39,30 @@ fn map_messages(history: &[(String, String, String)]) -> Result<Vec<Message>, Ru
 
 pub(super) fn dcp_config_input(
     projected: &[(String, String, String)],
+    blocks: &[crate::dcp::CompressionBlock],
     config: &DcpConfig,
     available: bool,
 ) -> Option<InputItem> {
     let available = available && config.enabled && config.compress_enabled;
-    let anchors = projected
+    let rows = if available {
+        crate::dcp::compression_anchor_rows(projected, blocks)
+    } else {
+        projected
+            .iter()
+            .filter(|(id, _, _)| !id.starts_with("session-checkpoint"))
+            .collect()
+    };
+    let anchors = rows
         .iter()
         .enumerate()
-        .filter(|(_, (id, _, _))| !id.starts_with("session-checkpoint"))
         .map(|(index, (id, role, _))| {
             if available {
                 serde_json::json!({
                     "id": id,
                     "role": role,
-                    "closed": index + 1 < projected.len(),
+                    // Excluded trailing instructions cannot close the last
+                    // planner-addressable message of the unfinished tail.
+                    "closed": index + 1 < rows.len(),
                 })
             } else {
                 serde_json::json!({"id": id, "role": role})
@@ -1475,8 +1485,16 @@ impl<'a> Runtime<'a> {
             .filter(|(_, seq)| *seq > context.after_seq);
         positions.extend(new_positions);
         let rows = self.active_rows(session)?.1;
-        let after_rows = crate::dcp::project_active_rows(&rows, &candidate, &positions)
+        let mut after_rows = crate::dcp::project_active_rows(&rows, &candidate, &positions)
             .map_err(|e| RuntimeError::Compress(e.to_string()))?;
+        // DCP does not replace the checkpoint. Dropping it only on the candidate
+        // side would count unrelated summary/opaque context as compression gain.
+        if let Some(checkpoint) = before_rows
+            .first()
+            .filter(|row| row.0.starts_with("session-checkpoint"))
+        {
+            after_rows.insert(0, checkpoint.clone());
+        }
         let after_history = self.wire_history_bound(
             session,
             &prior(&after_rows),
@@ -1542,13 +1560,15 @@ impl<'a> Runtime<'a> {
                 lane.manual_compression,
             )
             .is_none();
-        let bytes = |rows: &[(String, String, String)], wire: &[InputItem]| {
-            serde_json::to_vec(&(dcp_config_input(rows, config, available), wire))
+        let bytes = |rows: &[(String, String, String)],
+                     blocks: &[crate::dcp::CompressionBlock],
+                     wire: &[InputItem]| {
+            serde_json::to_vec(&(dcp_config_input(rows, blocks, config, available), wire))
                 .map(|raw| raw.len())
                 .map_err(|_| RuntimeError::Storage)
         };
-        plan.before_bytes = bytes(before_rows, &before_wire)?;
-        plan.after_bytes = bytes(&after_rows, &after_wire)?;
+        plan.before_bytes = bytes(before_rows, &context.blocks, &before_wire)?;
+        plan.after_bytes = bytes(&after_rows, &candidate, &after_wire)?;
         let (removed, net_saved) = dcp_wire_estimates(&before_wire, &after_wire);
         let estimate = oc_core::dcp_view::estimate_content;
         let inherited: u64 = before_rows
