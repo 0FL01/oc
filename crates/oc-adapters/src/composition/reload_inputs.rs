@@ -24,6 +24,7 @@ pub(crate) struct ReloadInputs {
     native_modules: BTreeSet<String>,
     plugins: PluginInventory,
     dcp: dcp_auto::DcpConfig,
+    dcp_prompt_notes: Vec<ServiceDiagnostic>,
     protected: oc_core::context_plan::ProtectedSpec,
 }
 
@@ -180,6 +181,21 @@ impl Composition {
             native_modules: self.native_modules.clone(),
             plugins: self.tui_chrome.plugins.clone(),
             dcp: self.dcp_config.clone(),
+            // Empty/invalid prompt edits can keep the same fallback bytes while
+            // adding/removing a source-qualified warning. Publish those too.
+            dcp_prompt_notes: self
+                .tui_chrome
+                .service_diagnostics
+                .iter()
+                .filter(|note| {
+                    note.field
+                        .iter()
+                        .map(String::as_str)
+                        .take(2)
+                        .eq(["dcp", "prompts"])
+                })
+                .cloned()
+                .collect(),
             protected: self.dcp_protected.clone(),
         })
     }

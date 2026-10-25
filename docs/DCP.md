@@ -92,7 +92,11 @@ paid campaign или runtime PASS; execution statuses и текущая dirty р
 
 Range compression с несколькими spans, stable message/block references, вложенные summaries, protected tool/file/user/tag content; system/tool instructions и context/turn/iteration nudges; deduplication, purgeErrors; эффективный DCP config; durable state и replay; `/dcp` context/stats/manual controls и `/dcp-compress [focus]`.
 
-Experimental message compression и custom prompt overrides остаются отложенными.
+Experimental message compression остаётся отложенной. Custom prompt overrides
+поддерживаются для пяти active range-mode slots: см. [CONFIG](CONFIG.md#dcp-prompt-overrides).
+Они заменяют только редактируемый текст, не schema/permissions/native anchors,
+task-renewal rules или reminder cadence. Отключённый флаг и отсутствующие файлы
+сохраняют native defaults; managed upstream defaults не записываются.
 Subagent integration включена owner-approved T45/R9 (2026-09-27), implementation
 pending: прежнее исключение отменено, не превращено в PASS. Explicit enable прочих
 неподдержанных режимов — UnsupportedCapability, не fallback на range. AutoUpdate и
@@ -737,8 +741,8 @@ active memberships заменяются транзакционно.
 
 Historical T36 qualification: `dcp.json/jsonc` и inline `dcp` читались в общем порядке admitted config roots,
 read-only, bounded 1 MiB, regular UTF-8, no-follow. Deep object merge поддерживает
-required surface выше. `autoUpdate:true` and unsupported modes/custom prompts
-remain explicit failures. Subagents were not qualified by T36 (later native config tolerated allowSubAgents
+required surface выше. At T36, `autoUpdate:true` and unsupported modes/custom prompts
+were explicit failures; custom prompt support is documented above. Subagents were not qualified by T36 (later native config tolerated allowSubAgents
 with a warning). This does not implement R9 or override its new target default.
 `showCompression`, notification и commands display сохранялись в snapshot, UI
 controls квалифицировались T39 в прежнем объёме. Новый detailed transcript,

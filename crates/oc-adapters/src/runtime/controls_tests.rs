@@ -150,3 +150,42 @@ fn dcp12_native_protection_defaults_are_frozen_against_registered_tools() {
     let (configured,_)=crate::dcp_auto::load_config(&serde_json::json!({"commands":{"protectedTools":["read"]},"compress":{"protectedTools":["skill"]}})).unwrap();
     assert_eq!(configured.protected_tools, ["read", "skill"]);
 }
+
+#[test]
+fn dcp_custom_prompts_follow_tool_visibility_and_keep_native_schema_and_guidance() {
+    let config = DcpConfig {
+        custom_prompts: true,
+        prompt_overrides: crate::dcp_auto::DcpPromptOverrides {
+            system: Some("CUSTOM_SYSTEM".into()),
+            compress_range: Some("CUSTOM_RANGE".into()),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let original = builtin_tool_defs();
+    let mut tools = original.clone();
+    assert!(dcp_prompt_guidance(&mut tools, &DcpConfig::default()).is_none());
+    assert_eq!(
+        serde_json::to_value(&tools).unwrap(),
+        serde_json::to_value(&original).unwrap()
+    );
+    assert_eq!(
+        dcp_prompt_guidance(&mut tools, &config),
+        Some(InputItem::message(InputRole::Developer, "CUSTOM_SYSTEM"))
+    );
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name == COMPRESS_TOOL)
+        .unwrap();
+    let baseline = original
+        .iter()
+        .find(|tool| tool.name == COMPRESS_TOOL)
+        .unwrap();
+    assert_eq!(tool.parameters, baseline.parameters);
+    assert_eq!(
+        tool.description,
+        format!("CUSTOM_RANGE\n\n{}", baseline.description)
+    );
+    tools.retain(|tool| tool.name != COMPRESS_TOOL);
+    assert!(dcp_prompt_guidance(&mut tools, &config).is_none());
+}

@@ -24,6 +24,8 @@ mod seed;
 
 const TIMEOUT: Duration = Duration::from_secs(10);
 
+#[path = "dcp_runtime/custom_prompts.rs"]
+mod custom_prompts;
 #[path = "dcp_runtime/defaults.rs"]
 mod defaults;
 const POLL: Duration = Duration::from_millis(10);

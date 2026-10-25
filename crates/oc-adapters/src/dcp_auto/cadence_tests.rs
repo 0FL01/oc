@@ -141,3 +141,55 @@ fn dcp12_source_success_cooldown_migration_and_failure_no_reset() {
         assert_eq!(request(&cfg, &mut state, 201, &view).is_some(), index == 5);
     }
 }
+
+#[test]
+fn dcp_custom_prompts_replace_only_the_due_reminder_body() {
+    let plain = config();
+    let custom = DcpConfig {
+        custom_prompts: true,
+        prompt_overrides: DcpPromptOverrides {
+            context_limit_nudge: Some("CUSTOM_CONTEXT".into()),
+            turn_nudge: Some("CUSTOM_TURN".into()),
+            iteration_nudge: Some("CUSTOM_ITERATION".into()),
+            ..Default::default()
+        },
+        ..plain.clone()
+    };
+    let mut plain_state = NudgeState::default();
+    let mut custom_state = plain_state.clone();
+    let mut view = vec![("first-user".into(), true)];
+    for step in 0..18 {
+        let (tokens, expected) = match step {
+            0 => (201, Some("CUSTOM_CONTEXT")),
+            1 => {
+                view.extend([
+                    ("previous-assistant".into(), false),
+                    ("next-user".into(), true),
+                ]);
+                (200, Some("CUSTOM_TURN"))
+            }
+            17 => {
+                view.push(("below-min".into(), true));
+                (99, None)
+            }
+            _ => {
+                view.push((format!("assistant-{step}"), false));
+                (200, (step == 16).then_some("CUSTOM_ITERATION"))
+            }
+        };
+        let baseline = request(&plain, &mut plain_state, tokens, &view);
+        let actual = request(&custom, &mut custom_state, tokens, &view);
+        assert_eq!(
+            baseline.as_ref().map(|n| n.force),
+            actual.as_ref().map(|n| n.force)
+        );
+        assert_eq!(actual.is_some(), expected.is_some());
+        if let Some(body) = expected {
+            assert!(actual.unwrap().text.ends_with(body));
+        }
+        assert_eq!(
+            serde_json::to_value(&plain_state).unwrap(),
+            serde_json::to_value(&custom_state).unwrap()
+        );
+    }
+}

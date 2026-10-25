@@ -13,6 +13,9 @@ use thiserror::Error;
 
 use crate::config::Permission;
 
+pub(crate) mod prompts;
+pub use prompts::DcpPromptOverrides;
+
 #[cfg(test)]
 #[path = "dcp_auto/defaults_tests.rs"]
 mod defaults_tests;
@@ -101,6 +104,10 @@ pub struct DcpConfig {
     pub compress_enabled: bool,
     /// Permit compression of a child's own session (native default true).
     pub allow_subagents: bool,
+    /// Load user-editable DCP prompts at admitted configuration roots.
+    pub custom_prompts: bool,
+    /// Prompt bytes captured before publication, never re-read during a request.
+    pub prompt_overrides: DcpPromptOverrides,
     /// Compression-specific central permission override.
     pub compress_permission: Option<Permission>,
     /// Soft min-context threshold.
@@ -165,6 +172,8 @@ impl Default for DcpConfig {
             enabled: true,
             compress_enabled: true,
             allow_subagents: true,
+            custom_prompts: false,
+            prompt_overrides: DcpPromptOverrides::default(),
             compress_permission: None,
             min_context: 1,
             min_context_percent: Some(DEFAULT_MIN_CONTEXT_PERCENT),
@@ -241,7 +250,7 @@ fn parse_limit(
 /// parsed to JSON by the caller; sources stay read-only here).
 ///
 /// Experimental `allowSubAgents` controls child-only availability;
-/// `customPrompts` is still rejected as deferred.
+/// `customPrompts` enables file-backed overrides loaded by composition.
 /// Unknown top-level keys produce warnings, never silent behavior.
 pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<String>), DcpAutoError> {
     let invalid = |reason: &str| DcpAutoError::InvalidConfig {
@@ -258,10 +267,10 @@ pub fn load_config(fragment: &serde_json::Value) -> Result<(DcpConfig, Vec<Strin
                 .as_bool()
                 .ok_or_else(|| invalid("experimental.allowSubAgents must be boolean"))?;
         }
-        if exp.get("customPrompts") == Some(&serde_json::Value::Bool(true)) {
-            return Err(DcpAutoError::UnsupportedOption {
-                reason: "customPrompts are deferred".to_string(),
-            });
+        if let Some(value) = exp.get("customPrompts") {
+            config.custom_prompts = value
+                .as_bool()
+                .ok_or_else(|| invalid("experimental.customPrompts must be boolean"))?;
         }
     }
     let known = [
@@ -1018,6 +1027,18 @@ pub(crate) fn evaluate_request(
         (NudgeForce::Hard, "last-user/iteration")
     };
     let mut nudge = reminder(state, thresholds, estimated_tokens, over_max, force);
+    if config.custom_prompts {
+        let body = if over_max {
+            &config.prompt_overrides.context_limit_nudge
+        } else if *last_user {
+            &config.prompt_overrides.turn_nudge
+        } else {
+            &config.prompt_overrides.iteration_nudge
+        };
+        if let Some(body) = body {
+            nudge.text = body.to_string();
+        }
+    }
     nudge.text = format!("{lane} reminder: {}", nudge.text);
     Some(nudge)
 }

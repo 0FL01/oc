@@ -743,6 +743,23 @@ fn file_tool_guidance(tools: &[ToolDef]) -> Option<InputItem> {
     ))
 }
 
+/// Add editable DCP prose only after tool visibility/availability is resolved.
+/// Native schema, closed-anchor/task-renewal guidance and permissions stay fixed.
+fn dcp_prompt_guidance(tools: &mut [ToolDef], config: &DcpConfig) -> Option<InputItem> {
+    if !config.custom_prompts {
+        return None;
+    }
+    let tool = tools.iter_mut().find(|tool| tool.name == COMPRESS_TOOL)?;
+    if let Some(body) = &config.prompt_overrides.compress_range {
+        tool.description = format!("{body}\n\n{}", tool.description);
+    }
+    config
+        .prompt_overrides
+        .system
+        .as_ref()
+        .map(|body| InputItem::message(InputRole::Developer, body.as_ref()))
+}
+
 /// Rough token estimate: the bytes/4 heuristic, not a counter for any
 /// specific proxy model. Admission compares it against the selected entry's
 /// declared `limit.context`/`limit.output`; a real model may count more or

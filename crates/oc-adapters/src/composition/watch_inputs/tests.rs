@@ -73,7 +73,8 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
         "mcp":{
             "servers": {"enabled": {"type":"local","command":["/bin/true"],"environment":{"TOKEN":"{file:mcp-key}"}}, "disabled": {"type":"local","disabled":true,"command":["{file:NEVER_READ_DISABLED}"]}}
         },
-        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}, {"action": "provider.use", "resource": "skipped", "effect": "deny"}]}
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}, {"action": "provider.use", "resource": "skipped", "effect": "deny"}]},
+        "dcp": {"experimental": {"customPrompts": true}}
     });
     std::fs::write(shared.join("config.json"), original.to_string()).unwrap();
     symlink(shared.join("config.json"), project.join("opencode.json")).unwrap();
@@ -92,6 +93,12 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
     .unwrap();
     // Native sidecars retain their stricter final-component no-follow contract.
     std::fs::write(native.join("dcp.json"), "{}").unwrap();
+    std::fs::create_dir_all(native.join("dcp-prompts/overrides")).unwrap();
+    std::fs::write(
+        native.join("dcp-prompts/overrides/system.md"),
+        "NATIVE_DCP_SYSTEM",
+    )
+    .unwrap();
     std::fs::write(project.join("cli.json"), "{}").unwrap();
     let loaded = load_reload_local_with_env(&project, env).await.unwrap();
     let inputs = &loaded.watch_inputs;
@@ -103,6 +110,9 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
         shared.join("mcp-key"),
         native.join("dcp.json"),
         global_real.join("AGENTS.md"),
+        native.join("dcp-prompts/overrides/system.md"),
+        native.join("dcp-prompts/overrides/turn-nudge.md"),
+        global_real.join("dcp-prompts/overrides/system.md"),
     ] {
         assert!(
             has(inputs, &file, InputKind::File),

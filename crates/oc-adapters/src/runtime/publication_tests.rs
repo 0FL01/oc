@@ -435,6 +435,11 @@ fn hot01_captured_publication_keeps_its_workspace_and_policy() {
     owner
         .reload_dcp(DcpConfig {
             debug: !captured.dcp_config.debug,
+            custom_prompts: true,
+            prompt_overrides: crate::dcp_auto::DcpPromptOverrides {
+                system: Some("G2 DCP prompt".into()),
+                ..Default::default()
+            },
             ..captured.dcp_config.clone()
         })
         .unwrap();
@@ -472,6 +477,11 @@ fn hot01_captured_publication_keeps_its_workspace_and_policy() {
             .contains("G2 body")
     );
     assert_ne!(captured.dcp_config.debug, current.dcp_config.debug);
+    assert!(captured.dcp_config.prompt_overrides.system.is_none());
+    assert_eq!(
+        current.dcp_config.prompt_overrides.system.as_deref(),
+        Some("G2 DCP prompt")
+    );
     assert_ne!(
         captured.dcp_protected.protect_tags,
         current.dcp_protected.protect_tags

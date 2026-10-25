@@ -1512,6 +1512,7 @@ impl<'a> Runtime<'a> {
         if !compress_available {
             tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
         }
+        fixed_input.extend(dcp_prompt_guidance(&mut tool_defs, &dcp_config));
         fixed_input.extend(file_tool_guidance(&tool_defs));
         if compress_available && lane.manual_compression {
             fixed_input.push(InputItem::message(InputRole::Developer, "Explicit manual DCP compression admitted for this turn only. Use the compress tool on eligible closed anchors, then finish this bounded compression request."));
@@ -2399,6 +2400,7 @@ impl<'a> Runtime<'a> {
             if !compress_available {
                 tool_defs.retain(|tool| tool.name != COMPRESS_TOOL);
             }
+            fixed_input.extend(dcp_prompt_guidance(&mut tool_defs, dcp_config));
             fixed_input.extend(file_tool_guidance(&tool_defs));
             if compress_available && lane.manual_compression {
                 fixed_input.push(InputItem::message(InputRole::Developer, "Explicit manual DCP compression admitted for this turn only. Use the compress tool on eligible closed anchors, then finish this bounded compression request."));

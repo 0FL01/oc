@@ -532,6 +532,7 @@ struct DcpAdmission {
 fn admit_dcp(
     sources: &[config::Source],
     admitted_roots: &[Option<AdmittedRoot>],
+    source_authority: &BTreeMap<String, (usize, PathBuf)>,
 ) -> Result<DcpAdmission, LoadFailure> {
     // DCP config is native data, never executable plugin code. Inline `dcp`
     // fragments follow ordinary config precedence; standalone files then layer
@@ -540,11 +541,16 @@ fn admit_dcp(
     // Every admitted source that contributed a DCP fragment: an unsupported
     // option must name the file the owner has to edit, not just the field.
     let mut dcp_sources: Vec<String> = Vec::new();
-    for admitted in admitted_roots {
+    for (index, admitted) in admitted_roots.iter().enumerate() {
         let Some(admitted) = admitted else { continue };
         let root = &admitted.path;
         for source in sources {
-            if Path::new(&source.path).parent() != Some(root.as_path()) {
+            // Canonical nested/symlinked config keeps its declaring admitted
+            // root, not the parent directory of the resolved source filename.
+            if source_authority
+                .get(&source.path)
+                .is_none_or(|(owner, _)| *owner != index)
+            {
                 continue;
             }
             let value = match config::parse_jsonc(&source.text, &source.path) {
@@ -646,6 +652,76 @@ fn admit_dcp(
         warnings: dcp_warnings,
         sources: dcp_sources,
     })
+}
+
+fn admit_dcp_prompts(
+    config: &mut dcp_auto::DcpConfig,
+    roots: &[PathBuf],
+    admitted: &[Option<AdmittedRoot>],
+    watch: &std::cell::RefCell<watch_inputs::WatchInputs>,
+) -> Result<Vec<ServiceDiagnostic>, LoadFailure> {
+    if !config.custom_prompts {
+        return Ok(Vec::new());
+    }
+    // Preserve the native root contract: Location .opencode > effective G.
+    // OPENCODE_CONFIG_DIR replaces G; no extra global or ancestor discovery.
+    let indices = [Some(roots.len() - 1), (roots.len() == 3).then_some(0)];
+    let mut notes = Vec::new();
+    let prompts = &mut config.prompt_overrides;
+    for (name, slot) in [
+        ("system.md", &mut prompts.system),
+        ("compress-range.md", &mut prompts.compress_range),
+        ("context-limit-nudge.md", &mut prompts.context_limit_nudge),
+        ("turn-nudge.md", &mut prompts.turn_nudge),
+        ("iteration-nudge.md", &mut prompts.iteration_nudge),
+    ] {
+        let relative = Path::new("dcp-prompts/overrides").join(name);
+        // Missing candidates must remain observable, including higher-priority
+        // files whose later creation replaces the current global/default body.
+        for index in indices.into_iter().flatten() {
+            watch.borrow_mut().file(&roots[index].join(&relative));
+            if let Some(root) = &admitted[index] {
+                watch.borrow_mut().file(&root.path.join(&relative));
+            }
+        }
+        for index in indices.into_iter().flatten() {
+            let Some(root) = &admitted[index] else {
+                continue;
+            };
+            let path = root.path.join(&relative);
+            let field = ["dcp", "prompts", name];
+            let file = match admitted_fs::open_beneath(&root.dir, &relative, libc::O_RDONLY) {
+                Ok(file) => file,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(_) => {
+                    return Err(failure(
+                        &path.to_string_lossy(),
+                        &field,
+                        ServiceStage::Admission,
+                        ServiceCode::TrustRefused,
+                    ));
+                }
+            };
+            watch
+                .borrow_mut()
+                .opened(&path, &file, defs::InputKind::File);
+            let text = read_bounded(file, NATIVE_CONFIG_CAP).map_err(|code| {
+                failure(&path.to_string_lossy(), &field, ServiceStage::Config, code)
+            })?;
+            if let Some(body) = dcp_auto::prompts::normalize(&text, name) {
+                *slot = Some(body);
+                break;
+            }
+            notes.push(config::diagnostic::failure(
+                &path.to_string_lossy(),
+                &field,
+                ServiceStage::Config,
+                ServiceCode::IgnoredSetting,
+                ServiceAction::ReviewConfiguration,
+            ));
+        }
+    }
+    Ok(notes)
 }
 
 struct LocalSettings {
@@ -829,10 +905,11 @@ async fn load_stages(
     let observe_dependency = |path: &Path| watch_inputs.borrow_mut().file(path);
     let source_roots = source_roots(&admitted_roots, &source_authority);
     let DcpAdmission {
-        config: dcp_config,
+        config: mut dcp_config,
         warnings: dcp_warnings,
         sources: dcp_sources,
-    } = admit_dcp(&sources, &admitted_roots)?;
+    } = admit_dcp(&sources, &admitted_roots, &source_authority)?;
+    let prompt_notes = admit_dcp_prompts(&mut dcp_config, &roots, &admitted_roots, &watch_inputs)?;
     let dcp_protected = oc_core::context_plan::ProtectedSpec {
         protect_user_messages: dcp_config.protect_user_messages,
         protect_tags: dcp_config.protect_tags,
@@ -1339,7 +1416,7 @@ async fn load_stages(
     if plugin_issues {
         startup_notices.push(StartupNotice::Plugin);
     }
-    if !dcp_warnings.is_empty() {
+    if !dcp_warnings.is_empty() || !prompt_notes.is_empty() {
         startup_notices.push(StartupNotice::Dcp);
     }
     if !instruction_diagnostics.is_empty() {
@@ -1352,9 +1429,9 @@ async fn load_stages(
     } else {
         dcp_sources.join("\0")
     };
+    let dcp_note_count = dcp_warnings.len() + prompt_notes.len();
     let dcp_notes: Vec<_> = dcp_warnings
         .iter()
-        .take(64)
         .map(|warning| {
             config::diagnostic::failure(
                 &dcp_source,
@@ -1368,6 +1445,8 @@ async fn load_stages(
                 ServiceAction::ReviewConfiguration,
             )
         })
+        .chain(prompt_notes)
+        .take(64)
         .collect();
     let config_notes: Vec<_> = generation
         .config_diagnostics
@@ -1428,7 +1507,7 @@ async fn load_stages(
     let service_diagnostics_omitted = loaded_defs.diagnostics.len().saturating_sub(64)
         + instruction_diagnostics.len().saturating_sub(64)
         + generation.config_diagnostics.len().saturating_sub(64)
-        + dcp_warnings.len().saturating_sub(64)
+        + dcp_note_count.saturating_sub(64)
         + generation
             .mcp
             .values()
@@ -2943,9 +3022,9 @@ mod tests {
         assert_eq!(loaded.provider.api_key, "in-root-key");
     }
 
-    /// An unsupported DCP option names the file the owner must edit.
+    /// Custom prompts are admitted; truly unsupported options still name their source.
     #[tokio::test]
-    async fn unsupported_dcp_option_names_its_source() {
+    async fn dcp_custom_prompts_are_supported_and_unsupported_option_names_its_source() {
         let dir = tempfile::tempdir().expect("fixture");
         let project = dir.path().join("project");
         std::fs::create_dir_all(&project).expect("project");
@@ -2961,6 +3040,13 @@ mod tests {
             r#"{"experimental": {"customPrompts": true}}"#,
         )
         .expect("dcp config");
+        let loaded = load_with_env(&project, BTreeMap::new())
+            .await
+            .expect("customPrompts must not block startup");
+        assert!(loaded.dcp_config.custom_prompts);
+        assert_eq!(loaded.dcp_config.prompt_overrides, Default::default());
+        std::fs::write(project.join("dcp.jsonc"), r#"{"autoUpdate":true}"#)
+            .expect("unsupported config");
         let error = load_with_env(&project, BTreeMap::new())
             .await
             .map(|_| ())
@@ -3203,3 +3289,7 @@ mod tests {
         }));
     }
 }
+
+#[cfg(test)]
+#[path = "composition/dcp_prompts_tests.rs"]
+mod dcp_prompts_tests;

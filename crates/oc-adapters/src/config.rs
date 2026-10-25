@@ -1836,10 +1836,12 @@ fn chat_compat(
 fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
     if let Some(exp) = raw.get("experimental") {
         // Child compression availability is validated by the native DCP loader.
-        if exp.get("customPrompts") == Some(&serde_json::Value::Bool(true)) {
-            return Err(ConfigError::UnsupportedCapability {
+        if let Some(value) = exp.get("customPrompts")
+            && !value.is_boolean()
+        {
+            return Err(ConfigError::Invalid {
                 field: "dcp.experimental.customPrompts".to_string(),
-                reason: "custom prompts are deferred".to_string(),
+                reason: "must be boolean".to_string(),
             });
         }
     }
@@ -2861,6 +2863,13 @@ mod tests {
         assert!(matches!(
             assemble(&[src("s", mode, true)], &env(&[]), None),
             Err(ConfigError::UnsupportedCapability { .. })
+        ));
+        let prompts = r#"{"dcp":{"experimental":{"customPrompts":true}}}"#;
+        assert!(assemble(&[src("s", prompts, true)], &env(&[]), None).is_ok());
+        let malformed = r#"{"dcp":{"experimental":{"customPrompts":"true"}}}"#;
+        assert!(matches!(
+            assemble(&[src("s", malformed, true)], &env(&[]), None),
+            Err(ConfigError::Invalid { field, .. }) if field == "dcp.experimental.customPrompts"
         ));
     }
 

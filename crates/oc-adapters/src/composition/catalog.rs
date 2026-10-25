@@ -139,7 +139,11 @@ async fn load_catalog_inner(
     data: Option<&Path>,
 ) -> Result<CatalogListing, LoadFailure> {
     let admitted = admit_sources(project, &env)?;
-    admit_dcp(&admitted.sources, &admitted.admitted_roots)?;
+    admit_dcp(
+        &admitted.sources,
+        &admitted.admitted_roots,
+        &admitted.source_authority,
+    )?;
     let settings = admit_settings(&admitted.sources, &admitted.admitted_roots, &env, false)?;
     let policy = settings.providers;
     let include = |id: &String| policy.allows(id);

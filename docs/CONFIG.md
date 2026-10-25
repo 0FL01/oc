@@ -327,13 +327,14 @@ Target configurable groups (qualification is required, parsing alone is not supp
 | Turn/strategies | `turnProtection.enabled`/`turns`, `strategies.deduplication.enabled`/`protectedTools`, `strategies.purgeErrors.enabled`/`turns`/`protectedTools` |
 | Display | `pruneNotification:off\|minimal\|detailed`, `pruneNotificationType:chat\|toast`; detailed/chat and showCompression=false defaults stay |
 | Children | `experimental.allowSubAgents` default true target, explicit false child-only opt-out under T45/R9/DCP10 |
+| Prompts | `experimental.customPrompts` boolean, default false; five optional range-mode overrides described below |
 
 Existing legacy root limits/manualMode boolean/purgeAfterTurns and native
 modelOverrides aliases retain their declared normalization; recommend canonical
 nested fields. Effective min≤max validation follows model-context resolution.
 Enabled/manual/module policy never widens central Deny/ask or parent-child ceilings.
-Explicit autoUpdate:true, customPrompts:true and message mode remain unsupported;
-false does not enable an updater/prompt engine. Child gates are pending R9, and
+Explicit autoUpdate:true and message mode remain unsupported;
+false does not enable an updater. Child gates are pending R9, and
 typed display modes/showCompression are pending T44/VIS38. Commands/debug are not
 qualified merely by accepted fields or old snapshot tests; their required runtime
 effects need current evidence. The percentage-default slice of DCP12 proves
@@ -365,6 +366,32 @@ plan. T51/CFG09/CFG10 owns the coordinated exact admission/provenance follow-up;
 actual child/default/control behavior remains T45/DCP10–DCP12. Preserve native
 40%/55%/false, child default true, compress switch, Ask/Deny and declared source-root/
 array differences; a new package spelling never qualifies these or full3.2.0 parity.
+
+### DCP prompt overrides
+
+`experimental.customPrompts:true` in `dcp.json(c)` (or inline `dcp`) enables
+`dcp-prompts/overrides/{system,compress-range,context-limit-nudge,turn-nudge,iteration-nudge}.md`.
+The admitted Location `.opencode` wins over effective global `G` (defined above),
+then existing native behavior is used. No extra global fallback or ancestor search
+is added. Absent/false ignores override files; no `defaults/` files are generated
+or read, and no user configuration is rewritten. `compress-message.md` is inactive
+because message mode is unsupported.
+
+Files contain plain text, not agent/system configuration. BOM, line endings and
+DCP comments are normalized; a complete outer `dcp-system-reminder` wrapper is
+normalized to one wrapper. Plain-text mentions of tags are preserved. Empty or
+unbalanced-wrapper candidates produce a source-qualified note and fall back to the
+next candidate/native default. Unsafe paths, non-regular/non-UTF-8 files and the
+existing 1 MiB native per-file cap fail closed, without printing prompt contents.
+
+`system.md` adds one DCP developer block only when `compress` is available; it never
+replaces the agent prompt, environment or instructions. Range prose cannot replace
+native schema/anchor/task-renewal guidance. The three reminder overrides change
+only the body of an already-due reminder, not thresholds, cadence or force. File
+creation/edit/deletion participates in ordinary atomic source reload: prepared
+requests/full tool batches keep captured bytes; the next fresh request adopts the
+new snapshot. Missing overrides preserve the current native text (including no
+additional DCP system block), not upstream bundled prompt defaults.
 
 ## Custom providers — T53 (approved clarification 2026-10-02; pending)
 
