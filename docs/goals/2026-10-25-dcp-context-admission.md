@@ -39,7 +39,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: targeted evidence и final offline gate успешны, diff в envelope, commits находятся в `origin/master`, locked release build создаёт `target/release/oc2`.
   - Primary evidence: scoped tests/Clippy, `bash scripts/test.sh`, Git local/remote HEAD, `cargo build -p oc2 --bin oc2 --locked --release`.
   - Status: in_progress
-  - Evidence:
+  - Evidence: commits `d647adb6d` и `d88b0090c` готовы. Полный gate: fmt/workspace Clippy PASS; initial nextest — 2378 passed, 27 failed, 18 skipped. Failed-slice rerun: 26 PASS без edits; remaining envelope исправлен после socket RED (reserved перед terminal bytes). Все 14 Python envelope tests PASS (7.848s), исходный failed native campaign PASS (4.46s), budgets/cancel guards сохранены. Remaining affected envelope consumers, doctests/build/help/version/release/push ещё не выполнены.
 
 ### Constraints
 
@@ -58,6 +58,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Runtime owners: `dcp.rs`, `compaction.rs`, `runtime.rs`, `runtime/context.rs`, `runtime/turn.rs`, `runtime_compaction.rs`, `application.rs`, существующая `storage_children/parent.rs::checkpoint_turn_with_inbox`.
 - Direct consumers/tests: существующий Owner replay в `application/authority/tests/shell.rs`, DCP/recompression/context/resume/compaction/storage-inbox/usage tests, `tests/runtime/context.rs` и capacity-assertion в `tests/runtime/turns.rs`; safe diagnostics в `application/fatal_tests.rs`.
 - R2 fallout: удалить ставший неиспользуемым content-only estimator в `mcp_result/media.rs`; MCP delivery/serialization не менять.
+- R4 blocker: минимальная правка существующего test-only HTTP envelope в `scripts/bounded_live.py` и его socket regression в `scripts/test_bounded_live.py`. Завершённый finite upstream фиксируется до выдачи терминальных байтов; quota, неизвестные/прерванные attempts, cancellation и deadlines не ослабляются.
 - Документы: эта цель и короткое уточнение accounting-контракта в `docs/ARCHITECTURE.md`.
 - В Git не попадают копия БД, ciphertext, raw user payloads и диагностические дампы.
 - Origin проверен: SSH github.com/0FL01/oc.git, текущая ветка master. Только обычный push, без force/tag/release.
@@ -72,19 +73,21 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ## Current Checkpoint
 
 - Closes: R4.
-- Smallest next action: commit проверенного R2/R3; один полный offline gate, locked release build и обычный push в проверенный origin/master.
-- Expected evidence: успешный `bash scripts/test.sh`, `target/release/oc2`, совпадающие local/remote HEAD и чистый worktree.
+- Smallest next action: commit проверенного finite-response fix; оставшиеся affected envelope consumers без повторного Python suite, затем незапущенные doctests/build/help/version, locked release и push.
+- Expected evidence: все стадии offline gate успешны по совокупности полного run, failed/affected slices и оставшихся стадий; исходный exit 100 остаётся в evidence. `target/release/oc2`, совпадающие local/remote HEAD и чистый worktree. Полный suite повторно не запускать по AGENTS.md.
 - Stop or replan if: обнаружен чужой concurrent diff, нарушена data/permission boundary или минимальный fix выходит за frozen envelope.
 
 ## Current State
 
 - Resolved: R1/R2/R3. DCP replay и независимый accounting/v0 path GREEN; атомарный nudge и безопасная capacity projection проверены.
-- Last relevant evidence: 15 relevant adapter unit cases PASS, включая исходный Owner replay (3.21s), accounting/v0 reopen (1.41s) и summary retry/reload (3.60s); `cargo clippy -p oc-adapters --lib --tests --locked -- -D warnings` PASS (33.48s); полный diff сверен с frozen contract.
-- Blocker: none.
-- Next: R4 — final offline gate, release build, commit/push и closure.
+- Last relevant evidence: finite-response socket regression воспроизвёл reserved до terminal delivery; после owner fix все 14 envelope tests и исходный failed native campaign PASS. 26 прочих initial failures прошли без edits; их причина не объявляется доказанной. Полная компиляция ранее заняла 27m01s; 305s envelope failure был ожиданием невозможного settlement, не медленным coding campaign.
+- Blocker: нет подтверждённого blocker после envelope fix; R4 ещё не закрыт до remaining gates/build/push.
+- Next: affected envelope consumers, remaining gates/release/push/closure. Runtime и PTY fixture-классификацию дополнительно не менять на основании неповторившихся падений.
 
 ## Material Decisions
 
+- 2026-10-25: integration evidence собирается по стадиям: один полный gate и только failed/affected reruns после ошибки, как требует AGENTS.md. Initial exit 100 не переименовывается в PASS; утверждение о single-run whole-suite GREEN запрещено.
+- 2026-10-25: R4 expanded только на существующий offline HTTP envelope и regression: два одинаковых settlement failures блокируют обязательный gate. Не подменять uncertain/reserved на complete по cancellation; ранний complete допустим лишь после доказанного полного чтения finite upstream body.
 - 2026-10-25: проверка irreducible MCP отказа выявила ожидаемый direct-consumer fallout нового InputBudget; обновить только capacity-assertions там и в fresh-turn retry, сохранив zero-provider/no-history/no-compaction и остальные InvalidArgs проверки.
 - 2026-10-25: scoped Clippy подтвердил отсутствие runtime consumers старого content-only estimator после объединения accounting; удалить его и зависимый MCP helper вместо dead-code allow или сохранения двух оценок.
 - 2026-10-25: literal v0 compatibility вместо перепривязки старого measurement; новая запись только после подлинного usage. Исторический source set не угадывается.
@@ -96,6 +99,9 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-25: контракт зафиксирован; текущий checkpoint R1.
 - 2026-10-25: R1 verified; original replay GREEN, captured blocks и rows обновляются вместе, checkpoint не является ложным gain. Следующий checkpoint R2/R3.
 - 2026-10-25: R2/R3 verified; 15 targeted cases, scoped Clippy и diff check PASS. Accounting/v0, nudge transaction, typed capacity и документированный контракт готовы к commit; следующий checkpoint R4.
+- 2026-10-25: R2/R3 committed (`d88b0090c`). R4 full gate failed (2378/27/18); runtime/test limits не менялись. Следующий checkpoint — exact native failure и offline-envelope diagnosis, не повтор полного suite.
+- 2026-10-25: 26/27 failed-slice rerun PASS без edits; остался offline-envelope settlement (campaign steps PASS, relay attempt uncertain). Достижимая гонка локализована между terminal delivery и ledger finish; следующий checkpoint — socket RED/GREEN без ослабления envelope guards.
+- 2026-10-25: finite-response regression RED→GREEN; Python 14/14 и native five-step campaign PASS. Завершённый upstream фиксируется до terminal delivery, действительно прерванные attempts остаются consumed/uncertain. Следующий checkpoint — remaining gates/release/push.
 
 ## Completion
 

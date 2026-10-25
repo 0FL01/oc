@@ -481,6 +481,17 @@ def forward(client, ledger, routes):
                 break
             total += len(chunk)
             require(total <= RESPONSE_CAP, "response_limit")
+            if response.length == 0:
+                # The finite upstream body is complete. A client can close as
+                # soon as it sees a terminal SSE item, letting poll() reap us;
+                # persist this known outcome before handing out the last bytes.
+                # Incomplete/chunked responses still get no completion credit.
+                outcome = "complete"
+                try:
+                    ledger.finish(attempt, outcome, receipt)
+                except Exception:
+                    pass  # The already durable reservation remains consumed.
+                attempt = None
             client.sendall(chunk)
         outcome = "complete"
     except Exception as error:

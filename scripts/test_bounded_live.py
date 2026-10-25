@@ -17,7 +17,7 @@ import threading
 import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import bounded_live as envelope
 
@@ -208,6 +208,32 @@ class EnvelopeTests(unittest.TestCase):
                     worker.join()
             queue.close()
             queue.join_thread()
+            peer.close()
+
+    def test_finite_upstream_is_settled_before_terminal_delivery(self):
+        peer = Peer()
+        upstream, client = socket.socketpair()
+        try:
+            raw = json.dumps(GEN).encode()
+            client.sendall(b"POST /provider/responses HTTP/1.1\r\nhost: fixture\r\ncontent-length: " + str(len(raw)).encode() + b"\r\n\r\n" + raw)
+            observed, sent = [], bytearray()
+            sendall = upstream.sendall
+
+            def relay(data):
+                sent.extend(data)
+                if sent.endswith(b"data: offline\n\n"):
+                    attempt = self.ledger.snapshot()["attempts"][0]
+                    observed.append((attempt["outcome"], attempt.get("http_status")))
+                sendall(data)
+
+            forwarding = Mock(wraps=upstream)
+            forwarding.sendall.side_effect = relay
+            envelope.forward(forwarding, self.ledger, envelope.targets(manifest(peer), True))
+            self.assertEqual(observed, [("complete", 200)])
+            self.assertEqual(self.ledger.snapshot()["counts"]["generation"], 1)
+        finally:
+            upstream.close()
+            client.close()
             peer.close()
 
     def test_reservation_crash_is_consumed_on_restart(self):
