@@ -33,89 +33,41 @@ pub(crate) struct UsageAnchor {
     pub prefix: String,
     pub items: usize,
     pub tokens: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub noncausal_tokens: Option<u64>,
 }
 
 pub(crate) fn fingerprint(value: &impl serde::Serialize) -> String {
     use sha2::{Digest as _, Sha256};
-    format!(
-        "{:x}",
-        Sha256::digest(serde_json::to_vec(value).expect("context serialization"))
-    )
+    struct Writer(Sha256);
+    impl std::io::Write for Writer {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.update(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut writer = Writer(Sha256::new());
+    serde_json::to_writer(&mut writer, value).expect("context serialization");
+    format!("{:x}", writer.0.finalize())
 }
 
 impl UsageAnchor {
-    pub fn estimate(&self, scope: &str, input: &[crate::provider::InputItem]) -> Option<u64> {
+    pub fn suffix<'a, 'i>(
+        &self,
+        scope: &str,
+        input: &'a [&'i crate::provider::InputItem],
+    ) -> Option<&'a [&'i crate::provider::InputItem]> {
         let prefix = input.get(..self.items)?;
         if self.scope != scope || self.prefix != fingerprint(&prefix) {
             return None;
         }
-        let added = estimate_tail(&input[self.items..]);
-        Some(self.tokens.saturating_add(added))
+        // Only this prefix is measured. Runtime admission must price every new
+        // item, including opaque output from a later response without usage.
+        Some(&input[self.items..])
     }
-}
-
-/// Pinned util/token.ts uses JS string length / 4 rounded to nearest.
-/// Count content rather than JSON wire envelopes, ids, or opaque ciphertext.
-fn estimate_tail(input: &[crate::provider::InputItem]) -> u64 {
-    use crate::provider::{InputContent, InputItem};
-    let text = |s: &str| (s.encode_utf16().count() as u64).saturating_add(2) / 4;
-    input.iter().fold(0u64, |total, item| {
-        let tokens = match item {
-            InputItem::EffortUpdate { .. } => 0,
-            InputItem::Message { content, .. } => content
-                .iter()
-                .map(|part| match part {
-                    InputContent::InputText { text: s } | InputContent::OutputText { text: s } => {
-                        text(s)
-                    }
-                    InputContent::InputImage { .. } => 1_500,
-                })
-                .sum(),
-            InputItem::FunctionCallOutput { output, .. } => text(output),
-            InputItem::McpFunctionCallOutput { output, .. } => output.estimated_tokens(),
-            InputItem::ReadFunctionCallOutput { output, .. } => output.estimated_tokens(),
-            InputItem::ProviderOutput(value) => match value["type"].as_str() {
-                Some("function_call") => text(&format!(
-                    "{}{}",
-                    value["name"].as_str().unwrap_or_default(),
-                    value["arguments"].as_str().unwrap_or_default()
-                )),
-                Some("message" | "reasoning") => value
-                    .get("content")
-                    .or_else(|| value.get("summary"))
-                    .and_then(|parts| parts.as_array())
-                    .map(|parts| {
-                        parts
-                            .iter()
-                            .map(|p| text(p["text"].as_str().unwrap_or_default()))
-                            .sum()
-                    })
-                    .unwrap_or(0),
-                // Native opaque replacements have no locally measurable size.
-                _ => 0,
-            },
-        };
-        total.saturating_add(tokens)
-    })
-}
-
-/// Pinned estimateTokens without a reported primary usage anchor: content of
-/// messages plus initial instructions and actual offered tool schemas.
-pub(crate) fn estimate_context(
-    fixed: &[crate::provider::InputItem],
-    history: &[crate::provider::InputItem],
-    pending: &[crate::provider::InputItem],
-    tools: &[crate::provider::ToolDef],
-) -> u64 {
-    tools.iter().fold(
-        estimate_tail(fixed)
-            .saturating_add(estimate_tail(history))
-            .saturating_add(estimate_tail(pending)),
-        |sum, tool| {
-            let text = format!("{}{}{}", tool.name, tool.description, tool.parameters);
-            sum.saturating_add((text.encode_utf16().count() as u64).saturating_add(2) / 4)
-        },
-    )
 }
 
 pub fn route_identity(
@@ -190,6 +142,19 @@ impl CompactionConfig {
                     .unwrap_or(u64::MAX),
             );
         self.auto && context > 0 && input >= ceiling
+    }
+    pub(crate) fn required_for_budget(
+        &self,
+        input: u64,
+        context: u64,
+        output: u64,
+        input_limit: Option<u64>,
+        admitted_input: u64,
+    ) -> bool {
+        // Clamp the existing soft ceiling to admission; do not subtract the
+        // buffer again from an already reserved output/safety budget.
+        self.required(input, context, output, input_limit)
+            || (self.auto && context > 0 && input >= admitted_input)
     }
 }
 
@@ -372,19 +337,7 @@ mod usage_tests {
     }
 
     #[test]
-    fn compaction_content_fallback_and_exact_limit_boundary() {
-        let fixed = [InputItem::message(InputRole::Developer, "12345678")];
-        let history = [InputItem::message(InputRole::User, "1234")];
-        let pending = [InputItem::FunctionCallOutput {
-            call_id: "unmeasured-envelope-id".into(),
-            output: "123456789012".into(),
-        }];
-        let tools = [crate::provider::ToolDef {
-            name: "name".into(),
-            description: "desc".into(),
-            parameters: serde_json::json!({}),
-        }];
-        assert_eq!(estimate_context(&fixed, &history, &pending, &tools), 9); // 2+1+3+round(10/4)
+    fn compaction_exact_limit_boundary() {
         let c = CompactionConfig::default();
         assert!(!c.required(19_999, 40_000, 2_048, None));
         assert!(c.required(20_000, 40_000, 2_048, None));
@@ -393,6 +346,10 @@ mod usage_tests {
         assert!(!c.required(67_999, 100_000, 100_000, None));
         assert!(c.required(68_000, 100_000, 100_000, None));
         assert!(!c.required(u64::MAX, 0, 2_048, None));
+        assert!(c.required_for_budget(448_976, 500_000, 4096, Some(450_000), 448_976));
+        assert!(!c.required_for_budget(70_000, 100_000, 20_000, None, 78_976));
+        let no_buffer = CompactionConfig { buffer: 0, ..c };
+        assert!(no_buffer.required_for_budget(448_976, 500_000, 4096, Some(450_000), 448_976));
     }
 
     #[test]
@@ -408,16 +365,21 @@ mod usage_tests {
             prefix: fingerprint(&input),
             items: input.len(),
             tokens: 24800,
+            noncausal_tokens: Some(0),
         };
         input.push(InputItem::FunctionCallOutput {
             call_id: "call".into(),
             output: "new tool result".into(),
         });
         input.push(InputItem::message(InputRole::User, "next"));
-        assert_eq!(anchor.estimate(&anchor.scope, &input), Some(24805));
-        assert_eq!(anchor.estimate("different-model", &input), None);
+        let refs = input.iter().collect::<Vec<_>>();
+        assert_eq!(anchor.suffix(&anchor.scope, &refs), Some(&refs[2..]));
+        assert_eq!(anchor.suffix("different-model", &refs), None);
         input[0] = InputItem::message(InputRole::User, "DCP changed request");
-        assert_eq!(anchor.estimate(&anchor.scope, &input), None);
+        assert_eq!(
+            anchor.suffix(&anchor.scope, &input.iter().collect::<Vec<_>>()),
+            None
+        );
         assert!(!CompactionConfig::default().required(24800, 0, 2048, None));
     }
 }

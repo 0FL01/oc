@@ -537,7 +537,7 @@ async fn t47_admission_counts_tool_schemas_and_rechecks_tool_results() {
             // The irreducible request now includes tool schemas before durable
             // admission or compaction spend, rather than failing a started turn.
             assert!(
-                matches!(&result, Err(RuntimeError::InvalidArgs(message)) if message.contains("exceeds context"))
+                matches!(&result, Err(RuntimeError::InputBudget { input, cap, .. }) if input > cap)
             );
             assert_eq!(*hits.lock().unwrap(), 0);
             assert!(harness.db.read_history("s").unwrap().is_empty());

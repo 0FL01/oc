@@ -204,35 +204,6 @@ impl McpToolOutput {
         Ok(prepared.logging_failed)
     }
 
-    pub(crate) fn estimated_tokens(&self) -> u64 {
-        let text: u64 = self
-            .texts
-            .iter()
-            .map(|s| (s.encode_utf16().count() as u64 + 2) / 4)
-            .sum();
-        self.facts["content"]
-            .as_array()
-            .expect("validated content")
-            .iter()
-            .fold(text, |n, part| {
-                let (mime, bytes) = match part["type"].as_str() {
-                    Some("image" | "audio") => (part["mimeType"].as_str(), part["data"].as_str()),
-                    Some("resource") if part["resource"]["blob"].is_string() => (
-                        part["resource"]["mimeType"].as_str(),
-                        part["resource"]["blob"].as_str(),
-                    ),
-                    _ => return n,
-                };
-                n.saturating_add(1_500).saturating_add(
-                    if mime.is_some_and(|m| m.starts_with("image/")) {
-                        0
-                    } else {
-                        bytes.map_or(0, |b| b.len() as u64 / 4)
-                    },
-                )
-            })
-    }
-
     pub(crate) fn needs_native_log(&self) -> bool {
         self.media
             || self.facts.get("_meta").is_some()

@@ -545,6 +545,7 @@ mod tests {
             prefix: "completed-prefix".into(),
             items: 2,
             tokens: 123,
+            noncausal_tokens: Some(17),
         };
         let before = db.turn_result("t").unwrap();
         db.conn.lock().unwrap().execute_batch("CREATE TRIGGER refuse_usage BEFORE INSERT ON session_usage_anchor BEGIN SELECT RAISE(ABORT,'usage checkpoint refused'); END;").unwrap();

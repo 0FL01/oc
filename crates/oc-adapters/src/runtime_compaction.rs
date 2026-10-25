@@ -185,6 +185,71 @@ impl Drop for DeliveryOwnership<'_> {
 
 const PROMPT: &str = "Summarize only what the user and assistant said and did. Preserve user requirements, decisions, unresolved questions, exact paths and consequential work state. Do not repeat system instructions, AGENTS.md or environment setup. Do not continue the task or call tools. Return only concise Markdown with applicable sections: ## Objective, ## Requirements, ## Decisions, ## Work State, ## Next Move, ## Relevant Files, ## Important Context. Update a previous checkpoint into one consolidated summary; newer history takes precedence.";
 
+pub(super) fn usage_scope<'a>(
+    legacy: &str,
+    sources: impl Iterator<Item = &'a crate::instructions::Source>,
+) -> String {
+    let sources = sources
+        .filter(|source| source.content.is_some())
+        .map(|source| {
+            (
+                &source.path,
+                &source.root,
+                &source.origin,
+                &source.digest,
+                &source.content,
+            )
+        })
+        .collect::<Vec<_>>();
+    // Fact event/revision/placement are delivery metadata, not changed source
+    // semantics. Preserve source order and bind the actual admitted content.
+    crate::compaction::fingerprint(&("usage-v2", legacy, sources))
+}
+
+pub(super) fn usage_causal<'a>(
+    input: impl Iterator<Item = &'a InputItem>,
+    facts: &[InputItem],
+) -> Vec<&'a InputItem> {
+    // Match only whole typed Fact renderings supplied by the runtime. User text
+    // resembling an instruction header remains part of the causal prefix.
+    input.filter(|item| !facts.contains(item)).collect()
+}
+
+pub(super) fn usage_tokens(input: &[&InputItem]) -> Result<u64, RuntimeError> {
+    Ok(estimate_input_tokens_from_bytes(
+        serialized_size(&input)?,
+        input.iter().copied(),
+    ))
+}
+
+pub(super) fn usage_estimate(
+    anchor: Option<&crate::compaction::UsageAnchor>,
+    scopes: (&str, &str),
+    input: &[&InputItem],
+    legacy_input: &[&InputItem],
+    noncausal_tokens: u64,
+) -> Result<Option<u64>, RuntimeError> {
+    let Some(anchor) = anchor else {
+        return Ok(None);
+    };
+    let (scope, input, previous) = match anchor.noncausal_tokens {
+        Some(previous) => (scopes.0, input, previous),
+        // Validate v0 literally, with the producer's pre-reconciliation scope
+        // and original item indices. Unknown old overhead receives no credit;
+        // only a genuine subsequent primary usage writes a new-format anchor.
+        None => (scopes.1, legacy_input, 0),
+    };
+    let Some(suffix) = anchor.suffix(scope, input) else {
+        return Ok(None);
+    };
+    Ok(Some(
+        anchor
+            .tokens
+            .saturating_add(usage_tokens(suffix)?)
+            .saturating_add(noncausal_tokens.saturating_sub(previous)),
+    ))
+}
+
 impl Runtime<'_> {
     fn protection_admission_receipt(
         &self,
@@ -212,19 +277,15 @@ impl Runtime<'_> {
     pub(super) fn compaction_estimate(
         &self,
         session: &str,
-        scope: &str,
-        history: &[InputItem],
-        tail: &[InputItem],
+        measured: Option<u64>,
         fallback: u64,
     ) -> Result<Option<u64>, RuntimeError> {
-        let input: Vec<_> = history.iter().chain(tail).cloned().collect();
-        if let Some(anchor) = self.db.usage_anchor(session)?
-            && let Some(measured) = anchor.estimate(scope, &input)
-        {
-            return Ok(Some(measured));
+        if measured.is_some() {
+            return Ok(measured);
         }
         // A completed checkpoint must get one primary response before another
-        // automatic compaction. Opaque replacement sizes cannot be inferred.
+        // automatic compaction. This suppression never bypasses hard admission;
+        // its numeric fallback and independent byte guard still apply.
         Ok(self
             .db
             .session_checkpoint(session)?

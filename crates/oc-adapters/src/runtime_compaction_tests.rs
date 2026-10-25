@@ -132,6 +132,211 @@ async fn respond(socket: &mut tokio::net::TcpStream, body: &str) {
     socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
 }
 
+#[test]
+fn usage_accounting_prices_unmeasured_opaque_and_binds_typed_sources() {
+    use crate::instructions::{Fact, Origin, Source};
+    let source = Source::baseline(
+        std::path::Path::new("/project/AGENTS.md"),
+        std::path::Path::new("/project"),
+        Origin::Project,
+        "instruction body",
+    );
+    let old = Fact {
+        event: 1,
+        source: source.clone(),
+        change: "initial".into(),
+        revision: 1,
+    };
+    let mut current = old.clone();
+    current.event = 9;
+    current.revision = 7;
+    current.source.generation = 5;
+    current.change = "changed".into();
+    let scope = usage_scope("fixed/tools/route/variant", std::iter::once(&source));
+    assert_eq!(
+        scope,
+        usage_scope(
+            "fixed/tools/route/variant",
+            std::iter::once(&current.source)
+        )
+    );
+    let user = InputItem::message(
+        InputRole::User,
+        "Instructions from: user-authored text stays causal",
+    );
+    let old_input = [old.input(), user.clone()];
+    let facts = [old.input(), current.input()];
+    let prefix = usage_causal(old_input.iter(), &facts);
+    assert_eq!(prefix, [&user]);
+    let anchor = crate::compaction::UsageAnchor {
+        scope: scope.clone(),
+        prefix: crate::compaction::fingerprint(&prefix),
+        items: prefix.len(),
+        tokens: 31_942,
+        noncausal_tokens: Some(100),
+    };
+    let opaque = InputItem::ProviderOutput(
+        serde_json::json!({"type":"reasoning","encrypted_content":"x".repeat(4000)}),
+    );
+    let input = [user, current.input(), opaque];
+    let causal = usage_causal(input.iter(), &facts);
+    let suffix = usage_tokens(&causal[1..]).unwrap();
+    assert!(
+        suffix >= 1000,
+        "unreported later opaque output is not measured"
+    );
+    for (overhead, growth) in [(100, 0), (130, 30), (70, 0)] {
+        assert_eq!(
+            usage_estimate(Some(&anchor), (&scope, "v0"), &causal, &[], overhead).unwrap(),
+            Some(31_942 + suffix + growth)
+        );
+    }
+    let changed = Source::baseline(
+        std::path::Path::new("/project/AGENTS.md"),
+        std::path::Path::new("/project"),
+        Origin::Project,
+        "changed body",
+    );
+    for invalid in [
+        usage_scope("fixed/tools/route/variant", std::iter::once(&changed)),
+        usage_scope("fixed/tools/route/variant", std::iter::empty()),
+    ] {
+        assert_eq!(
+            usage_estimate(Some(&anchor), (&invalid, "v0"), &causal, &[], 100).unwrap(),
+            None
+        );
+    }
+    assert_ne!(
+        usage_scope("fixed", [&source, &changed].into_iter()),
+        usage_scope("fixed", [&changed, &source].into_iter())
+    );
+}
+
+#[tokio::test]
+async fn measured_context_and_v0_reopen_keep_opaque_and_settled_effects() {
+    tokio::time::timeout(Duration::from_secs(20), async {
+        let data = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        let source = project.path().join("AGENTS.md");
+        std::fs::write(&source, "MEASURED_ADMITTED_INSTRUCTION\n").unwrap();
+        let root = crate::instructions::Root {
+            path: project.path().into(), dir: Arc::new(std::fs::File::open(project.path()).unwrap()),
+            origin: crate::instructions::Origin::Project,
+            baseline: Some(Arc::new(crate::instructions::Source::baseline(&source, project.path(), crate::instructions::Origin::Project, "MEASURED_ADMITTED_INSTRUCTION\n"))),
+        };
+        let mut generation = Generation::default();
+        generation.permissions.insert("read".into(), Permission::Allow);
+        generation.permissions.insert("bash".into(), Permission::Allow);
+        generation.permissions.insert("compress".into(), Permission::Deny);
+        let mut models = catalog();
+        models.models.insert("m".into(), serde_json::json!({"limit":{"context":100000,"input":90000,"output":4096}}));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let provider = config(&listener);
+        let effects = project.path().join("effects");
+        let peer = tokio::spawn(async move {
+            for index in 0..4 {
+                let (mut socket, body) = read_request(&listener).await;
+                assert!(body["input"].to_string().contains("MEASURED_ADMITTED_INSTRUCTION"));
+                assert!(!body["tools"].as_array().unwrap().is_empty(), "not a summary request");
+                if index > 0 {
+                    assert!(body["input"].as_array().unwrap().iter().any(|item| item["id"] == "measured-opaque" && item["encrypted_content"].as_str().is_some_and(|s| s.len() == 400000)));
+                }
+                if index >= 2 {
+                    assert!(body["input"].to_string().contains("MEASURED_SETTLED"));
+                    assert_eq!(std::fs::read(&effects).unwrap(), b"x");
+                }
+                let mut output = vec![serde_json::json!({"type":"message","role":"assistant","content":[{"type":"output_text","text":"settled"}]})];
+                if index == 0 {
+                    output.insert(0, serde_json::json!({"type":"reasoning","id":"measured-opaque","encrypted_content":"x".repeat(400000),"summary":[]}));
+                } else if index == 1 {
+                    output = vec![serde_json::json!({"type":"function_call","id":"effect-item","call_id":"effect","name":"bash","arguments":"{\"argv\":[\"/bin/sh\",\"-c\",\"printf x >> effects; printf MEASURED_SETTLED\"]}"})];
+                }
+                let mut response = serde_json::json!({"status":"completed","output":output});
+                if index < 3 {
+                    response["usage"] = serde_json::json!({"input_tokens":30000,"output_tokens":1942,"total_tokens":31942});
+                }
+                respond(&mut socket, &format!("data: {}\n\n", serde_json::json!({"type":"response.completed","response":response}))).await;
+            }
+        });
+        let db = Db::open(data.path()).unwrap();
+        db.create_bound_session("s", "work").unwrap();
+        let running = runtime(&db, project.path(), generation.clone());
+        running.update_execution(|view| view.workspace.instruction_roots = vec![root.clone()]);
+        let cancel = AtomicBool::new(false);
+        let first = running.run_turn(TurnParams {
+            session:"s".into(), prompt:"first".into(), invocation:None, catalog:&models,
+            model_id:"m".into(), variant:None, max_output:4096, provider:provider.clone(), cancel:&cancel,
+        }).await.unwrap();
+        assert_eq!(first.status, TurnStatus::Completed);
+        let first_log = TurnLog::from_json(&serde_json::from_str(&db.turn_result(&first.turn_id).unwrap().1.unwrap()).unwrap()).unwrap();
+        let binding = first_log.requests.last().unwrap().binding.as_ref().unwrap().clone();
+        let published = running.current.read().unwrap().clone();
+        let lane = running.primary_lane(&published);
+        let active = running.active_projection("s").unwrap();
+        let (history, _) = running.wire_history_with_child_notices("s", &active.projected, &active.blocks, "m", "fixture", lane.agent_digest.as_deref(), active.after_seq, Some(&binding), |_| false).unwrap();
+        let second = running.run_turn(TurnParams {
+            session:"s".into(), prompt:"use once".into(), invocation:None, catalog:&models,
+            model_id:"m".into(), variant:None, max_output:4096, provider:provider.clone(), cancel:&cancel,
+        }).await.unwrap();
+        assert_eq!(second.status, TurnStatus::Completed, "{:?}", second.diagnostic);
+        let log = TurnLog::from_json(&serde_json::from_str(&db.turn_result(&second.turn_id).unwrap().1.unwrap()).unwrap()).unwrap();
+        assert_eq!(log.requests.len(), 2);
+        for receipt in &log.requests {
+            assert!((31942..40000).contains(&receipt.estimated_input));
+            assert!(receipt.estimated_input <= receipt.input_limit);
+        }
+        assert!(serialized_size(&log.input).unwrap() + serialized_size(&history).unwrap() > 400000);
+        assert!(db.compaction_history("s").unwrap().is_empty());
+        assert!(db.load_compression_blocks("s").unwrap().is_empty());
+        assert_eq!(std::fs::read(project.path().join("effects")).unwrap(), b"x");
+
+        // Persist the actual four-field producer format, not a relabelled v2
+        // scope. Facts already in history keep their original literal indices.
+        let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules).with_root(project.path());
+        let mut tools = selected_tool_defs("m");
+        tools.retain(|tool| policy.tool_visible(&tool.name) && tool.name != COMPRESS_TOOL);
+        let mut fixed = running.request_fixed_input(&lane);
+        fixed.extend(file_tool_guidance(&tools));
+        let legacy_scope = crate::compaction::fingerprint(&(
+            crate::compaction::route_for_binding("m", &binding), &fixed, &tools, &Option::<String>::None,
+        ));
+        let marks = db.load_dcp_tool_projection("s").unwrap();
+        let prefix = super::super::context::dcp_continuation(&history, &log.input, &marks);
+        let literal = serde_json::json!({"scope":legacy_scope,"prefix":crate::compaction::fingerprint(&prefix),"items":prefix.len(),"tokens":31942});
+        let anchor: crate::compaction::UsageAnchor = serde_json::from_value(literal.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&anchor).unwrap(), literal);
+        let refs = prefix.iter().collect::<Vec<_>>();
+        assert_eq!(usage_estimate(Some(&anchor), ("v2", "changed fixed"), &[], &refs, 0).unwrap(), None);
+        let accepted = db.accept_turn("failed-tail", "s", "failed tail", "failed tail", &ModelRef {provider:"fixture".into(),id:"m".into(),variant:None}).unwrap();
+        let mut failed = TurnLog::new("failed-tail", "m", "fixture");
+        failed.user_message = Some(accepted.user_message);
+        failed.input.push(InputItem::message(InputRole::User, "failed tail"));
+        db.checkpoint_turn_usage("failed-tail", "s", &failed.to_json().to_string(), Some(&anchor)).unwrap();
+        db.commit_turn("failed-tail", "failed", Some(&failed.to_json().to_string()), None).unwrap();
+        running.shutdown_mcp().await.unwrap();
+        drop(running);
+        drop(db);
+        let db = Db::open(data.path()).unwrap();
+        generation.compaction.auto = false;
+        let running = runtime(&db, project.path(), generation);
+        running.update_execution(|view| view.workspace.instruction_roots = vec![root]);
+        let resumed = running.run_turn(TurnParams {
+            session:"s".into(), prompt:"continue".into(), invocation:None, catalog:&models,
+            model_id:"m".into(), variant:None, max_output:4096, provider, cancel:&cancel,
+        }).await.unwrap();
+        assert_eq!(resumed.status, TurnStatus::Completed, "{:?}", resumed.diagnostic);
+        let resumed_log = TurnLog::from_json(&serde_json::from_str(&db.turn_result(&resumed.turn_id).unwrap().1.unwrap()).unwrap()).unwrap();
+        assert_eq!(resumed_log.requests.len(), 1);
+        assert!(resumed_log.requests[0].estimated_input < resumed_log.requests[0].input_limit);
+        assert_eq!(serde_json::to_value(db.usage_anchor("s").unwrap().unwrap()).unwrap(), literal, "no invented upgrade after response without usage");
+        assert!(db.compaction_history("s").unwrap().is_empty());
+        assert_eq!(db.list_tool_ops("s").unwrap().len(), 1);
+        assert_eq!(std::fs::read(project.path().join("effects")).unwrap(), b"x");
+        running.shutdown_mcp().await.unwrap();
+        peer.await.unwrap();
+    }).await.expect("measured context and v0 reopen finish within 20 seconds");
+}
+
 #[tokio::test]
 async fn compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork() {
     let data = tempfile::tempdir().unwrap();
@@ -1513,7 +1718,7 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
             &mut |_, _| {},
         )
         .await;
-    assert!(matches!(result, Err(RuntimeError::InvalidArgs(_))));
+    assert!(matches!(result, Err(RuntimeError::InputBudget { input, cap, .. }) if input > cap));
     assert!(db.compaction_history("s").unwrap().is_empty());
     assert!(db.session_checkpoint("s").unwrap().is_none());
     assert_eq!(db.read_history_full("s").unwrap().len(), 2);

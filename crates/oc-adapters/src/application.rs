@@ -481,9 +481,9 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
     let code = match error {
         RuntimeError::McpShutdown => ServiceCode::CleanupFailed,
         RuntimeError::Storage => ServiceCode::StorageUnavailable,
-        RuntimeError::ContextOverflow { .. } | RuntimeError::McpCatalogLimit => {
-            ServiceCode::CapacityExceeded
-        }
+        RuntimeError::ContextOverflow { .. }
+        | RuntimeError::InputBudget { .. }
+        | RuntimeError::McpCatalogLimit => ServiceCode::CapacityExceeded,
         RuntimeError::Cancelled => ServiceCode::Cancelled,
         RuntimeError::ApprovalRequired { .. } => ServiceCode::ApprovalRequired,
         RuntimeError::QuestionRequired => ServiceCode::QuestionRequired,
@@ -511,6 +511,13 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
             issue.diagnostic.action = ServiceAction::RestartApplication;
         }
         RuntimeError::ContextOverflow { .. } => {
+            issue.diagnostic.stage = ServiceStage::Admission;
+            issue.diagnostic.action = ServiceAction::ReduceCapacity;
+        }
+        RuntimeError::InputBudget { .. } => {
+            // Capacity is request admission, not failed initialization/config.
+            // Project the type, never the internal model/warning exception text.
+            issue.diagnostic.field = vec!["request".into(), "input".into()];
             issue.diagnostic.stage = ServiceStage::Admission;
             issue.diagnostic.action = ServiceAction::ReduceCapacity;
         }

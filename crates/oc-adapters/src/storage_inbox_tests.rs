@@ -51,7 +51,7 @@ fn deliver(db: &Db, log: &mut crate::tools::TurnLog) -> Vec<InboxDelivered> {
             .unwrap(),
         );
         delivered.extend(
-            db.checkpoint_turn_with_inbox("s", log, &[], Some(&steer), None)
+            db.checkpoint_turn_with_inbox("s", log, &[], Some(&steer), None, None)
                 .unwrap(),
         );
     }
@@ -275,13 +275,54 @@ fn failed_acceptance_and_checkpoint_leave_the_admitted_input_pending() {
     ));
     db.conn.lock().unwrap().execute_batch("CREATE TRIGGER reject_checkpoint BEFORE UPDATE ON turns BEGIN SELECT RAISE(ABORT,'injected checkpoint failure'); END;").unwrap();
     assert!(
-        db.checkpoint_turn_with_inbox("s", &mut log, &[], Some(&steer), None)
+        db.checkpoint_turn_with_inbox("s", &mut log, &[], Some(&steer), None, None)
             .is_err()
     );
     assert!(db.inbox_read("s", &item.id).unwrap().is_some());
     assert_eq!(
         db.read_history("s").unwrap(),
         [("user".into(), "first".into())]
+    );
+    db.conn.lock().unwrap().execute_batch("DROP TRIGGER reject_checkpoint; CREATE TRIGGER reject_nudge BEFORE INSERT ON prefs WHEN NEW.key='nudge-test' BEGIN SELECT RAISE(ABORT,'injected nudge failure'); END;").unwrap();
+    db.set_pref("selection-test", "captured").unwrap();
+    let before = db.turn_result("t").unwrap();
+    let before_log = log.to_json();
+    assert!(
+        db.checkpoint_turn_with_inbox(
+            "s",
+            &mut log,
+            &[],
+            Some(&steer),
+            Some(("selection-test", "command", Some("captured"))),
+            Some(("nudge-test", "prepared")),
+        )
+        .is_err()
+    );
+    assert_eq!(db.turn_result("t").unwrap(), before);
+    assert_eq!(log.to_json(), before_log);
+    assert!(db.inbox_read("s", &item.id).unwrap().is_some());
+    assert_eq!(
+        db.get_pref("selection-test").unwrap().as_deref(),
+        Some("captured")
+    );
+    assert!(db.get_pref("nudge-test").unwrap().is_none());
+    db.conn
+        .lock()
+        .unwrap()
+        .execute_batch("DROP TRIGGER reject_nudge;")
+        .unwrap();
+    db.checkpoint_turn_with_inbox(
+        "s",
+        &mut log,
+        &[],
+        Some(&steer),
+        Some(("selection-test", "command", Some("captured"))),
+        Some(("nudge-test", "prepared")),
+    )
+    .unwrap();
+    assert_eq!(
+        db.get_pref("nudge-test").unwrap().as_deref(),
+        Some("prepared")
     );
 }
 
@@ -549,9 +590,17 @@ fn withdrawn_steer_and_later_selection_cannot_be_overwritten_by_prepared_deliver
     db.inbox_set_delivery("s", &item.id, InboxDelivery::Queue)
         .unwrap();
     assert!(matches!(
-        db.checkpoint_turn_with_inbox("s", &mut log, &[], Some(&steer), None),
+        db.checkpoint_turn_with_inbox(
+            "s",
+            &mut log,
+            &[],
+            Some(&steer),
+            None,
+            Some(("nudge-test", "preview"))
+        ),
         Err(StorageError::CompressionConflict)
     ));
+    assert!(db.get_pref("nudge-test").unwrap().is_none());
     db.inbox_set_delivery("s", &item.id, InboxDelivery::Steer)
         .unwrap();
     db.set_pref("selection-test", "newer explicit commit")
@@ -562,6 +611,7 @@ fn withdrawn_steer_and_later_selection_cannot_be_overwritten_by_prepared_deliver
         &[],
         Some(&steer),
         Some(("selection-test", "command", "captured".into())),
+        None,
     )
     .unwrap();
     assert_eq!(

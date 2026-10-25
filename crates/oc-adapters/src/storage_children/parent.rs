@@ -293,6 +293,7 @@ impl Db {
         represented: &[String],
         steer: Option<&crate::storage::inbox::InboxSteer>,
         selection: Option<(&str, &str, Option<&str>)>,
+        nudge: Option<(&str, &str)>,
     ) -> Result<Vec<oc_core::queries::InboxDelivered>, StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
@@ -324,6 +325,11 @@ impl Db {
             if current.as_deref() == expected {
                 Self::upsert_pref(&tx, key, value)?;
             }
+        }
+        // A prepared reminder must not consume inbox input and then fail a
+        // separate preference write. Publish its cache only after this commit.
+        if let Some((key, value)) = nudge {
+            Self::upsert_pref(&tx, key, value)?;
         }
         tx.commit()?;
         *log = next;

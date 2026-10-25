@@ -1507,22 +1507,6 @@ impl<'a> Runtime<'a> {
             .iter()
             .map(crate::instructions::Fact::input)
             .collect::<Vec<_>>();
-        history.retain(|item| !prior_instruction_input.contains(item));
-        // Pre-admission counts the same source layer. Durable identities are
-        // allocated only with the accepted turn's checkpoint below.
-        for source in &instruction_sources {
-            if source.content.is_some() {
-                fixed_input.push(
-                    crate::instructions::Fact {
-                        event: 0,
-                        source: source.clone(),
-                        change: "initial".into(),
-                        revision: instruction_revision + 1,
-                    }
-                    .input(),
-                );
-            }
-        }
         let mut tool_defs = selected_tool_defs(&selection.id);
         tool_defs.retain(|tool| policy.tool_visible(&tool.name));
         if !compress_available {
@@ -1543,6 +1527,38 @@ impl<'a> Runtime<'a> {
             tool_defs.push(subagent_tool_def(catalog, &policy));
         }
         tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
+        // This is exactly the v0 producer's fixed layer, before typed Facts.
+        // Keep its literal identity for bounded, read-only legacy validation.
+        let legacy_scope = crate::compaction::fingerprint(&(
+            crate::compaction::route_identity(
+                &params.catalog.provider,
+                &selection.id,
+                params
+                    .provider
+                    .for_selection(&selection.id, params.variant.as_deref()),
+            )
+            .map_err(|_| RuntimeError::Provider)?,
+            &fixed_input,
+            &tool_defs,
+            &params.variant,
+        ));
+        let usage_scope = super::compaction::usage_scope(&legacy_scope, instruction_sources.iter());
+        let mut accounting_facts = prior_instruction_input;
+        // Durable Fact identities are allocated only after acceptance. Their
+        // preview labels must not invalidate unchanged source measurements.
+        for source in &instruction_sources {
+            if source.content.is_some() {
+                let input = crate::instructions::Fact {
+                    event: 0,
+                    source: source.clone(),
+                    change: "initial".into(),
+                    revision: instruction_revision + 1,
+                }
+                .input();
+                fixed_input.push(input.clone());
+                accounting_facts.push(input);
+            }
+        }
         let prompt_input = if let Some((_, input)) = &native_input {
             vec![input.clone()]
         } else if let Some(log) = &resume {
@@ -1563,8 +1579,12 @@ impl<'a> Runtime<'a> {
         if let Some(text) = &plan_reminder {
             history.push(InputItem::message(InputRole::System, text));
         }
-        let admitted_history = dcp_continuation(&history, &[], &tool_projection);
-        crate::attachments::admit_images(&selection.entry, &admitted_history, &prompt_input)
+        let legacy_history = dcp_continuation(&history, &[], &tool_projection);
+        let admitted_history = legacy_history
+            .iter()
+            .filter(|item| !accounting_facts.contains(item))
+            .collect::<Vec<_>>();
+        crate::attachments::admit_images(&selection.entry, &legacy_history, &prompt_input)
             .map_err(RuntimeError::InvalidArgs)?;
         let admission_bytes = super::compaction::serialized_size(&(
             &fixed_input,
@@ -1573,32 +1593,41 @@ impl<'a> Runtime<'a> {
             &tool_defs,
         ))?;
         if admission_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
-            return Err(RuntimeError::InvalidArgs(
-                "active context byte limit exceeded".into(),
-            ));
+            return Err(RuntimeError::ContextOverflow {
+                bytes: admission_bytes,
+                cap: ACTIVE_CONTEXT_BYTES_CAP,
+            });
         }
-        let assembled_estimate = estimate_input_tokens(
-            &serde_json::to_string(&(&fixed_input, &admitted_history, &prompt_input, &tool_defs))
-                .map_err(|_| RuntimeError::Storage)?,
+        let fallback = estimate_input_tokens_from_bytes(
+            admission_bytes,
             fixed_input
                 .iter()
-                .chain(&admitted_history)
+                .chain(admitted_history.iter().copied())
                 .chain(&prompt_input),
         );
+        let causal = super::compaction::usage_causal(
+            admitted_history.iter().copied().chain(&prompt_input),
+            &accounting_facts,
+        );
+        let legacy_input = legacy_history
+            .iter()
+            .chain(&prompt_input)
+            .collect::<Vec<_>>();
+        let noncausal_tokens = super::compaction::usage_tokens(
+            &fixed_input
+                .iter()
+                .filter(|item| accounting_facts.contains(item))
+                .collect::<Vec<_>>(),
+        )?;
+        let measured = super::compaction::usage_estimate(
+            self.db.usage_anchor(&params.session)?.as_ref(),
+            (&usage_scope, &legacy_scope),
+            &causal,
+            &legacy_input,
+            noncausal_tokens,
+        )?;
+        let assembled_estimate = measured.unwrap_or(fallback);
         let compaction_config = published.config.compaction.clone();
-        let usage_scope = crate::compaction::fingerprint(&(
-            crate::compaction::route_identity(
-                &params.catalog.provider,
-                &selection.id,
-                params
-                    .provider
-                    .for_selection(&selection.id, params.variant.as_deref()),
-            )
-            .map_err(|_| RuntimeError::Provider)?,
-            &fixed_input,
-            &tool_defs,
-            &params.variant,
-        ));
         let compaction_context = selection
             .entry
             .pointer("/limit/context")
@@ -1606,13 +1635,19 @@ impl<'a> Runtime<'a> {
             .unwrap_or(0);
         // A new prompt that cannot fit even with an empty history cannot be
         // repaired by summarization. Refuse before spending a summary request.
-        let irreducible = estimate_input_tokens(
-            &serde_json::to_string(&(&fixed_input, &prompt_input, &tool_defs))
-                .map_err(|_| RuntimeError::Storage)?,
-            fixed_input.iter().chain(&prompt_input),
+        // Resumed accepted work is a measured causal prefix, not a new prompt.
+        // Fixed instructions/schemas and genuinely new input remain irreducible.
+        let new_input = if resume.is_some() {
+            &[][..]
+        } else {
+            prompt_input.as_slice()
+        };
+        let irreducible = estimate_input_tokens_from_bytes(
+            super::compaction::serialized_size(&(&fixed_input, new_input, &tool_defs))?,
+            fixed_input.iter().chain(new_input),
         );
         models::admit_budget(&selection, irreducible, budget)
-            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            .map_err(|error| admission_budget_error(error, None))?;
         let compaction_output = selection
             .entry
             .pointer("/limit/output")
@@ -1626,37 +1661,24 @@ impl<'a> Runtime<'a> {
             && !params.cancel.load(Ordering::Relaxed)
             && !history.is_empty()
             && self
-                .compaction_estimate(
-                    &params.session,
-                    &usage_scope,
-                    &admitted_history,
-                    &prompt_input,
-                    crate::compaction::estimate_context(
-                        &fixed_input,
-                        &admitted_history,
-                        &prompt_input,
-                        &tool_defs,
-                    ),
-                )?
+                .compaction_estimate(&params.session, measured, fallback)?
                 .is_some_and(|estimate| {
-                    compaction_config.required(
+                    compaction_config.required_for_budget(
                         estimate,
                         compaction_context,
                         compaction_output,
                         compaction_input,
+                        budget.input,
                     )
                 });
         // Irreducible schema-inclusive admission has passed. If repairable
         // history requires compaction, promote the genuine user first; its
         // admission receipt and pre-context precede the summary lifecycle.
         if !compaction_due && !params.cancel.load(Ordering::Relaxed) {
-            models::admit_budget(&selection, assembled_estimate, budget).map_err(|error| {
-                RuntimeError::InvalidArgs(match &budget.warning {
-                    Some(warning) => format!("{error}; {warning}"),
-                    None => error.to_string(),
-                })
-            })?;
+            models::admit_budget(&selection, assembled_estimate, budget)
+                .map_err(|error| admission_budget_error(error, budget.warning.as_deref()))?;
         }
+        history.retain(|item| !accounting_facts.contains(item));
         if probe {
             return Ok(TurnExecution::Admitted);
         }
@@ -2349,9 +2371,7 @@ impl<'a> Runtime<'a> {
             // including binding-only refreshes and resumed unfinished tails.
             let anchors = {
                 let mut rows = projected.clone();
-                if turn_log.raw_prefix.is_none()
-                    && !rows.iter().any(|row| row.0 == user_message)
-                {
+                if turn_log.raw_prefix.is_none() && !rows.iter().any(|row| row.0 == user_message) {
                     rows.push((user_message.clone(), "user".into(), String::new()));
                 }
                 dcp_config_input(&rows, &projected_blocks, dcp_config, compress_available)
@@ -2389,7 +2409,7 @@ impl<'a> Runtime<'a> {
                 tool_defs.push(subagent_tool_def(catalog, &policy));
             }
             tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
-            let usage_scope = crate::compaction::fingerprint(&(
+            let legacy_scope = crate::compaction::fingerprint(&(
                 crate::compaction::route_identity(
                     &params.catalog.provider,
                     &selection.id,
@@ -2428,6 +2448,10 @@ impl<'a> Runtime<'a> {
                 roots: Some(self.roots.clone()),
             };
             let instruction_facts = self.db.instruction_view(&params.session)?.1;
+            let usage_scope = super::compaction::usage_scope(
+                &legacy_scope,
+                instruction_facts.iter().map(|fact| &fact.source),
+            );
             let latest_instruction_input = instruction_facts
                 .iter()
                 .map(crate::instructions::Fact::input)
@@ -2477,28 +2501,131 @@ impl<'a> Runtime<'a> {
                 &projected_continuation,
                 &instruction_facts,
             );
-            let boundary_estimate = crate::compaction::estimate_context(
-                &fixed_input,
-                &projected_continuation,
-                &[],
-                &tool_defs,
-            );
+            let usage_anchor = self.db.usage_anchor(&params.session)?;
+            let legacy_continuation = if usage_anchor
+                .as_ref()
+                .is_some_and(|anchor| anchor.noncausal_tokens.is_none())
+            {
+                let mut input = turn_log.input_for_bound(
+                    &selection.id,
+                    &params.catalog.provider,
+                    Some(&binding),
+                    Some(&lane.request_profile()),
+                );
+                input.extend(staged_notice_input.iter().cloned());
+                input.extend(rich_input.iter().cloned());
+                dcp_continuation(&history, &input, &tool_projection)
+            } else {
+                Vec::new()
+            };
+            let cadence_messages = if compress_available && !lane.manual_compression {
+                self.dcp_cadence_messages(
+                    &params.session,
+                    &projected,
+                    &turn_log,
+                    &staged_notice_ids,
+                )?
+            } else {
+                Vec::new()
+            };
+            // Preview only: a summary replacement, failed admission or withdrawn
+            // steer must not consume cadence. Physical retries share one commit.
+            let mut preview_state = self
+                .nudge_state
+                .lock()
+                .expect("nudge lock")
+                .get(&state_key)
+                .cloned()
+                .unwrap_or_default();
+            let mut preview_iteration = last_nudged_iteration.clone();
+            let nudge = if compress_available && !lane.manual_compression {
+                let iteration = (rounds, state_key.clone());
+                if preview_iteration.as_ref() != Some(&iteration) {
+                    preview_state.on_turn();
+                    preview_iteration = Some(iteration);
+                }
+                let estimate = estimate_input_tokens_from_bytes(
+                    super::compaction::serialized_size(&(
+                        fixed_input.as_slice(),
+                        projected_continuation.as_slice(),
+                    ))?,
+                    fixed_input.iter().chain(&projected_continuation),
+                );
+                evaluate_request(
+                    dcp_config,
+                    &mut preview_state,
+                    dcp_model_key,
+                    model_context,
+                    estimate,
+                    active_summary_tokens(&projected),
+                    &cadence_messages,
+                )
+            } else {
+                None
+            };
+            let persisted_nudge =
+                serde_json::to_string(&preview_state).map_err(|_| RuntimeError::Storage)?;
+            let nudge_input = nudge.as_ref().map(|nudge| {
+                InputItem::message(
+                    InputRole::Developer,
+                    format!(
+                        "DCP reminder ({}): {}",
+                        match nudge.force {
+                            crate::dcp_auto::NudgeForce::Soft => "advisory",
+                            crate::dcp_auto::NudgeForce::Hard => "required before more work",
+                        },
+                        nudge.text
+                    ),
+                )
+            });
+            let (escaped_bytes, noncausal_tokens, measured, request_estimate) = {
+                let input = fixed_input
+                    .iter()
+                    .chain(nudge_input.iter())
+                    .chain(anchors.iter())
+                    .chain(&projected_continuation)
+                    .collect::<Vec<_>>();
+                let bytes = super::compaction::serialized_size(&(&input, &tool_defs))?;
+                let noncausal = fixed_input
+                    .iter()
+                    .chain(&projected_continuation)
+                    .filter(|item| previous_instruction_input.contains(item))
+                    .chain(nudge_input.iter())
+                    .chain(anchors.iter())
+                    .collect::<Vec<_>>();
+                let noncausal_tokens = super::compaction::usage_tokens(&noncausal)?;
+                let causal = super::compaction::usage_causal(
+                    projected_continuation.iter(),
+                    &previous_instruction_input,
+                );
+                let legacy = legacy_continuation.iter().collect::<Vec<_>>();
+                let measured = super::compaction::usage_estimate(
+                    usage_anchor.as_ref(),
+                    (&usage_scope, &legacy_scope),
+                    &causal,
+                    &legacy,
+                    noncausal_tokens,
+                )?;
+                // Provider usage measures the unchanged prefix, including its
+                // opaque representation. Only unmeasured suffix and positive
+                // overhead growth are estimated; byte safety is independent.
+                let estimate = measured.unwrap_or_else(|| {
+                    estimate_input_tokens_from_bytes(bytes, input.iter().copied())
+                });
+                (bytes, noncausal_tokens, measured, estimate)
+            };
+            // Candidate borrows end before compaction can replace the journal.
             let automatic_due = last_compacted_round != Some(rounds)
                 && (!history.is_empty() || closed_boundary.is_some())
                 && self
-                    .compaction_estimate(
-                        &params.session,
-                        &usage_scope,
-                        &projected_continuation,
-                        &[],
-                        boundary_estimate,
-                    )?
+                    .compaction_estimate(&params.session, measured, request_estimate)?
                     .is_some_and(|estimate| {
-                        compaction_config.required(
+                        compaction_config.required_for_budget(
                             estimate,
                             compaction_context,
                             compaction_output,
                             compaction_input,
+                            budget.input,
                         )
                     });
             if automatic_due {
@@ -2630,110 +2757,13 @@ impl<'a> Runtime<'a> {
                 // Rebuild the next primary through the same admission boundary.
                 continue 'step;
             }
-            // Compaction re-evaluation is the same logical primary iteration,
-            // not another nudge tick. Finite pre-output retries share it too.
-            let cadence_messages = if compress_available && !lane.manual_compression {
-                self.dcp_cadence_messages(
-                    &params.session,
-                    &projected,
-                    &turn_log,
-                    &staged_notice_ids,
-                )?
-            } else {
-                Vec::new()
-            };
-            let baseline_bytes = {
-                let input: Vec<_> = fixed_input
-                    .iter()
-                    .chain(anchors.iter())
-                    .chain(&projected_continuation)
-                    .collect();
-                super::compaction::serialized_size(&(&input, &tool_defs))?
-            };
-            if baseline_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
-                let error = RuntimeError::ContextOverflow {
-                    bytes: baseline_bytes,
-                    cap: ACTIVE_CONTEXT_BYTES_CAP,
-                };
-                Self::terminal_error(&mut turn_log, "context_overflow", error.to_string());
-                let report = self.commit_turn(
-                    &turn_log,
-                    turn_id,
-                    &params.session,
-                    TurnStatus::Failed,
-                    text,
-                    rounds,
-                    streamed_ms(streamed),
-                    usage,
-                    context_usage,
-                    calls,
-                    nudge_hint,
-                    &published,
-                )?;
-                return Ok(TurnExecution::Report(Box::new(report)));
-            }
-            let (nudge, persisted_nudge) = {
-                let estimate = estimate_input_tokens(
-                    &serde_json::to_string(&(
-                        fixed_input.as_slice(),
-                        projected_continuation.as_slice(),
-                    ))
-                    .map_err(|_| RuntimeError::Storage)?,
-                    fixed_input.iter().chain(&projected_continuation),
-                );
-                let mut states = self.nudge_state.lock().expect("nudge lock");
-                let state = states.entry(state_key.clone()).or_default();
-                let nudge = if compress_available && !lane.manual_compression {
-                    let iteration = (rounds, state_key.clone());
-                    if last_nudged_iteration.as_ref() != Some(&iteration) {
-                        state.on_turn();
-                        last_nudged_iteration = Some(iteration);
-                    }
-                    evaluate_request(
-                        dcp_config,
-                        state,
-                        dcp_model_key,
-                        model_context,
-                        estimate,
-                        active_summary_tokens(&projected),
-                        &cadence_messages,
-                    )
-                } else {
-                    None
-                };
-                (
-                    nudge,
-                    serde_json::to_string(state).map_err(|_| RuntimeError::Storage)?,
-                )
-            };
-            self.db.set_pref(&state_key, &persisted_nudge)?;
-            let nudge_input = nudge.as_ref().map(|nudge| {
-                InputItem::message(
-                    InputRole::Developer,
-                    format!(
-                        "DCP reminder ({}): {}",
-                        match nudge.force {
-                            crate::dcp_auto::NudgeForce::Soft => "advisory",
-                            crate::dcp_auto::NudgeForce::Hard => "required before more work",
-                        },
-                        nudge.text
-                    ),
-                )
-            });
-            if let Some(nudge) = &nudge {
-                nudge_hint = Some(nudge.text.clone());
-                self.stats.lock().expect("stats lock").nudges_emitted += 1;
-            }
-            let continuation =
-                dcp_continuation(&history, &current_instruction_input, &tool_projection);
-            crate::instructions::reconcile(&mut fixed_input, &continuation, &instruction_facts);
+            let continuation = projected_continuation;
             let input: Vec<_> = fixed_input
                 .iter()
                 .chain(nudge_input.iter())
                 .chain(anchors.iter())
                 .chain(&continuation)
                 .collect();
-            let escaped_bytes = super::compaction::serialized_size(&(&input, &tool_defs))?;
             if escaped_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
                 let error = RuntimeError::ContextOverflow {
                     bytes: escaped_bytes,
@@ -2768,13 +2798,8 @@ impl<'a> Runtime<'a> {
                 }
                 return Err(RuntimeError::InvalidArgs(error));
             }
-            let request_estimate = estimate_input_tokens(
-                &serde_json::to_string(&(&input, &tool_defs)).map_err(|_| RuntimeError::Storage)?,
-                input.iter(),
-            );
-            let read_context_bytes = serde_json::to_vec(&input)
+            let read_context_bytes = usize::try_from(super::compaction::serialized_size(&input)?)
                 .map_err(|_| RuntimeError::Storage)?
-                .len()
                 .saturating_add(
                     input
                         .iter()
@@ -2812,6 +2837,12 @@ impl<'a> Runtime<'a> {
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
+            let mut nudge_preview = Some((
+                preview_state,
+                preview_iteration,
+                persisted_nudge,
+                nudge.as_ref().map(|nudge| nudge.text.clone()),
+            ));
             let mut represented_notices = history_notices.clone();
             represented_notices.extend(staged_notice_ids.iter().cloned());
             represented_notices.extend(self.db.emitted_native_notices(
@@ -2949,6 +2980,9 @@ impl<'a> Runtime<'a> {
                     &unassigned_notices,
                     steer.as_ref(),
                     selected,
+                    nudge_preview
+                        .as_ref()
+                        .map(|(_, _, value, _)| (state_key.as_str(), value.as_str())),
                 ) {
                     Ok(delivered) => delivered,
                     Err(StorageError::CompressionConflict) => {
@@ -2960,6 +2994,19 @@ impl<'a> Runtime<'a> {
                     }
                     Err(error) => return Err(error.into()),
                 };
+                // The preference was committed with inbox delivery. Publish
+                // once, before the next fallible operation; retries reuse it.
+                if let Some((state, iteration, _, hint)) = nudge_preview.take() {
+                    self.nudge_state
+                        .lock()
+                        .expect("nudge lock")
+                        .insert(state_key.clone(), state);
+                    last_nudged_iteration = iteration;
+                    if let Some(hint) = hint {
+                        nudge_hint = Some(hint);
+                        self.stats.lock().expect("stats lock").nudges_emitted += 1;
+                    }
+                }
                 if steer.take().is_some()
                     && let Some(prepared) = &pending
                 {
@@ -3577,12 +3624,24 @@ impl<'a> Runtime<'a> {
             let measured_usage = if let Some((input, output)) = generation.usage
                 && input > 0
             {
-                let measured_prefix = dcp_continuation(&history, &turn_log.input, &tool_projection);
+                let bound = turn_log.instruction_input_for_bound(
+                    &selection.id,
+                    &params.catalog.provider,
+                    &instruction_facts,
+                    Some(&binding),
+                    Some(&lane.request_profile()),
+                );
+                let measured_input = dcp_continuation(&history, &bound, &tool_projection);
+                let measured_prefix = super::compaction::usage_causal(
+                    measured_input.iter(),
+                    &previous_instruction_input,
+                );
                 Some(crate::compaction::UsageAnchor {
                     scope: usage_scope.clone(),
                     prefix: crate::compaction::fingerprint(&measured_prefix),
                     items: measured_prefix.len(),
                     tokens: input.saturating_add(output),
+                    noncausal_tokens: Some(noncausal_tokens),
                 })
             } else {
                 None

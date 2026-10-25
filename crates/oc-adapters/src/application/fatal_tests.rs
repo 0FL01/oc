@@ -59,6 +59,49 @@ impl Fixture {
     }
 }
 
+#[test]
+fn input_budget_refusal_preserves_safe_admission_diagnostic() {
+    let error = RuntimeError::InputBudget {
+        model: CANARY.into(),
+        input: 101,
+        cap: 100,
+        warning: Some(format!("https://{CANARY}\u{1b}[31m")),
+    };
+    let CoreError::Diagnostic(diagnostic) = runtime_error(error) else {
+        panic!("typed capacity diagnostic")
+    };
+    Fixture::safe(&diagnostic);
+    assert_eq!(diagnostic.kind, ServiceKind::Runtime);
+    assert_eq!(diagnostic.stage, ServiceStage::Admission);
+    assert_eq!(diagnostic.code, ServiceCode::CapacityExceeded);
+    assert_eq!(diagnostic.action, ServiceAction::ReduceCapacity);
+    assert_eq!(diagnostic.field, ["request", "input"]);
+    assert_eq!(
+        runtime_issue(
+            "fixture",
+            &["request"],
+            &RuntimeError::InvalidArgs(CANARY.into())
+        )
+        .diagnostic
+        .code,
+        ServiceCode::InvalidConfig
+    );
+    let byte = runtime_issue(
+        "fixture",
+        &["request"],
+        &RuntimeError::ContextOverflow {
+            bytes: 101,
+            cap: 100,
+        },
+    )
+    .diagnostic;
+    Fixture::safe(&byte);
+    assert_eq!(
+        (byte.stage, byte.code),
+        (ServiceStage::Admission, ServiceCode::CapacityExceeded)
+    );
+}
+
 #[tokio::test]
 async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_and_atomic() {
     let fixture = Fixture::new();

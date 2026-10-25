@@ -26,19 +26,19 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: исправленный аудит, accounting и compatibility.
   - Acceptance: next submit и tool continuation с настоящим admitted AGENTS и opaque payload проходят без summary/compress при подходящем measurement; совместимый сохранённый v0 anchor после reopen работает с auto=false; новый неизмеренный suffix не тарифицируется за ноль.
   - Primary evidence: независимый context-only regression, v0 reopen regression, anchor/suffix unit tests.
-  - Status: in_progress
-  - Evidence:
+  - Status: verified
+  - Evidence: independent measured-context/AGENTS/opaque next-submit + tool-continuation + literal v0 reopen при auto=false PASS (1.41s); unknown opaque suffix и source identity unit PASS; usage rollback/reopen, resumed prefix и checkpoint guards PASS. Никакой summary, eager upgrade или повторный tool effect не понадобились.
 - R3: captured preparation, атомарность inbox/nudge и честная безопасная capacity-диагностика сохраняются.
   - Source: исправленный аудит, lifecycle/error projection; просьба объяснить причины комментариями к коду.
   - Acceptance: optional nudge preference коммитится с существующим inbox checkpoint, память публикуется один раз после commit; capacity не становится initialize/invalid_config; code comments объясняют изменённые инварианты.
   - Primary evidence: ближайший inbox rollback test, safe diagnostic test, affected checkpoint/irreducible/byte/retry/no-replay regressions.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: inbox/nudge write rollback и withdrawn-steer conflict PASS; safe typed budget diagnostic PASS; schema-inclusive irreducible, native capability, byte overflow, summary retry/reload и no-replay slices PASS. Scoped adapter Clippy и diff check PASS; комментарии объясняют accounting/legacy/transaction boundaries.
 - R4: доставить проверенные изменения, обычные commits/push в проверенный origin и release binary.
   - Source: последний запрос пользователя.
   - Acceptance: targeted evidence и final offline gate успешны, diff в envelope, commits находятся в `origin/master`, locked release build создаёт `target/release/oc2`.
   - Primary evidence: scoped tests/Clippy, `bash scripts/test.sh`, Git local/remote HEAD, `cargo build -p oc2 --bin oc2 --locked --release`.
-  - Status: pending
+  - Status: in_progress
   - Evidence:
 
 ### Constraints
@@ -56,7 +56,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 ## Change Envelope
 
 - Runtime owners: `dcp.rs`, `compaction.rs`, `runtime.rs`, `runtime/context.rs`, `runtime/turn.rs`, `runtime_compaction.rs`, `application.rs`, существующая `storage_children/parent.rs::checkpoint_turn_with_inbox`.
-- Direct consumers/tests: существующий Owner replay в `application/authority/tests/shell.rs`, DCP/recompression/context/resume/compaction/storage-inbox/usage tests и `tests/runtime/context.rs`; safe diagnostics в `application/fatal_tests.rs`.
+- Direct consumers/tests: существующий Owner replay в `application/authority/tests/shell.rs`, DCP/recompression/context/resume/compaction/storage-inbox/usage tests, `tests/runtime/context.rs` и capacity-assertion в `tests/runtime/turns.rs`; safe diagnostics в `application/fatal_tests.rs`.
+- R2 fallout: удалить ставший неиспользуемым content-only estimator в `mcp_result/media.rs`; MCP delivery/serialization не менять.
 - Документы: эта цель и короткое уточнение accounting-контракта в `docs/ARCHITECTURE.md`.
 - В Git не попадают копия БД, ciphertext, raw user payloads и диагностические дампы.
 - Origin проверен: SSH github.com/0FL01/oc.git, текущая ветка master. Только обычный push, без force/tag/release.
@@ -70,20 +71,22 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R2/R3.
-- Smallest next action: общий measured-prefix/serialized-suffix accounting и strict v0 branch; затем интеграция candidate preparation с атомарным nudge preference.
-- Expected evidence: независимый контекст без DCP, v0 reopen при auto=false, suffix без usage не бесплатный; прежние byte/irreducible/checkpoint guards сохранены.
+- Closes: R4.
+- Smallest next action: commit проверенного R2/R3; один полный offline gate, locked release build и обычный push в проверенный origin/master.
+- Expected evidence: успешный `bash scripts/test.sh`, `target/release/oc2`, совпадающие local/remote HEAD и чистый worktree.
 - Stop or replan if: обнаружен чужой concurrent diff, нарушена data/permission boundary или минимальный fix выходит за frozen envelope.
 
 ## Current State
 
-- Resolved: R1. DCP domain/refresh/resume/measurement исправлены; исходный replay GREEN. Это не заменяет независимую проверку accounting R2.
-- Last relevant evidence: direct adapter unit binary `oc_adapters-0406160fd5967598`, пять targeted cases PASS; после использования canonical accepted-tail ID resume и Owner replay повторно PASS (1.02s / 2.92s); scoped `cargo clippy -p oc-adapters --lib --tests --locked -- -D warnings` PASS.
+- Resolved: R1/R2/R3. DCP replay и независимый accounting/v0 path GREEN; атомарный nudge и безопасная capacity projection проверены.
+- Last relevant evidence: 15 relevant adapter unit cases PASS, включая исходный Owner replay (3.21s), accounting/v0 reopen (1.41s) и summary retry/reload (3.60s); `cargo clippy -p oc-adapters --lib --tests --locked -- -D warnings` PASS (33.48s); полный diff сверен с frozen contract.
 - Blocker: none.
-- Next: R2/R3 → R4.
+- Next: R4 — final offline gate, release build, commit/push и closure.
 
 ## Material Decisions
 
+- 2026-10-25: проверка irreducible MCP отказа выявила ожидаемый direct-consumer fallout нового InputBudget; обновить только capacity-assertions там и в fresh-turn retry, сохранив zero-provider/no-history/no-compaction и остальные InvalidArgs проверки.
+- 2026-10-25: scoped Clippy подтвердил отсутствие runtime consumers старого content-only estimator после объединения accounting; удалить его и зависимый MCP helper вместо dead-code allow или сохранения двух оценок.
 - 2026-10-25: literal v0 compatibility вместо перепривязки старого measurement; новая запись только после подлинного usage. Исторический source set не угадывается.
 - 2026-10-25: существующий compaction buffer сохраняется; hard budget ограничивает soft ceiling, а не маскируется повышением model limits.
 - 2026-10-25: nudge preference использует существующий inbox transaction, без отдельного write после consumption.
@@ -92,6 +95,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 - 2026-10-25: контракт зафиксирован; текущий checkpoint R1.
 - 2026-10-25: R1 verified; original replay GREEN, captured blocks и rows обновляются вместе, checkpoint не является ложным gain. Следующий checkpoint R2/R3.
+- 2026-10-25: R2/R3 verified; 15 targeted cases, scoped Clippy и diff check PASS. Accounting/v0, nudge transaction, typed capacity и документированный контракт готовы к commit; следующий checkpoint R4.
 
 ## Completion
 

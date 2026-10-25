@@ -541,7 +541,7 @@ async fn rejected_fresh_turn_leaves_no_root_or_selection_and_can_retry() {
     over_budget.catalog = &tiny_catalog;
     assert!(matches!(
         rejected(over_budget, Some((key, "choice"))).await,
-        Err(RuntimeError::InvalidArgs(_))
+        Err(RuntimeError::InputBudget { input, cap, .. }) if input > cap
     ));
     assert_eq!(
         rejected(

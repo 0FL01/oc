@@ -119,6 +119,13 @@ pub enum RuntimeError {
         /// Configured safety budget.
         cap: usize,
     },
+    /// The primary request exceeded its captured model input budget.
+    InputBudget {
+        model: String,
+        input: u64,
+        cap: u64,
+        warning: Option<String>,
+    },
     /// Malformed runtime input (empty Location, bad command, over-cap).
     InvalidArgs(String),
     /// Explicit cancellation drained to durable records.
@@ -175,6 +182,18 @@ impl std::fmt::Display for RuntimeError {
                 f,
                 "active context is {bytes} bytes, above the {cap} byte safety budget; compress the session or start a new one"
             ),
+            Self::InputBudget {
+                model,
+                input,
+                cap,
+                warning,
+            } => {
+                write!(f, "model {model} input {input} exceeds context {cap}")?;
+                if let Some(warning) = warning {
+                    write!(f, "; {warning}")?;
+                }
+                Ok(())
+            }
             Self::InvalidArgs(reason) => write!(f, "invalid args: {reason}"),
             Self::Cancelled => write!(f, "cancelled"),
         }
@@ -187,6 +206,18 @@ impl From<StorageError> for RuntimeError {
             StorageError::SessionNotFound => Self::SessionNotFound,
             _ => Self::Storage,
         }
+    }
+}
+
+fn admission_budget_error(error: models::SelectError, warning: Option<&str>) -> RuntimeError {
+    match error {
+        models::SelectError::OverContext { id, input, context } => RuntimeError::InputBudget {
+            model: id,
+            input,
+            cap: context,
+            warning: warning.map(str::to_owned),
+        },
+        other => RuntimeError::InvalidArgs(other.to_string()),
     }
 }
 
@@ -724,15 +755,17 @@ pub fn estimate_tokens(text: &str) -> u64 {
 // Preserve the existing JSON/text and native-read estimate, but do not charge
 // inline base64 as prompt text. Images use the same 1500-token heuristic as
 // compaction; independent serialized-byte guards still see the whole payload.
-fn estimate_input_tokens<'a>(serialized: &str, input: impl Iterator<Item = &'a InputItem>) -> u64 {
-    let mut bytes = serialized.len();
+fn estimate_input_tokens_from_bytes<'a>(
+    mut bytes: u64,
+    input: impl Iterator<Item = &'a InputItem>,
+) -> u64 {
     let mut media = 0u64;
     for item in input {
         match item {
             InputItem::Message { content, .. } => {
                 for part in content {
                     if let crate::provider::InputContent::InputImage { image_url, .. } = part {
-                        bytes = bytes.saturating_sub(image_url.len());
+                        bytes = bytes.saturating_sub(image_url.len() as u64);
                         media = media.saturating_add(1500);
                     }
                 }
@@ -745,7 +778,7 @@ fn estimate_input_tokens<'a>(serialized: &str, input: impl Iterator<Item = &'a I
             _ => {}
         }
     }
-    (bytes as u64 / 4).saturating_add(media)
+    (bytes / 4).saturating_add(media)
 }
 
 /// One bounded literal command expansion: `$ARGUMENTS` gets all args,

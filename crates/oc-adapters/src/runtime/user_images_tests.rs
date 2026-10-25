@@ -283,5 +283,8 @@ async fn clipboard_images_refuse_invalid_media_and_unknown_capability_before_fre
         *image_url = format!("data:image/png;base64,{}", "A".repeat(64 * 1024));
     }
     let wire = serde_json::to_string(&item).unwrap();
-    assert!((1500..1600).contains(&estimate_input_tokens(&wire, std::iter::once(&item))));
+    assert!((1500..1600).contains(&estimate_input_tokens_from_bytes(
+        wire.len() as u64,
+        std::iter::once(&item)
+    )));
 }
