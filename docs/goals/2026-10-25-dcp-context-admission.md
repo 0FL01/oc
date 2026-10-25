@@ -1,6 +1,6 @@
 # Goal: исправить DCP и устойчивый отказ context admission
 
-Status: active
+Status: complete
 Source: запрос пользователя о полном устранении блокировки; исправленный план после параллельного аудита; «Делай копию плана в цель и итеративно реализовать и коммит пуш билд».
 Last updated: 2026-10-25
 
@@ -38,8 +38,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: последний запрос пользователя.
   - Acceptance: targeted evidence и final offline gate успешны, diff в envelope, commits находятся в `origin/master`, locked release build создаёт `target/release/oc2`.
   - Primary evidence: scoped tests/Clippy, `bash scripts/test.sh`, Git local/remote HEAD, `cargo build -p oc2 --bin oc2 --locked --release`.
-  - Status: in_progress
-  - Evidence: commits `d647adb6d` и `d88b0090c` готовы. Полный gate: fmt/workspace Clippy PASS; initial nextest — 2378 passed, 27 failed, 18 skipped. Failed-slice rerun: 26 PASS без edits; remaining envelope исправлен после socket RED (reserved перед terminal bytes). Все 14 Python envelope tests PASS (7.848s), исходный failed native campaign PASS (4.46s), budgets/cancel guards сохранены. Remaining affected envelope consumers, doctests/build/help/version/release/push ещё не выполнены.
+  - Status: verified
+  - Evidence: commits `d647adb6d`, `d88b0090c` и `1b5edc17e` доставлены в проверенный `origin/master`; local/remote HEAD совпали на `1b5edc17ea4b93928172f49e5ae09b44e4c4b5e3`. Полный gate: fmt/workspace Clippy PASS; initial nextest — 2378 passed, 27 failed, 18 skipped, exit 100. Failed-slice rerun: 26 PASS без edits; remaining envelope исправлен после socket RED. Python 14/14 PASS (7.848s), исходный failed native campaign PASS (4.46s), остальные четыре affected envelope consumers PASS (4.937s). Workspace doctests, debug build/help/version PASS. Locked release build PASS (8m33s), `target/release/oc2 --version` → `oc2 0.2.0`. Это совокупная проверка стадий, не single-run whole-suite GREEN.
 
 ### Constraints
 
@@ -72,17 +72,17 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R4.
-- Smallest next action: commit проверенного finite-response fix; оставшиеся affected envelope consumers без повторного Python suite, затем незапущенные doctests/build/help/version, locked release и push.
-- Expected evidence: все стадии offline gate успешны по совокупности полного run, failed/affected slices и оставшихся стадий; исходный exit 100 остаётся в evidence. `target/release/oc2`, совпадающие local/remote HEAD и чистый worktree. Полный suite повторно не запускать по AGENTS.md.
-- Stop or replan if: обнаружен чужой concurrent diff, нарушена data/permission boundary или минимальный fix выходит за frozen envelope.
+- Closes: R1/R2/R3/R4; checkpoint завершён.
+- Smallest next action: substantive work отсутствует; опубликовать только эту запись закрытия обычным docs commit/push и остановиться.
+- Expected evidence: все стадии offline gate подтверждены по совокупности полного run, failed/affected slices и оставшихся стадий; исходный exit 100 сохранён. Release binary создан, runtime commits доставлены. После публикации записи закрытия local/remote HEAD должны совпадать, worktree — оставаться чистым.
+- Stop or replan if: при финальной доставке обнаружен чужой concurrent diff или non-fast-forward; не начинать новый scope после закрытия цели.
 
 ## Current State
 
-- Resolved: R1/R2/R3. DCP replay и независимый accounting/v0 path GREEN; атомарный nudge и безопасная capacity projection проверены.
-- Last relevant evidence: finite-response socket regression воспроизвёл reserved до terminal delivery; после owner fix все 14 envelope tests и исходный failed native campaign PASS. 26 прочих initial failures прошли без edits; их причина не объявляется доказанной. Полная компиляция ранее заняла 27m01s; 305s envelope failure был ожиданием невозможного settlement, не медленным coding campaign.
-- Blocker: нет подтверждённого blocker после envelope fix; R4 ещё не закрыт до remaining gates/build/push.
-- Next: affected envelope consumers, remaining gates/release/push/closure. Runtime и PTY fixture-классификацию дополнительно не менять на основании неповторившихся падений.
+- Resolved: R1/R2/R3/R4. DCP replay, независимый accounting/v0 path, атомарный nudge и безопасная capacity projection проверены; release собран, runtime commits опубликованы.
+- Last relevant evidence: remaining envelope consumers 4/4 PASS; doctests и debug help/version PASS; release build 8m33s PASS, версия 0.2.0. Все 27 initial failures получили последующий успешный результат; для 26 прошедших без edits причина исходного падения не доказана. Initial full gate exit 100 не переименован в PASS. 305s envelope failure устранён у владельца settlement; cold default-profile test compilation ранее заняла 27m01s.
+- Blocker: нет.
+- Next: только доставка этой записи закрытия; затем остановиться. Live/visual qualification исходного пользовательского чата не выполнялась; работающий native owner не перезапускался.
 
 ## Material Decisions
 
@@ -102,10 +102,11 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-25: R2/R3 committed (`d88b0090c`). R4 full gate failed (2378/27/18); runtime/test limits не менялись. Следующий checkpoint — exact native failure и offline-envelope diagnosis, не повтор полного suite.
 - 2026-10-25: 26/27 failed-slice rerun PASS без edits; остался offline-envelope settlement (campaign steps PASS, relay attempt uncertain). Достижимая гонка локализована между terminal delivery и ledger finish; следующий checkpoint — socket RED/GREEN без ослабления envelope guards.
 - 2026-10-25: finite-response regression RED→GREEN; Python 14/14 и native five-step campaign PASS. Завершённый upstream фиксируется до terminal delivery, действительно прерванные attempts остаются consumed/uncertain. Следующий checkpoint — remaining gates/release/push.
+- 2026-10-25: R4 verified; remaining envelope consumers 4/4, doctests, debug build/help/version и locked release PASS. Runtime commits опубликованы обычным fast-forward push; local/remote HEAD `1b5edc17e`. Цель закрыта, остаётся доставка только closure document.
 
 ## Completion
 
-- Resolved outcomes: pending.
-- Commands and artifacts: pending.
-- Constraint and diff-scope check: pending.
-- Final status: active.
+- Resolved outcomes: R1/R2/R3/R4 verified.
+- Commands and artifacts: scoped regression/Clippy slices PASS; `bash scripts/test.sh` выполнен один раз (initial exit 100), failed/affected slices и оставшиеся стадии затем PASS; `python3 -B scripts/test_bounded_live.py` 14/14; workspace doctests PASS; debug help/version PASS; `cargo build -p oc2 --bin oc2 --locked --release` PASS, binary `target/release/oc2` версии 0.2.0; обычный push и local/remote SHA verification PASS.
+- Constraint and diff-scope check: каждый связанный diff проверен после релевантных проверок; изменения остались в envelope. Test guards/load, model limits, byte cap, authority, durability и no-effect-replay не ослаблены. SQL schema/migrations, пользовательская БД и работающий native owner не менялись. Приватные payload/БД в Git не добавлялись. Полный повтор suite и whole-product/live READY не заявляются.
+- Final status: complete.
