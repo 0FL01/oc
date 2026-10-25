@@ -426,6 +426,7 @@ def local_error(client, code, failure, stage):
 def forward(client, ledger, routes):
     attempt, conn, outcome, sent = None, None, "uncertain", False
     receipt, stage = {}, "pre_dispatch"
+    error_code = None
     try:
         client.settimeout(DEADLINE)
         method, path, headers, body = read_request(client)
@@ -484,11 +485,7 @@ def forward(client, ledger, routes):
         outcome = "complete"
     except Exception as error:
         receipt.update(failure=failure_category(error), failure_stage=stage)
-        if not sent:
-            try:
-                local_error(client, str(error) if isinstance(error, Closed) else "io_failure", receipt["failure"], stage)
-            except OSError:
-                pass
+        error_code = str(error) if isinstance(error, Closed) else "io_failure"
     finally:
         if conn is not None:
             conn.close()
@@ -497,6 +494,12 @@ def forward(client, ledger, routes):
                 ledger.finish(attempt, outcome, receipt)
             except Exception:
                 pass  # reserved is consumed; corrupt/IO failure cannot reset it.
+        # Peer EOF can reap this worker, so finalize before acknowledging a local error.
+        if error_code is not None and not sent:
+            try:
+                local_error(client, error_code, receipt["failure"], stage)
+            except OSError:
+                pass
 
 
 class Interposer:

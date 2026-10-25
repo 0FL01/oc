@@ -1582,6 +1582,133 @@ async fn running_background_commands_have_unique_real_child_operations_without_f
 }
 
 #[tokio::test]
+async fn external_directory_replies_route_from_location_to_root_and_child() {
+    use oc_core::approval::{ApprovalDecision, ApprovalReply};
+    for (child, decision) in [
+        (false, ApprovalDecision::Once),
+        (false, ApprovalDecision::Reject { feedback: None }),
+        (true, ApprovalDecision::Once),
+        (
+            true,
+            ApprovalDecision::Reject {
+                feedback: Some("use webfetch instead".into()),
+            },
+        ),
+    ] {
+        let f = RunningInputFixture::new(|c| {
+            c["agents"]["helper"] = json!({"mode":"subagent"});
+            c["permissions"] = json!([
+                {"action":"subagent","resource":"*","effect":"allow"},
+                {"action":"read","resource":"*","effect":"allow"},
+                {"action":"external_directory","resource":"*","effect":"ask"}
+            ]);
+        })
+        .await;
+        let external = f._root.path().join("external.txt");
+        std::fs::write(&external, "EXTERNAL_APPROVED_CONTENT").unwrap();
+        let mut events = f.run.app.subscribe();
+        let (mut socket, _) = f.request().await;
+        if child {
+            respond(&mut socket, json!([{"type":"function_call","call_id":"delegate","name":"subagent","arguments":json!({"agent":"helper","description":"Read external source","prompt":"Read external source"}).to_string()}])).await;
+            (socket, _) = f.request().await;
+        }
+        respond(&mut socket, json!([{"type":"function_call","call_id":"external-read","name":"read","arguments":json!({"path":external}).to_string()}])).await;
+        let approval = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match events.recv().await.unwrap() {
+                    CoreEvent::PermissionAsked(request) => break request,
+                    CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                    _ => {}
+                }
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(approval.action, "external_directory");
+        assert_eq!(approval.binding.session != "R", child);
+        assert!(approval.save_patterns.is_empty());
+        assert!(
+            f.owner
+                .db
+                .list_tool_ops(&approval.binding.session)
+                .unwrap()
+                .is_empty()
+        );
+        // Native replies go through the Location, not directly to the primary.
+        let app = &f.run.location.app;
+        assert_eq!(
+            app.pending_approvals().await.unwrap().as_slice(),
+            std::slice::from_ref(&approval)
+        );
+        let mut reply = ApprovalReply {
+            id: approval.id,
+            binding: approval.binding.clone(),
+            decision: decision.clone(),
+        };
+        reply.binding.input_digest.push_str("wrong");
+        assert!(app.reply_approval(reply.clone()).await.is_err());
+        assert_eq!(
+            app.pending_approvals().await.unwrap().as_slice(),
+            std::slice::from_ref(&approval)
+        );
+        reply.binding = approval.binding;
+        app.reply_approval(reply.clone()).await.unwrap();
+        assert!(app.pending_approvals().await.unwrap().is_empty());
+        assert!(app.reply_approval(reply.clone()).await.is_err());
+        if decision != (ApprovalDecision::Reject { feedback: None }) {
+            let (mut next, body) = f.request().await;
+            let output = body["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|item| {
+                    item["type"] == "function_call_output" && item["call_id"] == "external-read"
+                })
+                .unwrap()["output"]
+                .as_str()
+                .unwrap();
+            match &decision {
+                ApprovalDecision::Once => assert!(output.contains("EXTERNAL_APPROVED_CONTENT")),
+                ApprovalDecision::Reject {
+                    feedback: Some(feedback),
+                } => {
+                    assert!(output.contains(feedback));
+                    assert!(!output.contains("EXTERNAL_APPROVED_CONTENT"));
+                }
+                _ => unreachable!(),
+            }
+            final_answer(&mut next).await;
+            if child {
+                let (mut parent, _) = f.request().await;
+                final_answer(&mut parent).await;
+            }
+        }
+        f.finish().await;
+        let ops = f.owner.db.list_tool_ops(&reply.binding.session).unwrap();
+        assert_eq!(ops.len(), 1);
+        assert_eq!(
+            ops[0].state,
+            if decision == ApprovalDecision::Once {
+                "completed"
+            } else {
+                "denied"
+            }
+        );
+        let conn = rusqlite::Connection::open_with_flags(
+            f.owner.db.root().join("oc.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        assert_eq!(
+            conn.query_row("SELECT count(*) FROM permission_grants", [], |row| row
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+    }
+}
+
+#[tokio::test]
 async fn running_shell_ask_remains_pumped_after_model_finishes_and_receipt_cancel_does_not_cancel_model()
  {
     use oc_core::{

@@ -13,12 +13,12 @@ fn aud01_binary_sends_configured_responses_request() {
 }
 
 #[test]
-fn t47_binary_unknown_limits_warn_and_do_not_select_reasoning_variant() {
+fn t47_binary_unknown_limits_warn_without_selecting_main_reasoning_variant() {
     configured_responses_request(true, None);
 }
 
 #[test]
-fn t47_binary_separate_title_model_uses_its_budget_without_variant_overlay() {
+fn t47_binary_separate_title_model_uses_its_budget_and_own_low_effort() {
     for (limit, output) in [
         (serde_json::Value::Null, 64),
         (serde_json::json!({"context": 4096}), 64),
@@ -257,7 +257,11 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
         let title_body = titles[0];
         assert_eq!(title_body["model"], title_model);
         assert_eq!(title_body["max_output_tokens"], expected_output);
-        assert!(title_body.get("reasoning").is_none());
+        if unknown_limits || title.is_some() {
+            assert_eq!(title_body["reasoning"], serde_json::json!({"effort":"low"}));
+        } else {
+            assert!(title_body.get("reasoning").is_none());
+        }
         assert_eq!(title_body["tools"], serde_json::json!([]));
         assert_eq!(title_body["input"].as_array().unwrap().len(), 2);
         assert_eq!(title_body["input"][0]["role"], "developer");

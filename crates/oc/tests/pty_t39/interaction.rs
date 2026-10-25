@@ -120,6 +120,7 @@ fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
     pty.wait_visible(READY, DEADLINE);
     pty.send(b"/rename VAR01 retained root\r");
     wait_screen_row(&pty, "VAR01 retained root", DEADLINE);
+    wait_screen_absent(&pty, "/rename VAR01 retained root");
     let named = [
         "none", "minimal", "fast", "low", "medium", "high", "xhigh", "max", "zeta", "alpha",
     ];
@@ -397,6 +398,8 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
     std::fs::write(&path, config.to_string()).unwrap();
     pty.send(b"\x10Reload configuration\r");
     wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
+    // Catalog publication precedes the reload ACK, which closes open pickers.
+    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
     wait_screen_row(&pty, "identity draft", DEADLINE);
     pty.send(b"\x10Switch model variant\r");
     wait_screen_row(&pty, "● fast", DEADLINE);
@@ -456,6 +459,7 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         std::fs::write(&path, config.to_string()).unwrap();
         pty.send(b"retired draft\x10Reload configuration\r");
         wait_screen_row(&pty, "variant-", DEADLINE);
+        wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
         // The opaque retired overlay takes footer width. Verify the refreshed
         // canonical model name in the actual picker, not a clipped footer.
         pty.send(b"\x10Switch model\r");
@@ -503,6 +507,7 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
             std::fs::write(&path, config.to_string()).unwrap();
             pty.send(b"/reload\r");
             wait_screen_row(&pty, "Canonical restored ludka2", DEADLINE);
+            wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
             pty.send(b"/variants\r");
             wait_screen_row(&pty, "fast", DEADLINE);
             pty.send(b"\x1b");
@@ -2535,6 +2540,7 @@ fn v04_new_session_aliases_navigate_accepted_turns_without_enabling_profile_muta
     wait_screen_row(&pty, "Fixture session title", DEADLINE);
     pty.send(b"/rename Original session root\r");
     wait_screen_row(&pty, "Original session root", DEADLINE);
+    wait_screen_absent(&pty, "/rename Original session root");
     let routes: &[&[u8]] = &[b"/new\r", b"/clear\r", b"\x18n", b"\x10New session\r"];
     for (i, route) in routes.iter().enumerate() {
         wait_idle(&pty);
@@ -2599,6 +2605,21 @@ fn v04_new_session_aliases_navigate_accepted_turns_without_enabling_profile_muta
     wait_screen_row(&pty, "Select agent", DEADLINE);
     pty.send(b"\x1b");
     dismissed(&pty, "Select agent");
+    let conn = rusqlite::Connection::open_with_flags(
+        fixture.data_dir().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let deck_key = format!(
+        "tui.selection.tab_deck:{}",
+        serde_json::json!([fixture
+            .root
+            .path()
+            .join("project")
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()])
+    );
     for route in [
         b"/new\r".as_slice(),
         b"/clear\r",
@@ -2607,6 +2628,24 @@ fn v04_new_session_aliases_navigate_accepted_turns_without_enabling_profile_muta
     ] {
         pty.send(route);
         wait_screen_row(&pty, "█▀▀█ █▀▀█", DEADLINE);
+        let started = Instant::now();
+        loop {
+            let saved: String = conn
+                .query_row("SELECT value FROM prefs WHERE key=?1", [&deck_key], |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            let saved: serde_json::Value = serde_json::from_str(&saved).unwrap();
+            if saved["active"].is_null() {
+                break;
+            }
+            assert!(
+                started.elapsed() < DEADLINE,
+                "Home focus not saved: {saved}"
+            );
+            std::thread::sleep(POLL);
+        }
+        wait_idle(&pty);
         assert_eq!(
             fixture.wait_requests(6).len(),
             6,

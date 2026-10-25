@@ -94,7 +94,7 @@ async fn tab_reorder_saves_before_moving_owners_cursors_flags_and_selecting_a_ru
                 state
                     .note()
                     .unwrap()
-                    .contains("save refused or outcome unknown")
+                    .contains("could not be saved; refused or outcome unknown")
             );
             assert_eq!(deck.snapshot(&state), before);
             assert_eq!(deck.cards_before, Some(33));
@@ -500,7 +500,7 @@ async fn busy_root_strip_add_parks_locally_then_persists_and_keeps_cancel_route(
                 state
                     .note()
                     .unwrap()
-                    .contains("save refused or outcome unknown")
+                    .contains("could not be saved; refused or outcome unknown")
             );
         } else {
             assert_eq!(deck.revision.as_deref(), Some("after-add"));
@@ -3876,7 +3876,7 @@ async fn rail_release_saves_once_and_only_acknowledged_width_changes_the_deck() 
                 state
                     .note()
                     .unwrap()
-                    .contains("save refused or outcome unknown")
+                    .contains("could not be saved; refused or outcome unknown")
             );
             assert_eq!(deck.snapshot(&state), before);
         } else {
@@ -3979,7 +3979,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
         state
             .note()
             .unwrap()
-            .contains("save refused or outcome unknown")
+            .contains("could not be saved; refused or outcome unknown")
     );
     assert_eq!(state.input(), "saved draft");
     assert_eq!(state.session().0, "durable");
@@ -4222,10 +4222,11 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
     assert_eq!(deck.location.as_deref(), Some("/b"));
     assert_eq!(deck.revision.as_deref(), Some("accepted-b"));
     assert_eq!(state.tab_rail_preference(), Some(5));
-    assert_eq!(deck.tabs.len(), 2);
-    assert!(
-        deck.picker_pending_tabs
-            .contains(&SessionId("parked-b".into()))
+    assert_eq!(deck.tabs.len(), 1, "no guessed unreadable Session catalog");
+    assert!(deck.save_disabled);
+    assert_eq!(
+        deck.structural_snapshot(&state).sessions,
+        [SessionId("b".into()), SessionId("parked-b".into())]
     );
     apply_intent(
         &app,

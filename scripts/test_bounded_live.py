@@ -373,16 +373,8 @@ class EnvelopeTests(unittest.TestCase):
             self.assertEqual(request(runner.ready["provider_base"] + "/responses", GEN)[0], 403)
             self.assertEqual(len(peer.hits), 1)
             self.assertEqual(self.ledger.snapshot()["counts"]["generation"], 2)
-            # The bounded local error has Content-Length, so reading its body
-            # can finish before the worker's finally block fsyncs the receipt.
-            # A response is not that receipt's acknowledgement. Observe the
-            # existing three-second fixture budget without accepting reserved.
-            until = time.monotonic() + 3
-            while time.monotonic() < until:
-                receipt = self.ledger.snapshot()["attempts"][-1]
-                if receipt["outcome"] != "reserved":
-                    break
-                time.sleep(0.01)
+            # The local error must finalize its receipt before peer EOF can reap the worker.
+            receipt = self.ledger.snapshot()["attempts"][-1]
             self.assertEqual(receipt["outcome"], "uncertain")
             self.assertEqual((receipt["failure"], receipt["failure_stage"]), ("response_limit", "response"))
 

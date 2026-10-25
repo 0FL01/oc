@@ -2157,7 +2157,9 @@ async fn refused_close_leaves_pending_title_uncancelled_and_tab_intact() {
     settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(
         state.note(),
-        Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
+        Some(
+            "tab deck could not be saved; refused or outcome unknown; refresh saved tabs before retrying"
+        )
     );
     assert_eq!(state.attached_session(), Some(&title));
     assert_eq!(deck.snapshot(&state).sessions.len(), 2);
@@ -2292,7 +2294,9 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
     assert_eq!(deck.revision.as_deref(), Some("rev-1"));
     assert_eq!(
         state.note(),
-        Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
+        Some(
+            "tab deck could not be saved; refused or outcome unknown; refresh saved tabs before retrying"
+        )
     );
     apply_intent(
         &app,
@@ -3025,7 +3029,9 @@ async fn failed_preclose_save_keeps_accepted_home_root_and_parked_cursor() {
         settle_deck(&app, &mut state, &mut deck).await;
         assert_eq!(
             state.note(),
-            Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
+            Some(
+                "tab deck could not be saved; refused or outcome unknown; refresh saved tabs before retrying"
+            )
         );
         assert_eq!(state.input(), "retained draft");
         assert_eq!(state.session().0, "fresh");
@@ -3132,7 +3138,7 @@ async fn real_close_commits_candidate_before_removal_or_retains_full_deck_on_fai
             assert_eq!(
                 state.note(),
                 Some(
-                    "tab deck save refused or outcome unknown; refresh saved tabs before retrying"
+                    "tab deck could not be saved; refused or outcome unknown; refresh saved tabs before retrying"
                 )
             );
             assert_eq!(state.session().0, "fresh");
@@ -3296,7 +3302,9 @@ async fn rejected_candidate_close_keeps_parked_tab_draft_and_cursor() {
     settle_deck(&app, &mut state, &mut deck).await;
     assert_eq!(
         state.note(),
-        Some("tab deck save refused or outcome unknown; refresh saved tabs before retrying")
+        Some(
+            "tab deck could not be saved; refused or outcome unknown; refresh saved tabs before retrying"
+        )
     );
     assert_eq!(state.session().0, "b");
     assert_eq!(state.input(), "active draft");

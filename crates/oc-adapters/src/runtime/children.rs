@@ -1488,12 +1488,14 @@ impl Runtime<'_> {
         if self.primary.is_some() {
             return None;
         }
+        // Descendants use their root's queues; a fresh root may still be awaiting admission.
+        let root = self.db.session_root(session).ok();
         let state = self
             .primary_sources
             .lock()
             .expect("primary sources")
             .views
-            .get(session)?
+            .get(root.as_ref().map_or(session, |root| root.0.as_str()))?
             .upgrade()?;
         let mut view = self.owned_child_snapshot();
         view.current = state.current.clone();

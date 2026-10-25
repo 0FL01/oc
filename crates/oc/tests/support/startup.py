@@ -101,9 +101,10 @@ def inspect_settings(fd, stream, code, label):
 
 
 with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
-    root = Path(tmp)
+    workspace = Path(tmp)
+    root = workspace / 'private'
     home = root / 'home'
-    project = root / 'project'
+    project = workspace / 'project'
     config = home / 'config' / 'opencode'
     data = home / 'data' / 'oc'
     project.mkdir()

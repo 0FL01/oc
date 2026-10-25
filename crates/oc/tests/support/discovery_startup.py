@@ -41,9 +41,10 @@ def drain(fd, seconds=.65, until=()):
 
 
 with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
-    root = Path(tmp)
+    workspace = Path(tmp)
+    root = workspace / 'private'
     home = root / 'home'
-    project = root / 'project'
+    project = workspace / 'project'
     config = home / 'config' / 'opencode'
     project.mkdir()
     config.mkdir(parents=True)

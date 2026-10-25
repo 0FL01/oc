@@ -1,6 +1,71 @@
 use super::*;
 
 #[tokio::test]
+async fn held_mcp_status_does_not_block_control_or_allow_duplicate_effects() {
+    use oc_core::queries::{McpAction, McpBinding, McpControl, McpSnapshot};
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app.clone(), SessionId("root".into()));
+    let mut deck = LoopState::default();
+    deck.resources
+        .request(&app, &state, resource_jobs::Request::Mcp(None))
+        .unwrap();
+    let InboxMsg::McpStatus { ack: status } = inbox.recv().await.unwrap() else {
+        panic!("held status read")
+    };
+    let control = McpControl {
+        binding: McpBinding {
+            location: "/fixture".into(),
+            generation: 1,
+            instance: 1,
+        },
+        server: "disabled".into(),
+        action: McpAction::Connect,
+    };
+    deck.resources
+        .request(
+            &app,
+            &state,
+            resource_jobs::Request::Mcp(Some(control.clone())),
+        )
+        .unwrap();
+    assert!(
+        deck.resources
+            .request(
+                &app,
+                &state,
+                resource_jobs::Request::Mcp(Some(control.clone())),
+            )
+            .is_err()
+    );
+    let InboxMsg::McpControl { control: sent, ack } = inbox.recv().await.unwrap() else {
+        panic!("control must not wait for status")
+    };
+    assert_eq!(sent, control);
+    ack.send(Err(CoreError::Application(
+        "MCP activation admission refused".into(),
+    )))
+    .unwrap();
+    status
+        .send(Ok(McpSnapshot {
+            binding: control.binding,
+            revision: 1,
+            servers: Vec::new(),
+        }))
+        .unwrap();
+    settle_resources(&mut state, &mut deck).await;
+    assert!(
+        state
+            .note()
+            .unwrap()
+            .contains("MCP activation admission refused")
+    );
+    assert!(
+        inbox.try_recv().is_err(),
+        "no duplicate control or extra read"
+    );
+}
+
+#[tokio::test]
 async fn first_picker_rows_retain_enter_rename_and_unconfirmed_delete() {
     use oc_core::queries::{SessionListEntry, SessionPickerContext};
     for action in [KeyAction::Enter, KeyAction::Rename, KeyAction::DeleteOrQuit] {

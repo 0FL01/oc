@@ -43,9 +43,10 @@ impl Jobs {
         request: Request,
     ) -> Result<(), String> {
         let kind = match request {
-            Request::Mcp(_) => 0,
+            Request::Mcp(None) => 0,
             Request::Skills => 1,
             Request::Sidebar(_) => 2,
+            Request::Mcp(Some(_)) => 3,
         };
         let key = (view.view_identity().0, kind);
         let effect = matches!(&request, Request::Mcp(Some(_)) | Request::Sidebar(_));

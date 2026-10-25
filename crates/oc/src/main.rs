@@ -15,7 +15,10 @@ use clap::Parser as _;
 
 fn main() -> std::process::ExitCode {
     let args = cli::Args::parse();
-    if matches!(args.command, Some(cli::Command::NativeOwner { .. })) {
+    if matches!(
+        args.command,
+        Some(cli::Command::NativeOwner { .. } | cli::Command::Run { .. })
+    ) {
         // Before any worker thread exists, so every arena honours the limit.
         oc_adapters::memory::tune_owner_allocator();
     }

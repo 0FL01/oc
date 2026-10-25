@@ -590,7 +590,7 @@ fn vis39_vis41_real_pty_cancel_disposes_tab_and_marquee_deadlines() {
     );
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
     let fixture = Fixture::new();
     fixture.hold_title.store(true, Ordering::Relaxed);
@@ -622,7 +622,10 @@ async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
         .submit(session.clone(), "title still pending".into())
         .await
         .unwrap();
-    let requests = fixture.wait_requests(1);
+    let captured = fixture.clone();
+    let requests = tokio::task::spawn_blocking(move || captured.wait_requests(1))
+        .await
+        .unwrap();
     assert_eq!(requests[0]["model"], MODEL);
     let start = Instant::now();
     while !fixture.requests.lock().unwrap().iter().any(title::is_title) {
@@ -652,16 +655,25 @@ async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
             _ => {}
         }
     }
-    // A different untitled session now exercises the ten-second title
-    // watchdog, without turning a completed main answer into an interruption.
+    // Advance the actual thirty-second title watchdog without a wall-clock wait.
+    // Keep the runtime awake so external fixture IO cannot auto-advance time.
     fixture.title_closed.store(false, Ordering::Relaxed);
     let session = oc_core::domain::SessionId("title-timeout".into());
     app.create_session(session.clone()).await.unwrap();
+    let awake = tokio::spawn(async {
+        loop {
+            tokio::task::yield_now().await;
+        }
+    });
+    tokio::time::pause();
     let turn = app
         .submit(session, "title will timeout".into())
         .await
         .unwrap();
-    fixture.wait_requests(2);
+    let captured = fixture.clone();
+    tokio::task::spawn_blocking(move || captured.wait_requests(2))
+        .await
+        .unwrap();
     let start = Instant::now();
     while fixture
         .requests
@@ -673,8 +685,15 @@ async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
         < 2
     {
         assert!(start.elapsed() < DEADLINE, "missing second title request");
-        tokio::time::sleep(POLL).await;
+        tokio::task::yield_now().await;
     }
+    tokio::time::advance(Duration::from_secs(29)).await;
+    tokio::task::yield_now().await;
+    assert!(!fixture.title_closed.load(Ordering::Relaxed));
+    tokio::time::advance(Duration::from_secs(1)).await;
+    tokio::time::resume();
+    awake.abort();
+    let _ = awake.await;
     let start = Instant::now();
     while !fixture.title_closed.load(Ordering::Relaxed) {
         assert!(
@@ -683,7 +702,6 @@ async fn title_cancel_and_watchdog_leave_the_main_turn_completed() {
         );
         tokio::time::sleep(POLL).await;
     }
-    assert!(start.elapsed() >= Duration::from_secs(9));
     loop {
         match tokio::time::timeout(Duration::from_secs(2), events.recv())
             .await
@@ -912,6 +930,7 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     wait_screen_absent(&pty, "/rename Scoped alpha root");
     pty.send(b"/continue\r");
     wait_screen_row(&pty, "Sessions", DEADLINE);
+    wait_screen_row(&pty, "New session -", DEADLINE);
     // A is focused and newest after its real title update. B is the only
     // other root and must still receive its genuine automatic first title.
     pty.send(b"\x1b[B\r");

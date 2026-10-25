@@ -2900,7 +2900,7 @@ fn vis44_middle_down_closes_inactive_active_and_last_tabs_without_deleting_histo
     let project = fixture.project_a();
     let path = fixture.root.path().join("middle-close-metrics.json");
     let mut pty = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
-    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    wait_home_selection(&pty, &project);
     let mut roots = Vec::new();
     for (index, title) in ["VIS44 Alpha", "VIS44 Beta", "VIS44 Gamma"]
         .into_iter()
@@ -2910,7 +2910,7 @@ fn vis44_middle_down_closes_inactive_active_and_last_tabs_without_deleting_histo
             // New/Home parks the preceding root's editor, rather than
             // submitting or erasing its independent unsent draft.
             pty.send(b"\x18n");
-            wait_screen_row(&pty, "Ask anything", DEADLINE);
+            wait_home_selection(&pty, &project);
         }
         let prompt = format!("middle history {index}");
         submit(&mut pty, &prompt);
@@ -2919,7 +2919,14 @@ fn vis44_middle_down_closes_inactive_active_and_last_tabs_without_deleting_histo
         wait_screen_row(&pty, "Fixture session title", DEADLINE);
         wait_idle(&pty);
         pty.send(format!("/rename {title}\r").as_bytes());
-        wait_screen_row(&pty, title, DEADLINE);
+        let started = Instant::now();
+        while !render_screen(&pty.snapshot()).rows()[0].contains(title) {
+            assert!(
+                started.elapsed() < DEADLINE,
+                "rename not acknowledged: {title}"
+            );
+            std::thread::sleep(POLL);
+        }
         let deck: serde_json::Value =
             serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
         roots.push(deck["active"].as_str().unwrap().to_owned());

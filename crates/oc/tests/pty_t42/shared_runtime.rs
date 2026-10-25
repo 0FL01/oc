@@ -15,7 +15,7 @@ fn one_tui_new_and_tab_switch_keep_both_root_streams_progressing() {
     wait_screen_row(&tui, "NAV-A tick:", DEADLINE);
     let before = fixture.progress.lock().unwrap()["NAV-A"];
     tui.send(b"/new\r");
-    wait_screen_row(&tui, "New session", DEADLINE);
+    wait_saved_home(&tui, &fixture.project_a());
     progress_after(&fixture, "NAV-A", before);
     submit(&mut tui, "srv-progress NAV-B");
     progress_after(&fixture, "NAV-B", 2);
@@ -752,7 +752,7 @@ fn projectless_owner(fixture: &Fixture) -> (OwnedProcess, std::os::unix::net::Un
     drop(inherited);
     // This fixture exercises the same projectless cold-owner admission as auth.
     let intent =
-        serde_json::to_vec(&serde_json::json!({"version":6,"lease":"Auth","project":null}))
+        serde_json::to_vec(&serde_json::json!({"version":7,"lease":"Auth","project":null}))
             .unwrap();
     startup
         .write_all(&(intent.len() as u32).to_be_bytes())

@@ -36,6 +36,7 @@ futures-util.workspace = true
 [dev-dependencies]
 tempfile.workspace = true
 rusqlite.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 
 [lints]
 workspace = true
