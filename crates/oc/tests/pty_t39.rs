@@ -937,13 +937,28 @@ impl PtySession {
     }
 
     /// Wait until visible text *after* `from` contains `needle`
-    /// (whitespace-insensitive, CSI stripped).
+    /// (whitespace-insensitive, CSI stripped), or until the painted screen
+    /// shows it when it did not at `from`: a row scrolled into place by the
+    /// terminal is completed by a cell diff, not rewritten whole.
     fn wait_visible_after(&self, from: usize, needle: &str, timeout: Duration) -> Vec<u8> {
         let want = norm_needle(needle);
+        let on_screen = |buf: &[u8]| {
+            render_screen(buf)
+                .rows()
+                .iter()
+                .any(|row| contains(&norm_visible(row.as_bytes()), &want))
+        };
+        let shown_before = {
+            let buf = self.snapshot();
+            on_screen(&buf[..from.min(buf.len())])
+        };
         let start = Instant::now();
         loop {
             let buf = self.snapshot();
-            if buf.len() >= from && contains(&norm_visible(&buf[from..]), &want) {
+            if buf.len() >= from
+                && (contains(&norm_visible(&buf[from..]), &want)
+                    || !shown_before && on_screen(&buf))
+            {
                 return buf;
             }
             if start.elapsed() > timeout {
