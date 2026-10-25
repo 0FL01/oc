@@ -202,6 +202,10 @@ impl ModelPicker {
         &self.catalog.provider
     }
 
+    pub(crate) fn catalog(&self) -> &ModelCatalog {
+        &self.catalog
+    }
+
     /// Refresh status line for the view.
     pub fn status_line(&self) -> String {
         let catalog_part = match &self.refresh {

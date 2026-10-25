@@ -2235,6 +2235,131 @@ async fn home_model_pick_outlives_a_restart_over_the_configured_model() {
 }
 
 #[tokio::test]
+async fn selecting_agent_without_a_model_inherits_the_captured_composer_choice() {
+    use oc_core::queries::{AgentEntry, ModelEntry, VariantEntry};
+
+    for home in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(4);
+        let session = SessionId::new("agent-model-inherit").unwrap();
+        let mut state = if home {
+            TuiState::new_home(app.clone())
+        } else {
+            TuiState::new(app.clone(), session.clone())
+        };
+        let mut source = catalog();
+        source.provider = "custom".into();
+        source.agent_id = Some("build".into());
+        source.model_id = "m".into();
+        source.variant = Some("high".into());
+        source.models = ["m", "n", "pinned"]
+            .into_iter()
+            .map(|id| ModelEntry {
+                id: id.into(),
+                display_name: id.into(),
+                provider_name: "custom".into(),
+                variants: vec![VariantEntry {
+                    name: "high".into(),
+                    reasoning_effort: Some("high".into()),
+                    disabled: false,
+                }],
+                variants_known: true,
+                ..Default::default()
+            })
+            .collect();
+        source.agents = ["build", "plan", "empty", "pinned"]
+            .into_iter()
+            .enumerate()
+            .map(|(color_index, id)| AgentEntry {
+                id: id.into(),
+                color_index,
+                description: String::new(),
+                model: None,
+                variant: None,
+            })
+            .collect();
+        state.apply_catalog(source.clone());
+        let mut deck = LoopState::default();
+        for (index, (agent, model, variant)) in [
+            ("plan", "m", Some("high")),
+            ("empty", "m", Some("high")),
+            ("pinned", "pinned", Some("high")),
+            ("build", "n", None),
+            ("plan", "m", Some("high")),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let intent = state
+                .handle_key(oc_tui::events::KeyAction::Tab)
+                .await
+                .intent;
+            assert_eq!(intent, Some(PanelIntent::SelectAgent { id: agent.into() }));
+            apply_intent(&app, &mut state, &mut deck, intent.unwrap())
+                .await
+                .unwrap();
+            let (action, ack) = match inbox.recv().await.unwrap() {
+                InboxMsg::HomeSelection { action, ack } if home => (action, ack),
+                InboxMsg::SessionSelection { action, ack, .. } if !home => (action, ack),
+                _ => panic!("agent selection"),
+            };
+            assert_eq!(
+                action,
+                if home {
+                    SelectionAction::Agent(agent.into())
+                } else {
+                    SelectionAction::Preview(agent.into())
+                }
+            );
+            let mut target = source.clone();
+            target.agent_id = Some(agent.into());
+            if agent == "pinned" {
+                target.model_id = "pinned".into();
+            } else if agent != "build" {
+                target.provider = "opencode-go".into();
+                target.models.clear();
+                target.model_id.clear();
+                target.variant = None;
+            }
+            if index == 0 {
+                // A later edit cannot change what was captured before Tab.
+                state.draft_model("n").unwrap();
+            }
+            ack.send(Ok(target.clone())).unwrap();
+            settle_catalog(&app, &mut state, &mut deck).await;
+            assert_eq!(state.composer_agent(), Some(agent));
+            assert_eq!(
+                state.active_model_label(),
+                Some((model.into(), variant.map(str::to_owned)))
+            );
+            let commit = state.captured_model_commit().unwrap();
+            assert_eq!(commit.binding.agent_id.as_deref(), Some(agent));
+            assert_eq!(commit.binding.provider, "custom");
+            assert_eq!(commit.model_id, model);
+            assert_eq!(commit.variant.as_deref(), variant);
+            assert!(
+                inbox.try_recv().is_err(),
+                "switching does not commit a model"
+            );
+
+            let canonical = if home { target } else { source.clone() };
+            state.apply_catalog_refresh(canonical.clone());
+            assert_eq!(state.captured_model_commit(), Some(commit.clone()));
+            if index == 0 {
+                let mut refreshed = if home {
+                    TuiState::new_home(app.clone())
+                } else {
+                    TuiState::new(app.clone(), session.clone())
+                };
+                refreshed.apply_catalog(canonical);
+                refreshed.preserve_shared_composer(state);
+                state = refreshed;
+                assert_eq!(state.captured_model_commit(), Some(commit));
+            }
+        }
+    }
+}
+
+#[tokio::test]
 async fn selecting_agent_stages_a_next_send_draft_without_selection_toast() {
     use oc_core::queries::{AgentEntry, ModelEntry};
     for (open_picker, existing_note) in [

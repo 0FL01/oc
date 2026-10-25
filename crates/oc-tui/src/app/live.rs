@@ -798,8 +798,15 @@ impl TuiState {
 
     /// Composer picker and model binding for one (canonical or staged) agent.
     fn composer_picker(&mut self, snapshot: &CatalogSnapshot) -> ModelPicker {
-        let mut picker = ModelPicker::new(catalog_from_snapshot(snapshot));
         let draft = self.composer_catalog(snapshot);
+        let catalog = draft
+            .as_ref()
+            .filter(|draft| draft.model.provider != snapshot.provider)
+            .map_or_else(
+                || catalog_from_snapshot(snapshot),
+                |draft| draft.catalog.clone(),
+            );
+        let mut picker = ModelPicker::new(catalog);
         if !snapshot.model_id.is_empty() {
             let record = serde_json::json!({
                 "provider": snapshot.provider,
@@ -810,8 +817,10 @@ impl TuiState {
             picker.focus_id(&snapshot.model_id);
         }
         if let Some(draft) = draft {
-            picker.load_persisted_raw(Some(&serde_json::to_string(&draft).expect("model ref")));
-            picker.focus_id(&draft.id);
+            picker.load_persisted_raw(Some(
+                &serde_json::to_string(&draft.model).expect("model ref"),
+            ));
+            picker.focus_id(&draft.model.id);
         }
         if snapshot.chrome.selection.is_none()
             && snapshot

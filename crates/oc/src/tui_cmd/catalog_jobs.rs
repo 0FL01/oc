@@ -1,6 +1,7 @@
 //! Captured catalog/model preference preparation, applied on the local view task.
 use super::*;
 use oc_core::queries::{ModelCatalogs, ModelCommit, ModelPreference, ModelPreferenceAction};
+use oc_tui::app::ComposerModelDraft;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -8,6 +9,7 @@ pub(super) enum Request {
     Selection {
         action: SelectionAction,
         preview: bool,
+        fallback: Option<ComposerModelDraft>,
     },
     Directory,
     Preference {
@@ -66,6 +68,7 @@ struct Prepared {
     directory: Option<(ModelCatalogs, ModelPreference)>,
     preference: Option<ModelPreference>,
     preview: bool,
+    fallback: Option<ComposerModelDraft>,
 }
 struct Read {
     fence: Fence,
@@ -187,11 +190,17 @@ async fn prepare(
         directory: None,
         preference: None,
         preview: false,
+        fallback: None,
     };
     match request {
-        Request::Selection { action, preview } => {
+        Request::Selection {
+            action,
+            preview,
+            fallback,
+        } => {
             prepared.catalog = Some(selection(app, &fence, home, action).await?);
             prepared.preview = preview;
+            prepared.fallback = fallback;
         }
         Request::Directory => {
             if !loaded {
@@ -296,6 +305,9 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                             });
                         let mut success = true;
                         if let Some(catalog) = prepared.catalog {
+                            if let Some(fallback) = prepared.fallback {
+                                view.inherit_agent_model(&catalog, fallback);
+                            }
                             if prepared.preview
                                 || read.preparing
                                     && (view.attached_session().is_some()

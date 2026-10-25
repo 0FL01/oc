@@ -8,13 +8,21 @@ use std::collections::{BTreeMap, VecDeque};
 #[path = "model_selection_tests.rs"]
 mod tests;
 
+/// A local model choice with its provider's already-loaded catalog. Captured
+/// before asynchronous agent selection; never evidence of an owner commit.
+#[derive(Clone)]
+pub struct ComposerModelDraft {
+    pub(super) model: ModelRef,
+    pub(super) catalog: ModelCatalog,
+}
+
 pub(super) struct ComposerSelection {
     caller: u64,
     binding: Option<SelectionBinding>,
     picker_binding: Option<SelectionBinding>,
     picker_readiness: Option<oc_core::queries::ProviderReadiness>,
     picker_custom: bool,
-    drafts: BTreeMap<Option<String>, ModelRef>,
+    drafts: BTreeMap<Option<String>, ComposerModelDraft>,
     committed: Option<ModelRef>,
     revision: u64,
     acknowledged: u64,
@@ -193,7 +201,19 @@ impl TuiState {
             // the exact revision captured by a transferred preparation receipt.
             self.agent_draft_revision = previous.agent_draft_revision;
         }
-        if self.model_selection.binding == previous.model_selection.binding {
+        let draft_scope_matches = same_route
+            && self
+                .model_selection
+                .binding
+                .as_ref()
+                .zip(previous.model_selection.binding.as_ref())
+                .is_some_and(|(current, old)| {
+                    current.location == old.location
+                        && current.generation == old.generation
+                        && current.agent_id == old.agent_id
+                        && previous.model_selection.drafts.contains_key(&old.agent_id)
+                });
+        if self.model_selection.binding == previous.model_selection.binding || draft_scope_matches {
             let preserve_picker = !previous.model_selection.drafts.is_empty()
                 || matches!(previous.panel, TuiPanel::Model | TuiPanel::Variant);
             let committed = self.model_selection.committed.take();
@@ -499,20 +519,24 @@ impl TuiState {
             self.model_selection.committed_recent.pop_front();
         }
     }
-    pub(super) fn composer_catalog(&mut self, snapshot: &CatalogSnapshot) -> Option<ModelRef> {
+    pub(super) fn composer_catalog(
+        &mut self,
+        snapshot: &CatalogSnapshot,
+    ) -> Option<ComposerModelDraft> {
         let binding = SelectionBinding {
             location: snapshot.chrome.location.clone(),
             generation: snapshot.chrome.selection_generation,
             provider: snapshot.provider.clone(),
             agent_id: snapshot.agent_id.clone(),
         };
-        let compatible = self.model_selection.binding.as_ref().is_some_and(|old| {
-            old.location == binding.location && old.provider == binding.provider
-        });
+        let compatible = self
+            .model_selection
+            .binding
+            .as_ref()
+            .is_some_and(|old| old.location == binding.location);
         if !compatible {
-            // Catalog facts can change provider while an older captured commit
-            // is still awaiting its reply. It keeps its own caller/binding and
-            // must settle, never be dropped or acknowledged into the new one.
+            // Per-agent drafts can belong to another provider, but never to
+            // another Location. Older captured commits keep their own scope.
             let pending = std::mem::take(&mut self.model_selection.pending);
             self.model_selection = ComposerSelection::default();
             self.model_selection.pending = pending;
@@ -533,7 +557,7 @@ impl TuiState {
                 .drafts
                 .get(&binding.agent_id)
                 .is_none_or(|draft| {
-                    draft.id != snapshot.model_id || draft.provider != snapshot.provider
+                    draft.model.id != snapshot.model_id || draft.model.provider != snapshot.provider
                 })
         {
             let model = self
@@ -551,9 +575,40 @@ impl TuiState {
                 self.model_selection.recent.pop_front();
             }
         }
+        let draft = self.model_selection.drafts.get(&binding.agent_id).cloned();
+        let mut binding = binding;
+        if let Some(draft) = &draft {
+            binding.provider = draft.model.provider.clone();
+        }
         self.model_selection.binding = Some(binding.clone());
-        self.model_selection.picker_binding = Some(binding.clone());
-        self.model_selection.drafts.get(&binding.agent_id).cloned()
+        self.model_selection.picker_binding = Some(binding);
+        draft
+    }
+
+    /// Capture the visible selection, not the model dialog's browse cursor.
+    pub fn captured_model_draft(&self) -> Option<ComposerModelDraft> {
+        let picker = self.picker.as_ref()?;
+        let model = serde_json::from_str(&picker.persisted_record()?).ok()?;
+        Some(ComposerModelDraft {
+            model,
+            catalog: picker.catalog().clone(),
+        })
+    }
+
+    /// An unchosen target inherits only a local draft. Its owner snapshot and
+    /// any existing target choice remain untouched until explicit admission.
+    pub fn inherit_agent_model(&mut self, snapshot: &CatalogSnapshot, draft: ComposerModelDraft) {
+        if !snapshot.model_id.is_empty()
+            || snapshot.chrome.location != self.chrome.location
+            || snapshot.chrome.selection_generation != self.chrome.selection_generation
+            || self.model_selection.drafts.contains_key(&snapshot.agent_id)
+        {
+            return;
+        }
+        self.model_selection
+            .drafts
+            .insert(snapshot.agent_id.clone(), draft);
+        self.model_selection.revision = self.model_selection.revision.wrapping_add(1);
     }
 
     pub fn captured_model_commit(&self) -> Option<ModelCommit> {
@@ -577,15 +632,14 @@ impl TuiState {
         let Some(commit) = self.captured_model_commit() else {
             return;
         };
-        let choice = ModelRef {
-            provider: commit.binding.provider.clone(),
-            id: commit.model_id,
-            variant: commit.variant,
+        let Some(draft) = self.captured_model_draft() else {
+            return;
         };
+        let choice = draft.model.clone();
         self.model_selection.revision = self.model_selection.revision.wrapping_add(1);
         self.model_selection
             .drafts
-            .insert(commit.binding.agent_id.clone(), choice.clone());
+            .insert(commit.binding.agent_id.clone(), draft);
         self.model_selection.recent.retain(|(agent, old)| {
             agent != &commit.binding.agent_id
                 || old.id != choice.id
@@ -770,7 +824,11 @@ impl TuiState {
         self.model_selection.committed = Some(model.clone());
         self.remember_committed_model(commit.binding.agent_id.clone(), model.clone());
         if self.model_selection.revision == commit.draft_revision
-            && self.model_selection.drafts.get(&commit.binding.agent_id) == Some(&model)
+            && self
+                .model_selection
+                .drafts
+                .get(&commit.binding.agent_id)
+                .is_some_and(|draft| draft.model == model)
         {
             self.model_selection.drafts.remove(&commit.binding.agent_id);
         }

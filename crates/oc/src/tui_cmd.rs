@@ -3624,6 +3624,7 @@ async fn apply_owned_intent(
                 catalog_jobs::Request::Selection {
                     action: SelectionAction::Current,
                     preview: false,
+                    fallback: None,
                 },
             );
         }
@@ -3982,6 +3983,7 @@ async fn apply_owned_intent(
                         SelectionAction::Preview(id)
                     },
                     preview: !home,
+                    fallback: state.captured_model_draft(),
                 },
             );
         }

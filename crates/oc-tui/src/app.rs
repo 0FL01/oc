@@ -1910,6 +1910,7 @@ pub use input::ClipboardTarget;
 mod live;
 mod mcp;
 mod model_selection;
+pub use model_selection::ComposerModelDraft;
 mod projection;
 mod services;
 mod tabs;
