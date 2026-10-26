@@ -43,6 +43,46 @@ fn tool16_stored_read_facts_require_bounded_complete_pixel_validation() {
             base64::engine::general_purpose::STANDARD.encode(&valid)
         )
     );
+    let bytes = serde_json::to_vec(&restored.input).unwrap().len() as u64;
+    let url_bytes = wire[1]["output"][1]["image_url"].as_str().unwrap().len() as u64;
+    let expected = 1500 + (bytes - url_bytes) / 4;
+    let input = restored.input.iter().collect::<Vec<_>>();
+    assert_eq!(
+        estimate_input_tokens_from_bytes(bytes, restored.input.iter()),
+        expected
+    );
+    assert_eq!(
+        super::super::compaction::usage_tokens(&input).unwrap(),
+        expected
+    );
+    let mut anchor = crate::compaction::UsageAnchor {
+        scope: "native-image".into(),
+        prefix: crate::compaction::fingerprint(&&input[..1]),
+        items: 1,
+        tokens: 73,
+        noncausal_tokens: Some(0),
+    };
+    let estimate = |anchor: &crate::compaction::UsageAnchor| {
+        super::super::compaction::usage_estimate(
+            Some(anchor),
+            ("native-image", "unused"),
+            &input,
+            &[],
+            0,
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        estimate(&anchor),
+        Some(73 + super::super::compaction::usage_tokens(&input[1..]).unwrap())
+    );
+    anchor.items = input.len();
+    anchor.prefix = crate::compaction::fingerprint(&input);
+    assert_eq!(
+        estimate(&anchor),
+        Some(73),
+        "measured media is not recharged"
+    );
     let mut bad_pixels = b"\x89PNG\r\n\x1a\n".to_vec();
     bad_pixels.extend_from_slice(b"\0\0\0\0IEND\xaeB`\x82");
     let mut animation = Vec::new();

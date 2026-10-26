@@ -26,8 +26,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: подтверждённый RECON-дефект и исправленный аудит.
   - Acceptance: typed image правильно оценивается в fallback/неизмеренном suffix; measured prefix не тарифицируется заново, serialized bytes и validation сохранены.
   - Primary evidence: один focused native-read accounting regression и существующий usage-anchor срез.
-  - Status: pending
-  - Evidence: —
+  - Status: verified
+  - Evidence: `cargo test -p oc-adapters --lib --locked tool16_stored_read_facts_require_bounded_complete_pixel_validation` PASS (0.10s); exact fallback formula, unmeasured suffix и measured-prefix control, native payload/validation assertions сохранены.
 - R3: компакция допустимой активной истории не отказывает из-за архивного bloat при наличии protections.
   - Source: второй наблюдаемый отказ и исправленный аудит.
   - Acceptance: bounded полная eligible active projection рассматривается до усечения; captured protections/целые обязательные группы сохраняются. Финальный summary input и объединённый selected state допускаются до dispatch/commit; следующий primary request продолжает работу. Настоящий overflow отказывает без context mutation и без ложного утверждения irreducible.
@@ -78,20 +78,21 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R2.
-- Smallest next action: focused typed native-image regression → локальный estimator fix.
-- Expected evidence: regression и ближайший usage-anchor срез PASS, serialized media неизменна.
+- Closes: R1.
+- Smallest next action: owner-local pre-send error classification и cancellable capped jittered backoff.
+- Expected evidence: deterministic provider timeout + retry policy tests, existing delivery/no-replay constraints.
 - Stop or replan if: чужой concurrent diff; необходим выход за envelope или representative compaction не проходит узкий путь.
 
 ## Current State
 
-- Resolved: RECON и аудит; R1–R4 pending, R5 blocked.
-- Last relevant evidence: baseline clean, non-root, MemAvailable >2GiB, disk free >10GiB, другого Cargo owner нет.
-- Next: R2, затем R1 и R3, final R4. Никаких live requests.
+- Resolved: R2; R1/R3/R4 pending, R5 blocked.
+- Last relevant evidence: native-read regression PASS; initial test compile typo corrected locally, production API не менялся.
+- Next: R1, затем R3, final R4. Никаких live requests.
 
 ## Checkpoint History
 
 - 2026-10-26: исправленный план и ограничения зафиксированы до runtime edits.
+- 2026-10-26: R2 verified; source facts/base64 исключены из token estimate, byte retention и image validation неизменны.
 
 ## Completion
 

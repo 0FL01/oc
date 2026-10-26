@@ -788,9 +788,14 @@ fn estimate_input_tokens_from_bytes<'a>(
                 }
             }
             InputItem::ReadFunctionCallOutput { output, .. } => {
-                media = media
-                    .saturating_add(output.estimated_tokens())
-                    .saturating_add((output.facts().to_string().len() as u64).div_ceil(4));
+                // Native source facts are durable attachments, not a second
+                // textual prompt. The serialized display/wrappers already count.
+                let facts = output.facts();
+                let url_bytes = "data:;base64,".len()
+                    + facts["mime"].as_str().expect("validated MIME").len()
+                    + facts["data"].as_str().expect("validated data").len();
+                bytes = bytes.saturating_sub(url_bytes as u64);
+                media = media.saturating_add(1500);
             }
             _ => {}
         }
