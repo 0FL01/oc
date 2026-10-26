@@ -2345,11 +2345,11 @@ async fn r9_child_renews_own_task_pack_hot_before_final_and_keeps_raw() {
 
 #[tokio::test]
 async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
-    let (harness, generation) = make_harness(allow_all());
-    let runtime = runtime_of(&harness, generation);
+    let (mut harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation.clone());
     std::fs::write(harness._project.path().join("note.txt"), "note").unwrap();
     runtime.create_session("root").expect("session");
-    let (base, requests) = Fake::start(vec![
+    let (root_base, root_requests) = Fake::start(vec![
         sse_tool_call("root-read", "read", &serde_json::json!({"path":"note.txt"}))
             + &sse_completed(),
         sse_tool_call(
@@ -2358,6 +2358,8 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
             &serde_json::json!({"topic":"renew","content":[{"startId":"m0001","endId":"m0001","summary":"ROOT_SUMMARY still needed"}]}),
         ) + &sse_completed(),
         sse_delta("root final") + &sse_completed(),
+        sse_delta("root followup final") + &sse_completed(),
+        sse_delta("root reopened final") + &sse_completed(),
     ]);
     let mut tool_events = Vec::new();
     let report = runtime
@@ -2366,7 +2368,7 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
                 "root",
                 "ROOT_TASK_OBSOLETE long task",
                 &harness,
-                provider_of(&base),
+                provider_of(&root_base),
                 &NO_CANCEL,
             ),
             |_| {},
@@ -2397,7 +2399,7 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
         replayed.dcp.is_none(),
         "task renewal is not a range-compression run"
     );
-    let seen = child_requests(&requests);
+    let seen = child_requests(&root_requests);
     let last = seen[2]["input"].to_string();
     assert!(
         last.contains("ROOT_SUMMARY") && !last.contains("ROOT_TASK_OBSOLETE"),
@@ -2409,6 +2411,12 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
             .1
             .contains("ROOT_TASK_OBSOLETE")
     );
+    let root_turn = report.turn_id;
+    let raw = harness
+        .db
+        .raw_turn_segment(&root_turn, 1, 1 << 20)
+        .unwrap()
+        .expect("sealed RAW segment");
 
     runtime.create_session("span").expect("span session");
     let (base, _) = Fake::start(vec![sse_delta("old answer") + &sse_completed()]);
@@ -2447,4 +2455,72 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
     let output = function_output(&seen[1], "span-compress").expect("output");
     assert!(output.contains("unfinished tail"), "{output}");
     assert!(seen[1]["input"].to_string().contains("SPAN_TASK"));
+
+    // Later turns reconstruct the renewed journal as history, not current input.
+    let followup = runtime
+        .run_turn(params(
+            "root",
+            "continue after renewal",
+            &harness,
+            provider_of(&root_base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("followup");
+    assert_eq!(followup.status, TurnStatus::Completed);
+    assert!(followup.calls.is_empty(), "settled tools must not replay");
+
+    drop(runtime);
+    drop(harness.db);
+    harness.db = Db::open(harness._data.path()).expect("reopen");
+    let runtime = runtime_of(&harness, generation);
+    let reopened = runtime
+        .run_turn(params(
+            "root",
+            "continue after reopening",
+            &harness,
+            provider_of(&root_base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("reopened followup");
+    assert_eq!(reopened.status, TurnStatus::Completed);
+    assert!(reopened.calls.is_empty(), "settled tools must not replay");
+
+    let seen = child_requests(&root_requests);
+    assert_eq!(seen.len(), 5);
+    for request in &seen[3..] {
+        let input = request["input"].as_array().expect("request input");
+        let mut pending = std::collections::BTreeSet::new();
+        for item in input {
+            match item["type"].as_str() {
+                Some("function_call") => {
+                    pending.insert(item["call_id"].as_str().expect("call id"));
+                }
+                Some("function_call_output") => {
+                    let id = item["call_id"].as_str().expect("output call id");
+                    assert!(pending.remove(id), "orphaned tool output: {id}");
+                }
+                _ => {}
+            }
+        }
+        assert!(pending.is_empty(), "unanswered historical calls");
+        assert_eq!(
+            function_output(request, "root-read"),
+            function_output(&seen[2], "root-read"),
+            "retained tool result must survive history reconstruction"
+        );
+        let wire = request["input"].to_string();
+        assert!(wire.contains("ROOT_SUMMARY") && !wire.contains("ROOT_TASK_OBSOLETE"));
+    }
+    assert_eq!(harness.db.list_tool_ops("root").unwrap().len(), 2);
+    assert_eq!(
+        harness
+            .db
+            .raw_turn_segment(&root_turn, 1, 1 << 20)
+            .unwrap()
+            .as_deref(),
+        Some(raw.as_str()),
+        "RAW remains unchanged"
+    );
 }

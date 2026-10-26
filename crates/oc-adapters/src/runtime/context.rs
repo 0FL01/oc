@@ -1766,13 +1766,6 @@ impl<'a> Runtime<'a> {
                 represented.insert(id.to_string());
             }
             represented.extend(log.shell_notice_messages.iter().cloned());
-            // Unknown operations cannot be replayed or assigned invented results.
-            // Retain every committed pair; omit only unanswered function calls.
-            let answered: std::collections::BTreeSet<String> = log
-                .input
-                .iter()
-                .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
-                .collect();
             let profile = oc_core::queries::RequestProfile {
                 agent_digest: agent_digest.map(str::to_owned),
             };
@@ -1787,6 +1780,13 @@ impl<'a> Runtime<'a> {
             } else {
                 log.input_for_bound(model, provider, binding, Some(&profile))
             };
+            // Unknown operations cannot be replayed or assigned invented results.
+            // Retain every committed pair across working checkpoints and the tail;
+            // omit only unanswered function calls from this same projection.
+            let answered: std::collections::BTreeSet<String> = instruction_input
+                .iter()
+                .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
+                .collect();
             let mut input = instruction_input
                 .into_iter()
                 .filter(|item| match item {
