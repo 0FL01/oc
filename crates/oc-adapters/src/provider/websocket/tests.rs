@@ -41,6 +41,7 @@ impl Fixture {
                     crate::auth::AuthPolicy::Key
                 },
                 openai: Some(crate::auth::OpenAiBinding {
+                    capture: None,
                     scope: format!("fixture-{subscription}"),
                     subscription,
                     account: Some("ACCOUNT_CANARY".into()),

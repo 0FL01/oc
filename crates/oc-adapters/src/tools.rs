@@ -1664,7 +1664,7 @@ pub struct TurnLog {
     /// Only retained input origins/occurrences; never a lifetime call-id map.
     pub(crate) input_origins: Vec<Option<usize>>,
     pub(crate) call_occurrences: std::collections::BTreeMap<usize, u64>,
-    /// Physical attempts and input provenance within this existing journal.
+    /// Prepared request provenance; long identical retry runs share a receipt.
     pub requests: Vec<oc_core::queries::RequestIdentity>,
     pub(crate) instruction_references: Vec<crate::instructions::Reference>,
     /// Assistant-span facts, absent in legacy journals.

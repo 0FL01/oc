@@ -39,6 +39,7 @@ mod credentials;
 mod effort;
 #[path = "storage_provider_connections.rs"]
 pub(crate) mod provider_connections;
+pub(crate) use credentials::CredentialSnapshot;
 pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial, OAuthAccountMetadata};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;

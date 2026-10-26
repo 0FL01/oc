@@ -195,6 +195,88 @@ async fn auth03_concurrent_refresh_coalesces_and_rotation_reopens_without_secret
 }
 
 #[tokio::test]
+async fn retry_oauth_renewal_coalesces_original_selection_and_refuses_aba() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    let other = db
+        .add_credential(
+            scope().namespace(),
+            "other",
+            CredentialMaterial::Key {
+                key: "OTHER_CANARY".into(),
+            },
+        )
+        .unwrap();
+    let account = db
+        .add_credential(scope().namespace(), "oauth", oauth(Some(BROWSER), 1300))
+        .unwrap();
+    let (auth, count, task) = issuer(200, None).await;
+    let captured = auth
+        .resolve_at(&db, AuthPolicy::Key, None, || None, || 600)
+        .await
+        .unwrap()
+        .oauth_capture
+        .unwrap();
+    let shared = db.shared_handle();
+    let (first, second) = tokio::join!(
+        auth.renew_captured(&db, &captured, 1000),
+        auth.renew_captured(&shared, &captured, 1000)
+    );
+    let (key, refreshed) = first.unwrap();
+    let (other_key, other_refreshed) = second.unwrap();
+    assert_eq!(key, "ROTATED_ACCESS_CANARY");
+    assert_eq!(key, other_key);
+    assert_eq!(
+        refreshed.material_revision,
+        other_refreshed.material_revision
+    );
+    assert_eq!(refreshed.selection_revision, captured.selection_revision);
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    task.await.unwrap();
+
+    db.activate_credential(scope().namespace(), &other.id)
+        .unwrap();
+    db.activate_credential(scope().namespace(), &account.id)
+        .unwrap();
+    assert!(matches!(
+        auth.renew_captured(&db, &captured, 1000).await,
+        Err(RenewalError::Fatal(AuthError::StaleCredential))
+    ));
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn retry_oauth_unknown_refresh_remains_quarantined() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    db.add_credential(scope().namespace(), "oauth", oauth(Some(BROWSER), 1300))
+        .unwrap();
+    let (auth, count, task) = issuer(500, None).await;
+    let captured = auth
+        .resolve_at(&db, AuthPolicy::Key, None, || None, || 600)
+        .await
+        .unwrap()
+        .oauth_capture
+        .unwrap();
+    assert!(matches!(
+        auth.renew_captured(&db, &captured, 1000).await,
+        Err(RenewalError::Fatal(AuthError::Remote))
+    ));
+    assert!(
+        db.credential_snapshot(scope().namespace())
+            .unwrap()
+            .unwrap()
+            .refresh_pending
+    );
+    assert!(matches!(
+        auth.renew_captured(&db, &captured, 1000).await,
+        Err(RenewalError::Fatal(AuthError::Reauthenticate))
+    ));
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    task.await.unwrap();
+}
+
+#[tokio::test]
 async fn auth03_refresh_stale_switch_aba_and_removed_account_never_restore() {
     for remove in [false, true] {
         let root = tempfile::tempdir().unwrap();

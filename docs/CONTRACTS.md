@@ -118,6 +118,15 @@ effects не replay и не превращаются в успех. EOF/failed/u
 
 Physical generation request counter включает фактически выданные attempts,
 follow-ups/children/compaction/title как accounting, не production stop quota.
+После десяти retries одинакового no-output запроса новые повторяющиеся receipts
+и retry/dispatch facts агрегируются; старые RAW и события не переписываются.
+Новые `retry_group_state`/`dispatch_group_state` — заменяемое состояние, не
+RAW; число dispatch callbacks равно старым событиям плюс агрегированные counts,
+а не SQL `COUNT(*)` одних событий. Счёт фиксирует допущенную отправку, не
+подтверждение получения провайдером. Старая версия не читает эти агрегаты.
+OAuth pre-output retry может обновить только bearer захваченного аккаунта и
+исходной selection revision; возможная отправка refresh POST без известного
+исхода остаётся в quarantine и требует восстановления, а не replay.
 Owner amendment 2026-10-02 отменяет искусственный общий round/step cap
 для root/child Long Horizon; временный outage не исчерпывает retry allowance.
 Donor `agent.steps`/legacy `maxSteps` и forced final `toolChoice:none` не

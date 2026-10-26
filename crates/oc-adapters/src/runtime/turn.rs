@@ -2308,7 +2308,7 @@ impl<'a> Runtime<'a> {
                 variant.as_deref(),
                 &params.provider,
             )?;
-            let request_provider = params.provider.with_context(request_context.clone());
+            let mut request_provider = params.provider.with_context(request_context.clone());
             let binding = request_provider
                 .for_selection(&selection.id, variant.as_deref())
                 .provenance(&params.catalog.provider, &selection.id)
@@ -3005,7 +3005,89 @@ impl<'a> Runtime<'a> {
             // A retry with no committed output reuses the complete prepared
             // request, not just its publication number. Only a durably settled
             // partial continuation returns to the fresh-preparation boundary.
+            let mut retry_run_id: Option<String> = None;
             let (generation, mut pending_tools, text_slots, reasoning_anchors) = 'attempt: loop {
+                let mut renewed = false;
+                if retry_resuming {
+                    loop {
+                        match crate::auth::renew_prepared_oauth(
+                            &request_provider,
+                            &self.db,
+                            &selection.id,
+                            variant.as_deref(),
+                            params.cancel,
+                        )
+                        .await
+                        {
+                            Ok(Some(next)) => {
+                                if next
+                                    .for_selection(&selection.id, variant.as_deref())
+                                    .provenance(&params.catalog.provider, &selection.id)
+                                    .map_err(|_| RuntimeError::Provider)?
+                                    != binding
+                                {
+                                    return Err(RuntimeError::Provider);
+                                }
+                                request_provider = next;
+                                retry_run_id = Some(next_turn_id("retry", millis()));
+                                renewed = true;
+                                break;
+                            }
+                            Ok(None) => break,
+                            Err(crate::auth::RenewalError::Preflight) => {
+                                let failure = crate::provider::ProviderError::Request(Box::new(
+                                    crate::provider::PhysicalFailure {
+                                        kind: crate::provider::FailureKind::Transport,
+                                        http_status: None,
+                                        event_status: None,
+                                        delivery: crate::provider::Delivery::NotSent,
+                                        operation: crate::provider::Operation::Request,
+                                        transport: Some(crate::provider::TransportKind::Network),
+                                        output_committed: false,
+                                        headers: crate::provider::RetryHeaders::default(),
+                                        message: Some("OAuth refresh preflight unavailable".into()),
+                                    },
+                                ));
+                                let decision = retry_policy
+                                    .decide(&failure, millis())
+                                    .ok_or(RuntimeError::Provider)?;
+                                turn_log.spans.last_mut().expect("active span").retry =
+                                    Some(decision.clone());
+                                self.publish_retry(&params.session, &turn_log, &decision)?;
+                                if !retry::wait(&decision, params.cancel).await {
+                                    continue 'step;
+                                }
+                            }
+                            Err(crate::auth::RenewalError::Fatal(
+                                crate::auth::AuthError::Cancelled,
+                            )) => continue 'step,
+                            Err(crate::auth::RenewalError::Fatal(error)) => {
+                                turn_log.spans.last_mut().expect("active span").error =
+                                    Some(error.to_string());
+                                Self::terminal_error(
+                                    &mut turn_log,
+                                    "provider_auth",
+                                    error.to_string(),
+                                );
+                                let report = self.commit_turn(
+                                    &turn_log,
+                                    turn_id,
+                                    &params.session,
+                                    TurnStatus::Failed,
+                                    text,
+                                    rounds,
+                                    streamed_ms(streamed),
+                                    usage,
+                                    context_usage,
+                                    calls,
+                                    nudge_hint,
+                                    &published,
+                                )?;
+                                return Ok(TurnExecution::Report(Box::new(report)));
+                            }
+                        }
+                    }
+                }
                 let stream_started = std::time::Instant::now();
                 let mut reasoning_started: Option<std::time::Instant> = None;
                 let mut reasoning_closed = false;
@@ -3045,7 +3127,7 @@ impl<'a> Runtime<'a> {
                         finish: None,
                     });
                 }
-                let aggregate_retry = retry_resuming && retry_policy.aggregate();
+                let aggregate_retry = retry_resuming && retry_policy.aggregate() && !renewed;
                 retry_resuming = false;
                 let receipt = oc_core::queries::RequestIdentity {
                     config_generation: Some(published.id),
@@ -3163,7 +3245,9 @@ impl<'a> Runtime<'a> {
                 }
                 presentation?;
                 let aggregate_dispatch = retry_policy.aggregate();
-                let retry_run = turn_log.spans.last().expect("prepared span").id.clone();
+                let retry_run = retry_run_id
+                    .get_or_insert_with(|| turn_log.spans.last().expect("prepared span").id.clone())
+                    .clone();
                 let generation = {
                     let mut partial_opaque = Vec::new();
                     let mut semantic_started = false;

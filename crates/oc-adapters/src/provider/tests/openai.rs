@@ -47,6 +47,7 @@ async fn auth04_profile_headers_cannot_rebind_native_account_or_actor_on_http() 
                     crate::endpoint::EndpointBinding::admit(&server.base, true, "fixture").unwrap(),
                 ),
                 openai: Some(crate::auth::OpenAiBinding {
+                    capture: None,
                     scope: "fixture-account".into(),
                     subscription,
                     account: Some("CAPTURED_ACCOUNT_CANARY".into()),

@@ -6,7 +6,7 @@ pub const GO_BASE_URL: &str = "https://opencode.ai/zen/go/v1";
 
 mod openai;
 pub use openai::{OPENAI_BASE_URL, OpenAiAuth};
-pub(crate) use openai::{OpenAiBinding, prepare_request};
+pub(crate) use openai::{OpenAiBinding, RenewalError, prepare_request, renew_prepared_oauth};
 mod attempts;
 #[cfg(all(feature = "auth-fixture", not(test)))]
 mod fixture;
@@ -43,6 +43,7 @@ pub struct ResolvedAuth {
     pub namespace: String,
     pub(crate) key: Option<String>,
     pub(crate) oauth: Option<crate::storage::OAuthAccountMetadata>,
+    pub(crate) oauth_capture: Option<openai::CapturedOAuth>,
     pub(crate) openai: bool,
 }
 
@@ -68,6 +69,7 @@ impl ResolvedAuth {
             scope: crate::compaction::fingerprint(&self.namespace),
             subscription: self.source == AuthSource::StoredOAuth,
             account: self.oauth.map(|m| m.account_id),
+            capture: self.oauth_capture,
         });
         if self.source == AuthSource::StoredOAuth && self.openai {
             provider.base_url = openai::CODEX_BASE_URL.into();
@@ -246,6 +248,7 @@ impl AuthScope {
                 namespace: self.namespace.clone(),
                 key: None,
                 oauth: None,
+                oauth_capture: None,
                 openai: true,
             }),
             other => other,
@@ -274,6 +277,7 @@ impl AuthScope {
                 namespace: self.namespace.clone(),
                 key: None,
                 oauth: None,
+                oauth_capture: None,
                 openai: false,
             });
         }
@@ -282,6 +286,7 @@ impl AuthScope {
             namespace: self.namespace.clone(),
             key,
             oauth: None,
+            oauth_capture: None,
             openai: false,
         };
         if policy == AuthPolicy::OAuth {

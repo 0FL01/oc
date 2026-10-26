@@ -72,11 +72,78 @@ fn install_prepared(
     }
 }
 
+/// A preflight failure is known to precede both the refresh reservation and
+/// token POST. All later failures remain quarantined by the credential owner.
+#[derive(Debug)]
+pub(crate) enum RenewalError {
+    Preflight,
+    Fatal(AuthError),
+}
+
+impl From<AuthError> for RenewalError {
+    fn from(error: AuthError) -> Self {
+        Self::Fatal(error)
+    }
+}
+
+pub(crate) async fn renew_prepared_oauth(
+    config: &crate::provider::ResponsesConfig,
+    db: &Db,
+    model: &str,
+    variant: Option<&str>,
+    cancel: &AtomicBool,
+) -> Result<Option<crate::provider::ResponsesConfig>, RenewalError> {
+    let selected = config.for_selection(model, variant);
+    let Some(capture) = selected
+        .wire
+        .openai
+        .as_ref()
+        .and_then(|b| b.capture.as_ref())
+    else {
+        return Ok(None);
+    };
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    if capture.expires_at > now.saturating_add(300) {
+        return Ok(None);
+    }
+    let auth = OpenAiAuth::new()?;
+    let renewed = tokio::select! {
+        biased;
+        () = crate::provider::wait_cancel(cancel) => return Err(RenewalError::Fatal(AuthError::Cancelled)),
+        result = auth.renew_captured(db, capture, now) => result?,
+    };
+    let mut selected = selected.clone();
+    selected.api_key = renewed.0;
+    selected
+        .wire
+        .openai
+        .as_mut()
+        .expect("captured OAuth binding")
+        .capture = Some(renewed.1);
+    Ok(Some(install_prepared(config, selected, model, variant)))
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) struct OpenAiBinding {
     pub(crate) scope: String,
     pub(crate) subscription: bool,
     pub(crate) account: Option<String>,
+    pub(crate) capture: Option<CapturedOAuth>,
+}
+
+/// Non-secret identity of the selection that prepared this request. The
+/// selection revision must not change, including across A → B → A switches.
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct CapturedOAuth {
+    namespace: String,
+    id: String,
+    selection_revision: i64,
+    material_revision: i64,
+    expires_at: i64,
+    method: Option<String>,
+    account: Option<OAuthAccountMetadata>,
 }
 impl std::fmt::Debug for OpenAiBinding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -102,6 +169,7 @@ pub(super) fn capture(
         namespace,
         key,
         oauth,
+        oauth_capture: None,
         openai: true,
     };
     if let Some(current) = db.credential_snapshot(namespace)? {
@@ -260,6 +328,120 @@ pub struct OpenAiAuth {
 }
 
 impl OpenAiAuth {
+    async fn renew_captured(
+        &self,
+        db: &Db,
+        captured: &CapturedOAuth,
+        now: i64,
+    ) -> Result<(String, CapturedOAuth), RenewalError> {
+        let _flight = db.credential_refresh.lock().await;
+        let mut current = db
+            .credential_snapshot(&captured.namespace)
+            .map_err(AuthError::from)?
+            .ok_or(AuthError::StaleCredential)?;
+        let validate = |snapshot: &crate::storage::CredentialSnapshot| -> Result<(), AuthError> {
+            if snapshot.id != captured.id
+                || snapshot.selection_revision != captured.selection_revision
+                || snapshot.material_revision < captured.material_revision
+            {
+                return Err(AuthError::StaleCredential);
+            }
+            if snapshot.refresh_pending {
+                return Err(AuthError::Reauthenticate);
+            }
+            match &snapshot.material {
+                CredentialMaterial::OAuth {
+                    method_id,
+                    metadata,
+                    expires_at: Some(_),
+                    ..
+                } if method_id == &captured.method && metadata == &captured.account => Ok(()),
+                _ => Err(AuthError::StaleCredential),
+            }
+        };
+        validate(&current)?;
+        let CredentialMaterial::OAuth {
+            refresh,
+            expires_at: Some(expiry),
+            method_id,
+            metadata,
+            ..
+        } = &current.material
+        else {
+            return Err(AuthError::StaleCredential.into());
+        };
+        if *expiry <= now.saturating_add(300) {
+            let refresh = refresh.as_deref().ok_or(AuthError::Reauthenticate)?;
+            let method = method_id
+                .as_deref()
+                .filter(|m| matches!(*m, BROWSER | DEVICE))
+                .ok_or(AuthError::UnsupportedMethod)?;
+            // DNS and request construction are known no-send work. Reservation
+            // still precedes the token POST and is never cleared after ambiguity.
+            let request = self.post("/oauth/token").await.map_err(|e| match e {
+                AuthError::Remote => RenewalError::Preflight,
+                other => RenewalError::Fatal(other),
+            })?;
+            if !db
+                .begin_credential_refresh(&current)
+                .map_err(AuthError::from)?
+            {
+                return Err(AuthError::StaleCredential.into());
+            }
+            let mut next = self
+                .send_tokens(
+                    request,
+                    &[
+                        ("grant_type", "refresh_token"),
+                        ("refresh_token", refresh),
+                        ("client_id", CLIENT_ID),
+                    ],
+                )
+                .await?
+                .material(method, now)?;
+            if let CredentialMaterial::OAuth {
+                metadata: next_metadata,
+                expires_at,
+                ..
+            } = &mut next
+            {
+                if next_metadata.is_none() {
+                    *next_metadata = metadata.clone();
+                }
+                if next_metadata != &captured.account
+                    || expires_at.is_none_or(|expiry| expiry <= now)
+                {
+                    return Err(AuthError::StaleCredential.into());
+                }
+            }
+            if !db
+                .rotate_credential(&current, next)
+                .map_err(AuthError::from)?
+            {
+                return Err(AuthError::StaleCredential.into());
+            }
+            current = db
+                .credential_snapshot(&captured.namespace)
+                .map_err(AuthError::from)?
+                .ok_or(AuthError::StaleCredential)?;
+            validate(&current)?;
+        }
+        let CredentialMaterial::OAuth {
+            access,
+            expires_at: Some(expires_at),
+            ..
+        } = current.material
+        else {
+            return Err(AuthError::StaleCredential.into());
+        };
+        if expires_at <= now {
+            return Err(AuthError::Reauthenticate.into());
+        }
+        let mut updated = captured.clone();
+        updated.material_revision = current.material_revision;
+        updated.expires_at = expires_at;
+        Ok((access, updated))
+    }
     async fn prepare_target(
         &self,
         db: &Db,
@@ -386,13 +568,20 @@ impl OpenAiAuth {
     }
 
     pub(super) async fn tokens(&self, fields: &[(&str, &str)]) -> Result<Tokens, AuthError> {
+        let request = self.post("/oauth/token").await?;
+        self.send_tokens(request, fields).await
+    }
+
+    async fn send_tokens(
+        &self,
+        request: reqwest::RequestBuilder,
+        fields: &[(&str, &str)],
+    ) -> Result<Tokens, AuthError> {
         // Use the existing URL form serializer; reqwest's optional `form` feature
         // is not enabled. This URL is only a bounded body encoder, never dialled.
         let mut form = reqwest::Url::parse(&self.issuer).map_err(|_| AuthError::Authority)?;
         form.query_pairs_mut().extend_pairs(fields.iter().copied());
-        let response = self
-            .post("/oauth/token")
-            .await?
+        let response = request
             .header(
                 reqwest::header::CONTENT_TYPE,
                 "application/x-www-form-urlencoded",
@@ -478,6 +667,7 @@ impl OpenAiAuth {
                 namespace: key_scope(scope.namespace(), source, key.as_deref())?,
                 key,
                 oauth: None,
+                oauth_capture: None,
                 openai: true,
             });
         };
@@ -491,6 +681,7 @@ impl OpenAiAuth {
                     .map_err(|_| AuthError::Authority)?,
                 key: Some(key.clone()),
                 oauth: None,
+                oauth_capture: None,
                 openai: true,
             });
         }
@@ -550,6 +741,23 @@ impl OpenAiAuth {
         if current.id != captured.id || current.selection_revision != captured.selection_revision {
             return Err(AuthError::StaleCredential);
         }
+        let captured_oauth = match &current.material {
+            CredentialMaterial::OAuth {
+                expires_at: Some(expires_at),
+                method_id,
+                metadata,
+                ..
+            } => CapturedOAuth {
+                namespace: current.namespace.clone(),
+                id: current.id.clone(),
+                selection_revision: current.selection_revision,
+                material_revision: current.material_revision,
+                expires_at: *expires_at,
+                method: method_id.clone(),
+                account: metadata.clone(),
+            },
+            _ => return Err(AuthError::Reauthenticate),
+        };
         let CredentialMaterial::OAuth {
             access,
             method_id,
@@ -571,6 +779,7 @@ impl OpenAiAuth {
             .map_err(|_| AuthError::Authority)?,
             key: Some(access),
             oauth: metadata,
+            oauth_capture: Some(captured_oauth),
             openai: true,
         })
     }

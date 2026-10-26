@@ -519,8 +519,9 @@ pub struct AssistantSpan {
     pub finish: Option<String>,
 }
 
-/// Bounded public receipt for one physical prepared primary attempt. Hashes are
-/// input/schema provenance receipts, not promises of provider cache reuse.
+/// Bounded public receipt for a prepared primary request. After ten retries an
+/// identical no-output run may share a receipt; it is not a dispatch counter.
+/// Hashes are input/schema provenance, not promises of provider cache reuse.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequestIdentity {
     /// Issuing source publication, absent in legacy journals. Attribution only;
