@@ -720,14 +720,9 @@ impl<'a> Runtime<'a> {
         &self,
         session: &str,
         context: &mut ActiveContext,
+        config: &DcpConfig,
     ) -> Result<(), RuntimeError> {
-        let spec = self.history_protection_spec(session)?;
-        let config = self
-            .current
-            .read()
-            .expect("generation lock")
-            .dcp_config
-            .clone();
+        let spec = self.history_protection_spec(session, config)?;
         for block in &mut context.blocks {
             let legacy = crate::dcp::select_legacy_protection(
                 &crate::dcp::legacy_protection(block).map_err(|_| RuntimeError::Storage)?,
@@ -741,7 +736,7 @@ impl<'a> Runtime<'a> {
                     .iter()
                     .map(serde_json::Value::to_string)
                     .collect::<Vec<_>>();
-                hot["logs"] = self.select_history_facts(&logs, &config)?.into();
+                hot["logs"] = self.select_history_facts(&logs, config)?.into();
                 let facts = hot["protected"].as_array().ok_or(RuntimeError::Storage)?;
                 let mut selected = Vec::new();
                 let mut summary = crate::dcp::authored_summary(&block.summary).to_string();
@@ -781,9 +776,8 @@ impl<'a> Runtime<'a> {
     pub(super) fn history_protection_spec(
         &self,
         session: &str,
+        config: &DcpConfig,
     ) -> Result<ProtectedSpec, RuntimeError> {
-        let published = self.current.read().expect("generation lock").clone();
-        let config = &published.dcp_config;
         Ok(ProtectedSpec {
             protect_user_messages: config.protect_user_messages,
             protect_tags: config.protect_tags,
@@ -803,8 +797,9 @@ impl<'a> Runtime<'a> {
         session: &str,
         projected: &[(String, String, String)],
         blocks: &[crate::dcp::CompressionBlock],
+        config: &DcpConfig,
     ) -> Result<Vec<serde_json::Value>, RuntimeError> {
-        let spec = self.history_protection_spec(session)?;
+        let spec = self.history_protection_spec(session, config)?;
         let mut legacy = Vec::new();
         for block in blocks {
             legacy.extend(
@@ -1628,6 +1623,7 @@ impl<'a> Runtime<'a> {
         after_seq: i64,
         binding: Option<&oc_core::queries::WireProvenance>,
     ) -> Result<Vec<InputItem>, RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
         self.wire_history_view(
             session,
             projected,
@@ -1638,6 +1634,7 @@ impl<'a> Runtime<'a> {
             after_seq,
             binding,
             true,
+            &published.dcp_config,
         )
     }
 
@@ -1655,6 +1652,7 @@ impl<'a> Runtime<'a> {
         after_seq: i64,
         binding: Option<&oc_core::queries::WireProvenance>,
         project_instructions: bool,
+        protection: &DcpConfig,
     ) -> Result<Vec<InputItem>, RuntimeError> {
         self.wire_history_materialized(
             session,
@@ -1666,6 +1664,7 @@ impl<'a> Runtime<'a> {
             after_seq,
             binding,
             project_instructions,
+            protection,
             |_| false,
         )
         .map(|(input, _)| input)
@@ -1684,6 +1683,7 @@ impl<'a> Runtime<'a> {
         binding: Option<&oc_core::queries::WireProvenance>,
         excluded: impl Fn(&str) -> bool,
     ) -> Result<(Vec<InputItem>, Vec<String>), RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
         self.wire_history_materialized(
             session,
             projected,
@@ -1694,6 +1694,7 @@ impl<'a> Runtime<'a> {
             after_seq,
             binding,
             true,
+            &published.dcp_config,
             excluded,
         )
     }
@@ -1710,6 +1711,7 @@ impl<'a> Runtime<'a> {
         after_seq: i64,
         binding: Option<&oc_core::queries::WireProvenance>,
         project_instructions: bool,
+        protection: &DcpConfig,
         excluded: impl Fn(&str) -> bool,
     ) -> Result<(Vec<InputItem>, Vec<String>), RuntimeError> {
         let mut turns = BTreeMap::new();
@@ -1821,7 +1823,7 @@ impl<'a> Runtime<'a> {
             // Protected facts precede the checkpoint's retained journals, but
             // those journals/current task may already own the exact report.
             let retained = turns.remove("session-checkpoint").unwrap_or_default();
-            let spec = self.history_protection_spec(session)?;
+            let spec = self.history_protection_spec(session, protection)?;
             for value in selection {
                 if let Some(facts) = value.get("legacy_protected") {
                     let chosen = crate::dcp::select_legacy_protection(

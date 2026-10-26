@@ -32,13 +32,13 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: второй наблюдаемый отказ и исправленный аудит.
   - Acceptance: bounded полная eligible active projection рассматривается до усечения; captured protections/целые обязательные группы сохраняются. Финальный summary input и объединённый selected state допускаются до dispatch/commit; следующий primary request продолжает работу. Настоящий overflow отказывает без context mutation и без ложного утверждения irreducible.
   - Primary evidence: архивный bloat + protected fact → summary/продолжение; genuine refusal; ближайшие capture/current-segment/reopen/no-replay tests.
-  - Status: pending
-  - Evidence: —
+  - Status: verified
+  - Evidence: 6-case compaction slice по совокупности initial run и failed/interrupted rerun PASS: admitted replay/next primary/RAW, final-frame refusal без dispatch/mutation, captured protection report, summary retry/correction capture, current-segment effect-once, host-overflow escape. Initial run был прерван shell deadline после компиляции; RAW baseline в новом fixture исправлен на фактически committed journal, не pre-commit representation. Общий gate ещё впереди.
 - R4: проверка, commits, push и release binary.
   - Source: последний запрос пользователя.
   - Acceptance: targeted regressions и final offline gate, обычный push в проверенный origin, locked release build `target/release/oc2`; ограничения и непроверенное названы явно.
   - Primary evidence: test commands/results, Git local/remote SHA, locked release build.
-  - Status: pending
+  - Status: in_progress
   - Evidence: —
 - R5: буквальное постоянное восстановление при outage/rate limit.
   - Source: «он должен постоянно долбиться в ретраи».
@@ -75,25 +75,27 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Timeout: два prepared spans, один physical dispatch, второй span failed через 10035ms, retry не назначен; ранее выполненные tools completed. Bare DNS Deadline обходит typed retry policy; конкретная историческая DNS причина не доказана.
 - Compaction: protection_admission_refused до summary dispatch; raw older journals 2158133 bytes, одна replay-копия с изображениями ≈1.50MB. Старый floor считает архив против model-derived source budget.
 - Prefix SHA совпал с usage anchor; последний shell выполнял git init. Dynamic gitRepository входит в scope, поэтому full fallback после Git transition сильно подтверждён, но исторические scope/buffer не сохранены. Native image base64 двойного учёта 425116 bytes даёт ≈212558 лишних tokens. Не менять scope validation или thresholds.
+- Read-only реконструкция старого summary: canonical older history 1497521 bytes / 267 items, quoted frame без исторического environment 1521935 bytes, запас 273969 bytes против сохранённого input budget 448976 tokens. Это не provider run и не реконструкция отсутствующего исторического environment.
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: bounded полная active projection вместо model-cost floor по архиву; captured protection inputs и final admission.
-- Expected evidence: архивный bloat с protected fact → summary/продолжение; действительный capacity refusal без mutation.
+- Closes: R4.
+- Smallest next action: один `bash scripts/test.sh`; при ошибке только failing/affected slice, не весь suite повторно.
+- Expected evidence: strict Clippy/nextest/doctests/debug smoke, затем diff review/commit/push/locked release build.
 - Stop or replan if: чужой concurrent diff; необходим выход за envelope или representative compaction не проходит узкий путь.
 
 ## Current State
 
-- Resolved: R1/R2; R3/R4 pending, R5 blocked.
-- Last relevant evidence: native-read regression и 24-case provider/retry boundary slice PASS. `cargo nextest` отсутствует в PATH; используется существующий `.local/tools/cargo-nextest` без установки.
-- Next: R3, final R4. Никаких live requests.
+- Resolved: R1/R2/R3; R4 in_progress, R5 blocked.
+- Last relevant evidence: native-read, 24-case provider/retry и 6-case compaction slice PASS. Используется существующий `.local/tools/cargo-nextest` без установки.
+- Next: final gate/доставка R4. Никаких live requests.
 
 ## Checkpoint History
 
 - 2026-10-26: исправленный план и ограничения зафиксированы до runtime edits.
 - 2026-10-26: R2 verified; source facts/base64 исключены из token estimate, byte retention и image validation неизменны.
 - 2026-10-26: R1 verified; общий pre-send boundary используется HTTP DNS и WS establishment; shared resolver сохраняет network/security distinction у непосредственных consumers. Existing retry owner/allowance не изменены, backoff и контракт обновлены.
+- 2026-10-26: R3 verified; complete protected-capable source допускается под существующим 32MiB cap, model admission выполняется по canonical replay/final frame. Captured DCP передаётся через selectors/checkpoint projection; combined selection bounded. Ложная irreducibility/нулевые измерения удалены, неизвестный prefix по-прежнему fail-closed. Новый planner не понадобился.
 
 ## Completion
 

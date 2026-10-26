@@ -35,16 +35,6 @@ impl Db {
         let n:i64=conn.prepare_cached("SELECT COALESCE((SELECT SUM(length(CAST(b.hot->'$.logs' AS BLOB))+CASE WHEN json_array_length(b.hot->'$.legacy_protected')>0 THEN length(CAST(b.hot->'$.legacy_protected' AS BLOB)) ELSE 0 END) FROM compression_blocks b JOIN conversation_messages z ON z.id=b.end_msg WHERE b.session_id=?1 AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND z.seq>?2),0)+COALESCE((SELECT length(CAST(selection AS BLOB)) FROM session_checkpoint WHERE session_id=?1),0)")?.query_row(params![session,after],|r|r.get(0))?;
         u64::try_from(n).map_err(|_| StorageError::CompressionConflict)
     }
-    pub(crate) fn protected_user_over_budget(
-        &self,
-        session: &str,
-        after: i64,
-        cutoff: i64,
-        budget: usize,
-    ) -> Result<bool, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        Ok(conn.prepare_cached("SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0)>?4 FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>?2 AND m.seq<=?3 AND m.role='user' AND NOT EXISTS(SELECT 1 FROM compression_blocks b JOIN messages a ON a.id=b.start_msg JOIN messages z ON z.id=b.end_msg WHERE b.session_id=m.session_id AND b.hot IS NOT NULL AND json_valid(b.hot) AND json_extract(b.hot,'$.active')=1 AND json_extract(b.hot,'$.standalone')=1 AND m.seq BETWEEN a.seq AND z.seq)")?.query_row(params![session,after,cutoff,budget as i64],|r|r.get(0))?)
-    }
     pub(crate) fn compaction_anchor(
         &self,
         session: &str,

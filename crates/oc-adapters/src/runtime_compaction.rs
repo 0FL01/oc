@@ -29,8 +29,6 @@ enum ProgressOutcome {
     MeasuredShrink,
     AdmittedRenewal,
     NoGain,
-    Irreducible,
-    ProtectionAdmissionRefused,
 }
 #[derive(serde::Serialize)]
 struct ProgressReceipt {
@@ -254,22 +252,14 @@ impl Runtime<'_> {
     fn protection_admission_receipt(
         &self,
         snapshot: &CompactionSnapshot,
-        irreducible: bool,
     ) -> Result<(), RuntimeError> {
-        let value = serde_json::to_value(ProgressReceipt {
-            operation: snapshot.id.clone(),
-            outcome: if irreducible {
-                ProgressOutcome::Irreducible
-            } else {
-                ProgressOutcome::ProtectionAdmissionRefused
-            },
-            source_selected_json_bytes: 0,
-            replacement_selected_json_bytes: 0,
-            omitted_whole_prefix: false,
-            prior_selection_json_bytes: 0,
-            replacement_selection_json_bytes: 0,
-        })
-        .map_err(|_| RuntimeError::Storage)?;
+        // The omitted source was not inspected. Report the enforced bound,
+        // not fabricated zero sizes or an unproved mandatory-payload overflow.
+        let value = serde_json::json!({
+            "operation": snapshot.id,
+            "outcome": "protection_admission_refused",
+            "source_limit_json_bytes": ACTIVE_CONTEXT_BYTES_CAP,
+        });
         self.db
             .record_compaction_progress(&snapshot.session, &value)?;
         Ok(())
@@ -690,11 +680,9 @@ impl Runtime<'_> {
                 snapshot.state = CompactionState::Failed;
                 snapshot.error = Some("no conversation to compact".into());
             }
-            _ => {
+            Err(error) => {
                 snapshot.state = CompactionState::Failed;
-                snapshot
-                    .error
-                    .get_or_insert_with(|| "summary request failed or invalid response".into());
+                snapshot.error.get_or_insert_with(|| error.to_string());
             }
         }
         if let Err(error) = self.publish_compaction(&snapshot) {
@@ -823,28 +811,27 @@ impl Runtime<'_> {
             let dcp = &published.dcp_config;
             let retain_selection = dcp.protect_user_messages
                 || dcp.protect_tags
+                || dcp.turn_protection
                 || !dcp.protected_file_patterns.is_empty()
                 || !dcp.protected_tools.is_empty()
                 || !dcp.dedup_protected_tools.is_empty()
                 || !dcp.purge_protected_tools.is_empty()
                 || self.db.has_active_shell_jobs(session)?;
+            // Archive/source acquisition is a host-resource decision, not a
+            // model-token estimate. Inspect the full eligible source before
+            // selecting protections; final provider admission remains below.
+            let source_budget = if retain_selection {
+                ACTIVE_CONTEXT_BYTES_CAP
+            } else {
+                content_budget
+            };
             let floor = self
                 .db
-                .compaction_content_floor(session, after, cutoff, content_budget)?;
+                .compaction_content_floor(session, after, cutoff, source_budget)?;
             if floor > after && retain_selection {
-                self.protection_admission_receipt(
-                    snapshot,
-                    dcp.protect_user_messages
-                        && self.db.protected_user_over_budget(
-                            session,
-                            after,
-                            floor,
-                            content_budget,
-                        )?,
-                )?;
+                self.protection_admission_receipt(snapshot)?;
                 return Err(RuntimeError::InvalidArgs(
-                    "protected past input cannot be admitted without recalling omitted content"
-                        .into(),
+                    "protected active history could not be inspected within source limits".into(),
                 ));
             }
             omitted_prefix |= floor > after;
@@ -853,11 +840,11 @@ impl Runtime<'_> {
                 floor,
                 cutoff,
                 true,
-                content_budget,
+                source_budget,
                 retain_selection,
             )?;
             if retain_selection {
-                self.renew_compaction_selection(session, &mut context)?;
+                self.renew_compaction_selection(session, &mut context, dcp)?;
             }
             let prior = context
                 .projected
@@ -876,6 +863,7 @@ impl Runtime<'_> {
                 context.after_seq,
                 Some(&binding),
                 false,
+                dcp,
             )?;
             let logs =
                 self.projected_wire_logs(session, context.after_seq, prior, &context.blocks)?;
@@ -884,6 +872,7 @@ impl Runtime<'_> {
                 session,
                 prior,
                 &context.blocks,
+                dcp,
             )?);
             let mut removed = BTreeMap::new();
             for item in &history {
@@ -932,28 +921,24 @@ impl Runtime<'_> {
             let dcp = &published.dcp_config;
             let retain_selection = dcp.protect_user_messages
                 || dcp.protect_tags
+                || dcp.turn_protection
                 || !dcp.protected_file_patterns.is_empty()
                 || !dcp.protected_tools.is_empty()
                 || !dcp.dedup_protected_tools.is_empty()
                 || !dcp.purge_protected_tools.is_empty()
                 || self.db.has_active_shell_jobs(session)?;
+            let source_budget = if retain_selection {
+                ACTIVE_CONTEXT_BYTES_CAP
+            } else {
+                content_budget
+            };
             let floor = self
                 .db
-                .compaction_content_floor(session, after, cutoff, content_budget)?;
+                .compaction_content_floor(session, after, cutoff, source_budget)?;
             if floor > after && retain_selection {
-                self.protection_admission_receipt(
-                    snapshot,
-                    dcp.protect_user_messages
-                        && self.db.protected_user_over_budget(
-                            session,
-                            after,
-                            floor,
-                            content_budget,
-                        )?,
-                )?;
+                self.protection_admission_receipt(snapshot)?;
                 snapshot.error = Some(
-                    "irreducible explicitly protected compaction input exceeds admitted budget"
-                        .into(),
+                    "protected active history could not be inspected within source limits".into(),
                 );
                 return Err(RuntimeError::InvalidArgs(snapshot.error.clone().unwrap()));
             }
@@ -963,11 +948,11 @@ impl Runtime<'_> {
                 floor,
                 cutoff,
                 !recover_native,
-                content_budget,
+                source_budget,
                 retain_selection,
             )?;
             if retain_selection {
-                self.renew_compaction_selection(session, &mut context)?;
+                self.renew_compaction_selection(session, &mut context, dcp)?;
             }
             let mut prefix = Vec::new();
             for row in context.projected {
@@ -996,6 +981,7 @@ impl Runtime<'_> {
                 context.after_seq,
                 Some(&binding),
                 false,
+                dcp,
             )?;
             let offset_history = if recover_native {
                 let source_logs =
@@ -1016,6 +1002,7 @@ impl Runtime<'_> {
                     after,
                     Some(&binding),
                     false,
+                    dcp,
                 )?
             } else {
                 let source_logs =
@@ -1027,6 +1014,7 @@ impl Runtime<'_> {
                 session,
                 &prefix,
                 &context.blocks,
+                dcp,
             )?);
             let mut removed = BTreeMap::<String, u64>::new();
             for item in offset_history {
@@ -1055,6 +1043,13 @@ impl Runtime<'_> {
             apply_dcp_projection(&mut history, &marks);
             (boundary, history, removed)
         };
+        let selection_bytes = serialized_size(&retained_selection)?;
+        if selection_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
+            return Err(RuntimeError::ContextOverflow {
+                bytes: selection_bytes,
+                cap: ACTIVE_CONTEXT_BYTES_CAP,
+            });
+        }
         let source_bytes = serialized_size(&history)?;
         models::admit_budget(
             &selection,

@@ -56,10 +56,13 @@ fn protected_checkpoint_report_is_assigned_only_when_emitted_and_never_duplicate
         let (_, notice) = native_report_fixture(&db);
         let runtime = runtime(&db, project.path(), Generation::default());
         runtime.update_execution(|view| view.dcp_config.protect_user_messages = true);
+        let captured = runtime.current.read().unwrap().dcp_config.clone();
+        runtime.update_execution(|view| view.dcp_config.protect_user_messages = false);
         let before = runtime.active_projection("s").unwrap();
         let facts = runtime
-            .selected_message_facts("s", &before.projected, &before.blocks)
+            .selected_message_facts("s", &before.projected, &before.blocks, &captured)
             .unwrap();
+        runtime.update_execution(|view| view.dcp_config = captured);
         assert!(
             facts
                 .iter()
@@ -624,6 +627,155 @@ async fn compact_forget_selection_does_not_reassign_a_reused_call_mark() {
             .contains(&("inactive-archive".into(), 0)),
         "an unused legacy archive slot cannot attach to a fresh producer"
     );
+}
+
+#[tokio::test]
+async fn compaction_admits_replay_instead_of_archive_and_preserves_protected_prefix() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let requirement = "<protect>KEEP_EXACT_REQUIREMENT</protect>";
+    let model = ModelRef {
+        provider: "fixture".into(),
+        id: "m".into(),
+        variant: None,
+    };
+    let user = db
+        .accept_turn("archived", "s", requirement, requirement, &model)
+        .unwrap()
+        .user_message;
+    let mut log = TurnLog::new("archived", "m", "fixture");
+    log.user_message = Some(user);
+    log.input = vec![
+        InputItem::message(InputRole::User, requirement),
+        InputItem::message(InputRole::Assistant, "settled"),
+    ];
+    log.opaque.push(serde_json::json!({"type":"reasoning","id":"archived-reasoning","summary":[],"encrypted_content":"ARCHIVE_ONLY".repeat(8192)}));
+    let raw = log.to_json().to_string();
+    db.commit_turn("archived", "completed", Some(&raw), Some("settled"))
+        .unwrap();
+    let raw = db.turn_result("archived").unwrap().1.unwrap();
+    seed(&db, "tail", "CONTROL_OBJECTIVE current task");
+    let mut generation = Generation::default();
+    generation.compaction.keep_tokens = 0;
+    generation.compaction.auto = false;
+    let runtime = runtime(&db, project.path(), generation);
+    runtime.update_execution(|view| {
+        view.dcp_config.protect_tags = true;
+        view.dcp_config.protected_tools = vec!["never_called".into()];
+    });
+    let mut models = catalog();
+    models.models.insert(
+        "m".into(),
+        serde_json::json!({"limit":{"context":16384,"input":12000,"output":1024}}),
+    );
+    let cutoff = db.compaction_boundary("s", 0, 0).unwrap().unwrap().0;
+    assert!(
+        db.compaction_content_floor("s", 0, cutoff, 40000).unwrap() > 0,
+        "old archive-derived model floor rejects this history"
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let responder = tokio::spawn(async move {
+        let (mut socket, summary) = read_request(&listener).await;
+        assert!(summary["tools"].as_array().unwrap().is_empty());
+        let input = summary["input"].to_string();
+        assert!(input.contains("KEEP_EXACT_REQUIREMENT"));
+        assert!(!input.contains("ARCHIVE_ONLY"));
+        respond(&mut socket, &sse("## Objective\nContinue selected work.")).await;
+        let (mut socket, primary) = read_request(&listener).await;
+        let input = primary["input"].to_string();
+        assert!(
+            input.contains("KEEP_EXACT_REQUIREMENT") && input.contains("Continue selected work.")
+        );
+        assert!(input.contains("CONTROL_OBJECTIVE"));
+        assert!(!input.contains("ARCHIVE_ONLY"));
+        respond(&mut socket, &sse("continued")).await;
+    });
+    runtime
+        .queue_compaction("s", CompactionReason::Manual)
+        .unwrap();
+    let compacted = runtime
+        .deliver_compaction("s", &models, "m", None, &provider)
+        .await;
+    if !matches!(compacted, Ok(true)) {
+        responder.abort();
+        let _ = responder.await;
+        panic!("admitted replay must compact: {compacted:?}");
+    }
+    let report = runtime
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "continue".into(),
+            invocation: None,
+            catalog: &models,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1024,
+            provider,
+            cancel: &AtomicBool::new(false),
+        })
+        .await
+        .unwrap();
+    responder.await.unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(
+        db.turn_result("archived").unwrap().1.as_deref(),
+        Some(raw.as_str())
+    );
+    let selected = db.checkpoint_selection("s").unwrap().unwrap();
+    assert!(
+        selected
+            .iter()
+            .any(|fact| fact["protected_message"]["text"] == requirement)
+    );
+    assert!(db.list_tool_ops("s").unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn compaction_final_frame_overflow_preserves_protected_history_without_dispatch() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(
+        &db,
+        "protected",
+        &format!("<protect>{}</protect>", "\\\"".repeat(2000)),
+    );
+    seed(&db, "tail", "current task");
+    let before = db.read_history_full("s").unwrap();
+    let mut generation = Generation::default();
+    generation.compaction.keep_tokens = 0;
+    let runtime = runtime(&db, project.path(), generation);
+    runtime.update_execution(|view| view.dcp_config.protect_tags = true);
+    let mut models = catalog();
+    models.models.insert(
+        "m".into(),
+        serde_json::json!({"limit":{"context":16384,"input":9000,"output":1024}}),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    runtime
+        .queue_compaction("s", CompactionReason::Manual)
+        .unwrap();
+    assert!(
+        !runtime
+            .deliver_compaction("s", &models, "m", None, &provider)
+            .await
+            .unwrap()
+    );
+    assert!(
+        tokio::time::timeout(Duration::from_millis(10), listener.accept())
+            .await
+            .is_err()
+    );
+    assert_eq!(db.read_history_full("s").unwrap(), before);
+    assert!(db.session_checkpoint("s").unwrap().is_none());
+    let snapshot = db.compaction_history("s").unwrap().remove(0);
+    assert_eq!(snapshot.state, CompactionState::Failed);
+    assert!(!snapshot.error.unwrap().contains("irreducible"));
 }
 
 #[tokio::test]

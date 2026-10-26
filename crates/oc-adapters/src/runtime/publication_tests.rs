@@ -666,6 +666,7 @@ fn hot01_profile_history_keeps_closed_pairs_and_each_request_origin() {
                 projection.after_seq,
                 Some(&binding),
                 false,
+                &owner.current.read().unwrap().dcp_config,
             )
             .unwrap(),
     );
