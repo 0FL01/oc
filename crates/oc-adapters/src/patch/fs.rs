@@ -124,10 +124,7 @@ impl Root {
         self.entry(rel, false)?.snapshot()
     }
 
-    /// Check the existing destination parent (or first missing ancestor's
-    /// parent) before any plan writes. Later permission changes remain I/O
-    /// failures; this is preflight, not a substitute for syscall enforcement.
-    pub fn writable_parent(&self, rel: &Path) -> io::Result<()> {
+    fn existing_parent(&self, rel: &Path) -> io::Result<File> {
         let mut dir = self.0.try_clone()?;
         for part in rel
             .parent()
@@ -143,6 +140,39 @@ impl Root {
                 Err(error) => return Err(error),
             }
         }
+        Ok(dir)
+    }
+
+    pub fn parent_mount(&self, rel: &Path) -> io::Result<(u64, u64)> {
+        let dir = self.existing_parent(rel)?;
+        let mut details = std::mem::MaybeUninit::<libc::statx>::zeroed();
+        // SAFETY: dir is live, the path is a constant empty C string, and details
+        // points to writable storage for the complete statx result.
+        let result = unsafe {
+            libc::statx(
+                dir.as_raw_fd(),
+                c"".as_ptr(),
+                libc::AT_EMPTY_PATH | libc::AT_SYMLINK_NOFOLLOW,
+                libc::STATX_MNT_ID,
+                details.as_mut_ptr(),
+            )
+        };
+        if result != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        // SAFETY: the successful statx initialized the zeroed result storage.
+        let details = unsafe { details.assume_init() };
+        if details.stx_mask & libc::STATX_MNT_ID == 0 {
+            return Err(io::ErrorKind::Unsupported.into());
+        }
+        Ok((dir.metadata()?.dev(), details.stx_mnt_id))
+    }
+
+    /// Check the existing destination parent (or first missing ancestor's
+    /// parent) before any plan writes. Later permission changes remain I/O
+    /// failures; this is preflight, not a substitute for syscall enforcement.
+    pub fn writable_parent(&self, rel: &Path) -> io::Result<()> {
+        let dir = self.existing_parent(rel)?;
         // SAFETY: valid directory fd and constant NUL-terminated relative name.
         let result = unsafe {
             libc::faccessat(

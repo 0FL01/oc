@@ -1232,7 +1232,7 @@ fn tool_patch_impl(
             None,
         );
     }
-    let Some(roots) = ctx.roots.as_ref() else {
+    let Some(_) = ctx.roots.as_ref() else {
         return (
             "failed",
             Diagnostic::new(&call.name, "infra_error", "mutation roots unavailable")
@@ -1242,8 +1242,7 @@ fn tool_patch_impl(
     };
     let bridge = PolicyBridge(ctx.policy, &call.name);
     let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
-        &roots.project,
-        &roots.data,
+        ctx.files,
         patch,
         &bridge,
         ctx.policy.approved_patch_preimage(),
@@ -1288,7 +1287,7 @@ pub(crate) fn tool_mutation_typed(
             );
         }
     };
-    let Some(roots) = &ctx.roots else {
+    let Some(_) = &ctx.roots else {
         return (
             "failed",
             Diagnostic::new(&call.name, "infra_error", "mutation roots unavailable")
@@ -1297,8 +1296,7 @@ pub(crate) fn tool_mutation_typed(
         );
     };
     let (result, effects) = crate::patch::mutation::execute(
-        &roots.project,
-        &roots.data,
+        ctx.files,
         &input,
         &PolicyBridge(ctx.policy, &call.name),
         ctx.policy.approved_patch_preimage(),

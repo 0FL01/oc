@@ -1147,8 +1147,10 @@ impl<'a> Runtime<'a> {
             None
         };
         if resources.iter().all(|r| effect(r) == Permission::Allow) {
-            if matches!(call.name.as_str(), "shell" | "bash" | "edit" | "write")
-                || compression_plan.is_some()
+            if matches!(
+                call.name.as_str(),
+                "shell" | "bash" | "apply_patch" | "edit" | "write"
+            ) || compression_plan.is_some()
             {
                 let (patch_preimage, shell_cwd) = if compression_plan.is_none() {
                     let (_, _, preimage, cwd) =
@@ -4661,6 +4663,13 @@ impl<'a> Runtime<'a> {
                     .into_owned()
                     .into();
             }
+            if let Assembled::Call(call) = &mut guarded
+                && call.name == "apply_patch"
+                && let Some(patch) = call.arguments["patchText"].as_str()
+                && let Some(home) = self.parent_env.get("HOME")
+            {
+                call.arguments["patchText"] = crate::patch::expand_home_paths(patch, home).into();
+            }
             guarded = self.guard_patch(guarded);
             if let Assembled::Call(call) = &guarded
                 && matches!(call.name.as_str(), "apply_patch" | "edit" | "write")
@@ -4763,72 +4772,62 @@ impl<'a> Runtime<'a> {
                 }
             }
             let mut invocation_files = ctx.files.clone();
-            let mut invocation_roots = ctx.roots.clone();
             let mut external_admission = None;
             if structural.is_ok()
                 && !permission_rejected
                 && !cancel.load(Ordering::Acquire)
-                && policy
-                    .rules
-                    .is_some_and(crate::permissions::PermissionRules::has_plan_ceiling)
                 && let Assembled::Call(call) = &guarded
                 && matches!(call.name.as_str(), "apply_patch" | "edit" | "write")
                 && self.validate_tool_call(call).is_ok()
             {
                 let paths = crate::tools::permission_resources(call)
                     .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-                let plan = self
-                    .parent_env
-                    .get("HOME")
-                    .map(|home| crate::plan::directory(home));
-                let target = paths
+                let targets = paths
                     .iter()
-                    .map(|path| self.roots.project.join(path))
-                    .collect::<Vec<_>>();
-                if let Some(plan) = plan
-                    && target.iter().all(|path| path.starts_with(&plan))
-                    && paths.iter().all(|path| {
-                        policy.effect(&call.name, &permission_path(policy.root, path))
-                            != Permission::Deny
-                    })
-                {
-                    // Pin ancestors using the same no-follow external-read seam.
-                    // This descriptor is never published as a read/config root.
-                    match ctx
-                        .files
-                        .concrete_scope(&plan.to_string_lossy())
-                        .and_then(|path| ctx.files.pin_external(&path, true))
-                    {
+                    .map(|path| ctx.files.concrete_scope(path))
+                    .collect::<Result<Vec<_>, _>>();
+                if paths.iter().any(|path| {
+                    policy.effect(&call.name, &permission_path(policy.root, path))
+                        == Permission::Deny
+                }) {
+                    external_admission = Some(AdmissionFailure::Denied(call.name.clone()));
+                } else {
+                    match targets {
                         Err(error) => structural = Err(error.to_string()),
-                        Ok(_) => {
-                            let boundary = crate::tools::ToolCall {
-                                id: call.id.clone(),
-                                name: "external_directory".into(),
-                                arguments: serde_json::json!({"directory":plan.join("*").to_string_lossy()}),
-                            };
-                            match self
-                                .admit_tool(
-                                    issuing,
-                                    session,
-                                    turn_id,
-                                    &op,
-                                    &boundary,
-                                    ctx,
-                                    policy,
-                                    cancel,
-                                    turn_log.display["agent"].as_str().map(str::to_string),
-                                    turn_log.active_agent_digest().map(str::to_owned),
-                                    false,
-                                )
-                                .await
-                            {
-                                Ok(_) => {
-                                    invocation_roots = Some(ToolRoots {
-                                        project: plan,
-                                        data: self.roots.data.clone(),
-                                    })
+                        Ok(targets) => {
+                            let directories = targets
+                                .iter()
+                                .filter(|path| !ctx.files.is_internal_read_scope(path))
+                                .filter_map(|path| path.parent().map(|parent| parent.join("*")))
+                                .collect::<std::collections::BTreeSet<_>>();
+                            for directory in directories {
+                                let boundary = crate::tools::ToolCall {
+                                    id: call.id.clone(),
+                                    name: "external_directory".into(),
+                                    arguments: serde_json::json!({"directory":directory.to_string_lossy()}),
+                                };
+                                if let Err(error) = self
+                                    .admit_tool(
+                                        issuing,
+                                        session,
+                                        turn_id,
+                                        &op,
+                                        &boundary,
+                                        ctx,
+                                        policy,
+                                        cancel,
+                                        turn_log.display["agent"].as_str().map(str::to_string),
+                                        turn_log.active_agent_digest().map(str::to_owned),
+                                        false,
+                                    )
+                                    .await
+                                {
+                                    external_admission = Some(error);
+                                    break;
                                 }
-                                Err(error) => external_admission = Some(error),
+                            }
+                            if external_admission.is_none() {
+                                invocation_files.admit_mutation_paths(targets);
                             }
                         }
                     }
@@ -4898,7 +4897,7 @@ impl<'a> Runtime<'a> {
                 subagent: ctx.subagent,
                 snapshot: ctx.snapshot,
                 cancel: ctx.cancel,
-                roots: invocation_roots,
+                roots: ctx.roots.clone(),
             };
             let ctx = &file_ctx;
             let mut admission = match &guarded {
@@ -6289,7 +6288,23 @@ impl<'a> Runtime<'a> {
             .get("patchText")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        let violations = crate::dcp::check_patch_protected(patch, &self.protected.patterns);
+        let violations = crate::dcp::check_patch_protected(patch, &self.protected.patterns)
+            .and_then(|paths| {
+                let protected = paths
+                    .into_iter()
+                    .filter(|path| {
+                        crate::dcp::path_is_protected(
+                            &self.protected.patterns,
+                            &permission_path(Some(&self.roots.project), path),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                if protected.is_empty() {
+                    Ok(())
+                } else {
+                    Err(crate::dcp::DcpError::PatchProtected { paths: protected })
+                }
+            });
         match violations {
             Ok(_) => unit,
             Err(error) => Assembled::Failed(CallFailure {

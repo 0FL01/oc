@@ -137,6 +137,8 @@ pub struct Files {
     worktree: Option<(PathBuf, std::sync::Arc<File>)>,
     // Exact invocation-only external directory. Never a Location/discovery root.
     external: Option<(PathBuf, std::sync::Arc<File>)>,
+    // Exact mutation targets admitted for this invocation, never read/discovery roots.
+    mutation_paths: Vec<PathBuf>,
     #[cfg(test)]
     scan_barrier: Option<std::sync::Arc<ScanBarrier>>,
 }
@@ -288,6 +290,7 @@ impl Files {
                 .map(std::sync::Arc::new),
             worktree: Self::enclosing_worktree(project_root),
             external: None,
+            mutation_paths: Vec::new(),
             #[cfg(test)]
             scan_barrier: None,
         })
@@ -508,15 +511,24 @@ impl Files {
         self.resolve(path)
     }
 
-    /// Mutation owner only: absolute spelling must remain beneath this exact
-    /// invocation root. External read/search admission is deliberately ignored.
+    pub(crate) fn project_root(&self) -> &Path {
+        &self.root
+    }
+
+    /// Called only after the runtime admits every mutation boundary and target.
+    pub(crate) fn admit_mutation_paths(&mut self, paths: Vec<PathBuf>) {
+        self.mutation_paths = paths;
+    }
+
+    /// External read/search admission never grants mutation authority.
     pub(crate) fn resolve_mutation(&self, path: &str) -> Result<PathBuf, FileToolError> {
-        let path = Path::new(path);
-        let relative = if path.is_absolute() {
-            path.strip_prefix(&self.root)
-                .map_err(|_| FileToolError::OutsideRoot)?
-        } else {
-            path
+        let absolute = self.concrete_scope(path)?;
+        let Ok(relative) = absolute.strip_prefix(&self.root) else {
+            return if self.mutation_paths.contains(&absolute) {
+                Ok(absolute)
+            } else {
+                Err(FileToolError::OutsideRoot)
+            };
         };
         self.resolve(relative.to_str().ok_or(FileToolError::OutsideRoot)?)
     }

@@ -50,14 +50,15 @@ fn tool20_prepared_identity_absence_and_confirmed_bytes() {
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     std::fs::create_dir_all(&data).unwrap();
+    let files = Files::new(&project, &data).unwrap();
     let input = Input::Write {
         path: "nested/f",
         content: "\u{feff}λ\r\nEOF",
     };
-    let (preview, digest) = preview(&project, &data, &input).unwrap();
+    let (preview, digest) = preview(&files, &input).unwrap();
     assert!(!project.join("nested").exists());
     assert_eq!(preview.total_files, 1);
-    let (result, effects) = execute(&project, &data, &input, &AllowAll, Some(&digest));
+    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest));
     assert_eq!(result.unwrap()["existed"], false);
     assert_eq!(effects.total_files, 1);
     assert_eq!(
@@ -70,19 +71,15 @@ fn tool20_prepared_identity_absence_and_confirmed_bytes() {
         new: "",
         all: false,
     };
-    let (_, digest) = super::preview(&project, &data, &input).unwrap();
+    let (_, digest) = super::preview(&files, &input).unwrap();
     // Same bytes, different inode: approval cannot authorize the replacement.
     std::fs::rename(project.join("nested/f"), project.join("nested/old")).unwrap();
     std::fs::copy(project.join("nested/old"), project.join("nested/f")).unwrap();
-    let (result, effects) = execute(&project, &data, &input, &AllowAll, Some(&digest));
+    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest));
     assert!(result.is_err());
     assert!(effects.files.is_empty());
-    let (_, digest) = super::preview(&project, &data, &input).unwrap();
-    assert!(
-        execute(&project, &data, &input, &AllowAll, Some(&digest))
-            .0
-            .is_ok()
-    );
+    let (_, digest) = super::preview(&files, &input).unwrap();
+    assert!(execute(&files, &input, &AllowAll, Some(&digest)).0.is_ok());
     assert_eq!(
         std::fs::read(project.join("nested/f")).unwrap(),
         b"\xef\xbb\xbf"
@@ -91,9 +88,9 @@ fn tool20_prepared_identity_absence_and_confirmed_bytes() {
         path: "absent",
         content: "",
     };
-    let (_, digest) = super::preview(&project, &data, &input).unwrap();
+    let (_, digest) = super::preview(&files, &input).unwrap();
     std::fs::write(project.join("absent"), "foreign").unwrap();
-    let (result, effects) = execute(&project, &data, &input, &AllowAll, Some(&digest));
+    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest));
     assert!(result.is_err());
     assert!(effects.files.is_empty());
     assert_eq!(std::fs::read(project.join("absent")).unwrap(), b"foreign");

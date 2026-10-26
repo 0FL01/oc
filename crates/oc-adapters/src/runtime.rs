@@ -538,7 +538,7 @@ fn permission_path(root: Option<&std::path::Path>, resource: &str) -> String {
         match component {
             Component::CurDir => {}
             Component::ParentDir => {
-                if !normalized.pop() {
+                if !normalized.pop() && !normalized.has_root() {
                     normalized.push("..");
                 }
             }
@@ -627,7 +627,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "apply_patch".to_string(),
-            description: "Apply a patch to project files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <relative path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <relative path>`, optionally immediately followed by `*** Move to: <relative path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <relative path>`. Paths stay inside the project root."
+            description: "Apply a patch to files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <path>`, optionally immediately followed by `*** Move to: <path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <path>`. Paths may be relative to Location, absolute, or ~/ paths. External targets require external_directory and mutation permission for every affected path, including move destinations. Cross-filesystem moves are refused during preflight, before any effects. Native no-follow/data-root/preimage guards apply."
                 .to_string(),
             parameters: serde_json::json!({
                 "type": "object",
@@ -651,12 +651,12 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "write".into(),
-            description: "Write a project text file, overwriting if it exists and creating missing parent directories. content preserves supplied newlines and EOF; an existing or supplied UTF-8 BOM is retained once. Use edit for partial changes. Shared mutation permissions, no-follow/data-root/preimage guards and bounded confirmed diffs apply; no preceding read call is required.".into(),
+            description: "Write a text file, overwriting if it exists and creating missing parent directories. Paths may be relative to Location, absolute, or ~/ paths; external targets require external_directory and mutation permission. content preserves supplied newlines and EOF; an existing or supplied UTF-8 BOM is retained once. Use edit for partial changes. Shared mutation permissions, no-follow/data-root/preimage guards and bounded confirmed diffs apply; no preceding read call is required.".into(),
             parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["path","content"],"properties":{"path":{"type":"string"},"content":{"type":"string"}}}),
         },
         ToolDef {
             name: "edit".into(),
-            description: "Edit an existing project text file by replacing oldString with newString. Omit Read line-number prefixes and preserve indentation. oldString must be nonempty and differ from newString; newString may be empty to delete text. UNIQUE match is required unless replaceAll is true. Exact nonoverlapping matches precede typographic normalization, then trailing-whitespace line matching. CRLF/BOM and actual EOF are preserved. Shared mutation permission/preimage/no-follow/bounded-diff safeguards apply; no preceding read call is required.".into(),
+            description: "Edit an existing text file by replacing oldString with newString. Paths may be relative to Location, absolute, or ~/ paths; external targets require external_directory and mutation permission. Omit Read line-number prefixes and preserve indentation. oldString must be nonempty and differ from newString; newString may be empty to delete text. UNIQUE match is required unless replaceAll is true. Exact nonoverlapping matches precede typographic normalization, then trailing-whitespace line matching. CRLF/BOM and actual EOF are preserved. Shared mutation permission/preimage/no-follow/bounded-diff safeguards apply; no preceding read call is required.".into(),
             parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["path","oldString","newString"],"properties":{"path":{"type":"string"},"oldString":{"type":"string"},"newString":{"type":"string"},"replaceAll":{"type":"boolean","default":false}}}),
         },
         ToolDef {

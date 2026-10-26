@@ -14,6 +14,7 @@
 //! conflict, not a fuzzy merge. Native edit/write share prepared commits here.
 
 use std::path::{Path, PathBuf};
+use std::{collections::BTreeMap, sync::Arc};
 
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
@@ -230,6 +231,29 @@ pub fn affected_paths(patch_text: &str) -> Result<Vec<String>, PatchError> {
         }
     }
     Ok(paths.into_iter().collect())
+}
+
+/// Only formal file headers are rewritten; hunk bytes and line endings stay exact.
+pub(crate) fn expand_home_paths(text: &str, home: &str) -> String {
+    text.split_inclusive('\n')
+        .map(|line| {
+            let body = line.trim_end_matches(['\r', '\n']);
+            for header in [
+                "*** Add File:",
+                "*** Update File:",
+                "*** Delete File:",
+                "*** Move to:",
+            ] {
+                if let Some(path) = body.strip_prefix(header).map(str::trim)
+                    && (path == "~" || path.starts_with("~/"))
+                {
+                    let absolute = Path::new(home).join(path.strip_prefix("~/").unwrap_or(""));
+                    return format!("{header} {}{}", absolute.display(), &line[body.len()..]);
+                }
+            }
+            line.to_string()
+        })
+        .collect()
 }
 
 /// Max files summarised for a diff card (bounded UI state).
@@ -790,12 +814,27 @@ pub fn apply_patch_with_effects(
     Result<Vec<FileResult>, ApplyFailure>,
     oc_core::patch::PatchEffects,
 ) {
-    apply_patch_with_approved_preimage(project_root, data_root, patch_text, policy, None)
+    let files = match Files::new(project_root, data_root) {
+        Ok(files) => files,
+        Err(_) => {
+            return (
+                Err(op_fail(
+                    0,
+                    "$patch",
+                    PatchError::InvalidPatch {
+                        entry: 0,
+                        reason: "bad roots".into(),
+                    },
+                )),
+                oc_core::patch::PatchEffects::default(),
+            );
+        }
+    };
+    apply_patch_with_approved_preimage(&files, patch_text, policy, None)
 }
 
 pub(crate) fn apply_patch_with_approved_preimage(
-    project_root: &Path,
-    data_root: &Path,
+    files: &Files,
     patch_text: &str,
     policy: &dyn WritePolicy,
     expected: Option<&str>,
@@ -804,30 +843,20 @@ pub(crate) fn apply_patch_with_approved_preimage(
     oc_core::patch::PatchEffects,
 ) {
     let mut effects = oc_core::patch::PatchEffects::default();
-    let result = apply_patch_inner(
-        project_root,
-        data_root,
-        patch_text,
-        policy,
-        &mut effects,
-        None,
-        expected,
-    );
+    let result = apply_patch_inner(files, patch_text, policy, &mut effects, None, expected);
     effects::bound_serialized(&mut effects);
     (result, effects)
 }
 
 /// Real preflight, including all hunks and immutable preimage digest; no staging/effects.
 pub(crate) fn approval_preview(
-    project: &Path,
-    data: &Path,
+    files: &Files,
     text: &str,
 ) -> Result<(oc_core::patch::PatchEffects, String), ApplyFailure> {
     let mut proposed = oc_core::patch::PatchEffects::default();
     let mut digest = String::new();
     apply_patch_inner(
-        project,
-        data,
+        files,
         text,
         &AllowAll,
         &mut proposed,
@@ -839,8 +868,7 @@ pub(crate) fn approval_preview(
 }
 
 fn apply_patch_inner(
-    project_root: &std::path::Path,
-    data_root: &std::path::Path,
+    files: &Files,
     patch_text: &str,
     policy: &dyn WritePolicy,
     effects: &mut oc_core::patch::PatchEffects,
@@ -848,18 +876,8 @@ fn apply_patch_inner(
     expected_digest: Option<&str>,
 ) -> Result<Vec<FileResult>, ApplyFailure> {
     let ops = parse_plan(patch_text)?;
-    let files = Files::new(project_root, data_root).map_err(|_| ApplyFailure {
-        done: Vec::new(),
-        failed_op: 0,
-        failed_path: "$patch".to_string(),
-        error: PatchError::InvalidPatch {
-            entry: 0,
-            reason: "bad roots".to_string(),
-        },
-    })?;
-
-    let canonical_root = project_root.to_path_buf();
-    let root = fs::Root::new(&canonical_root).map_err(|_| {
+    let canonical_root = files.project_root().to_path_buf();
+    let root = Arc::new(fs::Root::new(&canonical_root).map_err(|_| {
         op_fail(
             0,
             "$patch",
@@ -867,7 +885,8 @@ fn apply_patch_inner(
                 path: "$patch".into(),
             },
         )
-    })?;
+    })?);
+    let mut roots = BTreeMap::from([(canonical_root.clone(), root.clone())]);
     // Preflight: all deterministic failures, including every hunk, before
     // creating even a destination directory or a staging file.
     let mut seen: Vec<PathBuf> = Vec::new();
@@ -916,7 +935,7 @@ fn apply_patch_inner(
             Err(_) => return Err(fail("unresolvable path")),
         };
         for path in std::iter::once(rel).chain(op.move_to()) {
-            let normalized = map_resolve(&files, path).map_err(|e| op_fail(idx, path, e))?;
+            let normalized = map_resolve(files, path).map_err(|e| op_fail(idx, path, e))?;
             if seen
                 .iter()
                 .any(|other| normalized.starts_with(other) || other.starts_with(&normalized))
@@ -1015,10 +1034,6 @@ fn apply_patch_inner(
                 ));
             }
         }
-        let path = abs
-            .strip_prefix(&canonical_root)
-            .map_err(|_| fail("outside root"))?
-            .to_path_buf();
         let io = |_| {
             op_fail(
                 idx,
@@ -1028,6 +1043,7 @@ fn apply_patch_inner(
                 },
             )
         };
+        let (root, path) = mutation_scope(files, &abs, &mut roots).map_err(io)?;
         root.writable_parent(&path).map_err(io)?;
         let before = match op {
             FileOp::Add { .. } => {
@@ -1100,14 +1116,12 @@ fn apply_patch_inner(
         let target = op
             .move_to()
             .map(|target| {
-                let abs = map_resolve(&files, target)?;
-                let relative = abs
-                    .strip_prefix(&canonical_root)
-                    .map_err(|_| PatchError::OutsideRoot {
+                let abs = map_resolve(files, target)?;
+                let (target_root, relative) =
+                    mutation_scope(files, &abs, &mut roots).map_err(|_| PatchError::Io {
                         path: target.into(),
-                    })?
-                    .to_path_buf();
-                if !root.absent(&relative).map_err(|_| PatchError::Io {
+                    })?;
+                if !target_root.absent(&relative).map_err(|_| PatchError::Io {
                     path: target.into(),
                 })? {
                     return Err(PatchError::Conflict {
@@ -1115,15 +1129,32 @@ fn apply_patch_inner(
                         reason: "move-target-exists".into(),
                     });
                 }
-                root.writable_parent(&relative)
+                target_root
+                    .writable_parent(&relative)
                     .map_err(|_| PatchError::Io {
                         path: target.into(),
                     })?;
-                Ok(relative)
+                let source_mount = root
+                    .parent_mount(&path)
+                    .map_err(|_| PatchError::Io { path: rel.into() })?;
+                let target_mount =
+                    target_root
+                        .parent_mount(&relative)
+                        .map_err(|_| PatchError::Io {
+                            path: target.into(),
+                        })?;
+                if source_mount != target_mount {
+                    return Err(PatchError::Conflict {
+                        path: target.into(),
+                        reason: "cross-device-move".into(),
+                    });
+                }
+                Ok((target_root, relative))
             })
             .transpose()
             .map_err(|e| op_fail(idx, rel, e))?;
         prepared.push(Prepared {
+            root,
             path,
             target,
             before,
@@ -1148,6 +1179,24 @@ fn apply_patch_inner(
         hash.update(device.to_le_bytes());
         hash.update(inode.to_le_bytes());
         for (op, prepared) in ops.iter().zip(&prepared) {
+            let (device, inode) = prepared.root.authority_identity().map_err(|_| {
+                fail(PatchError::Io {
+                    path: op.path().into(),
+                })
+            })?;
+            hash.update(device.to_le_bytes());
+            hash.update(inode.to_le_bytes());
+            hash.update(prepared.path.as_os_str().as_encoded_bytes());
+            if let Some((root, path)) = &prepared.target {
+                let (device, inode) = root.authority_identity().map_err(|_| {
+                    fail(PatchError::Io {
+                        path: op.path().into(),
+                    })
+                })?;
+                hash.update(device.to_le_bytes());
+                hash.update(inode.to_le_bytes());
+                hash.update(path.as_os_str().as_encoded_bytes());
+            }
             hash.update(op.path().len().to_le_bytes());
             hash.update(op.path().as_bytes());
             hash.update([u8::from(prepared.before.is_some())]);
@@ -1194,7 +1243,7 @@ fn apply_patch_inner(
     // Execution: per-file commits, stop at first runtime failure.
     let mut done: Vec<FileResult> = Vec::new();
     for (idx, (op, prepared)) in ops.iter().zip(&prepared).enumerate() {
-        match execute_op(&root, op, prepared, policy, &mut done, effects) {
+        match execute_op(&prepared.root, op, prepared, policy, &mut done, effects) {
             Ok(()) => {}
             Err(error) => {
                 return Err(ApplyFailure {
@@ -1219,8 +1268,9 @@ fn op_fail(idx: usize, rel: &str, error: PatchError) -> ApplyFailure {
 }
 
 struct Prepared {
+    root: Arc<fs::Root>,
     path: PathBuf,
-    target: Option<PathBuf>,
+    target: Option<(Arc<fs::Root>, PathBuf)>,
     before: Option<fs::Snapshot>,
     after: Option<Vec<u8>>,
 }
@@ -1309,10 +1359,10 @@ fn commit_prepared(
         ),
     );
     entry.sync().map_err(io)?;
-    if let Some(target) = &prepared.target {
+    if let Some((target_root, target)) = &prepared.target {
         let updated = entry.snapshot().map_err(io)?;
         policy.check(move_to.expect("target"))?;
-        let target = root.entry(target, true).map_err(io)?;
+        let target = target_root.entry(target, true).map_err(io)?;
         if !entry.unchanged(&updated).map_err(io)? {
             return Err(PatchError::Conflict {
                 path: rel.to_string(),
@@ -1357,6 +1407,48 @@ fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {
             path: rel.to_string(),
         },
     })
+}
+
+/// Select an I/O anchor only for an already resolved/admitted exact target.
+/// Missing parents are created later by Entry, never during preparation.
+fn mutation_scope(
+    files: &Files,
+    absolute: &Path,
+    roots: &mut BTreeMap<PathBuf, Arc<fs::Root>>,
+) -> std::io::Result<(Arc<fs::Root>, PathBuf)> {
+    let mut anchor = if absolute.starts_with(files.project_root()) {
+        files.project_root()
+    } else {
+        absolute.parent().ok_or(std::io::ErrorKind::InvalidInput)?
+    };
+    loop {
+        let root = if let Some(root) = roots.get(anchor) {
+            root.clone()
+        } else {
+            match fs::Root::new(anchor) {
+                Ok(root) => {
+                    let root = Arc::new(root);
+                    roots.insert(anchor.to_path_buf(), root.clone());
+                    root
+                }
+                Err(error)
+                    if error.kind() == std::io::ErrorKind::NotFound
+                        && anchor != files.project_root() =>
+                {
+                    anchor = anchor.parent().ok_or(error)?;
+                    continue;
+                }
+                Err(error) => return Err(error),
+            }
+        };
+        return Ok((
+            root,
+            absolute
+                .strip_prefix(anchor)
+                .map_err(|_| std::io::ErrorKind::InvalidInput)?
+                .to_path_buf(),
+        ));
+    }
 }
 
 #[cfg(test)]
@@ -1460,8 +1552,8 @@ mod tests {
         MODEL_TOOL_NAMES, PatchError, ProtectedGlobs, apply_patch, diff_render, diff_summary,
     };
     use std::fs;
-    use std::os::unix::fs::PermissionsExt as _;
     use std::os::unix::fs::symlink;
+    use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _};
 
     fn setup() -> (tempfile::TempDir, std::path::PathBuf, std::path::PathBuf) {
         let tmp = tempfile::tempdir().expect("temp");
@@ -1810,6 +1902,113 @@ mod tests {
         .expect_err("symlink");
         assert!(matches!(sym.error, PatchError::Symlink { .. }));
         assert!(tmp.path().join("data").join("s.txt").exists());
+    }
+
+    #[test]
+    fn external_mutation_scopes_preserve_mixed_preflight_moves_and_guards() {
+        let (tmp, project, data) = setup();
+        let source = tmp.path().join("source");
+        let destination = tmp.path().join("new/nested/destination");
+        let deleted = tmp.path().join("deleted");
+        std::fs::write(&source, "before\n").unwrap();
+        std::fs::write(&deleted, "remove\n").unwrap();
+        let mut files = crate::files::Files::new(&project, &data).unwrap();
+        files.admit_mutation_paths(vec![
+            source.clone(),
+            destination.clone(),
+            deleted.clone(),
+            data.join("blocked"),
+        ]);
+        let patch = format!(
+            "*** Begin Patch\n*** Add File: local\n+local\n*** Update File: {}\n*** Move to: {}\n@@\n-before\n+after\n*** Delete File: {}\n*** End Patch",
+            source.display(),
+            destination.display(),
+            deleted.display()
+        );
+        let invalid = patch.replace("-before", "-stale");
+        assert!(
+            super::apply_patch_with_approved_preimage(&files, &invalid, &AllowAll, None)
+                .0
+                .is_err()
+        );
+        assert!(!project.join("local").exists() && !destination.exists());
+        let (_, digest) = super::approval_preview(&files, &patch).unwrap();
+        std::fs::write(&source, "foreign\n").unwrap();
+        let (result, effects) =
+            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, Some(&digest));
+        assert!(result.is_err() && effects.files.is_empty());
+        assert!(!project.join("local").exists());
+        std::fs::write(&source, "before\n").unwrap();
+        let (_, digest) = super::approval_preview(&files, &patch).unwrap();
+        let (result, effects) =
+            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, Some(&digest));
+        assert_eq!(result.unwrap().len(), 3);
+        assert_eq!(effects.total_files, 3);
+        assert_eq!(std::fs::read(&destination).unwrap(), b"after\n");
+        assert!(!source.exists() && !deleted.exists());
+        assert!(files.read(destination.to_str().unwrap(), 1, 1).is_err());
+        let blocked = format!(
+            "*** Begin Patch\n*** Add File: {}\n+bad\n*** End Patch",
+            data.join("blocked").display()
+        );
+        assert!(matches!(
+            super::apply_patch_with_approved_preimage(&files, &blocked, &AllowAll, None)
+                .0
+                .unwrap_err()
+                .error,
+            PatchError::OwnDataRoot { .. }
+        ));
+        let link = tmp.path().join("link");
+        std::os::unix::fs::symlink(&destination, &link).unwrap();
+        files.admit_mutation_paths(vec![link.clone()]);
+        let linked = format!(
+            "*** Begin Patch\n*** Update File: {}\n@@\n-after\n+bad\n*** End Patch",
+            link.display()
+        );
+        assert!(
+            super::apply_patch_with_approved_preimage(&files, &linked, &AllowAll, None)
+                .0
+                .is_err()
+        );
+        assert_eq!(std::fs::read(&destination).unwrap(), b"after\n");
+        let ungranted = format!(
+            "*** Begin Patch\n*** Add File: {}\n+bad\n*** End Patch",
+            tmp.path().join("ungranted").display()
+        );
+        assert!(matches!(
+            super::apply_patch_with_approved_preimage(&files, &ungranted, &AllowAll, None)
+                .0
+                .unwrap_err()
+                .error,
+            PatchError::OutsideRoot { .. }
+        ));
+    }
+
+    #[test]
+    fn external_mutation_cross_device_move_fails_before_any_effect() {
+        let (_tmp, project, data) = setup();
+        let external = tempfile::tempdir_in("/dev/shm").unwrap();
+        let source = project.join("source");
+        let target = external.path().join("missing/target");
+        std::fs::write(&source, "before\n").unwrap();
+        let mut files = crate::files::Files::new(&project, &data).unwrap();
+        files.admit_mutation_paths(vec![target.clone()]);
+        assert_ne!(
+            std::fs::metadata(&project).unwrap().dev(),
+            std::fs::metadata(external.path()).unwrap().dev()
+        );
+        let patch = format!(
+            "*** Begin Patch\n*** Add File: first\n+no effects\n*** Update File: source\n*** Move to: {}\n@@\n-before\n+after\n*** End Patch",
+            target.display()
+        );
+        let (result, effects) =
+            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, None);
+        assert!(
+            matches!(result.unwrap_err().error, PatchError::Conflict { reason, .. } if reason == "cross-device-move")
+        );
+        assert!(effects.files.is_empty());
+        assert_eq!(std::fs::read(&source).unwrap(), b"before\n");
+        assert!(!project.join("first").exists() && !external.path().join("missing").exists());
     }
 
     #[test]

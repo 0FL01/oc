@@ -80,7 +80,6 @@ impl<'a> Input<'a> {
 }
 
 struct Plan {
-    root: fs::Root,
     prepared: Prepared,
     digest: String,
     output: Value,
@@ -100,33 +99,10 @@ fn text<'a>(bytes: &'a [u8], path: &str) -> Result<&'a str, PatchError> {
     })
 }
 
-fn prepare(
-    project: &Path,
-    data: &Path,
-    input: &Input<'_>,
-    policy: &dyn WritePolicy,
-) -> Result<Plan, PatchError> {
+fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result<Plan, PatchError> {
     let rel = input.path();
     policy.check(rel)?;
-    let files = Files::new(project, data).map_err(|_| PatchError::Io { path: rel.into() })?;
-    let canonical = project.to_path_buf();
-    // Donor absolute/home spellings share the same lexical, no-follow project
-    // admission. Strip only the admitted root; never canonicalize a target/link.
-    let relative = if Path::new(rel).is_absolute() {
-        Path::new(rel)
-            .strip_prefix(&canonical)
-            .map_err(|_| PatchError::OutsideRoot { path: rel.into() })?
-            .to_str()
-            .ok_or_else(|| PatchError::OutsideRoot { path: rel.into() })?
-    } else {
-        rel
-    };
-    let absolute = map_resolve(&files, relative)?;
-    let path = absolute
-        .strip_prefix(&canonical)
-        .map_err(|_| PatchError::OutsideRoot { path: rel.into() })?
-        .to_path_buf();
-    let root = fs::Root::new(&canonical).map_err(|_| PatchError::Io { path: rel.into() })?;
+    let absolute = map_resolve(files, rel)?;
     let io = |error: std::io::Error| {
         if error.kind() == std::io::ErrorKind::FileTooLarge {
             PatchError::TooLarge {
@@ -137,6 +113,7 @@ fn prepare(
             PatchError::Io { path: rel.into() }
         }
     };
+    let (root, path) = mutation_scope(files, &absolute, &mut BTreeMap::new()).map_err(io)?;
     root.writable_parent(&path).map_err(io)?;
     let before = if root.absent(&path).map_err(io)? {
         None
@@ -179,7 +156,7 @@ fn prepare(
     }
     let kind = if before.is_some() { "update" } else { "add" };
     let mut hash = Sha256::new();
-    hash.update(canonical.as_os_str().as_encoded_bytes());
+    hash.update(files.project_root().as_os_str().as_encoded_bytes());
     let (device, inode) = root.authority_identity().map_err(io)?;
     hash.update(device.to_le_bytes());
     hash.update(inode.to_le_bytes());
@@ -198,8 +175,8 @@ fn prepare(
         json!({"operation":"write","target":absolute,"resource":rel,"existed":before.is_some()})
     };
     Ok(Plan {
-        root,
         prepared: Prepared {
+            root,
             path,
             target: None,
             before,
@@ -212,11 +189,10 @@ fn prepare(
 }
 
 pub(crate) fn preview(
-    project: &Path,
-    data: &Path,
+    files: &Files,
     input: &Input<'_>,
 ) -> Result<(oc_core::patch::PatchEffects, String), PatchError> {
-    let plan = prepare(project, data, input, &AllowAll)?;
+    let plan = prepare(files, input, &AllowAll)?;
     let mut proposed = oc_core::patch::PatchEffects::default();
     effects::push(
         &mut proposed,
@@ -235,15 +211,14 @@ pub(crate) fn preview(
 }
 
 pub(crate) fn execute(
-    project: &Path,
-    data: &Path,
+    files: &Files,
     input: &Input<'_>,
     policy: &dyn WritePolicy,
     expected: Option<&str>,
 ) -> (Result<Value, PatchError>, oc_core::patch::PatchEffects) {
     let mut confirmed = oc_core::patch::PatchEffects::default();
     let result = (|| {
-        let plan = prepare(project, data, input, policy)?;
+        let plan = prepare(files, input, policy)?;
         if expected.is_some_and(|expected| expected != plan.digest) {
             return Err(PatchError::Conflict {
                 path: input.path().into(),
@@ -251,7 +226,7 @@ pub(crate) fn execute(
             });
         }
         commit_prepared(
-            &plan.root,
+            &plan.prepared.root,
             input.path(),
             plan.kind,
             None,

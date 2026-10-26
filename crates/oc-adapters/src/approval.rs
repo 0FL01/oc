@@ -190,8 +190,7 @@ pub(crate) async fn prepare(
     let preview = match call.name.as_str() {
         "apply_patch" => {
             let (proposed, digest) = crate::patch::approval_preview(
-                &roots.project,
-                &roots.data,
+                ctx.files,
                 call.arguments["patchText"]
                     .as_str()
                     .ok_or("missing patch")?,
@@ -207,9 +206,8 @@ pub(crate) async fn prepare(
         }
         "edit" | "write" => {
             let input = crate::patch::mutation::Input::parse(&call.name, &call.arguments)?;
-            let (proposed, digest) =
-                crate::patch::mutation::preview(&roots.project, &roots.data, &input)
-                    .map_err(|error| format!("mutation preflight: {error}"))?;
+            let (proposed, digest) = crate::patch::mutation::preview(ctx.files, &input)
+                .map_err(|error| format!("mutation preflight: {error}"))?;
             hash.update(&digest);
             patch_preimage = Some(digest);
             ApprovalPreview::Patch {

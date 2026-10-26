@@ -19,6 +19,252 @@ fn text_params<'a>(
 }
 
 #[tokio::test]
+async fn external_mutations_auto_admits_patch_edit_and_write_without_saved_grants() {
+    for tool in ["apply_patch", "edit", "write"] {
+        let mut permissions = allow_all();
+        permissions.insert("external_directory".into(), Permission::Ask);
+        permissions.insert("apply_patch".into(), Permission::Ask);
+        let (harness, generation) = text_harness(permissions);
+        let home = tempfile::tempdir().unwrap();
+        let target = if tool == "write" {
+            home.path().join("new/nested/file")
+        } else {
+            home.path().join(".zshrc")
+        };
+        std::fs::write(home.path().join(".zshrc"), "before\n").unwrap();
+        let runtime = Runtime::new(
+            &harness.db,
+            "work",
+            generation,
+            ProtectedGlobs { patterns: vec![] },
+            oc_adapters::files::Files::new(harness._project.path(), harness._data.path()).unwrap(),
+            oc_adapters::shell::Shell::new(harness._project.path()).unwrap(),
+            BTreeMap::from([("HOME".into(), home.path().to_string_lossy().into_owned())]),
+            oc_adapters::tools::ToolRoots {
+                project: harness._project.path().into(),
+                data: harness._data.path().into(),
+            },
+            None,
+            false,
+            DcpConfig::default(),
+        )
+        .unwrap();
+        let (events, mut rx) = tokio::sync::broadcast::channel(64);
+        runtime.set_approval_events(&events);
+        runtime.register_approval_consumer(true);
+        runtime.create_session("external-auto").unwrap();
+        let args = match tool {
+            "apply_patch" => {
+                serde_json::json!({"patchText":"*** Begin Patch\n*** Update File: ~/.zshrc\n@@\n-before\n+after\n*** End Patch"})
+            }
+            "edit" => serde_json::json!({"path":target,"oldString":"before","newString":"after"}),
+            _ => serde_json::json!({"path":target,"content":"after\n"}),
+        };
+        let (base, _, requests) = Fake::start_recording(
+            vec![
+                sse_tool_call("external-call", tool, &args) + &sse_completed(),
+                sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let turn = if tool == "apply_patch" {
+            params(
+                "external-auto",
+                "mutate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            )
+        } else {
+            text_params("external-auto", &harness, provider_of(&base), &NO_CANCEL)
+        };
+        let report = runtime.run_turn(turn).await.unwrap();
+        assert_eq!(
+            report.calls[0].state, "completed",
+            "{}",
+            report.calls[0].output
+        );
+        assert_eq!(std::fs::read(&target).unwrap(), b"after\n");
+        assert!(runtime.pending_approvals().is_empty());
+        let mut asked = Vec::new();
+        while let Ok(event) = rx.try_recv() {
+            if let oc_core::core_app::CoreEvent::PermissionAsked(request) = event {
+                asked.push(request);
+            }
+        }
+        assert_eq!(
+            asked
+                .iter()
+                .map(|request| request.action.as_str())
+                .collect::<Vec<_>>(),
+            ["external_directory", "apply_patch"]
+        );
+        assert_eq!(
+            asked[0].resources,
+            [target.parent().unwrap().join("*").to_string_lossy()]
+        );
+        assert_eq!(asked[1].resources, [target.to_string_lossy()]);
+        let records = harness.db.list_tool_ops("external-auto").unwrap();
+        assert_eq!(records[0].patch_effects.as_ref().unwrap().total_files, 1);
+        let requests = requests.lock().unwrap();
+        let original = requests.last().unwrap()["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["type"] == "function_call" && item["call_id"] == "external-call")
+            .unwrap();
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(original["arguments"].as_str().unwrap())
+                .unwrap(),
+            args
+        );
+        let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+        assert_eq!(
+            conn.query_row("SELECT count(*) FROM permission_grants", [], |row| row
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+    }
+}
+
+#[tokio::test]
+async fn external_mutations_require_both_permissions_and_rejection_has_no_effects() {
+    for mode in [
+        "boundary-reject",
+        "target-reject",
+        "boundary-deny",
+        "target-deny",
+        "absolute-alias-deny",
+        "relative-alias-deny",
+    ] {
+        let mut permissions = allow_all();
+        permissions.insert(
+            "external_directory".into(),
+            if mode == "boundary-deny" {
+                Permission::Deny
+            } else {
+                Permission::Ask
+            },
+        );
+        permissions.insert(
+            "apply_patch".into(),
+            if mode == "target-deny" {
+                Permission::Deny
+            } else {
+                Permission::Ask
+            },
+        );
+        let (harness, mut generation) = make_harness(permissions);
+        let home = tempfile::tempdir().unwrap();
+        let target = home.path().join(".zshrc");
+        std::fs::write(&target, "before\n").unwrap();
+        let input = if mode.ends_with("alias-deny") {
+            generation.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
+                &serde_json::json!({"permissions":[
+                    {"action":"external_directory","resource":"*","effect":"allow"},
+                    {"action":"edit","resource":"*","effect":"allow"},
+                    {"action":"edit","resource":target,"effect":"deny"}
+                ]}),
+            )
+            .unwrap();
+            let parents = if mode == "absolute-alias-deny" {
+                "/../".into()
+            } else {
+                "../".repeat(harness._project.path().components().count() + 1)
+            };
+            format!("{parents}{}", target.strip_prefix("/").unwrap().display())
+        } else {
+            target.to_string_lossy().into_owned()
+        };
+        let runtime = runtime_of(&harness, generation, vec![]);
+        let (events, mut rx) = tokio::sync::broadcast::channel(64);
+        runtime.set_approval_events(&events);
+        runtime.register_approval_consumer(mode.ends_with("deny"));
+        runtime.create_session("external-deny").unwrap();
+        let patch = format!(
+            "*** Begin Patch\n*** Update File: {}\n@@\n-before\n+after\n*** End Patch",
+            input
+        );
+        let (base, _) = Fake::start(
+            vec![
+                sse_tool_call(
+                    "external-call",
+                    "apply_patch",
+                    &serde_json::json!({"patchText":patch}),
+                ) + &sse_completed(),
+                sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let reply = async {
+            if mode.ends_with("reject") {
+                let boundary = approval_lifecycle::next_request(&runtime).await;
+                assert_eq!(boundary.action, "external_directory");
+                assert_eq!(std::fs::read(&target).unwrap(), b"before\n");
+                let request = if mode == "target-reject" {
+                    runtime
+                        .reply_approval(ApprovalReply {
+                            id: boundary.id,
+                            binding: boundary.binding,
+                            decision: ApprovalDecision::Once,
+                        })
+                        .unwrap();
+                    let request = approval_lifecycle::next_request(&runtime).await;
+                    assert_eq!(request.action, "apply_patch");
+                    assert!(matches!(&request.preview, ApprovalPreview::Patch { .. }));
+                    request
+                } else {
+                    boundary
+                };
+                assert!(
+                    harness
+                        .db
+                        .list_tool_ops("external-deny")
+                        .unwrap()
+                        .is_empty()
+                );
+                runtime
+                    .reply_approval(ApprovalReply {
+                        id: request.id,
+                        binding: request.binding,
+                        decision: ApprovalDecision::Reject { feedback: None },
+                    })
+                    .unwrap();
+            }
+        };
+        let (report, ()) = tokio::join!(
+            runtime.run_turn(params(
+                "external-deny",
+                "mutate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            )),
+            reply
+        );
+        assert_ne!(report.unwrap().calls[0].state, "completed");
+        assert_eq!(std::fs::read(&target).unwrap(), b"before\n");
+        assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 1);
+        assert!(runtime.pending_approvals().is_empty());
+        let mut asked = 0;
+        while let Ok(event) = rx.try_recv() {
+            if matches!(event, oc_core::core_app::CoreEvent::PermissionAsked(_)) {
+                asked += 1;
+            }
+        }
+        assert_eq!(
+            asked,
+            if mode == "target-reject" {
+                2
+            } else {
+                usize::from(mode == "boundary-reject")
+            }
+        );
+    }
+}
+
+#[tokio::test]
 async fn tool20_ask_preview_changed_preimage_cancel_and_durable_effects() {
     for tool in ["edit", "write"] {
         for action in ["allow", "stale", "cancel"] {
