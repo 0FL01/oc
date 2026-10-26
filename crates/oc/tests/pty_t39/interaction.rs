@@ -2824,11 +2824,11 @@ fn aud29_pty_panels_change_runtime_state() {
     wait_idle(&pty); // echo may precede the terminal completion/receipt
 
     // Manual DCP compress: the model calls the compress tool, the runtime
-    // stores a block and projects the same committed run into its chat card.
+    // stores a block and projects the same committed run into its compact row.
     pty.send(b"/dcp-compress early span\r");
     wait_screen_row(&pty, "compressions 1", DEADLINE);
     pty.send(b"\x1b"); // Esc closes the DCP panel
-    wait_screen_row(&pty, "Compression #1", DEADLINE);
+    wait_screen_row(&pty, "✓ compress [topic=t39 span]", DEADLINE);
     wait_idle(&pty);
 
     // Session switch: the attached session (and its history) really changes.

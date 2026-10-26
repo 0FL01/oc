@@ -1863,6 +1863,42 @@ fn inline_label(inline: &InlineRender) -> String {
     }
 }
 
+/// Shared inline geometry for generic and compress operation headers.
+pub(crate) fn inline_tool_header(
+    label: &str,
+    icon: &str,
+    style: ratatui::style::Style,
+    label_style: ratatui::style::Style,
+    width: u16,
+) -> Vec<Line> {
+    let padding = crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH;
+    let available = if width == 0 {
+        usize::MAX
+    } else {
+        (width as usize).saturating_sub(padding).max(1)
+    };
+    // A fitting source separator belongs to the preceding wrapped row; empty
+    // canvas cells keep their default style, as in upstream InlineToolRow.
+    styled::wrap_source_space_line_limited(&Line::styled(label, label_style), available, usize::MAX)
+        .iter()
+        .enumerate()
+        .map(|(index, line)| {
+            // Canonical neutral padding also matches indexed row reconstruction.
+            let mut spans = vec![Span::plain(" ".repeat(if index == 0 {
+                crate::messages::MESSAGE_PADDING
+            } else {
+                padding
+            }))];
+            if index == 0 {
+                spans.push(Span::styled(icon, style));
+                spans.push(Span::plain(" "));
+            }
+            spans.extend_from_slice(line.spans());
+            Line::new(spans)
+        })
+        .collect()
+}
+
 /// The original inline header is the click/hover surface; expanded parameters
 /// and output are text, not a second button or an implicit artifact reader.
 pub(crate) fn generic_block_expanded(
@@ -1911,37 +1947,12 @@ pub(crate) fn generic_block_expanded(
     if card.state == "unknown" {
         label.push_str(" · outcome unknown");
     }
-    let padding = crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH;
-    let available = if width == 0 {
-        usize::MAX
-    } else {
-        (width as usize).saturating_sub(padding).max(1)
-    };
-    // InlineToolRow's word-wrapped text owns a fitting source separator at the
-    // previous row's end; unoccupied canvas cells keep their own default style.
-    let mut rows = styled::wrap_source_space_line_limited(
-        &Line::styled(label, label_style),
-        available,
-        usize::MAX,
-    )
-    .iter()
-    .enumerate()
-    .map(|(index, line)| {
-        let mut spans = vec![Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING))];
-        if index == 0 {
-            spans.push(Span::styled(icon, style));
-            spans.push(Span::plain(" "));
-        } else {
-            spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH)));
-        }
-        spans.extend_from_slice(line.spans());
-        Line::new(spans)
-    })
-    .collect::<Vec<_>>();
+    let mut rows = inline_tool_header(&label, icon, style, label_style, width);
     mark_tool_animation(&mut rows, 0, 3, card);
     if !expanded {
         return rows;
     }
+    let padding = crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH;
     let mut detail = |key: &str, value: &str, color| {
         let prefix = if key.is_empty() {
             String::new()

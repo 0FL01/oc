@@ -5055,7 +5055,10 @@ impl<'a> Runtime<'a> {
                         .as_ref()
                         .and_then(|permit| permit.compression_plan.as_ref())
                         .and_then(|plan| plan.blocks.first())
-                        .map(|block| block.topic.clone()),
+                        .map(|block| block.topic.clone())
+                        // Task renewal has no range plan. Its canonical arguments
+                        // still own the topic, exactly as in history projection.
+                        .or_else(|| crate::dcp::presentation_topic(name, Some(&input))),
                     op: op.clone(),
                     name: name.to_string(),
                     input: input.clone(),

@@ -384,9 +384,26 @@ pending until actual qualification; this plan does not qualify other display fla
 ## Approved transcript presentation — T44/VIS38 (pending)
 
 Контракт: [T44 DCP amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#dcp-compression-display--vis38).
-Pinned display/accounting references D05–D10 и OC2 wrapper U34 — в
+Pinned display/accounting references D05–D10 и opt-in OC2 wrapper U34 — в
 [`tui-recovery/SOURCES.json`](../tui-recovery/SOURCES.json). Это DCP compression,
-не `/compact`/VIS34. Default detailed/chat после successful commit выглядит так
+не `/compact`/VIS34. Owner update 2026-10-25: обычная operation row компактна,
+независимо от наличия range accounting snapshot:
+
+```text
+⠋ compress
+✓ compress [topic=Confirmed apply patch delivery]
+```
+
+Первая строка — preparing/running, вторая — completed, не две копии операции.
+Topic берётся только из typed owner projection; при его отсутствии остаётся
+`✓ compress`. Task renewal текущей задачи законно не создаёт `DcpRunSnapshot`:
+это не legacy и не ошибка. Failed/no-gain/cancel/denial/unknown не получают success.
+Default не выводит raised block, arguments, metrics или summary; existing animation
+clock сохраняется. Off/toast относятся к дополнительным notifications, не скрывают
+сам вызов инструмента.
+
+Явный `showCompression=true` при chat и включённых notifications сохраняет opt-in
+details под той же operation row. Detailed использует следующий формат
 (иллюстративные числа, не результаты выполненного теста):
 
 ```text
@@ -398,10 +415,10 @@ Pinned display/accounting references D05–D10 и OC2 wrapper U34 — в
 ┃ → Items: 33 messages and 39 tools compressed
 ```
 
-Блок находится между шагами агента в transcript. Pending показывает краткий
-Compressing…/topic, commit заменяет его подтверждённым результатом. No-gain/error/
-cancel/denial/unknown не рисуются успешным report. showCompression=true добавляет
-сохранённый summary; minimal показывает header/run, off отключает notification.
+Opt-in блок находится между шагами агента в transcript под compact row. Он доступен
+только с настоящим run snapshot; отсутствие метадаты не порождает legacy-карточку
+или выдуманные цифры. showCompression=true добавляет сохранённый summary; minimal
+сохраняет header/run формат, off отключает дополнительное notification.
 
 Верхний removed — cumulative gross для session/current DCP revision, summary —
 active-summary total; нижние метрики — run. Это token estimates с disclosed method,

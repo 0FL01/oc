@@ -2859,6 +2859,11 @@ impl TuiState {
             row.name = card.name.clone();
             row.input = Some(std::mem::take(input));
             row.child_job = card.child_job.clone();
+            if let crate::tools::ToolRender::Dcp(view) = &card.render {
+                // Renewal completes without a run snapshot; keep the typed topic
+                // from Started instead of reconstructing it from raw UI input.
+                row.dcp_topic = view.topic.clone();
+            }
             if let Some(label) = card
                 .output_presentation
                 .as_ref()

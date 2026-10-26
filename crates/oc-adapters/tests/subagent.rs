@@ -19,7 +19,8 @@ use oc_adapters::models::ModelCatalog;
 use oc_adapters::patch::ProtectedGlobs;
 use oc_adapters::provider::ResponsesConfig;
 use oc_adapters::runtime::{
-    Runtime, SESSION_LOCATION_PREFIX, SubagentAgent, SubagentCatalog, TurnParams, TurnStatus,
+    Runtime, SESSION_LOCATION_PREFIX, SubagentAgent, SubagentCatalog, ToolCallEvent, TurnParams,
+    TurnStatus,
 };
 use oc_adapters::storage::Db;
 
@@ -2358,17 +2359,44 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
         ) + &sse_completed(),
         sse_delta("root final") + &sse_completed(),
     ]);
+    let mut tool_events = Vec::new();
     let report = runtime
-        .run_turn(params(
-            "root",
-            "ROOT_TASK_OBSOLETE long task",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
+        .run_turn_with_tool_events(
+            params(
+                "root",
+                "ROOT_TASK_OBSOLETE long task",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_, event| tool_events.push(event.clone()),
+        )
         .await
         .expect("turn");
     assert_eq!(report.status, TurnStatus::Completed);
+    assert!(tool_events.iter().any(|event| matches!(event,
+        ToolCallEvent::Started { name, dcp_topic: Some(topic), .. }
+            if name == "compress" && topic == "renew"
+    )));
+    assert!(tool_events.iter().any(|event| matches!(event,
+        ToolCallEvent::Finished { name, state, dcp: None, .. }
+            if name == "compress" && state == "completed"
+    )));
+    let replayed = harness
+        .db
+        .list_tool_ops("root")
+        .unwrap()
+        .into_iter()
+        .find(|row| row.name == "compress")
+        .unwrap();
+    assert_eq!(replayed.dcp_topic.as_deref(), Some("renew"));
+    assert!(
+        replayed.dcp.is_none(),
+        "task renewal is not a range-compression run"
+    );
     let seen = child_requests(&requests);
     let last = seen[2]["input"].to_string();
     assert!(

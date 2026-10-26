@@ -832,6 +832,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                     (session.clone(), turn.clone(), "compress")
                 );
                 assert!(output_presentation.is_none());
+                assert_eq!(dcp_topic.as_deref(), Some("public multi-range 中文"));
                 state.apply_tool_started_with_presentation(&id, &op, &name, &input, dcp_topic);
                 let pending = state
                     .transcript_lines(100, 100)
@@ -840,7 +841,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                     .collect::<Vec<_>>()
                     .join("\n");
                 assert!(
-                    pending.contains("Compressing…") && pending.contains("public multi-range 中文")
+                    pending.contains("compress") && !pending.contains("public multi-range 中文")
                 );
                 assert!(!pending.contains("removed"));
                 started += 1;
@@ -898,6 +899,10 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                         .count(),
                     1
                 );
+                assert!(state.transcript_lines(100, 100).iter().any(|line| {
+                    line.plain_text()
+                        .contains("✓ compress [topic=public multi-range 中文]")
+                }));
                 finished.push(run);
             }
             CoreEvent::TurnFinished {

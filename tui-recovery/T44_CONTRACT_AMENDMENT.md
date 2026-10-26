@@ -857,8 +857,9 @@ VIS37 mandatory, NOT_RUN/evidence empty до actual qualification; plan approval
 
 ## DCP compression display — VIS38
 
-Owner-approved 2026-09-27: подробный DCP-блок появляется непосредственно в ленте
-разговора между шагами агента; большие token-метрики используют K/M. Это обязательный
+Owner-approved 2026-09-27, presentation update 2026-10-25: default `compress` —
+compact tool row; подробный DCP-блок остаётся explicit showCompression opt-in
+между шагами агента; большие token-метрики используют K/M. Это обязательный
 R4/R5 slice T44, не отдельная modal и не OC2 native `/compact`/VIS34. Источник текста,
 шкалы, defaults и accounting — DCP 3.1.15, commit
 `11f6517780a502512a3467645074be447cb0369e`, AGPL-3.0-or-later; оригинальная transcript
@@ -873,8 +874,9 @@ Pinned links/locators: D05–D10 и U34 в `SOURCES.json`.
    карты сообщений. Один successful вызов с несколькими ranges — один run/card, не
    отдельный номер на каждый block. Run identity стабильна через restart; не выводить
    её из process-global stats, количества загруженных rows или global block sequence.
-   Legacy результаты без необходимых данных получают честное unavailable/legacy
-   представление, не fabricated counts или повторное исполнение ради backfill.
+   Отсутствие snapshot не доказывает legacy: native task renewal не создаёт range
+   run. Operation state и typed topic определяют compact row; отсутствующие counts
+   не фабрикуются, backfill/replay ради отображения не выполняется.
 2. **Accounting semantics.** Верхний removed — cumulative gross removed из projection
    этой session/DCP revision, включая действительно учтённый pruning; верхний summary —
    текущая сумма active summaries, не lifetime сумма всех blocks. Нижние removed/summary
@@ -886,7 +888,12 @@ Pinned links/locators: D05–D10 и U34 в `SOURCES.json`.
    недостаточно для обеих величин. Token estimates/метод доступны в DCP metadata/panel;
    не называть их provider billing, точным usage или размером raw history. Accounting
    коммитится атомарно с projection/outcome, failed/no-gain/cancel не прибавляет успех.
-3. **Detailed transcript block.** Default detailed/chat после commit показывает
+3. **Compact operation row / opt-in details.** Default для любого `compress`:
+   preparing/running — animated spinner + `compress`, completed —
+   `✓ compress [topic=…]` либо `✓ compress`, если typed topic недоступен. Без raised
+   wrapper, arguments/summary и ложной unavailable/legacy надписи. Snapshot topic
+   frozen; без snapshot сохраняется typed Started/history topic, не raw UI JSON.
+   При explicit showCompression=true detailed/chat после commit дополнительно показывает
    `▣ DCP | -… removed, +… summary`, blank row, `│…│`,
    `▣ Compression #N -… removed, +… summary`, `→ Topic: …` и
    `→ Items: N messages and M tools compressed`. При zero tools donor опускает tools
@@ -896,8 +903,8 @@ Pinned links/locators: D05–D10 и U34 в `SOURCES.json`.
    Карта — 50 ячеек канонических message positions: `█` ordinary/not compressed,
    `░` ранее active-compressed, `⣿` newly compressed этим run, recent имеет приоритет.
    Mapping, fixed width и empty fallback следуют D06; это не token ratio или execution
-   percentage. Running имеет короткое DCP/Compressing… состояние с topic и existing
-   animation policy; confirmed metrics/bar появляются только после commit. No-gain,
+   percentage. Running использует compact spinner row и existing animation policy;
+   confirmed opt-in metrics/bar появляются только после commit. No-gain,
    denied/error/cancelled/unknown состояния честные; successful report не подменяет их.
 4. **Shared number/K/M formatter.** Только presentation token-метрик: below 1000 —
    целое число; от 1000 — K; от 1 000 000 — M. Decimal radix 1000, максимум один знак
@@ -911,7 +918,7 @@ Pinned links/locators: D05–D10 и U34 в `SOURCES.json`.
    к bool; chat/toast и `compress.showCompression` независимы. Defaults detailed/chat,
    showCompression=false; true добавляет реальный сохранённый summary, bounded/paged,
    с source-derived multi-range headings. Minimal — header + Compression #N; off
-   отключает notification, не runtime failure diagnostics. Native toast mapping в
+   отключает notification, не operation row и не runtime failure diagnostics. Native toast mapping в
    bounded transient status notice остаётся documented difference, без persistent
    duplicate. В chat run имеет одну card identity, pending сменяется committed view.
    Карточка — projection существующей операции, не новый user prompt/LLM message.

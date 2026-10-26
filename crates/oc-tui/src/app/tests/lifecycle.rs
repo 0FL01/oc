@@ -933,7 +933,7 @@ async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_s
         .map(crate::styled::Line::plain_text)
         .collect::<Vec<_>>()
         .join("\n");
-    assert!(pending.contains("Actual owner topic 中文"));
+    assert!(pending.contains("compress") && !pending.contains("Actual owner topic 中文"));
     assert!(!pending.contains("forged input topic") && !pending.contains("removed"));
     assert!(
         state.compaction_at.is_some(),
@@ -1079,6 +1079,83 @@ async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_s
     state.app.create_session(sid("dcp-other")).await.unwrap();
     state.set_session(sid("dcp-other"));
     assert!(!state.transcript_rows().iter().any(|row| row.tool.is_some()));
+}
+
+#[tokio::test]
+async fn compress_renewal_topic_survives_live_finish_and_replay_without_snapshot() {
+    use oc_core::queries::{HistoryTurn, ToolOpView, TranscriptPart};
+    let mut state = fresh_state("compress-renewal").await;
+    let turn = WorkerTurnId("renewal-turn".into());
+    state.active_turn = Some(turn.clone());
+    state.status = TuiStatus::Streaming;
+    let operation = ToolOpView {
+        child_job: None,
+        output_presentation: None,
+        question: None,
+        rowid: 1,
+        op: "renewal-op".into(),
+        name: "compress".into(),
+        state: "completed".into(),
+        input: Some(r#"{"topic":"forged UI input"}"#.into()),
+        output: Some(r#"{"status":"task_renewal_accepted"}"#.into()),
+        output_bytes: 34,
+        output_truncated: false,
+        patch_effects: None,
+        dcp: None,
+        dcp_topic: Some("Renewal owner topic".into()),
+    };
+    state.apply_tool_started_with_presentation(
+        &turn,
+        &operation.op,
+        &operation.name,
+        operation.input.as_deref().unwrap(),
+        operation.dcp_topic.clone(),
+    );
+    assert!(state.compaction_at.is_some());
+    state.apply_tool_finished_with_presentation(
+        &turn,
+        &operation.op,
+        &operation.name,
+        &operation.state,
+        operation.output.as_deref().unwrap(),
+        operation.output_bytes,
+        operation.output_truncated,
+        None,
+        None,
+        None,
+    );
+    assert!(state.compaction_at.is_none());
+    let live = state.transcript_lines(100, 100);
+    let live_row = live
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .find(|line| line.contains("compress"))
+        .unwrap();
+    assert_eq!(live_row.trim(), "✓ compress [topic=Renewal owner topic]");
+    assert!(
+        live.iter()
+            .all(|line| !line.plain_text().contains("forged")
+                && !line.plain_text().contains("legacy"))
+    );
+    state.apply_finished(&turn, "", 100);
+    let mut answer = msg(2, Role::Assistant, "");
+    answer.turn = Some(HistoryTurn {
+        id: turn.0,
+        parts: vec![TranscriptPart::Tool(operation)],
+        ..Default::default()
+    });
+    state.attach_page(&page(vec![answer], 1, false, false));
+    let replay = state.transcript_lines(100, 100);
+    let replay_rows = replay
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .filter(|line| line.contains("compress"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        replay_rows,
+        [live_row],
+        "one stable operation row after reopen"
+    );
 }
 
 #[tokio::test]

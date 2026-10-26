@@ -22,6 +22,8 @@ Scope текущей работы задаёт пользователь; workflo
 
 ### TUI parity — отложено, не отменено
 
+Текущий запрос: [компактная строка compress без ложного legacy](docs/goals/2026-10-25-compress-tool-row.md). Согласованный RECON-план сохранён; это не возобновляет остальные TUI qualifications.
+
 Текущий явно запрошенный срез: [live session navigation и полный root background lifecycle](docs/goals/2026-10-20-live-session-navigation.md). Исправленный после аудита план и frozen outcomes сохранены там; это не возобновляет остальной backlog.
 
 Полная visual/interactive qualification ещё не завершена. Частные исправления не закрывают весь контракт:

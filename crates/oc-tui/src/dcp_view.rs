@@ -133,56 +133,74 @@ pub fn committed_text(
     text
 }
 
-/// Chat confirmation is hidden for off/toast. Failure diagnostics stay visible
-/// independently, including unavailable legacy outcomes and no-gain.
+/// The operation row is independent of optional DCP notifications/accounting.
+/// In-task renewal legitimately completes without a range-compression snapshot.
 pub fn block(view: &DcpRender, state: &str, reason: &str, theme: &Theme, width: u16) -> Vec<Line> {
-    let confirmed = state == "completed" && view.snapshot.is_some();
-    if confirmed
-        && (view.config.notification == DcpNotificationMode::Off
-            || view.config.channel == DcpNotificationChannel::Toast)
-    {
-        return Vec::new();
-    }
-    let label = match (state, &view.snapshot) {
-        ("completed", Some(run)) => committed_text(run, &view.config, &view.summaries),
-        ("started" | "running", _) => {
-            let mut label = format!(
-                "{} DCP · Compressing…",
-                view.spinner.as_deref().unwrap_or(crate::tools::SPINNER)
-            );
-            if let Some(topic) = &view.topic {
-                label.push_str(&format!("\n→ Topic: {topic}"));
-            }
-            label
-        }
-        ("completed", None) => "▣ DCP · Compression metadata unavailable (legacy)".into(),
-        ("no_gain", _) => "▣ DCP · No projection gain".into(),
-        ("denied", _) => "▣ DCP · Compression denied".into(),
-        ("cancelled", _) => "▣ DCP · Compression cancelled".into(),
-        ("failed", _) => "▣ DCP · Compression failed".into(),
-        _ => "▣ DCP · Compression outcome unknown".into(),
-    };
-    let mut text = label;
-    if matches!(
-        state,
-        "failed" | "denied" | "cancelled" | "unknown" | "no_gain"
-    ) && !reason.is_empty()
-    {
-        text.push('\n');
-        text.push_str(reason);
-    }
-    let colors = theme.categorical_agents();
-    let color = if matches!(state, "failed" | "unknown") {
-        theme.error()
+    let running = matches!(state, "started" | "running");
+    let icon = if running {
+        view.spinner.as_deref().unwrap_or(crate::tools::SPINNER)
+    } else if state == "completed" {
+        "✓"
     } else {
-        colors[view.color_index.unwrap_or(0) % colors.len()]
+        "✗"
     };
-    let mut lines = text_block(&text, theme, width, color);
-    if matches!(state, "started" | "running")
-        && let Some(line) = lines.get_mut(1)
+    let label = match state {
+        "completed" => view
+            .snapshot
+            .as_ref()
+            .map(|run| run.topic.as_str())
+            .or(view.topic.as_deref())
+            .map_or_else(
+                || "compress".into(),
+                |topic| format!("compress [topic={topic}]"),
+            ),
+        "started" | "running" => "compress".into(),
+        "no_gain" => "compress · no projection gain".into(),
+        "denied" => "compress · denied".into(),
+        "cancelled" => "compress · cancelled".into(),
+        "failed" => "compress · failed".into(),
+        _ => "compress · outcome unknown".into(),
+    };
+    let style = ratatui::style::Style::default().fg(
+        if !running && state != "completed" && state != "denied" {
+            theme.error()
+        } else {
+            theme.text_muted()
+        },
+    );
+    let label_style = if state == "denied" {
+        style.add_modifier(ratatui::style::Modifier::CROSSED_OUT)
+    } else {
+        style
+    };
+    let mut lines = crate::tools::inline_tool_header(&label, icon, style, label_style, width);
+    if running && let Some(line) = lines.first_mut() {
+        *line = std::mem::take(line).animate(
+            crate::messages::MESSAGE_PADDING,
+            crate::styled::AnimationSource::Compaction,
+        );
+    } else if state != "completed" {
+        for line in reason.lines() {
+            lines.extend(crate::tools::inline_tool_header(
+                line, " ", style, style, width,
+            ));
+        }
+    }
+    // Preserve explicit summary/detail opt-in, but never make a snapshot (or
+    // its absence) replace the tool's default compact lifecycle row.
+    if state == "completed"
+        && view.config.show_compression
+        && view.config.notification != DcpNotificationMode::Off
+        && view.config.channel == DcpNotificationChannel::Chat
+        && let Some(run) = &view.snapshot
     {
-        *line =
-            std::mem::take(line).animate("┃  ".len(), crate::styled::AnimationSource::Compaction);
+        let colors = theme.categorical_agents();
+        lines.extend(text_block(
+            &committed_text(run, &view.config, &view.summaries),
+            theme,
+            width,
+            colors[view.color_index.unwrap_or(0) % colors.len()],
+        ));
     }
     lines
 }
@@ -338,11 +356,11 @@ mod tests {
         );
         assert!(!minimal.contains('\n'));
         view.config.channel = DcpNotificationChannel::Toast;
-        assert!(block(&view, "completed", "", Theme::dark(), 100).is_empty());
+        assert_eq!(block(&view, "completed", "", Theme::dark(), 100).len(), 1);
         assert_eq!(toast_text(&run, &view.config), Some(minimal));
         view.config.notification = DcpNotificationMode::Off;
         assert!(toast_text(&run, &view.config).is_none());
-        assert!(block(&view, "completed", "", Theme::dark(), 100).is_empty());
+        assert_eq!(block(&view, "completed", "", Theme::dark(), 100).len(), 1);
         for state in ["failed", "denied", "cancelled", "unknown", "no_gain"] {
             let text = block(&view, state, "actual diagnostic", Theme::dark(), 100)
                 .iter()
@@ -350,6 +368,10 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join("\n");
             assert!(text.contains("actual diagnostic"), "{state}");
+            assert!(
+                text.contains("✗ compress") && !text.contains('✓'),
+                "{state}: {text}"
+            );
             assert!(
                 !text.contains("removed") && !text.contains("Compression #"),
                 "{state}: {text}"
@@ -362,7 +384,7 @@ mod tests {
             .map(Line::plain_text)
             .collect::<Vec<_>>()
             .join("\n");
-        assert!(running.contains("Compressing…") && running.contains("Actual 中文 topic"));
+        assert_eq!(running, "   ⋯ compress");
         assert!(
             !running.contains("removed")
                 && !running.contains("summary")
@@ -382,18 +404,18 @@ mod tests {
             .collect();
         assert_eq!(
             cells,
-            [(1, "┃  ".len(), crate::styled::AnimationSource::Compaction)]
+            [(
+                0,
+                crate::messages::MESSAGE_PADDING,
+                crate::styled::AnimationSource::Compaction
+            )]
         );
-        animated[1].patch_cell("┃  ".len(), "⠙");
-        assert!(
-            animated[1]
-                .plain_text()
-                .starts_with("┃  ⠙ DCP · Compressing…")
-        );
-        assert!(
-            animated
-                .iter()
-                .any(|line| line.plain_text().contains("Actual literal ⋯ topic"))
+        animated[0].patch_cell(crate::messages::MESSAGE_PADDING, "⠙");
+        assert_eq!(animated[0].plain_text(), "   ⠙ compress");
+        view.topic = None;
+        assert_eq!(
+            block(&view, "completed", "", Theme::dark(), 100)[0].plain_text(),
+            "   ✓ compress"
         );
     }
 
@@ -557,9 +579,7 @@ mod tests {
                         .collect::<Vec<_>>()
                         .join("\n");
                     assert!(!text.contains("forged"));
-                    if mode == DcpNotificationMode::Off {
-                        assert!(!text.contains('┃'));
-                    }
+                    assert!(!text.contains('┃') && !text.contains("removed"));
                 }
             }
         }
@@ -572,17 +592,23 @@ mod tests {
                 .map(Line::plain_text)
                 .collect::<Vec<_>>()
                 .join("\n");
-        assert!(replayed_pending.contains("actual typed pending topic"));
+        assert!(
+            replayed_pending.contains("compress")
+                && !replayed_pending.contains("actual typed pending topic")
+        );
         assert!(!replayed_pending.contains("forged") && !replayed_pending.contains("removed"));
         row.tool = Some(std::sync::Arc::new(card_from_row(&operation(None))));
-        let legacy = transcript(&[row], Theme::dark(), 100, 100, |_| Color::Reset)
+        let renewal = transcript(&[row], Theme::dark(), 100, 100, |_| Color::Reset)
             .iter()
             .map(Line::plain_text)
             .collect::<Vec<_>>()
             .join("\n");
-        assert!(legacy.contains("metadata unavailable (legacy)"));
+        assert!(renewal.contains("✓ compress [topic=actual typed pending topic]"));
         assert!(
-            !legacy.contains("forged") && !legacy.contains("removed") && !legacy.contains("99M")
+            !renewal.contains("forged")
+                && !renewal.contains("removed")
+                && !renewal.contains("99M")
+                && !renewal.contains("legacy")
         );
     }
 
