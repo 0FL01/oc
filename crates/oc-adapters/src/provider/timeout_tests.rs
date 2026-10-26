@@ -3,6 +3,55 @@ use crate::config::{ProviderEntry, ProviderTimeout, provider_wire};
 use serde_json::json;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
+#[tokio::test]
+async fn cfg16_pre_send_network_and_deadline_reach_retry_without_losing_authority_errors() {
+    let cancel = AtomicBool::new(false);
+    for transport in [TransportKind::Network, TransportKind::Deadline] {
+        let operation = async {
+            if transport == TransportKind::Deadline {
+                std::future::pending::<()>().await;
+            }
+            Err::<(), _>(ProviderError::Transport)
+        };
+        let error = pre_send(
+            tokio::time::Instant::now(),
+            &cancel,
+            "DNS resolution before send",
+            operation,
+        )
+        .await
+        .unwrap_err();
+        let ProviderError::Request(failure) = error else {
+            panic!("pre-send failure must reach retry policy");
+        };
+        assert_eq!(failure.kind, FailureKind::Transport);
+        assert_eq!(failure.transport, Some(transport));
+        assert_eq!(failure.operation, Operation::Request);
+        assert_eq!(failure.delivery, Delivery::NotSent);
+        assert!(!failure.output_committed);
+        assert!(failure.http_status.is_none());
+        assert!(failure.retry_eligible());
+        assert!(failure.to_string().contains("DNS resolution before send"));
+    }
+    let refused = pre_send(
+        tokio::time::Instant::now(),
+        &cancel,
+        "DNS resolution before send",
+        std::future::ready(Err::<(), _>(ProviderError::PrivateHost)),
+    )
+    .await;
+    assert!(matches!(refused, Err(ProviderError::PrivateHost)));
+    cancel.store(true, Ordering::Relaxed);
+    let cancelled = pre_send(
+        tokio::time::Instant::now(),
+        &cancel,
+        "DNS resolution before send",
+        std::future::pending::<Result<(), ProviderError>>(),
+    )
+    .await;
+    assert!(matches!(cancelled, Err(ProviderError::Cancelled)));
+}
+
 async fn read_request(socket: &mut tokio::net::TcpStream) {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];

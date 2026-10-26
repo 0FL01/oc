@@ -20,8 +20,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: исходный bug report, исправленный аудит и уточнение fair usage.
   - Acceptance: доказанный NotSent получает typed retryable failure; security/config/cancel и delivered-WS replay guards сохранены. Итоговый собственный backoff ≤60s, применимый более длинный Retry-After имеет приоритет; completed tools не повторяются.
   - Primary evidence: provider/endpoint timeout regressions, retry policy tests, существующие no-replay/cancellation tests.
-  - Status: pending
-  - Evidence: —
+  - Status: verified
+  - Evidence: local nextest provider timeout/retry/endpoint/WS slice 24/24 PASS (4.685s). Typed NotSent Network/Deadline, authority/cancel, finite allowance, 60s jitter cap/900s server minimum, delivered WS no-replay сохранены. Общий gate ещё впереди.
 - R2: native-read image accounting учитывает image heuristic, display и wrappers один раз, не считает base64 или attachment facts текстовыми токенами.
   - Source: подтверждённый RECON-дефект и исправленный аудит.
   - Acceptance: typed image правильно оценивается в fallback/неизмеренном suffix; measured prefix не тарифицируется заново, serialized bytes и validation сохранены.
@@ -60,7 +60,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - `runtime.rs`, `tools/read.rs` и ближайшие native-image/usage tests.
 - `provider.rs`, `endpoint.rs`, `provider/websocket.rs`, `runtime/retry.rs`, непосредственные error mappings и ближайшие tests.
 - `runtime_compaction.rs`, `runtime/context.rs`, необходимый storage projection/admission путь и ближайшие compaction tests.
-- Эта цель; короткая ссылка в `GOAL.md`; действующий retry-документ только для изменения backoff-контракта.
+- Эта цель; короткая ссылка в `GOAL.md`; `docs/CONTRACTS.md` только для изменения backoff-контракта.
 - Копия БД, live payloads/ciphertext, auth/config и дампы не коммитятся. Origin: `git@github.com:0FL01/oc.git`, ветка `master`, без force/tag/release.
 
 ## Исправленный план
@@ -78,21 +78,22 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: owner-local pre-send error classification и cancellable capped jittered backoff.
-- Expected evidence: deterministic provider timeout + retry policy tests, existing delivery/no-replay constraints.
+- Closes: R3.
+- Smallest next action: bounded полная active projection вместо model-cost floor по архиву; captured protection inputs и final admission.
+- Expected evidence: архивный bloat с protected fact → summary/продолжение; действительный capacity refusal без mutation.
 - Stop or replan if: чужой concurrent diff; необходим выход за envelope или representative compaction не проходит узкий путь.
 
 ## Current State
 
-- Resolved: R2; R1/R3/R4 pending, R5 blocked.
-- Last relevant evidence: native-read regression PASS; initial test compile typo corrected locally, production API не менялся.
-- Next: R1, затем R3, final R4. Никаких live requests.
+- Resolved: R1/R2; R3/R4 pending, R5 blocked.
+- Last relevant evidence: native-read regression и 24-case provider/retry boundary slice PASS. `cargo nextest` отсутствует в PATH; используется существующий `.local/tools/cargo-nextest` без установки.
+- Next: R3, final R4. Никаких live requests.
 
 ## Checkpoint History
 
 - 2026-10-26: исправленный план и ограничения зафиксированы до runtime edits.
 - 2026-10-26: R2 verified; source facts/base64 исключены из token estimate, byte retention и image validation неизменны.
+- 2026-10-26: R1 verified; общий pre-send boundary используется HTTP DNS и WS establishment; shared resolver сохраняет network/security distinction у непосредственных consumers. Existing retry owner/allowance не изменены, backoff и контракт обновлены.
 
 ## Completion
 

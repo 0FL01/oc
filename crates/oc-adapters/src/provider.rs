@@ -2036,6 +2036,36 @@ async fn optional_timeout_at<F: Future>(
     }
 }
 
+fn pre_send_failure(error: ProviderError, phase: &'static str) -> ProviderError {
+    let transport = match error {
+        ProviderError::Deadline => TransportKind::Deadline,
+        ProviderError::Transport => TransportKind::Network,
+        other => return other,
+    };
+    let mut failure = PhysicalFailure::transport(Operation::Request, Delivery::NotSent, None);
+    failure.transport = Some(transport);
+    failure.message = Some(format!("{phase}: {error}"));
+    ProviderError::Request(Box::new(failure))
+}
+
+/// DNS and channel establishment precede generation dispatch. Keep their
+/// network/deadline facts retryable without reclassifying authority failures.
+async fn pre_send<T>(
+    deadline: tokio::time::Instant,
+    cancel: &AtomicBool,
+    phase: &'static str,
+    operation: impl Future<Output = Result<T, ProviderError>>,
+) -> Result<T, ProviderError> {
+    let result = tokio::select! {
+        biased;
+        () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
+        result = tokio::time::timeout_at(deadline, operation) => {
+            result.unwrap_or(Err(ProviderError::Deadline))
+        }
+    };
+    result.map_err(|error| pre_send_failure(error, phase))
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     config: &ResponsesConfig,
@@ -2204,13 +2234,13 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         .transpose()?;
     let dns_deadline = tokio::time::Instant::now() + config.connect_timeout;
     let dns_deadline = total_deadline.map_or(dns_deadline, |total| total.min(dns_deadline));
-    let (host, addresses) = tokio::select! {
-        biased;
-        () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
-        result = tokio::time::timeout_at(dns_deadline, crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private)) => {
-            result.map_err(|_| ProviderError::Deadline)??
-        }
-    };
+    let (host, addresses) = pre_send(
+        dns_deadline,
+        cancel,
+        "DNS resolution before send",
+        crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private),
+    )
+    .await?;
 
     let mut builder = reqwest::Client::builder()
         .retry(reqwest::retry::never())
@@ -2233,7 +2263,9 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         let remaining = deadline
             .checked_duration_since(tokio::time::Instant::now())
             .filter(|duration| !duration.is_zero())
-            .ok_or(ProviderError::Deadline)?;
+            .ok_or_else(|| {
+                pre_send_failure(ProviderError::Deadline, "request preparation before send")
+            })?;
         builder.timeout(remaining)
     } else {
         // timeout:false (or absent) means no total deadline: never set one.

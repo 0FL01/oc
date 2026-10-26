@@ -248,7 +248,10 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
             let (host, addresses) =
                 crate::endpoint::resolve(url, self.endpoint.as_ref(), self.test_loopback)
                     .await
-                    .map_err(|_| DiscoveryError::InvalidConfig)?;
+                    .map_err(|error| match error {
+                        crate::provider::ProviderError::Transport => DiscoveryError::Network,
+                        _ => DiscoveryError::InvalidConfig,
+                    })?;
             let mut builder = reqwest::Client::builder()
                 .retry(reqwest::retry::never())
                 // The metadata consumer validates records between reads. Bound

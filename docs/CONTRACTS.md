@@ -97,7 +97,8 @@ user-defined bounded retry; MCP invocation retry по умолчанию отс�
 Owner-approved T54/RET01 supersedes только старый pre-first-event/two-retries
 generation default: одна физическая попытка в adapter, одна runtime policy
 на логический LLM step, первоначальный запрос + до 10 retries со source-derived
-2/4/8/10s jitter, bounded Retry-After и отменяемым ожиданием. 400/401/403/
+2/4/8/16/32/60s nominal backoff, jitter ±20% с итоговым локальным потолком 60s,
+bounded Retry-After (более длинный server minimum имеет приоритет) и отменяемым ожиданием. 400/401/403/
 413/422 и исчерпанная quota по умолчанию terminal; структурированный
 наблюдаемый `x-should-retry` может переопределить default provider-policy,
 но не trust/validation/permissions/caps. Context error идёт в отдельную

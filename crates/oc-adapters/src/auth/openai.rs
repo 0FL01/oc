@@ -349,7 +349,10 @@ impl OpenAiAuth {
         )
         .await
         .map_err(|_| AuthError::Remote)?
-        .map_err(|_| AuthError::Authority)?;
+        .map_err(|error| match error {
+            crate::provider::ProviderError::Transport => AuthError::Remote,
+            _ => AuthError::Authority,
+        })?;
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never())

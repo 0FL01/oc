@@ -118,12 +118,14 @@ pub(crate) async fn resolve(
         .ok_or(ProviderError::InvalidConfig)?;
     let addrs: Vec<_> = tokio::net::lookup_host((host, port))
         .await
-        .map_err(|_| ProviderError::PrivateHost)?
+        .map_err(|_| ProviderError::Transport)?
         .collect();
-    if addrs.is_empty()
-        || addrs
-            .iter()
-            .any(|a| !peer_allowed(binding, a.ip(), test_loopback))
+    if addrs.is_empty() {
+        return Err(ProviderError::Transport);
+    }
+    if addrs
+        .iter()
+        .any(|a| !peer_allowed(binding, a.ip(), test_loopback))
     {
         return Err(ProviderError::PrivateHost);
     }

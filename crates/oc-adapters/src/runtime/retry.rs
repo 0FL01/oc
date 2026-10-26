@@ -36,7 +36,9 @@ impl RetryPolicy {
             0 => 2000,
             1 => 4000,
             2 => 8000,
-            _ => 10000,
+            3 => 16000,
+            4 => 32000,
+            _ => 60000,
         };
         let minimum = if matches!(
             failure.kind,
@@ -47,7 +49,11 @@ impl RetryPolicy {
         } else {
             0
         };
-        let delay = ((nominal as f64 * (0.8 + 0.4 * sample)).max(minimum as f64)).ceil() as u64;
+        // Cap the jittered local delay, not the provider's Retry-After minimum.
+        let delay = (nominal as f64 * (0.8 + 0.4 * sample))
+            .min(60000.0)
+            .max(minimum as f64)
+            .ceil() as u64;
         self.retries += 1;
         Some(oc_core::queries::RetryFact {
             attempt: self.retries + 1,

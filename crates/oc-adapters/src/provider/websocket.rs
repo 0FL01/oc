@@ -163,7 +163,7 @@ impl Channels {
             () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
             slot = async {
                 if let Some(total) = total {
-                    tokio::time::timeout_at(total, owner.lock()).await.map_err(|_| ProviderError::Deadline)
+                    tokio::time::timeout_at(total, owner.lock()).await.map_err(|_| pre_send_failure(ProviderError::Deadline, "WebSocket slot before send"))
                 } else { Ok(owner.lock().await) }
             } => slot?,
         };
@@ -256,7 +256,12 @@ impl Channels {
             return Err(ProviderError::Cancelled);
         }
         if total.is_some_and(|end| Instant::now() >= end) {
-            return Err(ProviderError::Deadline);
+            return Err(channel_failure(
+                Operation::Request,
+                Delivery::NotSent,
+                false,
+                TransportKind::Deadline,
+            ));
         }
         tokio::select! {
             biased;
@@ -578,11 +583,13 @@ async fn connect(
             Err(_) => Err(ProviderError::Transport),
         }
     };
-    tokio::select! {
-        biased;
-        () = wait_cancel(cancel) => Err(ProviderError::Cancelled),
-        result = tokio::time::timeout_at(total.map_or(deadline, |total| total.min(deadline)), operation) => result.map_err(|_| ProviderError::Deadline)?,
-    }
+    pre_send(
+        total.map_or(deadline, |total| total.min(deadline)),
+        cancel,
+        "WebSocket establishment before generation send",
+        operation,
+    )
+    .await
 }
 
 fn frame(body: &[u8]) -> Result<serde_json::Value, ProviderError> {

@@ -21,7 +21,7 @@ fn failure(kind: FailureKind) -> ProviderError {
 fn ret01_policy_shared_ten_gaps_and_minimum() {
     let mut policy = RetryPolicy::default();
     for (n, delay) in [
-        2000, 4000, 8000, 10000, 10000, 10000, 10000, 10000, 10000, 10000,
+        2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000, 60000, 60000,
     ]
     .into_iter()
     .enumerate()
@@ -61,6 +61,15 @@ fn ret01_policy_shared_ten_gaps_and_minimum() {
             .at,
         2400
     );
+    for sample in [0.0, 0.999999] {
+        let mut policy = RetryPolicy::default();
+        for _ in 0..10 {
+            let retry = policy
+                .decide_sample(&failure(FailureKind::RateLimit), 0, sample)
+                .unwrap();
+            assert!((1600..=60000).contains(&retry.at), "cap includes jitter");
+        }
+    }
 }
 
 #[test]
