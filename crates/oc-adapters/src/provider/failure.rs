@@ -94,10 +94,18 @@ pub struct PhysicalFailure {
 }
 
 impl PhysicalFailure {
-    /// Default eligibility facts for the future finite runtime owner. This does
+    /// Eligibility facts for the runtime owner. This does
     /// not schedule, wait, or issue a request. Local failures have no such facts.
     pub fn retry_eligible(&self) -> bool {
-        if self.kind == FailureKind::ContextOverflow {
+        if matches!(
+            self.kind,
+            FailureKind::ContextOverflow
+                | FailureKind::PayloadTooLarge
+                | FailureKind::ContentPolicy
+                | FailureKind::Quota
+                | FailureKind::Authentication
+                | FailureKind::InvalidRequest
+        ) {
             return false;
         }
         if matches!(
@@ -125,10 +133,29 @@ impl PhysicalFailure {
             return matches!(self.delivery, Delivery::Unknown | Delivery::NotSent)
                 || (self.delivery == Delivery::Accepted && self.operation == Operation::Read);
         }
+        if self.kind == FailureKind::RateLimit
+            || (self.kind == FailureKind::ProviderInternal
+                && self
+                    .event_status
+                    .or(self.http_status)
+                    .is_some_and(|status| (500..600).contains(&status)))
+        {
+            return true;
+        }
         self.headers.should_retry.unwrap_or(matches!(
             self.kind,
             FailureKind::RateLimit | FailureKind::ProviderInternal | FailureKind::UnknownProvider
         ))
+    }
+
+    /// Outages retry until recovery; other eligible provider failures retain
+    /// the finite logical-step allowance. Delivery guards remain authoritative.
+    pub(crate) fn transient_outage(&self) -> bool {
+        match self.kind {
+            FailureKind::Transport | FailureKind::IncompleteStream | FailureKind::RateLimit => true,
+            FailureKind::ProviderInternal => self.event_status.or(self.http_status) != Some(409),
+            _ => false,
+        }
     }
 
     pub(super) fn transport(operation: Operation, delivery: Delivery, status: Option<u16>) -> Self {

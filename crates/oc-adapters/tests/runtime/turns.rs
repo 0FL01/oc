@@ -3,6 +3,56 @@
 use super::*;
 
 #[tokio::test]
+async fn outage_retries_past_ten_and_continues_with_bounded_attempt_state() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("long-retry").unwrap();
+    let mut responses =
+        vec!["data: {\"type\":\"error\",\"error\":{\"code\":\"server_error\"}}\n\n".to_owned(); 12];
+    responses.push(sse_delta("recovered") + &sse_completed());
+    let (base, hits, requests) = Fake::start_recording(responses, Duration::ZERO);
+    let (events, mut retry_events) = tokio::sync::broadcast::channel(128);
+    runtime.set_approval_events(&events);
+    let turn = runtime.run_turn(params(
+        "long-retry",
+        "input",
+        &harness,
+        provider_of(&base),
+        &NO_CANCEL,
+    ));
+    tokio::pin!(turn);
+    let mut attempts = Vec::new();
+    let report = loop {
+        tokio::select! {
+            biased;
+            result = &mut turn => break result.unwrap(),
+            event = retry_events.recv() => {
+                if let oc_core::core_app::CoreEvent::RetryScheduled { retry, .. } = event.unwrap() {
+                    attempts.push(retry.attempt);
+                    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
+                    tokio::time::pause();
+                    tokio::time::advance(Duration::from_millis(retry.at.saturating_sub(now) + 1)).await;
+                    tokio::time::resume();
+                }
+            }
+        }
+    };
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(attempts, (2..=13).collect::<Vec<_>>());
+    assert_eq!(*hits.lock().unwrap(), 13);
+    let requests = requests.lock().unwrap();
+    assert!(requests.iter().all(|request| request == &requests[0]));
+    let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
+    assert_eq!(log["requests"].as_array().unwrap().len(), 11);
+    let conn = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let dispatches: i64 = conn.query_row("SELECT (SELECT count(*) FROM events WHERE kind='generation_dispatched') + (SELECT COALESCE(SUM(json_extract(payload,'$.count')),0) FROM events WHERE kind='dispatch_group_state')", [], |row| row.get(0)).unwrap();
+    assert_eq!(dispatches, 13);
+    let groups: i64 = conn.query_row("SELECT count(*) FROM events WHERE kind IN ('retry_group_state','dispatch_group_state')", [], |row| row.get(0)).unwrap();
+    assert_eq!(groups, 2);
+}
+
+#[tokio::test]
 async fn ret01_runtime_mixed_retry_continues_partial_without_spending_rounds() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());

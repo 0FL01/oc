@@ -512,6 +512,21 @@ impl TuiState {
         span: &str,
         retry: &oc_core::queries::RetryFact,
     ) {
+        // Once the number saturates it no longer orders live events. Only an
+        // authoritative, revision-checked projection can place such a retry.
+        if retry.attempt == u32::MAX {
+            return;
+        }
+        self.apply_retry_inner(turn, span, retry, false);
+    }
+
+    fn apply_retry_inner(
+        &mut self,
+        turn: &WorkerTurnId,
+        span: &str,
+        retry: &oc_core::queries::RetryFact,
+        authoritative: bool,
+    ) {
         if self.active_turn.as_ref() != Some(turn) {
             return;
         }
@@ -529,7 +544,9 @@ impl TuiState {
                 owner == turn
                     && id == span
                     && (retry.attempt < *attempt
-                        || (retry.attempt == *attempt && self.live_retry.is_none()))
+                        || (retry.attempt == *attempt
+                            && self.live_retry.is_none()
+                            && !authoritative))
             })
         {
             return;
@@ -555,7 +572,11 @@ impl TuiState {
                 } else {
                     "Retry due"
                 },
-                retry.attempt,
+                if retry.attempt == u32::MAX {
+                    format!("≥{}", retry.attempt)
+                } else {
+                    retry.attempt.to_string()
+                },
                 retry.safe_error
             )
         })
@@ -1890,7 +1911,11 @@ impl TuiState {
             if projection.status == "started"
                 && let Some(retry) = &span.retry
             {
-                self.apply_retry(turn, &span.id, retry);
+                if retry.attempt == u32::MAX {
+                    self.apply_retry_inner(turn, &span.id, retry, true);
+                } else {
+                    self.apply_retry(turn, &span.id, retry);
+                }
             } else {
                 self.live_retry = None;
                 self.retry_due = None;

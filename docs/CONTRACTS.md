@@ -96,29 +96,30 @@ Retry только в одном явно указанном месте. Discove
 user-defined bounded retry; MCP invocation retry по умолчанию отсутствует.
 Owner-approved T54/RET01 supersedes только старый pre-first-event/two-retries
 generation default: одна физическая попытка в adapter, одна runtime policy
-на логический LLM step, первоначальный запрос + до 10 retries со source-derived
-2/4/8/16/32/60s nominal backoff, jitter ±20% с итоговым локальным потолком 60s,
-bounded Retry-After (более длинный server minimum имеет приоритет) и отменяемым ожиданием. 400/401/403/
-413/422 и исчерпанная quota по умолчанию terminal; структурированный
-наблюдаемый `x-should-retry` может переопределить default provider-policy,
-но не trust/validation/permissions/caps. Context error идёт в отдельную
+на логический LLM step. Временные transport/stream/rate-limit и provider outage
+повторяются без лимита, прочие eligible provider failures — до 10 раз.
+Отменяемый jittered backoff растёт от 2s до 60s; более длинный Retry-After
+ограничивается выбранным пользователем потолком, так что server minimum в этом
+случае не соблюдается. 429 и provider 5xx повторяются даже при
+`x-should-retry: false`; quota, auth/policy, invalid request, trust/validation
+и resource-limit failures terminal. Context error идёт в отдельную
 compaction ветку без молчаливой потери сообщений.
 
 До фактического output retry сохраняет assistant-step identity, не
 публикует terminal turn failure. После output допускается только
 source-derived continuation из зафиксированного partial context с новым
-assistant-span и общей для этого шага конечной allowance, не повтор исходной
+assistant-span и общей для этого шага retry policy, не повтор исходной
 committed generation. Partial tool args не исполняются; committed/unknown
 effects не replay и не превращаются в успех. EOF/failed/unknown-incomplete
 без последующего terminal остаются non-success; явный
 `response.incomplete(max_output_tokens)` — truthful finish `length`,
 `content_filter` — failure, не generic retry. Title не получает main policy;
-поддержанные compaction auxiliary paths имеют свою finite allowance.
+поддержанные compaction auxiliary paths имеют свою retry policy.
 
 Physical generation request counter включает фактически выданные attempts,
 follow-ups/children/compaction/title как accounting, не production stop quota.
 Owner amendment 2026-10-02 отменяет искусственный общий round/step cap
-для root/child Long Horizon; finite retries ошибочного logical step остаются.
+для root/child Long Horizon; временный outage не исчерпывает retry allowance.
 Donor `agent.steps`/legacy `maxSteps` и forced final `toolChoice:none` не
 заменяют снятый cap; соответствующий config получает явную source/field
 диагностику неподдержанной donor step-budget семантики. Срез и bounded

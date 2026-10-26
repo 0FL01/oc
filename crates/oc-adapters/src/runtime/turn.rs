@@ -3045,6 +3045,7 @@ impl<'a> Runtime<'a> {
                         finish: None,
                     });
                 }
+                let aggregate_retry = retry_resuming && retry_policy.aggregate();
                 retry_resuming = false;
                 let receipt = oc_core::queries::RequestIdentity {
                     config_generation: Some(published.id),
@@ -3093,7 +3094,9 @@ impl<'a> Runtime<'a> {
                 turn_log.display["renewal_read_counters"] =
                     serde_json::json!(self.db.renewal_read_counters());
                 turn_log.spans.last_mut().expect("prepared span").request = Some(receipt.clone());
-                turn_log.requests.push(receipt);
+                if !aggregate_retry || turn_log.requests.last() != Some(&receipt) {
+                    turn_log.requests.push(receipt);
+                }
                 if params.cancel.load(Ordering::Acquire) {
                     if let Some((log, seq)) = inbox_rollback.take() {
                         turn_log = log;
@@ -3159,6 +3162,8 @@ impl<'a> Runtime<'a> {
                     self.child_jobs.notify();
                 }
                 presentation?;
+                let aggregate_dispatch = retry_policy.aggregate();
+                let retry_run = turn_log.spans.last().expect("prepared span").id.clone();
                 let generation = {
                     let mut partial_opaque = Vec::new();
                     let mut semantic_started = false;
@@ -3345,13 +3350,18 @@ impl<'a> Runtime<'a> {
                             params.cancel,
                             &mut observe,
                             &mut || async {
-                                self.db
-                                    .generation_dispatch(
+                                let lane = if primary_request { "main" } else { "child" };
+                                if aggregate_dispatch {
+                                    self.db.generation_retry_dispatch(
                                         &params.session,
                                         &turn_id,
-                                        if primary_request { "main" } else { "child" },
+                                        lane,
+                                        &retry_run,
                                     )
-                                    .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                                } else {
+                                    self.db.generation_dispatch(&params.session, &turn_id, lane)
+                                }
+                                .map_err(|_| crate::provider::ProviderError::DispatchRefused)
                             },
                         )
                         .await

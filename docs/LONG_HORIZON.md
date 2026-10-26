@@ -22,10 +22,10 @@ LLM/tool steps не исчерпывают общий бюджет раундо�
 должно быть явно диагностировано при приёме соответствующего config,
 а не молча представлено как поддержанный step budget.
 
-Это не бесконечный retry и не бесконечные ресурсы: конечная allowance
-ошибок одного логического LLM step, отменяемый backoff, timeout, model/
-byte/context admission, permissions, child-depth/concurrency и quarantine
-сохраняются. Tool error не становится generation retry; подтверждённые
+Типизированные временные generation failures повторяются без лимита числа
+попыток; ресурсы не бесконечны. Отменяемый backoff, timeout, model/byte/context
+admission, permissions, child-depth/concurrency и quarantine сохраняются.
+Tool error не становится generation retry; подтверждённые
 или неизвестные внешние effects не переисполняются автоматически.
 
 ## Возобновляемая рабочая память, не накопление всего прошлого

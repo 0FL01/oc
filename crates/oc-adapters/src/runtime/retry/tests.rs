@@ -18,10 +18,10 @@ fn failure(kind: FailureKind) -> ProviderError {
 }
 
 #[test]
-fn ret01_policy_shared_ten_gaps_and_minimum() {
+fn ret01_policy_unbounded_outage_and_capped_jitter() {
     let mut policy = RetryPolicy::default();
     for (n, delay) in [
-        2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000, 60000, 60000,
+        2000, 4000, 8000, 16000, 32000, 54000, 54000, 54000, 54000, 54000,
     ]
     .into_iter()
     .enumerate()
@@ -34,6 +34,11 @@ fn ret01_policy_shared_ten_gaps_and_minimum() {
     assert!(
         policy
             .decide_sample(&failure(FailureKind::ProviderInternal), 100, 0.5)
+            .is_some()
+    );
+    assert!(
+        policy
+            .decide_sample(&failure(FailureKind::UnknownProvider), 100, 0.5)
             .is_none()
     );
     let mut error = failure(FailureKind::RateLimit);
@@ -45,7 +50,7 @@ fn ret01_policy_shared_ten_gaps_and_minimum() {
             .decide_sample(&error, 0, 0.0)
             .unwrap()
             .at,
-        900000
+        48000
     );
     assert_eq!(
         RetryPolicy::default()
@@ -63,7 +68,7 @@ fn ret01_policy_shared_ten_gaps_and_minimum() {
     );
     for sample in [0.0, 0.999999] {
         let mut policy = RetryPolicy::default();
-        for _ in 0..10 {
+        for _ in 0..20 {
             let retry = policy
                 .decide_sample(&failure(FailureKind::RateLimit), 0, sample)
                 .unwrap();
@@ -91,11 +96,10 @@ fn ret01_policy_typed_terminal_override_partial_and_local_matrix() {
         if let ProviderError::Request(f) = &mut error {
             f.headers.should_retry = Some(true);
         }
-        assert_eq!(
+        assert!(
             RetryPolicy::default()
                 .decide_sample(&error, 0, 0.5)
-                .is_some(),
-            kind != FailureKind::ContextOverflow
+                .is_none()
         );
     }
     let mut policy = RetryPolicy::default();
@@ -113,11 +117,7 @@ fn ret01_policy_typed_terminal_override_partial_and_local_matrix() {
             f.output_committed = true;
             f.headers.should_retry = Some(false);
         }
-        assert_eq!(
-            policy.decide_sample(&error, 0, 0.5).is_some(),
-            n < 10,
-            "one allowance across both recovery modes"
-        );
+        assert!(policy.decide_sample(&error, 0, 0.5).is_some());
     }
     for error in [
         ProviderError::InvalidOutput,
@@ -171,8 +171,15 @@ fn ret01_recovery_preserves_historical_retry_without_dispatch() {
             finish: None,
         });
     }
-    db.checkpoint_retry("s", "t", "active", &log.to_json().to_string(), &retry)
-        .unwrap();
+    db.checkpoint_retry(
+        "s",
+        "t",
+        "active",
+        &log.to_json().to_string(),
+        &retry,
+        false,
+    )
+    .unwrap();
     db.recover_interrupted_tools().unwrap();
     let projection = db.turn_presentation("s", "t").unwrap().unwrap();
     assert_eq!(projection.status, "unknown");
@@ -221,4 +228,55 @@ fn ret01_dispatch_family_is_fixed_across_later_root_turn_and_uses_index() {
     assert_eq!(operation, "old");
     let plan:String=conn.query_row("EXPLAIN QUERY PLAN SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')='old'",[],|r|r.get(3)).unwrap();
     assert!(plan.contains("events_generation_operation"), "{plan}");
+}
+
+#[test]
+fn retry_groups_bound_repeated_facts_and_preserve_dispatch_count() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("s").unwrap();
+    db.accept_turn(
+        "t",
+        "s",
+        "input",
+        "input",
+        &oc_core::queries::ModelRef {
+            provider: "fixture".into(),
+            id: "m".into(),
+            variant: None,
+        },
+    )
+    .unwrap();
+    let mut log = TurnLog::new("t", "m", "fixture");
+    let mut retry = oc_core::queries::RetryFact {
+        attempt: 12,
+        at: 42,
+        safe_error: "outage".into(),
+    };
+    log.spans.push(oc_core::queries::AssistantSpan {
+        request: None,
+        id: "span".into(),
+        step: 1,
+        status: "started".into(),
+        started: 0,
+        completed: None,
+        retry: Some(retry.clone()),
+        error: None,
+        finish: None,
+    });
+    db.generation_dispatch("s", "t", "main").unwrap();
+    for n in 0..20 {
+        retry.attempt = 12 + n;
+        log.spans[0].retry = Some(retry.clone());
+        db.checkpoint_retry("s", "t", "span", &log.to_json().to_string(), &retry, true)
+            .unwrap();
+        db.generation_retry_dispatch("s", "t", "main", "span")
+            .unwrap();
+    }
+    let view = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert_eq!(view.physical_requests, 21);
+    assert_eq!(view.spans[0].retry, Some(retry));
+    let conn = rusqlite::Connection::open(db.root().join("oc.sqlite")).unwrap();
+    let counts: (i64, i64, i64) = conn.query_row("SELECT (SELECT count(*) FROM events WHERE kind='generation_dispatched'),(SELECT count(*) FROM events WHERE kind='dispatch_group_state'),(SELECT count(*) FROM events WHERE kind='retry_group_state')", [], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).unwrap();
+    assert_eq!(counts, (1, 1, 1));
 }

@@ -1,20 +1,25 @@
-//! One finite logical-step allowance shared by main, child and auxiliary owners.
+//! One logical-step retry owner shared by main, child and auxiliary operations.
 use super::*;
 use std::hash::{BuildHasher, Hasher};
 
 #[derive(Default)]
 pub(super) struct RetryPolicy {
     retries: u32,
-    random: std::collections::hash_map::RandomState,
 }
 
 impl RetryPolicy {
+    /// Keep the existing individual facts for the first ten retries. Longer
+    /// no-output runs use bounded aggregate state instead.
+    pub(super) fn aggregate(&self) -> bool {
+        self.retries > 10
+    }
+
     pub(super) fn decide(
         &mut self,
         error: &crate::provider::ProviderError,
         now: u64,
     ) -> Option<oc_core::queries::RetryFact> {
-        let mut rng = self.random.build_hasher();
+        let mut rng = std::collections::hash_map::RandomState::new().build_hasher();
         rng.write_u32(self.retries);
         let sample = (rng.finish() >> 11) as f64 / (1u64 << 53) as f64;
         self.decide_sample(error, now, sample)
@@ -29,7 +34,7 @@ impl RetryPolicy {
         let crate::provider::ProviderError::Request(failure) = error else {
             return None;
         };
-        if self.retries >= 10 || !failure.retry_eligible() {
+        if !failure.retry_eligible() || (self.retries >= 10 && !failure.transient_outage()) {
             return None;
         }
         let nominal = match self.retries {
@@ -49,14 +54,23 @@ impl RetryPolicy {
         } else {
             0
         };
-        // Cap the jittered local delay, not the provider's Retry-After minimum.
-        let delay = (nominal as f64 * (0.8 + 0.4 * sample))
-            .min(60000.0)
-            .max(minimum as f64)
-            .ceil() as u64;
-        self.retries += 1;
+        // A server minimum above the user-selected ceiling cannot be honored.
+        // Spread those attempts across the final 12 seconds instead of aligning
+        // every client at exactly one minute.
+        let (low, high) = if minimum > 60_000 {
+            (48_000.0, 60_000.0)
+        } else {
+            let low = (nominal as f64 * 0.8).max(minimum as f64);
+            let high = (nominal as f64 * 1.2)
+                .max(minimum as f64 * 1.2)
+                .min(60_000.0)
+                .max(low);
+            (low, high)
+        };
+        let delay = (low + (high - low) * sample).ceil() as u64;
+        self.retries = self.retries.saturating_add(1);
         Some(oc_core::queries::RetryFact {
-            attempt: self.retries + 1,
+            attempt: self.retries.saturating_add(1),
             at: now.saturating_add(delay),
             safe_error: error.to_string(),
         })
@@ -103,6 +117,7 @@ impl Runtime<'_> {
             &log.spans.last().expect("active span").id,
             &log.to_json().to_string(),
             retry,
+            retry.attempt > 11,
         )?;
         if let Some(events) = self.compaction_events.lock().expect("events").as_ref() {
             self.emit(

@@ -177,7 +177,7 @@ async fn ret01_observed_override_and_delay_only_http_rate_internal() {
         )
         .await;
         assert_eq!(error.headers.should_retry, expected);
-        assert_eq!(error.retry_eligible(), expected.unwrap_or(false));
+        assert!(!error.retry_eligible());
         assert_eq!(error.headers.retry_after_ms, None);
         assert!(!format!("{error:?}").contains("body-canary"));
     }
@@ -319,7 +319,10 @@ async fn ret01_sse_event_status_independent_of_http_and_no_delay() {
                 retry_after_ms: None
             }
         );
-        assert!(!error.retry_eligible());
+        assert_eq!(
+            error.retry_eligible(),
+            kind == RateLimit || (kind == ProviderInternal && status == Some(503))
+        );
         assert!(!error.output_committed);
         assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
         assert!(!format!("{error:?} {error}").contains("CANARY"));

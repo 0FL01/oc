@@ -1074,11 +1074,21 @@ impl Runtime<'_> {
             let route = crate::compaction::route_identity(&catalog.provider, model, provider)
                 .map_err(|_| RuntimeError::Provider)?;
             let native = loop {
+                let aggregate_dispatch = retry_policy.aggregate();
                 match strategy
                     .compact(&route, &history, cancel, &mut || {
-                        self.db
-                            .generation_dispatch(session, &snapshot.id, "native_compaction")
-                            .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                        if aggregate_dispatch {
+                            self.db.generation_retry_dispatch(
+                                session,
+                                &snapshot.id,
+                                "native_compaction",
+                                &snapshot.id,
+                            )
+                        } else {
+                            self.db
+                                .generation_dispatch(session, &snapshot.id, "native_compaction")
+                        }
+                        .map_err(|_| crate::provider::ProviderError::DispatchRefused)
                     })
                     .await
                 {
@@ -1173,6 +1183,7 @@ impl Runtime<'_> {
         );
         'summary: loop {
             let generation = loop {
+                let aggregate_dispatch = retry_policy.aggregate();
                 snapshot.summary.clear();
                 let prepared = crate::auth::prepare_request(
                     &provider,
@@ -1215,9 +1226,18 @@ impl Runtime<'_> {
                         }
                     },
                     &mut || async {
-                        self.db
-                            .generation_dispatch(session, &operation, "compaction")
-                            .map_err(|_| crate::provider::ProviderError::DispatchRefused)
+                        if aggregate_dispatch {
+                            self.db.generation_retry_dispatch(
+                                session,
+                                &operation,
+                                "compaction",
+                                &operation,
+                            )
+                        } else {
+                            self.db
+                                .generation_dispatch(session, &operation, "compaction")
+                        }
+                        .map_err(|_| crate::provider::ProviderError::DispatchRefused)
                     },
                 )
                 .await

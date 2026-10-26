@@ -495,6 +495,7 @@ pub enum NoticePlacement {
 /// Safe durable retry notice. `at` is an epoch deadline, never a dispatch command.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RetryFact {
+    /// Physical attempt number; `u32::MAX` means at least that many.
     pub attempt: u32,
     pub at: u64,
     pub safe_error: String,

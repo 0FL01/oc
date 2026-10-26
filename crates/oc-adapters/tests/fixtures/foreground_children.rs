@@ -772,6 +772,10 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
                         if let oc_core::core_app::CoreEvent::RetryScheduled { session, retry, .. } = event.unwrap() {
                             assert_eq!(session.0, "parent");
                             attempts.push(retry.attempt);
+                            if attempts.len() == 12 {
+                                cancel.store(true, Ordering::Release);
+                                continue;
+                            }
                             let now = std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
                             // Turn-first polling registered the relative retry sleep.
@@ -784,7 +788,7 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
                     }
                 }
             };
-            assert_eq!(attempts, (2..=11).collect::<Vec<_>>());
+            assert_eq!(attempts, (2..=13).collect::<Vec<_>>());
             result
         } else {
             turn.await
@@ -796,7 +800,7 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
                 "{case}: no intent before Ask/closed response"
             );
         } else if case == "unclosed" {
-            assert_eq!(result.unwrap().status, TurnStatus::Incomplete);
+            assert_eq!(result.unwrap().status, TurnStatus::Cancelled);
             assert!(
                 harness.db.list_tool_ops("parent").unwrap().is_empty(),
                 "open response cannot create intent"
@@ -843,7 +847,7 @@ async fn batched_pre_effect_guards_and_child_budget_fail_without_sibling_cancell
             requests.lock().unwrap().len(),
             match case {
                 "ask" => 1,
-                "unclosed" => 11,
+                "unclosed" => 12,
                 "model" | "budget" => 3,
                 _ => 2,
             },

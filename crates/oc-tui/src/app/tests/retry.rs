@@ -2,6 +2,49 @@ use super::*;
 use oc_core::queries::{AssistantSpan, HistoryTurn, RetryFact};
 
 #[tokio::test]
+async fn saturated_retry_uses_projection_revision_not_attempt_number() {
+    let mut state = fresh_state("saturated-retry").await;
+    let turn = WorkerTurnId("turn".into());
+    state.active_turn = Some(turn.clone());
+    let retry = RetryFact {
+        attempt: u32::MAX,
+        at: 0,
+        safe_error: "outage".into(),
+    };
+    let mut projection = HistoryTurn {
+        id: turn.0.clone(),
+        status: "started".into(),
+        revision: 1,
+        spans: vec![AssistantSpan {
+            request: None,
+            id: "span".into(),
+            step: 1,
+            status: "started".into(),
+            started: 0,
+            completed: None,
+            retry: Some(retry.clone()),
+            error: None,
+            finish: None,
+        }],
+        ..Default::default()
+    };
+    state.apply_retry(&turn, "span", &retry);
+    assert!(state.retry_notice().is_none());
+    state.apply_presentation(&turn, &projection);
+    assert!(state.retry_notice().unwrap().contains("≥4294967295"));
+    projection.revision = 2;
+    projection.spans[0].retry = None;
+    state.apply_presentation(&turn, &projection);
+    state.apply_retry(&turn, "span", &retry);
+    assert!(state.retry_notice().is_none());
+    projection.revision = 3;
+    projection.spans[0].retry = Some(retry);
+    state.apply_presentation(&turn, &projection);
+    assert!(state.retry_notice().is_some());
+    state.app.shutdown().await.unwrap();
+}
+
+#[tokio::test]
 async fn ret01_retry_scope_due_semantic_start_and_stale_snapshot() {
     let mut state = fresh_state("retry-view").await;
     let turn = WorkerTurnId("turn".into());

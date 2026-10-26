@@ -2859,6 +2859,7 @@ impl Db {
         span: &str,
         result: &str,
         retry: &oc_core::queries::RetryFact,
+        aggregate: bool,
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
@@ -2869,15 +2870,60 @@ impl Db {
         {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
-        tx.execute(
-            "INSERT INTO events(session_id,kind,payload) VALUES (?1,'retry_scheduled',?2)",
-            params![
-                session,
-                serde_json::json!({"turn":turn,"span":span,"retry":retry}).to_string()
-            ],
-        )?;
+        if aggregate {
+            let prior: Option<(i64, i64)> = tx.query_row(
+                "SELECT seq,json_extract(payload,'$.count') FROM events WHERE kind='retry_group_state' AND session_id=?1 AND json_extract(payload,'$.turn')=?2 AND json_extract(payload,'$.span')=?3",
+                params![session, turn, span], |row| Ok((row.get(0)?, row.get(1)?)),
+            ).optional()?;
+            let count = match prior {
+                Some((seq, count)) if count > 0 => {
+                    let next = count.checked_add(1).ok_or_else(|| {
+                        StorageError::Io(std::io::Error::other("retry accounting overflow"))
+                    })?;
+                    tx.execute(
+                        "DELETE FROM events WHERE seq=?1 AND kind='retry_group_state'",
+                        [seq],
+                    )?;
+                    next
+                }
+                Some(_) => {
+                    return Err(StorageError::Io(std::io::Error::other(
+                        "invalid retry accounting",
+                    )));
+                }
+                None => 1,
+            };
+            tx.execute(
+                "INSERT INTO events(session_id,kind,payload) VALUES (?1,'retry_group_state',?2)",
+                params![
+                    session,
+                    serde_json::json!({"turn":turn,"span":span,"count":count}).to_string()
+                ],
+            )?;
+        } else {
+            tx.execute(
+                "INSERT INTO events(session_id,kind,payload) VALUES (?1,'retry_scheduled',?2)",
+                params![
+                    session,
+                    serde_json::json!({"turn":turn,"span":span,"retry":retry}).to_string()
+                ],
+            )?;
+        }
         tx.commit()?;
         Ok(())
+    }
+
+    fn dispatch_count(conn: &Connection, root: &str) -> Result<i64, StorageError> {
+        let physical: i64 = conn.query_row("SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?1", [root], |r| r.get(0))?;
+        let aggregated: i64 = conn.query_row("SELECT COALESCE(SUM(json_extract(payload,'$.count')),0) FROM events WHERE kind='dispatch_group_state' AND json_extract(payload,'$.operation')=?1", [root], |r| r.get(0))?;
+        if aggregated < 0 {
+            return Err(StorageError::Io(std::io::Error::other(
+                "invalid dispatch accounting",
+            )));
+        }
+        physical
+            .checked_add(aggregated)
+            .ok_or_else(|| StorageError::Io(std::io::Error::other("dispatch accounting overflow")))
     }
 
     /// Count actual admitted send dispatches, independently of logical rounds.
@@ -2890,7 +2936,56 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         // An inherited operation remains fixed even when a later root turn starts.
         let root_operation: Option<String> = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
+        Self::dispatch_count(&conn, root_operation.as_deref().unwrap_or(operation))?
+            .checked_add(1)
+            .ok_or_else(|| {
+                StorageError::Io(std::io::Error::other("dispatch accounting overflow"))
+            })?;
         conn.execute("INSERT INTO events(session_id,kind,payload) VALUES (?1,'generation_dispatched',?2)", params![session,serde_json::json!({"operation":root_operation.as_deref().unwrap_or(operation),"owner":operation,"lane":lane}).to_string()])?;
+        Ok(())
+    }
+
+    /// Replaceable accounting state for repeated sends in one retry run.
+    pub(crate) fn generation_retry_dispatch(
+        &self,
+        session: &str,
+        operation: &str,
+        lane: &str,
+        run: &str,
+    ) -> Result<(), StorageError> {
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        let root: Option<String> = tx.prepare_cached("SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
+        let root = root.as_deref().unwrap_or(operation);
+        Self::dispatch_count(&tx, root)?
+            .checked_add(1)
+            .ok_or_else(|| {
+                StorageError::Io(std::io::Error::other("dispatch accounting overflow"))
+            })?;
+        let prior: Option<(i64, i64)> = tx.query_row(
+            "SELECT seq,json_extract(payload,'$.count') FROM events WHERE kind='dispatch_group_state' AND json_extract(payload,'$.operation')=?1 AND session_id=?2 AND json_extract(payload,'$.owner')=?3 AND json_extract(payload,'$.lane')=?4 AND json_extract(payload,'$.run')=?5",
+            params![root, session, operation, lane, run], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?;
+        let count = match prior {
+            Some((seq, count)) if count > 0 => {
+                let next = count.checked_add(1).ok_or_else(|| {
+                    StorageError::Io(std::io::Error::other("dispatch accounting overflow"))
+                })?;
+                tx.execute(
+                    "DELETE FROM events WHERE seq=?1 AND kind='dispatch_group_state'",
+                    [seq],
+                )?;
+                next
+            }
+            Some(_) => {
+                return Err(StorageError::Io(std::io::Error::other(
+                    "invalid dispatch accounting",
+                )));
+            }
+            None => 1,
+        };
+        tx.execute("INSERT INTO events(session_id,kind,payload) VALUES (?1,'dispatch_group_state',?2)", params![session,serde_json::json!({"operation":root,"owner":operation,"lane":lane,"run":run,"count":count}).to_string()])?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -3175,9 +3270,11 @@ impl Db {
             return Ok(None);
         };
         let meta: serde_json::Value = serde_json::from_str(&metadata).unwrap_or_default();
+        let revision: i64 = conn.query_row("SELECT MAX((SELECT COALESCE(MAX(seq),0) FROM events WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?2),(SELECT COALESCE(MAX(seq),0) FROM events WHERE kind='dispatch_group_state' AND json_extract(payload,'$.operation')=?2))", params![session, &id], |r| r.get(0))?;
+        let physical = Self::dispatch_count(&conn, &id)?;
         let mut turn = HistoryTurn {
-            revision: conn.prepare_cached("SELECT COALESCE(MAX(seq),0) FROM events WHERE session_id=?1")?.query_row([session],|r|r.get::<_,i64>(0))? as u64,
-            physical_requests: conn.prepare_cached("SELECT count(*) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?1")?.query_row([&id],|r|r.get::<_,i64>(0))? as u64,
+            revision: revision as u64,
+            physical_requests: physical as u64,
             id: id.clone(),
             status,
             agent: meta["agent"].as_str().map(str::to_string),
@@ -4458,7 +4555,9 @@ fn apply_schema(conn: &Connection) -> Result<(), StorageError> {
             op_id TEXT PRIMARY KEY REFERENCES tool_operations(id) ON DELETE CASCADE,
             metadata TEXT NOT NULL);
           CREATE INDEX IF NOT EXISTS events_accepted_model ON events(session_id, seq) WHERE kind='accepted_model';
-          CREATE INDEX IF NOT EXISTS events_generation_operation ON events(json_extract(payload,'$.operation')) WHERE kind='generation_dispatched';
+           CREATE INDEX IF NOT EXISTS events_generation_operation ON events(json_extract(payload,'$.operation')) WHERE kind='generation_dispatched';
+           CREATE UNIQUE INDEX IF NOT EXISTS events_retry_group ON events(session_id,json_extract(payload,'$.turn'),json_extract(payload,'$.span')) WHERE kind='retry_group_state';
+           CREATE UNIQUE INDEX IF NOT EXISTS events_dispatch_group ON events(json_extract(payload,'$.operation'),session_id,json_extract(payload,'$.owner'),json_extract(payload,'$.lane'),json_extract(payload,'$.run')) WHERE kind='dispatch_group_state';
          CREATE TABLE IF NOT EXISTS blobs(digest TEXT PRIMARY KEY, size INTEGER NOT NULL, path TEXT NOT NULL);
          CREATE TABLE IF NOT EXISTS prefs(key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
          INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (1, 't04');",
