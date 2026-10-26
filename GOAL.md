@@ -20,6 +20,11 @@ Scope текущей работы задаёт пользователь; workflo
 
 ## Незавершённые outcomes
 
+### Provider recovery и компакция — текущий срез
+
+Исправленный после RECON/аудита план и выполнение: [runtime recovery](docs/goals/2026-10-26-runtime-recovery.md).
+Scope ограничен pre-send retry classification/backoff, native-image accounting и compaction admission; буквальное бесконечное восстановление конфликтует с finite-контрактом и не объявляется выполненным.
+
 ### TUI parity — отложено, не отменено
 
 Текущий запрос: [компактная строка compress без ложного legacy](docs/goals/2026-10-25-compress-tool-row.md). Согласованный RECON-план сохранён; это не возобновляет остальные TUI qualifications.
