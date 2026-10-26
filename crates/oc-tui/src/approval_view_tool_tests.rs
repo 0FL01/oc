@@ -55,6 +55,37 @@ async fn generic_tool_body_uses_actual_action_in_inline_and_fullscreen() {
 }
 
 #[tokio::test]
+async fn external_directory_shows_directory_and_patterns_in_inline_and_fullscreen() {
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, SessionId("root".into()));
+    for (scope, directory) in [("/outside/*", "/outside"), ("/*", "/")] {
+        let mut request = request();
+        request.action = "external_directory".into();
+        request.resources = vec![scope.into()];
+        request.save_patterns.clear();
+        request.preview = ApprovalPreview::Resource {
+            values: request.resources.clone(),
+        };
+        let title = format!("Access external directory {directory}");
+        assert_eq!(presentation_title(&request), Some(("←", title.clone())));
+        state.approvals.reconcile(vec![(request, true)]);
+        for fullscreen in [false, true] {
+            state.approvals.fullscreen = fullscreen;
+            let rows = crate::views::render_test(&state, 79, 40);
+            assert!(rows.iter().any(|row| row.contains(&title)));
+            assert!(rows.iter().any(|row| row.contains("Patterns")));
+            assert!(rows.iter().any(|row| row.contains(&format!("- {scope}"))));
+            assert!(
+                !rows
+                    .iter()
+                    .any(|row| row.contains("Call tool") || row.contains("Tool:"))
+            );
+            assert_eq!(state.approvals.active().unwrap().resources, [scope]);
+        }
+    }
+}
+
+#[tokio::test]
 async fn generic_tool_always_keeps_raw_scope_and_exact_reply_binding() {
     let (app, _, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, SessionId("root".into()));

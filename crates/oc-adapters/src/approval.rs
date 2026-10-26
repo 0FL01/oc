@@ -290,6 +290,9 @@ pub(crate) async fn prepare(
                 values: resources.to_vec(),
             }
         }
+        "external_directory" => ApprovalPreview::Resource {
+            values: resources.to_vec(),
+        },
         _ => ApprovalPreview::Tool,
     };
     Ok((

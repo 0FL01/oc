@@ -568,6 +568,11 @@ fn presentation_title(request: &ApprovalRequest) -> Option<(&'static str, String
             Some(match request.action.as_str() {
                 "read" => ("→", format!("Read {value}")),
                 "webfetch" => ("%", format!("WebFetch {value}")),
+                "external_directory" => {
+                    let directory = value.strip_suffix("/*").unwrap_or(value);
+                    let directory = if directory.is_empty() { "/" } else { directory };
+                    ("←", format!("Access external directory {directory}"))
+                }
                 _ => ("⚙", format!("Call tool {}", request.action)),
             })
         }
@@ -963,6 +968,14 @@ fn preview(
             format!("Pattern: {pattern}"),
             Style::default().fg(theme.text_muted()),
         )],
+        ApprovalPreview::Resource { values } if request.action == "external_directory" => {
+            let mut lines = vec![Line::styled(
+                "Patterns",
+                Style::default().fg(theme.text_muted()),
+            )];
+            lines.extend(values.iter().map(|value| Line::raw(format!("- {value}"))));
+            lines
+        }
         ApprovalPreview::Resource { values } => values
             .iter()
             .map(|v| {

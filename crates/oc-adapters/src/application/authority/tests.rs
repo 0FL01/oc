@@ -1583,7 +1583,7 @@ async fn running_background_commands_have_unique_real_child_operations_without_f
 
 #[tokio::test]
 async fn external_directory_replies_route_from_location_to_root_and_child() {
-    use oc_core::approval::{ApprovalDecision, ApprovalReply};
+    use oc_core::approval::{ApprovalDecision, ApprovalPreview, ApprovalReply};
     for (child, decision) in [
         (false, ApprovalDecision::Once),
         (false, ApprovalDecision::Reject { feedback: None }),
@@ -1625,6 +1625,12 @@ async fn external_directory_replies_route_from_location_to_root_and_child() {
         .await
         .unwrap();
         assert_eq!(approval.action, "external_directory");
+        assert_eq!(
+            approval.preview,
+            ApprovalPreview::Resource {
+                values: approval.resources.clone(),
+            }
+        );
         assert_eq!(approval.binding.session != "R", child);
         assert!(approval.save_patterns.is_empty());
         assert!(
