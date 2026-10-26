@@ -1119,6 +1119,164 @@ async fn live_footer_uses_the_turns_pinned_model_not_the_current_picker() {
 }
 
 #[tokio::test]
+async fn variant_switch_keeps_only_terminal_assistant_footer_live_and_replayed() {
+    use oc_core::queries::{
+        AssistantSpan, HistoryPartWindow, HistoryTurn, ModelRef, PartState, RequestIdentity,
+        ToolOpView, TranscriptPart,
+    };
+    use ratatui::widgets::{Paragraph, Widget};
+    let span = |step: u32, variant: &str| AssistantSpan {
+        id: format!("span-{step}"),
+        step,
+        status: "completed".into(),
+        started: u64::from(step),
+        completed: Some(u64::from(step) + 1),
+        request: Some(RequestIdentity {
+            config_generation: None,
+            profile: None,
+            binding: None,
+            model: ModelRef {
+                provider: "fixture".into(),
+                id: "model".into(),
+                variant: Some(variant.into()),
+            },
+            model_label: format!("Fixture ({variant})"),
+            span: format!("span-{step}"),
+            input_start: 0,
+            context_limit: 0,
+            input_limit: 0,
+            output_limit: 0,
+            estimated_input: 0,
+            dcp_min_context: 0,
+            dcp_max_context: 0,
+            tool_fingerprint: String::new(),
+            context_fingerprint: String::new(),
+        }),
+        retry: None,
+        error: None,
+        finish: Some("stop".into()),
+    };
+    let mut projection = HistoryTurn {
+        id: "variant-footer-turn".into(),
+        revision: 1,
+        status: "started".into(),
+        agent: Some("build".into()),
+        model_label: "Fixture (max)".into(),
+        spans: vec![span(1, "max"), span(2, "xhigh")],
+        // The old model's prefix is outside this bounded checkpoint window.
+        window: Some(HistoryPartWindow {
+            start: 3,
+            end: 6,
+            total: 6,
+        }),
+        parts: vec![
+            TranscriptPart::Reasoning {
+                text: "**Auditing**\n\nchecking events".into(),
+                duration_ms: Some(1700),
+            },
+            TranscriptPart::Text("Copy ready; continuing the audit.".into()),
+            TranscriptPart::Tool(ToolOpView {
+                op: "audit-read".into(),
+                name: "read".into(),
+                state: "completed".into(),
+                input: Some(r#"{"path":"note.txt"}"#.into()),
+                child_job: None,
+                output_presentation: None,
+                question: None,
+                dcp_topic: None,
+                dcp: None,
+                patch_effects: None,
+                rowid: 1,
+                output: Some("fixture content".into()),
+                output_bytes: 15,
+                output_truncated: false,
+            }),
+        ],
+        part_states: (3..6)
+            .map(|sequence| PartState {
+                sequence,
+                status: "completed".into(),
+                model_label: Some("Fixture (xhigh)".into()),
+                ..Default::default()
+            })
+            .collect(),
+        ..Default::default()
+    };
+    let assert_footers = |state: &TuiState, expected: &[&str]| {
+        let rows = state.transcript_rows();
+        let labels: Vec<_> = rows
+            .iter()
+            .filter_map(|row| row.meta.as_ref()?.model.as_deref())
+            .collect();
+        assert_eq!(labels, expected);
+        let full = state.rendered_transcript(80, 80);
+        let (visible, total) = state.visible_transcript(80, 80, 40);
+        assert_eq!(total, full.len());
+        // Indexed lines may split identical styled spans differently.
+        let area = Rect::new(0, 0, 80, 40);
+        let buffers = [visible, full.clone()].map(|lines| {
+            let mut buffer = ratatui::buffer::Buffer::empty(area);
+            Paragraph::new(
+                lines
+                    .into_iter()
+                    .map(crate::styled::Line::into_ratatui)
+                    .collect::<Vec<_>>(),
+            )
+            .render(area, &mut buffer);
+            buffer
+        });
+        assert_eq!(buffers[0], buffers[1]);
+        assert_eq!(
+            full.iter()
+                .filter(|line| line.plain_text().contains("Build · Fixture"))
+                .count(),
+            expected.len()
+        );
+        assert!(
+            rows.iter()
+                .any(|row| row.text == "Copy ready; continuing the audit.")
+        );
+    };
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app.clone(), sid("variant-footer"));
+    state.active_agent.clone_from(&projection.agent);
+    let turn = WorkerTurnId(projection.id.clone());
+    state.begin_linked_turn(turn.clone());
+    state.apply_presentation(&turn, &projection);
+    assert_footers(&state, &[]);
+    assert_eq!(state.live_part_states, projection.part_states);
+
+    projection.revision += 1;
+    projection.spans.push(span(3, "xhigh"));
+    state.apply_presentation(&turn, &projection);
+    state.apply_delta(&turn, "Final answer");
+    state.apply_finished(&turn, "Final answer", 2000);
+    assert_footers(&state, &["Fixture (xhigh)"]);
+
+    projection.status = "completed".into();
+    projection.duration_ms = Some(2000);
+    projection
+        .parts
+        .push(TranscriptPart::Text("Final answer".into()));
+    projection.part_states.push(PartState {
+        sequence: 6,
+        status: "completed".into(),
+        model_label: Some("Fixture (xhigh)".into()),
+        ..Default::default()
+    });
+    projection.window = Some(HistoryPartWindow {
+        start: 3,
+        end: 7,
+        total: 7,
+    });
+    let mut answer = msg(2, Role::Assistant, "aggregate is not replayed");
+    answer.turn = Some(projection);
+    let mut reopened = TuiState::new(app, sid("variant-footer"));
+    reopened.attach_page(&page(vec![answer], 2, false, false));
+    assert_footers(&reopened, &["Fixture (xhigh)"]);
+}
+
+#[tokio::test]
 async fn v06b_reasoning_toggle_projects_public_history_without_modifying_owner() {
     use oc_core::queries::{HistoryTurn, TranscriptPart};
     let mut state = fresh_state("s-v06b-reasoning").await;

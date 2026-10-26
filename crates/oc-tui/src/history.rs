@@ -1328,15 +1328,6 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         child_notice: None,
         shell_notice: None,
     };
-    let first = turn
-        .spans
-        .iter()
-        .find_map(|span| span.request.as_ref().map(|request| &request.model));
-    let mixed = turn
-        .spans
-        .iter()
-        .filter_map(|span| span.request.as_ref())
-        .any(|request| Some(&request.model) != first);
     // Interrupted turns may attach to the accepted user row, which precedes
     // the projected parts but has no entry in part_states.
     let part_start = rows.len();
@@ -1393,19 +1384,6 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
             });
         }
         rows.push(part_row);
-        if mixed
-            && !matches!(part, TranscriptPart::Tool(_))
-            && let Some(model) = turn
-                .part_states
-                .get(index)
-                .and_then(|state| state.model_label.clone())
-        {
-            rows.last_mut()
-                .expect("part row")
-                .meta
-                .get_or_insert_with(Default::default)
-                .model = Some(model);
-        }
     }
     // A middle part window must not duplicate a terminal footer/retry block.
     if turn

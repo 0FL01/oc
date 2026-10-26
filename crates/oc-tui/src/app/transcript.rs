@@ -2212,19 +2212,6 @@ impl TuiState {
                     crate::compaction::FRAMES[clock.frame]
                 });
             }
-            if self.live_mixed_models
-                && row.tool.is_none()
-                && let Some(model) = self
-                    .live_part_states
-                    .iter()
-                    .find(|state| state.sequence == source.unwrap_or(slot))
-                    .and_then(|state| state.model_label.clone())
-            {
-                row.meta = Some(AssistantMeta {
-                    model: Some(model),
-                    ..Default::default()
-                });
-            }
             if let Some(index) = canonical {
                 row.position.clone_from(&rows[index].position);
                 row.message_id.clone_from(&rows[index].message_id);

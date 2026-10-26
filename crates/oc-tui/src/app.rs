@@ -834,7 +834,6 @@ pub struct TuiState {
     live_agent_color_index: Option<usize>,
     live_terminal_status: Option<String>,
     live_model_label: Option<String>,
-    live_mixed_models: bool,
     live_preview_truncated: bool,
     /// First reasoning delta of the active turn, for the collapsed header's
     /// duration (`part.time.created` upstream).
@@ -1092,7 +1091,6 @@ impl TuiState {
             live_agent_color_index: None,
             live_terminal_status: None,
             live_model_label: None,
-            live_mixed_models: false,
             live_preview_truncated: false,
             reasoning_started: None,
             reasoning_finished: None,

@@ -1717,7 +1717,6 @@ impl TuiState {
         self.live_agent_color_index = None;
         self.live_terminal_status = None;
         self.live_model_label = None;
-        self.live_mixed_models = false;
         self.live_preview_truncated = false;
         self.reasoning_started = None;
         self.reasoning_finished = None;
@@ -1886,15 +1885,6 @@ impl TuiState {
         if projection.window.is_some() && !projection.legacy_text_only {
             self.adopt_checkpoint_parts(projection);
         }
-        let first = projection
-            .spans
-            .iter()
-            .find_map(|span| span.request.as_ref().map(|r| &r.model));
-        self.live_mixed_models = projection
-            .spans
-            .iter()
-            .filter_map(|span| span.request.as_ref())
-            .any(|r| Some(&r.model) != first);
         if let Some(span) = projection.spans.last() {
             self.live_span = Some((turn.clone(), span.id.clone()));
             if projection.status == "started"
@@ -2205,26 +2195,6 @@ impl TuiState {
                 ),
                 false,
             ));
-            if self.live_mixed_models
-                && row.tool.is_none()
-                && let Some(model) = self
-                    .live_part_states
-                    .iter()
-                    .find(|state| {
-                        state.sequence
-                            == self
-                                .live_part_sources
-                                .get(&(self.live_part_offset + ordinal))
-                                .copied()
-                                .unwrap_or(self.live_part_offset + ordinal)
-                    })
-                    .and_then(|state| state.model_label.clone())
-            {
-                row.meta = Some(AssistantMeta {
-                    model: Some(model),
-                    ..Default::default()
-                });
-            }
             self.window.commit_live_row(
                 row,
                 &turn.0,
