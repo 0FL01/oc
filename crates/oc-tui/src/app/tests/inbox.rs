@@ -70,12 +70,66 @@ async fn enter_while_busy_steers_into_the_running_turn() {
         (last.role.as_str(), last.text.as_str()),
         ("user", "look at tests too")
     );
+    let theme = Theme::dark();
+    for selected in [false, true] {
+        let mut catalog = snapshot();
+        if selected {
+            catalog.agent_id = Some("y".into());
+            catalog
+                .chrome
+                .agent_colors
+                .insert("y".into(), "#12ab34".into());
+        }
+        state.apply_catalog(catalog);
+        let agent = state.agent_color(state.active_agent.as_deref());
+        let full = state.transcript_lines(80, 80);
+        let (indexed, _) = state.visible_transcript(80, 80, 40);
+        for lines in [full, indexed] {
+            let borders: Vec<_> = lines
+                .iter()
+                .flat_map(|line| line.spans())
+                .filter(|span| span.content() == "┃")
+                .map(|span| span.style().fg)
+                .collect();
+            assert_eq!(
+                borders,
+                [Some(agent); 3]
+                    .into_iter()
+                    .chain([Some(theme.border()); 3])
+                    .collect::<Vec<_>>(),
+                "pending steer keeps its neutral border when the profile changes"
+            );
+        }
+    }
     state.apply_inbox(&sid("steer"), Vec::new());
     assert!(
         !state
             .transcript_rows()
             .iter()
             .any(|row| row.text == "look at tests too" && row.message_id.is_none())
+    );
+    let mut prompt = msg(1, Role::User, "first");
+    prompt.turn = Some(oc_core::queries::HistoryTurn {
+        id: state.active_turn().unwrap().0.clone(),
+        ..Default::default()
+    });
+    let delivered = msg(2, Role::User, "look at tests too");
+    let recent = page(vec![prompt, delivered.clone()], 2, false, false);
+    state.refresh_child_notice_page(&recent);
+    state.insert_steered_rows(&recent, std::slice::from_ref(&delivered.id));
+    assert_eq!(
+        state
+            .transcript_rows()
+            .iter()
+            .filter(|row| row.message_id.as_deref() == Some(&delivered.id))
+            .count(),
+        1
+    );
+    assert!(
+        user_border_colors(&state)
+            .iter()
+            .all(|color| *color == state.agent_color(state.active_agent.as_deref())),
+        "delivered steer takes the ordinary user-message color"
     );
 }
 
@@ -101,6 +155,11 @@ async fn interrupted_steer_stays_a_neutral_user_row_not_a_resumable_queue() {
         "pending steers remain neutral user rows across the idle boundary"
     );
     assert!(!rows.iter().any(|row| row.role == "queued"));
+    assert_eq!(
+        &user_border_colors(&state)[3..],
+        &[Theme::dark().border(); 3],
+        "idle does not make an undelivered steer an accepted prompt"
+    );
     assert_eq!(state.inbox_items(), pending);
     assert!(
         inbox.try_recv().is_err(),

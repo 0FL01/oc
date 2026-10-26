@@ -121,6 +121,7 @@ fn row_with_body(
         text: body,
         agent: Some(label),
         agent_color_index: None,
+        pending_delivery: None,
         chips: vec![],
         reasoning: None,
         meta: None,

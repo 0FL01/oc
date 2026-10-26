@@ -232,11 +232,12 @@ impl TuiState {
 
     /// Pending steers use neutral user rows; only queued prompts join the dock.
     pub(super) fn inbox_rows(&self) -> Vec<HistoryRow> {
-        let row = |role: &str, text: String| HistoryRow {
+        let row = |role: &str, text: String, delivery| HistoryRow {
             position: None,
             message_id: None,
             seq: i64::MAX,
             role: role.into(),
+            pending_delivery: Some(delivery),
             text: text.into(),
             agent: None,
             agent_color_index: None,
@@ -258,6 +259,7 @@ impl TuiState {
                         Some(error) => format!("{}\nNot delivered: {error}", item.text),
                         None => item.text.clone(),
                     },
+                    InboxDelivery::Steer,
                 )
             })
             .collect::<Vec<_>>();
@@ -270,6 +272,7 @@ impl TuiState {
                     queued.len(),
                     first.text.replace(['\n', '\r'], " ")
                 ),
+                InboxDelivery::Queue,
             ));
         }
         rows

@@ -4488,6 +4488,9 @@ fn user_agent_color(
     theme: &Theme,
     agent_color: &impl Fn(Option<&str>) -> Color,
 ) -> Color {
+    if row.pending_delivery.is_some() {
+        return theme.border();
+    }
     row.agent_color_index.map_or_else(
         || agent_color(row.agent.as_deref()),
         |index| {

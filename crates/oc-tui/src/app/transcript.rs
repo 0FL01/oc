@@ -291,6 +291,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
         .into(),
         agent: None,
         agent_color_index: None,
+        pending_delivery: None,
         chips: Vec::new(),
         reasoning: None,
         meta: None,
@@ -314,6 +315,7 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
         text: String::new().into(),
         agent,
         agent_color_index: None,
+        pending_delivery: None,
         chips: Vec::new(),
         reasoning: None,
         meta: Some(meta),
@@ -2240,6 +2242,7 @@ impl TuiState {
                 },
                 agent: self.active_agent.clone(),
                 agent_color_index: self.live_agent_color_index,
+                pending_delivery: None,
                 chips: Vec::new(),
                 reasoning: (!self.live_reasoning.is_empty()).then(|| ReasoningBlock {
                     text: if bounded_open {
@@ -2295,6 +2298,7 @@ impl TuiState {
                 text: reverted.user_messages.to_string().into(),
                 agent: Some(self.conversation_shortcut(false)),
                 agent_color_index: None,
+                pending_delivery: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -2318,6 +2322,7 @@ impl TuiState {
                     text: pending.source.clone(),
                     agent: pending.agent.clone(),
                     agent_color_index: pending.agent_color_index,
+                    pending_delivery: None,
                     chips: Vec::new(),
                     reasoning: None,
                     meta: None,
@@ -2336,6 +2341,7 @@ impl TuiState {
                 text: key.into(),
                 agent: None,
                 agent_color_index: None,
+                pending_delivery: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -2350,7 +2356,7 @@ impl TuiState {
         // the history/live state. Indexed footers are generated outside the
         // Markdown body cache, so config changes cannot reuse a stale footer.
         for row in &mut rows {
-            if row.role == "user" {
+            if row.role == "user" && row.pending_delivery.is_none() {
                 // OC2 UserMessage paints the current session profile, not the
                 // submitted turn's historical slot. Override only this render
                 // copy; message/turn ownership and generation remain recorded.

@@ -40,6 +40,8 @@ pub struct HistoryRow {
     pub seq: i64,
     /// Render prefix (`user` / `assistant` for committed rows).
     pub role: String,
+    /// Inbox-owned input not yet delivered; presentation only, never persisted.
+    pub pending_delivery: Option<oc_core::queries::InboxDelivery>,
     /// Message text. A hidden `shell_input_delivered` row retains only its
     /// exact native operation identity here, not RAW text or a render payload.
     pub text: SourceText,
@@ -557,6 +559,7 @@ impl HistoryWindow {
             text: text.into(),
             agent,
             agent_color_index,
+            pending_delivery: None,
             chips: Vec::new(),
             reasoning: None,
             meta: None,
@@ -668,6 +671,7 @@ impl HistoryWindow {
             text: String::new().into(),
             agent: None,
             agent_color_index: None,
+            pending_delivery: None,
             chips: Vec::new(),
             reasoning: None,
             meta: None,
@@ -1024,6 +1028,7 @@ impl HistoryWindow {
                     text: model_switch_text(notice).into(),
                     agent: None,
                     agent_color_index: None,
+                    pending_delivery: None,
                     chips: Vec::new(),
                     reasoning: None,
                     meta: None,
@@ -1142,6 +1147,7 @@ fn row_from_page(
             .into(),
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
+        pending_delivery: None,
         chips: clipboard_chips(row.images.len()),
         reasoning: None,
         meta: None,
@@ -1321,6 +1327,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         text: String::new().into(),
         agent: turn.agent.clone(),
         agent_color_index: turn.agent_color_index,
+        pending_delivery: None,
         chips: Vec::new(),
         reasoning: None,
         meta: None,

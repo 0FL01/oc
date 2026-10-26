@@ -492,6 +492,7 @@ mod tests {
             text: String::new().into(),
             agent: Some("build".into()),
             agent_color_index: Some(1),
+            pending_delivery: None,
             chips: vec![],
             reasoning: None,
             child_notice: None,

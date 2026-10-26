@@ -74,11 +74,14 @@ impl Runtime<'_> {
         if let Some(events) = self.compaction_events.lock().expect("events").as_ref()
             && let Some(projection) = self.db.turn_presentation(session, turn)?
         {
-            let _ = events.send(oc_core::core_app::CoreEvent::TurnPresentation {
-                session: oc_core::domain::SessionId(session.into()),
-                turn: oc_core::core_app::WorkerTurnId(turn.into()),
-                projection,
-            });
+            self.emit(
+                events,
+                oc_core::core_app::CoreEvent::TurnPresentation {
+                    session: oc_core::domain::SessionId(session.into()),
+                    turn: oc_core::core_app::WorkerTurnId(turn.into()),
+                    projection,
+                },
+            );
         }
         Ok(())
     }

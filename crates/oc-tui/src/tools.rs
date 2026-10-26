@@ -2108,6 +2108,7 @@ mod tests {
             text: String::new().into(),
             agent: Some("build".to_string()),
             agent_color_index: None,
+            pending_delivery: None,
             chips: Vec::<Chip>::new(),
             reasoning: None,
             child_notice: None,

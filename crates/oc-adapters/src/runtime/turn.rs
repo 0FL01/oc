@@ -3144,6 +3144,10 @@ impl<'a> Runtime<'a> {
                     self.adopt_pending_profile(prepared)?;
                 }
                 inbox_rollback = None;
+                // Native clients need the consuming request's cut before its
+                // durable steer row. Still notify committed delivery if this
+                // presentation read fails, then propagate the original error.
+                let presentation = self.publish_span_projection(&params.session, &turn_id);
                 if !delivered.is_empty() {
                     self.publish_inbox(
                         &params.session,
@@ -3154,20 +3158,7 @@ impl<'a> Runtime<'a> {
                 if !unassigned_notices.is_empty() {
                     self.child_jobs.notify();
                 }
-                if let Some(events) = self
-                    .compaction_events
-                    .lock()
-                    .expect("event publisher")
-                    .as_ref()
-                    && let Some(projection) =
-                        self.db.turn_presentation(&params.session, &turn_id)?
-                {
-                    let _ = events.send(oc_core::core_app::CoreEvent::TurnPresentation {
-                        session: oc_core::domain::SessionId(params.session.clone()),
-                        turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
-                        projection,
-                    });
-                }
+                presentation?;
                 let generation = {
                     let mut partial_opaque = Vec::new();
                     let mut semantic_started = false;

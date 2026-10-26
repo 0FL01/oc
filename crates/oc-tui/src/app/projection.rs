@@ -672,6 +672,7 @@ mod tests {
             text: text.into(),
             agent: None,
             agent_color_index: None,
+            pending_delivery: None,
             chips: vec![],
             reasoning: None,
             child_notice: None,

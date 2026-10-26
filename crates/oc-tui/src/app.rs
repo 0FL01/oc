@@ -495,6 +495,7 @@ impl LivePart {
                 text: text.clone(),
                 agent,
                 agent_color_index: None,
+                pending_delivery: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -510,6 +511,7 @@ impl LivePart {
                 text: String::new().into(),
                 agent,
                 agent_color_index: None,
+                pending_delivery: None,
                 chips: Vec::new(),
                 reasoning: Some(ReasoningBlock {
                     text: text.clone(),
@@ -533,6 +535,7 @@ impl LivePart {
                 text: String::new().into(),
                 agent,
                 agent_color_index: None,
+                pending_delivery: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,

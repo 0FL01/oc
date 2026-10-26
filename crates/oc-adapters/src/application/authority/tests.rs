@@ -1119,6 +1119,94 @@ async fn steer_joins_the_running_turn_and_queue_runs_after_it_settles() {
 }
 
 #[tokio::test]
+async fn native_steer_checkpoint_precedes_delivery_and_streaming_continuation() {
+    use oc_core::queries::{InboxDelivery, NoticePlacement, TranscriptPart};
+    use tokio::io::AsyncWriteExt;
+
+    let f = RunningInputFixture::new(|_| {}).await;
+    let (mut first, _) = f.request().await;
+    let mut events = f.owner.resources.live.subscribe();
+    f.run
+        .app
+        .enqueue(SessionId("R".into()), "steer".into(), InboxDelivery::Steer)
+        .await
+        .unwrap();
+    respond(&mut first, json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"before steer"}]}])).await;
+    // Holding the next response prevents the terminal projection from repairing
+    // missing native checkpoints and hiding the active-turn ordering defect.
+    let (mut second, body) = f.request().await;
+    assert!(body["input"].to_string().contains("steer"));
+    let mut checkpoint = None;
+    let mut delivered = false;
+    while let Ok(publication) = events.try_recv() {
+        match publication.event {
+            CoreEvent::TurnPresentation {
+                turn, projection, ..
+            } if turn == f.turn => {
+                checkpoint = Some(projection);
+            }
+            CoreEvent::InboxChanged {
+                delivered: items, ..
+            } if !items.is_empty() => {
+                let projection = checkpoint
+                    .as_ref()
+                    .expect("native checkpoint before delivery");
+                assert_eq!(projection.status, "started");
+                assert_eq!(
+                    projection.parts,
+                    [TranscriptPart::Text("before steer".into())]
+                );
+                let span = projection.spans.last().unwrap();
+                assert_eq!(span.step, 2);
+                let notice = &projection.notice_order.as_ref().unwrap().notices[0];
+                assert_eq!(notice.message, items[0].message);
+                assert_eq!(
+                    notice.placement,
+                    NoticePlacement::BeforeRequest {
+                        span: span.id.clone(),
+                        before_part_sequence: projection.window.as_ref().unwrap().end,
+                    }
+                );
+                delivered = true;
+            }
+            _ => {}
+        }
+    }
+    assert!(delivered, "steer was delivered without waiting for idle");
+
+    let delta = format!(
+        "data: {}\n\n",
+        json!({"type":"response.output_text.delta","delta":"after steer"})
+    );
+    let completed = format!(
+        "data: {}\n\n",
+        json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"after steer"}]}]}})
+    );
+    second.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{delta}", delta.len() + completed.len()).as_bytes()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        let mut prepared = false;
+        loop {
+            match events.recv().await.unwrap().event {
+                CoreEvent::TurnPresentation { turn, .. } if turn == f.turn => prepared = true,
+                CoreEvent::TextDelta { turn, delta, .. } if turn == f.turn => {
+                    assert!(
+                        prepared,
+                        "semantic-start checkpoint must reach native before its delta"
+                    );
+                    assert_eq!(delta, "after steer");
+                    break;
+                }
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    second.write_all(completed.as_bytes()).await.unwrap();
+    f.finish().await;
+}
+
+#[tokio::test]
 async fn user_interrupt_resumes_only_steers_until_a_new_input_is_admitted() {
     use oc_core::queries::InboxDelivery;
     use tokio::io::AsyncReadExt;
