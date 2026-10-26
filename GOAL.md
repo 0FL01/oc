@@ -20,10 +20,10 @@ Scope текущей работы задаёт пользователь; workflo
 
 ## Незавершённые outcomes
 
-### Provider recovery и компакция — текущий срез
+### Provider recovery и компакция — offline fix, закрытие заблокировано
 
 Исправленный после RECON/аудита план и выполнение: [runtime recovery](docs/goals/2026-10-26-runtime-recovery.md).
-Scope ограничен pre-send retry classification/backoff, native-image accounting и compaction admission; буквальное бесконечное восстановление конфликтует с finite-контрактом и не объявляется выполненным.
+Pre-send retry classification/backoff, native-image accounting и compaction admission реализованы и проверены адресно; release binary собран. Push заблокирован SSH-доступом, общий offline gate остаётся FAIL; подробности и attribution незатронутых blockers — в цели. Буквальное бесконечное восстановление конфликтует с finite-контрактом и не объявляется выполненным.
 
 ### TUI parity — отложено, не отменено
 

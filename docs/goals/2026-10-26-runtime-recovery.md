@@ -1,6 +1,6 @@
 # Goal: восстановление после provider failure и надёжная компакция
 
-Status: active
+Status: unmet
 Source: RECON двух отказов сессии передачи звука; параллельный аудит плана; «Делай копию плана в цель и итеративно реализовать и коммит пуш билд».
 Last updated: 2026-10-26
 
@@ -38,8 +38,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: последний запрос пользователя.
   - Acceptance: targeted regressions и final offline gate, обычный push в проверенный origin, locked release build `target/release/oc2`; ограничения и непроверенное названы явно.
   - Primary evidence: test commands/results, Git local/remote SHA, locked release build.
-  - Status: in_progress
-  - Evidence: —
+  - Status: blocked
+  - Evidence: локальные commits `c99bec99b`, `2e2ad0c52`, `66d6af4ae`, `5710212c5`. Один `bash scripts/test.sh`: fmt и strict workspace Clippy PASS; nextest 2418 passed / 6 failed / 18 skipped, exit100. Unchanged failed-only rerun: 2 PASS (memory bound, Home selection), 4 воспроизводятся (2 media/DCP, pending-submit draft, manual clipboard). Workspace doctests и debug build/help/version PASS (`oc2 0.2.0`). `cargo build -p oc2 --bin oc2 --locked --release` PASS (6m43s), `target/release/oc2 --version` → `oc2 0.2.0`, runtime source HEAD `5710212c5`. SSH-preflight `git ls-remote --exit-code origin refs/heads/master` отказал `Permission denied (publickey)`; push не выполнялся.
 - R5: буквальное постоянное восстановление при outage/rate limit.
   - Source: «он должен постоянно долбиться в ретраи».
   - Acceptance: неограниченное восстановление до успеха/отмены.
@@ -79,16 +79,24 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R4.
-- Smallest next action: один `bash scripts/test.sh`; при ошибке только failing/affected slice, не весь suite повторно.
-- Expected evidence: strict Clippy/nextest/doctests/debug smoke, затем diff review/commit/push/locked release build.
-- Stop or replan if: чужой concurrent diff; необходим выход за envelope или representative compaction не проходит узкий путь.
+- Closes: разрешённая runtime/build часть завершена; R4 blocked, R5 unmet внутри текущих ограничений.
+- Smallest next action: отсутствует; runtime/build и локальная запись результата завершены. Push не повторять без исправленного доступа.
+- Expected evidence: чистый worktree после docs commit; successful release artifact и исходный FAIL общего gate сохраняются в отчёте.
+- Stop or replan if: дальнейшая работа требует SSH-авторизации, согласованного отдельного scope для gate blockers либо пересмотра применимого finite-контракта. Не расширять TUI/media/auth и не начинать новый backlog автоматически.
 
 ## Current State
 
-- Resolved: R1/R2/R3; R4 in_progress, R5 blocked.
-- Last relevant evidence: native-read, 24-case provider/retry и 6-case compaction slice PASS. Используется существующий `.local/tools/cargo-nextest` без установки.
-- Next: final gate/доставка R4. Никаких live requests.
+- Resolved: R1/R2/R3 verified. R4 частично выполнен (commits/checks/build), blocked по push и whole-suite GREEN. R5 blocked применимым finite-контрактом; цель в целом unmet, не complete.
+- Last relevant evidence: targeted slices PASS; full gate exit100 и failed-only rerun сохранены без изменения guards/assertions/deadlines/load. Full gate elapsed ≈12m49: Clippy 28.21s, affected workspace compile 5m46, tests 395.349s. Test stage <10min; UI07 32.948s входит в согласованное исключение. Долгий общий run складывается из compile/link и suite, не одного зависшего test.
+- Blocker: push — текущий пользователь не авторизован SSH-сервером GitHub для настроенного origin; минимальный unlock — предоставить этому окружению разрешённый SSH-доступ. Не читать/перенастраивать authoring credentials и не подменять origin.
+- Next: остановиться на blockers R4/R5. `target/release/oc2` создан, owner не перезапускался. Никаких live requests.
+
+### Незакрытые gate failures (не новые задачи этой цели)
+
+- `mcp12_dcp_sql_projection_reindexes_native_facts_and_reopen_keeps_raw_history` и `tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change`: tests ожидают безусловное сохранение media после замены span без явных protections. Незатронутый DCP path выбирает только protected/live группы; это соответствует `docs/DCP.md:600–606,633–638`. Не возвращать забытые RAW/media ради green.
+- `s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft`: ожидание painted pending payload расходится с pre-baseline commit `52b6ebcb5` / guard `!pending.outstanding()` и существующим admission regression. Это не доказательство потери retained draft текущим diff.
+- `vis27_real_pty_osc52_select_and_manual_clipboard_modes`: неизменённый Home mode path имеет окно до async `sync_home/apply_catalog`, когда новый Home ещё использует Linux Select вместо Manual. Достижимое объяснение extra OSC52; причина именно этого run не доказана.
+- Attribution выполнен source/diff review двумя read-only reviewers и проверен parent. Эмпирический запуск baseline не выполнялся; его результаты не заявляются. Test bodies/связанные DCP/TUI production paths не менялись этой целью. Исправление текущего recovery diff этими failures не обосновано; нужен отдельный согласованный scope для contract/fixture reconciliation и clipboard investigation.
 
 ## Checkpoint History
 
@@ -96,7 +104,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-26: R2 verified; source facts/base64 исключены из token estimate, byte retention и image validation неизменны.
 - 2026-10-26: R1 verified; общий pre-send boundary используется HTTP DNS и WS establishment; shared resolver сохраняет network/security distinction у непосредственных consumers. Existing retry owner/allowance не изменены, backoff и контракт обновлены.
 - 2026-10-26: R3 verified; complete protected-capable source допускается под существующим 32MiB cap, model admission выполняется по canonical replay/final frame. Captured DCP передаётся через selectors/checkpoint projection; combined selection bounded. Ложная irreducibility/нулевые измерения удалены, неизвестный prefix по-прежнему fail-closed. Новый planner не понадобился.
+- 2026-10-26: R1–R3 закоммичены; push preflight blocked (GitHub SSH publickey). Разрешённые offline gate/build продолжаются, auth repair в scope не добавлен.
+- 2026-10-26: единственный full gate exit100 (2418/6/18); unchanged failed-only rerun 2/6 PASS. Два независимых read-only reviewers проверяют attribution media/DCP и PTY failures; Cargo/build остаётся у одного parent owner. Whole-suite GREEN не заявляется.
+- 2026-10-26: attribution закрыт без runtime edits/ослабления tests: три ожидания противоречат неизменённой retention/pending presentation policy; clipboard path также неизменён, конкретный run trigger остаётся неизвестен. Doctests/debug smoke PASS, release запущен; общий gate по-прежнему FAIL.
+- 2026-10-26: locked release build/version PASS (6m43s, source `5710212c5`); разрешённая реализация остановлена на доказанных blockers R4/R5. Runtime diff остался в envelope; SQL schema/migrations, исходная БД, live owner, test guards и credentials не менялись.
 
 ## Completion
 
-- Не завершено. R5 несовместим с текущими применимыми ограничениями; конечный retry fix не является infinite-recovery PASS.
+- Resolved outcomes: R1/R2/R3 verified; R4 blocked (неотправленные commits и FAIL общего gate), R5 blocked (finite failure retries). **Final status: unmet**, не полное закрытие исходного запроса.
+- Commands/artifacts: targeted native-read / 24-case provider-retry / 6-case compaction evidence PASS; один `bash scripts/test.sh` exit100 (fmt/strict workspace Clippy PASS, nextest 2418/6/18); failed-only rerun 2 PASS / 4 FAIL; workspace doctests и debug build/help/version PASS; locked release build PASS 6m43s, binary `target/release/oc2`, version `0.2.0`.
+- Delivery: runtime commits локальны; origin остаётся `git@github.com:0FL01/oc.git`, ветка `master`. SSH publickey refusal подтверждён до push; remote/credentials не менялись. Минимальный unlock R4 — разрешённый SSH-доступ и отдельный согласованный scope для оставшихся gate blockers; infinite recovery требует допустимого пересмотра finite-контракта, не скрытого reset/probe loop.
+- Closure/scope check: чужого diff не обнаружено; все runtime/test edits внутри envelope и проверены после последнего изменения. Дополнительный planner, dependency, persistence/schema, new service/public API, replay завершённых/unknown effects или ослабление protections/limits не добавлены. Raw live payloads/DB/auth в Git отсутствуют. Полный suite повторно не запускался, whole-product/live/visual READY не заявляется.
