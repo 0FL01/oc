@@ -2308,17 +2308,13 @@ impl TuiState {
             rows.extend(self.inbox_rows());
             if let Some(pending) = &self.pending
                 && !matches!(pending.purpose, SubmissionPurpose::Empty)
+                && !pending.outstanding()
             {
                 rows.push(HistoryRow {
                     position: None,
                     message_id: None,
                     seq: i64::MAX,
-                    role: if pending.outstanding() {
-                        "pending"
-                    } else {
-                        "request retained"
-                    }
-                    .into(),
+                    role: "request retained".into(),
                     text: pending.source.clone(),
                     agent: pending.agent.clone(),
                     agent_color_index: pending.agent_color_index,

@@ -52,6 +52,10 @@ async fn retained_refusal_allows_recovery_routes_without_replaying_or_releasing_
             state.poll_submission();
             assert!(!state.has_pending_submission());
             assert!(state.input().is_empty());
+            let rows = state.transcript_rows();
+            let retained = rows.last().expect("refused input stays visible");
+            assert_eq!(retained.role, "request retained");
+            assert_eq!(retained.text, text.text);
             state.handle_paste(command);
             state.handle_key(KeyAction::Cancel).await;
             let outcome = state.handle_key(KeyAction::Enter).await;
@@ -106,15 +110,11 @@ async fn admission_commits_agent_and_model_then_sends_exact_capture_without_clob
         state.history().rows().is_empty(),
         "no optimistic canonical row"
     );
-    let first_render = state.transcript_rows();
-    let pending = first_render.last().unwrap();
-    assert_eq!(pending.role, "pending");
-    assert_eq!(pending.text, "captured Ω");
-    assert_eq!(
-        pending.text.as_ptr(),
-        state.transcript_rows().last().unwrap().text.as_ptr(),
-        "paints share immutable pending source"
+    assert!(
+        state.transcript_rows().is_empty(),
+        "agent preparation is not a transcript entry"
     );
+    assert!(state.compose_structure(true).0.is_empty());
     let InboxMsg::SessionSelection {
         action: SessionSelectionAction::AgentCommit(commit),
         ack,
@@ -159,12 +159,21 @@ async fn admission_commits_agent_and_model_then_sends_exact_capture_without_clob
     assert_eq!(captured.variant.as_deref(), Some("low"));
     assert_eq!(state.composer_agent(), Some("x"));
     assert_eq!(state.captured_model_commit().unwrap().model_id, "a");
+    assert!(
+        state.transcript_rows().is_empty(),
+        "input admission is not a transcript entry before its ACK"
+    );
+    assert!(state.compose_structure(true).0.is_empty());
     ack.send(Ok(WorkerTurnId("accepted".into()))).unwrap();
     state.poll_submission();
     assert_eq!(state.input(), "next editor");
     assert_eq!(state.composer_agent(), Some("x"));
     assert_eq!(state.captured_model_commit().unwrap().model_id, "a");
     assert_eq!(state.history().rows()[0].text, "captured Ω");
+    let rows = state.transcript_rows();
+    assert_eq!(rows.len(), 1, "accepted input appears exactly once");
+    assert_eq!(rows[0].role, "user");
+    assert_eq!(rows[0].text, "captured Ω");
     assert!(inbox.try_recv().is_err());
 }
 
