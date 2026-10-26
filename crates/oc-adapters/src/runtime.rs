@@ -688,7 +688,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: COMPRESS_TOOL.to_string(),
-            description: "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor in a range. Exception: to renew the current task's working memory before finishing, send one range whose startId and endId are both that final anchor (the current task message) with a standalone summary of what still matters; it replaces the task text from the next request while the original stays durable.".to_string(),
+            description: "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor in a range. Exception: to renew the current task's working memory before finishing, send one range whose startId and endId are both that final anchor (the current task message) with a standalone summary of what still matters. It replaces already-delivered closed working context, including unprotected tool outputs, from the next request; original history stays durable. Protected groups and unseen sibling tool results stay available. A replacement that does not shrink the selected context returns no_gain.".to_string(),
             parameters: serde_json::json!({
                 "type": "object",
                 "properties": {

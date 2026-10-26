@@ -1368,15 +1368,158 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
 }
 
 #[tokio::test]
-async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
-    let (harness, generation) = make_harness(allow_all());
+async fn current_task_compress_forgets_closed_payload_but_keeps_unseen_batch() {
+    let (mut harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation.clone(), Vec::new());
+    runtime.create_session("renew").unwrap();
+    std::fs::write(
+        harness._project.path().join("old.txt"),
+        "OLD_JOURNAL_PAYLOAD ".repeat(512),
+    )
+    .unwrap();
+    std::fs::write(
+        harness._project.path().join("fresh.txt"),
+        "UNSEEN_BATCH_PAYLOAD ".repeat(128),
+    )
+    .unwrap();
+    let renewal = |id: &str, summary: &str| {
+        sse_tool_call(
+            id,
+            "compress",
+            &serde_json::json!({"topic":id,"content":[{
+                "startId":"m0001","endId":"m0001","summary":summary
+            }]}),
+        )
+    };
+    let first_summary = format!("SUMMARY_FIRST {}", "selected old facts ".repeat(80));
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call(
+                "old-journal",
+                "bash",
+                &serde_json::json!({"argv":["/bin/cat","old.txt"]}),
+            ) + &sse_completed(),
+            renewal("renew-first", &first_summary)
+                + &sse_tool_call(
+                    "fresh-journal",
+                    "bash",
+                    &serde_json::json!({"argv":["/bin/cat","fresh.txt"]}),
+                )
+                + &sse_completed(),
+            renewal("renew-final", "SUMMARY_FINAL selected outcome") + &sse_completed(),
+            renewal("renew-too-large", &"OVERSIZED_SUMMARY ".repeat(256)) + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+            sse_delta("reopened") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "renew",
+            "read and summarize",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    {
+        let seen = requests.lock().unwrap();
+        assert_eq!(seen.len(), 5);
+        let first = seen[2]["input"].to_string();
+        assert!(first.contains("SUMMARY_FIRST"));
+        assert!(!first.contains("OLD_JOURNAL_PAYLOAD"));
+        assert!(function_call(&seen[2], "old-journal").is_none());
+        assert!(function_output(&seen[2], "old-journal").is_none());
+        assert!(function_call(&seen[2], "fresh-journal").is_some());
+        assert!(
+            function_output(&seen[2], "fresh-journal")
+                .unwrap()
+                .contains("UNSEEN_BATCH_PAYLOAD")
+        );
+        let second = seen[3]["input"].to_string();
+        assert!(second.contains("SUMMARY_FINAL"));
+        assert!(!second.contains("SUMMARY_FIRST"));
+        assert!(!second.contains("UNSEEN_BATCH_PAYLOAD"));
+        assert!(function_call(&seen[3], "fresh-journal").is_none());
+        assert!(function_output(&seen[3], "fresh-journal").is_none());
+        let no_gain: serde_json::Value =
+            serde_json::from_str(function_output(&seen[4], "renew-too-large").unwrap()).unwrap();
+        assert_eq!(no_gain["status"], "no_gain");
+        assert!(
+            no_gain["afterBytes"].as_u64().unwrap() >= no_gain["beforeBytes"].as_u64().unwrap()
+        );
+        assert!(seen[4]["input"].to_string().contains("SUMMARY_FINAL"));
+    }
+    let raw = harness
+        .db
+        .raw_turn_segment(&report.turn_id, 1, 1 << 20)
+        .unwrap()
+        .unwrap();
+    assert!(raw.contains("OLD_JOURNAL_PAYLOAD") && raw.contains("UNSEEN_BATCH_PAYLOAD"));
+    assert!(
+        harness
+            .db
+            .raw_turn_segment(&report.turn_id, 2, 1 << 20)
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        harness
+            .db
+            .raw_turn_segment(&report.turn_id, 3, 1 << 20)
+            .unwrap()
+            .is_none(),
+        "no_gain must not seal or replace HOT"
+    );
+    let ops = harness.db.list_tool_ops("renew").unwrap();
+    assert_eq!(ops.iter().filter(|op| op.name == "bash").count(), 2);
+    assert_eq!(ops.iter().filter(|op| op.state == "no_gain").count(), 1);
+
+    drop(runtime);
+    drop(harness.db);
+    harness.db = Db::open(harness._data.path()).unwrap();
     let runtime = runtime_of(&harness, generation, Vec::new());
+    let followup = runtime
+        .run_turn(params(
+            "renew",
+            "continue",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(followup.status, TurnStatus::Completed);
+    assert!(followup.calls.is_empty());
+    let seen = requests.lock().unwrap();
+    let wire = seen[5]["input"].to_string();
+    assert!(wire.contains("SUMMARY_FINAL"));
+    assert!(!wire.contains("OLD_JOURNAL_PAYLOAD") && !wire.contains("UNSEEN_BATCH_PAYLOAD"));
+    assert!(!wire.contains("SUMMARY_FIRST"));
+    assert_eq!(
+        harness
+            .db
+            .raw_turn_segment(&report.turn_id, 1, 1 << 20)
+            .unwrap()
+            .as_deref(),
+        Some(raw.as_str())
+    );
+}
+
+#[tokio::test]
+async fn aud21_model_compress_forgets_closed_tool_graph_without_replay() {
+    let (mut harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation.clone(), Vec::new());
     runtime.create_session("graph").unwrap();
+    let journal = "JOURNAL_PAYLOAD_OBSOLETE ".repeat(512);
+    std::fs::write(harness._project.path().join("journal.txt"), &journal).unwrap();
     let mut effect = sse_tool_call(
         "graph-effect",
         "bash",
         &serde_json::json!({
-            "argv": ["/bin/sh", "-c", "printf 'once\\n' >> graph-effects"]
+            "argv": ["/bin/sh", "-c", "printf 'once\\n' >> graph-effects; cat journal.txt"]
         }),
     );
     effect.push_str(&sse_completed());
@@ -1405,6 +1548,8 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
     assert_eq!(seeded.calls[0].state, "completed");
     let history = harness.db.read_history_full("graph").unwrap();
     assert_eq!(history.len(), 2);
+    let raw_turn = harness.db.turn_result(&seeded.turn_id).unwrap();
+    assert!(raw_turn.1.as_deref().unwrap().contains(&journal));
 
     let mut compress = sse_tool_call(
         "compress-graph",
@@ -1444,13 +1589,18 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
     assert_eq!(report.calls[0].name, "compress");
     assert_eq!(report.calls[0].state, "completed");
     assert!(events.iter().any(|event|matches!(event,ToolCallEvent::Started { name,dcp_topic:Some(topic),.. } if name=="compress" && topic=="unsafe graph range")));
-    let requests = requests.lock().unwrap();
+    let requests = requests.lock().unwrap().clone();
     assert!(
         function_output(&requests[1], "compress-graph")
             .is_some_and(|output| output.contains("\"status\":\"compressed\""))
     );
-    assert!(function_call(&requests[1], "graph-effect").is_some());
-    assert!(function_output(&requests[1], "graph-effect").is_some());
+    assert!(function_call(&requests[1], "graph-effect").is_none());
+    assert!(function_output(&requests[1], "graph-effect").is_none());
+    assert!(
+        !requests[1]["input"]
+            .to_string()
+            .contains("JOURNAL_PAYLOAD_OBSOLETE")
+    );
     assert!(harness.db.load_compression_blocks("graph").unwrap().len() == 1);
     assert_eq!(
         std::fs::read_to_string(harness._project.path().join("graph-effects")).unwrap(),
@@ -1476,8 +1626,8 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
     assert_eq!(snapshot.ordinal, 1);
     assert_eq!(
         (snapshot.new_messages, snapshot.new_tools),
-        (2, 0),
-        "retained function pairs are not compressed tool occurrences"
+        (2, 1),
+        "the selected closed tool occurrence leaves HOT as a complete group"
     );
     let estimate = |text: &str| (text.encode_utf16().count() as u64 + 2) / 4;
     assert_eq!(
@@ -1486,6 +1636,12 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
             .iter()
             .map(|(_, _, text)| estimate(text))
             .sum::<u64>()
+            + estimate(
+                function_call(&requests[0], "graph-effect").unwrap()["arguments"]
+                    .as_str()
+                    .unwrap()
+            )
+            + estimate(function_output(&requests[0], "graph-effect").unwrap())
     );
     assert_eq!(
         snapshot.summary,
@@ -1540,6 +1696,84 @@ async fn aud21_model_compress_preserves_complete_tool_graph_without_replay() {
         *compress_hits.lock().unwrap(),
         2,
         "compression must return one structured output and then continue"
+    );
+    drop(requests);
+
+    // Keep the latest turn outside the selected range: the tail guard still
+    // applies when replacing an old summary and its closed compression call.
+    let (tail_base, _) = Fake::start(
+        vec![sse_delta("fresh tail") + &sse_completed()],
+        Duration::ZERO,
+    );
+    runtime
+        .run_turn(params(
+            "graph",
+            "close previous work",
+            &harness,
+            provider_of(&tail_base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    let block = harness
+        .db
+        .load_compression_blocks("graph")
+        .unwrap()
+        .remove(0);
+    assert!(
+        !block
+            .hot
+            .as_ref()
+            .unwrap()
+            .to_string()
+            .contains("JOURNAL_PAYLOAD_OBSOLETE")
+    );
+    let replacement = runtime
+        .run_compress(
+            "graph",
+            &serde_json::json!({"topic":"forget old summary","content":[{
+                "startId":block.id,"endId":raw_after.last().unwrap().0,"summary":"done"
+            }]}),
+            &ProtectedSpec::default(),
+        )
+        .unwrap();
+    assert!(replacement.shrank);
+    assert_eq!(harness.db.turn_result(&seeded.turn_id).unwrap(), raw_turn);
+
+    drop(runtime);
+    drop(harness.db);
+    harness.db = Db::open(harness._data.path()).unwrap();
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    let (base, _, requests) = Fake::start_recording(
+        vec![sse_delta("reopened") + &sse_completed()],
+        Duration::ZERO,
+    );
+    runtime
+        .run_turn(params(
+            "graph",
+            "continue",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    let requests = requests.lock().unwrap();
+    let wire = requests[0]["input"].to_string();
+    assert!(!wire.contains("JOURNAL_PAYLOAD_OBSOLETE"));
+    assert!(!wire.contains("the durable effect completed once"));
+    assert!(wire.contains("done"));
+    let active = harness.db.active_compression_graph("graph", 0).unwrap();
+    assert_eq!(
+        active.len(),
+        1,
+        "old summaries may stay archived, not active"
+    );
+    assert_eq!(active[0].id, replacement.blocks[0]);
+    assert_eq!(harness.db.turn_result(&seeded.turn_id).unwrap(), raw_turn);
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("graph-effects")).unwrap(),
+        "once\n"
     );
 }
 

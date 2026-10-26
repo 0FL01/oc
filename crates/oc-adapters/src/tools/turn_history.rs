@@ -300,14 +300,16 @@ impl TurnLog {
 
     /// R9 task/pack HOT renewal: the current task item (or its previous
     /// renewal) is replaced by the model-authored working summary as a
-    /// user-role, conversation-derived item; every other previously selected
-    /// and current closed group except projection-only compress groups is
-    /// retained unchanged. RAW is sealed by the
+    /// user-role, conversation-derived item. Only protected older groups and
+    /// the current mixed-tool response (whose results the author has not seen)
+    /// are retained. RAW is sealed by the
     /// caller through `prepare_closed_segment`, never rewritten.
     pub(crate) fn renewed_task_checkpoint(
         &self,
         summary: &str,
         counts: [usize; 7],
+        response_start: usize,
+        keep_group: impl Fn(&[crate::provider::InputItem]) -> bool,
     ) -> Result<serde_json::Value, String> {
         let mut working = TurnLog::new(&self.turn_id, &self.model, &self.provider);
         working.protocol = self.protocol;
@@ -318,10 +320,12 @@ impl TurnLog {
             format!("{TASK_RENEWAL_HEADER}\n{summary}"),
         ));
         working.input_origins.push(None);
-        // Projection-only compress groups (including this renewal and its
-        // predecessors) stay in RAW; keeping them would re-accumulate
-        // superseded summaries through their call arguments.
-        let keep = |group: &[crate::provider::InputItem]| {
+        if response_start > counts[0] || counts[0] > self.input.len() {
+            return Err("renewal selection crosses the current response".into());
+        }
+        // The current batch is not part of the model-authored summary. A pure
+        // compress batch may leave HOT, but unseen sibling results must survive.
+        let keep_response = |group: &[crate::provider::InputItem]| {
             let calls = || {
                 group.iter().filter_map(|item| match item {
                     crate::provider::InputItem::ProviderOutput(v)
@@ -332,7 +336,8 @@ impl TurnLog {
                     _ => None,
                 })
             };
-            !(calls().next().is_some() && calls().all(|name| name == "compress"))
+            keep_group(group)
+                || !(calls().next().is_some() && calls().all(|name| name == "compress"))
         };
         if let Some(value) = &self.working {
             let previous = TurnLog::from_json(value)?;
@@ -341,14 +346,15 @@ impl TurnLog {
             } else {
                 1
             };
-            working.select_groups(&previous, start, previous.input.len(), &keep);
+            working.select_groups(&previous, start, previous.input.len(), &keep_group);
         }
         working.select_groups(
             self,
             usize::from(self.raw_prefix.is_none()),
-            counts[0],
-            &keep,
+            response_start,
+            &keep_group,
         );
+        working.select_groups(self, response_start, counts[0], &keep_response);
         Ok(working.to_json())
     }
 
@@ -612,8 +618,13 @@ mod native_tests {
         );
         assert_eq!(working.represented_native_notices(), ["m1", "m2"]);
         let renewal = TurnLog::from_json(
-            &log.renewed_task_checkpoint("renewed task", log.closed_counts())
-                .unwrap(),
+            &log.renewed_task_checkpoint(
+                "renewed task",
+                log.closed_counts(),
+                log.input.len(),
+                |_| true,
+            )
+            .unwrap(),
         )
         .unwrap();
         assert!(renewal.represented_native_notices().is_empty());

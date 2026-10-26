@@ -574,6 +574,38 @@ pub(super) fn dcp_call_has_protected_path(name: &str, arguments: &str, config: &
     contains_path(&value, &config.protected_file_patterns)
 }
 
+/// Explicit protections and still-live effects retain their whole protocol group.
+pub(super) fn dcp_group_protected(
+    group: &[InputItem],
+    live_calls: &[String],
+    config: &DcpConfig,
+) -> bool {
+    group.iter().any(|item| match item {
+        InputItem::ProviderOutput(v) if v["type"] == "function_call" => {
+            let name = v["name"].as_str().unwrap_or_default();
+            live_calls
+                .iter()
+                .any(|id| v["call_id"].as_str() == Some(id.as_str()))
+                || crate::dcp_auto::tool_is_protected(&config.protected_tools, name)
+                || crate::dcp_auto::tool_is_protected(&config.dedup_protected_tools, name)
+                || crate::dcp_auto::tool_is_protected(&config.purge_protected_tools, name)
+                || dcp_call_has_protected_path(
+                    name,
+                    v["arguments"].as_str().unwrap_or_default(),
+                    config,
+                )
+        }
+        _ => {
+            config.protect_tags
+                && oc_core::context_plan::extract_protect_tags(
+                    &serde_json::to_string(item).unwrap_or_default(),
+                )
+                .next()
+                .is_some()
+        }
+    })
+}
+
 pub(super) fn active_summary_tokens(projected: &[(String, String, String)]) -> u64 {
     projected
         .iter()
@@ -851,64 +883,15 @@ impl<'a> Runtime<'a> {
         logs: &[impl AsRef<str>],
         config: &DcpConfig,
     ) -> Result<Vec<serde_json::Value>, RuntimeError> {
-        self.select_history_facts_with_producers(logs, config, false)
-    }
-    fn select_history_facts_with_producers(
-        &self,
-        logs: &[impl AsRef<str>],
-        config: &DcpConfig,
-        fresh_producers: bool,
-    ) -> Result<Vec<serde_json::Value>, RuntimeError> {
         let mut result = Vec::new();
         let mut bytes = 0usize;
         for raw in logs {
             let value: serde_json::Value =
                 serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
-            let fresh = fresh_producers && value["_dcp_block"].is_null();
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
             let live = self.db.live_shell_call_ids(&log.turn_id)?;
             let selected = log
-                .selected_closed_groups(|group| {
-                    let projection_only = group.iter().any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["name"] == "compress"))
-                        && !group.iter().any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["name"] != "compress"));
-                    (fresh
-                        && !projection_only
-                        && group
-                            .iter()
-                            .any(|item| matches!(item, InputItem::ProviderOutput(v) if v["type"] != "message")))
-                        || group.iter().any(|item| match item {
-                            InputItem::ProviderOutput(v) if v["type"] == "function_call" => {
-                                let name = v["name"].as_str().unwrap_or_default();
-                                live.iter()
-                                    .any(|id| v["call_id"].as_str() == Some(id.as_str()))
-                                    || crate::dcp_auto::tool_is_protected(
-                                        &config.protected_tools,
-                                        name,
-                                    )
-                                    || crate::dcp_auto::tool_is_protected(
-                                        &config.dedup_protected_tools,
-                                        name,
-                                    )
-                                    || crate::dcp_auto::tool_is_protected(
-                                        &config.purge_protected_tools,
-                                        name,
-                                    )
-                                    || dcp_call_has_protected_path(
-                                        name,
-                                        v["arguments"].as_str().unwrap_or_default(),
-                                        config,
-                                    )
-                            }
-                            _ => {
-                                config.protect_tags
-                                    && oc_core::context_plan::extract_protect_tags(
-                                        &serde_json::to_string(item).unwrap_or_default(),
-                                    )
-                                    .next()
-                                    .is_some()
-                            }
-                        })
-                })
+                .selected_closed_groups(|group| dcp_group_protected(group, &live, config))
                 .map_err(|_| RuntimeError::Storage)?;
             if !selected.input.is_empty() {
                 let value = selected.to_json();
@@ -1462,9 +1445,7 @@ impl<'a> Runtime<'a> {
                 }
             }
             if let Some(hot) = &mut block.hot {
-                hot["logs"] = self
-                    .select_history_facts_with_producers(&covered, config, true)?
-                    .into();
+                hot["logs"] = self.select_history_facts(&covered, config)?.into();
             }
         }
         candidate.extend(plan.blocks.iter().cloned());

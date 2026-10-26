@@ -425,7 +425,9 @@ fn rich_pending_reopens_and_steered_message_restores_its_own_images_and_fork_lin
     });
     db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
     let counts = log.closed_counts();
-    let working = log.renewed_task_checkpoint("reduced task", counts).unwrap();
+    let working = log
+        .renewed_task_checkpoint("reduced task", counts, counts[0], |_| false)
+        .unwrap();
     let (segment, hot) = log.prepare_closed_segment(counts, working, 0).unwrap();
     db.commit_closed_turn_segment(&log, &segment, &hot, None)
         .unwrap();

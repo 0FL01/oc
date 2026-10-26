@@ -1086,7 +1086,7 @@ fn typed_effect_uncertainty_and_unanswered_calls_never_claim() {
 }
 
 #[test]
-fn completed_task_renewal_is_resumable_but_other_compress_outcomes_are_not() {
+fn completed_task_renewal_and_no_gain_are_resumable_but_unknown_effects_are_not() {
     for (output, state, resumable_expected) in [
         (
             r#"{"status":"task_renewal_accepted","appliesFrom":"next request"}"#,
@@ -1098,11 +1098,18 @@ fn completed_task_renewal_is_resumable_but_other_compress_outcomes_are_not() {
             "completed",
             false,
         ),
+        (r#"{"status":"no_gain"}"#, "no_gain", true),
+        (r#"{"status":"no_gain"}"#, "unknown", false),
+        (r#"{}"#, "no_gain", false),
         (r#"{"status":"task_renewal_accepted"}"#, "started", false),
     ] {
         let dir = tempfile::tempdir().unwrap();
         let db = Db::open(dir.path()).unwrap();
         let (job, raw) = resumable(&db);
+        db.record_tool_intent("plain-read", "child", Some("child-turn"), "read", "{}")
+            .unwrap();
+        db.record_tool_outcome("plain-read", "completed", Some("plain read output"))
+            .unwrap();
         db.record_tool_intent("renew", "child", Some("child-turn"), "compress", "{}")
             .unwrap();
         if state != "started" {

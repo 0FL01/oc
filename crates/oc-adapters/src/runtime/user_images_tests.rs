@@ -176,7 +176,12 @@ async fn clipboard_images_atomic_admission_wire_retirement_reopen_revert_and_for
         .unwrap();
     let counts = log.closed_counts();
     let working = log
-        .renewed_task_checkpoint("Continue without the original image.", counts)
+        .renewed_task_checkpoint(
+            "Continue without the original image.",
+            counts,
+            counts[0],
+            |_| false,
+        )
         .unwrap();
     let (segment, hot) = log.prepare_closed_segment(counts, working, 0).unwrap();
     db.commit_closed_turn_segment(&log, &segment, &hot, None)

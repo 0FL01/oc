@@ -406,20 +406,20 @@ mod vis38_review_tests {
         let db = Db::open(data.path()).unwrap();
         let runtime = runtime(&db, project.path(), data.path());
         runtime.create_session("s").unwrap();
-        let (first, last) = seed(
+        let (first, _) = seed(
             &db,
             "seed",
             "u",
             &"canonical assistant retained ".repeat(512),
         );
         seed(&db, "tail", "tail", "done");
-        // Raw assistant text would make this look profitable, but the real
-        // canonical output survives compression and the summary adds content.
+        // Only the user item is selected. The canonical assistant outside the
+        // range is not compression credit, and a larger replacement is no gain.
         assert!(
             runtime
                 .run_compress(
                     "s",
-                    &args(&first, &last, &"summary ".repeat(64)),
+                    &args(&first, &first, &"summary ".repeat(64)),
                     &ProtectedSpec::default()
                 )
                 .is_err()
@@ -463,9 +463,8 @@ mod vis38_review_tests {
             .unwrap();
         assert_eq!((run.new_messages, run.new_tools), (0, 0));
         assert_eq!(
-            run.removed,
-            oc_core::dcp_view::estimate_content("retained public reasoning")
-                + oc_core::dcp_view::estimate_content("retained answer")
+            run.removed, 0,
+            "rewriting an inherited summary does not count original RAW removal twice"
         );
         assert!(run.net_saved > 0);
         assert_eq!(run.block_ids, second.blocks);
@@ -657,6 +656,8 @@ mod vis38_review_tests {
             .unwrap();
         let seed_text = "long user context ".repeat(512);
         let removed = oc_core::dcp_view::estimate_content(&seed_text)
+            + oc_core::dcp_view::estimate_content("retained public reasoning")
+            + oc_core::dcp_view::estimate_content("seed completed")
             + oc_core::dcp_view::estimate_content(
                 &serde_json::json!({"path":"note.txt"}).to_string(),
             )

@@ -126,6 +126,13 @@ Range contract из upstream types [D3]:
 
 Нельзя сжимать active незавершённый provider/tool batch; нельзя рвать связи внутри retained call/result/reasoning группы. Закрытая группа может быть забыта целиком, без повторного исполнения tool. Invalid/stale/cross-session IDs, backwards range, конфликтующие spans и неразрешимые явно authored references дают no-mutation error. Полностью покрытый старый блок не требует обязательного placeholder/append, если replacement намеренно забывает его незащищённое содержимое. Upstream overlap/embedding fixtures и owner-approved native forgetting difference квалифицировать раздельно, не запрещать все случаи ради удобства.
 
+Первый replacement не переносит выбранные закрытые tool/reasoning groups в `hot.logs`
+только потому, что они ещё не сжимались: остаются лишь действующие protections/live effects.
+Singleton текущего task anchor заменяет уже доставленную закрытую рабочую часть, включая
+незащищённые tool outputs, а не только исходный task text. Соседние tools того же response
+сохраняются целиком: их результаты ещё не были видны автору summary. Выигрыш проверяется
+без удаления собственных arguments текущего compress; `no_gain` не устанавливает новый HOT.
+
 Compression планируется для всего batch до commit. Summary может явно включать ссылку на старый block; выбранное nested content раскрывается faithfully при bounded подготовке. Новый hot replacement самостоятелен и не требует persistent обхода всех предков. Пределы cycle/bytes срабатывают до allocation blow-up; не recursively materialize неограниченную историю. Ошибку явно запрошенного раскрытия не скрывать заглушкой. Намеренно не включённое в replacement старое содержимое — разрешённое забывание, а не failed expansion.
 
 T45/R9 supplements this guard: valid repeated replacement/forgetting must not

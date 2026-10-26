@@ -327,6 +327,14 @@ fn make_harness_in(
 }
 
 fn runtime_of<'a>(harness: &'a Harness, generation: Generation) -> Runtime<'a> {
+    runtime_with_dcp(harness, generation, DcpConfig::default())
+}
+
+fn runtime_with_dcp<'a>(
+    harness: &'a Harness,
+    generation: Generation,
+    dcp: DcpConfig,
+) -> Runtime<'a> {
     let project = harness._project.path();
     let files = oc_adapters::files::Files::new(project, harness._data.path()).expect("files");
     let shell = oc_adapters::shell::Shell::new(project).expect("shell");
@@ -346,7 +354,7 @@ fn runtime_of<'a>(harness: &'a Harness, generation: Generation) -> Runtime<'a> {
         },
         None,
         false,
-        DcpConfig::default(),
+        dcp,
     )
     .expect("runtime")
 }
@@ -2228,7 +2236,11 @@ async fn r9_child_renews_own_task_pack_hot_before_final_and_keeps_raw() {
         .await
         .expect("seed");
     let user = message_ids(&harness.db, "parent")[0].0.clone();
-    std::fs::write(harness._project.path().join("note.txt"), "note").unwrap();
+    std::fs::write(
+        harness._project.path().join("note.txt"),
+        "OBSOLETE_TOOL_OUTPUT ".repeat(512),
+    )
+    .unwrap();
     // Parent user m0003 → child task m0004 (one global message sequence).
     let renew = |call: &str, summary: &str| {
         sse_tool_call(
@@ -2247,7 +2259,13 @@ async fn r9_child_renews_own_task_pack_hot_before_final_and_keeps_raw() {
             "read",
             &serde_json::json!({"path":"note.txt"}),
         ) + &sse_completed(),
-        renew("child-renew-1", "WORKING_SUMMARY_ONE keep PACK_FACT"),
+        renew(
+            "child-renew-1",
+            &format!(
+                "WORKING_SUMMARY_ONE keep PACK_FACT {}",
+                "selected old detail ".repeat(80)
+            ),
+        ),
         renew("child-renew-2", "WORKING_SUMMARY_TWO keep PACK_FACT"),
         sse_delta("child final") + &sse_completed(),
         sse_delta("parent final") + &sse_completed(),
@@ -2304,8 +2322,8 @@ async fn r9_child_renews_own_task_pack_hot_before_final_and_keeps_raw() {
             );
         }
         assert!(
-            function_output(&seen[index], "child-read").is_some(),
-            "closed groups retained"
+            function_output(&seen[index], "child-read").is_none(),
+            "selected unprotected closed groups are replaced, not copied"
         );
         assert!(
             !seen[index]["input"].as_array().unwrap().iter().any(|item| {
@@ -2346,7 +2364,11 @@ async fn r9_child_renews_own_task_pack_hot_before_final_and_keeps_raw() {
 #[tokio::test]
 async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
     let (mut harness, generation) = make_harness(allow_all());
-    let runtime = runtime_of(&harness, generation.clone());
+    let dcp = DcpConfig {
+        protected_tools: vec!["read".into()],
+        ..Default::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation.clone(), dcp.clone());
     std::fs::write(harness._project.path().join("note.txt"), "note").unwrap();
     runtime.create_session("root").expect("session");
     let (root_base, root_requests) = Fake::start(vec![
@@ -2366,7 +2388,7 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
         .run_turn_with_tool_events(
             params(
                 "root",
-                "ROOT_TASK_OBSOLETE long task",
+                &"ROOT_TASK_OBSOLETE long task ".repeat(128),
                 &harness,
                 provider_of(&root_base),
                 &NO_CANCEL,
@@ -2473,7 +2495,7 @@ async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
     drop(runtime);
     drop(harness.db);
     harness.db = Db::open(harness._data.path()).expect("reopen");
-    let runtime = runtime_of(&harness, generation);
+    let runtime = runtime_with_dcp(&harness, generation, dcp);
     let reopened = runtime
         .run_turn(params(
             "root",

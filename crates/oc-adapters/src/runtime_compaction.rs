@@ -653,7 +653,7 @@ impl Runtime<'_> {
                             &hot,
                             Some((&snapshot, &prepared.removed)),
                             &prepared.selection,
-                            Some((&projection, &progress, &retire)),
+                            Some((&projection, Some(&progress), &retire)),
                         )
                         .is_ok()
                     {

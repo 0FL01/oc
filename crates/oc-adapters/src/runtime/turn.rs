@@ -756,6 +756,14 @@ fn emit_tool_finish_with_metadata(
     );
 }
 
+struct TaskRenewalPlan {
+    working: serde_json::Value,
+    before_bytes: usize,
+    after_bytes: usize,
+    projection: crate::storage::DcpToolProjection,
+    retire: Vec<crate::storage::DcpCallKey>,
+}
+
 impl Runtime<'_> {
     /// R9: `compress` whose single range is exactly the running turn's
     /// accepted task message renews that task/pack HOT instead of planning a
@@ -793,6 +801,9 @@ impl Runtime<'_> {
         &self,
         turn_log: &mut TurnLog,
         notice_seq: i64,
+        session: &str,
+        config: &DcpConfig,
+        tool_projection: &mut crate::storage::DcpToolProjection,
     ) -> Result<bool, RuntimeError> {
         let Some(summary) = turn_log.task_renewal.clone() else {
             return Ok(false);
@@ -800,19 +811,26 @@ impl Runtime<'_> {
         let counts = turn_log.closed_counts();
         // The sealed delta is the exact durable checkpoint (it records the
         // admitted intent); `prepare_closed_segment` drops it from the new HOT.
-        let prepared = turn_log
-            .renewed_task_checkpoint(&summary, counts)
-            .and_then(|working| turn_log.prepare_closed_segment(counts, working, notice_seq));
+        let plan = self.prepare_task_renewal(session, turn_log, &summary, config)?;
+        let prepared = turn_log.prepare_closed_segment(counts, plan.working, notice_seq);
         let committed = match prepared {
             Ok((segment, hot)) => self
                 .db
-                .commit_closed_turn_segment_selected(turn_log, &segment, &hot, None, &[], None)
+                .commit_closed_turn_segment_selected(
+                    turn_log,
+                    &segment,
+                    &hot,
+                    None,
+                    &[],
+                    Some((&plan.projection, None, &plan.retire)),
+                )
                 .ok()
                 .map(|()| hot),
             Err(_) => None,
         };
         match committed {
             Some(hot) => {
+                *tool_projection = plan.projection;
                 *turn_log = hot;
                 Ok(true)
             }
@@ -823,6 +841,115 @@ impl Runtime<'_> {
                 Ok(false)
             }
         }
+    }
+
+    fn prepare_task_renewal(
+        &self,
+        session: &str,
+        log: &TurnLog,
+        summary: &str,
+        config: &DcpConfig,
+    ) -> Result<TaskRenewalPlan, RuntimeError> {
+        let request = log.requests.last().ok_or(RuntimeError::Storage)?;
+        let response_start = (0..=log.input.len())
+            .find(|index| log.original_input_index(*index) == request.input_start)
+            .ok_or(RuntimeError::Storage)?;
+        let counts = log.closed_counts();
+        let mut prefix_counts = counts;
+        prefix_counts[0] = response_start;
+        let live = self.db.live_shell_call_ids(&log.turn_id)?;
+        let keep = |group: &[InputItem]| super::context::dcp_group_protected(group, &live, config);
+        let working = log
+            .renewed_task_checkpoint(summary, counts, response_start, keep)
+            .map_err(|_| RuntimeError::Storage)?;
+        // Compare the selected, already-delivered prefix. The current batch is
+        // identical on both sides and cannot pay for an oversized summary by
+        // deleting its own compression arguments or unseen sibling results.
+        let mut before = log.clone();
+        before.input.truncate(response_start);
+        before.input_origins.truncate(response_start);
+        before
+            .call_occurrences
+            .retain(|index, _| *index < response_start);
+        before
+            .instruction_references
+            .retain(|reference| reference.index <= response_start);
+        let after = TurnLog::from_json(
+            &log.renewed_task_checkpoint(summary, prefix_counts, response_start, keep)
+                .map_err(|_| RuntimeError::Storage)?,
+        )
+        .map_err(|_| RuntimeError::Storage)?;
+        let selected = TurnLog::from_json(&working).map_err(|_| RuntimeError::Storage)?;
+        let active = self.active_projection(session)?;
+        let prior = active
+            .projected
+            .iter()
+            .filter(|row| {
+                log.user_message.as_deref() != Some(row.0.as_str())
+                    && !log.represents_notice(&row.0)
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let model = &request.model.id;
+        let provider = &request.model.provider;
+        let binding = request.binding.as_ref();
+        let profile = request.profile.as_ref();
+        let digest = profile.and_then(|p| p.agent_digest.as_deref());
+        let history = self.wire_history_bound(
+            session,
+            &prior,
+            &active.blocks,
+            model,
+            provider,
+            digest,
+            active.after_seq,
+            binding,
+        )?;
+        let facts = self.db.instruction_view(session)?.1;
+        let input = |log: &TurnLog| {
+            log.instruction_input_for_bound(model, provider, &facts, binding, profile)
+        };
+        let raw = history
+            .iter()
+            .cloned()
+            .chain(input(log))
+            .collect::<Vec<_>>();
+        let projection = self.db.dcp_tool_projection_for_input(session, &raw)?;
+        let logs = self.projected_wire_logs(session, active.after_seq, &prior, &active.blocks)?;
+        let identities = super::context::dcp_call_identities(&logs, Some(log))?;
+        let remap =
+            |candidate: &TurnLog| -> Result<crate::storage::DcpToolProjection, RuntimeError> {
+                let after = super::context::dcp_call_identities(&logs, Some(candidate))?
+                    .into_iter()
+                    .map(|(key, identity)| (identity, key))
+                    .collect::<BTreeMap<_, _>>();
+                let keys = |set: &std::collections::BTreeSet<crate::storage::DcpCallKey>| {
+                    set.iter()
+                        .filter_map(|key| identities.get(key).and_then(|id| after.get(id)).cloned())
+                        .collect()
+                };
+                Ok(crate::storage::DcpToolProjection {
+                    hidden: keys(&projection.hidden),
+                    purged: keys(&projection.purged),
+                })
+            };
+        let bytes = |candidate: &TurnLog| -> Result<usize, RuntimeError> {
+            let mut wire =
+                super::context::dcp_continuation(&history, &input(candidate), &remap(candidate)?);
+            let mut fixed = Vec::new();
+            crate::instructions::reconcile(&mut fixed, &wire, &facts);
+            fixed.append(&mut wire);
+            serde_json::to_vec(&fixed)
+                .map(|raw| raw.len())
+                .map_err(|_| RuntimeError::Storage)
+        };
+        Ok(TaskRenewalPlan {
+            before_bytes: bytes(&before)?,
+            after_bytes: bytes(&after)?,
+            projection: remap(&selected)?,
+            retire: identities.into_keys().collect(),
+            working,
+        })
     }
 }
 
@@ -3862,7 +3989,13 @@ impl<'a> Runtime<'a> {
             }
             closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
             if turn_log.task_renewal.is_some()
-                && self.commit_task_renewal(&mut turn_log, shell_notice_seq)?
+                && self.commit_task_renewal(
+                    &mut turn_log,
+                    shell_notice_seq,
+                    &params.session,
+                    &published.dcp_config,
+                    &mut tool_projection,
+                )?
             {
                 // Sealed into RAW; the ongoing report keeps only its hot tail.
                 closed_boundary = None;
@@ -4406,6 +4539,7 @@ impl<'a> Runtime<'a> {
         let mut read_extra_bytes = 0usize;
         let mut read_visual_tokens = 0u64;
         let mut child_end = 0;
+        let mut renewals = Vec::new();
         for (i, unit) in units.iter().enumerate() {
             if i < child_end {
                 continue;
@@ -5070,16 +5204,9 @@ impl<'a> Runtime<'a> {
             {
                 let (state, output) = match renewal {
                     Ok(summary) => {
-                        turn_log.task_renewal = Some(summary);
-                        (
-                            "completed",
-                            serde_json::json!({
-                                "status": "task_renewal_accepted",
-                                "appliesFrom": "next request",
-                                "note": "Your summary replaces the current task text in working memory; the original task stays durable.",
-                            })
-                            .to_string(),
-                        )
+                        let position = records.len() + renewals.len();
+                        renewals.push((op, id.clone(), summary, position));
+                        continue;
                     }
                     Err(reason) => ("failed", format!("error: compress: {reason}")),
                 };
@@ -6075,6 +6202,56 @@ impl<'a> Runtime<'a> {
             if state == "unknown" {
                 break; // no later side effects in this provider batch
             }
+        }
+        let last_renewal = renewals.len().checked_sub(1);
+        for (index, (op, id, summary, position)) in renewals.into_iter().enumerate() {
+            let prepared = if Some(index) != last_renewal {
+                Err(RuntimeError::Compress(
+                    "superseded by a later task renewal in this batch".into(),
+                ))
+            } else if permission_rejected
+                || cancel.load(Ordering::Acquire)
+                || records.iter().any(|r| r.state == "unknown")
+            {
+                Err(RuntimeError::Compress(
+                    "tool batch did not settle safely".into(),
+                ))
+            } else {
+                self.prepare_task_renewal(session, turn_log, &summary, &issuing.dcp_config)
+            };
+            let (state, output) = match prepared {
+                Ok(plan) if plan.after_bytes < plan.before_bytes => {
+                    turn_log.task_renewal = Some(summary);
+                    ("completed", serde_json::json!({
+                        "status":"task_renewal_accepted", "appliesFrom":"next request",
+                        "note":"Your summary replaces the selected closed working context; original history stays durable and unseen sibling results stay available."
+                    }).to_string())
+                }
+                Ok(plan) => ("no_gain", serde_json::json!({"status":"no_gain","beforeBytes":plan.before_bytes,"afterBytes":plan.after_bytes}).to_string()),
+                Err(error) => ("failed", format!("error: compress: {error}")),
+            };
+            turn_log.input.push(InputItem::FunctionCallOutput {
+                call_id: id,
+                output: output.clone(),
+            });
+            record_tool_finish(
+                &self.db,
+                tool_event,
+                &op,
+                COMPRESS_TOOL,
+                state,
+                &output,
+                turn_id,
+                turn_log,
+            )?;
+            records.insert(
+                position,
+                CallRecord {
+                    name: COMPRESS_TOOL.into(),
+                    state: state.into(),
+                    output: truncate(&output, REPORT_OUTPUT_CAP),
+                },
+            );
         }
         Ok((records, projection_changed, permission_rejected))
     }

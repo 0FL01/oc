@@ -397,7 +397,7 @@ impl Db {
         selection: &[serde_json::Value],
         projection: Option<(
             &crate::storage::DcpToolProjection,
-            &serde_json::Value,
+            Option<&serde_json::Value>,
             &[crate::storage::DcpCallKey],
         )>,
     ) -> Result<(), StorageError> {
@@ -485,7 +485,9 @@ impl Db {
             )?;
             if let Some((projection, progress, retire)) = projection {
                 Self::replace_compaction_marks(&tx, &snapshot.session, projection, retire)?;
-                Self::compaction_progress_in(&tx, &snapshot.session, progress)?;
+                if let Some(progress) = progress {
+                    Self::compaction_progress_in(&tx, &snapshot.session, progress)?;
+                }
             } else {
                 // Remap only marks for the bounded removed current window. Coverage
                 // identities stay immutable; window-local marks cannot leak forward.
@@ -531,6 +533,13 @@ impl Db {
                 tx.execute("INSERT INTO session_checkpoint(session_id,boundary_message,summary,operation_id,selection) VALUES(?1,?2,'',?3,?4)",params![snapshot.session,boundary,snapshot.id,serde_json::to_string(selection).map_err(|_|invalid("selected past facts"))?])?;
             }
             Self::refresh_checkpoint_dcp_accounting(&tx, &snapshot.session)?;
+        } else if let Some((projection, _, retire)) = projection {
+            let session: String = tx.query_row(
+                "SELECT session_id FROM turns WHERE id=?1",
+                [&old.turn_id],
+                |r| r.get(0),
+            )?;
+            Self::replace_compaction_marks(&tx, &session, projection, retire)?;
         }
         tx.commit()?;
         Ok(())

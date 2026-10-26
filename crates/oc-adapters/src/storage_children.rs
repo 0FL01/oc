@@ -554,7 +554,9 @@ impl Db {
         let Some(log) = log else {
             return Ok(false);
         };
-        let unsafe_ops: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND (o.state NOT IN ('completed','failed','denied') OR (o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models') AND NOT (o.name='compress' AND o.state='completed' AND json_extract(o.output,'$.status')='task_renewal_accepted'))))")?.query_row([operation], |r|r.get(0))?;
+        // Only compress outputs have this JSON status; ordinary read outputs
+        // may be plain text. CASE keeps their recovery out of json_extract.
+        let unsafe_ops: bool = conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o JOIN child_jobs j ON j.child_turn=o.turn_id WHERE j.operation_id=?1 AND NOT CASE WHEN o.name='compress' AND o.state='no_gain' THEN COALESCE(json_extract(o.output,'$.status')='no_gain',0) ELSE 0 END AND (o.state NOT IN ('completed','failed','denied') OR (o.name NOT IN ('read','glob','grep','webfetch','skill','opencode_models') AND NOT (o.name='compress' AND o.state='completed' AND json_extract(o.output,'$.status')='task_renewal_accepted'))))")?.query_row([operation], |r|r.get(0))?;
         if unsafe_ops {
             return Ok(false);
         }
