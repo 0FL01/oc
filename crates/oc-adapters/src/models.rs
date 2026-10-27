@@ -301,13 +301,13 @@ mod ordering_tests;
 #[path = "models/tool_tests.rs"]
 mod tool_tests;
 
-/// Native fallback caps and default output request; never catalog capacities.
+/// Native fallback caps and default output for incomplete metadata; never catalog capacities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct FallbackLimits {
     /// Estimated total context cap, in tokens.
     pub context: std::num::NonZeroU64,
-    /// Output cap when unknown, and default requested output, in tokens.
+    /// Output cap when unknown and default request for incomplete metadata, in tokens.
     pub output: std::num::NonZeroU64,
 }
 
@@ -337,7 +337,8 @@ pub struct AdmissionBudget {
 }
 
 /// Resolve a bounded workload without changing the model snapshot. Zero requested
-/// output means the native default, including for callers with unknown metadata.
+/// output selects the model output when context and output are known, otherwise the
+/// native fallback default.
 pub fn budget(
     selection: &Selection,
     requested_output: u64,
@@ -355,7 +356,11 @@ pub fn budget(
     let context = known_context.unwrap_or(fallback.context.get());
     let output_cap = known_output.unwrap_or(fallback.output.get());
     let output = if requested_output == 0 {
-        fallback.output.get()
+        if known_context.is_some() && known_output.is_some() {
+            output_cap
+        } else {
+            fallback.output.get()
+        }
     } else {
         requested_output
     }
@@ -630,6 +635,7 @@ mod tests {
             let before = selection.entry.clone();
             let resolved = budget(&selection, 99_999, fallback);
             assert_eq!((resolved.context, resolved.output), (context, output));
+            assert_eq!(budget(&selection, 0, fallback).output, output);
             assert_eq!(resolved.input, context - output - SAFETY_MARGIN);
             assert!(
                 resolved
@@ -653,6 +659,36 @@ mod tests {
         assert!(resolved.warning.is_none());
         assert_eq!(budget(&selection, 0, fallback).output, 1_000);
         assert_eq!(budget(&selection, 100, fallback).output, 100);
+
+        let mut selection = super::Selection {
+            id: "configured".into(),
+            entry: serde_json::json!({"limit": {"context": 262_144, "input": 198_144, "output": 64_000}}),
+            variant: None,
+        };
+        let before = selection.entry.clone();
+        let resolved = budget(&selection, 0, fallback);
+        assert_eq!(
+            (resolved.context, resolved.input, resolved.output),
+            (262_144, 197_120, 64_000)
+        );
+        assert!(resolved.warning.is_none());
+        assert!(admit_budget(&selection, resolved.input, &resolved).is_ok());
+        assert!(admit_budget(&selection, resolved.input + 1, &resolved).is_err());
+        assert_eq!(budget(&selection, 256, fallback).output, 256);
+        assert_eq!(budget(&selection, 32_000, fallback).output, 32_000);
+        assert_eq!(budget(&selection, 100_000, fallback).output, 64_000);
+        assert_eq!(selection.entry, before);
+
+        selection.entry["limit"]["output"] = 32_000.into();
+        assert_eq!(budget(&selection, 0, fallback).output, 32_000);
+        selection.entry["limit"] = serde_json::json!({"context": 262_144, "output": 64_000});
+        assert_eq!(budget(&selection, 0, fallback).input, 197_120);
+        selection.entry["limit"] = serde_json::json!({"output": 100_000});
+        let partial = budget(&selection, 0, fallback);
+        assert_eq!(partial.output, 2_048);
+        assert!(partial.warning.is_some());
+        selection.entry["limit"] = serde_json::json!({"context": 8_192, "output": 8_192});
+        assert!(admit_budget(&selection, 0, &budget(&selection, 0, fallback)).is_err());
     }
 
     #[test]

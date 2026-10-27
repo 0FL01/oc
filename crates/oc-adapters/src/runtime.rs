@@ -1019,7 +1019,7 @@ pub struct TurnParams<'c> {
     /// Requested variant, if any.
     pub variant: Option<String>,
     /// Requested output tokens, clamped during admission; zero selects the
-    /// configured native default (4096 unless overridden).
+    /// known model output or the native default for incomplete metadata.
     pub max_output: u64,
     /// Provider connection (exact configured URL inside).
     pub provider: ResponsesConfig,

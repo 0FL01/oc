@@ -58,7 +58,7 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
     std::fs::write(project.join("opencode.json"), serde_json::json!({
         "model": "local/chat-model",
         "providers": {"local": {"package": "@ai-sdk/openai-compatible", "settings": {"baseURL": base, "apiKey": "dummy"},
-            "models": {"chat-model": {"limit": {"context": 100000, "output": 4000},
+            "models": {"chat-model": {"limit": {"context": 262144, "input": 198144, "output": 64000},
                 "compatibility": {"reasoningField": "reasoning_content", "maxTokensField": "max_completion_tokens"}}}}},
         "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]
     }).to_string()).unwrap();
@@ -134,7 +134,8 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
     for (path, body) in &main {
         assert_eq!(path, "/v1/chat/completions");
         assert_eq!(body["model"], "chat-model");
-        assert!(body.get("max_completion_tokens").is_some() && body.get("max_tokens").is_none());
+        assert_eq!(body["max_completion_tokens"], 64000);
+        assert!(body.get("max_tokens").is_none());
         assert!(body.get("input").is_none() && body.get("store").is_none());
         assert_eq!(body["messages"][0]["role"], "system");
     }

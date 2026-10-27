@@ -279,6 +279,9 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
         assert_eq!(requests[0]["model"], "gpt-fixture");
         assert_eq!(requests[1]["model"], "text-fixture");
         assert_eq!(requests[2]["model"], "gpt-fixture");
+        assert_eq!(requests[0]["max_output_tokens"], 10000);
+        assert_eq!(requests[1]["max_output_tokens"], 2000);
+        assert_eq!(requests[2]["max_output_tokens"], 10000);
         assert!(
             requests[0]["input"]
                 .as_array()
@@ -360,7 +363,7 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
                 .iter()
                 .map(|r| r.output_limit)
                 .collect::<Vec<_>>(),
-            [4096, 2000, 4096]
+            [10000, 2000, 10000]
         );
         // T45/R10 consumer of the same receipts: model-relative DCP budget and
         // managed file-tool guidance follow each request's committed model.

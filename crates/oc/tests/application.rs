@@ -237,11 +237,7 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     assert_eq!(body["model"], model);
     assert_eq!(
         body["max_output_tokens"],
-        if unknown_limits || title.is_some() {
-            64
-        } else {
-            4096
-        }
+        if unknown_limits { 64 } else { 4096 }
     );
     assert!(body.get("reasoning").is_none());
     assert_eq!(

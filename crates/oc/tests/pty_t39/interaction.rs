@@ -231,8 +231,8 @@ fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
     for request in &requests {
         assert_eq!(request["model"], MODEL);
         assert_eq!(
-            request["max_output_tokens"], 128,
-            "configured base budget survives every overlay"
+            request["max_output_tokens"], 4096,
+            "configured model budget survives every overlay"
         );
         assert!(
             request["prompt_cache_key"].is_string(),

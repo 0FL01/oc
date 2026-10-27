@@ -545,8 +545,9 @@ Native policy (D14/T47): `provider.<id>.options.nativeFallbackLimits` accepts po
 `context`/`output`, defaults 32768/4096; context must exceed output + 1024 reserve.
 Missing fields use defaults; unknown option keys/types are rejected. These values
 are request policy, never discovery metadata or provider wire options. Each known
-positive model limit remains authoritative. The configured output is also the
-default output request for known models; explicit output requests are clamped.
+positive model limit remains authoritative. With known positive context and output,
+the selected model's output is the default request; otherwise the fallback output
+is the default, clamped to a known output limit. Explicit output requests are clamped.
 The same budget/admission applies to primary, child, every tool continuation and
 title requests. Missing/zero metadata produces visible fallback warnings; title
 admission failure skips only the ancillary title. No selected variant means no

@@ -5592,8 +5592,8 @@ async fn worker(
                     catalog: &turn_catalog,
                     model_id: turn_selection.model_id.clone(),
                     variant: turn_selection.variant.clone(),
-                    // The runtime resolves its native default against known
-                    // metadata and fallback caps; capacity is not a request.
+                    // The runtime resolves the default from model metadata or
+                    // the native fallback for incomplete limits.
                     max_output: 0,
                     provider: turn_provider.clone(),
                     cancel: &cancel,
