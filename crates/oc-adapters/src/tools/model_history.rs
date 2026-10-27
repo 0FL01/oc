@@ -107,7 +107,7 @@ impl TurnLog {
     }
 }
 
-fn neutral(item: &crate::provider::InputItem) -> Option<crate::provider::InputItem> {
+pub(crate) fn neutral(item: &crate::provider::InputItem) -> Option<crate::provider::InputItem> {
     use crate::provider::{InputItem, InputRole};
     let InputItem::ProviderOutput(value) = item else {
         return Some(item.clone());

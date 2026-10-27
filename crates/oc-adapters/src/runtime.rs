@@ -698,7 +698,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
                         "properties": {
                             "startId": {"type": "string"},
                             "endId": {"type": "string"},
-                            "summary": {"type": "string", "minLength": 1, "maxLength": crate::dcp::SUMMARY_CAP}
+                            "summary": {"type": "string", "minLength": 1}
                         },
                         "required": ["startId", "endId", "summary"],
                         "additionalProperties": false

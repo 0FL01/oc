@@ -124,6 +124,12 @@ Range contract из upstream types [D3]:
 
 `topic`/`summary` — непустые bounded strings; `content` — непустой bounded массив. Public shape не заменять произвольным `{text:...}`. Syntax/format реальных raw/block references и placeholder expansion взять из pinned source+tests, а не только примера выше. В первом task DCP сохранить schema и fixture IDs с provenance. Shape message mode не подмешивать в range.
 
+У authored `summary`, как в pinned DCP 3.2.0, нет отдельного character cap:
+локальный предел 8192 удалён. Действуют общие resource bounds аргументов/provider
+request и проверка реального уменьшения проекции. Раскрытие выбранных nested
+references ограничено существующим request byte ceiling до увеличения allocation;
+это не обрезка summary. Cycle/depth guards и явные protections сохраняются.
+
 Нельзя сжимать active незавершённый provider/tool batch; нельзя рвать связи внутри retained call/result/reasoning группы. Закрытая группа может быть забыта целиком, без повторного исполнения tool. Invalid/stale/cross-session IDs, backwards range, конфликтующие spans и неразрешимые явно authored references дают no-mutation error. Полностью покрытый старый блок не требует обязательного placeholder/append, если replacement намеренно забывает его незащищённое содержимое. Upstream overlap/embedding fixtures и owner-approved native forgetting difference квалифицировать раздельно, не запрещать все случаи ради удобства.
 
 Первый replacement не переносит выбранные закрытые tool/reasoning groups в `hot.logs`

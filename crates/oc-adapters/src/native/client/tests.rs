@@ -475,6 +475,7 @@ fn snapshot_retires_only_turn_receipts_acknowledged_before_its_query() {
                 origin: Some(id),
                 completion,
                 acknowledged_at,
+                compaction: None,
             },
         );
     }
@@ -492,6 +493,7 @@ fn snapshot_retires_only_turn_receipts_acknowledged_before_its_query() {
             origin: Some(5),
             completion: OwnedCompletion::Turn,
             acknowledged_at: Some(9),
+            compaction: None,
         },
     );
     operation.snapshot(10, None, 11, 11);
@@ -504,6 +506,130 @@ fn snapshot_retires_only_turn_receipts_acknowledged_before_its_query() {
         !operation.owned.contains_key(&5),
         "a post-ACK successor snapshot replaces the old provisional owner"
     );
+}
+
+#[tokio::test]
+async fn joined_compaction_control_survives_turn_finish_and_terminal_before_ack() {
+    use oc_core::compaction::{
+        CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+    };
+    let (app, task, mut server, budget) = pair();
+    let mut events = app.subscribe();
+    let session = SessionId("root".into());
+    let mut compact = CompactionSnapshot {
+        id: "compact-1".into(),
+        session: session.0.clone(),
+        reason: CompactionReason::Manual,
+        state: CompactionState::Queued,
+        model: None,
+        profile: None,
+        anchor: CompactionAnchor::default(),
+        summary: String::new(),
+        usage: None,
+        provider_native: false,
+        error: None,
+    };
+    let submit = app.compact_session(session.clone());
+    let peer = async {
+        let (id, _) = request(&mut server, &budget).await;
+        frame(
+            &mut server,
+            &budget,
+            &Server::Bound {
+                id,
+                session: session.clone(),
+                origin: 77,
+            },
+        )
+        .await;
+        answer(&mut server, &budget, id, 0, &compact).await;
+    };
+    let (result, ()) = tokio::join!(submit, peer);
+    result.unwrap();
+    for (revision, event) in [
+        (
+            1,
+            CoreEvent::TurnStarted {
+                session: session.clone(),
+                turn: WorkerTurnId("T77".into()),
+                model_switch: None,
+            },
+        ),
+        (
+            2,
+            CoreEvent::TurnFinished {
+                session: session.clone(),
+                turn: WorkerTurnId("T77".into()),
+                text: "done".into(),
+                duration_ms: 0,
+                warnings: Vec::new(),
+                service_warning_range: 0..0,
+            },
+        ),
+    ] {
+        frame(
+            &mut server,
+            &budget,
+            &Server::Event {
+                revision,
+                origin: Some(77),
+                event: Box::new(wire::Event::from(event)),
+            },
+        )
+        .await;
+        events.recv().await.unwrap();
+    }
+    cancel_expected(&app, &mut server, &budget, "root", Some(77)).await;
+    compact.state = CompactionState::Completed;
+    frame(
+        &mut server,
+        &budget,
+        &Server::Event {
+            revision: 3,
+            origin: None,
+            event: Box::new(wire::Event::from(CoreEvent::Compaction(compact.clone()))),
+        },
+    )
+    .await;
+    events.recv().await.unwrap();
+    cancel_expected(&app, &mut server, &budget, "root", None).await;
+
+    // A fast operation may publish its terminal lifecycle before the request
+    // task forwards its queued ACK. That ACK must not resurrect ownership.
+    compact.id = "compact-2".into();
+    compact.state = CompactionState::Queued;
+    let submit = app.compact_session(session.clone());
+    let peer = async {
+        let (id, _) = request(&mut server, &budget).await;
+        frame(
+            &mut server,
+            &budget,
+            &Server::Bound {
+                id,
+                session: session.clone(),
+                origin: 88,
+            },
+        )
+        .await;
+        let mut terminal = compact.clone();
+        terminal.state = CompactionState::Completed;
+        frame(
+            &mut server,
+            &budget,
+            &Server::Event {
+                revision: 4,
+                origin: None,
+                event: Box::new(wire::Event::from(CoreEvent::Compaction(terminal))),
+            },
+        )
+        .await;
+        answer(&mut server, &budget, id, 0, &compact).await;
+    };
+    let (result, ()) = tokio::join!(submit, peer);
+    result.unwrap();
+    cancel_expected(&app, &mut server, &budget, "root", None).await;
+    task.abort();
+    let _ = task.await;
 }
 
 #[tokio::test]

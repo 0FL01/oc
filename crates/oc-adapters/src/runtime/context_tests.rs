@@ -48,6 +48,15 @@ fn compression_anchors_only_advertise_resolvable_endpoints() {
 
 #[tokio::test]
 async fn full_background_notice_overflow_keeps_rejected_input_out_of_parent_checkpoint() {
+    full_background_notice_overflow(50_000_000).await;
+}
+
+#[tokio::test]
+async fn full_background_notice_overflow_cannot_spend_summary_when_model_budget_is_exceeded() {
+    full_background_notice_overflow(5_000_000).await;
+}
+
+async fn full_background_notice_overflow(model_context: u64) {
     use oc_core::queries::{ChildJob, ChildState};
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();
@@ -65,13 +74,13 @@ async fn full_background_notice_overflow_keeps_rejected_input_out_of_parent_chec
         cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
-    // Deliberately enough model capacity: the byte guard, not token admission
-    // or automatic compaction, owns this refusal.
+    // The staged notice alone exceeds the byte guard, both when the model has
+    // room and when its input budget would otherwise trigger auto-compaction.
     let catalog = models::ModelCatalog {
         provider: "fixture".into(),
         models: crate::models::Models::from([(
             "m".into(),
-            json!({"limit":{"context":50_000_000,"output":2048}}),
+            json!({"limit":{"context":model_context,"output":2048}}),
         )]),
     };
     let db = Db::open(data.path()).unwrap();
@@ -123,14 +132,12 @@ async fn full_background_notice_overflow_keeps_rejected_input_out_of_parent_chec
         result = &mut running => panic!("first physical request must be held: {result:?}"),
         () = first => {},
     }
-    let (result, unexpected_post) = tokio::select! {
-        result = &mut running => (result, false),
-        (mut socket, _) = request(&listener) => {
-            respond(&mut socket, Protocol::Responses, false).await;
-            (running.await, true)
-        }
+    let result = tokio::select! {
+        result = &mut running => result,
+        _ = request(&listener) => panic!("rejected escaped input cannot reach the provider"),
     };
     let result = result.unwrap();
+    assert!(db.compaction_history("notice-parent").unwrap().is_empty());
     assert_eq!(result.status, TurnStatus::Failed);
     assert!(
         result
@@ -138,10 +145,6 @@ async fn full_background_notice_overflow_keeps_rejected_input_out_of_parent_chec
             .as_deref()
             .unwrap()
             .contains("active context")
-    );
-    assert!(
-        !unexpected_post,
-        "rejected escaped input cannot reach the provider"
     );
     let operations = db.list_tool_ops("notice-parent").unwrap();
     let read = operations.iter().find(|op| op.name == "read").unwrap();

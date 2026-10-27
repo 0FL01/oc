@@ -213,6 +213,201 @@ fn usage_accounting_prices_unmeasured_opaque_and_binds_typed_sources() {
 }
 
 #[tokio::test]
+async fn automatic_no_gain_preserves_context_and_cannot_suppress_overflow_repair() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(&db, "one", "small old task");
+    let tail = seed(&db, "two", "current task");
+    let before = db.read_history_full("s").unwrap();
+    let mut generation = Generation::default();
+    generation.compaction.keep_tokens = 0;
+    let runtime = runtime(&db, project.path(), generation);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = read_request(&listener).await;
+        respond(
+            &mut socket,
+            &sse(&format!(
+                "## Objective\n{}",
+                "longer replacement ".repeat(100)
+            )),
+        )
+        .await;
+    });
+    runtime
+        .queue_compaction("s", CompactionReason::Automatic)
+        .unwrap();
+    assert!(
+        !runtime
+            .deliver_compaction("s", &catalog(), "m", None, &provider)
+            .await
+            .unwrap()
+    );
+    peer.await.unwrap();
+    assert_eq!(db.read_history_full("s").unwrap(), before);
+    assert!(db.session_checkpoint("s").unwrap().is_none());
+    let failed = db.compaction_history("s").unwrap().remove(0);
+    assert_eq!(failed.state, CompactionState::Failed);
+    assert!(failed.error.as_deref().unwrap().contains("no_gain"));
+
+    // A pre-existing checkpoint can suppress soft re-compaction, never repair
+    // of a fully rebuilt request that remains over its actual admitted budget.
+    let mut prior = failed;
+    prior.id = "prior-checkpoint".into();
+    prior.state = CompactionState::Completed;
+    prior.summary = "prior useful summary".into();
+    prior.error = None;
+    db.save_compaction(&prior).unwrap();
+    db.commit_checkpoint(&prior, &tail, None, &BTreeMap::new())
+        .unwrap();
+    assert_eq!(
+        runtime.compaction_estimate("s", None, 100, 1000).unwrap(),
+        None
+    );
+    assert_eq!(
+        runtime.compaction_estimate("s", None, 1001, 1000).unwrap(),
+        Some(1001)
+    );
+}
+
+#[tokio::test]
+async fn incident_shell_notice_renewal_compacts_large_journals_before_continuing() {
+    tokio::time::timeout(Duration::from_secs(20), async {
+        let data = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        std::fs::write(project.path().join("note.txt"), "CURRENT_WORK_FACT").unwrap();
+        let db = Db::open(data.path()).unwrap();
+        db.create_bound_session("s", "work").unwrap();
+        let initial = db
+            .append_message("s", "system", "INITIAL_PLAN_ONLY")
+            .unwrap();
+        let mut generation = Generation::default();
+        for name in ["shell", "read", "compress"] {
+            generation.permissions.insert(name.into(), Permission::Allow);
+        }
+        let runtime = runtime(&db, project.path(), generation);
+        let mut models = catalog();
+        models.models.insert(
+            "m".into(),
+            serde_json::json!({"limit":{"context":64000,"output":8000}}),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let provider = config(&listener);
+        let (stop, mut stopped) = tokio::sync::oneshot::channel::<()>();
+        let peer = tokio::spawn(async move {
+            let mut seen = Vec::new();
+            let mut anchor = serde_json::Value::Null;
+            loop {
+                let (mut socket, request) = tokio::select! {
+                    _ = &mut stopped => break,
+                    request = read_request(&listener) => request,
+                };
+                let index = seen.len();
+                assert!(index < 9, "unexpected repeated compaction/request");
+                let summary = request["tools"].as_array().unwrap().is_empty();
+                if index == 0 {
+                    let compress = request["tools"].as_array().unwrap().iter().find(|tool| tool["name"] == "compress").unwrap();
+                    assert!(compress["parameters"]["properties"]["content"]["items"]["properties"]["summary"].get("maxLength").is_none());
+                }
+                if index == 2 {
+                    let anchors: serde_json::Value = request["input"]
+                        .as_array().unwrap().iter()
+                        .flat_map(|item| item["content"].as_array().into_iter().flatten())
+                        .filter_map(|part| part["text"].as_str())
+                        .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: "))
+                        .map(|text| serde_json::from_str(text).unwrap())
+                        .expect("provider-visible renewal anchor");
+                    anchor = anchors.as_array().unwrap().last().unwrap()["id"].clone();
+                }
+                let output = if summary {
+                    serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":format!("## Objective\nREAL_TASK_FACT; {}", "Continue the implementation with its retained facts. ".repeat(12))}]}])
+                } else {
+                    match index {
+                        0 => serde_json::json!([
+                            {"type":"reasoning","id":"old-reasoning","summary":[],"encrypted_content":"x".repeat(240_000)},
+                            {"type":"function_call","id":"background-item","call_id":"background","name":"shell","arguments":serde_json::json!({
+                                "command":"n=0; while [ ! -f release ] && [ $n -lt 1000 ]; do n=$((n+1)); sleep .01; done; [ -f release ] || exit 124; printf x >> effects; printf BACKGROUND_REPORT",
+                                "background":true,"timeout":0
+                            }).to_string()}
+                        ]),
+                        2 => serde_json::json!([
+                            {"type":"reasoning","id":"current-reasoning","summary":[],"encrypted_content":"y".repeat(40_000)},
+                            {"type":"function_call","id":"read-item","call_id":"read-current","name":"read","arguments":"{\"path\":\"note.txt\"}"}
+                        ]),
+                        3 => {
+                            let size = 10_065;
+                            serde_json::json!([{"type":"function_call","id":format!("compress-item-{index}"),"call_id":format!("compress-{index}"),"name":"compress","arguments":serde_json::json!({
+                                "topic":"current work","content":[{"startId":anchor,"endId":anchor,"summary":format!("CURRENT_WORK_FACT {}", "s".repeat(size - 18))}]
+                            }).to_string()}])
+                        }
+                        _ => serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"SETTLED"}]}]),
+                    }
+                };
+                seen.push(request);
+                let body = format!("data: {}\n\n", serde_json::json!({"type":"response.completed","response":{
+                    "status":"completed","output":output,"usage":{"input_tokens":10000,"output_tokens":100}
+                }}));
+                respond(&mut socket, &body).await;
+            }
+            seen
+        });
+        let cancel = AtomicBool::new(false);
+        let first = runtime.run_turn(TurnParams {
+            session: "s".into(), prompt: "REAL_TASK_FACT implement the change".into(), invocation: None,
+            catalog: &models, model_id: "m".into(), variant: None, max_output: 8000,
+            provider: provider.clone(), cancel: &cancel,
+        }).await.unwrap();
+        assert_eq!(first.status, TurnStatus::Completed, "{:?}", first.diagnostic);
+        let shell = db.list_tool_ops("s").unwrap().into_iter().find(|op| op.name == "shell").unwrap();
+        std::fs::write(project.path().join("release"), "").unwrap();
+        let (events, _) = tokio::sync::broadcast::channel(16);
+        let notice = loop {
+            runtime.shell_jobs.deliver(&events).unwrap();
+            if let Some(notice) = db.shell_notice_message("s", &shell.op).unwrap() {
+                break notice;
+            }
+            runtime.shell_jobs.changed().await;
+        };
+        let report = runtime.run_turn_with_reasoning_items_and_notice(
+            TurnParams {
+                session: "s".into(), prompt: "".into(), invocation: None,
+                catalog: &models, model_id: "m".into(), variant: None, max_output: 8000,
+                provider, cancel: &cancel,
+            },
+            None, None, Some(std::slice::from_ref(&notice)),
+            |_, _| {}, |_, _| {}, |_, _| {}, |_| {}, |_, _| {},
+        ).await.unwrap();
+        let _ = stop.send(());
+        let seen = peer.await.unwrap();
+        runtime.shell_jobs.shutdown().await.unwrap();
+        runtime.shutdown_mcp().await.unwrap();
+
+        assert_eq!(std::fs::read(project.path().join("effects")).unwrap(), b"x");
+        assert!(db.parent_notice_assigned("s", &notice).unwrap());
+        let operations = db.list_tool_ops("s").unwrap();
+        let compress = operations.iter().filter(|op| op.name == "compress").collect::<Vec<_>>();
+        assert_eq!(compress.len(), 1);
+        assert_eq!(compress[0].state, "completed");
+        assert!(compress[0].output.as_deref().unwrap().contains("task_renewal_accepted"));
+        let saved: serde_json::Value = serde_json::from_str(&db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap();
+        assert_eq!(saved["native_input"]["kind"], "shell_notices");
+        assert!(db.raw_turn_segment(&report.turn_id, 1, 1 << 20).unwrap().is_some());
+        let summary = seen.iter().find(|request| request["tools"].as_array().unwrap().is_empty()).expect("automatic compaction request");
+        let snapshot = db.compaction_history("s").unwrap().remove(0);
+        let checkpoint = db.checkpoint_record("s").unwrap().unwrap();
+        eprintln!("incident: compress=accepted; summary_has_task={}; checkpoint_is_initial={}; compaction={:?}/{:?}; terminal={}",
+            summary["input"].to_string().contains("REAL_TASK_FACT"),
+            checkpoint.0 == db.message_seq("s", &initial).unwrap().unwrap(),
+            snapshot.reason, snapshot.state, saved["display"]["terminal_diagnostic"]);
+        assert_eq!(report.status, TurnStatus::Completed, "renewal must not strand a reducible session: {:?}", report.diagnostic);
+        assert!(summary["input"].to_string().contains("REAL_TASK_FACT"), "compaction must cover the large old journal, not only initial instructions");
+    }).await.expect("incident reproduction finishes within 20 seconds");
+}
+
+#[tokio::test]
 async fn measured_context_and_v0_reopen_keep_opaque_and_settled_effects() {
     tokio::time::timeout(Duration::from_secs(20), async {
         let data = tempfile::tempdir().unwrap();
@@ -356,9 +551,9 @@ async fn compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork() {
     .unwrap();
     seed(&db, "two", "RECENT TAIL");
     assert_eq!(
-        db.compaction_boundary("s", 0, 15_000).unwrap().unwrap().0,
+        db.compaction_boundary("s", 0).unwrap().unwrap().0,
         2,
-        "when all history fits, preserve the latest exchange"
+        "the metadata boundary preserves the latest exchange"
     );
     let before = db.read_history_full("s").unwrap();
     let mut generation = Generation::default();

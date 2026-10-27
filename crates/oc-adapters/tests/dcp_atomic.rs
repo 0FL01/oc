@@ -435,4 +435,21 @@ fn nested_unknown_cycle_depth_and_size_fail_during_planning() {
         plan(&[range("m0001", "m0001", "compact")], &oversized, 2,),
         Err(DcpError::NestedTooLarge { .. })
     ));
+    // Individually valid references must not materialize a combined candidate
+    // larger than the same host request bound before the no-gain comparison.
+    let repeated = vec![block(
+        "b0001".into(),
+        "x".repeat(dcp::NESTED_BYTES_CAP / 2 + 1),
+    )];
+    assert!(matches!(
+        plan(
+            &[
+                range("m0001", "m0001", "(b0001)"),
+                range("m0002", "m0002", "(b0001)"),
+            ],
+            &repeated,
+            2
+        ),
+        Err(DcpError::NestedTooLarge { .. })
+    ));
 }

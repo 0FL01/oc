@@ -670,7 +670,7 @@ async fn compaction_admits_replay_instead_of_archive_and_preserves_protected_pre
         "m".into(),
         serde_json::json!({"limit":{"context":16384,"input":12000,"output":1024}}),
     );
-    let cutoff = db.compaction_boundary("s", 0, 0).unwrap().unwrap().0;
+    let cutoff = db.compaction_boundary("s", 0).unwrap().unwrap().0;
     assert!(
         db.compaction_content_floor("s", 0, cutoff, 40000).unwrap() > 0,
         "old archive-derived model floor rejects this history"

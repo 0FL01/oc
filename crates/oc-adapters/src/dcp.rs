@@ -24,8 +24,6 @@ pub const NUDGE_FREQUENCY: u64 = 5;
 pub const ITERATION_NUDGE_THRESHOLD: u64 = 15;
 /// Range topic bound (chars).
 pub const TOPIC_CAP: usize = 256;
-/// Range summary bound (chars).
-pub const SUMMARY_CAP: usize = 8192;
 /// Ranges per tool call.
 pub const RANGES_CAP: usize = 32;
 /// DCP schema version applied on top of the T04 base.
@@ -115,7 +113,9 @@ pub struct ValidatedRange {
 /// Validate `compress` range-tool arguments against the pinned schema.
 ///
 /// Shape: `{topic: non-empty ≤256, content: [1..=32 × {startId, endId,
-/// summary: non-empty ≤8192}]}`. Message-mode shapes are rejected here;
+/// summary: non-empty}]}`. Summary size is bounded by the provider argument
+/// and request resource guards, not a separate character ceiling.
+/// Message-mode shapes are rejected here;
 /// that experimental mode is a separate contract.
 pub fn validate_range_args(
     value: &serde_json::Value,
@@ -154,9 +154,6 @@ pub fn validate_range_args(
                 .ok_or_else(|| invalid("entry needs startId/endId/summary"))
         };
         let summary = get("summary")?;
-        if summary.chars().count() > SUMMARY_CAP {
-            return Err(invalid("summary too large"));
-        }
         ranges.push(ValidatedRange {
             topic: topic.to_string(),
             start_id: get("startId")?.to_string(),
@@ -340,8 +337,9 @@ pub fn load_prune_mark(db: &crate::storage::Db, session: &str) -> Result<Option<
 pub const PROTECTED_BYTES_CAP: usize = 65536;
 /// Nested expansion depth cap (cycle/size guards fire first).
 pub const NESTED_DEPTH_CAP: usize = 8;
-/// Nested expansion byte cap.
-pub const NESTED_BYTES_CAP: usize = 65536;
+/// Expanded text must fit the existing serialized request resource ceiling.
+/// This is not an independent authored-summary length limit.
+pub const NESTED_BYTES_CAP: usize = crate::provider::REQUEST_BYTE_CAP;
 
 /// Build a complete compression candidate without storage writes.
 ///
@@ -398,7 +396,6 @@ fn plan_compression_with_gain(
         if range.topic.trim().is_empty()
             || range.topic.chars().count() > TOPIC_CAP
             || range.summary.trim().is_empty()
-            || range.summary.chars().count() > SUMMARY_CAP
         {
             return Err(DcpError::InvalidArgs {
                 reason: "range topic/summary is empty or too large".to_string(),
@@ -707,6 +704,11 @@ pub(crate) fn plan_active_compression(
     let mut plan =
         plan_compression_with_gain(session, history, ranges, spec, existing, prune, next, false)?;
     let mut graph = prepared_existing(existing)?;
+    for block in &mut graph {
+        if plan.consumed_blocks.contains(&block.id) {
+            block.members.clear();
+        }
+    }
     graph.extend(plan.blocks.iter().cloned());
     validate_block_graph(&graph)?;
     let by_id = graph.into_iter().map(|b| (b.id.clone(), b)).collect();
@@ -1073,11 +1075,20 @@ pub fn expand_block(
     let mut text = block.summary.clone();
     for placeholder in parse_block_placeholders(authored_summary(&block.summary)) {
         let nested = expand_block(blocks, &placeholder.block_id, depth + 1, seen)?;
-        text = text.replacen(placeholder.raw.as_str(), nested.as_str(), 1);
-        if text.len() > NESTED_BYTES_CAP {
-            return Err(DcpError::NestedTooLarge {
-                reason: "byte cap".to_string(),
-            });
+        if let Some(start) = text.find(placeholder.raw.as_str()) {
+            // Check the expanded allocation before making it, including a
+            // repeated reference to a large (otherwise valid) summary.
+            if text
+                .len()
+                .saturating_sub(placeholder.raw.len())
+                .saturating_add(nested.len())
+                > NESTED_BYTES_CAP
+            {
+                return Err(DcpError::NestedTooLarge {
+                    reason: "byte cap".to_string(),
+                });
+            }
+            text.replace_range(start..start + placeholder.raw.len(), &nested);
         }
     }
     seen.pop();
@@ -1111,8 +1122,17 @@ fn validate_block_graph(blocks: &[CompressionBlock]) -> Result<(), DcpError> {
         .iter()
         .map(|block| (block.id.clone(), block.clone()))
         .collect::<std::collections::BTreeMap<_, _>>();
-    for id in by_id.keys() {
-        expand_block(&by_id, id, 0, &mut Vec::new())?;
+    let mut active_bytes = 0usize;
+    for (id, block) in &by_id {
+        let summary = expand_block(&by_id, id, 0, &mut Vec::new())?;
+        if !block.members.is_empty() {
+            active_bytes = active_bytes.saturating_add(summary.len());
+            if active_bytes > NESTED_BYTES_CAP {
+                return Err(DcpError::NestedTooLarge {
+                    reason: "combined expansion exceeds request byte cap".into(),
+                });
+            }
+        }
     }
     Ok(())
 }
@@ -1491,8 +1511,11 @@ mod tests {
         ));
         assert!(validate_range_args(&serde_json::json!({"topic": "", "content": []})).is_err());
         assert!(validate_range_args(&serde_json::json!({"topic": "t", "content": []})).is_err());
-        let big = serde_json::json!({"topic": "t", "content": [{"startId": "a", "endId": "b", "summary": "x".repeat(9000)}]});
-        assert!(validate_range_args(&big).is_err());
+        let big = serde_json::json!({"topic": "t", "content": [{"startId": "a", "endId": "b", "summary": "x".repeat(70_000)}]});
+        assert_eq!(
+            validate_range_args(&big).unwrap().1[0].summary.len(),
+            70_000
+        );
         let escaped_topic = "quoted \"topic\" with \\ path and 🌍";
         let mut canonical = args();
         canonical["topic"] = escaped_topic.into();

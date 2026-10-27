@@ -168,12 +168,10 @@ impl Db {
         &self,
         session: &str,
         after: i64,
-        keep: u64,
     ) -> Result<Option<(i64, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let mut stmt = conn.prepare("SELECT id,seq,role,length(CAST(text AS BLOB)) FROM conversation_messages WHERE session_id=?1 AND seq>?2 ORDER BY seq DESC")?;
+        let mut stmt = conn.prepare("SELECT id,seq,role FROM conversation_messages WHERE session_id=?1 AND seq>?2 ORDER BY seq DESC")?;
         let mut rows = stmt.query(params![session, after])?;
-        let mut total = 0u64;
         let mut tail_user = None;
         let mut latest_user = None;
         let mut oldest = None;
@@ -181,12 +179,10 @@ impl Db {
             let id: String = row.get(0)?;
             let seq: i64 = row.get(1)?;
             let role: String = row.get(2)?;
-            let bytes = row.get::<_, i64>(3)?.max(0) as u64;
-            total = total.saturating_add(bytes.div_ceil(4));
             oldest = Some((seq, id));
             if role == "user" {
                 latest_user.get_or_insert(seq);
-                if tail_user.is_some() && total > keep {
+                if tail_user.is_some() {
                     break;
                 }
                 tail_user = Some(seq);

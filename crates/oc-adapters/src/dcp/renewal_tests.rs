@@ -13,6 +13,42 @@ fn message(id: &str, role: Role, text: &str) -> Message {
 }
 
 #[test]
+fn useful_large_summary_survives_validation_planning_and_expansion() {
+    let summary = "retained fact ".repeat(6_000);
+    assert!(summary.len() > 65_536);
+    let history = vec![
+        message("m1", Role::User, &"old work ".repeat(30_000)),
+        message("m2", Role::Assistant, "settled"),
+        message("m3", Role::User, "current task"),
+    ];
+    let args = serde_json::json!({"topic":"old work","content":[{
+        "startId":"m1","endId":"m2","summary":summary
+    }]});
+    let (_, ranges) = validate_range_args(&args).unwrap();
+    let plan = plan_active_compression(
+        "s",
+        &history,
+        &ranges,
+        &ProtectedSpec::default(),
+        &[],
+        None,
+        1,
+    )
+    .unwrap();
+    assert!(plan.after_bytes < plan.before_bytes);
+    assert_eq!(plan.blocks[0].summary, summary);
+    let blocks = plan
+        .blocks
+        .into_iter()
+        .map(|block| (block.id.clone(), block))
+        .collect();
+    assert_eq!(
+        expand_block(&blocks, "b0001", 0, &mut Vec::new()).unwrap(),
+        summary
+    );
+}
+
+#[test]
 fn wholly_covered_omitted_block_is_consumed_and_reference_is_standalone() {
     let history = vec![
         message("m1", Role::User, "CONTROL_OBJECTIVE"),

@@ -721,7 +721,11 @@ fn validate_call_shape(call: &ToolCall) -> Result<(), String> {
                 .map(|_| ())
                 .map_err(str::to_string);
         }
-        "compress" => crate::dcp::validate_range_args(args).is_ok(),
+        "compress" => {
+            return crate::dcp::validate_range_args(args)
+                .map(|_| ())
+                .map_err(|error| error.to_string());
+        }
         "subagent" => validate_subagent_args(args).is_ok(),
         _ => false,
     };
@@ -1696,7 +1700,7 @@ pub struct TurnLog {
 }
 
 mod mcp_log;
-mod model_history;
+pub(crate) mod model_history;
 pub(crate) mod output;
 pub(crate) mod turn_history;
 
@@ -1997,6 +2001,26 @@ mod tests {
     use std::time::Duration;
 
     static NO_CANCEL: AtomicBool = AtomicBool::new(false);
+
+    #[test]
+    fn incident_compress_accepts_large_summary_and_explains_invalid_fields() {
+        let mut call = ToolCall {
+            id: "large-summary".into(),
+            name: "compress".into(),
+            arguments: serde_json::json!({"topic":"closed work","content":[{
+                "startId":"m0001","endId":"m0001","summary":"s".repeat(70_000)
+            }]}),
+        };
+        super::validate_call_diagnostic(&call).unwrap();
+        call.arguments["content"][0]["summary"] = " ".into();
+        let diagnostic = super::validate_call_diagnostic(&call).unwrap_err();
+        assert_eq!(diagnostic.code, "invalid_args");
+        assert!(
+            diagnostic.message.contains("summary"),
+            "the model must receive the rejected field: {}",
+            diagnostic.message
+        );
+    }
 
     struct Env {
         _tmp: tempfile::TempDir,

@@ -910,9 +910,20 @@ async fn handle(
             ..
         }
     );
+    let compaction_admission = if let Request::CompactSession { session } = &request {
+        Some(owner.admit_root(&session.0)?)
+    } else {
+        None
+    };
+    let joined_compaction = matches!(
+        &compaction_admission,
+        Some(crate::application::authority::RootAdmission::Existing(_))
+    );
     let root_input = match &request {
         // OC2 steer/queue joins the running root that owns the session.
-        Request::Enqueue { session, .. } | Request::Inbox { session, .. } => Some(session),
+        Request::Enqueue { session, .. }
+        | Request::Inbox { session, .. }
+        | Request::CompactSession { session } => Some(session),
         Request::UserShell {
             session,
             selection: oc_core::core_app::UserShellSelection::Existing(_),
@@ -930,21 +941,40 @@ async fn handle(
         _ => None,
     };
     if let Some(session) = root_input
-        && let Some(root) = owner.root(&session.0)
+        && let Some(root) = match &compaction_admission {
+            Some(crate::application::authority::RootAdmission::Existing(root)) => {
+                Some(root.clone())
+            }
+            Some(crate::application::authority::RootAdmission::Reserved(_)) => None,
+            None => owner.root(&session.0),
+        }
     {
         if root.location.project != location.project {
             return Err(CoreError::SessionNotFound);
         }
-        if joined_shell {
+        if joined_shell || joined_compaction {
             // Readiness precedes initial input acceptance: a joining Shell must
             // not overtake the root's original Submit and become its first job.
             let deck = location.app.tab_deck().await?;
             let live = owner.resources.live.snapshot(deck, Some(session));
-            if !live
+            let turn_active = live
                 .turns
                 .iter()
-                .any(|turn| turn.session == *session && turn.origin == Some(root.origin.id))
-            {
+                .any(|turn| turn.session == *session && turn.origin == Some(root.origin.id));
+            let compacting = joined_compaction
+                && owner
+                    .db
+                    .compaction_history(&session.0)
+                    .map_err(|_| wire::unknown())?
+                    .first()
+                    .is_some_and(|snapshot| {
+                        matches!(
+                            snapshot.state,
+                            oc_core::compaction::CompactionState::Queued
+                                | oc_core::compaction::CompactionState::Running
+                        )
+                    });
+            if !turn_active && !compacting {
                 return Err(CoreError::TurnBusy);
             }
             peer.admissions
@@ -953,6 +983,17 @@ async fn handle(
                 .get_mut(&id)
                 .ok_or(CoreError::Shutdown)?
                 .root = Some(root.origin.id);
+        }
+        if joined_compaction {
+            let _ = send(
+                output,
+                budget,
+                &Server::Bound {
+                    id,
+                    session: session.clone(),
+                    origin: root.origin.id,
+                },
+            );
         }
         let (message, reply) = request.into_local();
         root.ready().await?;
@@ -978,9 +1019,16 @@ async fn handle(
         )
         .await;
     }
-    let admission = execution(&request)
-        .map(|session| owner.reserve_mutation(&session.0))
-        .transpose()?;
+    let admission =
+        if let Some(crate::application::authority::RootAdmission::Reserved(reservation)) =
+            compaction_admission
+        {
+            Some(reservation)
+        } else {
+            execution(&request)
+                .map(|session| owner.reserve_mutation(&session.0))
+                .transpose()?
+        };
     // OC2 deletes a busy session by interrupting it and waiting for idle
     // first; the owner's storage checks still refuse unsettled work.
     if let Some(session) = deletion(&request)
@@ -1103,14 +1151,24 @@ async fn handle(
     {
         let matches = match expected {
             Some(Expected::Origin(origin)) => root.origin.id == origin,
-            Some(Expected::Pending(request)) => state
-                .lock()
-                .expect("native leases")
-                .operations
-                .get(&root.origin.id)
-                .is_some_and(|operation| {
-                    operation.attachment == peer.id && operation.request == request
-                }),
+            Some(Expected::Pending(request)) => {
+                state
+                    .lock()
+                    .expect("native leases")
+                    .operations
+                    .get(&root.origin.id)
+                    .is_some_and(|operation| {
+                        operation.attachment == peer.id && operation.request == request
+                    })
+                    || peer
+                        .admissions
+                        .lock()
+                        .expect("peer admissions")
+                        .get(&request)
+                        .is_some_and(|admission| {
+                            admission.session == session && admission.root == Some(root.origin.id)
+                        })
+            }
             None => false,
         };
         if !matches {

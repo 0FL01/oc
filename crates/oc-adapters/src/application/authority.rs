@@ -263,21 +263,32 @@ impl Owner {
     }
 
     pub(crate) fn reserve_mutation(self: &Arc<Self>, session: &str) -> Result<Mutation, CoreError> {
+        match self.admit_root(session)? {
+            RootAdmission::Reserved(reservation) => Ok(reservation),
+            RootAdmission::Existing(_) => Err(CoreError::TurnBusy),
+        }
+    }
+
+    /// Joining compaction and idle execution admission share one decision under
+    /// the roots lock; a new parent continuation cannot slip between the two.
+    pub(crate) fn admit_root(self: &Arc<Self>, session: &str) -> Result<RootAdmission, CoreError> {
         static NEXT: AtomicU64 = AtomicU64::new(1);
         let mut roots = self.roots.lock().expect("primary roots");
         if self.closing.load(Ordering::Acquire) {
             return Err(CoreError::Shutdown);
         }
-        if roots.contains_key(session) {
-            return Err(CoreError::TurnBusy);
+        match roots.get(session) {
+            Some(Reservation::Running(root)) => return Ok(RootAdmission::Existing(root.clone())),
+            Some(Reservation::Mutation(_)) => return Err(CoreError::TurnBusy),
+            None => {}
         }
         let token = NEXT.fetch_add(1, Ordering::Relaxed);
         roots.insert(session.into(), Reservation::Mutation(token));
-        Ok(Mutation {
+        Ok(RootAdmission::Reserved(Mutation {
             owner: self.clone(),
             session: session.into(),
             token,
-        })
+        }))
     }
 
     pub(crate) fn source_move_available(
@@ -949,6 +960,10 @@ impl ParentBatch {
 enum Reservation {
     Running(Arc<Root>),
     Mutation(u64),
+}
+pub(crate) enum RootAdmission {
+    Existing(Arc<Root>),
+    Reserved(Mutation),
 }
 pub(crate) struct Mutation {
     owner: Arc<Owner>,

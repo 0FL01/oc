@@ -1227,14 +1227,21 @@ mod tests {
         // Over threshold fires once, then stays quiet until the cadence elapses.
         let first = evaluate(&config, &mut state, "m", 1_000_000, 200_000, 0).expect("nudge");
         assert_eq!(first.force, NudgeForce::Hard);
-        assert!(first.text.contains("200000"));
+        // Context-limit guidance is anchored to the configured threshold, not
+        // a changing estimate that would invalidate the cached prompt prefix.
+        assert!(first.text.contains("100000"));
         assert!(!first.text.contains("transcript"));
         for _ in 0..4 {
             state.on_turn();
             assert!(evaluate(&config, &mut state, "m", 1_000_000, 200_000, 0).is_none());
         }
         state.on_turn();
-        assert!(evaluate(&config, &mut state, "m", 1_000_000, 200_000, 0).is_some());
+        assert_eq!(
+            evaluate(&config, &mut state, "m", 1_000_000, 210_000, 0)
+                .unwrap()
+                .text,
+            first.text,
+        );
         assert_eq!(state.emitted, 2);
         // Successful compression starts a cadence cooldown.
         state.on_compress_success();

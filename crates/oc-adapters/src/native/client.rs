@@ -393,12 +393,14 @@ struct Operation {
     observed: Option<(u64, Option<u64>)>,
     owned: BTreeMap<u64, OwnedOperation>,
     barrier: u64,
+    completed_compactions: BTreeSet<String>,
 }
 
 struct OwnedOperation {
     origin: Option<u64>,
     completion: OwnedCompletion,
     acknowledged_at: Option<u64>,
+    compaction: Option<String>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -502,10 +504,18 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                         // A newer pending input cannot erase the previous origin.
                         let accepted = result.as_ref().is_ok_and(|value| value.get("Ok").is_some());
                         for operation in operations.values_mut() {
-                            if operation.owned.get(&id).is_some_and(|owned| !accepted || owned.origin.is_none() || owned.completion == OwnedCompletion::Reply) {
+                            if let Some(owned) = operation.owned.get_mut(&id)
+                                && owned.completion == OwnedCompletion::Compaction {
+                                owned.compaction = result.as_ref().ok().and_then(|value| value["Ok"]["id"].as_str()).map(str::to_owned);
+                            }
+                            if operation.owned.get(&id).is_some_and(|owned| !accepted || owned.origin.is_none() || owned.completion == OwnedCompletion::Reply
+                                || owned.compaction.as_ref().is_some_and(|id| operation.completed_compactions.contains(id))) {
                                 operation.owned.remove(&id);
                             } else if let Some(owned) = operation.owned.get_mut(&id) {
                                 owned.acknowledged_at = Some(sequence);
+                             }
+                            if !operation.owned.values().any(|owned| owned.completion == OwnedCompletion::Compaction && owned.compaction.is_none()) {
+                                operation.completed_compactions.clear();
                             }
                         }
                         if let Some((selected, sent_epoch)) = snapshots.remove(&id)
@@ -543,20 +553,25 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                         if lease == Lease::Tui && let (Some(origin), CoreEvent::TurnStarted { session, .. }) = (origin, &event) {
                             let operation = operations.entry(session.0.clone()).or_default();
                             operation.observe(next, Some(origin), sequence);
-                            operation.owned.retain(|_, owned| owned.origin != Some(origin));
+                            operation.owned.retain(|_, owned| owned.completion == OwnedCompletion::Compaction || owned.origin != Some(origin));
                         }
                         if let CoreEvent::TurnFinished { session, .. } | CoreEvent::TurnInterrupted { session, .. } | CoreEvent::TurnFailed { session, .. } = &event {
                             let operation = operations.entry(session.0.clone()).or_default();
                             if operation.observed.is_none_or(|(_, current)| current.is_none() || current == origin) {
                                 operation.observe(next, None, sequence);
                             }
-                            if origin.is_some() { operation.owned.retain(|_, owned| owned.origin != origin); }
+                            if origin.is_some() { operation.owned.retain(|_, owned| owned.completion == OwnedCompletion::Compaction || owned.origin != origin); }
                         }
                         if let CoreEvent::Compaction(snapshot) = &event
                             && matches!(snapshot.state, oc_core::compaction::CompactionState::Completed | oc_core::compaction::CompactionState::Failed | oc_core::compaction::CompactionState::Cancelled)
-                            && let Some(operation) = operations.get_mut(&snapshot.session)
-                            && origin.is_some() {
-                            operation.owned.retain(|_, owned| owned.completion != OwnedCompletion::Compaction || owned.origin != origin);
+                            && let Some(operation) = operations.get_mut(&snapshot.session) {
+                            // Compaction outlives the original turn and its
+                            // events carry no origin. Match the typed operation
+                            // ID, including a terminal event before its ACK.
+                            operation.owned.retain(|_, owned| owned.compaction.as_deref() != Some(snapshot.id.as_str()));
+                            if operation.owned.values().any(|owned| owned.completion == OwnedCompletion::Compaction && owned.compaction.is_none()) {
+                                operation.completed_compactions.insert(snapshot.id.clone());
+                            }
                         }
                         let event = if lease == Lease::Tui { CoreEvent::Projection { revision: next, event: Box::new(event) } } else { event };
                         let _ = events.send(event);
@@ -583,7 +598,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                         wire::Request::CompactSession { .. } => OwnedCompletion::Compaction,
                         _ => OwnedCompletion::Reply,
                     };
-                    operations.entry(session.into()).or_default().owned.insert(sequence, OwnedOperation { origin: None, completion, acknowledged_at: None });
+                    operations.entry(session.into()).or_default().owned.insert(sequence, OwnedOperation { origin: None, completion, acknowledged_at: None, compaction: None });
                 }
                 let frame = Client::Request { id: sequence, location_epoch: epoch, expected, request: Box::new(request) };
                 if send(&pipes.outgoing, &budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err(()); }

@@ -269,18 +269,98 @@ impl Runtime<'_> {
         session: &str,
         measured: Option<u64>,
         fallback: u64,
+        admitted_input: u64,
     ) -> Result<Option<u64>, RuntimeError> {
         if measured.is_some() {
             return Ok(measured);
         }
-        // A completed checkpoint must get one primary response before another
-        // automatic compaction. This suppression never bypasses hard admission;
-        // its numeric fallback and independent byte guard still apply.
+        // Avoid soft-trigger loops before a checkpoint gets a measurement, but
+        // never strand a request that still exceeds its actual input budget.
+        if fallback > admitted_input {
+            return Ok(Some(fallback));
+        }
         Ok(self
             .db
             .session_checkpoint(session)?
             .is_none()
             .then_some(fallback))
+    }
+    /// Keep whole exchanges by their captured provider projection, not public
+    /// message text (which excludes most tool/reasoning payloads).
+    #[allow(clippy::too_many_arguments)]
+    fn priced_compaction_boundary(
+        &self,
+        published: &ExecutionGeneration,
+        session: &str,
+        after: i64,
+        model: &str,
+        provider: &str,
+        binding: &oc_core::queries::WireProvenance,
+        profile: &oc_core::queries::RequestProfile,
+    ) -> Result<Option<(i64, String)>, RuntimeError> {
+        let minimum = self.db.compaction_boundary(session, after)?;
+        if minimum.is_none() {
+            return Ok(None);
+        }
+        let context = match self.active_projection_range(
+            session,
+            after,
+            i64::MAX,
+            false,
+            ACTIVE_CONTEXT_BYTES_CAP,
+        ) {
+            Ok(context) => context,
+            // Manual escape must remain reachable even when the full history
+            // exceeds the host bound. Source acquisition below stays bounded.
+            Err(RuntimeError::ContextOverflow { .. }) => return Ok(minimum),
+            Err(error) => return Err(error),
+        };
+        let mut boundaries = Vec::new();
+        for (index, row) in context.projected.iter().enumerate().skip(1) {
+            if row.1 != "user" && !context.blocks.iter().any(|block| block.id == row.0) {
+                continue;
+            }
+            let previous = &context.projected[index - 1].0;
+            let boundary = context
+                .blocks
+                .iter()
+                .find(|block| block.id == *previous)
+                .map_or(previous.as_str(), |block| block.end_msg.as_str());
+            if let Some(seq) = self.db.message_seq(session, boundary)? {
+                boundaries.push((index, seq, boundary.to_owned()));
+            }
+        }
+        let Some((_, seq, id)) = boundaries.last() else {
+            return Ok(minimum);
+        };
+        let mut chosen = (*seq, id.clone());
+        for (index, seq, id) in boundaries.into_iter().rev() {
+            let mut tail = match self.wire_history_view(
+                session,
+                &context.projected[index..],
+                &context.blocks,
+                model,
+                provider,
+                profile.agent_digest.as_deref(),
+                after,
+                Some(binding),
+                false,
+                &published.dcp_config,
+            ) {
+                Ok(tail) => tail,
+                Err(RuntimeError::ContextOverflow { .. }) => break,
+                Err(error) => return Err(error),
+            };
+            let marks = self.db.dcp_tool_projection_for_input(session, &tail)?;
+            apply_dcp_projection(&mut tail, &marks);
+            if usage_tokens(&tail.iter().collect::<Vec<_>>())?
+                > published.config.compaction.keep_tokens
+            {
+                break;
+            }
+            chosen = (seq, id);
+        }
+        Ok(Some(chosen))
     }
     pub(super) fn compaction_active(&self) -> bool {
         self.compactions
@@ -635,7 +715,12 @@ impl Runtime<'_> {
                     let projection = prepared.projection(Some(&hot))?;
                     let progress = prepared.receipt(&snapshot, Some(&hot))?;
                     let retire = prepared.identities.keys().cloned().collect::<Vec<_>>();
-                    if self
+                    if snapshot.reason != CompactionReason::Manual
+                        && progress["outcome"] == "no_gain"
+                    {
+                        snapshot.state = CompactionState::Failed;
+                        snapshot.error = Some("compaction no_gain; context preserved".into());
+                    } else if self
                         .db
                         .commit_closed_turn_segment_selected(
                             log,
@@ -654,27 +739,35 @@ impl Runtime<'_> {
                         snapshot.error =
                             Some("closed turn checkpoint commit failed; context preserved".into());
                     }
-                } else if self
-                    .db
-                    .commit_checkpoint_selected(
-                        &snapshot,
-                        &prepared.boundary,
-                        prepared
-                            .native
-                            .as_ref()
-                            .map(|(route, opaque)| (route.as_str(), opaque.as_str())),
-                        &prepared.removed,
-                        &prepared.selection,
-                        Some((
-                            &prepared.projection(None)?,
-                            &prepared.receipt(&snapshot, None)?,
-                            &prepared.identities.keys().cloned().collect::<Vec<_>>(),
-                        )),
-                    )
-                    .is_err()
-                {
-                    snapshot.state = CompactionState::Failed;
-                    snapshot.error = Some("checkpoint commit failed".into());
+                } else {
+                    let progress = prepared.receipt(&snapshot, None)?;
+                    if snapshot.reason != CompactionReason::Manual
+                        && progress["outcome"] == "no_gain"
+                    {
+                        snapshot.state = CompactionState::Failed;
+                        snapshot.error = Some("compaction no_gain; context preserved".into());
+                    } else if self
+                        .db
+                        .commit_checkpoint_selected(
+                            &snapshot,
+                            &prepared.boundary,
+                            prepared
+                                .native
+                                .as_ref()
+                                .map(|(route, opaque)| (route.as_str(), opaque.as_str())),
+                            &prepared.removed,
+                            &prepared.selection,
+                            Some((
+                                &prepared.projection(None)?,
+                                &progress,
+                                &prepared.identities.keys().cloned().collect::<Vec<_>>(),
+                            )),
+                        )
+                        .is_err()
+                    {
+                        snapshot.state = CompactionState::Failed;
+                        snapshot.error = Some("checkpoint commit failed".into());
+                    }
                 }
             }
             Ok(None) => {
@@ -767,10 +860,6 @@ impl Runtime<'_> {
             .map(|p| p.options.native_fallback_limits)
             .unwrap_or_default();
         let budget = models::budget(&selection, 32_000, fallback);
-        let content_budget = usize::try_from(budget.input.saturating_mul(4))
-            .unwrap_or(usize::MAX)
-            .saturating_sub(PROMPT.len() + 4096)
-            .min(ACTIVE_CONTEXT_BYTES_CAP);
         let recover_native = snapshot.reason == CompactionReason::Overflow
             && self
                 .db
@@ -821,11 +910,7 @@ impl Runtime<'_> {
             // Archive/source acquisition is a host-resource decision, not a
             // model-token estimate. Inspect the full eligible source before
             // selecting protections; final provider admission remains below.
-            let source_budget = if retain_selection {
-                ACTIVE_CONTEXT_BYTES_CAP
-            } else {
-                content_budget
-            };
+            let source_budget = ACTIVE_CONTEXT_BYTES_CAP;
             let floor = self
                 .db
                 .compaction_content_floor(session, after, cutoff, source_budget)?;
@@ -913,9 +998,15 @@ impl Runtime<'_> {
                             .session_checkpoint(session)?
                             .map_or(0, |(seq, _)| seq)
                     });
-            let Some((cutoff, boundary)) =
-                self.db
-                    .compaction_boundary(session, after, config.compaction.keep_tokens)?
+            let Some((cutoff, boundary)) = self.priced_compaction_boundary(
+                published,
+                session,
+                after,
+                model,
+                &catalog.provider,
+                &binding,
+                &profile,
+            )?
             else {
                 return Ok(None);
             };
@@ -928,11 +1019,7 @@ impl Runtime<'_> {
                 || !dcp.dedup_protected_tools.is_empty()
                 || !dcp.purge_protected_tools.is_empty()
                 || self.db.has_active_shell_jobs(session)?;
-            let source_budget = if retain_selection {
-                ACTIVE_CONTEXT_BYTES_CAP
-            } else {
-                content_budget
-            };
+            let source_budget = ACTIVE_CONTEXT_BYTES_CAP;
             let floor = self
                 .db
                 .compaction_content_floor(session, after, cutoff, source_budget)?;
@@ -1052,12 +1139,6 @@ impl Runtime<'_> {
             });
         }
         let source_bytes = serialized_size(&history)?;
-        models::admit_budget(
-            &selection,
-            estimate_tokens(&serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?),
-            &budget,
-        )
-        .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         if cancel.load(Ordering::Relaxed) {
             return Err(RuntimeError::Provider);
         }
@@ -1072,6 +1153,14 @@ impl Runtime<'_> {
             && snapshot.reason != CompactionReason::Overflow
             && let Some(strategy) = strategy
         {
+            models::admit_budget(
+                &selection,
+                estimate_tokens(
+                    &serde_json::to_string(&history).map_err(|_| RuntimeError::Storage)?,
+                ),
+                &budget,
+            )
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let route = crate::compaction::route_identity(&catalog.provider, model, provider)
                 .map_err(|_| RuntimeError::Provider)?;
             let native = loop {
@@ -1158,6 +1247,16 @@ impl Runtime<'_> {
                 };
             }
         }
+        // Opaque continuation is meaningful only to its original provider, not
+        // as ciphertext quoted to a text summarizer. Keep public reasoning and
+        // complete tool pairs; RAW, source pricing and native input are intact.
+        let transcript = transcript.into_iter().filter_map(|item| {
+            if matches!(&item, InputItem::ProviderOutput(value) if matches!(value["type"].as_str(), Some("reasoning" | "compaction"))) {
+                crate::tools::model_history::neutral(&item)
+            } else {
+                Some(item)
+            }
+        }).collect::<Vec<_>>();
         let transcript = serde_json::to_string(&transcript).map_err(|_| RuntimeError::Storage)?;
         let mut input = vec![
             InputItem::message(InputRole::Developer, PROMPT),

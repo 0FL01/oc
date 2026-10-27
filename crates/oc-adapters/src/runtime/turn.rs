@@ -1809,7 +1809,7 @@ impl<'a> Runtime<'a> {
             && !params.cancel.load(Ordering::Relaxed)
             && !history.is_empty()
             && self
-                .compaction_estimate(&params.session, measured, fallback)?
+                .compaction_estimate(&params.session, measured, fallback, budget.input)?
                 .is_some_and(|estimate| {
                     compaction_config.required_for_budget(
                         estimate,
@@ -2764,11 +2764,21 @@ impl<'a> Runtime<'a> {
                 });
                 (bytes, noncausal_tokens, measured, estimate)
             };
+            // A staged notice is an unchanged open tail, not summary source.
+            // If it alone exceeds the host cap, no checkpoint can admit the
+            // next request; refuse without spending a summary or replaying it.
+            let notice_overflow = escaped_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64
+                && !staged_notice_input.is_empty()
+                && super::compaction::serialized_size(&staged_notice_input)?
+                    > ACTIVE_CONTEXT_BYTES_CAP as u64;
             // Candidate borrows end before compaction can replace the journal.
-            let automatic_due = last_compacted_round != Some(rounds)
+            let over_budget = request_estimate > budget.input;
+            let automatic_due = !notice_overflow
+                && compaction_config.auto
+                && (last_compacted_round != Some(rounds) || over_budget)
                 && (!history.is_empty() || closed_boundary.is_some())
                 && self
-                    .compaction_estimate(&params.session, measured, request_estimate)?
+                    .compaction_estimate(&params.session, measured, request_estimate, budget.input)?
                     .is_some_and(|estimate| {
                         compaction_config.required_for_budget(
                             estimate,
@@ -2792,7 +2802,7 @@ impl<'a> Runtime<'a> {
                     .session_checkpoint(&params.session)?
                     .map_or(0, |(seq, _)| seq);
                 self.db
-                    .compaction_boundary(&params.session, floor, compaction_config.keep_tokens)?
+                    .compaction_boundary(&params.session, floor)?
                     .is_some()
             } else {
                 false
@@ -2800,8 +2810,10 @@ impl<'a> Runtime<'a> {
             let hot_candidate = closed_boundary
                 .filter(|_| !eligible_past)
                 .map(|(counts, seq)| (&mut turn_log, counts, seq));
-            let compacted = self
-                .deliver_compaction_hot(
+            let compacted = if notice_overflow {
+                false
+            } else {
+                self.deliver_compaction_hot(
                     &published,
                     &params.session,
                     params.catalog,
@@ -2811,9 +2823,32 @@ impl<'a> Runtime<'a> {
                     Some(params.cancel),
                     hot_candidate,
                 )
-                .await?;
+                .await?
+            };
             if params.cancel.load(Ordering::Relaxed) {
                 continue;
+            }
+            if !compacted && escaped_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
+                let error = RuntimeError::ContextOverflow {
+                    bytes: escaped_bytes,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                };
+                Self::terminal_error(&mut turn_log, "context_overflow", error.to_string());
+                let report = self.commit_turn(
+                    &turn_log,
+                    turn_id,
+                    &params.session,
+                    TurnStatus::Failed,
+                    text,
+                    rounds,
+                    streamed_ms(streamed),
+                    usage,
+                    context_usage,
+                    calls,
+                    nudge_hint,
+                    &published,
+                )?;
+                return Ok(TurnExecution::Report(Box::new(report)));
             }
             if (overflow_pending || automatic_due) && !compacted {
                 Self::terminal_error(
@@ -2914,28 +2949,6 @@ impl<'a> Runtime<'a> {
                 .chain(anchors.iter())
                 .chain(&continuation)
                 .collect();
-            if escaped_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
-                let error = RuntimeError::ContextOverflow {
-                    bytes: escaped_bytes,
-                    cap: ACTIVE_CONTEXT_BYTES_CAP,
-                };
-                Self::terminal_error(&mut turn_log, "context_overflow", error.to_string());
-                let report = self.commit_turn(
-                    &turn_log,
-                    turn_id,
-                    &params.session,
-                    TurnStatus::Failed,
-                    text,
-                    rounds,
-                    streamed_ms(streamed),
-                    usage,
-                    context_usage,
-                    calls,
-                    nudge_hint,
-                    &published,
-                )?;
-                return Ok(TurnExecution::Report(Box::new(report)));
-            }
             let input: Vec<InputItem> = input.into_iter().cloned().collect();
             if let Err(error) = crate::attachments::admit_images(&selection.entry, &input, &[]) {
                 if let Some(prepared) = &pending {
