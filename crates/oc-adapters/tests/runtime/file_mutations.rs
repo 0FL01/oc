@@ -106,6 +106,19 @@ async fn external_mutations_auto_admits_patch_edit_and_write_without_saved_grant
         assert_eq!(asked[1].resources, [target.to_string_lossy()]);
         let records = harness.db.list_tool_ops("external-auto").unwrap();
         assert_eq!(records[0].patch_effects.as_ref().unwrap().total_files, 1);
+        let capture = records[0]
+            .output_presentation
+            .as_ref()
+            .unwrap()
+            .capture
+            .as_ref()
+            .unwrap();
+        assert_eq!(capture.state, oc_core::tool_output::CaptureState::Complete);
+        assert!(
+            std::fs::read_to_string(capture.reference.as_ref().unwrap())
+                .unwrap()
+                .contains("+after\n")
+        );
         let requests = requests.lock().unwrap();
         let original = requests.last().unwrap()["input"]
             .as_array()

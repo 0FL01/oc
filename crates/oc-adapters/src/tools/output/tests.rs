@@ -1,6 +1,229 @@
 use super::*;
 
 #[test]
+fn confirmed_diff_capture_keeps_utf8_and_omitted_tail_for_patch_and_edit() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_session("s").unwrap();
+    let files = crate::files::Files::new(project.path(), data.path()).unwrap();
+    let content = format!(
+        "{} secret-sentinel\nmultiline-first\nmultiline-last\n{}DIFF-TAIL\n",
+        "界".repeat(600),
+        "line\n".repeat(125)
+    );
+    for tool in ["apply_patch", "edit"] {
+        db.record_tool_intent(tool, "s", None, tool, "{}").unwrap();
+        let context = Context {
+            db: &db,
+            operation: tool,
+            session: "s",
+            location: "/p",
+            generation: 1,
+            source: "fixture",
+            limits: Limits::default(),
+            secrets: vec![
+                "secret-sentinel".into(),
+                "multiline-first\nmultiline-last".into(),
+            ],
+        };
+        let mut capture = DiffCapture::new(&context);
+        let (output, effects) = if tool == "apply_patch" {
+            let patch = format!(
+                "*** Begin Patch\n*** Add File: patch.txt\n+{}*** End Patch",
+                content.replace('\n', "\n+").trim_end_matches('+')
+            );
+            let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
+                &files,
+                &patch,
+                &crate::patch::AllowAll,
+                None,
+                &mut |text| capture.append(text),
+            );
+            (crate::tools::patch_outcome(result), effects)
+        } else {
+            std::fs::write(project.path().join("edit.txt"), "before\n").unwrap();
+            let args =
+                serde_json::json!({"path":"edit.txt","oldString":"before\n","newString":content});
+            let input = crate::patch::mutation::Input::parse(tool, &args).unwrap();
+            let (result, effects) = crate::patch::mutation::execute(
+                &files,
+                &input,
+                &crate::patch::AllowAll,
+                None,
+                &mut |text| capture.append(text),
+            );
+            (result.unwrap().to_string(), effects)
+        };
+        assert!(effects.truncated && effects.files[0].hunks[0].lines[0].text.len() <= 1024);
+        let prepared = capture.finish(output);
+        assert!(!prepared.logging_failed, "{}", prepared.text);
+        let facts = prepared.presentation.unwrap();
+        assert!(facts.is_valid());
+        let captured = facts.capture.unwrap();
+        assert_eq!(captured.state, CaptureState::Complete);
+        let path = captured.reference.unwrap();
+        assert!(prepared.text.contains(&path));
+        let saved = std::fs::read_to_string(&path).unwrap();
+        assert!(saved.contains(&format!("+{} [redacted]\n", "界".repeat(600))));
+        assert!(saved.ends_with("+DIFF-TAIL\n") && !saved.contains("secret-sentinel"));
+        assert!(!saved.contains("multiline-first") && !saved.contains("multiline-last"));
+        assert_eq!(captured.retained_bytes, saved.len() as u64);
+        assert_eq!(captured.retained_bytes, captured.admitted_bytes);
+        let call = crate::tools::ToolCall {
+            id: "continuation".into(),
+            name: "read".into(),
+            arguments: serde_json::json!({"path":path,"offset":125,"limit":10}),
+        };
+        let (page, resource) = db
+            .artifact_call(
+                "s",
+                &call,
+                Limits::default(),
+                &std::sync::atomic::AtomicBool::new(false),
+            )
+            .unwrap();
+        assert!(page.contains("+DIFF-TAIL"));
+        assert_eq!(resource.state, CaptureState::Complete);
+        let call = crate::tools::ToolCall {
+            name: "grep".into(),
+            arguments: serde_json::json!({"path":path,"pattern":"DIFF-TAIL","literal":true}),
+            ..call
+        };
+        assert!(
+            db.artifact_call(
+                "s",
+                &call,
+                Limits::default(),
+                &std::sync::atomic::AtomicBool::new(false)
+            )
+            .unwrap()
+            .0
+            .contains("DIFF-TAIL")
+        );
+    }
+}
+
+#[test]
+fn confirmed_diff_capture_reports_quota_without_repeating_the_mutation() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open_with_quota(data.path(), 128).unwrap();
+    db.create_session("s").unwrap();
+    db.record_tool_intent("patch", "s", None, "apply_patch", "{}")
+        .unwrap();
+    let files = crate::files::Files::new(project.path(), data.path()).unwrap();
+    let context = Context {
+        db: &db,
+        operation: "patch",
+        session: "s",
+        location: "/p",
+        generation: 1,
+        source: "fixture",
+        limits: Limits::default(),
+        secrets: vec![],
+    };
+    let mut capture = DiffCapture::new(&context);
+    let content = "x".repeat(1000);
+    let patch = format!("*** Begin Patch\n*** Add File: actual\n+{content}\n*** End Patch");
+    let (result, effects) = crate::patch::apply_patch_with_approved_preimage(
+        &files,
+        &patch,
+        &crate::patch::AllowAll,
+        None,
+        &mut |text| capture.append(text),
+    );
+    assert!(result.is_ok() && !effects.truncated);
+    let prepared = capture.finish(crate::tools::patch_outcome(result));
+    assert!(prepared.logging_failed);
+    let captured = prepared.presentation.unwrap().capture.unwrap();
+    assert_eq!(captured.state, CaptureState::Quota);
+    assert_eq!(captured.retained_bytes, 128);
+    assert!(captured.admitted_bytes > captured.retained_bytes);
+    assert!(prepared.text.contains("capture Quota") && !prepared.text.contains("capture Complete"));
+    assert_eq!(
+        std::fs::read_to_string(project.path().join("actual")).unwrap(),
+        format!("{content}\n")
+    );
+    assert_eq!(
+        std::fs::read_dir(data.path().join("tool-output"))
+            .unwrap()
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn confirmed_diff_capture_failure_cannot_recapture_status_as_a_complete_diff() {
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_session("s").unwrap();
+    db.record_tool_intent("patch", "s", None, "apply_patch", "{}")
+        .unwrap();
+    let context = Context {
+        db: &db,
+        operation: "patch",
+        session: "s",
+        location: "/p",
+        generation: 1,
+        source: "fixture",
+        limits: Limits {
+            max_bytes: 8,
+            max_lines: 1,
+        },
+        secrets: vec![],
+    };
+    let mut capture = DiffCapture::new(&context);
+    // A transient artifact-directory identity failure clears before status
+    // preparation. That must not start a second capture for the status text.
+    std::fs::rename(data.path().join("tool-output"), data.path().join("held")).unwrap();
+    capture.append(&"x".repeat(SERVED_CAP));
+    std::fs::rename(data.path().join("held"), data.path().join("tool-output")).unwrap();
+    let prepared = capture.finish("actual successful mutation status".into());
+    assert!(prepared.logging_failed);
+    let captured = prepared.presentation.unwrap().capture.unwrap();
+    assert_eq!(captured.state, CaptureState::Io);
+    assert!(captured.reference.is_none());
+    assert!(
+        prepared.text.contains("no usable path") && !prepared.text.contains("capture Complete")
+    );
+    assert!(db.output_for_operation("patch").unwrap().is_none());
+    assert_eq!(
+        std::fs::read_dir(data.path().join("tool-output"))
+            .unwrap()
+            .count(),
+        0
+    );
+    // Failure at finish, after a durable extent exists, must publish the same
+    // interrupted descriptor as replay rather than zero/no-reference facts.
+    db.record_tool_intent("finish", "s", None, "apply_patch", "{}")
+        .unwrap();
+    let context = Context {
+        operation: "finish",
+        ..context
+    };
+    let mut capture = DiffCapture::new(&context);
+    capture.append(&"y".repeat(SERVED_CAP));
+    std::fs::rename(data.path().join("tool-output"), data.path().join("held")).unwrap();
+    let prepared = capture.finish("actual successful mutation status".into());
+    std::fs::rename(data.path().join("held"), data.path().join("tool-output")).unwrap();
+    assert!(prepared.logging_failed);
+    let captured = prepared.presentation.unwrap().capture.unwrap();
+    assert_eq!(captured.state, CaptureState::Interrupted);
+    assert_eq!(
+        captured,
+        db.output_for_operation("finish")
+            .unwrap()
+            .unwrap()
+            .presentation_capture()
+    );
+    assert_eq!(
+        std::fs::read(captured.reference.unwrap()).unwrap(),
+        vec![b'y'; SERVED_CAP]
+    );
+}
+
+#[test]
 fn structured_clipping_never_reassigns_match_text_and_keeps_diagnostic_facts() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();

@@ -5570,6 +5570,25 @@ impl<'a> Runtime<'a> {
                 _ => None,
             };
             let mut artifact_source = None;
+            let published = captured_output;
+            let source = crate::config::mcp::safe_source_id(
+                published
+                    .config
+                    .provenance
+                    .get("tool_output")
+                    .map_or("native defaults", String::as_str),
+            );
+            let preparation = crate::tools::output::Context {
+                db: &self.db,
+                operation: &op,
+                session,
+                location: &self.location,
+                generation: published.id,
+                source: &source,
+                limits: published.config.tool_output,
+                secrets: output_secrets.clone(),
+            };
+            let mut diff_capture = crate::tools::output::DiffCapture::new(&preparation);
             let (mut state, output) = if let Some(rejection) = rejection {
                 rejection
             } else {
@@ -5808,7 +5827,9 @@ impl<'a> Runtime<'a> {
                             unreachable!("admitted patch")
                         };
                         let (state, output, effects) =
-                            crate::tools::tool_patch_typed(ctx, prepared_call);
+                            crate::tools::tool_patch_typed(ctx, prepared_call, &mut |text| {
+                                diff_capture.append(text)
+                            });
                         patch_effects = effects;
                         (state, output)
                     }
@@ -5817,7 +5838,9 @@ impl<'a> Runtime<'a> {
                             unreachable!("admitted mutation")
                         };
                         let (state, output, effects) =
-                            crate::tools::tool_mutation_typed(ctx, prepared_call);
+                            crate::tools::tool_mutation_typed(ctx, prepared_call, &mut |text| {
+                                diff_capture.append(text)
+                            });
                         patch_effects = effects;
                         (state, output)
                     }
@@ -6091,24 +6114,6 @@ impl<'a> Runtime<'a> {
             };
             // One publication boundary BEFORE provider/TurnLog/outcome copies.
             // A newer publication cannot re-limit this issued batch or history.
-            let published = captured_output;
-            let source = crate::config::mcp::safe_source_id(
-                published
-                    .config
-                    .provenance
-                    .get("tool_output")
-                    .map_or("native defaults", String::as_str),
-            );
-            let preparation = crate::tools::output::Context {
-                db: &self.db,
-                operation: &op,
-                session,
-                location: &self.location,
-                generation: published.id,
-                source: &source,
-                limits: published.config.tool_output,
-                secrets: output_secrets.clone(),
-            };
             if matches!(name, "shell" | "bash") {
                 artifact_source = self.db.output_for_operation(&op)?;
             }
@@ -6126,6 +6131,13 @@ impl<'a> Runtime<'a> {
                         ("error: common MCP text preparation failed; original execution not repeated".into(),true,None)
                     }
                 }
+            } else if patch_effects.is_some() {
+                let prepared = diff_capture.finish(output);
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
             } else if name == "question" && state == "completed" {
                 let prepared = preparation.prepare_question(output)?;
                 (

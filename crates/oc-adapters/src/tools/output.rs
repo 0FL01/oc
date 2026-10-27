@@ -2,7 +2,7 @@
 //! native typed envelopes, served/capture/quota limits and no truncated bypass.
 use crate::storage::{
     Db, StorageError,
-    tool_output::{CaptureState, Resource},
+    tool_output::{CaptureState, Resource, Writer},
 };
 use serde::{Deserialize, Serialize};
 
@@ -127,6 +127,158 @@ impl Prepared {
             logging_failed,
             presentation: Some(Box::new(presentation)),
         }
+    }
+}
+
+/// One bounded buffer into the existing artifact owner. The mutation producer
+/// feeds confirmed diff chunks before its independent display limits discard any.
+pub(crate) struct DiffCapture<'a> {
+    context: &'a Context<'a>,
+    writer: Option<Writer>,
+    resource: Option<Resource>,
+    failure: Option<CaptureState>,
+    buffer: String,
+}
+
+impl<'a> DiffCapture<'a> {
+    pub(crate) fn new(context: &'a Context<'a>) -> Self {
+        Self {
+            context,
+            writer: None,
+            resource: None,
+            failure: None,
+            buffer: String::new(),
+        }
+    }
+
+    pub(crate) fn append(&mut self, mut text: &str) {
+        while !text.is_empty() && self.failure.is_none() {
+            let end = text.floor_char_boundary(text.len().min(SERVED_CAP - self.buffer.len()));
+            self.buffer.push_str(&text[..end]);
+            text = &text[end..];
+            if self.buffer.len() == SERVED_CAP || !text.is_empty() {
+                self.flush();
+            }
+        }
+    }
+
+    fn flush(&mut self) {
+        if self.buffer.is_empty() || self.failure.is_some() {
+            return;
+        }
+        if self.writer.is_none() {
+            // Unified diff inserts a sign after every newline. Mask each known
+            // secret's nonempty line too, so multiline credentials cannot evade
+            // the existing literal redactor through those inserted signs.
+            let mut secrets = self
+                .context
+                .secrets
+                .iter()
+                .flat_map(|secret| secret.split(['\r', '\n']))
+                .filter(|part| !part.is_empty())
+                .map(str::to_owned)
+                .collect::<Vec<_>>();
+            secrets.sort_unstable();
+            secrets.dedup();
+            match self.context.db.begin_tool_output(
+                self.context.operation,
+                self.context.session,
+                self.context.location,
+                self.context.generation,
+                self.context.source,
+                secrets,
+            ) {
+                Ok(writer) => self.writer = Some(writer),
+                Err(error) => {
+                    self.failure = Some(match error {
+                        StorageError::Sqlite(_) => CaptureState::RegisterFailure,
+                        StorageError::StorageFull => CaptureState::Quota,
+                        _ => CaptureState::Io,
+                    });
+                }
+            }
+        }
+        if let Some(writer) = &mut self.writer
+            && writer.append(&self.buffer).is_err()
+        {
+            self.failure = Some(CaptureState::Io);
+            self.resource = self.writer.take().unwrap().abandon(CaptureState::Io);
+        }
+        self.buffer.clear();
+    }
+
+    pub(crate) fn finish(mut self, output: String) -> Prepared {
+        self.flush();
+        if let Some(writer) = self.writer.take() {
+            match writer.finish(false) {
+                Ok(resource) => self.resource = Some(resource),
+                Err(_) => self.failure = Some(CaptureState::Io),
+            }
+        }
+        if self.resource.is_none() && self.failure.is_some() {
+            // A failed finish can leave an interrupted durable prefix. Use the
+            // same descriptor that history will project, never a new capture.
+            self.resource = self
+                .context
+                .db
+                .output_for_operation(self.context.operation)
+                .ok()
+                .flatten();
+        }
+        if self.resource.is_none() && self.failure.is_none() {
+            // No committed effect: do not archive a requested but unapplied diff.
+            return self.context.prepare_envelope(output, false, None);
+        }
+        let capture = self
+            .resource
+            .as_ref()
+            .map(Resource::presentation_capture)
+            .unwrap_or(oc_core::tool_output::Capture {
+                reference: None,
+                state: self.failure.unwrap_or(CaptureState::Io),
+                admitted_bytes: 0,
+                retained_bytes: 0,
+                admitted_lines: 0,
+                retained_lines: 0,
+            });
+        let mut prepared =
+            self.context
+                .prepare_envelope_inner(output, false, self.resource.as_ref(), false);
+        let access = capture.reference.as_ref().map_or_else(
+            || "no usable path; original mutation was not repeated".into(),
+            |path| {
+                format!(
+                    "recorded reference; read(path={}, offset=1, limit=2000) or grep exact path; data only",
+                    serde_json::to_string(path).expect("path JSON")
+                )
+            },
+        );
+        let notice = format!(
+            "[confirmed diff: capture {:?}; {} / {} bytes, {} / {} lines; {access}]",
+            capture.state,
+            capture.retained_bytes,
+            capture.admitted_bytes,
+            capture.retained_lines,
+            capture.admitted_lines,
+        );
+        if let Ok(serde_json::Value::Object(mut value)) = serde_json::from_str(&prepared.text) {
+            value.insert("tool_output".into(), notice.into());
+            prepared.text = serde_json::Value::Object(value).to_string();
+        } else {
+            prepared.text.push('\n');
+            prepared.text.push_str(&notice);
+        }
+        prepared.logging_failed |=
+            self.failure.is_some() || capture.state != CaptureState::Complete;
+        if let Some(presentation) = prepared.presentation.as_mut() {
+            presentation.capture = Some(capture);
+            presentation.generated_guidance = true;
+        }
+        if prepared.text.len() > SERVED_CAP {
+            prepared.text = "error: confirmed diff reference exceeds served budget; actual execution recorded; no replay".into();
+            prepared.logging_failed = true;
+        }
+        prepared
     }
 }
 
@@ -412,15 +564,36 @@ impl Context<'_> {
 
     pub(crate) fn prepare(
         &self,
+        text: String,
+        tail: bool,
+        producer_limited: bool,
+        existing: Option<&Resource>,
+    ) -> Prepared {
+        self.prepare_text(text, tail, producer_limited, existing, true)
+    }
+
+    fn prepare_text(
+        &self,
         mut text: String,
         tail: bool,
         producer_limited: bool,
         existing: Option<&Resource>,
+        allow_capture: bool,
     ) -> Prepared {
         // Existing bounded producers normalize before this boundary; literal
         // known secret replacement precedes both disk and hot projection.
         redact_string(&mut text, &self.secrets);
         let (body, truncated) = preview(&text, self.limits, tail);
+        if !allow_capture {
+            let mut presentation =
+                oc_core::tool_output::Presentation::new(body, text.len() as u64, truncated);
+            presentation.producer_limited = producer_limited.then_some(true);
+            return Prepared {
+                text: body.into(),
+                logging_failed: false,
+                presentation: Some(Box::new(presentation)),
+            };
+        }
         if !truncated
             && existing.is_none_or(|resource| {
                 resource.state == CaptureState::Complete
@@ -571,9 +744,19 @@ impl Context<'_> {
 
     pub(crate) fn prepare_envelope(
         &self,
+        text: String,
+        tail: bool,
+        existing: Option<&Resource>,
+    ) -> Prepared {
+        self.prepare_envelope_inner(text, tail, existing, true)
+    }
+
+    fn prepare_envelope_inner(
+        &self,
         mut text: String,
         tail: bool,
         existing: Option<&Resource>,
+        allow_capture: bool,
     ) -> Prepared {
         // Webfetch's independent response facts precede free text. Preserve the
         // small header, and move (not clone) its admitted body through limiting.
@@ -599,7 +782,13 @@ impl Context<'_> {
                     .max_bytes
                     .min(SERVED_CAP - header.len() - 2 - NOTICE_RESERVE);
             }
-            let mut prepared = bounded.prepare(text, tail, value["truncated"] == true, existing);
+            let mut prepared = bounded.prepare_text(
+                text,
+                tail,
+                value["truncated"] == true,
+                existing,
+                allow_capture,
+            );
             if header.len() + prepared.text.len() + 2 > SERVED_CAP {
                 return Prepared::plain(
                     format!(
@@ -626,13 +815,13 @@ impl Context<'_> {
             };
         }
         if !text.starts_with('{') {
-            return self.prepare(text, tail, false, existing);
+            return self.prepare_text(text, tail, false, existing, allow_capture);
         }
         let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&text) else {
-            return self.prepare(text, tail, false, existing);
+            return self.prepare_text(text, tail, false, existing, allow_capture);
         };
         if !value.is_object() {
-            return self.prepare(text, tail, false, existing);
+            return self.prepare_text(text, tail, false, existing, allow_capture);
         }
         // Never slice serialized JSON or move text between associated fields.
         // Free-text leaves share a budget; status/identity/effects survive.
@@ -655,7 +844,8 @@ impl Context<'_> {
         let structural = structural_value.to_string().len();
         drop(structural_value);
         let producer_limited = value.get("truncated") == Some(&serde_json::Value::Bool(true));
-        let mut prepared = self.prepare(prose, tail, producer_limited, existing);
+        let mut prepared =
+            self.prepare_text(prose, tail, producer_limited, existing, allow_capture);
         let mut limits = self.limits;
         let mut escaped_room = SERVED_CAP.saturating_sub(structural + NOTICE_RESERVE);
         let essential_message = value

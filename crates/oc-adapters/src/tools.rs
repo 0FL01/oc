@@ -647,11 +647,11 @@ async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, 
             (result.state, result.output)
         }
         "apply_patch" => {
-            let (state, output, _) = tool_patch_typed(ctx, call);
+            let (state, output, _) = tool_patch_typed(ctx, call, &mut |_| {});
             (state, output)
         }
         "edit" | "write" => {
-            let (state, output, _) = tool_mutation_typed(ctx, call);
+            let (state, output, _) = tool_mutation_typed(ctx, call, &mut |_| {});
             (state, output)
         }
         "shell" | "bash" => execute_shell_typed(ctx, call).await,
@@ -1203,6 +1203,7 @@ fn pagination(offset: usize, limit: usize, returned: usize, truncated: bool) -> 
 pub(crate) fn tool_patch_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
+    diff: &mut dyn FnMut(&str),
 ) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     if ctx.cancel.load(std::sync::atomic::Ordering::Relaxed) {
         return ("cancelled", Diagnostic::cancelled(&call.name).1, None);
@@ -1210,12 +1211,13 @@ pub(crate) fn tool_patch_typed(
     if let Err(e) = ctx.policy.check_call(call) {
         return ("failed", e.diagnostic(&call.name).output("failed"), None);
     }
-    tool_patch_impl(ctx, call)
+    tool_patch_impl(ctx, call, diff)
 }
 
 fn tool_patch_impl(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
+    diff: &mut dyn FnMut(&str),
 ) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     let patch = call
         .arguments
@@ -1250,6 +1252,7 @@ fn tool_patch_impl(
         patch,
         &bridge,
         ctx.policy.approved_patch_preimage(),
+        diff,
     );
     let state = if result.is_ok() {
         "completed"
@@ -1270,6 +1273,7 @@ fn tool_patch_impl(
 pub(crate) fn tool_mutation_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
+    diff: &mut dyn FnMut(&str),
 ) -> (&'static str, String, Option<oc_core::patch::PatchEffects>) {
     if ctx.cancel.load(std::sync::atomic::Ordering::Acquire) {
         return ("cancelled", Diagnostic::cancelled(&call.name).1, None);
@@ -1304,6 +1308,7 @@ pub(crate) fn tool_mutation_typed(
         &input,
         &PolicyBridge(ctx.policy, &call.name),
         ctx.policy.approved_patch_preimage(),
+        diff,
     );
     (
         if result.is_ok() {

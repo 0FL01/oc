@@ -4,16 +4,22 @@
 use oc_core::patch::*;
 use std::collections::HashMap;
 
-pub(super) fn file_effect(path: &str, op: &str, before: &[u8], after: &[u8]) -> FileEffect {
+pub(super) fn file_effect(
+    path: &str,
+    op: &str,
+    before: &[u8],
+    after: &[u8],
+    diff: &mut dyn FnMut(&str),
+) -> FileEffect {
     let old_count = before.split_inclusive(|b| *b == b'\n').count();
     let new_count = after.split_inclusive(|b| *b == b'\n').count();
     if old_count.max(new_count) > EFFECT_INDEX_LINES_CAP {
-        return streaming_effect(path, op, before, after, old_count, new_count);
+        return streaming_effect(path, op, before, after, old_count, new_count, diff);
     }
     let old: Vec<_> = before.split_inclusive(|b| *b == b'\n').collect();
     let new: Vec<_> = after.split_inclusive(|b| *b == b'\n').collect();
     let Some(runs) = minimal_runs(&old, &new) else {
-        return streaming_effect(path, op, before, after, old_count, new_count);
+        return streaming_effect(path, op, before, after, old_count, new_count, diff);
     };
     let mut effect = FileEffect {
         algorithm: DiffAlgorithm::Minimal,
@@ -71,10 +77,6 @@ pub(super) fn file_effect(path: &str, op: &str, before: &[u8], after: &[u8]) -> 
     }
     let mut rendered = 0;
     for (start, end) in windows {
-        if effect.hunks.len() == EFFECT_HUNKS_CAP {
-            effect.truncated = true;
-            break;
-        }
         let slice = &steps[start..end];
         let mut hunk = PatchHunk {
             old: LineRange {
@@ -91,6 +93,22 @@ pub(super) fn file_effect(path: &str, op: &str, before: &[u8], after: &[u8]) -> 
             lines: Vec::new(),
             truncated: false,
         };
+        diff(&hunk_header(hunk.old, hunk.new));
+        for &(kind, o, n) in slice {
+            diff_line(
+                if kind == PatchLineKind::Added {
+                    new[n]
+                } else {
+                    old[o]
+                },
+                kind,
+                diff,
+            );
+        }
+        if effect.hunks.len() == EFFECT_HUNKS_CAP {
+            effect.truncated = true;
+            continue;
+        }
         for &(kind, o, n) in slice {
             if rendered == EFFECT_LINES_CAP {
                 hunk.truncated = true;
@@ -250,6 +268,7 @@ fn streaming_effect(
     after: &[u8],
     old_count: usize,
     new_count: usize,
+    diff: &mut dyn FnMut(&str),
 ) -> FileEffect {
     // Trim equal byte-lines without indexing the large images. Each byte is
     // visited a constant number of times, including the reverse suffix scan.
@@ -315,6 +334,21 @@ fn streaming_effect(
         lines: Vec::new(),
         truncated: old_count + new_count + leading + trailing > EFFECT_LINES_CAP,
     };
+    diff(&hunk_header(hunk.old, hunk.new));
+    for (bytes, kind, count) in [
+        (
+            &before[context_start..start],
+            PatchLineKind::Context,
+            leading,
+        ),
+        (&before[start..old_end], PatchLineKind::Removed, old_count),
+        (&after[start..new_end], PatchLineKind::Added, new_count),
+        (&before[old_end..], PatchLineKind::Context, trailing),
+    ] {
+        for bytes in bytes.split_inclusive(|b| *b == b'\n').take(count) {
+            diff_line(bytes, kind, diff);
+        }
+    }
     for (i, bytes) in before[context_start..start]
         .split_inclusive(|b| *b == b'\n')
         .enumerate()
@@ -361,6 +395,29 @@ fn last_line_start(bytes: &[u8], lower: usize, end: usize) -> usize {
         .iter()
         .rposition(|b| *b == b'\n')
         .map_or(lower, |i| lower + i + 1)
+}
+
+fn hunk_header(old: LineRange, new: LineRange) -> String {
+    format!(
+        "@@ -{},{} +{},{} @@\n",
+        old.start.saturating_sub(usize::from(old.count == 0)),
+        old.count,
+        new.start.saturating_sub(usize::from(new.count == 0)),
+        new.count,
+    )
+}
+
+/// The cold diff receives every byte-line, independently of the DTO caps below.
+fn diff_line(bytes: &[u8], kind: PatchLineKind, diff: &mut dyn FnMut(&str)) {
+    diff(match kind {
+        PatchLineKind::Context => " ",
+        PatchLineKind::Added => "+",
+        PatchLineKind::Removed => "-",
+    });
+    diff(&String::from_utf8_lossy(bytes));
+    if !bytes.ends_with(b"\n") {
+        diff("\n\\ No newline at end of file\n");
+    }
 }
 
 fn render_line(bytes: &[u8], kind: PatchLineKind, i: usize) -> PatchLine {
@@ -475,7 +532,7 @@ mod tests {
         for i in 0..EFFECT_FILES_CAP {
             push(
                 &mut effects,
-                file_effect(&format!("f{i}"), "add", b"", image.as_bytes()),
+                file_effect(&format!("f{i}"), "add", b"", image.as_bytes(), &mut |_| {}),
             );
         }
         bound_serialized(&mut effects);
@@ -505,7 +562,13 @@ mod tests {
             ("a\nb\n", "b\na\n", "a", "a"),
             ("b\na\n", "a\nb\n", "b", "b"),
         ] {
-            let effect = file_effect("f", "update", before.as_bytes(), after.as_bytes());
+            let effect = file_effect(
+                "f",
+                "update",
+                before.as_bytes(),
+                after.as_bytes(),
+                &mut |_| {},
+            );
             assert_eq!(effect.algorithm, DiffAlgorithm::Minimal);
             assert_eq!((effect.additions, effect.deletions), (1, 1));
             let lines = &effect.hunks[0].lines;
@@ -536,7 +599,13 @@ mod tests {
                 .collect::<String>();
             let before = format!("old\r\n{middle}tail");
             let after = format!("NEW\r\n{middle}TAIL");
-            let effect = file_effect("f", "update", before.as_bytes(), after.as_bytes());
+            let effect = file_effect(
+                "f",
+                "update",
+                before.as_bytes(),
+                after.as_bytes(),
+                &mut |_| {},
+            );
             assert_eq!(effect.hunks.len(), if gap == 8 { 1 } else { 2 });
             assert_eq!((effect.additions, effect.deletions), (2, 2));
             if gap == 9 {
@@ -557,7 +626,13 @@ mod tests {
         // Repetition alone must not cause fallback, even for medium images.
         let before = format!("start\n{}end\n", "a\nb\n".repeat(16_000));
         let after = format!("start\nb\n{}a\nend\n", "a\nb\n".repeat(15_999));
-        let effect = file_effect("f", "update", before.as_bytes(), after.as_bytes());
+        let effect = file_effect(
+            "f",
+            "update",
+            before.as_bytes(),
+            after.as_bytes(),
+            &mut |_| {},
+        );
         assert_eq!(effect.algorithm, DiffAlgorithm::Minimal);
         assert_eq!((effect.additions, effect.deletions), (1, 1));
         let effect = file_effect(
@@ -565,14 +640,56 @@ mod tests {
             "update",
             "a\n".repeat(3000).as_bytes(),
             "b\n".repeat(3000).as_bytes(),
+            &mut |_| {},
         );
         assert_eq!(effect.algorithm, DiffAlgorithm::Minimal);
         assert_eq!((effect.additions, effect.deletions), (3000, 3000));
         let before = format!("{}{}", "a\n".repeat(3000), "b\n".repeat(3000));
         let after = format!("{}{}", "b\n".repeat(3000), "a\n".repeat(3000));
-        let effect = file_effect("f", "update", before.as_bytes(), after.as_bytes());
+        let mut diff = String::new();
+        let effect = file_effect(
+            "f",
+            "update",
+            before.as_bytes(),
+            after.as_bytes(),
+            &mut |text| diff.push_str(text),
+        );
         assert_eq!(effect.algorithm, DiffAlgorithm::StreamingReplacement);
         assert_eq!((effect.additions, effect.deletions), (6000, 6000));
+        assert_eq!(
+            diff.lines().filter(|line| line.starts_with('-')).count(),
+            6000
+        );
+        assert_eq!(
+            diff.lines().filter(|line| line.starts_with('+')).count(),
+            6000
+        );
+    }
+
+    #[test]
+    fn cold_diff_keeps_hunks_beyond_preview_cap_and_terminal_newline_facts() {
+        let before = (0..100).map(|i| format!("line{i}\n")).collect::<String>();
+        let mut after = before.clone();
+        for i in (0..100).step_by(10) {
+            after = after.replace(&format!("line{i}\n"), &format!("changed{i}\n"));
+        }
+        after.push_str("terminal");
+        let mut diff = String::new();
+        let effect = file_effect(
+            "f",
+            "update",
+            before.as_bytes(),
+            after.as_bytes(),
+            &mut |text| diff.push_str(text),
+        );
+        assert_eq!(effect.hunks.len(), EFFECT_HUNKS_CAP);
+        assert!(effect.truncated);
+        assert_eq!(
+            diff.lines().filter(|line| line.starts_with("@@ ")).count(),
+            11
+        );
+        assert!(diff.ends_with("+terminal\n\\ No newline at end of file\n"));
+        assert!(diff.contains("+changed90\n"));
     }
 
     #[test]
@@ -599,7 +716,7 @@ mod tests {
         for _ in 0..200 {
             let before = image();
             let after = image();
-            let effect = file_effect("fixture", "update", &before, &after);
+            let effect = file_effect("fixture", "update", &before, &after, &mut |_| {});
             assert!(!effect.truncated);
             let old: Vec<_> = before.split_inclusive(|b| *b == b'\n').collect();
             let new: Vec<_> = after.split_inclusive(|b| *b == b'\n').collect();

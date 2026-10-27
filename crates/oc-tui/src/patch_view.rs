@@ -431,19 +431,7 @@ pub(crate) fn render(
                         muted,
                     )]));
                 }
-                if hunk.truncated {
-                    out.push(frame(vec![Span::styled(
-                        "[diff hunk preview truncated]",
-                        muted,
-                    )]));
-                }
             }
-        }
-        if file.truncated {
-            out.push(frame(vec![Span::styled(
-                "[diff file preview truncated]",
-                muted,
-            )]));
         }
         out.push(frame(Vec::new()));
     }
@@ -455,6 +443,40 @@ pub(crate) fn render(
             ),
             muted,
         )]));
+    }
+    if let Some(capture) = card
+        .output_presentation
+        .as_ref()
+        .filter(|presentation| presentation.is_valid())
+        .and_then(|presentation| presentation.capture.as_ref())
+        .filter(|capture| {
+            effects.total_files > 0
+                && (effects.truncated
+                    || capture.state != oc_core::tool_output::CaptureState::Complete)
+        })
+    {
+        let reference = capture.reference.as_ref().map_or_else(
+            || "no usable path".into(),
+            |path| {
+                format!(
+                    "read(path={})",
+                    serde_json::to_string(path).expect("path JSON")
+                )
+            },
+        );
+        let spans = vec![Span::styled(
+            format!("Recorded capture: {:?}; {reference}", capture.state),
+            muted,
+        )];
+        if unbounded {
+            out.push(frame(spans));
+        } else {
+            out.extend(
+                wrap_text(spans, width.saturating_sub(3).max(1), DiffWrap::Word)
+                    .into_iter()
+                    .map(frame),
+            );
+        }
     }
     if effects.files.is_empty() && !failed {
         out.push(frame(vec![Span::styled(
@@ -1189,6 +1211,7 @@ pub(crate) mod tests {
         effects.files.extend([created, moved, deleted]);
         effects.total_files = 5;
         effects.truncated = true;
+        effects.files[0].truncated = true;
         let second = effects.files[0].hunks[0].clone();
         effects.files[0].hunks.push(second);
         effects.files[0].hunks[1].truncated = true;
@@ -1204,13 +1227,16 @@ pub(crate) mod tests {
             "# Deleted deleted.txt",
             "-1 line",
             "@@ -99,2 +100,2 @@",
-            "hunk preview truncated",
             "5 confirmed files",
             "lossy byte preview",
             "… [truncated]",
         ] {
             assert!(shown.contains(needle), "missing {needle}: {shown}");
         }
+        assert_eq!(shown.matches("[diff preview truncated;").count(), 1);
+        assert!(
+            !shown.contains("hunk preview truncated") && !shown.contains("file preview truncated")
+        );
         assert!(!shown.contains("source.rs → destination.rs"));
         assert_eq!(effects.files[2].path, "source.rs");
         for state in ["unknown", "denied", "cancelled"] {
@@ -1228,6 +1254,81 @@ pub(crate) mod tests {
         let shown = text(&crate::tools::tool_block(&legacy, Theme::dark(), 100));
         assert!(shown.contains("Request preview (not confirmed)"));
         assert!(!shown.contains("# Created"));
+    }
+
+    #[test]
+    fn truncated_diff_reference_is_single_and_replayable_for_both_tools() {
+        use oc_core::tool_output::{Capture, CaptureState, Presentation};
+        let mut effects = effects();
+        effects.truncated = true;
+        effects.files[0].truncated = true;
+        effects.files[0].hunks[0].truncated = true;
+        effects.files[0].hunks[0].lines[2].truncated = true;
+        let mut presentation = Presentation::new("done", 4, true);
+        presentation.capture = Some(Capture {
+            reference: Some("/data/tool-output/tool_diff.txt".into()),
+            state: CaptureState::Complete,
+            admitted_bytes: 1800,
+            retained_bytes: 1800,
+            admitted_lines: 1,
+            retained_lines: 1,
+        });
+        for name in ["edit", "apply_patch"] {
+            let mut operation = row(Some(effects.clone()), "completed");
+            operation.name = name.into();
+            operation.output_presentation = Some(Box::new(presentation.clone()));
+            let replay: ToolOpView =
+                serde_json::from_str(&serde_json::to_string(&operation).unwrap()).unwrap();
+            let card = card_from_row(&operation);
+            assert_eq!(card, card_from_row(&replay));
+            for width in [120, 121] {
+                let shown = text(&render(&effects, &card, Theme::dark(), width));
+                assert_eq!(shown.matches("[diff preview truncated;").count(), 1);
+                assert!(
+                    !shown.contains("hunk preview truncated")
+                        && !shown.contains("file preview truncated")
+                );
+                assert!(
+                    shown.contains("… [truncated]") && shown.contains("1 confirmed files, +1 -1")
+                );
+                assert!(
+                    shown.contains("Recorded capture: Complete;")
+                        && shown.contains("/data/tool-output/tool_diff.txt")
+                );
+                let mut full = effects.clone();
+                full.truncated = false;
+                full.files[0].truncated = false;
+                full.files[0].hunks[0].truncated = false;
+                full.files[0].hunks[0].lines[2].truncated = false;
+                let shown = text(&render(&full, &card, Theme::dark(), width));
+                assert!(
+                    !shown.contains("preview truncated") && !shown.contains("Recorded capture:")
+                );
+                let mut failed = card.clone();
+                failed.state = "failed".into();
+                let capture = failed
+                    .output_presentation
+                    .as_mut()
+                    .unwrap()
+                    .capture
+                    .as_mut()
+                    .unwrap();
+                capture.state = CaptureState::Quota;
+                capture.retained_bytes = 128;
+                let shown = text(&render(&full, &failed, Theme::dark(), width));
+                assert!(
+                    shown.contains("Recorded capture: Quota;")
+                        && !shown.contains("preview truncated")
+                );
+                let shown = text(&render(
+                    &PatchEffects::default(),
+                    &failed,
+                    Theme::dark(),
+                    width,
+                ));
+                assert!(!shown.contains("Recorded capture:"));
+            }
+        }
     }
 
     #[test]

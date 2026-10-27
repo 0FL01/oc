@@ -29,8 +29,10 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence: ближайший fake-provider runtime regression с реальным
     mutation, artifact continuation и reopen; focused effect-producer test для
     сохраняемого контента за пределами preview.
-  - Status: pending
-  - Evidence: RECON HEAD `378058f0d`: archive получает короткий status, не diff.
+  - Status: verified
+  - Evidence: output tests 12/12, patch tests 23/23, finish-failure regression PASS.
+    На `bc6693882` runtime long-line/restart, external patch/edit/write и serialized
+    cap/replay tests повторно PASS (0.91s / 2.41s / 0.93s).
 - R2: Одно итоговое уведомление вместо каскада hunk/file/global.
   - Source: выделенные пользователем строки `[diff hunk preview truncated]` /
     `[diff file preview truncated]` и согласованный UI-план.
@@ -39,8 +41,11 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
     warnings сохраняются. Reference/state полного diff видим в карточке.
   - Primary evidence: ближайший `patch_view` regression для producer-derived
     truncated flags и полного fixture, unified/split и replay.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: patch_view tests 10/10 PASS; один summary, inline markers и
+    capture failures проверены. Guard для отсутствующих confirmed effects PASS.
+    Финальная подпись `Recorded capture` не называет старый status artifact diff;
+    финальный renderer regression PASS для edit/apply_patch, replay и двух layouts.
 - R3: Проверить, собрать release, закоммитить и отправить результат.
   - Source: последняя инструкция пользователя.
   - Acceptance: targeted checks и обязательный full offline gate выполнены с
@@ -48,8 +53,15 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
     обычным push отправлены в проверенный `origin/master` либо точный внешний
     blocker записан без заявления о завершении.
   - Primary evidence: test/build exits, scope review, commit IDs и push result.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: первоначальный `bash scripts/test.sh`: fmt/strict Clippy PASS,
+    nextest 2439 PASS / 1 FAIL / 18 skipped; единственное падение —
+    `dcp05_thresholds_frequency_turn_reset_no_accumulation` (ожидание `200000`).
+    Новый commit `e31cf17b7` исправил ожидание: failed DCP slice теперь PASS.
+    Affected runtime/TUI, scoped strict Clippy, doctests, debug help/version и
+    release build PASS. После уточнения подписи renderer regression, fmt, strict
+    TUI Clippy, release build и `target/release/oc2 --version` повторно PASS.
+    Остаются scope review и commit/push. Исходный full gate не объявляется PASS.
 
 ### Constraints
 
@@ -81,24 +93,49 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R1/R2.
-- Smallest next action: реализовать streaming confirmed-diff capture у общего
-  commit/effect owner, связать reference/state с publication, дедуплицировать TUI.
-- Expected evidence: воспроизводящий длинную строку/omitted tail regression,
-  artifact identity через replay/reopen, focused renderer assertions.
+- Closes: R3.
+- Smallest next action: scope review, commit/push реализации и закрытие цели.
+- Expected evidence: commit IDs, fast-forward push и отсутствие постороннего diff.
 - Stop or replan if: для результата требуется новый store/public API/migration.
 
 ## Current State
 
-- RECON перепроверен на HEAD `378058f0d`; worktree чистый, origin/master совпадает.
-- Текущие limits/каскад/отсутствие full diff archive подтверждены исходниками;
-  существующие tests закрепляют усечение, не проверяют full-diff continuation.
-- Blocker: нет. Next: implementation и targeted checks, затем integration/build.
+- RECON baseline: `378058f0d`. Возобновлено на `bc6693882`; новые compaction commits
+  `e31cf17b7` / `bc6693882` сохранены, remote `origin/master` совпадает с HEAD.
+- Реализованы capture до display caps, единый outcome reference и TUI summary.
+- Static review выявил три риска нового diff: multiline secret после добавления
+  signs; повторный capture status после transient failure; невидимая capture
+  failure при полном DTO preview. Исправлены в том же scope, добавлены regressions.
+- R1/R2 verified. Release `target/release/oc2` собран из финального runtime diff,
+  version smoke: `oc2 0.2.0`.
+- Blocker: нет. Next: scope review и commit/push.
+  Полный gate не перезапускается и не объявляется PASS.
+
+## Material Decisions
+
+- 2026-10-27: каждый новый подтверждённый runtime mutation пишет один contextual
+  diff в existing artifact. Это позволяет не хранить дополнительную полную RAM/DB
+  копию до выяснения глобального preview-budget; calls без committed namespace
+  change не создают diff artifact. Путь малого полного diff доступен в result/details, а TUI footer
+  появляется при усечении или неполном capture.
+- 2026-10-27: capture использует один буфер ≤64 KiB и прежние redaction/cap/quota/
+  TTL guards. Nonempty lines многострочных known secrets также маскируются до
+  публикации artifact; status clipping после diff-capture не может создать другой
+  resource для того же operation. Schema/public API не меняются.
+- 2026-10-27: footer использует нейтральную подпись `Recorded capture`: существующий
+  metadata contract не различает старый status artifact и новый confirmed diff.
 
 ## Checkpoint History
 
 - 2026-10-27: контракт и копия согласованного плана сохранены до реализации.
+- 2026-10-27: plan commit `b32960c76`; первый targeted capture check — 2 PASS.
+  Последующий batch закрывает конкретные review findings, проверка продолжается.
+- 2026-10-27: targeted capture/patch/TUI/runtime checks PASS; full gate завершён
+  с одним DCP failure, исправленным последующим независимым commit. После обрыва
+  сохранены новые commits; выполняется только failed/affected continuation.
+- 2026-10-27: failed/affected continuation и оставшиеся стадии gate PASS; после
+  последней правки подписи renderer/Clippy/release PASS. R1/R2 verified.
 
 ## Completion
 
-- Pending R1–R3; tests/build/push ещё не выполнены.
+- R1/R2 verified; R3 pending scope review/commit/push. Исходный full gate не PASS.

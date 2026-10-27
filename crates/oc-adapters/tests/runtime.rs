@@ -863,6 +863,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
                 state,
                 output,
                 patch_effects,
+                output_presentation,
                 ..
             } => {
                 let effects = patch_effects.expect("public confirmed effects");
@@ -878,7 +879,23 @@ async fn check_application_patch_replay(line: &str, count: usize) {
                     assert_eq!(effects.files[0].hunks[0].lines.len(), 120);
                     assert_eq!(effects.files[0].hunks[0].new.count, 120);
                 }
-                finished = Some((op, name, state, output, effects));
+                let capture = output_presentation
+                    .unwrap()
+                    .capture
+                    .clone()
+                    .expect("confirmed diff capture");
+                assert_eq!(capture.state, oc_core::tool_output::CaptureState::Complete);
+                let path = capture.reference.as_ref().unwrap();
+                assert!(output.contains(path));
+                let diff = std::fs::read_to_string(path).unwrap();
+                assert_eq!(
+                    diff,
+                    format!(
+                        "--- /dev/null\n+++ added.txt\n@@ -0,0 +1,{count} @@\n{}",
+                        format!("+{line}\n").repeat(count)
+                    )
+                );
+                finished = Some((op, name, state, output, effects, capture));
             }
             CoreEvent::TurnFinished { text, .. } => {
                 assert_eq!(text, "done");
@@ -951,9 +968,26 @@ async fn check_application_patch_replay(line: &str, count: usize) {
         Some(replay),
         "live checkpoint and replay share exact identities, order, statuses and content"
     );
-    let (finished_op, finished_name, finished_state, finished_output, finished_effects) =
-        finished.expect("tool call finished event");
+    let (
+        finished_op,
+        finished_name,
+        finished_state,
+        finished_output,
+        finished_effects,
+        finished_capture,
+    ) = finished.expect("tool call finished event");
     assert_eq!(effects, &finished_effects);
+    let replay_capture = replay
+        .parts
+        .iter()
+        .find_map(|part| match part {
+            oc_core::queries::TranscriptPart::Tool(tool) => {
+                tool.output_presentation.as_ref()?.capture.as_ref()
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(replay_capture, &finished_capture);
     if count == 120 {
         let tool = replay
             .parts

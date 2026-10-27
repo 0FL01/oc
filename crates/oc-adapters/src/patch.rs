@@ -830,7 +830,7 @@ pub fn apply_patch_with_effects(
             );
         }
     };
-    apply_patch_with_approved_preimage(&files, patch_text, policy, None)
+    apply_patch_with_approved_preimage(&files, patch_text, policy, None, &mut |_| {})
 }
 
 pub(crate) fn apply_patch_with_approved_preimage(
@@ -838,12 +838,21 @@ pub(crate) fn apply_patch_with_approved_preimage(
     patch_text: &str,
     policy: &dyn WritePolicy,
     expected: Option<&str>,
+    diff: &mut dyn FnMut(&str),
 ) -> (
     Result<Vec<FileResult>, ApplyFailure>,
     oc_core::patch::PatchEffects,
 ) {
     let mut effects = oc_core::patch::PatchEffects::default();
-    let result = apply_patch_inner(files, patch_text, policy, &mut effects, None, expected);
+    let result = apply_patch_inner(
+        files,
+        patch_text,
+        policy,
+        &mut effects,
+        None,
+        expected,
+        diff,
+    );
     effects::bound_serialized(&mut effects);
     (result, effects)
 }
@@ -862,6 +871,7 @@ pub(crate) fn approval_preview(
         &mut proposed,
         Some(&mut digest),
         None,
+        &mut |_| {},
     )?;
     effects::bound_serialized(&mut proposed);
     Ok((proposed, digest))
@@ -874,6 +884,7 @@ fn apply_patch_inner(
     effects: &mut oc_core::patch::PatchEffects,
     preview_digest: Option<&mut String>,
     expected_digest: Option<&str>,
+    diff: &mut dyn FnMut(&str),
 ) -> Result<Vec<FileResult>, ApplyFailure> {
     let ops = parse_plan(patch_text)?;
     let canonical_root = files.project_root().to_path_buf();
@@ -1218,6 +1229,7 @@ fn apply_patch_inner(
                 kind,
                 prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice()),
                 prepared.after.as_deref().unwrap_or(&[]),
+                &mut |_| {},
             );
             if let Some(target) = op.move_to() {
                 file.destination = Some(target.into());
@@ -1243,7 +1255,15 @@ fn apply_patch_inner(
     // Execution: per-file commits, stop at first runtime failure.
     let mut done: Vec<FileResult> = Vec::new();
     for (idx, (op, prepared)) in ops.iter().zip(&prepared).enumerate() {
-        match execute_op(&prepared.root, op, prepared, policy, &mut done, effects) {
+        match execute_op(
+            &prepared.root,
+            op,
+            prepared,
+            policy,
+            &mut done,
+            effects,
+            diff,
+        ) {
             Ok(()) => {}
             Err(error) => {
                 return Err(ApplyFailure {
@@ -1282,6 +1302,7 @@ fn execute_op(
     policy: &dyn WritePolicy,
     done: &mut Vec<FileResult>,
     effects: &mut oc_core::patch::PatchEffects,
+    diff: &mut dyn FnMut(&str),
 ) -> Result<(), PatchError> {
     let rel = op.path();
     commit_prepared(
@@ -1297,6 +1318,7 @@ fn execute_op(
         policy,
         done,
         effects,
+        diff,
     )
 }
 
@@ -1311,6 +1333,7 @@ fn commit_prepared(
     policy: &dyn WritePolicy,
     done: &mut Vec<FileResult>,
     effects: &mut oc_core::patch::PatchEffects,
+    diff: &mut dyn FnMut(&str),
 ) -> Result<(), PatchError> {
     policy.check(rel)?;
     let io = |_| PatchError::Io {
@@ -1349,43 +1372,56 @@ fn commit_prepared(
             .map(|before| sha_hex(&before.bytes)),
         hash_after: prepared.after.as_ref().map(|after| sha_hex(after)),
     });
-    effects::push(
-        effects,
-        effects::file_effect(
-            rel,
-            done.last().expect("committed").op,
-            prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice()),
-            prepared.after.as_deref().unwrap_or(&[]),
-        ),
-    );
-    entry.sync().map_err(io)?;
-    if let Some((target_root, target)) = &prepared.target {
-        let updated = entry.snapshot().map_err(io)?;
-        policy.check(move_to.expect("target"))?;
-        let target = target_root.entry(target, true).map_err(io)?;
-        if !entry.unchanged(&updated).map_err(io)? {
-            return Err(PatchError::Conflict {
-                path: rel.to_string(),
-                reason: "stale-preimage".into(),
-            });
-        }
-        entry.move_to(&target).map_err(io)?;
-        done.last_mut().expect("committed update").new_path = move_to.map(str::to_string);
-        if effects.total_files <= oc_core::patch::EFFECT_FILES_CAP {
-            let file = effects.files.last_mut().expect("committed effect");
-            file.destination = move_to.map(str::to_string);
-            file.operation = oc_core::patch::PatchOperation::Move;
-        }
-        #[cfg(test)]
-        if FAIL_AFTER_MOVE.with(|fail| fail.replace(false)) {
-            return Err(io(std::io::Error::other(
-                "injected post-rename sync failure",
-            )));
-        }
-        target.sync().map_err(io)?;
+    let result = (|| {
         entry.sync().map_err(io)?;
+        if let Some((target_root, target)) = &prepared.target {
+            let updated = entry.snapshot().map_err(io)?;
+            policy.check(move_to.expect("target"))?;
+            let target = target_root.entry(target, true).map_err(io)?;
+            if !entry.unchanged(&updated).map_err(io)? {
+                return Err(PatchError::Conflict {
+                    path: rel.to_string(),
+                    reason: "stale-preimage".into(),
+                });
+            }
+            entry.move_to(&target).map_err(io)?;
+            done.last_mut().expect("committed update").new_path = move_to.map(str::to_string);
+            #[cfg(test)]
+            if FAIL_AFTER_MOVE.with(|fail| fail.replace(false)) {
+                return Err(io(std::io::Error::other(
+                    "injected post-rename sync failure",
+                )));
+            }
+            target.sync().map_err(io)?;
+            entry.sync().map_err(io)?;
+        }
+        Ok(())
+    })();
+    // Sync/move may fail after a committed namespace change. Publish exactly
+    // that change, using the actual destination, even on the failure path.
+    let committed = done.last().expect("committed");
+    diff(&format!(
+        "--- {}\n+++ {}\n",
+        if kind == "add" { "/dev/null" } else { rel },
+        if kind == "delete" {
+            "/dev/null"
+        } else {
+            committed.new_path.as_deref().unwrap_or(rel)
+        },
+    ));
+    let mut file = effects::file_effect(
+        rel,
+        kind,
+        prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice()),
+        prepared.after.as_deref().unwrap_or(&[]),
+        diff,
+    );
+    if let Some(destination) = &committed.new_path {
+        file.destination = Some(destination.clone());
+        file.operation = oc_core::patch::PatchOperation::Move;
     }
-    Ok(())
+    effects::push(effects, file);
+    result
 }
 
 fn map_resolve(files: &Files, rel: &str) -> Result<PathBuf, PatchError> {
@@ -1593,13 +1629,20 @@ mod tests {
         }
         let (_tmp, project, data) = setup();
         let patch = "*** Begin Patch\n*** Add File: applied.txt\n+real\n*** Add File: blocked.txt\n+not-applied\n*** End Patch";
-        let result = apply_patch(
-            &project,
-            &data,
+        let mut diff = String::new();
+        let (result, effects) = super::apply_patch_with_approved_preimage(
+            &crate::files::Files::new(&project, &data).unwrap(),
             patch,
             &DenySecond(std::sync::atomic::AtomicUsize::new(0)),
-        )
-        .unwrap_err();
+            None,
+            &mut |text| diff.push_str(text),
+        );
+        let result = result.unwrap_err();
+        assert_eq!(effects.total_files, 1);
+        assert_eq!(
+            diff,
+            "--- /dev/null\n+++ applied.txt\n@@ -0,0 +1,1 @@\n+real\n"
+        );
         assert_eq!(result.failed_op, 1);
         assert_eq!(result.done.len(), 1);
         assert_eq!(result.done[0].path, "applied.txt");
@@ -1622,12 +1665,15 @@ mod tests {
         fs::write(project.join("src"), b"old\n").unwrap();
         fs::set_permissions(project.join("src"), fs::Permissions::from_mode(0o751)).unwrap();
         super::FAIL_AFTER_MOVE.with(|fail| fail.set(true));
-        let (result, effects) = super::apply_patch_with_effects(
-            &project,
-            &data,
+        let mut diff = String::new();
+        let (result, effects) = super::apply_patch_with_approved_preimage(
+            &crate::files::Files::new(&project, &data).unwrap(),
             "*** Begin Patch\n*** Update File: src\n*** Move to: dst\n@@\n-old\n+new\n*** Add File: tail\n+never\n*** End Patch",
             &AllowAll,
+            None,
+            &mut |text| diff.push_str(text),
         );
+        assert_eq!(diff, "--- src\n+++ dst\n@@ -1,1 +1,1 @@\n-old\n+new\n");
         let failure = result.unwrap_err();
         assert_eq!(failure.done[0].new_path.as_deref(), Some("dst"));
         assert_eq!(effects.files[0].destination.as_deref(), Some("dst"));
@@ -1927,21 +1973,37 @@ mod tests {
         );
         let invalid = patch.replace("-before", "-stale");
         assert!(
-            super::apply_patch_with_approved_preimage(&files, &invalid, &AllowAll, None)
-                .0
-                .is_err()
+            super::apply_patch_with_approved_preimage(
+                &files,
+                &invalid,
+                &AllowAll,
+                None,
+                &mut |_| {}
+            )
+            .0
+            .is_err()
         );
         assert!(!project.join("local").exists() && !destination.exists());
         let (_, digest) = super::approval_preview(&files, &patch).unwrap();
         std::fs::write(&source, "foreign\n").unwrap();
-        let (result, effects) =
-            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, Some(&digest));
+        let (result, effects) = super::apply_patch_with_approved_preimage(
+            &files,
+            &patch,
+            &AllowAll,
+            Some(&digest),
+            &mut |_| {},
+        );
         assert!(result.is_err() && effects.files.is_empty());
         assert!(!project.join("local").exists());
         std::fs::write(&source, "before\n").unwrap();
         let (_, digest) = super::approval_preview(&files, &patch).unwrap();
-        let (result, effects) =
-            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, Some(&digest));
+        let (result, effects) = super::apply_patch_with_approved_preimage(
+            &files,
+            &patch,
+            &AllowAll,
+            Some(&digest),
+            &mut |_| {},
+        );
         assert_eq!(result.unwrap().len(), 3);
         assert_eq!(effects.total_files, 3);
         assert_eq!(std::fs::read(&destination).unwrap(), b"after\n");
@@ -1952,10 +2014,16 @@ mod tests {
             data.join("blocked").display()
         );
         assert!(matches!(
-            super::apply_patch_with_approved_preimage(&files, &blocked, &AllowAll, None)
-                .0
-                .unwrap_err()
-                .error,
+            super::apply_patch_with_approved_preimage(
+                &files,
+                &blocked,
+                &AllowAll,
+                None,
+                &mut |_| {}
+            )
+            .0
+            .unwrap_err()
+            .error,
             PatchError::OwnDataRoot { .. }
         ));
         let link = tmp.path().join("link");
@@ -1966,9 +2034,15 @@ mod tests {
             link.display()
         );
         assert!(
-            super::apply_patch_with_approved_preimage(&files, &linked, &AllowAll, None)
-                .0
-                .is_err()
+            super::apply_patch_with_approved_preimage(
+                &files,
+                &linked,
+                &AllowAll,
+                None,
+                &mut |_| {}
+            )
+            .0
+            .is_err()
         );
         assert_eq!(std::fs::read(&destination).unwrap(), b"after\n");
         let ungranted = format!(
@@ -1976,10 +2050,16 @@ mod tests {
             tmp.path().join("ungranted").display()
         );
         assert!(matches!(
-            super::apply_patch_with_approved_preimage(&files, &ungranted, &AllowAll, None)
-                .0
-                .unwrap_err()
-                .error,
+            super::apply_patch_with_approved_preimage(
+                &files,
+                &ungranted,
+                &AllowAll,
+                None,
+                &mut |_| {}
+            )
+            .0
+            .unwrap_err()
+            .error,
             PatchError::OutsideRoot { .. }
         ));
     }
@@ -2002,7 +2082,7 @@ mod tests {
             target.display()
         );
         let (result, effects) =
-            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, None);
+            super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, None, &mut |_| {});
         assert!(
             matches!(result.unwrap_err().error, PatchError::Conflict { reason, .. } if reason == "cross-device-move")
         );

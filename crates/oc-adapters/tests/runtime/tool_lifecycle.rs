@@ -2145,3 +2145,8 @@ async fn vis35_serialized_cap_finish_checkpoint_attach_restart_match() {
     // the 66 KiB input also used to be admitted before reserving the effects.
     check_application_patch_replay(&"x".repeat(546), 120).await;
 }
+
+#[tokio::test]
+async fn confirmed_diff_capture_survives_line_limit_and_restart() {
+    check_application_patch_replay(&format!("{}-DIFF-TAIL", "界".repeat(600)), 1).await;
+}

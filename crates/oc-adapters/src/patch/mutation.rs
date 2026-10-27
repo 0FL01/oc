@@ -204,6 +204,7 @@ pub(crate) fn preview(
                 .as_ref()
                 .map_or(&[], |s| s.bytes.as_slice()),
             plan.prepared.after.as_deref().unwrap_or(&[]),
+            &mut |_| {},
         ),
     );
     effects::bound_serialized(&mut proposed);
@@ -215,6 +216,7 @@ pub(crate) fn execute(
     input: &Input<'_>,
     policy: &dyn WritePolicy,
     expected: Option<&str>,
+    diff: &mut dyn FnMut(&str),
 ) -> (Result<Value, PatchError>, oc_core::patch::PatchEffects) {
     let mut confirmed = oc_core::patch::PatchEffects::default();
     let result = (|| {
@@ -234,6 +236,7 @@ pub(crate) fn execute(
             policy,
             &mut Vec::new(),
             &mut confirmed,
+            diff,
         )?;
         Ok(plan.output)
     })();

@@ -58,7 +58,7 @@ fn tool20_prepared_identity_absence_and_confirmed_bytes() {
     let (preview, digest) = preview(&files, &input).unwrap();
     assert!(!project.join("nested").exists());
     assert_eq!(preview.total_files, 1);
-    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest));
+    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest), &mut |_| {});
     assert_eq!(result.unwrap()["existed"], false);
     assert_eq!(effects.total_files, 1);
     assert_eq!(
@@ -75,11 +75,15 @@ fn tool20_prepared_identity_absence_and_confirmed_bytes() {
     // Same bytes, different inode: approval cannot authorize the replacement.
     std::fs::rename(project.join("nested/f"), project.join("nested/old")).unwrap();
     std::fs::copy(project.join("nested/old"), project.join("nested/f")).unwrap();
-    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest));
+    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest), &mut |_| {});
     assert!(result.is_err());
     assert!(effects.files.is_empty());
     let (_, digest) = super::preview(&files, &input).unwrap();
-    assert!(execute(&files, &input, &AllowAll, Some(&digest)).0.is_ok());
+    assert!(
+        execute(&files, &input, &AllowAll, Some(&digest), &mut |_| {})
+            .0
+            .is_ok()
+    );
     assert_eq!(
         std::fs::read(project.join("nested/f")).unwrap(),
         b"\xef\xbb\xbf"
@@ -90,7 +94,7 @@ fn tool20_prepared_identity_absence_and_confirmed_bytes() {
     };
     let (_, digest) = super::preview(&files, &input).unwrap();
     std::fs::write(project.join("absent"), "foreign").unwrap();
-    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest));
+    let (result, effects) = execute(&files, &input, &AllowAll, Some(&digest), &mut |_| {});
     assert!(result.is_err());
     assert!(effects.files.is_empty());
     assert_eq!(std::fs::read(project.join("absent")).unwrap(), b"foreign");
