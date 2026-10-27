@@ -389,6 +389,8 @@ struct PaintedTranscript {
     child_targets: Vec<crate::messages::ChildNavigationHit>,
     total: usize,
     scroll: usize,
+    /// The painted projection's part geometry, for content-anchored points.
+    parts: Vec<(std::sync::Arc<transcript::CompletionPart>, usize, usize)>,
 }
 
 impl PaintedTranscript {
@@ -397,24 +399,81 @@ impl PaintedTranscript {
             .saturating_sub(self.area.height as usize)
             .saturating_sub(self.scroll)
     }
+
+    /// Attach an absolute painted row to the part that owns it (or the last
+    /// part above a gap row), so later layouts resolve the same content.
+    fn point(&self, row: usize, byte: usize) -> SelectionPoint {
+        let owner = self
+            .parts
+            .iter()
+            .filter(|(_, start, _)| *start <= row)
+            .max_by_key(|(_, start, end)| (*start, std::cmp::Reverse(*end)))
+            .filter(|(_, start, _)| *start > 0 || row > 0);
+        match owner {
+            Some((part, start, _)) => SelectionPoint {
+                part: Some(part.clone()),
+                offset: row - start,
+                byte,
+            },
+            None => SelectionPoint {
+                part: None,
+                offset: row,
+                byte,
+            },
+        }
+    }
+}
+
+/// Absolute row of a selection point in a projection's part geometry.
+fn selection_row(
+    parts: &[(std::sync::Arc<transcript::CompletionPart>, usize, usize)],
+    point: &SelectionPoint,
+) -> Option<usize> {
+    match &point.part {
+        None => Some(point.offset),
+        Some(part) => parts
+            .iter()
+            .find(|(known, _, _)| std::sync::Arc::ptr_eq(known, part) || known == part)
+            .map(|(_, start, _)| start + point.offset),
+    }
+}
+
+#[derive(Clone, Copy)]
+struct SelectionAutoscroll {
+    up: bool,
+    /// Rows per second (OpenTUI 6/36/72 by edge distance).
+    speed: f32,
+    at: Instant,
+    accumulated: f32,
+}
+
+/// A content-anchored transcript endpoint, like OpenTUI's `SelectionAnchor`:
+/// the row is relative to the first painted row of its history part, so the
+/// highlight follows that content across scrolling, live appends and
+/// unrelated updates. `part == None` is the scrollbox padding above history.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SelectionPoint {
+    part: Option<std::sync::Arc<transcript::CompletionPart>>,
+    offset: usize,
+    byte: usize,
 }
 
 struct TranscriptSelection {
-    anchor: TextPoint,
-    focus: TextPoint,
-    painted: PaintedTranscript,
+    anchor: SelectionPoint,
+    focus: SelectionPoint,
     dragging: bool,
-    transcript_revision: u64,
-    window_revision: u64,
+    /// Wrap geometry `(content width, terminal width)`; another width re-wraps
+    /// every row, so the selection does not survive it.
+    widths: (u16, u16),
+    /// Displayed scroll at which a held focus was last resolved.
+    focus_scroll: usize,
+    /// Last pointer of the held gesture `(x, y, terminal frame)`.
+    pointer: (u16, u16, Rect),
 }
 
 impl TranscriptSelection {
-    fn bounds(&self) -> (TextPoint, TextPoint) {
-        if self.anchor <= self.focus {
-            (self.anchor, self.focus)
-        } else {
-            (self.focus, self.anchor)
-        }
+    fn collapsed(&self) -> bool {
+        self.anchor == self.focus
     }
 }
 
@@ -641,6 +700,9 @@ struct VisibleTranscriptProjection {
     animations: Vec<(usize, usize, crate::styled::AnimationSource)>,
     hits: Vec<crate::messages::TranscriptRegion>,
     top: Option<projection::PaintedTop>,
+    /// Painted `(start, end)` rows of the visible parts and of the selection
+    /// endpoints' parts, in absolute transcript rows.
+    parts: Vec<(std::sync::Arc<transcript::CompletionPart>, usize, usize)>,
 }
 
 /// Visible editor insertion stops and chip cells from the latest prompt paint.
@@ -718,7 +780,8 @@ pub struct TuiState {
     /// Last successful owner projection, independent of manual/test overrides.
     owner_clipboard_mode: Option<oc_core::queries::TerminalCopyMode>,
     pending_copy: Option<String>,
-    selection: Option<TranscriptSelection>,
+    selection: std::cell::RefCell<Option<TranscriptSelection>>,
+    selection_autoscroll: Option<SelectionAutoscroll>,
     selection_gesture: bool,
     click: Option<TranscriptClick>,
     text_selection: text_selection::SelectionState,
@@ -1002,7 +1065,8 @@ impl TuiState {
             owner_clipboard_mode: None,
             pending_copy: None,
             text_selection: Default::default(),
-            selection: None,
+            selection: std::cell::RefCell::new(None),
+            selection_autoscroll: None,
             selection_gesture: false,
             click: None,
             session_title: None,
@@ -1419,6 +1483,7 @@ impl TuiState {
             toast,
             self.interrupt_armed_until,
             self.next_scroll_animation_deadline(),
+            self.next_selection_autoscroll_deadline(),
             self.leader_deadline(),
             self.next_tab_deadline(),
             self.retry_due,

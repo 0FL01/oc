@@ -396,7 +396,16 @@ impl TuiState {
             return false;
         }
         if !matches!(event.kind, MouseEventKind::Drag(_) | MouseEventKind::Up(_)) {
-            if event.kind != MouseEventKind::Moved {
+            // The wheel scrolls under a held transcript drag; the selection
+            // follows its content instead of being dropped.
+            let wheel = matches!(
+                event.kind,
+                MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+            ) && self.text_selection.transcript
+                && self.selection_gesture;
+            if wheel {
+                self.note_selection_pointer(event, frame);
+            } else if event.kind != MouseEventKind::Moved {
                 self.cancel_text_selection();
             }
             return false;
@@ -407,10 +416,11 @@ impl TuiState {
         {
             let dragged = self
                 .selection
+                .get_mut()
                 .as_ref()
                 .is_some_and(|selection| selection.dragging);
             self.handle_transcript_selection(event, frame);
-            let invalidated = self.selection.is_none();
+            let invalidated = self.selection.get_mut().is_none();
             if matches!(event.kind, MouseEventKind::Up(_)) {
                 self.text_selection.held = false;
                 self.text_selection.transcript = false;

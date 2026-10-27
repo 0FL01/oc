@@ -2227,7 +2227,7 @@ impl TuiState {
                     };
                     if event.modifiers.is_empty()
                         && self.click.is_none_or(|click| click.count == 1)
-                        && matches!(self.selection_text(), Ok(None))
+                        && !self.has_transcript_selection()
                         && let Some((id, x, y, painted, total, scroll, requested)) =
                             reasoning_pressed.or(release_only)
                         && painted == area

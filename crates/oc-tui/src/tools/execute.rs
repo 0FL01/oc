@@ -49,28 +49,19 @@ pub(crate) fn output_text(card: &ToolCard) -> Option<String> {
 }
 
 pub(crate) fn hover(line: &Line, theme: &Theme) -> Line {
-    Line::new(
-        line.spans()
-            .iter()
-            .map(|span| {
-                let style = span.style();
-                Span::styled(
-                    span.content(),
-                    if [
-                        Some(theme.text_muted()),
-                        Some(theme.decrease(theme.text_muted())),
-                    ]
-                    .contains(&style.fg)
-                    {
-                        style.fg(theme.text())
-                    } else {
-                        style
-                    },
-                )
-            })
-            .collect(),
-    )
-    .with_style(line.style())
+    line.restyle_spans(|_, span| {
+        let style = span.style();
+        if [
+            Some(theme.text_muted()),
+            Some(theme.decrease(theme.text_muted())),
+        ]
+        .contains(&style.fg)
+        {
+            style.fg(theme.text())
+        } else {
+            style
+        }
+    })
 }
 
 pub(crate) fn block(

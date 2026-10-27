@@ -2,9 +2,9 @@
 
 use super::{
     ClipboardMode, HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, LivePart, MAX_INPUT_BYTES,
-    MAX_SELECTION_BYTES, MAX_SESSION_TITLE_BYTES, NoteVariant, PaintedTranscript, PanelIntent,
-    PumpOutcome, ScriptDriver, TabPresentation, TextPoint, Theme, TranscriptSelection, TuiPanel,
-    TuiState, TuiStatus, VIEWPORT_LINES,
+    MAX_SELECTION_BYTES, MAX_SESSION_TITLE_BYTES, NoteVariant, PanelIntent, PumpOutcome,
+    ScriptDriver, SelectionPoint, TabPresentation, Theme, TuiPanel, TuiState, TuiStatus,
+    VIEWPORT_LINES,
 };
 use crate::events::KeyAction;
 use crate::history::{WINDOW_BYTES, WINDOW_ROWS};

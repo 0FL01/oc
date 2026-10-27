@@ -13,7 +13,7 @@ pub(super) struct ChildNoticePress {
 /// Retain only semantic matching data across a history-window replacement.
 /// This never pins an OPEN mutable source: legacy matching retains only the
 /// existing bounded presentation prefix, not another transcript payload.
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum CompletionPart {
     Durable {
         message: std::sync::Arc<oc_core::session::MessageId>,
@@ -326,20 +326,6 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
 }
 
 // Layout padding is a separate unstyled span, also on wrapped list rows.
-fn selectable_start(line: &Line) -> usize {
-    match line.spans() {
-        [padding, content, ..]
-            if padding.style() == ratatui::style::Style::default()
-                && !padding.content().is_empty()
-                && padding.content().bytes().all(|byte| byte == b' ')
-                && !content.content().is_empty() =>
-        {
-            padding.content().len()
-        }
-        _ => 0,
-    }
-}
-
 impl TuiState {
     /// An existing card consumes child inventory even with its composer closed.
     /// This predicate never creates a model graph part or navigation authority.
@@ -601,7 +587,7 @@ impl TuiState {
         self.reverted = page.reverted.clone();
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
-        self.clear_transcript_selection();
+        self.invalidate_transcript_press();
         self.window.refresh_completed(page, self.scroll > 0);
         self.refresh_running_user_shell_output();
         self.invalidate_transcript();
@@ -647,7 +633,7 @@ impl TuiState {
         self.completion_anchor.get_mut().take();
         self.reverted = page.reverted.clone();
         self.scroll = self.display_scroll();
-        self.clear_transcript_selection();
+        self.invalidate_transcript_press();
         self.viewport.set(None);
         self.window.prepend_older(page);
         self.prune_reasoning();
@@ -658,7 +644,7 @@ impl TuiState {
         self.invalidate_transcript();
         self.remember_compaction_turns(page);
         self.reverted = page.reverted.clone();
-        self.clear_transcript_selection();
+        self.invalidate_transcript_press();
         self.window.append_newer(page);
         self.prune_reasoning();
     }
@@ -678,9 +664,9 @@ impl TuiState {
         &self.window
     }
 
-    /// Snapshot only the rows actually painted. This same bounded set supplies
-    /// the rendered highlight and the clipboard; a new frame or resize makes
-    /// stale selections unusable until the next valid mouse selection.
+    /// Snapshot only the rows actually painted (pointer hit tests). The
+    /// selection highlight resolves its content-anchored endpoints in each
+    /// frame's part geometry; only a width change or a new press drops it.
     #[cfg(test)]
     pub(crate) fn paint_transcript(
         &self,
@@ -824,7 +810,11 @@ impl TuiState {
                     child_targets: children,
                     total,
                     scroll,
+                    parts: current.map(|view| view.parts.clone()).unwrap_or_default(),
                 });
+                if let (Some(frame), Some(painted)) = (frame, painted.as_ref()) {
+                    self.follow_selection_pointer(painted, frame);
+                }
             }
         }
         let hover_pending = frame.and_then(|frame| {
@@ -850,13 +840,38 @@ impl TuiState {
             (owner == frame).then_some(())?;
             self.child_notice_hit(frame, x, y, true)
         });
-        let painted = self.painted_transcript.borrow();
-        let selected = self.selection.as_ref().filter(|selected| {
-            self.panel == TuiPanel::None
-                && painted
-                    .as_ref()
-                    .is_some_and(|current| self.transcript_selection_current(selected, current))
-        });
+        // Resolve both endpoints in this projection's part geometry: the
+        // highlight follows its content, not the rows of an older frame.
+        let selected = self
+            .selection
+            .borrow()
+            .as_ref()
+            .filter(|_| self.panel == TuiPanel::None)
+            .and_then(|selected| {
+                let projection = self.visible_projection.borrow();
+                let view = projection.as_ref().filter(|view| {
+                    same_rows(&view.lines, rows)
+                        && view.total == total
+                        && view.scroll == scroll
+                        && (view.dimensions.0, view.dimensions.1) == selected.widths
+                })?;
+                let anchor = (
+                    super::selection_row(&view.parts, &selected.anchor)?,
+                    selected.anchor.byte,
+                );
+                let focus = (
+                    super::selection_row(&view.parts, &selected.focus)?,
+                    selected.focus.byte,
+                );
+                Some(if anchor <= focus {
+                    (anchor, focus)
+                } else {
+                    (focus, anchor)
+                })
+            });
+        let first = total
+            .saturating_sub(area.height as usize)
+            .saturating_sub(scroll);
         let mut painted_rows: Vec<Cow<'a, Line>> = rows
             .iter()
             .enumerate()
@@ -911,31 +926,18 @@ impl TuiState {
                 };
                 let line = overlaid;
                 let copied = !std::ptr::eq(line, &rows[row]);
-                if let Some(selected) = selected
-                    && let Some(source_row) = (total
-                        .saturating_sub(area.height as usize)
-                        .saturating_sub(scroll)
-                        + row)
-                        .checked_sub(selected.painted.top())
-                    && selected.painted.rows.get(source_row) == rows.get(row)
+                if let Some((start, end)) = selected
+                    && (start.0..=end.0).contains(&(first + row))
                 {
-                    let (start, end) = selected.bounds();
-                    let begin = if source_row == start.row {
-                        start.byte
-                    } else if source_row > start.row {
-                        0
+                    let row = first + row;
+                    let begin = if row == start.0 { start.1 } else { 0 };
+                    let finish = if row == end.0 {
+                        end.1
                     } else {
                         line.plain_text().len()
                     };
-                    let finish = if source_row == end.row {
-                        end.byte
-                    } else if source_row < end.row {
-                        line.plain_text().len()
-                    } else {
-                        0
-                    };
-                    let begin = begin.max(selectable_start(line));
-                    if begin < finish && !line.plain_text().trim().is_empty() {
+                    let begin = begin.max(crate::styled::selectable_start(line));
+                    if begin < finish && crate::styled::copyable_row(line) {
                         return Cow::Owned(line.highlight(
                             begin,
                             finish,
@@ -1181,103 +1183,89 @@ impl TuiState {
     }
 
     pub(crate) fn clear_transcript_selection(&mut self) {
-        self.cancel_transcript_capture();
-        self.child_notice_down = None;
-        self.reverted_down = None;
-        self.message_down = None;
-        self.paint_generation
-            .set(self.paint_generation.get().wrapping_add(1));
-        self.selection = None;
+        // Without a selection no drag is held: the capture is released too.
+        self.selection.get_mut().take();
+        self.invalidate_transcript_press();
         self.selection_gesture = false;
-        self.click = None;
+        self.selection_autoscroll = None;
         if !self.has_new_text_selection() {
             self.pending_copy = None;
         }
-        *self.painted_transcript.borrow_mut() = None;
     }
 
-    fn transcript_selection_current(
-        &self,
-        selected: &TranscriptSelection,
-        current: &PaintedTranscript,
-    ) -> bool {
-        selected.transcript_revision == self.transcript_revision
-            && selected.window_revision == self.window.revision()
-            && selected.painted.area == current.area
-            && selected.painted.total == current.total
-            && current.rows.iter().enumerate().all(|(row, line)| {
-                (current.top() + row)
-                    .checked_sub(selected.painted.top())
-                    .and_then(|row| selected.painted.rows.get(row))
-                    .is_none_or(|old| old == line)
-            })
-    }
-
-    fn release_transcript_scroll_press(&mut self) {
-        if self
-            .selection
-            .as_ref()
-            .is_some_and(|selected| selected.dragging)
-        {
-            self.clear_transcript_selection();
-            return;
+    /// Painted press/click targets are stale; a content-anchored selection is
+    /// not (OpenTUI keeps it on its renderables across content updates).
+    pub(super) fn invalidate_transcript_press(&mut self) {
+        let dragging = self.transcript_dragging();
+        if !dragging {
+            self.cancel_transcript_capture();
+            self.selection_gesture = false;
         }
-        self.cancel_transcript_capture();
-        self.selection_gesture = false;
-        self.click = None;
         self.child_notice_down = None;
         self.reverted_down = None;
         self.message_down = None;
+        self.click = None;
         self.paint_generation
             .set(self.paint_generation.get().wrapping_add(1));
         *self.painted_transcript.borrow_mut() = None;
     }
 
+    /// A left press on transcript text is held (OpenTUI `isDragging`).
+    fn transcript_dragging(&self) -> bool {
+        self.selection_gesture && self.selection.borrow().is_some()
+    }
+
+    /// Scrolling keeps a held drag alive: like OpenTUI's ScrollBox, the
+    /// selection follows the content and the focus follows the pointer.
+    fn release_transcript_scroll_press(&mut self) {
+        self.invalidate_transcript_press();
+    }
+
+    /// The wheel moves the pointer of a held gesture too.
+    pub(super) fn note_selection_pointer(&mut self, event: MouseEvent, frame: Rect) {
+        if self.selection_gesture
+            && let Some(selected) = self.selection.get_mut()
+        {
+            selected.pointer = (event.column, event.row, frame);
+        }
+    }
+
+    /// A non-empty selection owns the release of a plain click.
+    pub(super) fn has_transcript_selection(&self) -> bool {
+        self.selection
+            .borrow()
+            .as_ref()
+            .is_some_and(|selected| !selected.collapsed())
+    }
+
     pub(super) fn selection_text(&self) -> Result<Option<String>, &'static str> {
-        const TOO_LARGE: &str = "Selection exceeds clipboard size limit";
-        let Some(selected) = self.selection.as_ref() else {
+        let Some((anchor, focus, widths)) = self.selection.borrow().as_ref().and_then(|selected| {
+            (!selected.collapsed()).then(|| {
+                (
+                    selected.anchor.clone(),
+                    selected.focus.clone(),
+                    selected.widths,
+                )
+            })
+        }) else {
             return Ok(None);
         };
-        let painted = self.painted_transcript.borrow();
-        let Some(current) = painted.as_ref() else {
+        let Some((rows, start, (from, to))) = self.selection_lines(widths, &anchor, &focus)? else {
             return Ok(None);
         };
-        if !self.transcript_selection_current(selected, current) {
-            return Ok(None);
-        }
-        let (start, end) = selected.bounds();
-        if start == end {
-            return Ok(None);
-        }
-        let mut result = String::new();
-        for row in start.row..=end.row {
-            let Some(line) = selected.painted.rows.get(row) else {
-                return Ok(None);
-            };
-            let text = line.plain_text();
-            // A whitespace-only painted spacer has no selectable content.
-            if text.trim().is_empty() {
-                continue;
-            }
-            let begin = if row == start.row { start.byte } else { 0 };
-            let begin = begin.max(selectable_start(line));
-            let finish = if row == end.row { end.byte } else { text.len() };
-            if begin >= finish {
-                continue;
-            }
-            if !text.is_char_boundary(begin) || !text.is_char_boundary(finish) {
-                return Ok(None);
-            }
-            let addition = finish - begin + usize::from(!result.is_empty());
-            if result.len().saturating_add(addition) > MAX_SELECTION_BYTES {
-                return Err(TOO_LARGE);
-            }
-            if !result.is_empty() {
-                result.push('\n');
-            }
-            result.push_str(&text[begin..finish]);
-        }
-        Ok((!result.is_empty()).then_some(result))
+        crate::styled::copy_text(
+            MAX_SELECTION_BYTES,
+            rows.iter().enumerate().map(|(index, line)| {
+                let row = start + index;
+                let begin = if row == from.0 { from.1 } else { 0 };
+                let finish = if row == to.0 {
+                    to.1
+                } else {
+                    line.plain_text().len()
+                };
+                (line, begin, finish)
+            }),
+        )
     }
 
     pub(super) fn request_selection_copy(&mut self) {
@@ -1306,38 +1294,34 @@ impl TuiState {
             return;
         }
         let current = crate::shell::transcript_area(self, area);
-        let painted_valid = self
+        let painted = self
             .painted_transcript
             .borrow()
-            .as_ref()
-            .is_some_and(|painted| painted.area == current);
-        if !painted_valid {
-            self.clear_transcript_selection();
+            .clone()
+            .filter(|painted| painted.area == current);
+        let Some(painted) = painted else {
+            match event.kind {
+                MouseEventKind::Down(_) => self.clear_transcript_selection(),
+                // A scroll repaint is pending: the next frame resolves the
+                // focus under this pointer; the release ends the drag there.
+                MouseEventKind::Drag(MouseButton::Left) => {
+                    self.note_selection_pointer(event, area);
+                    if let Some(selected) = self.selection.get_mut() {
+                        selected.dragging = true;
+                        selected.focus_scroll = usize::MAX;
+                    }
+                    self.update_selection_autoscroll(current, event.row, Instant::now());
+                }
+                MouseEventKind::Up(_) => self.finish_transcript_drag(),
+                _ => {}
+            }
             return;
-        }
+        };
         if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
             && !current.contains((event.column, event.row).into())
         {
             self.selection_gesture = false;
             self.click = None;
-            return;
-        }
-        let (rows, total, scroll) =
-            self.visible_transcript_at_viewport(current.width, area.width, current.height);
-        if !(self
-            .painted_transcript
-            .borrow()
-            .as_ref()
-            .is_some_and(|painted| {
-                painted.total == total && painted.scroll == scroll && painted.rows[..] == rows[..]
-            })
-            || matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
-                && event.modifiers.is_empty()
-                && self
-                    .child_navigation_hit(area, event.column, event.row)
-                    .is_some())
-        {
-            self.clear_transcript_selection();
             return;
         }
         match event.kind {
@@ -1349,12 +1333,8 @@ impl TuiState {
                 self.request_selection_copy();
             }
             MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
-                let painted = self
-                    .painted_transcript
-                    .borrow()
-                    .clone()
-                    .expect("validated paint");
-                let Some(at) = self.transcript_point(&painted, area, event.column, event.row)
+                let Some((row, byte)) =
+                    self.transcript_cell(&painted, area, event.column, event.row, false)
                 else {
                     self.selection_gesture = false;
                     self.click = None;
@@ -1375,22 +1355,14 @@ impl TuiState {
                     at: now,
                     count,
                 });
-                let mut selected = TranscriptSelection {
-                    anchor: at,
-                    focus: at,
-                    painted,
-                    dragging: count > 1,
-                    transcript_revision: self.transcript_revision,
-                    window_revision: self.window.revision(),
-                };
-                self.selection_gesture = true;
+                let (mut anchor, mut focus) = (byte, byte);
                 if count == 2 || count == 3 {
-                    let text = selected.painted.rows[at.row].plain_text();
+                    let text = painted.rows[row].plain_text();
                     if count == 3 {
                         // OpenTUI paints the content of the display row, not
                         // the indentation before its first visible glyph.
-                        selected.anchor.byte = text.len() - text.trim_start().len();
-                        selected.focus.byte = text.len();
+                        anchor = text.len() - text.trim_start().len();
+                        focus = text.len();
                     } else {
                         // OpenTUI's painted word includes internal hyphens
                         // (GEOMETRY-SHORT), but not the adjacent colon. Group
@@ -1398,7 +1370,7 @@ impl TuiState {
                         let words: Vec<_> = text.unicode_word_indices().collect();
                         if let Some((index, (offset, word))) =
                             words.iter().enumerate().find(|(_, (offset, word))| {
-                                *offset <= at.byte && at.byte < *offset + word.len()
+                                *offset <= byte && byte < *offset + word.len()
                             })
                         {
                             let mut start = *offset;
@@ -1417,67 +1389,189 @@ impl TuiState {
                                 }
                                 start = *previous_offset;
                             }
-                            selected.anchor.byte = start;
-                            selected.focus.byte = end;
+                            anchor = start;
+                            focus = end;
                         }
                     }
                 }
-                self.selection = Some(selected);
+                let top = painted.top();
+                *self.selection.get_mut() = Some(TranscriptSelection {
+                    anchor: painted.point(top + row, anchor),
+                    focus: painted.point(top + row, focus),
+                    dragging: count > 1,
+                    widths: (current.width, area.width),
+                    focus_scroll: painted.scroll,
+                    pointer: (event.column, event.row, area),
+                });
+                self.selection_autoscroll = None;
+                self.selection_gesture = true;
             }
             MouseEventKind::Drag(MouseButton::Left) => {
-                let at = self
-                    .painted_transcript
-                    .borrow()
-                    .as_ref()
-                    .and_then(|painted| {
-                        self.transcript_point(painted, area, event.column, event.row)
-                    });
-                if let Some(at) = at
-                    && let Some(selected) = &mut self.selection
+                if let Some((row, byte)) =
+                    self.transcript_cell(&painted, area, event.column, event.row, true)
                 {
-                    selected.dragging = true;
-                    selected.focus = at;
+                    let point = painted.point(painted.top() + row, byte);
+                    if let Some(selected) = self.selection.get_mut() {
+                        selected.dragging = true;
+                        selected.focus = point;
+                        selected.focus_scroll = painted.scroll;
+                    }
+                }
+                if let Some(selected) = self.selection.get_mut() {
+                    selected.pointer = (event.column, event.row, area);
                 }
                 self.click = None;
+                self.update_selection_autoscroll(current, event.row, Instant::now());
             }
             MouseEventKind::Drag(_) => {
                 // Only a left press owns this selection. An unrelated button
                 // must never turn an old highlight into a new drag/copy.
                 self.selection_gesture = false;
+                self.selection_autoscroll = None;
                 self.click = None;
             }
             MouseEventKind::Up(_) => {
-                self.selection_gesture = false;
-                let at = self
-                    .painted_transcript
-                    .borrow()
-                    .as_ref()
-                    .and_then(|painted| {
-                        self.transcript_point(painted, area, event.column, event.row)
-                    });
-                if let Some(selected) = &mut self.selection
-                    && selected.dragging
+                // OpenTUI `finishSelection` ends the drag where the last motion
+                // put the focus; only a release on painted transcript text
+                // (normally the same cell) refines it. Repeated-click word/line
+                // selection keeps its expanded endpoints on a no-motion release.
+                let keep = self.click.is_some_and(|click| {
+                    click.count > 1 && (click.x, click.y) == (event.column, event.row)
+                });
+                if !keep
+                    && let Some((row, byte)) =
+                        self.transcript_cell(&painted, area, event.column, event.row, false)
                 {
-                    if let Some(at) = at {
-                        // Repeated-click word/line selection keeps its
-                        // expanded endpoints on a no-motion release.
-                        if self.click.is_none_or(|click| {
-                            click.count == 1 || (click.x, click.y) != (event.column, event.row)
-                        }) {
-                            selected.focus = at;
-                        }
-                    }
-                    selected.dragging = false;
-                    if self.clipboard_mode == ClipboardMode::Select {
-                        self.request_selection_copy();
+                    let point = painted.point(painted.top() + row, byte);
+                    if let Some(selected) = self.selection.get_mut()
+                        && selected.dragging
+                    {
+                        selected.focus = point;
                     }
                 }
+                self.finish_transcript_drag();
             }
             MouseEventKind::Down(_) => {
                 self.selection_gesture = false;
                 self.click = None;
             }
             _ => {}
+        }
+    }
+
+    fn finish_transcript_drag(&mut self) {
+        self.selection_gesture = false;
+        self.selection_autoscroll = None;
+        let dragged = self
+            .selection
+            .get_mut()
+            .as_mut()
+            .is_some_and(|selected| std::mem::replace(&mut selected.dragging, false));
+        if dragged && self.clipboard_mode == ClipboardMode::Select {
+            self.request_selection_copy();
+        }
+    }
+
+    /// OpenTUI ScrollBox edge auto-scroll: within three rows of an edge, or
+    /// beyond it, while a selection drag is held.
+    fn update_selection_autoscroll(&mut self, area: Rect, y: u16, now: Instant) {
+        let relative = i32::from(y) - i32::from(area.y);
+        let to_top = relative;
+        let to_bottom = i32::from(area.height) - relative;
+        let up = if to_top <= 3 {
+            self.display_scroll() < self.max_scroll()
+        } else {
+            false
+        };
+        let down = !up && to_bottom <= 3 && self.display_scroll() > 0;
+        if !up && !down {
+            self.selection_autoscroll = None;
+            return;
+        }
+        let distance = to_top.min(to_bottom);
+        let speed = if distance <= 1 {
+            72.0
+        } else if distance <= 2 {
+            36.0
+        } else {
+            6.0
+        };
+        let accumulated = self
+            .selection_autoscroll
+            .filter(|scroll| scroll.up == up)
+            .map_or((now, 0.0), |scroll| (scroll.at, scroll.accumulated));
+        self.selection_autoscroll = Some(SelectionAutoscroll {
+            up,
+            speed,
+            at: accumulated.0,
+            accumulated: accumulated.1,
+        });
+    }
+
+    /// Next whole-row auto-scroll step, absent at rest.
+    pub(super) fn next_selection_autoscroll_deadline(&self) -> Option<Instant> {
+        let scroll = self.selection_autoscroll?;
+        let remaining = (1.0 - scroll.accumulated).max(0.0) / scroll.speed;
+        Some(scroll.at + Duration::from_secs_f32(remaining))
+    }
+
+    fn tick_selection_autoscroll(&mut self, now: Instant) -> bool {
+        let Some(mut scroll) = self.selection_autoscroll else {
+            return false;
+        };
+        if self.panel != TuiPanel::None || !self.transcript_dragging() {
+            self.selection_autoscroll = None;
+            return false;
+        }
+        scroll.accumulated += now.saturating_duration_since(scroll.at).as_secs_f32() * scroll.speed;
+        scroll.at = now;
+        let rows = scroll.accumulated.trunc() as usize;
+        scroll.accumulated -= rows as f32;
+        self.selection_autoscroll = Some(scroll);
+        if rows == 0 {
+            return false;
+        }
+        self.wheel_motion = None;
+        let visible = self.display_scroll();
+        self.scroll = if scroll.up {
+            visible.saturating_add(rows).min(self.max_scroll())
+        } else {
+            visible.saturating_sub(rows)
+        };
+        if self.scroll == visible {
+            self.selection_autoscroll = None;
+            return false;
+        }
+        self.release_transcript_scroll_press();
+        true
+    }
+
+    /// While a drag is held, a scrolled repaint re-resolves the focus under
+    /// the last pointer (OpenTUI `requestSelectionUpdate`).
+    fn follow_selection_pointer(&self, painted: &PaintedTranscript, frame: Rect) {
+        if !self.selection_gesture {
+            return;
+        }
+        let Some((x, y, owner)) = self
+            .selection
+            .borrow()
+            .as_ref()
+            .map(|selected| selected.pointer)
+            .filter(|(_, _, owner)| *owner == frame)
+        else {
+            return;
+        };
+        let Some((row, byte)) = self.transcript_cell(painted, owner, x, y, true) else {
+            return;
+        };
+        // A held press without motion also extends (OpenTUI starts dragging
+        // on the press itself).
+        if let Some(selected) = self.selection.borrow_mut().as_mut()
+            && selected.focus_scroll != painted.scroll
+        {
+            selected.dragging = true;
+            selected.focus = painted.point(painted.top() + row, byte);
+            selected.focus_scroll = painted.scroll;
         }
     }
 
@@ -1494,7 +1588,7 @@ impl TuiState {
             || self.transcript_overpainted(frame, x, y)
             || self.click.is_none_or(|click| click.count != 1)
             || self.selection_gesture
-            || !matches!(self.selection_text(), Ok(None))
+            || self.has_transcript_selection()
         {
             return None;
         }
@@ -1530,22 +1624,37 @@ impl TuiState {
         targets.get((y - area.y) as usize).cloned().flatten()
     }
 
-    fn transcript_point(
+    /// The painted row and byte under a pointer. A held drag clamps outside
+    /// points to the nearest painted row edge, like OpenTUI's absolute focus.
+    fn transcript_cell(
         &self,
         painted: &PaintedTranscript,
         area: Rect,
         x: u16,
         y: u16,
-    ) -> Option<TextPoint> {
+        clamp: bool,
+    ) -> Option<(usize, usize)> {
         let rect = painted.area;
-        if !rect.contains((x, y).into()) || self.transcript_overpainted(area, x, y) {
+        if !clamp && (!rect.contains((x, y).into()) || self.transcript_overpainted(area, x, y)) {
             return None;
         }
+        let last = painted.rows.len().checked_sub(1)?;
+        if y < rect.y {
+            return Some((0, 0));
+        }
         let row = (y - rect.y) as usize;
-        Some(TextPoint {
+        if row > last {
+            return Some((last, painted.rows[last].plain_text().len()));
+        }
+        let line = &painted.rows[row];
+        Some((
             row,
-            byte: painted.rows.get(row)?.byte_at_cell((x - rect.x) as usize),
-        })
+            if x < rect.x {
+                0
+            } else {
+                line.byte_at_cell((x - rect.x) as usize)
+            },
+        ))
     }
 
     pub(super) fn exploration_hit(&self, area: Rect, x: u16, y: u16) -> Option<String> {
@@ -1737,6 +1846,7 @@ impl TuiState {
             })
             && !self
                 .selection
+                .borrow()
                 .as_ref()
                 .is_some_and(|selection| selection.dragging)
             && self.click.is_none_or(|click| click.count == 1)
@@ -1847,7 +1957,7 @@ impl TuiState {
                     || pressed.frame != frame
                     || pressed.point != (event.column, event.row)
                     || self.click.is_some_and(|click| click.count != 1)
-                    || !matches!(self.selection_text(), Ok(None))
+                    || self.has_transcript_selection()
                 {
                     return None;
                 }
@@ -2919,8 +3029,9 @@ impl TuiState {
     /// Elapsed progress is bounded by one presentation budget, independent of
     /// scheduler frequency. Returns dirty only when a painted row changes.
     pub fn tick_scroll_animation(&mut self, now: Instant) -> bool {
+        let autoscrolled = self.tick_selection_autoscroll(now);
         let Some(mut motion) = self.wheel_motion else {
-            return false;
+            return autoscrolled;
         };
         if self.panel != TuiPanel::None {
             self.wheel_motion = None;
@@ -2933,7 +3044,7 @@ impl TuiState {
         let applied = (motion.distance as u128 * elapsed / WHEEL_PRESENTATION.as_nanos()) as usize;
         let step = applied.saturating_sub(motion.applied);
         if step == 0 {
-            return false;
+            return autoscrolled;
         }
         let visible = self.display_scroll();
         self.scroll = if motion.up {
@@ -2949,7 +3060,7 @@ impl TuiState {
         };
         self.wheel_motion = (!edge && applied < motion.distance).then_some(motion);
         if visible == self.scroll {
-            return false;
+            return autoscrolled;
         }
         // Movement invalidates every press/release target from the old paint,
         // including selection-guarded user/reverted and expandable tool rows.

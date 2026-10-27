@@ -72,6 +72,7 @@ struct Input {
     anchor: Option<CompletionAnchor>,
     painted_top: Option<PaintedTop>,
     attached: bool,
+    selection: Vec<Arc<transcript::CompletionPart>>,
 }
 
 struct Output {
@@ -226,7 +227,7 @@ fn build(
         .filter(|previous| previous.requested_scroll == key.scroll)
     {
         if resized {
-            let (_, total, _, _, _, _) = render(0, 0);
+            let (_, total, _, _, _, _, _) = render(0, 0);
             let top = previous
                 .total
                 .saturating_sub(previous.height as usize)
@@ -238,7 +239,7 @@ fn build(
     } else {
         key.scroll
     };
-    let (mut lines, total, mut targets, mut children, mut hits, mut top) =
+    let (mut lines, total, mut targets, mut children, mut hits, mut top, mut positions) =
         render(height as usize, scroll);
     let scroll = if key.scroll > 0
         && semantic.is_none()
@@ -253,7 +254,7 @@ fn build(
             .saturating_sub(previous.height as usize)
             .saturating_sub(previous.displayed_scroll);
         let anchored = total.saturating_sub(height as usize).saturating_sub(at);
-        (lines, _, targets, children, hits, top) = render(height as usize, anchored);
+        (lines, _, targets, children, hits, top, positions) = render(height as usize, anchored);
         anchored
     } else {
         scroll
@@ -268,6 +269,14 @@ fn build(
         row,
         requested_scroll: key.scroll,
     });
+    let parts = selection_parts(
+        rows,
+        input.live,
+        &positions,
+        total.saturating_sub(height as usize).saturating_sub(scroll),
+        lines.len(),
+        &input.selection,
+    );
     let animations = lines
         .iter()
         .enumerate()
@@ -309,9 +318,57 @@ fn build(
             animations,
             hits,
             top,
+            parts,
         },
         reasoning,
     ))
+}
+
+/// Parts a selection point can attach to: every part intersecting the
+/// painted rows (plus the one owning a gap above them), and the parts of the
+/// current selection endpoints wherever they are now laid out.
+fn selection_parts(
+    rows: &[HistoryRow],
+    live: Option<usize>,
+    positions: &[(usize, usize)],
+    first: usize,
+    height: usize,
+    selection: &[Arc<transcript::CompletionPart>],
+) -> Vec<(Arc<transcript::CompletionPart>, usize, usize)> {
+    let last = first + height;
+    let owner = positions
+        .iter()
+        .enumerate()
+        .rev()
+        .find(|(_, (start, end))| start < end && *start <= first)
+        .map(|(index, _)| index);
+    let mut parts: Vec<(Arc<transcript::CompletionPart>, usize, usize)> = positions
+        .iter()
+        .enumerate()
+        .filter(|&(index, &(start, end))| {
+            start < end && (Some(index) == owner || (start < last && end > first))
+        })
+        .map(|(index, &(start, end))| {
+            (
+                Arc::new(transcript::CompletionPart::capture(
+                    rows,
+                    index,
+                    live == Some(index),
+                )),
+                start,
+                end,
+            )
+        })
+        .collect();
+    for part in selection {
+        if parts.iter().any(|(known, _, _)| known == part) {
+            continue;
+        }
+        if let Some(&(start, end)) = part.resolve(rows).and_then(|index| positions.get(index)) {
+            parts.push((part.clone(), start, end));
+        }
+    }
+    parts
 }
 
 fn run(input: Input, cache: crate::messages::MarkdownCache, cancel: Arc<AtomicBool>) -> Output {
@@ -422,7 +479,91 @@ impl TuiState {
             anchor: self.completion_anchor.borrow().clone(),
             painted_top: self.projection_work.borrow().painted_top.clone(),
             attached: self.tool_spinner_clocks_attached,
+            selection: self
+                .selection
+                .borrow()
+                .iter()
+                .flat_map(|selected| [&selected.anchor, &selected.focus])
+                .filter_map(|point| point.part.clone())
+                .collect(),
         }
+    }
+
+    /// Materialize the rows between two selection points from the current
+    /// sources, once per copy. Offscreen rows are rendered through the same
+    /// bounded painter; nothing is kept beyond this call.
+    #[allow(clippy::type_complexity)]
+    pub(super) fn selection_lines(
+        &self,
+        widths: (u16, u16),
+        anchor: &SelectionPoint,
+        focus: &SelectionPoint,
+    ) -> Result<Option<(Vec<Line>, usize, ((usize, usize), (usize, usize)))>, &'static str> {
+        let (width, terminal_width) = widths;
+        let height = self
+            .viewport
+            .get()
+            .map_or(VIEWPORT_LINES as u16, |view| view.height);
+        let input = self.projection_input(self.projection_key((width, terminal_width, height)));
+        let rows = &input.rows;
+        let key = &input.key;
+        let color = |agent: Option<&str>| {
+            agent
+                .and_then(|id| input.colors.get(id).copied())
+                .unwrap_or(input.fallback)
+        };
+        let expanded = |target: crate::messages::ToolExpansion<'_>| match target {
+            crate::messages::ToolExpansion::Operation(op) => key.exploration.contains(op),
+            crate::messages::ToolExpansion::InlineError(op) => key.errors.contains(op),
+            crate::messages::ToolExpansion::Instructions(op) => key.instructions.contains(op),
+            crate::messages::ToolExpansion::ExecuteCall(op, call) => {
+                key.calls.get(op).is_some_and(|calls| calls.contains(&call))
+            }
+        };
+        let cache = &self.markdown_cache;
+        let mut positions = vec![(0, 0); rows.len()];
+        let total = crate::messages::transcript_part_positions(
+            rows,
+            Theme::dark(),
+            (width, terminal_width, input.live),
+            &color,
+            cache,
+            &expanded,
+            |index, start, end| positions[index] = (start, end),
+        );
+        let resolve = |point: &SelectionPoint| match &point.part {
+            None => Some(point.offset),
+            Some(part) => part
+                .resolve(rows)
+                .and_then(|index| positions.get(index))
+                .map(|(start, _)| start + point.offset),
+        };
+        let (Some(a), Some(b)) = (resolve(anchor), resolve(focus)) else {
+            return Ok(None);
+        };
+        let (from, to) = {
+            let a = (a, anchor.byte);
+            let b = (b, focus.byte);
+            if a <= b { (a, b) } else { (b, a) }
+        };
+        let last = total.saturating_sub(1);
+        if from.0 > last {
+            return Ok(None);
+        }
+        let to = if to.0 > last { (last, usize::MAX) } else { to };
+        if to.0 - from.0 >= crate::app::MAX_SELECTION_BYTES {
+            return Err("Selection exceeds clipboard size limit");
+        }
+        let (lines, ..) = crate::messages::visible_transcript_targets(
+            rows,
+            Theme::dark(),
+            (width, terminal_width),
+            (to.0 + 1 - from.0, total - (to.0 + 1), input.live),
+            color,
+            cache,
+            &expanded,
+        );
+        Ok(Some((lines, from.0, (from, to))))
     }
 
     pub(super) fn projection_ready(&self, dimensions: (u16, u16, u16)) -> bool {

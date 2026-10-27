@@ -54,6 +54,9 @@ pub struct Span {
     content: String,
     style: Style,
     animation: Option<AnimationSource>,
+    /// Layout chrome (gutter, padding, fill, border): painted, never selected
+    /// or copied, like OpenTUI's non-selectable renderables.
+    decor: bool,
 }
 
 impl Span {
@@ -63,6 +66,15 @@ impl Span {
             content: content.into(),
             style,
             animation: None,
+            decor: false,
+        }
+    }
+
+    /// Non-selectable layout cells with an explicit style.
+    pub fn decor(content: impl Into<String>, style: Style) -> Self {
+        Self {
+            decor: true,
+            ..Self::styled(content, style)
         }
     }
 
@@ -80,11 +92,24 @@ impl Span {
             content,
             style: self.style,
             animation: self.animation.clone(),
+            decor: self.decor,
         }
     }
 
     pub fn style(&self) -> Style {
         self.style
+    }
+
+    pub fn is_decor(&self) -> bool {
+        self.decor
+    }
+
+    /// The same cells, restyled; the selectable/decor role is kept.
+    pub(crate) fn restyled(&self, style: Style) -> Self {
+        Self {
+            style,
+            ..self.clone()
+        }
     }
 }
 
@@ -106,6 +131,21 @@ pub struct Line {
     spans: Vec<Span>,
     style: Style,
     source_range: Option<std::ops::Range<usize>>,
+    copy: RowCopy,
+}
+
+/// How a painted row joins a copied selection.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RowCopy {
+    /// A row without selectable non-blank text is layout spacing and is
+    /// skipped; any other row is its own copied line.
+    #[default]
+    Auto,
+    /// A real (possibly empty) text line, e.g. a blank code or diff line.
+    Text,
+    /// A soft-wrap continuation of the previous row's logical line: joined
+    /// without a newline, as OpenTUI copies its text buffer.
+    Wrap,
 }
 
 impl PartialEq for Line {
@@ -125,13 +165,13 @@ impl Line {
                 let at = byte - offset;
                 if let Some(glyph) = span.content[at..].graphemes(true).next() {
                     if at > 0 {
-                        spans.push(Span::styled(&span.content[..at], span.style));
+                        spans.push(span.with_content(span.content[..at].to_owned()));
                     }
-                    let mut cell = Span::styled(glyph, span.style);
+                    let mut cell = span.with_content(glyph.to_owned());
                     cell.animation = Some(source.clone());
                     spans.push(cell);
                     if at + glyph.len() < span.content.len() {
-                        spans.push(Span::styled(&span.content[at + glyph.len()..], span.style));
+                        spans.push(span.with_content(span.content[at + glyph.len()..].to_owned()));
                     }
                 }
             } else {
@@ -175,7 +215,27 @@ impl Line {
             spans,
             style: Style::default(),
             source_range: None,
+            copy: RowCopy::Auto,
         }
+    }
+
+    pub fn copy(&self) -> RowCopy {
+        self.copy
+    }
+
+    /// The same row with each span restyled; cell roles, animation tags and
+    /// the copy mode are kept (hover overlays must not change selection).
+    pub(crate) fn restyle_spans(&self, mut style: impl FnMut(usize, &Span) -> Style) -> Self {
+        let mut line = self.clone();
+        for (index, span) in line.spans.iter_mut().enumerate() {
+            span.style = style(index, span);
+        }
+        line
+    }
+
+    pub fn with_copy(mut self, copy: RowCopy) -> Self {
+        self.copy = copy;
+        self
     }
 
     /// A single-span line.
@@ -241,12 +301,13 @@ impl Line {
 
     /// Paint selected graphemes with explicit source-cell foreground and
     /// background colors; the terminal must not retain a REVERSED attribute.
+    /// Decor cells (gutter, padding, fill) are never highlighted.
     pub fn highlight(&self, start: usize, end: usize, base_fg: Color, base_bg: Color) -> Self {
         let mut spans = Vec::new();
         let mut offset = 0;
         for span in &self.spans {
             for glyph in span.content.graphemes(true) {
-                let selected = offset >= start && offset < end;
+                let selected = !span.decor && offset >= start && offset < end;
                 let style = if selected {
                     let source = self.style.patch(span.style);
                     span.style
@@ -256,11 +317,47 @@ impl Line {
                 } else {
                     span.style
                 };
-                spans.push((glyph, style, None, 0..0));
+                spans.push((glyph, style, None, 0..0, span.decor));
                 offset += glyph.len();
             }
         }
-        Self::new(coalesce(&spans)).with_style(self.style)
+        let mut line = Self::new(coalesce(&spans)).with_style(self.style);
+        line.copy = self.copy;
+        line
+    }
+
+    /// Selectable text in the plain-text byte range `start..end`; decor runs
+    /// between two text runs join without a separator (OpenTUI joins the
+    /// segments of one row by x).
+    pub fn selected_text(&self, start: usize, end: usize) -> String {
+        let mut out = String::new();
+        let mut offset = 0;
+        for span in &self.spans {
+            let span_end = offset + span.content.len();
+            if !span.decor && span_end > start && offset < end {
+                let from = start.saturating_sub(offset);
+                let to = (end - offset).min(span.content.len());
+                if let Some(text) = span.content.get(from..to) {
+                    out.push_str(text);
+                }
+            }
+            offset = span_end;
+        }
+        out
+    }
+
+    /// Plain-text byte range of the selectable cells, if any.
+    pub fn selectable_range(&self) -> Option<std::ops::Range<usize>> {
+        let mut offset = 0;
+        let mut range: Option<std::ops::Range<usize>> = None;
+        for span in &self.spans {
+            let end = offset + span.content.len();
+            if !span.decor && end > offset {
+                range = Some(range.map_or(offset..end, |range| range.start..end));
+            }
+            offset = end;
+        }
+        range
     }
 }
 
@@ -323,6 +420,71 @@ impl From<Vec<Line>> for Lines {
     fn from(lines: Vec<Line>) -> Self {
         Self(lines)
     }
+}
+
+/// Leading default-style blank padding of a painted transcript row (older
+/// renderers emit it as ordinary text): never selected or copied.
+pub(crate) fn selectable_start(line: &Line) -> usize {
+    match line.spans() {
+        [padding, content, ..]
+            if padding.style() == Style::default()
+                && !padding.content().is_empty()
+                && padding.content().bytes().all(|byte| byte == b' ')
+                && !content.content().is_empty() =>
+        {
+            padding.content().len()
+        }
+        _ => 0,
+    }
+}
+
+/// A painted row that can contribute to a copy: real text rows, or any row
+/// whose selectable cells hold non-blank text. Layout spacers never do.
+pub(crate) fn copyable_row(line: &Line) -> bool {
+    line.copy() != RowCopy::Auto
+        || line
+            .selectable_range()
+            .is_some_and(|range| !line.selected_text(range.start, range.end).trim().is_empty())
+}
+
+/// OpenTUI `Selection.getSelectedText`: the selectable segments of one row
+/// join by x, rows join by newline, and a soft-wrap continuation joins its
+/// logical line. Each item is a row with its selected plain-text byte range.
+pub(crate) fn copy_text<'a>(
+    limit: usize,
+    rows: impl Iterator<Item = (&'a Line, usize, usize)>,
+) -> Result<Option<String>, &'static str> {
+    const TOO_LARGE: &str = "Selection exceeds clipboard size limit";
+    let mut result = String::new();
+    let mut started = false;
+    let mut previous: Option<usize> = None;
+    for (index, (line, begin, finish)) in rows.enumerate() {
+        if !copyable_row(line) {
+            continue;
+        }
+        let text = line.plain_text();
+        let begin = begin.max(selectable_start(line)).min(text.len());
+        let finish = finish.min(text.len());
+        if begin > finish || (begin == finish && line.copy() != RowCopy::Text) {
+            continue;
+        }
+        if !text.is_char_boundary(begin) || !text.is_char_boundary(finish) {
+            return Ok(None);
+        }
+        let selected = line.selected_text(begin, finish);
+        let joined = line.copy() == RowCopy::Wrap && previous.is_some_and(|row| row + 1 == index);
+        let separator = usize::from(started && !joined);
+        if result.len().saturating_add(selected.len() + separator) > limit {
+            return Err(TOO_LARGE);
+        }
+        if separator == 1 {
+            result.push('\n');
+        }
+        result.push_str(&selected);
+        started = true;
+        previous = Some(index);
+    }
+    Ok(started.then_some(result))
 }
 
 /// Display cells occupied by one character (wide CJK and emoji are 2 cells).
@@ -388,6 +550,7 @@ pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) ->
                 span.style(),
                 (byte == 0).then(|| span.animation.clone()).flatten(),
                 byte..byte + glyph.len(),
+                span.decor,
             ));
             used += cells;
         }
@@ -406,8 +569,10 @@ pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -
 
 /// Stream the same source-space rows without retaining a whole long message.
 pub(crate) fn visit_source_space_line(line: &Line, width: usize, mut emit: impl FnMut(Line)) {
+    let mut copy = line.copy;
     visit_wrapped_line(line, width, usize::MAX, true, true, |cells| {
-        emit(source_line(cells))
+        emit(source_line(cells).with_copy(copy));
+        copy = RowCopy::Wrap;
     });
 }
 
@@ -427,10 +592,18 @@ pub(crate) fn visit_source_rows(
         } else {
             glyph
         };
-        (glyph, Style::default(), None, range)
+        (glyph, Style::default(), None, range, false)
     });
+    // A checkpoint inside a logical line, and every later row, continue it.
+    let mut continuation = has_word;
     visit_wrapped_glyphs(glyphs, width, limit, true, true, has_word, |cells| {
-        emit(source_line(cells))
+        let copy = if continuation {
+            RowCopy::Wrap
+        } else {
+            RowCopy::Auto
+        };
+        continuation = true;
+        emit(source_line(cells).with_copy(copy))
     });
 }
 
@@ -460,7 +633,16 @@ fn wrap_line_with_space_mode(
         preserve_break_space,
         opentui_breaks,
         |cells| {
-            out.push(source_line(cells));
+            // Source-space rows keep every separator, so a continuation is
+            // copied back onto its logical line without a newline.
+            let copy = if out.is_empty() {
+                line.copy
+            } else if preserve_break_space {
+                RowCopy::Wrap
+            } else {
+                RowCopy::Auto
+            };
+            out.push(source_line(cells).with_copy(copy));
         },
     );
     out
@@ -486,6 +668,7 @@ fn visit_wrapped_line<'a>(
                     span.style(),
                     (byte == 0).then(|| span.animation.clone()).flatten(),
                     start + byte..start + byte + glyph.len(),
+                    span.decor,
                 )
             })
     });
@@ -506,6 +689,7 @@ type WrappedCell<'a> = (
     Style,
     Option<AnimationSource>,
     std::ops::Range<usize>,
+    bool,
 );
 
 fn source_line(cells: &[WrappedCell]) -> Line {
@@ -519,14 +703,7 @@ fn source_line(cells: &[WrappedCell]) -> Line {
 }
 
 fn visit_wrapped_glyphs<'a>(
-    glyphs: impl Iterator<
-        Item = (
-            &'a str,
-            Style,
-            Option<AnimationSource>,
-            std::ops::Range<usize>,
-        ),
-    >,
+    glyphs: impl Iterator<Item = WrappedCell<'a>>,
     width: usize,
     limit: usize,
     preserve_break_space: bool,
@@ -557,7 +734,7 @@ fn visit_wrapped_glyphs<'a>(
     let mut previous_glyph: Option<&str> = None;
     let mut glyphs = glyphs.peekable();
     let mut visited = 0usize;
-    while let Some((glyph, style, animation, source_range)) = glyphs.next() {
+    while let Some((glyph, style, animation, source_range, decor)) = glyphs.next() {
         visited += 1;
         if visited.is_multiple_of(256) && render_cancelled() {
             return;
@@ -579,7 +756,7 @@ fn visit_wrapped_glyphs<'a>(
         previous_glyph = Some(glyph);
         let whitespace = if opentui_breaks {
             wrap_whitespace(glyph)
-                && !glyphs.peek().is_some_and(|(next, _, _, _)| {
+                && !glyphs.peek().is_some_and(|(next, _, _, _, _)| {
                     // A styled-span edge is not a grapheme boundary. Keep a
                     // whitespace base when the next span carries its accent.
                     UnicodeWidthStr::width(*next) == 0
@@ -603,7 +780,7 @@ fn visit_wrapped_glyphs<'a>(
             let boundary = if whitespace {
                 break_at = None;
                 if !preserve_break_space && (!opentui_breaks || source_has_word) {
-                    while current.last().is_some_and(|(ch, _, _, _)| is_space(ch)) {
+                    while current.last().is_some_and(|(ch, _, _, _, _)| is_space(ch)) {
                         current.pop();
                     }
                 }
@@ -615,7 +792,10 @@ fn visit_wrapped_glyphs<'a>(
                 Some((index, leading_indent)) => {
                     let mut rest = index;
                     if !opentui_breaks || source_has_word {
-                        while current.get(rest).is_some_and(|(ch, _, _, _)| is_space(ch)) {
+                        while current
+                            .get(rest)
+                            .is_some_and(|(ch, _, _, _, _)| is_space(ch))
+                        {
                             rest += 1;
                         }
                     }
@@ -630,7 +810,7 @@ fn visit_wrapped_glyphs<'a>(
                     current.drain(..rest);
                     used = current
                         .iter()
-                        .map(|(ch, _, _, _)| UnicodeWidthStr::width(*ch))
+                        .map(|(ch, _, _, _, _)| UnicodeWidthStr::width(*ch))
                         .sum();
                 }
                 None => {
@@ -659,7 +839,7 @@ fn visit_wrapped_glyphs<'a>(
         } else {
             opentui_breaks && whitespace && !source_has_word
         };
-        current.push((glyph, style, animation, source_range));
+        current.push((glyph, style, animation, source_range, decor));
         used += cells;
         source_has_word |= !whitespace;
         // A zero-cell combining suffix in another style span keeps the
@@ -755,10 +935,13 @@ pub fn wrap_lines(lines: &[Line], width: usize) -> Vec<Line> {
 /// Merge consecutive cells with the same style back into spans.
 fn coalesce(cells: &[WrappedCell]) -> Vec<Span> {
     let mut spans: Vec<Span> = Vec::new();
-    for (ch, style, animation, _) in cells {
+    for (ch, style, animation, _, decor) in cells {
         match spans.last_mut() {
             Some(span)
-                if span.style() == *style && span.animation.is_none() && animation.is_none() =>
+                if span.style() == *style
+                    && span.decor == *decor
+                    && span.animation.is_none()
+                    && animation.is_none() =>
             {
                 span.content.push_str(ch)
             }
@@ -766,6 +949,7 @@ fn coalesce(cells: &[WrappedCell]) -> Vec<Span> {
                 content: (*ch).to_owned(),
                 style: *style,
                 animation: animation.clone(),
+                decor: *decor,
             }),
         }
     }

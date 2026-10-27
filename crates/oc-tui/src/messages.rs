@@ -1335,30 +1335,17 @@ pub(crate) fn hover_tool_content(line: &Line, theme: &Theme) -> Line {
     let bg = theme.background_raised();
     if line.style().bg == Some(bg) {
         let hover = theme.decrease(bg);
-        return Line::new(
-            line.spans()
-                .iter()
-                .map(|span| Span::styled(span.content(), span.style().bg(hover)))
-                .collect(),
-        )
-        .with_style(line.style().bg(hover));
+        return line
+            .restyle_spans(|_, span| span.style().bg(hover))
+            .with_style(line.style().bg(hover));
     }
-    Line::new(
-        line.spans()
-            .iter()
-            .map(|span| {
-                Span::styled(
-                    span.content(),
-                    if span.style().fg == Some(theme.text_muted()) {
-                        span.style().fg(theme.text())
-                    } else {
-                        span.style()
-                    },
-                )
-            })
-            .collect(),
-    )
-    .with_style(line.style())
+    line.restyle_spans(|_, span| {
+        if span.style().fg == Some(theme.text_muted()) {
+            span.style().fg(theme.text())
+        } else {
+            span.style()
+        }
+    })
 }
 
 /// The upstream grouping path is ["reasoning"] only for adjacent part entries.
@@ -1567,14 +1554,18 @@ fn visit_reasoning_body_indexed(
                             // Markdown already supplied paddingLeft=3. Keep it
                             // and insert the thinking border/padding before text.
                             let mut spans = vec![
-                                Span::plain(" ".repeat(MESSAGE_PADDING)),
-                                Span::styled("┃", border),
-                                Span::plain(" "),
+                                Span::decor(" ".repeat(MESSAGE_PADDING), Style::default()),
+                                Span::decor("┃", border),
+                                Span::decor(" ", Style::default()),
                             ];
-                            spans.extend(line.spans().iter().skip(1).map(|span| {
-                                Span::styled(span.content(), span.style().fg(theme.text_muted()))
-                            }));
+                            spans.extend(
+                                line.spans()
+                                    .iter()
+                                    .skip(1)
+                                    .map(|span| span.restyled(span.style().fg(theme.text_muted()))),
+                            );
                             clipped_line(sanitize_line(Line::new(spans)), width)
+                                .with_copy(line.copy())
                         })
                         .collect()
                 });
@@ -1743,7 +1734,7 @@ fn exploration_entry(rows: &[HistoryRow], index: usize, theme: &Theme) -> Option
     let mut header = vec![
         Line::plain(""),
         Line::new(vec![
-            Span::plain(" ".repeat(MESSAGE_PADDING)),
+            Span::decor(" ".repeat(MESSAGE_PADDING), Style::default()),
             Span::styled(
                 if completed {
                     "→"
@@ -1810,19 +1801,19 @@ fn instruction_entry(
     }
     let style = Style::default().fg(theme.text_muted());
     let mut lines = vec![Line::new(vec![
-        Span::plain(" ".repeat(MESSAGE_PADDING)),
+        Span::decor(" ".repeat(MESSAGE_PADDING), Style::default()),
         Span::styled(format!("◈ Instructions: {total} files"), style),
     ])];
     if expanded {
         for path in paths {
             lines.push(Line::new(vec![
-                Span::plain(" ".repeat(MESSAGE_PADDING + 2)),
+                Span::decor(" ".repeat(MESSAGE_PADDING + 2), Style::default()),
                 Span::styled(format!("◈ Loaded {}", safe_text(&path)), style),
             ]));
         }
         if omitted != 0 {
             lines.push(Line::new(vec![
-                Span::plain(" ".repeat(MESSAGE_PADDING + 2)),
+                Span::decor(" ".repeat(MESSAGE_PADDING + 2), Style::default()),
                 Span::styled(format!("… {omitted} more files"), style),
             ]));
         }
@@ -1849,7 +1840,7 @@ fn render_row(
             let (count, preview) = row.text.split_once(" · ").unwrap_or((&row.text, ""));
             let padding = usize::from(width).min(3);
             let mut spans = vec![
-                Span::plain(" ".repeat(padding)),
+                Span::decor(" ".repeat(padding), Style::default()),
                 Span::styled(count.to_string(), Style::default().fg(theme.text())),
             ];
             if !preview.is_empty() {
@@ -1883,7 +1874,7 @@ fn render_row(
                     .into_iter()
                     .map(|line| {
                         Line::new(
-                            std::iter::once(Span::plain(" ".repeat(padding)))
+                            std::iter::once(Span::decor(" ".repeat(padding), Style::default()))
                                 .chain(line.spans().iter().cloned())
                                 .collect(),
                         )
@@ -1932,7 +1923,7 @@ fn render_row(
         "model_switch" | "variant_switch" | "agent_switch" => vec![
             Line::plain(""),
             Line::new(vec![
-                Span::plain(" ".repeat(MESSAGE_PADDING)),
+                Span::decor(" ".repeat(MESSAGE_PADDING), Style::default()),
                 Span::styled(row.text.clone(), Style::default().fg(theme.text_muted())),
             ]),
         ],
@@ -1958,6 +1949,7 @@ fn sanitize_line(line: Line) -> Line {
             .collect(),
     )
     .with_style(line.style())
+    .with_copy(line.copy())
 }
 
 /// Visit independently bounded text pages. A row's footer is a separate block;
@@ -1988,7 +1980,7 @@ fn visit_row_blocks(
         let color = user_agent_color(row, theme, agent_color);
         let border = Style::default().fg(color).bg(bg);
         emit(vec![user_row(
-            &[Span::styled("┃", border)],
+            &[Span::decor("┃", border)],
             bg,
             width as usize,
         )]);
@@ -2002,8 +1994,8 @@ fn visit_row_blocks(
                 // and the full wrapper, retaining only one width-bounded row.
                 styled::visit_source_space_line(&line, inner, |wrapped| {
                     let mut spans = vec![
-                        Span::styled("┃", border),
-                        Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+                        Span::decor("┃", border),
+                        Span::decor(" ".repeat(USER_PADDING), user_padding(bg)),
                     ];
                     spans.extend(wrapped.spans().iter().cloned());
                     emit(vec![user_row(&spans, bg, width as usize)]);
@@ -2011,12 +2003,12 @@ fn visit_row_blocks(
             }
         }
         if !row.chips.is_empty() {
-            let mut chip_lines = vec![user_row(&[Span::styled("┃", border)], bg, width as usize)];
+            let mut chip_lines = vec![user_row(&[Span::decor("┃", border)], bg, width as usize)];
             let inner = (width as usize).saturating_sub(1 + USER_PADDING).max(1);
             for chips in chip_rows(&row.chips, theme, inner) {
                 let mut spans = vec![
-                    Span::styled("┃", border),
-                    Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+                    Span::decor("┃", border),
+                    Span::decor(" ".repeat(USER_PADDING), user_padding(bg)),
                 ];
                 spans.extend(chips);
                 chip_lines.push(user_row(&spans, bg, width as usize));
@@ -2024,7 +2016,7 @@ fn visit_row_blocks(
             emit(chip_lines.into_iter().map(sanitize_line).collect());
         }
         emit(vec![user_row(
-            &[Span::styled("┃", border)],
+            &[Span::decor("┃", border)],
             bg,
             width as usize,
         )]);
@@ -2871,7 +2863,7 @@ pub(crate) fn visible_transcript(
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _, _, _, _) = visible_transcript_indexed(
+    let (lines, total, _, _, _, _, _) = visible_transcript_indexed(
         rows,
         theme,
         (width, terminal_width),
@@ -3015,24 +3007,15 @@ pub(crate) fn hover_child_notice(
 }
 
 pub(crate) fn hover_subagent_content(line: &Line, theme: &Theme) -> Line {
-    Line::new(
-        line.spans()
-            .iter()
-            .map(|span| {
-                Span::styled(
-                    span.content(),
-                    if span.style().fg == Some(theme.text_muted())
-                        && span.style().bg != Some(theme.decrease(theme.background()))
-                    {
-                        span.style().fg(theme.text())
-                    } else {
-                        span.style()
-                    },
-                )
-            })
-            .collect(),
-    )
-    .with_style(line.style())
+    line.restyle_spans(|_, span| {
+        if span.style().fg == Some(theme.text_muted())
+            && span.style().bg != Some(theme.decrease(theme.background()))
+        {
+            span.style().fg(theme.text())
+        } else {
+            span.style()
+        }
+    })
 }
 
 #[cfg(test)]
@@ -3045,7 +3028,7 @@ pub(crate) fn visible_transcript_expanded(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize) {
-    let (lines, total, _, _, _, _) = visible_transcript_indexed(
+    let (lines, total, _, _, _, _, _) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -3097,7 +3080,7 @@ fn reverted_block(count: &str, shortcut: &str, theme: &Theme, width: u16) -> Vec
     ];
     for line in body {
         for wrapped in styled::wrap_line_limited(&line, inner, MAX_MARKDOWN_ROWS) {
-            let mut spans = vec![Span::styled("┃", border), Span::styled("  ", muted)];
+            let mut spans = vec![Span::decor("┃", border), Span::decor("  ", muted)];
             spans.extend(wrapped.spans().iter().cloned());
             lines.push(user_row(&spans, bg, width as usize));
         }
@@ -3117,23 +3100,15 @@ pub(crate) fn hover_reverted_content(line: &Line, theme: &Theme) -> Line {
 
 fn hover_message_content(line: &Line, theme: &Theme, base: Color) -> Line {
     let hover = theme.decrease(base);
-    let spans = line
-        .spans()
-        .iter()
-        .enumerate()
-        .map(|(index, span)| {
-            let style = span.style();
-            Span::styled(
-                span.content().to_owned(),
-                if !(index == 0 && span.content() == "┃") && style.bg == Some(base) {
-                    style.bg(hover)
-                } else {
-                    style
-                },
-            )
-        })
-        .collect();
-    Line::new(spans).with_style(line.style().bg(hover))
+    line.restyle_spans(|index, span| {
+        let style = span.style();
+        if !(index == 0 && span.content() == "┃") && style.bg == Some(base) {
+            style.bg(hover)
+        } else {
+            style
+        }
+    })
+    .with_style(line.style().bg(hover))
 }
 
 #[cfg(test)]
@@ -3146,7 +3121,7 @@ pub(crate) fn visible_transcript_user_targets(
     cache: &RefCell<MarkdownCache>,
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> (Vec<Line>, usize, Vec<Option<UserMessageTarget>>) {
-    let (lines, total, targets, _, _, _) =
+    let (lines, total, targets, _, _, _, _) =
         visible_transcript_targets(rows, theme, widths, viewport, agent_color, cache, expanded);
     (lines, total, targets)
 }
@@ -3158,6 +3133,7 @@ type VisibleTranscriptTargets = (
     Vec<ChildNavigationHit>,
     Vec<TranscriptRegion>,
     Option<(usize, usize)>,
+    Vec<(usize, usize)>,
 );
 
 pub(crate) fn visible_transcript_targets(
@@ -3170,7 +3146,7 @@ pub(crate) fn visible_transcript_targets(
     expanded: &impl Fn(ToolExpansion<'_>) -> bool,
 ) -> VisibleTranscriptTargets {
     let regions = RefCell::new(Vec::new());
-    let (lines, total, _, targets, children, top) = visible_transcript_indexed(
+    let (lines, total, _, targets, children, top, positions) = visible_transcript_indexed(
         rows,
         theme,
         widths,
@@ -3184,7 +3160,15 @@ pub(crate) fn visible_transcript_targets(
             retries: 2,
         },
     );
-    (lines, total, targets, children, regions.into_inner(), top)
+    (
+        lines,
+        total,
+        targets,
+        children,
+        regions.into_inner(),
+        top,
+        positions,
+    )
 }
 
 /// Only visible label cells, indexed during the same traversal as their pixels.
@@ -3313,6 +3297,8 @@ fn record_region(
     }
 }
 
+/// The last element is each history row's painted `(start, end)` rows, in
+/// the same coordinates as the viewport (row 0 is the scrollbox padding).
 type IndexedTranscript = (
     Vec<Line>,
     usize,
@@ -3320,6 +3306,7 @@ type IndexedTranscript = (
     Vec<Option<UserMessageTarget>>,
     Vec<ChildNavigationHit>,
     Option<(usize, usize)>,
+    Vec<(usize, usize)>,
 );
 
 fn visible_transcript_indexed(
@@ -4103,7 +4090,15 @@ fn visible_transcript_indexed(
         );
     }
     user_targets.resize(visible.len(), None);
-    (visible, total, hit, user_targets, child_targets, top)
+    (
+        visible,
+        total,
+        hit,
+        user_targets,
+        child_targets,
+        top,
+        positions,
+    )
 }
 
 /// Count the same cached/grouped parts used by the painter, without materializing
@@ -4313,11 +4308,11 @@ fn user_chip_lines(
     let border = Style::default()
         .fg(user_agent_color(row, theme, agent_color))
         .bg(bg);
-    let mut lines = vec![user_row(&[Span::styled("┃", border)], bg, width as usize)];
+    let mut lines = vec![user_row(&[Span::decor("┃", border)], bg, width as usize)];
     for chips in chip_rows(&row.chips, theme, width.saturating_sub(3).max(1) as usize) {
         let mut spans = vec![
-            Span::styled("┃", border),
-            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+            Span::decor("┃", border),
+            Span::decor(" ".repeat(USER_PADDING), user_padding(bg)),
         ];
         spans.extend(chips);
         let line = sanitize_line(user_row(&spans, bg, width as usize));
@@ -4343,7 +4338,7 @@ fn user_visible_rows(
     let border = Style::default()
         .fg(user_agent_color(row, theme, agent_color))
         .bg(bg);
-    let blank = || user_row(&[Span::styled("┃", border)], bg, width as usize);
+    let blank = || user_row(&[Span::decor("┃", border)], bg, width as usize);
     let margin = usize::from(index > 0);
     let inner = width.saturating_sub(1 + USER_PADDING as u16).max(1);
     let body_height = cache.borrow_mut().user_height(&row.text, inner);
@@ -4381,13 +4376,15 @@ fn user_visible_rows(
                 |line| {
                     if ordinal >= from {
                         let mut spans = vec![
-                            Span::styled("┃", border),
-                            Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+                            Span::decor("┃", border),
+                            Span::decor(" ".repeat(USER_PADDING), user_padding(bg)),
                         ];
-                        spans.extend(line.spans().iter().map(|span| {
-                            Span::styled(span.content(), Style::default().fg(theme.text()).bg(bg))
-                        }));
-                        out.push(user_row(&spans, bg, width as usize));
+                        spans.extend(
+                            line.spans().iter().map(|span| {
+                                span.restyled(Style::default().fg(theme.text()).bg(bg))
+                            }),
+                        );
+                        out.push(user_row(&spans, bg, width as usize).with_copy(line.copy()));
                     }
                     ordinal += 1;
                 },
@@ -4445,7 +4442,7 @@ fn user_block_parts(
     let width = width as usize;
     let mut out = Vec::new();
     // paddingTop=1: one bordered, background-filled empty row.
-    out.push(user_row(&[Span::styled("┃", border)], bg, width));
+    out.push(user_row(&[Span::decor("┃", border)], bg, width));
     let inner = if width == 0 {
         usize::MAX
     } else {
@@ -4458,8 +4455,8 @@ fn user_block_parts(
             // the surrounding box padding keeps its own foreground.
             for wrapped in styled::wrap_source_space_line_limited(&line, inner.max(1), usize::MAX) {
                 let mut spans = vec![
-                    Span::styled("┃", border),
-                    Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+                    Span::decor("┃", border),
+                    Span::decor(" ".repeat(USER_PADDING), user_padding(bg)),
                 ];
                 spans.extend(wrapped.spans().iter().cloned());
                 out.push(user_row(&spans, bg, width));
@@ -4468,18 +4465,18 @@ fn user_block_parts(
     }
     if !chips.is_empty() {
         // Chips row: `paddingTop={1}`, `gap={1}`, `flexWrap="wrap"`.
-        out.push(user_row(&[Span::styled("┃", border)], bg, width));
+        out.push(user_row(&[Span::decor("┃", border)], bg, width));
         for chips in chip_rows(chips, theme, inner) {
             let mut spans = vec![
-                Span::styled("┃", border),
-                Span::styled(" ".repeat(USER_PADDING), user_padding(bg)),
+                Span::decor("┃", border),
+                Span::decor(" ".repeat(USER_PADDING), user_padding(bg)),
             ];
             spans.extend(chips);
             out.push(user_row(&spans, bg, width));
         }
     }
     // paddingBottom=1.
-    out.push(user_row(&[Span::styled("┃", border)], bg, width));
+    out.push(user_row(&[Span::decor("┃", border)], bg, width));
     out
 }
 
@@ -4506,7 +4503,7 @@ fn user_row(spans: &[Span], bg: Color, width: usize) -> Line {
     let used: usize = spans.iter().map(styled::span_width).sum();
     let mut spans = spans.to_vec();
     if used < width {
-        spans.push(Span::styled(
+        spans.push(Span::decor(
             " ".repeat(width - used),
             Style::default().bg(bg),
         ));
@@ -4678,7 +4675,7 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
     } else {
         reasoning_title(&content)
     };
-    let mut spans = vec![Span::plain(" ".repeat(MESSAGE_PADDING))];
+    let mut spans = vec![Span::decor(" ".repeat(MESSAGE_PADDING), Style::default())];
     if !reasoning.toggleable {
         spans.push(Span::styled(
             "┃",
@@ -4725,7 +4722,10 @@ fn reasoning_line(reasoning: &ReasoningBlock, theme: &Theme) -> Line {
             if reasoning.expanded { "-" } else { "+" },
             style,
         ));
-        spans.push(Span::plain(" ".repeat(INLINE_ICON_WIDTH - 1)));
+        spans.push(Span::decor(
+            " ".repeat(INLINE_ICON_WIDTH - 1),
+            Style::default(),
+        ));
     }
     let mut text = String::from("Thought");
     let duration = reasoning
@@ -4789,20 +4789,13 @@ pub(crate) fn collapsed_thought_header(line: &Line, theme: &Theme, x: usize) -> 
 /// Recolor only the header's warning spans; keep icon gap, text and clipping.
 pub(crate) fn hover_collapsed_thought(line: &Line, theme: &Theme) -> Line {
     let faded = collapsed_thought_color(theme);
-    Line::new(
-        line.spans()
-            .iter()
-            .map(|span| {
-                let style = if span.style().fg == Some(faded) {
-                    span.style().fg(theme.warning())
-                } else {
-                    span.style()
-                };
-                Span::styled(span.content(), style)
-            })
-            .collect(),
-    )
-    .with_style(line.style())
+    line.restyle_spans(|_, span| {
+        if span.style().fg == Some(faded) {
+            span.style().fg(theme.warning())
+        } else {
+            span.style()
+        }
+    })
 }
 
 fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec<Line> {
@@ -4849,18 +4842,18 @@ fn reasoning_lines(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Vec
         }));
         for line in body {
             let mut spans = vec![
-                Span::plain(" ".repeat(MESSAGE_PADDING)),
-                Span::styled("┃", border),
-                Span::plain(" ".repeat(inset - MESSAGE_PADDING - 1)),
+                Span::decor(" ".repeat(MESSAGE_PADDING), Style::default()),
+                Span::decor("┃", border),
+                Span::decor(" ".repeat(inset - MESSAGE_PADDING - 1), Style::default()),
             ];
             // thinkingSyntax replaces every Markdown token foreground with
             // text.muted; retain the native parser's layout/modifiers.
             spans.extend(
                 line.spans()
                     .iter()
-                    .map(|span| Span::styled(span.content(), span.style().fg(theme.text_muted()))),
+                    .map(|span| span.restyled(span.style().fg(theme.text_muted()))),
             );
-            lines.push(clipped_line(sanitize_line(Line::new(spans)), width));
+            lines.push(clipped_line(sanitize_line(Line::new(spans)), width).with_copy(line.copy()));
         }
     }
     lines
@@ -4897,7 +4890,7 @@ fn shell_notice_block(row: &HistoryRow, index: usize, theme: &Theme, width: u16)
     }
     let line = clipped_line(
         sanitize_line(Line::new(vec![
-            Span::plain(" ".repeat(MESSAGE_PADDING)),
+            Span::decor(" ".repeat(MESSAGE_PADDING), Style::default()),
             Span::styled(heading, Style::default().fg(color)),
             Span::styled(
                 format!(" · {command}"),
@@ -4986,7 +4979,9 @@ fn clipped_line(header: Line, width: u16) -> Line {
         return header;
     }
     let animations = header.animation_cells();
-    let restore = |mut line: Line| {
+    let copy = header.copy();
+    let restore = |line: Line| {
+        let mut line = line.with_copy(copy);
         let len = line.plain_text().len();
         for (byte, source) in &animations {
             if *byte < len {
@@ -5002,13 +4997,13 @@ fn clipped_line(header: Line, width: u16) -> Line {
         for glyph in span.content().graphemes(true) {
             let cells = UnicodeWidthStr::width(glyph);
             if cells > remaining {
-                spans.push(Span::styled(clipped, span.style()));
+                spans.push(span.with_content(clipped));
                 return restore(Line::new(spans));
             }
             clipped.push_str(glyph);
             remaining -= cells;
         }
-        spans.push(Span::styled(clipped, span.style()));
+        spans.push(span.with_content(clipped));
     }
     restore(Line::new(spans))
 }
@@ -5071,14 +5066,14 @@ fn markdown_block_with_spacing(
     } else {
         (width as usize).saturating_sub(MESSAGE_PADDING).max(1)
     };
-    let pad = Span::plain(" ".repeat(MESSAGE_PADDING));
+    let pad = Span::decor(" ".repeat(MESSAGE_PADDING), Style::default());
     let mut out = Vec::new();
     for line in
         markdown_at_width_with_spacing(text, theme, inner, columns, compaction_style, syntax)
     {
         let mut spans = vec![pad.clone()];
         spans.extend(line.spans().iter().cloned());
-        out.push(Line::new(spans));
+        out.push(Line::new(spans).with_copy(line.copy()));
     }
     out
 }
@@ -5105,7 +5100,7 @@ fn footer_line(
     agent_color: &impl Fn(Option<&str>) -> Color,
 ) -> Option<Line> {
     let muted = Style::default().fg(theme.text_muted());
-    let mut spans: Vec<Span> = vec![Span::plain(" ".repeat(MESSAGE_PADDING))];
+    let mut spans: Vec<Span> = vec![Span::decor(" ".repeat(MESSAGE_PADDING), Style::default())];
     let push_field = |span: Span, spans: &mut Vec<Span>| {
         if spans.len() > 1 {
             spans.push(Span::styled(" · ", muted));
@@ -5207,9 +5202,9 @@ fn wrap_markdown_line(line: Line, width: usize, limit: usize, list_item: bool) -
                 width.saturating_sub(2),
                 limit.saturating_sub(rows.len()),
             ) {
-                let mut spans = vec![Span::plain("  ")];
+                let mut spans = vec![Span::decor("  ", Style::default())];
                 spans.extend(continuation.spans().iter().cloned());
-                rows.push(Line::new(spans));
+                rows.push(Line::new(spans).with_copy(styled::RowCopy::Wrap));
             }
         }
     }
@@ -5418,8 +5413,10 @@ fn markdown_at_width_with_spacing(
                                         truncated = true;
                                         break;
                                     }
+                                    // Every code line, even blank, is copied text.
                                     out.extend(styled::wrap_code_line_limited(
-                                        &crate::syntax::display_line(&highlighted),
+                                        &crate::syntax::display_line(&highlighted)
+                                            .with_copy(styled::RowCopy::Text),
                                         width,
                                         (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),
                                     ));

@@ -3860,7 +3860,7 @@ async fn vis10_resize_rehits_physical_hover_without_retaining_message_press() {
         state.resize_mouse_position(next);
         assert_eq!(state.mouse_position(), Some((x, y, next)));
         assert!(state.message_down.is_none());
-        assert!(state.selection.is_none());
+        assert!(state.selection.borrow().is_none());
         assert!(state.painted_user_message_target_at(next, x, y).is_none());
         terminal.backend_mut().resize(next.width, next.height);
         terminal.resize(next).unwrap();
@@ -4384,7 +4384,10 @@ async fn vis27_drag_and_repeated_click_copy_only_selected_painted_text() {
         frame,
     );
     assert_eq!(state.take_copy_request().as_deref(), Some("beta"));
-    assert!(state.selection.is_some(), "copy preserves highlight");
+    assert!(
+        state.selection.borrow().is_some(),
+        "copy preserves highlight"
+    );
     state.report_clipboard_result(Err("clipboard unavailable".into()));
     assert_eq!(state.note_variant(), Some(NoteVariant::Error));
     assert_eq!(state.note(), Some("clipboard unavailable"));
@@ -4512,8 +4515,10 @@ async fn vis27_wrapped_wide_graphemes_copy_complete_visible_rows() {
         frame,
     );
     let copied = state.take_copy_request().expect("wrapped selection");
-    assert!(copied.contains('\n'));
-    assert!(copied.contains("🧑‍💻"));
+    // A soft-wrapped logical line is copied as one line (OpenTUI copies its
+    // text buffer, not the visual rows), with every wide grapheme intact.
+    assert!(!copied.contains('\n'));
+    assert!(copied.matches("🧑‍💻").count() > 1);
     assert!(!copied.contains('�'));
 }
 
@@ -4656,32 +4661,48 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
     use crossterm::event::{MouseButton, MouseEventKind};
     let mut state = fresh_state("selection-size").await;
     let frame = Rect::new(0, 0, 100, 28);
-    let (x, y) = paint_selection_fixture(&mut state, frame, "");
-    let large = "z".repeat(super::MAX_SELECTION_BYTES + 1);
+    let paragraph = format!("{}\n", "zzzz ".repeat(19)).repeat(400);
+    for seq in 1..=3 {
+        state.window.push_row(crate::history::HistoryRow {
+            position: None,
+            message_id: Some(std::sync::Arc::new(oc_core::session::MessageId(format!(
+                "oversized-{seq}"
+            )))),
+            seq,
+            role: "assistant".into(),
+            text: paragraph.clone().into(),
+            agent: None,
+            agent_color_index: None,
+            pending_delivery: None,
+            chips: vec![],
+            reasoning: None,
+            child_notice: None,
+            shell_notice: None,
+            meta: None,
+            tool: None,
+        });
+    }
+    state.invalidate_transcript();
     let rect = crate::shell::transcript_area(&state, frame);
-    let painted = super::PaintedTranscript {
-        area: rect,
-        rows: vec![crate::styled::Line::plain(&large)].into(),
-        user_targets: vec![],
-        child_targets: vec![],
-        total: 1,
-        scroll: 0,
-    };
-    state.selection = Some(super::TranscriptSelection {
-        anchor: super::TextPoint { row: 0, byte: 0 },
-        focus: super::TextPoint {
-            row: 0,
-            byte: large.len(),
-        },
-        painted: painted.clone(),
-        dragging: false,
-        transcript_revision: state.transcript_revision,
-        window_revision: state.window.revision(),
-    });
-    *state.painted_transcript.borrow_mut() = Some(painted);
-    state.set_clipboard_mode(super::ClipboardMode::Manual);
-    // The same snapshot is intentionally used for the byte-budget check;
-    // no clipboard request is produced even when the selection is nonempty.
+    // The large projection is built off the UI thread.
+    state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+    state.finish_transcript_projection().await;
+    let (x, y) = paint_selection_fixture(&mut state, frame, "zzzz");
+    // Anchor in the last visible row, then select up to the top padding: the
+    // whole bounded transcript is materialized once and exceeds the budget.
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+        frame,
+    );
+    if let Some(selected) = state.selection.get_mut() {
+        selected.focus = super::SelectionPoint {
+            part: None,
+            offset: 0,
+            byte: 0,
+        };
+        selected.dragging = false;
+    }
+    state.selection_gesture = false;
     assert_eq!(
         state.selection_text(),
         Err("Selection exceeds clipboard size limit")
@@ -4691,8 +4712,9 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
     assert_eq!(state.take_copy_request(), None);
     assert_eq!(state.note_variant(), Some(NoteVariant::Error));
     assert_eq!(state.note(), Some("Selection exceeds clipboard size limit"));
-    // A right-down over the real fixture's unchanged text remains empty.
+    // A right-down after clearing has no selection to copy.
     state.clear_transcript_selection();
+    state.set_clipboard_mode(super::ClipboardMode::Manual);
     state.handle_mouse(
         selection_mouse(MouseEventKind::Down(MouseButton::Right), x, y),
         frame,
@@ -4728,12 +4750,246 @@ async fn vis27_unrelated_mouse_events_do_not_rebuild_painted_transcript() {
         state.painted_transcript.borrow().as_ref().unwrap().rows,
         before
     );
+    // A press anchors to the content actually on screen; later frames
+    // resolve that part again instead of comparing whole painted rows.
     state.handle_mouse(
         selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
         frame,
     );
     assert!(
-        state.selection.is_none(),
-        "changed transcript invalidates stale paint"
+        state
+            .selection
+            .borrow()
+            .as_ref()
+            .is_some_and(|selected| selected.anchor.part.is_some()),
+        "a press on painted content anchors to its part"
     );
+}
+
+/// One real frame of the transcript surface, with its owning terminal frame.
+fn repaint_transcript(state: &TuiState, frame: Rect) -> Vec<crate::styled::Line> {
+    let rect = crate::shell::transcript_area(state, frame);
+    let (rows, total, scroll) =
+        state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+    state.observe_transcript_viewport(rect.width, frame.width, rect.height, total, scroll);
+    state.paint_transcript_at(rect, &rows, total, scroll, Some(frame), &[])
+}
+
+fn numbered_lines(count: usize) -> String {
+    (1..=count)
+        .map(|index| format!("line {index:02}"))
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+/// The painted cell of `needle` and the first painted line number.
+fn painted_cell(state: &TuiState, frame: Rect, needle: &str) -> (u16, u16) {
+    use unicode_width::UnicodeWidthStr;
+    let rect = crate::shell::transcript_area(state, frame);
+    let painted = state.painted_transcript.borrow().as_ref().unwrap().clone();
+    painted
+        .rows
+        .iter()
+        .enumerate()
+        .find_map(|(row, line)| {
+            let text = line.plain_text();
+            text.find(needle).map(|byte| {
+                (
+                    rect.x + UnicodeWidthStr::width(&text[..byte]) as u16,
+                    rect.y + row as u16,
+                )
+            })
+        })
+        .expect("painted needle")
+}
+
+fn first_painted_number(state: &TuiState) -> usize {
+    let painted = state.painted_transcript.borrow().as_ref().unwrap().clone();
+    painted
+        .rows
+        .iter()
+        .find_map(|line| {
+            line.plain_text()
+                .trim()
+                .strip_prefix("line ")
+                .and_then(|n| n.parse().ok())
+        })
+        .expect("painted numbered line")
+}
+
+#[tokio::test]
+async fn transcript_selection_survives_live_updates_and_refreshes() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    let mut state = fresh_state("selection-live-updates").await;
+    let frame = Rect::new(0, 0, 60, 18);
+    state.set_clipboard_mode(super::ClipboardMode::Select);
+    state.live_text = "alpha one\n\nbeta two".into();
+    let (x, y) = paint_selection_fixture(&mut state, frame, "alpha");
+    repaint_transcript(&state, frame);
+    let (bx, by) = painted_cell(&state, frame, "beta");
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+        frame,
+    );
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Drag(MouseButton::Left), bx + 4, by),
+        frame,
+    );
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Up(MouseButton::Left), bx + 4, by),
+        frame,
+    );
+    assert_eq!(
+        state.take_copy_request().as_deref(),
+        Some("alpha one\nbeta")
+    );
+
+    // The agent keeps streaming below; the selected text scrolls up with its
+    // content and stays selected (OpenTUI keeps it on its renderable).
+    state.live_text = format!("alpha one\n\nbeta two\n\n{}", numbered_lines(4)).into();
+    state.invalidate_live_text();
+    let painted = repaint_transcript(&state, frame);
+    assert_eq!(state.selection_text(), Ok(Some("alpha one\nbeta".into())));
+    let selected_bg = Some(Theme::dark().text());
+    assert!(painted.iter().any(|line| {
+        line.spans()
+            .iter()
+            .any(|span| span.content().contains("beta") && span.style().bg == selected_bg)
+    }));
+    // Unrelated structural invalidation (inbox, cards, another tab's
+    // activity) neither drops nor moves it.
+    state.invalidate_transcript();
+    repaint_transcript(&state, frame);
+    assert_eq!(state.selection_text(), Ok(Some("alpha one\nbeta".into())));
+    // Even after the text leaves the screen, its copy is materialized.
+    state.live_text = format!("alpha one\n\nbeta two\n\n{}", numbered_lines(30)).into();
+    state.invalidate_live_text();
+    let painted = repaint_transcript(&state, frame);
+    assert!(
+        !painted
+            .iter()
+            .any(|line| line.plain_text().contains("alpha"))
+    );
+    assert_eq!(state.selection_text(), Ok(Some("alpha one\nbeta".into())));
+}
+
+#[tokio::test]
+async fn transcript_selection_survives_completed_page_refresh() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    let mut state = fresh_state("selection-page-refresh").await;
+    let frame = Rect::new(0, 0, 80, 24);
+    let history = page(
+        vec![
+            msg(1, Role::Assistant, "first cobalt answer"),
+            msg(2, Role::Assistant, "second answer"),
+        ],
+        2,
+        false,
+        false,
+    );
+    state.attach_page(&history);
+    repaint_transcript(&state, frame);
+    let (x, y) = painted_cell(&state, frame, "cobalt");
+    for _ in 0..2 {
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            frame,
+        );
+    }
+    assert_eq!(state.selection_text(), Ok(Some("cobalt".into())));
+    // A completed-turn/notice refresh of the same history keeps the selection.
+    state.refresh_completed_page(&history);
+    repaint_transcript(&state, frame);
+    assert_eq!(state.selection_text(), Ok(Some("cobalt".into())));
+}
+
+#[tokio::test]
+async fn transcript_wheel_during_drag_extends_selection_with_the_scroll() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use std::time::{Duration, Instant};
+    let mut state = fresh_state("selection-wheel-drag").await;
+    let frame = Rect::new(0, 0, 60, 18);
+    state.set_clipboard_mode(super::ClipboardMode::Select);
+    state.live_text = numbered_lines(60).into();
+    paint_selection_fixture(&mut state, frame, "line 60");
+    repaint_transcript(&state, frame);
+    let (x, y) = painted_cell(&state, frame, "line 60");
+    let top = first_painted_number(&state);
+    let (tx, ty) = painted_cell(&state, frame, &format!("line {top:02}"));
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), x + 7, y),
+        frame,
+    );
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Drag(MouseButton::Left), tx, ty),
+        frame,
+    );
+    // The wheel scrolls under the held drag; the selection is kept and its
+    // focus follows the pointer into the newly revealed text.
+    state.handle_mouse(selection_mouse(MouseEventKind::ScrollUp, tx, ty), frame);
+    let now = Instant::now();
+    state.wheel_transcript_at(true, 3, now);
+    state.tick_scroll_animation(now + Duration::from_secs(1));
+    repaint_transcript(&state, frame);
+    assert!(state.selection.borrow().is_some());
+    let revealed = first_painted_number(&state);
+    assert!(revealed < top, "wheel revealed earlier lines");
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Up(MouseButton::Left), tx, ty),
+        frame,
+    );
+    let copied = state.take_copy_request().expect("selection copy");
+    assert!(copied.ends_with("line 60"), "{copied}");
+    assert!(
+        copied.starts_with(&format!("line {revealed:02}")),
+        "{copied}"
+    );
+    assert!(!copied.contains("\n\n"), "spacer rows are not copied");
+}
+
+#[tokio::test]
+async fn transcript_drag_at_edge_autoscrolls_and_follows_the_pointer() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use std::time::{Duration, Instant};
+    let mut state = fresh_state("selection-autoscroll").await;
+    let frame = Rect::new(0, 0, 60, 18);
+    state.set_clipboard_mode(super::ClipboardMode::Select);
+    state.live_text = numbered_lines(60).into();
+    paint_selection_fixture(&mut state, frame, "line 60");
+    repaint_transcript(&state, frame);
+    let rect = crate::shell::transcript_area(&state, frame);
+    let (x, y) = painted_cell(&state, frame, "line 60");
+    let top = first_painted_number(&state);
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), x + 7, y),
+        frame,
+    );
+    assert!(state.next_selection_autoscroll_deadline().is_none());
+    // Above the transcript: OpenTUI's fastest edge speed.
+    let above = rect.y.saturating_sub(1);
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Drag(MouseButton::Left), rect.x, above),
+        frame,
+    );
+    assert!(state.next_selection_autoscroll_deadline().is_some());
+    assert!(state.tick_scroll_animation(Instant::now() + Duration::from_millis(500)));
+    assert!(state.scroll > 0);
+    repaint_transcript(&state, frame);
+    let revealed = first_painted_number(&state);
+    assert!(revealed < top);
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Up(MouseButton::Left), rect.x, above),
+        frame,
+    );
+    assert!(state.next_selection_autoscroll_deadline().is_none());
+    let copied = state.take_copy_request().expect("selection copy");
+    assert!(
+        copied.starts_with(&format!("line {revealed:02}")),
+        "{revealed} {copied:?}"
+    );
+    assert!(copied.ends_with("line 60"), "{copied}");
 }

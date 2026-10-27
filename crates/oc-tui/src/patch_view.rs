@@ -1,7 +1,7 @@
 //! Confirmed mutation transcript. All coordinates come from the mutation owner.
 use crate::{
     history::ToolCard,
-    styled::{self, Line, Span},
+    styled::{self, Line, RowCopy, Span},
     theme::Theme,
 };
 use oc_core::{
@@ -124,8 +124,8 @@ pub(crate) fn render(
     let muted = base.fg(theme.text_muted());
     let frame = |spans: Vec<Span>| {
         let mut row = vec![
-            Span::styled("┃", base.fg(theme.background())),
-            Span::styled("  ", padding),
+            Span::decor("┃", base.fg(theme.background())),
+            Span::decor("  ", padding),
         ];
         if unbounded {
             row.extend(spans);
@@ -228,15 +228,19 @@ pub(crate) fn render(
                     let mut spans = if wrap_index == 0 {
                         let number = (index + 1).to_string();
                         vec![
-                            Span::styled(" ".repeat(number_width - number.len()), padding),
-                            Span::styled(number, muted),
-                            Span::styled(" ", padding),
+                            Span::decor(" ".repeat(number_width - number.len()), padding),
+                            Span::decor(number, muted),
+                            Span::decor(" ", padding),
                         ]
                     } else {
-                        vec![Span::styled(" ".repeat(gutter_width), padding)]
+                        vec![Span::decor(" ".repeat(gutter_width), padding)]
                     };
                     spans.extend_from_slice(row.spans());
-                    out.push(frame(spans));
+                    out.push(frame(spans).with_copy(if wrap_index == 0 {
+                        RowCopy::Text
+                    } else {
+                        RowCopy::Wrap
+                    }));
                     displayed += 1;
                 }
             }
@@ -350,7 +354,7 @@ pub(crate) fn render(
                 let (new_syntax, new_error) = syntax_image(&hunk.lines, true, path, theme);
                 if index > 0 {
                     out.push(frame(vec![
-                        Span::styled(" ", padding),
+                        Span::decor(" ", padding),
                         Span::styled(
                             format!(
                                 " @@ -{},{} +{},{} @@",
@@ -400,14 +404,14 @@ pub(crate) fn render(
                                     Style::default().bg(theme.diff_context_background()),
                                 )
                             }));
-                            spans.insert(0, Span::styled(" ", padding));
-                            out.push(frame(spans));
+                            spans.insert(0, Span::decor(" ", padding));
+                            out.push(frame(spans).with_copy(RowCopy::Text));
                         }
                     }
                 } else {
                     for (index, line) in hunk.lines.iter().enumerate() {
                         let new = line.kind != PatchLineKind::Removed;
-                        for mut spans in side(
+                        for (spans_index, mut spans) in side(
                             Some(line),
                             new,
                             Some(if new {
@@ -419,9 +423,16 @@ pub(crate) fn render(
                             digits,
                             inner,
                             card.diff_settings.wrap,
-                        ) {
-                            spans.insert(0, Span::styled(" ", padding));
-                            out.push(frame(spans));
+                        )
+                        .into_iter()
+                        .enumerate()
+                        {
+                            spans.insert(0, Span::decor(" ", padding));
+                            out.push(frame(spans).with_copy(if spans_index == 0 {
+                                RowCopy::Text
+                            } else {
+                                RowCopy::Wrap
+                            }));
                         }
                     }
                 }
@@ -630,12 +641,12 @@ fn side(
             String::new()
         };
         let mut spans = vec![
-            Span::styled(
+            Span::decor(
                 " ".repeat(1 + digits.saturating_sub(number.len())),
                 gutter_fill,
             ),
-            Span::styled(number, gutter),
-            Span::styled(
+            Span::decor(number, gutter),
+            Span::decor(
                 format!(" {}", if i == 0 { sign } else { " " }),
                 if i == 0 && line.kind != PatchLineKind::Context {
                     gutter_fill.fg(sign_color)
@@ -643,7 +654,7 @@ fn side(
                     gutter_fill
                 },
             ),
-            Span::styled(" ", gutter_fill),
+            Span::decor(" ", gutter_fill),
         ];
         spans.extend(fit(row, text_width, fill));
         out.push(fit(spans, width, fill));
@@ -670,7 +681,7 @@ fn fit(spans: Vec<Span>, width: usize, base: Style) -> Vec<Span> {
         if content.bytes().all(|b| (0x20..0x7f).contains(&b)) {
             let take = content.len().min(width - used);
             if take > 0 {
-                out.push(Span::styled(&content[..take], span.style()));
+                out.push(span.with_content(content[..take].to_owned()));
             }
             used += take;
             if take < content.len() {
@@ -688,7 +699,7 @@ fn fit(spans: Vec<Span>, width: usize, base: Style) -> Vec<Span> {
             let cells = UnicodeWidthStr::width(glyph);
             if used + cells > width {
                 if !text.is_empty() {
-                    out.push(Span::styled(text, span.style()));
+                    out.push(span.with_content(text));
                 }
                 break 'spans;
             }
@@ -696,11 +707,11 @@ fn fit(spans: Vec<Span>, width: usize, base: Style) -> Vec<Span> {
             used += cells;
         }
         if !text.is_empty() {
-            out.push(Span::styled(text, span.style()));
+            out.push(span.with_content(text));
         }
     }
     if used < width {
-        out.push(Span::styled(" ".repeat(width - used), base));
+        out.push(Span::decor(" ".repeat(width - used), base));
     }
     out
 }
@@ -806,7 +817,7 @@ pub(crate) mod tests {
                 }
             }
             if used < width {
-                out.push(Span::styled(" ".repeat(width - used), base));
+                out.push(Span::decor(" ".repeat(width - used), base));
             }
             out
         }
@@ -835,6 +846,66 @@ pub(crate) mod tests {
                 );
             }
         }
+    }
+
+    /// OpenTUI selects only the code renderables of a diff: gutters, line
+    /// numbers, signs, frame and fill are neither highlighted nor copied.
+    #[test]
+    fn diff_selection_copies_and_highlights_only_code_cells() {
+        let theme = Theme::dark();
+        let mut effect = effects();
+        effect.files[0].hunks[0].lines.insert(
+            1,
+            patch_line(PatchLineKind::Context, Some(100), Some(101), ""),
+        );
+        let card = card_from_row(&row(Some(effect), "completed"));
+        let copy = |lines: &[Line]| {
+            styled::copy_text(
+                usize::MAX,
+                lines.iter().map(|line| (line, 0, line.plain_text().len())),
+            )
+            .unwrap()
+            .unwrap()
+        };
+        let unified = render(card.patch_effects.as_ref().unwrap(), &card, theme, 120);
+        assert_eq!(
+            copy(&unified),
+            "← Patched a.txt\ncontext\n\nold\nlet value = 42;"
+        );
+        let split = render(card.patch_effects.as_ref().unwrap(), &card, theme, 121);
+        // Both code renderables of a row join by x, like Selection.getSelectedText.
+        assert_eq!(
+            copy(&split),
+            "← Patched a.txt\ncontextcontext\n\noldlet value = 42;"
+        );
+        let row = split
+            .iter()
+            .find(|line| line.plain_text().contains("old"))
+            .unwrap();
+        let marked = row.highlight(0, row.plain_text().len(), theme.text(), theme.background());
+        let cells = |line: &Line| {
+            line.spans()
+                .iter()
+                .flat_map(|span| {
+                    span.content()
+                        .chars()
+                        .map(move |ch| (ch, span.style(), span.is_decor()))
+                })
+                .collect::<Vec<_>>()
+        };
+        for (before, after) in cells(row).into_iter().zip(cells(&marked)) {
+            assert_eq!(before.2, after.2);
+            if before.2 {
+                assert_eq!(before, after, "decor cells keep their paint");
+            }
+        }
+        let highlighted: String = marked
+            .spans()
+            .iter()
+            .filter(|span| span.style().bg == Some(theme.text()))
+            .map(Span::content)
+            .collect();
+        assert_eq!(highlighted, "oldlet value = 42;");
     }
 
     #[test]

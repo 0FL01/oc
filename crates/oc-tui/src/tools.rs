@@ -765,7 +765,7 @@ fn tool_block_inner(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
                         inner,
                         usize::MAX,
                     ) {
-                        rows.push(frame.row(line.spans()));
+                        rows.push(frame.row(line.spans()).with_copy(line.copy()));
                     }
                 }
             }
@@ -873,12 +873,12 @@ impl BlockFrame<'_> {
 
     /// One padded row with the left border.
     fn row(&self, spans: &[Span]) -> Line {
-        let mut all = vec![Span::styled("┃", self.border_style())];
-        all.push(Span::styled(" ".repeat(TOOL_PADDING), self.padding));
+        let mut all = vec![Span::decor("┃", self.border_style())];
+        all.push(Span::decor(" ".repeat(TOOL_PADDING), self.padding));
         all.extend(spans.iter().cloned());
         let used: usize = all.iter().map(styled::span_width).sum();
         if used < self.width {
-            all.push(Span::styled(
+            all.push(Span::decor(
                 " ".repeat(self.width - used),
                 ratatui::style::Style::default().bg(self.bg),
             ));
@@ -1359,18 +1359,17 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
                 };
                 let mut spans = Vec::new();
                 if let (Some(number), Some(gutter)) = (line.line_number, gutter) {
-                    spans.push(Span::styled(
+                    spans.push(Span::decor(
                         format!("{number:>gutter$} "),
                         ratatui::style::Style::default()
                             .fg(theme.diff_line_number())
                             .bg(bg),
                     ));
                 }
-                spans.push(Span::styled(
-                    format!("{marker}{}", line.text),
-                    ratatui::style::Style::default().fg(fg).bg(bg),
-                ));
-                out.push(frame.row(&spans));
+                let style = ratatui::style::Style::default().fg(fg).bg(bg);
+                spans.push(Span::decor(marker, style));
+                spans.push(Span::styled(line.text.clone(), style));
+                out.push(frame.row(&spans).with_copy(styled::RowCopy::Text));
             }
             if hunk.truncated {
                 out.push(frame.row(&[Span::styled("[truncated]", muted)]));
