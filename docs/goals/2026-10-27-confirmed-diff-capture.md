@@ -1,6 +1,6 @@
 # Goal: полный подтверждённый diff при ограниченном preview
 
-Status: active
+Status: complete
 Source: пользовательский RECON edit/apply_patch и инструкция «копию плана в цель и итеративно реализовать и коммит пуш билд», 2026-10-27.
 Last updated: 2026-10-27
 
@@ -53,7 +53,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
     обычным push отправлены в проверенный `origin/master` либо точный внешний
     blocker записан без заявления о завершении.
   - Primary evidence: test/build exits, scope review, commit IDs и push result.
-  - Status: in_progress
+  - Status: verified
   - Evidence: первоначальный `bash scripts/test.sh`: fmt/strict Clippy PASS,
     nextest 2439 PASS / 1 FAIL / 18 skipped; единственное падение —
     `dcp05_thresholds_frequency_turn_reset_no_accumulation` (ожидание `200000`).
@@ -61,7 +61,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
     Affected runtime/TUI, scoped strict Clippy, doctests, debug help/version и
     release build PASS. После уточнения подписи renderer regression, fmt, strict
     TUI Clippy, release build и `target/release/oc2 --version` повторно PASS.
-    Остаются scope review и commit/push. Исходный full gate не объявляется PASS.
+    Scope review PASS; реализация `79dd1aa38` отправлена обычным fast-forward push
+    в `origin/master`. Исходный full gate не объявляется PASS.
 
 ### Constraints
 
@@ -93,22 +94,19 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: scope review, commit/push реализации и закрытие цели.
-- Expected evidence: commit IDs, fast-forward push и отсутствие постороннего diff.
-- Stop or replan if: для результата требуется новый store/public API/migration.
+- Complete: R1–R3 verified. Дальнейшая работа вне этой цели.
 
 ## Current State
 
 - RECON baseline: `378058f0d`. Возобновлено на `bc6693882`; новые compaction commits
-  `e31cf17b7` / `bc6693882` сохранены, remote `origin/master` совпадает с HEAD.
+  `e31cf17b7` / `bc6693882` сохранены. Реализация `79dd1aa38` на `origin/master`.
 - Реализованы capture до display caps, единый outcome reference и TUI summary.
 - Static review выявил три риска нового diff: multiline secret после добавления
   signs; повторный capture status после transient failure; невидимая capture
   failure при полном DTO preview. Исправлены в том же scope, добавлены regressions.
 - R1/R2 verified. Release `target/release/oc2` собран из финального runtime diff,
   version smoke: `oc2 0.2.0`.
-- Blocker: нет. Next: scope review и commit/push.
+- Blocker: нет. Next: нет.
   Полный gate не перезапускается и не объявляется PASS.
 
 ## Material Decisions
@@ -135,7 +133,16 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   сохранены новые commits; выполняется только failed/affected continuation.
 - 2026-10-27: failed/affected continuation и оставшиеся стадии gate PASS; после
   последней правки подписи renderer/Clippy/release PASS. R1/R2 verified.
+- 2026-10-27: scope review PASS; code commit `79dd1aa38`, fast-forward push
+  `bc6693882..79dd1aa38` в `origin/master`. R1–R3 verified, цель закрыта.
 
 ## Completion
 
-- R1/R2 verified; R3 pending scope review/commit/push. Исходный full gate не PASS.
+- R1–R3 verified. Реализация: `79dd1aa38`, ordinary push `origin/master`.
+- Release: `target/release/oc2`; финальные renderer/fmt/strict Clippy/build/version
+  checks PASS. Исходный full gate: 2439 PASS / 1 FAIL / 18 skipped; затем исправленный
+  failed DCP slice, affected checks и оставшиеся стадии gate PASS, без blind rerun.
+- Constraints/scope review PASS: нет новых dependencies, stores, schema/migrations
+  или public API; native owner и пользовательская БД не изменялись.
+- Старые утраченные diff данные не восстанавливаются; artifact cap/quota/TTL и
+  redaction сохраняются. Live/visual parity и whole-product READY не заявляются.
