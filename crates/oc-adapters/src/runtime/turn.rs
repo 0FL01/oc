@@ -3499,12 +3499,14 @@ impl<'a> Runtime<'a> {
                             }
                             streamed += stream_started.elapsed();
                             let output_started = matches!(&error, crate::provider::ProviderError::Request(f) if f.output_committed);
-                            // Explicit cancellation still retains text already
-                            // published to the user, never a completed response or
-                            // permission to admit the unfinished function arguments.
+                            // Local errors and cancellation retain already published
+                            // text, not completed responses or unfinished tool calls.
                             let cancelled_text = params.cancel.load(Ordering::Relaxed)
                                 && text_slots.iter().any(|slot| !slot.text.is_empty());
-                            if output_started || cancelled_text {
+                            let local_text =
+                                !matches!(&error, crate::provider::ProviderError::Request(_))
+                                    && text_slots.iter().any(|slot| !slot.text.is_empty());
+                            if output_started || cancelled_text || local_text {
                                 let mut partial_items = partial_opaque
                                     .into_iter()
                                     .filter(|_| output_started)
@@ -3515,7 +3517,7 @@ impl<'a> Runtime<'a> {
                                     .collect::<Vec<_>>();
                                 for slot in &text_slots {
                                     if !slot.text.is_empty() {
-                                        if cancelled_text {
+                                        if cancelled_text || local_text {
                                             text.push_str(&slot.text);
                                         }
                                         partial_items.push((slot.part,InputItem::ProviderOutput(serde_json::json!({

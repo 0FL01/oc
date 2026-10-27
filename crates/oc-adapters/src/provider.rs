@@ -39,15 +39,13 @@ mod timeout_tests;
 pub const HEADER_TIMEOUT_MS: u64 = 300_000;
 /// Default HTTP idle budget between body bytes in milliseconds.
 pub const CHUNK_TIMEOUT_MS: u64 = 300_000;
-/// Max SSE events decoded per response.
-pub const EVENT_CAP: usize = 10_000;
 /// Physical attempts per adapter invocation (no internal HTTP retry).
 pub const MAX_ATTEMPTS: usize = 1;
 /// Maximum pending SSE line and complete event, in bytes.
 pub const SSE_BYTE_CAP: usize = 2 * 1024 * 1024;
 /// Maximum arguments for one call, including all deltas.
 pub const ARGUMENT_BYTE_CAP: usize = 1024 * 1024;
-/// Conservative retained generation budget (payload copies and item overhead).
+/// Conservative retained generation budget (state, stream items and output copies).
 pub const GENERATION_BYTE_CAP: usize = 32 * 1024 * 1024;
 /// Maximum serialized request, matching the pinned proxy's body ceiling.
 pub const REQUEST_BYTE_CAP: usize = 32 * 1024 * 1024;
@@ -99,9 +97,6 @@ pub enum ProviderError {
     /// Explicit cancellation closed the request.
     #[error("cancelled")]
     Cancelled,
-    /// SSE event cap exceeded.
-    #[error("event cap exceeded")]
-    EventCap,
     /// Transport failure (kind only).
     #[error("transport error")]
     Transport,
@@ -838,11 +833,13 @@ pub struct SseParser {
     data: String,
     /// Current event's `event:` field, if any.
     event_name: Option<String>,
-    /// Events decoded so far (cap enforcement).
+    /// Dispatch sequence used only to yield between events, never a generation limit.
     events: usize,
     completed: bool,
     terminal: bool,
     retained: usize,
+    /// Stream items kept by the HTTP/WS collector, including text assembly space.
+    stream_retained: usize,
     arguments: BTreeMap<String, (usize, Option<serde_json::Value>)>,
     announced_calls: BTreeMap<String, (Option<u64>, String, String)>,
     output_done: BTreeMap<u64, CompletedItem>,
@@ -941,6 +938,7 @@ impl SseParser {
             // Chat may end at EOF after its finish reason without `[DONE]`.
             if self.chat.is_some() && !self.completed {
                 chat::finalize(self)?;
+                self.check_retained(&[])?;
             }
             return Ok(Vec::new());
         }
@@ -960,32 +958,106 @@ impl SseParser {
         if self.data.is_empty() && self.event_name.is_none() {
             return Ok(Vec::new());
         }
-        self.events += 1;
-        if self.events > EVENT_CAP {
-            return Err(ProviderError::EventCap);
-        }
+        self.events = self.events.wrapping_add(1);
         let payload = std::mem::take(&mut self.data);
         self.event_name = None;
-        if self.chat.is_some() {
-            return chat::dispatch(self, &payload);
+        let items = if self.chat.is_some() {
+            chat::dispatch(self, &payload)?
+        } else if self.messages.is_some() {
+            messages::dispatch(self, &payload)?
+        } else {
+            self.dispatch_responses(payload)?.into_iter().collect()
+        };
+        self.check_retained(&items)?;
+        Ok(items)
+    }
+
+    fn check_retained(&mut self, items: &[StreamItem]) -> Result<(), ProviderError> {
+        let stream_retained = self.stream_retained.saturating_add(
+            items
+                .iter()
+                .map(|item| {
+                    let (copies, bytes) = match item {
+                        StreamItem::TextDelta(text) => (
+                            text.len().div_ceil(TEXT_DELTA_BYTE_CAP - 3),
+                            text.capacity().saturating_add(text.len().saturating_mul(2)),
+                        ),
+                        StreamItem::ReasoningDelta(text) => (1, text.capacity()),
+                        StreamItem::MessageBoundary { item_id, .. } => (1, item_id.capacity()),
+                        StreamItem::ToolCallStarted {
+                            item_id,
+                            call_id,
+                            name,
+                        } => (1, item_id.capacity() + call_id.capacity() + name.capacity()),
+                        StreamItem::ArgDelta { item_id, delta } => {
+                            (1, item_id.capacity() + delta.capacity())
+                        }
+                        StreamItem::OpaqueItem { item_id, payload } => {
+                            (1, item_id.capacity() + retained_json_bytes(payload))
+                        }
+                        StreamItem::Usage { .. } => (1, 0),
+                    };
+                    // Vec spare capacity and UTF-8 observer splitting are real retained
+                    // items; transport envelopes and ignored events are not.
+                    copies
+                        .saturating_mul(2 * std::mem::size_of::<StreamItem>())
+                        .saturating_add(bytes)
+                })
+                .sum::<usize>(),
+        );
+        let retained = std::mem::size_of::<Self>()
+            + stream_retained
+            + self
+                .arguments
+                .iter()
+                .map(|(id, (_, value))| {
+                    2 * std::mem::size_of::<(String, (usize, Option<serde_json::Value>))>()
+                        + id.capacity()
+                        + value.as_ref().map_or(0, retained_json_bytes)
+                })
+                .sum::<usize>()
+            + self
+                .announced_calls
+                .iter()
+                .map(|(id, (_, call, name))| {
+                    2 * std::mem::size_of::<(String, (Option<u64>, String, String))>()
+                        + id.capacity()
+                        + call.capacity()
+                        + name.capacity()
+                })
+                .sum::<usize>()
+            + self
+                .output_done
+                .values()
+                .map(|done| {
+                    2 * std::mem::size_of::<(u64, CompletedItem)>()
+                        + retained_json_bytes(&done.item)
+                })
+                .sum::<usize>()
+            + self.output.as_ref().map_or(0, |output| {
+                output.capacity() * std::mem::size_of::<serde_json::Value>()
+                    + output.iter().map(retained_json_bytes).sum::<usize>()
+            })
+            + self
+                .chat
+                .as_ref()
+                .map_or(0, chat::ChatState::retained_bytes)
+            + self
+                .messages
+                .as_ref()
+                .map_or(0, messages::MessagesState::retained_bytes);
+        if retained > GENERATION_BYTE_CAP {
+            return Err(ProviderError::ByteLimit("generation"));
         }
-        if self.messages.is_some() {
-            return messages::dispatch(self, &payload);
-        }
-        Ok(self.dispatch_responses(payload)?.into_iter().collect())
+        self.retained = retained;
+        self.stream_retained = stream_retained;
+        Ok(())
     }
 
     fn dispatch_responses(&mut self, payload: String) -> Result<Option<StreamItem>, ProviderError> {
         if payload == "[DONE]" || payload.is_empty() {
             return Ok(None);
         }
-        // Account for parser JSON, retained item, full text and canonical output
-        // copies, plus per-event container overhead, before parsing/cloning.
-        let cost = payload.len().saturating_mul(4).saturating_add(256);
-        if self.retained.saturating_add(cost) > GENERATION_BYTE_CAP {
-            return Err(ProviderError::ByteLimit("generation"));
-        }
-        self.retained += cost;
         let value: serde_json::Value = serde_json::from_str(&payload)
             .map_err(|_| structural(OutputStage::Decode, OutputCode::InvalidJson))?;
         if value.get("type").is_none() && value.get("error").is_some() {
@@ -1120,7 +1192,14 @@ impl SseParser {
                     });
                 let index = explicit_index
                     .or_else(|| self.observed_index(item))
-                    .unwrap_or_else(|| self.output_done.last_key_value().map_or(0, |(n, _)| n + 1));
+                    .map_or_else(
+                        || {
+                            self.output_done
+                                .last_key_value()
+                                .map_or(Ok(0), |(n, _)| next_output_index(*n, OutputStage::Done))
+                        },
+                        Ok,
+                    )?;
                 self.check_observation(item, Some(index), OutputStage::Done)?;
                 if !self.retain_completed(index, item, indexed, OutputStage::Done)? {
                     return Ok(None);
@@ -1275,21 +1354,27 @@ impl SseParser {
                             })
                     })
                 });
-                let position = previous_index.map_or(0, |n| n + 1);
-                let index = observed_index.or(renamed_reasoning).unwrap_or_else(|| {
-                    if partial_message && self.output_done.contains_key(&position) {
-                        return self.output_done.last_key_value().map_or(0, |(n, _)| n + 1);
-                    }
-                    // A terminal-only item has no observed index. Its compacted
-                    // position cannot overwrite an omitted completed prefix.
-                    // Keep every observed slot and fill the next vacant one;
-                    // identity/announcement and ordering checks stay strict.
-                    let mut index = position;
-                    while self.output_done.contains_key(&index) {
-                        index += 1;
-                    }
-                    index
-                });
+                let index = observed_index.or(renamed_reasoning).map_or_else(
+                    || {
+                        let position = previous_index
+                            .map_or(Ok(0), |n| next_output_index(n, OutputStage::Completion))?;
+                        if partial_message && self.output_done.contains_key(&position) {
+                            return self.output_done.last_key_value().map_or(Ok(0), |(n, _)| {
+                                next_output_index(*n, OutputStage::Completion)
+                            });
+                        }
+                        // A terminal-only item has no observed index. Its compacted
+                        // position cannot overwrite an omitted completed prefix.
+                        // Keep every observed slot and fill the next vacant one;
+                        // identity/announcement and ordering checks stay strict.
+                        let mut index = position;
+                        while self.output_done.contains_key(&index) {
+                            index = next_output_index(index, OutputStage::Completion)?;
+                        }
+                        Ok(index)
+                    },
+                    Ok,
+                )?;
                 if previous_index.is_some_and(|previous| index < previous)
                     && !terminal_indices.contains(&index)
                 {
@@ -1488,6 +1573,33 @@ impl SseParser {
     }
 }
 
+/// Account for the JSON values actually kept in state, not their wire encoding.
+/// Container slack is conservative; this budget is not an RSS measurement.
+fn retained_json_bytes(value: &serde_json::Value) -> usize {
+    std::mem::size_of::<serde_json::Value>()
+        + match value {
+            serde_json::Value::String(text) => text.capacity(),
+            serde_json::Value::Array(values) => {
+                values.capacity() * std::mem::size_of::<serde_json::Value>()
+                    + values.iter().map(retained_json_bytes).sum::<usize>()
+            }
+            serde_json::Value::Object(values) => {
+                values.len() * 2 * std::mem::size_of::<(String, serde_json::Value)>()
+                    + values
+                        .iter()
+                        .map(|(key, value)| key.capacity() + retained_json_bytes(value))
+                        .sum::<usize>()
+            }
+            _ => 0,
+        }
+}
+
+fn next_output_index(index: u64, stage: OutputStage) -> Result<u64, ProviderError> {
+    index
+        .checked_add(1)
+        .ok_or_else(|| structural(stage, OutputCode::InvalidIndex))
+}
+
 fn output_index(
     value: &serde_json::Value,
     stage: OutputStage,
@@ -1497,7 +1609,6 @@ fn output_index(
         .map(|index| {
             index
                 .as_u64()
-                .filter(|index| *index < EVENT_CAP as u64)
                 .ok_or_else(|| structural(stage, OutputCode::InvalidIndex))
         })
         .transpose()
@@ -2772,8 +2883,8 @@ mod tests {
     mod typed_failures;
 
     use super::{
-        CHUNK_TIMEOUT_MS, EVENT_CAP, ProviderError, ResponsesConfig, SseParser, StreamItem,
-        ToolDef, prompt_cache_key, request_body, stream_generation,
+        CHUNK_TIMEOUT_MS, ProviderError, ResponsesConfig, SseParser, StreamItem, ToolDef,
+        prompt_cache_key, request_body, stream_generation,
     };
     use std::collections::BTreeMap;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -3507,7 +3618,7 @@ mod tests {
     }
 
     #[test]
-    fn prov02_splits_crlf_comments_usage_cap() {
+    fn prov02_splits_crlf_comments_usage() {
         // One logical stream, fed whole vs 1-byte pieces vs odd chunks.
         let wire = [
             ": heartbeat\n".to_string(),
@@ -3552,18 +3663,32 @@ mod tests {
         got.append(&mut parser.finish().expect("finish"));
         assert_eq!(got, vec![StreamItem::TextDelta(emoji.to_string())]);
 
-        // Event cap enforced.
+        // Ignored events retain no per-event history or wire-envelope charge.
         let mut parser = SseParser::default();
-        let mut over = false;
-        for _ in 0..=EVENT_CAP + 5 {
-            let items = parser.push(b"data: {\"type\":\"x\"}\n\n");
-            if items == Err(ProviderError::EventCap) {
-                over = true;
-                break;
-            }
-            let _ = items.expect("parse");
+        let ignored = event(serde_json::json!({"type":"future.event","padding":"x".repeat(256)}));
+        parser.push(&ignored).unwrap();
+        let retained = parser.retained;
+        for _ in 0..65_536 {
+            assert!(parser.push(&ignored).unwrap().is_empty());
         }
-        assert!(over);
+        assert!(
+            parser
+                .push(b"data: {\"type\":\"response.output_text.delta\",\"delta\":\"\"}\n\n")
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(parser.retained, retained);
+        let done = event(
+            serde_json::json!({"type":"response.output_item.done","output_index":100_000,"item":{"type":"reasoning","id":"opaque","encrypted_content":"x".repeat(1024)}}),
+        );
+        parser.push(&done).unwrap();
+        let retained = parser.retained;
+        for _ in 0..10_001 {
+            assert!(parser.push(&done).unwrap().is_empty());
+        }
+        assert_eq!(parser.retained, retained, "duplicate done retains one item");
+        parser.push(&sse_completed(10, 20)).unwrap();
+        assert!(parser.completed);
     }
 
     #[test]

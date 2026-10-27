@@ -280,6 +280,27 @@ pub(crate) struct ChatState {
 }
 
 impl ChatState {
+    pub(super) fn retained_bytes(&self) -> usize {
+        self.text.capacity()
+            + self.reasoning.capacity()
+            + self.reasoning_field.as_ref().map_or(0, String::capacity)
+            + self
+                .observed_reasoning_field
+                .as_ref()
+                .map_or(0, String::capacity)
+            + self.finish.as_ref().map_or(0, String::capacity)
+            + self
+                .tools
+                .values()
+                .map(|(id, name, arguments)| {
+                    2 * std::mem::size_of::<(u64, (String, String, String))>()
+                        + id.capacity()
+                        + name.capacity()
+                        + arguments.capacity()
+                })
+                .sum::<usize>()
+    }
+
     pub(crate) fn new(compat: &ChatCompat) -> Self {
         Self {
             reasoning_field: compat.reasoning_field.clone(),
@@ -299,11 +320,6 @@ pub(super) fn dispatch(
     if payload.is_empty() {
         return Ok(Vec::new());
     }
-    let cost = payload.len().saturating_mul(4).saturating_add(256);
-    if parser.retained.saturating_add(cost) > super::GENERATION_BYTE_CAP {
-        return Err(ProviderError::ByteLimit("generation"));
-    }
-    parser.retained += cost;
     let event: serde_json::Value = serde_json::from_str(payload)
         .map_err(|_| structural(OutputStage::Decode, OutputCode::InvalidJson))?;
     if event.get("error").is_some_and(|error| !error.is_null()) {
@@ -384,6 +400,9 @@ pub(super) fn dispatch(
                 .and_then(|v| v.as_str())
                 .filter(|s| !s.is_empty())
             {
+                if entry.2.len().saturating_add(arguments.len()) > super::ARGUMENT_BYTE_CAP {
+                    return Err(ProviderError::ByteLimit("arguments"));
+                }
                 entry.2.push_str(arguments);
                 out.push(StreamItem::ArgDelta {
                     item_id: item_id(index),

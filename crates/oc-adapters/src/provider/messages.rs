@@ -269,15 +269,34 @@ pub(crate) struct MessagesState {
     usage: serde_json::Map<String, serde_json::Value>,
 }
 
+impl MessagesState {
+    pub(super) fn retained_bytes(&self) -> usize {
+        self.finish.as_ref().map_or(0, String::capacity)
+            + self
+                .usage
+                .iter()
+                .map(|(key, value)| {
+                    2 * std::mem::size_of::<(String, serde_json::Value)>()
+                        + key.capacity()
+                        + super::retained_json_bytes(value)
+                })
+                .sum::<usize>()
+            + self
+                .blocks
+                .values()
+                .map(|block| {
+                    2 * std::mem::size_of::<(u64, Block)>()
+                        + super::retained_json_bytes(&block.value)
+                        + block.arguments.capacity()
+                })
+                .sum::<usize>()
+    }
+}
+
 pub(super) fn dispatch(
     parser: &mut SseParser,
     payload: &str,
 ) -> Result<Vec<StreamItem>, ProviderError> {
-    let cost = payload.len().saturating_mul(4).saturating_add(256);
-    if parser.retained.saturating_add(cost) > super::GENERATION_BYTE_CAP {
-        return Err(ProviderError::ByteLimit("generation"));
-    }
-    parser.retained += cost;
     let event: serde_json::Value = serde_json::from_str(payload)
         .map_err(|_| structural(OutputStage::Decode, OutputCode::InvalidJson))?;
     let kind = event["type"]
@@ -402,9 +421,12 @@ pub(super) fn dispatch(
                     delta: text.into(),
                 });
             } else {
-                let mut complete = block.value[field].as_str().unwrap_or_default().to_owned();
-                complete.push_str(text);
-                block.value[field] = complete.into();
+                if !block.value[field].is_string() {
+                    block.value[field] = "".into();
+                }
+                if let serde_json::Value::String(complete) = &mut block.value[field] {
+                    complete.push_str(text);
+                }
                 if item == 0 {
                     out.push(StreamItem::TextDelta(text.into()));
                 }

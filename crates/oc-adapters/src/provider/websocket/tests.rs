@@ -86,6 +86,7 @@ impl Fixture {
 #[derive(Clone, Copy)]
 enum Reply {
     Complete,
+    Fragmented,
     Tool,
     ToolRejected,
     Child,
@@ -176,6 +177,16 @@ impl Peer {
                         }
                         if matches!(reply, Reply::Ambiguous) { break; }
                         socket.send(event(json!({"type":"response.created","response":{"id":id}}))).await.unwrap();
+                        if matches!(reply, Reply::Fragmented) {
+                            let delta = event(json!({"type":"response.output_text.delta","delta":"a","response_id":"r".repeat(512)}));
+                            for _ in 0..20_000 {
+                                socket.feed(delta.clone()).await.unwrap();
+                            }
+                            let mut result = message_output(sequence);
+                            result["content"][0]["text"] = "a".repeat(20_000).into();
+                            socket.send(event(json!({"type":"response.completed","response":{"id":id,"status":"completed","output":[result],"usage":{"input_tokens":4,"output_tokens":20_000}}}))).await.unwrap();
+                            continue;
+                        }
                         if matches!(reply, Reply::Child | Reply::ChildPolicy) && sequence == 1 {
                             let call = json!({"id":"child-item","type":"function_call","call_id":"child-call","name":"subagent","arguments":"{\"agent\":\"helper\",\"description\":\"child channel\",\"prompt\":\"child task\"}","status":"completed"});
                             let mut added = call.clone();
@@ -657,6 +668,28 @@ async fn request(
         },
     )
     .await
+}
+
+#[tokio::test]
+async fn fragmented_websocket_uses_retained_state_not_wire_volume() {
+    let fixture = Fixture::new();
+    let peer = Peer::new(Reply::Fragmented).await;
+    let sends = std::sync::atomic::AtomicUsize::new(0);
+    let generation = request(
+        &fixture.config(&peer.base, false),
+        &[],
+        &AtomicBool::new(false),
+        &sends,
+    )
+    .await
+    .unwrap();
+    assert_eq!(generation.text, "a".repeat(20_000));
+    assert_eq!(generation.output[0]["content"][0]["text"], generation.text);
+    assert_eq!(generation.usage, Some((4, 20_000)));
+    assert_eq!(sends.load(Ordering::SeqCst), 1);
+    assert!(peer.http.lock().unwrap().is_empty());
+    fixture.db.response_channels.shutdown().await.unwrap();
+    peer.shutdown().await;
 }
 
 #[tokio::test]

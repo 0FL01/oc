@@ -109,8 +109,12 @@ terminal, максимум 16 KiB каждый. HTTP idle budget — effective p
 Общий deadline при отсутствующем `timeout` или `timeout:false` отсутствует.
 
 Byte ceilings: pending SSE line/event — 2 MiB каждый, arguments/call — 1 MiB,
-generation accounting — 32 MiB, serialized request — 32 MiB, events — 10 000.
-Accounting charge `4 × payload bytes + 256/event` не является измерением RSS.
+retained generation accounting — 32 MiB, serialized request — 32 MiB.
+Суммарного ограничения количества событий нет. Generation budget учитывает
+текущее состояние парсера, сохранённые stream items/их контейнеры и сборку текста,
+не сумму уже освобождённых JSON-пакетов. Container slack учитывается консервативно;
+это не измерение RSS. Проверка выполняется до публикации новых stream items;
+временный декодируемый JSON отдельно ограничен размером SSE event/frame.
 Превышение даёт явную sanitized ошибку, не silent truncate. HTTP 400 и terminal
 failure не повторяются; не более двух attempts только до commitment.
 

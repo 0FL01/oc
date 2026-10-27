@@ -214,6 +214,36 @@ async fn prov09_sparse_terminal_recovery_keeps_omitted_observed_prefix() {
 }
 
 #[tokio::test]
+async fn sparse_output_index_overflow_is_local() {
+    let reasoning =
+        serde_json::json!({"type":"reasoning","id":"last","encrypted_content":"opaque"});
+    let result = generation(vec![
+        done(u64::MAX, &reasoning),
+        terminal(Some(vec![reasoning.clone()])),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(result.output, vec![reasoning.clone()]);
+    local(
+        generation(vec![
+            done(u64::MAX, &reasoning),
+            serde_json::json!({"type":"response.output_item.done","item":call()}),
+            terminal(None),
+        ])
+        .await
+        .unwrap_err(),
+    );
+    local(
+        generation(vec![
+            done(u64::MAX, &reasoning),
+            terminal(Some(vec![reasoning, call()])),
+        ])
+        .await
+        .unwrap_err(),
+    );
+}
+
+#[tokio::test]
 async fn prov09_done_and_terminal_conflicts_are_local_and_safe() {
     use crate::provider::OutputStage;
     let call = call();

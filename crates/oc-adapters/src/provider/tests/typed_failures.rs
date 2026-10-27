@@ -5,12 +5,12 @@ async fn ret01_coalesced_frames_yield_to_scoped_consumer_without_lag() {
     // Match the core owner's existing bounded broadcast, without raising it.
     let (sender, mut receiver) = tokio::sync::broadcast::channel(256);
     let consumer = tokio::spawn(async move {
-        for _ in 0..4096 {
+        for _ in 0..65_536 {
             receiver.recv().await?;
         }
-        Ok::<_, tokio::sync::broadcast::error::RecvError>(4096)
+        Ok::<_, tokio::sync::broadcast::error::RecvError>(65_536)
     });
-    let mut wire = sse_delta("burst").repeat(4096);
+    let mut wire = event(serde_json::json!({"type":"response.output_text.delta","delta":"burst","response_id":"r".repeat(256)})).repeat(65_536);
     wire.extend(sse_completed(10, 20));
     let server = TestServer::spawn(Arc::new(move |_| Action {
         status: "200 OK",
@@ -36,8 +36,9 @@ async fn ret01_coalesced_frames_yield_to_scoped_consumer_without_lag() {
     .await
     .unwrap();
     drop(sender);
-    assert_eq!(generation.text.len(), 20480);
-    assert_eq!(consumer.await.unwrap().unwrap(), 4096);
+    assert_eq!(generation.text, "burst".repeat(65_536));
+    assert_eq!(generation.usage, Some((10, 20)));
+    assert_eq!(consumer.await.unwrap().unwrap(), 65_536);
     assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
     server.shutdown();
 }

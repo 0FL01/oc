@@ -76,6 +76,19 @@ async fn prov09_local_rejection_after_partial_has_no_retry_intent_or_effect() {
             .unwrap();
         assert_eq!(report.status, TurnStatus::Failed);
         assert!(report.calls.is_empty());
+        if kind == "delta-only" {
+            assert_eq!(report.text, "partial");
+            let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+            let log: serde_json::Value = serde_json::from_str(raw.as_deref().unwrap()).unwrap();
+            let parts = log["display_parts"].as_array().unwrap();
+            let message = parts[0]["message"].as_u64().unwrap() as usize;
+            assert_eq!(log["input"][message]["status"], "incomplete");
+            assert_eq!(log["input"][message]["content"][0]["text"], "partial");
+            assert!(!raw.as_deref().unwrap().contains("pending_text"));
+            assert_eq!(harness.db.read_history("reject").unwrap().len(), 1);
+            runtime.open_session("reject").unwrap();
+            assert_eq!(harness.db.turn_result(&report.turn_id).unwrap().1, raw);
+        }
         assert!(harness.db.list_tool_ops("reject").unwrap().is_empty());
         assert!(!harness._project.path().join("rejection-effects").exists());
         let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();

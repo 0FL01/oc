@@ -1,6 +1,41 @@
 use super::*;
 use serde_json::json;
 
+#[test]
+fn fragmented_messages_use_retained_state_not_wire_volume() {
+    for chunk in [65_536, 1] {
+        let mut parser = SseParser::messages();
+        let ping = bytes(&[json!({"type":"ping","padding":"p".repeat(256)})]);
+        parser.push(&ping).unwrap();
+        let retained = parser.retained;
+        for _ in 0..10_001 {
+            assert!(parser.push(&ping).unwrap().is_empty());
+        }
+        assert_eq!(parser.retained, retained);
+        parser.push(&bytes(&[
+            json!({"type":"message_start","message":{"role":"assistant","usage":{"input_tokens":4}}}),
+            json!({"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}),
+        ])).unwrap();
+        let wire = bytes(&[
+            json!({"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"a".repeat(chunk)},"padding":"p".repeat(256)}),
+        ]);
+        let mut items = Vec::new();
+        for _ in 0..65_536 / chunk {
+            items.extend(parser.push(&wire).unwrap());
+        }
+        items.extend(parser.push(&bytes(&[
+            json!({"type":"content_block_stop","index":0}),
+            json!({"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":65_536}}),
+            json!({"type":"message_stop"}),
+        ])).unwrap());
+        assert!(parser.completed);
+        let generation = crate::provider::collect_generation(parser, items);
+        assert_eq!(generation.text, "a".repeat(65_536));
+        assert_eq!(generation.output[0]["content"][0]["text"], generation.text);
+        assert_eq!(generation.usage, Some((4, 65_536)));
+    }
+}
+
 fn frames() -> Vec<serde_json::Value> {
     vec![
         json!({"type":"message_start","message":{"id":"msg","role":"assistant","usage":{"input_tokens":10,"output_tokens":0,"cache_read_input_tokens":7,"cache_creation_input_tokens":3}}}),

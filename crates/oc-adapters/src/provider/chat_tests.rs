@@ -1,5 +1,38 @@
 use super::*;
 
+#[test]
+fn fragmented_chat_uses_retained_state_not_wire_volume() {
+    for chunk in [65_536, 1] {
+        let mut parser = SseParser::chat(&ChatCompat::default());
+        let delta = serde_json::json!({"id":"c".repeat(256),"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"a".repeat(chunk)},"finish_reason":null}]});
+        let wire = format!("data: {delta}\n\n");
+        let mut items = Vec::new();
+        for _ in 0..65_536 / chunk {
+            items.extend(parser.push(wire.as_bytes()).unwrap());
+        }
+        items.extend(feed(&mut parser, &[serde_json::json!({"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":65_536}})]).unwrap());
+        parser.push(b"data: [DONE]\n\n").unwrap();
+        assert!(parser.completed);
+        let generation = crate::provider::collect_generation(parser, items);
+        assert_eq!(generation.text, "a".repeat(65_536));
+        assert_eq!(generation.output[0]["content"][0]["text"], generation.text);
+        assert_eq!(generation.usage, Some((4, 65_536)));
+    }
+
+    let mut parser = SseParser::chat(&ChatCompat::default());
+    let frame = serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call","function":{"name":"read","arguments":"x".repeat(super::super::ARGUMENT_BYTE_CAP)}}]}}]});
+    feed(&mut parser, &[frame]).unwrap();
+    assert_eq!(
+        feed(
+            &mut parser,
+            &[
+                serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"x"}}]}}]})
+            ]
+        ),
+        Err(ProviderError::ByteLimit("arguments"))
+    );
+}
+
 fn feed(
     parser: &mut SseParser,
     frames: &[serde_json::Value],
