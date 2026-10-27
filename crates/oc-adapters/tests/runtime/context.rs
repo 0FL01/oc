@@ -794,9 +794,21 @@ async fn aud20_nudge_cadence_and_model_compress_are_session_scoped() {
     assert_eq!(requests.len(), 7);
     assert_eq!(
         requests.iter().map(dcp_nudge_count).collect::<Vec<_>>(),
-        [1, 0, 1, 0, 1, 0, 1],
-        "A and B must keep independent frequency=2 cadence; only A enters cooldown after compress"
+        [1, 1, 1, 1, 1, 0, 1],
+        "active context reminders survive between cadence events; only A enters cooldown after compress"
     );
+    for session in ["a", "b"] {
+        let state: serde_json::Value = serde_json::from_str(
+            &harness
+                .db
+                .get_pref(&format!("dcp.nudge.{session}\0test\0gpt-fixture"))
+                .unwrap()
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(state["emitted"], 2, "replay must not count as a new nudge");
+    }
+    assert_eq!(runtime.dcp_stats().nudges_emitted, 4);
     assert_eq!(harness.db.load_compression_blocks("a").unwrap().len(), 1);
     assert!(harness.db.load_compression_blocks("b").unwrap().is_empty());
 }
@@ -856,9 +868,19 @@ async fn aud20_nudge_cadence_survives_database_and_runtime_restart() {
             .iter()
             .map(dcp_nudge_count)
             .collect::<Vec<_>>(),
-        [1, 0],
-        "restart must restore cadence rather than reset and emit immediately"
+        [1, 1],
+        "restart must restore the active reminder, not create a new cadence event"
     );
+    let state: serde_json::Value = serde_json::from_str(
+        &harness
+            .db
+            .get_pref("dcp.nudge.restart-nudge\0test\0gpt-fixture")
+            .unwrap()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(state["emitted"], 1);
+    assert_eq!(runtime.dcp_stats().nudges_emitted, 0);
 }
 
 #[tokio::test]
@@ -1370,7 +1392,19 @@ async fn aud20_compress_commits_only_eligible_strategy_projection() {
 #[tokio::test]
 async fn current_task_compress_forgets_closed_payload_but_keeps_unseen_batch() {
     let (mut harness, generation) = make_harness(allow_all());
-    let runtime = runtime_of(&harness, generation.clone(), Vec::new());
+    let runtime = runtime_with_dcp(
+        &harness,
+        generation.clone(),
+        Vec::new(),
+        DcpConfig {
+            min_context: 1,
+            min_context_percent: None,
+            max_context: 1,
+            max_context_percent: None,
+            nudge_frequency: 6,
+            ..DcpConfig::default()
+        },
+    );
     runtime.create_session("renew").unwrap();
     std::fs::write(
         harness._project.path().join("old.txt"),
@@ -1427,6 +1461,14 @@ async fn current_task_compress_forgets_closed_payload_but_keeps_unseen_batch() {
     {
         let seen = requests.lock().unwrap();
         assert_eq!(seen.len(), 5);
+        assert_eq!(
+            seen.iter().map(dcp_nudge_count).collect::<Vec<_>>(),
+            [1, 1, 0, 0, 0]
+        );
+        assert_eq!(runtime.dcp_stats().nudges_emitted, 1);
+        let renewal_request = seen[1]["input"].to_string();
+        assert!(renewal_request.contains("except current-task renewal"));
+        assert!(renewal_request.contains("startId and endId both equal to its final anchor"));
         let first = seen[2]["input"].to_string();
         assert!(first.contains("SUMMARY_FIRST"));
         assert!(!first.contains("OLD_JOURNAL_PAYLOAD"));

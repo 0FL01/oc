@@ -644,6 +644,7 @@ impl Runtime<'_> {
                             Some((&snapshot, &prepared.removed)),
                             &prepared.selection,
                             Some((&projection, Some(&progress), &retire)),
+                            &[],
                         )
                         .is_ok()
                     {

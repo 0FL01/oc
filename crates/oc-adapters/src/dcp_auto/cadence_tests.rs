@@ -26,13 +26,16 @@ fn dcp12_source_context_visible_distance_buffer_and_removed_anchor() {
     let mut state = NudgeState::default();
     let mut view = vec![("user-0".into(), true)];
     let cfg = config();
-    assert_eq!(
-        request(&cfg, &mut state, 201, &view).unwrap().force,
-        NudgeForce::Hard
-    );
+    let first = request(&cfg, &mut state, 201, &view).unwrap();
+    assert_eq!(first.force, NudgeForce::Hard);
     for index in 1..5 {
         view.push((format!("assistant-{index}"), false));
-        assert!(request(&cfg, &mut state, 201, &view).is_none());
+        let replay = request(&cfg, &mut state, 201 + index, &view).unwrap();
+        assert_eq!(replay.force, NudgeForce::Hard);
+        assert_eq!(replay.text, first.text, "retain the history cache prefix");
+        assert!(replay.text.contains("reminder at user-0:"));
+        assert_eq!(state.emitted, 1);
+        assert_eq!(state.last_reminder, Some(1));
     }
     view.push(("assistant-5".into(), false));
     assert_eq!(
@@ -41,7 +44,26 @@ fn dcp12_source_context_visible_distance_buffer_and_removed_anchor() {
     );
     let saved = serde_json::to_string(&state).unwrap();
     let mut reopened: NudgeState = serde_json::from_str(&saved).unwrap();
-    assert!(request(&cfg, &mut reopened, 201, &view).is_none());
+    assert!(
+        request(&cfg, &mut reopened, 201, &view)
+            .unwrap()
+            .text
+            .contains("reminder at assistant-5:")
+    );
+    assert_eq!(reopened.emitted, 2);
+    assert!(request(&cfg, &mut reopened, 200, &view).is_none());
+    assert!(
+        request(
+            &DcpConfig {
+                enabled: false,
+                ..cfg.clone()
+            },
+            &mut reopened,
+            201,
+            &view
+        )
+        .is_none()
+    );
     // Dropped original messages never survive as a hidden anchor inventory.
     let replacement = vec![("fresh-user".into(), true)];
     assert!(request(&cfg, &mut reopened, 201, &replacement).is_some());
@@ -128,7 +150,8 @@ fn dcp12_source_success_cooldown_migration_and_failure_no_reset() {
     // Invalid/no-gain calls only add a visible assistant, no success callback.
     for index in 1..=5 {
         view.push((format!("failed-step-{index}"), false));
-        assert_eq!(request(&cfg, &mut state, 201, &view).is_some(), index == 5);
+        assert!(request(&cfg, &mut state, 201, &view).is_some());
+        assert_eq!(state.emitted, if index == 5 { 6 } else { 5 });
     }
     state.on_compress_success();
     assert!(

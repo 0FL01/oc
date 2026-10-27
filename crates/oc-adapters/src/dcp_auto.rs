@@ -891,29 +891,22 @@ pub fn evaluate(
     } else {
         config.nudge_force
     };
-    Some(reminder(
-        state,
-        thresholds,
-        estimated_tokens,
-        over_max,
-        force,
-    ))
+    state.last_reminder = Some(state.iteration);
+    state.emitted += 1;
+    Some(reminder(thresholds, estimated_tokens, over_max, force))
 }
 
 fn reminder(
-    state: &mut NudgeState,
     thresholds: EffectiveThresholds,
     estimated_tokens: u64,
     over_max: bool,
     force: NudgeForce,
 ) -> Nudge {
-    state.last_reminder = Some(state.iteration);
-    state.emitted += 1;
     Nudge {
         force,
         text: if over_max {
             format!(
-                "context estimate {estimated_tokens} exceeds soft limit {}; compress a closed span",
+                "context estimate exceeds soft limit {}; finish any critical atomic step, then call compress immediately. Compress resolved closed spans, or renew the current task with startId and endId both equal to its final anchor.",
                 thresholds.max_context
             )
         } else {
@@ -929,7 +922,9 @@ fn reminder(
 /// revision 11f6517780a502512a3467645074be447cb0369e, AGPL-3.0-or-later.
 /// Complete license: evidence/tui/recovery-v00/dcp-oracle20260928-native01/sources/LICENSE.
 /// Native reminders remain transient developer inputs, with successful-only
-/// request cooldown. `messages` is retained visible user/assistant order, not
+/// request cooldown. Context-limit anchors keep their reminder visible between
+/// cadence events without incrementing emission counters. `messages` is retained
+/// visible user/assistant order, not
 /// tool-call/result count, physical retries, session totals or archived spans.
 pub(crate) fn evaluate_request(
     config: &DcpConfig,
@@ -996,11 +991,9 @@ pub(crate) fn evaluate_request(
     } else {
         0
     }) > thresholds.max_context;
-    let (force, lane) = if over_max {
-        if !add_anchor(&mut state.cadence.context) {
-            return None;
-        }
-        (NudgeForce::Hard, "context-limit")
+    let (force, lane, new_anchor) = if over_max {
+        let new_anchor = add_anchor(&mut state.cadence.context);
+        (NudgeForce::Hard, "context-limit", new_anchor)
     } else if *last_user && messages.iter().any(|m| !m.1) {
         if state.cadence.turn.as_ref() == Some(last_id) {
             return None;
@@ -1016,6 +1009,7 @@ pub(crate) fn evaluate_request(
             } else {
                 "last-user/user"
             },
+            true,
         )
     } else {
         let last_user_index = messages.iter().rposition(|m| m.1)?;
@@ -1024,9 +1018,13 @@ pub(crate) fn evaluate_request(
         {
             return None;
         }
-        (NudgeForce::Hard, "last-user/iteration")
+        (NudgeForce::Hard, "last-user/iteration", true)
     };
-    let mut nudge = reminder(state, thresholds, estimated_tokens, over_max, force);
+    if new_anchor {
+        state.last_reminder = Some(state.iteration);
+        state.emitted += 1;
+    }
+    let mut nudge = reminder(thresholds, estimated_tokens, over_max, force);
     if config.custom_prompts {
         let body = if over_max {
             &config.prompt_overrides.context_limit_nudge
@@ -1039,7 +1037,16 @@ pub(crate) fn evaluate_request(
             nudge.text = body.to_string();
         }
     }
-    nudge.text = format!("{lane} reminder: {}", nudge.text);
+    nudge.text = if over_max {
+        let anchor = state
+            .cadence
+            .context
+            .as_deref()
+            .expect("context nudge anchor");
+        format!("{lane} reminder at {anchor}: {}", nudge.text)
+    } else {
+        format!("{lane} reminder: {}", nudge.text)
+    };
     Some(nudge)
 }
 

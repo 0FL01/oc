@@ -803,6 +803,7 @@ impl Runtime<'_> {
         notice_seq: i64,
         session: &str,
         config: &DcpConfig,
+        nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
     ) -> Result<bool, RuntimeError> {
         let Some(summary) = turn_log.task_renewal.clone() else {
@@ -812,6 +813,18 @@ impl Runtime<'_> {
         // The sealed delta is the exact durable checkpoint (it records the
         // admitted intent); `prepare_closed_segment` drops it from the new HOT.
         let plan = self.prepare_task_renewal(session, turn_log, &summary, config)?;
+        let mut next_nudge = self
+            .nudge_state
+            .lock()
+            .expect("nudge lock")
+            .get(nudge_key)
+            .cloned()
+            .unwrap_or_default();
+        next_nudge.on_compress_success();
+        let preference_updates = vec![(
+            nudge_key.to_string(),
+            serde_json::to_string(&next_nudge).map_err(|_| RuntimeError::Storage)?,
+        )];
         let prepared = turn_log.prepare_closed_segment(counts, plan.working, notice_seq);
         let committed = match prepared {
             Ok((segment, hot)) => self
@@ -823,6 +836,7 @@ impl Runtime<'_> {
                     None,
                     &[],
                     Some((&plan.projection, None, &plan.retire)),
+                    &preference_updates,
                 )
                 .ok()
                 .map(|()| hot),
@@ -830,6 +844,10 @@ impl Runtime<'_> {
         };
         match committed {
             Some(hot) => {
+                self.nudge_state
+                    .lock()
+                    .expect("nudge lock")
+                    .insert(nudge_key.to_string(), next_nudge);
                 *tool_projection = plan.projection;
                 *turn_log = hot;
                 Ok(true)
@@ -2669,6 +2687,7 @@ impl<'a> Runtime<'a> {
                 .cloned()
                 .unwrap_or_default();
             let mut preview_iteration = last_nudged_iteration.clone();
+            let emitted_before = preview_state.emitted;
             let nudge = if compress_available && !lane.manual_compression {
                 let iteration = (rounds, state_key.clone());
                 if preview_iteration.as_ref() != Some(&iteration) {
@@ -2968,11 +2987,15 @@ impl<'a> Runtime<'a> {
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
+            let emitted_hint = nudge
+                .as_ref()
+                .filter(|_| preview_state.emitted > emitted_before)
+                .map(|nudge| nudge.text.clone());
             let mut nudge_preview = Some((
                 preview_state,
                 preview_iteration,
                 persisted_nudge,
-                nudge.as_ref().map(|nudge| nudge.text.clone()),
+                emitted_hint,
             ));
             let mut represented_notices = history_notices.clone();
             represented_notices.extend(staged_notice_ids.iter().cloned());
@@ -4083,6 +4106,7 @@ impl<'a> Runtime<'a> {
                     shell_notice_seq,
                     &params.session,
                     &published.dcp_config,
+                    &state_key,
                     &mut tool_projection,
                 )?
             {

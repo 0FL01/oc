@@ -467,7 +467,7 @@ async fn advertised_dcp_range_does_not_strand_large_context() {
                             .rev()
                             .flat_map(|item| item["content"].as_array().into_iter().flatten())
                             .filter_map(|part| part["text"].as_str())
-                            .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: "))
+                            .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: "))
                             .map(|text| serde_json::from_str(text).unwrap())
                             .expect("provider-visible DCP anchors");
                         let closed = anchors

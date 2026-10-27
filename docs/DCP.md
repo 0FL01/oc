@@ -182,6 +182,8 @@ budget. Панель различает reminder thresholds и реальные 
 
 Nudge timing/placement и counter resets перенести из pinned hooks/prompts/tests. Не добавлять новую persistent reminder message на каждый token/chunk; emitted prompt projection не должна со временем накапливать дубликаты nudges. Context-limit reminder повторяется по частоте, пока превышение реально сохраняется; успешная compression пересчитывает counters. Manual mode отключает autonomous tool invocation/instructions в объёме baseline; manual automaticStrategies control не игнорируется.
 
+Частота context-limit nudges ограничивает создание новых anchors, а не видимость уже активной подсказки. Пока превышение сохраняется, каждый request получает одну transient подсказку с retained anchor; replay не увеличивает `emitted` и не переносит её на более поздний anchor. При неизменной config default-текст не меняется вслед за token estimate, чтобы не сбрасывать history prefix cache. Исчезнувший anchor, актуальные thresholds/summaryBuffer, availability и successful-compression cooldown остаются authoritative. Hard guidance допускает существующий current-task renewal, а не только закрытые диапазоны.
+
 Dedup: одинаковые tool name+canonical arguments, оставить последний нужный output, protections сохраняются. PurgeErrors: после configured turns (default 4) убрать из projection крупный input errored call, но сохранить error outcome. Эти стратегии пересчитываются при compress, как описано upstream; не запускать pruning на каждом request из инерции старых версий. Случаи manual mode уточнить по executable fixture; README не заменяет source test.
 
 ## Config surface

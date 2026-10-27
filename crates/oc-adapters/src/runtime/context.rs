@@ -73,7 +73,7 @@ pub(super) fn dcp_config_input(
         InputRole::Developer,
         if available {
             format!(
-                "DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: {}",
+                "DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: {}",
                 serde_json::Value::Array(anchors)
             )
         } else {

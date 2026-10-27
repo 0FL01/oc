@@ -548,7 +548,11 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
         glob_output.contains("search/alpha.rs") && !glob_output.starts_with("error:"),
         "glob output was not a successful project result: {glob_output}"
     );
-    assert_nudges(&second, 0, "frequency=3 cooldown iteration");
+    assert_nudges(
+        &second,
+        1,
+        "retained context reminder between cadence events",
+    );
     respond_tool(
         &mut socket,
         "grep",
@@ -569,7 +573,11 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
             && !grep_output.starts_with("error:"),
         "grep output was not a successful structured continuation: {grep_output}"
     );
-    assert_nudges(&third, 0, "frequency=3 cooldown iteration");
+    assert_nudges(
+        &third,
+        1,
+        "retained context reminder between cadence events",
+    );
     respond_tool(
         &mut socket,
         "compress",

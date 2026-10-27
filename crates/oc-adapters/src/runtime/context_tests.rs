@@ -32,7 +32,7 @@ fn compression_anchors_only_advertise_resolvable_endpoints() {
         let item = context::dcp_config_input(rows, &blocks, &DcpConfig::default(), true).unwrap();
         let item = serde_json::to_value(item).unwrap();
         let text = item["content"][0]["text"].as_str().unwrap();
-        serde_json::from_str::<Value>(text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: ").unwrap()).unwrap()
+        serde_json::from_str::<Value>(text.strip_prefix("DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: ").unwrap()).unwrap()
     };
     assert_eq!(
         anchors(&rows),
@@ -265,7 +265,7 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
             .filter_map(|item| item["content"].as_array())
             .flatten()
             .filter_map(|part| part["text"].as_str())
-            .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: "))
+            .find_map(|text| text.strip_prefix("DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: "))
             .map(|text| serde_json::from_str::<Value>(text).unwrap()).unwrap();
         let anchors = anchors.as_array().unwrap();
         let ids = anchors

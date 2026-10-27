@@ -740,7 +740,7 @@ mod vis38_review_tests {
         .unwrap();
         let item = serde_json::to_value(item).unwrap();
         let text = item["content"][0]["text"].as_str().unwrap();
-        let anchors: serde_json::Value = serde_json::from_str(text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: ").unwrap()).unwrap();
+        let anchors: serde_json::Value = serde_json::from_str(text.strip_prefix("DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: ").unwrap()).unwrap();
         let advertised = anchors
             .as_array()
             .unwrap()

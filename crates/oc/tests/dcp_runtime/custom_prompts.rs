@@ -80,9 +80,10 @@ async fn dcp_custom_prompts_reach_wire_and_reload_on_the_next_same_task_request(
     let second_text = message_text(&second);
     assert_eq!(second_text.matches("CUSTOM_SYSTEM_G2").count(), 1);
     assert!(!second_text.contains("CUSTOM_SYSTEM_G1"));
-    assert!(
-        !second_text.contains("CUSTOM_CONTEXT_BODY"),
-        "prompt reload consumed or reset cadence"
+    assert_eq!(
+        second_text.matches("CUSTOM_CONTEXT_BODY").count(),
+        1,
+        "prompt reload must preserve one active context reminder"
     );
     assert_eq!(
         tool_definition(&second, "compress")["parameters"],

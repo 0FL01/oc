@@ -382,7 +382,7 @@ impl Db {
             &std::collections::BTreeMap<String, u64>,
         )>,
     ) -> Result<(), StorageError> {
-        self.commit_closed_turn_segment_selected(old, segment, hot, snapshot, &[], None)
+        self.commit_closed_turn_segment_selected(old, segment, hot, snapshot, &[], None, &[])
     }
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn commit_closed_turn_segment_selected(
@@ -400,6 +400,7 @@ impl Db {
             Option<&serde_json::Value>,
             &[crate::storage::DcpCallKey],
         )>,
+        preference_updates: &[(String, String)],
     ) -> Result<(), StorageError> {
         let base: RawPrefix = serde_json::from_value(segment["base"].clone())
             .map_err(|_| invalid("invalid raw base"))?;
@@ -540,6 +541,9 @@ impl Db {
                 |r| r.get(0),
             )?;
             Self::replace_compaction_marks(&tx, &session, projection, retire)?;
+        }
+        for (key, value) in preference_updates {
+            Self::upsert_pref(&tx, key, value)?;
         }
         tx.commit()?;
         Ok(())

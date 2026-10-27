@@ -90,7 +90,7 @@ async fn dcp12_explicit_manual_compress_is_real_scoped_and_ask_stays_captured() 
                 let output = if step == 1 {
                     let anchors=req["input"].as_array().unwrap().iter().find_map(|item| {
                         let text=item["content"].as_array()?.first()?["text"].as_str()?;
-                        text.strip_prefix("DCP context anchors in order. Compress only closed=true spans; the final anchor is unfinished: ").map(|v|serde_json::from_str::<serde_json::Value>(v).unwrap())
+                        text.strip_prefix("DCP context anchors in order. Compress only closed=true spans (except current-task renewal); the final anchor is unfinished: ").map(|v|serde_json::from_str::<serde_json::Value>(v).unwrap())
                     }).unwrap();
                     let closed = anchors
                         .as_array()
