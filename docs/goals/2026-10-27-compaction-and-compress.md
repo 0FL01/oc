@@ -1,6 +1,6 @@
 # Goal: compaction после renewal и compress без искусственного 8k-предела
 
-Status: active
+Status: complete
 Source: RECON чата «Кеширование вывода тулов в файл и обрезка длинных строк diff», воспроизведение дефектов, исправленный план после сравнения с upstream DCP; «План утверждаю, делай копию плана в цель и итеративно реализовать»; «и коммит пуш билд».
 Last updated: 2026-10-27
 
@@ -44,8 +44,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: «и коммит пуш билд».
   - Acceptance: relevant regressions/Clippy и один full offline gate, review diff; собственный diff в origin/master, `target/release/oc2` собран. При external blocker сохранить точную диагностику, не объявлять доставку завершённой.
   - Primary evidence: команды/результаты, Git local/remote SHA, `cargo build -p oc2 --bin oc2 --locked --release`.
-  - Status: in_progress
-  - Evidence: единственный `bash scripts/test.sh`: fmt и workspace Clippy PASS; nextest 2443 PASS, 2 FAIL, 1 SIGTERM, 18 skipped, exit 100. Зависший fixture завершён адресным SIGTERM после 3499s; test DB показала 13 compaction dispatches. После исправления все 3 неуспешных теста PASS, notice tests 2/2, incident и native `/compact` PASS, affected compaction 29/29 и context 15/15 PASS. Scoped all-target Clippy, fmt, doctests, debug help/version и `cargo build -p oc2 --bin oc2 --locked --release` PASS. Исходный full gate не является PASS; повтор всего suite запрещён рабочим циклом. Release binary включает незастейдженный пользовательский diff; не считать его точным образом будущего commit. Остаётся commit/push.
+  - Status: verified
+  - Evidence: единственный `bash scripts/test.sh`: fmt и workspace Clippy PASS; nextest 2443 PASS, 2 FAIL, 1 SIGTERM, 18 skipped, exit 100. Зависший fixture завершён адресным SIGTERM после 3499s; test DB показала 13 compaction dispatches. После исправления все 3 неуспешных теста PASS, notice tests 2/2, incident и native `/compact` PASS, affected compaction 29/29 и context 15/15 PASS. Scoped all-target Clippy, fmt, doctests, debug help/version и `cargo build -p oc2 --bin oc2 --locked --release` PASS. Исходный full gate не является PASS; весь suite повторно не запускался. Release binary включает незастейдженный пользовательский diff, поэтому не является точным образом commit. Код доставлен обычным push `e31cf17b72c7f8ed1b7169ae8d3638f3240bd364` на `origin/master`, SHA проверен через `ls-remote`.
 
 ### Constraints / Non-goals
 
@@ -72,17 +72,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R5.
-- Smallest next action: commit собственный staged diff и ordinary fast-forward push; закрыть цель после проверки origin.
-- Expected evidence: local/remote Git SHA; полный suite не повторять.
-- Stop or replan if: минимальное исправление требует новой persistence/schema/public API либо обнаружен чужой concurrent diff.
+- Complete: R1–R5 resolved; дальнейшая работа вне текущей цели.
 
 ## Current State
 
 - Resolved: R1/R2/R3/R4. Вызванный R2 регресс устранён и проверен.
-- Last relevant evidence: notice tests 2/2, t47, исходный incident, native `/compact`, PTY test, compaction 29/29, context 15/15 PASS; scoped Clippy и remaining gate stages PASS; release собран из текущего worktree, включая сохранённый user diff. Первоначальный full gate не PASS.
-- Blocker: нет; origin SSH read доступен, remote HEAD 378058f0d — предок текущего HEAD.
-- Next: commit/push → закрытие цели.
+- Last relevant evidence: notice tests 2/2, t47, исходный incident, native `/compact`, PTY test, compaction 29/29, context 15/15 PASS; scoped Clippy и remaining gate stages PASS; release собран из текущего worktree, включая сохранённый user diff. Первоначальный full gate не PASS. Код `e31cf17b72c7f8ed1b7169ae8d3638f3240bd364` отправлен на origin.
+- Blocker: нет.
+- Next: нет.
 
 ## Material Decisions
 
@@ -93,4 +90,6 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Completion
 
-- Pending.
+- R1–R5 verified; отклонённый исходный full gate и успешный повтор только failed/affected slices указаны в R5, это не утверждение о full-gate PASS.
+- Код: `e31cf17b72c7f8ed1b7169ae8d3638f3240bd364`, ordinary push `origin/master`. Release: `target/release/oc2`, собран с сохранённым пользовательским diff.
+- Пользовательский diff не вошёл в кодовый commit; пользовательская БД, native owner, lock, schema и live-provider не изменялись.
