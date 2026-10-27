@@ -27,6 +27,8 @@ Pre-send retry classification/backoff, native-image accounting и compaction adm
 
 ### TUI parity — отложено, не отменено
 
+Текущий явно запрошенный bugfix: [полный confirmed diff и одно preview-уведомление](docs/goals/2026-10-27-confirmed-diff-capture.md). План сохранён до реализации; это не возобновляет остальные TUI qualifications.
+
 Текущий запрос: [компактная строка compress без ложного legacy](docs/goals/2026-10-25-compress-tool-row.md). Согласованный RECON-план сохранён; это не возобновляет остальные TUI qualifications.
 
 Текущий явно запрошенный срез: [live session navigation и полный root background lifecycle](docs/goals/2026-10-20-live-session-navigation.md). Исправленный после аудита план и frozen outcomes сохранены там; это не возобновляет остальной backlog.
