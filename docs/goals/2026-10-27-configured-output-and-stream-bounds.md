@@ -1,6 +1,6 @@
 # Goal: configured model limits without fragmentation-dependent stream failures
 
-Status: active
+Status: complete
 Source: user requests in this session: dynamic input/output/context from OpenCode config; investigate and fix the 10,000-event trap and cumulative wire accounting; preserve this plan in a goal; implement, commit, push, build.
 Last updated: 2026-10-27
 
@@ -44,8 +44,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user "коммит пуш билд потом".
   - Acceptance: relevant tests plus required offline gate pass; exact scoped diff committed, ordinary fast-forward push to verified origin/master, and target/release/oc2 built. Report any unavailable check honestly.
   - Primary evidence: command exits, git status/remote hash and binary --version.
-  - Status: in_progress
-  - Evidence: fmt and strict workspace/all-target Clippy passed; all 2434 nonignored workspace tests passed across the interrupted run and its exact 29-test continuation; doctests and debug help/version passed. Release build with 16 jobs succeeded (6m45s), target/release/oc2 reports 0.2.0. Scoped diff review and git diff --check passed. Commit/push remain.
+  - Status: verified
+  - Evidence: fmt and strict workspace/all-target Clippy passed; all 2434 nonignored workspace tests passed across the interrupted run and its exact 29-test continuation; doctests and debug help/version passed. Release build with 16 jobs succeeded (6m45s), target/release/oc2 reports 0.2.0. Scoped diff review and git diff --check passed. Commits 81cdeef70 and c716f5516 were fast-forward pushed to verified origin/master; worktree clean before this closure update.
 
 ### Constraints
 
@@ -70,10 +70,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R5.
-- Smallest next action: commit the reviewed code/tests/docs plus this goal and fast-forward push to verified origin/master; then record delivery and close this goal.
-- Expected evidence: clean scoped commits reach the verified remote; all validation/build evidence already passed for this runtime diff.
-- Stop or replan if: a gate fails, push is not fast-forward, or the worktree acquires conflicting changes. Diagnose only the failing affected slice.
+- Closed: R1-R5 verified. No further substantive work or audit is authorized by this goal.
+- Delivery: 81cdeef70 (dynamic configured model limits), c716f5516 (retained-state stream bounds and incomplete local-failure text) pushed to origin/master; release binary built and checked.
 
 ## Current State
 
@@ -85,7 +83,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Continuation f1a42306-c922-4a25-a07a-b76665060f80 ran exactly those 29 tests: 29 PASS in 130.316s. Together the two runs cover all 2434 nonignored tests on unchanged runtime code. Doctests (no examples), debug build/help/version and release build/version passed. Runtime diff reviewed once; no unrelated edits, dependency or schema changes.
 - Release artifact: target/release/oc2, 105304712 bytes, version oc2 0.2.0.
 - Blocker: none.
-- Next: commit/push and goal closure. The temporary large-index test failure was an invalid assumed ordering in a newly extended test; restored the existing prefix case and tested explicit large indices/checked overflow separately.
+- Delivered: ordinary push c86990eb2..c716f5516 to origin/master succeeded. The temporary large-index test failure was an invalid assumed ordering in a newly extended test; restored the existing prefix case and tested explicit large indices/checked overflow separately.
 
 ## Material Decisions
 
@@ -94,7 +92,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Completion
 
-- Resolved outcomes: R1-R4; R5 commit/push open.
+- Resolved outcomes: R1-R5 verified.
 - Commands and artifacts: cargo fmt --all -- --check; workspace/all-target strict Clippy; nextest workspace (2405 PASS + exact 29 PASS continuation, 18 pre-existing ignored); cargo test --workspace --locked --doc --no-fail-fast; debug build/help/version; cargo build -p oc2 --bin oc2 --locked --release -j 16; release --version; git diff --check.
 - Constraint and diff-scope check: passed for reviewed runtime/test/documentation diff; no user owner restart, dependency, schema or user config/data changes.
-- Final status: active.
+- Final status: complete. No paid-live generation or user owner restart was performed; resource byte limits remain explicit failures, not a promise of unlimited output.
