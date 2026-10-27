@@ -2572,10 +2572,13 @@ fn s06_pending_submit_allows_picker_but_refuses_departure_and_keeps_draft() {
         assert!(Instant::now() < deadline, "MCP initialize did not stall");
         std::thread::sleep(POLL);
     }
-    tui.wait_screen(draft, IO_TIMEOUT); // captured pending payload, not editor text
     let next_draft = "next edited draft";
     tui.raw(next_draft.as_bytes());
     tui.wait_screen(next_draft, IO_TIMEOUT);
+    assert!(
+        !tui.screen().iter().any(|row| row.contains(draft)),
+        "unaccepted input must not appear in the transcript"
+    );
 
     // Inspecting Sessions must not abandon the pending submission owner.
     tui.raw(b"\x18l");

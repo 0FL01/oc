@@ -221,7 +221,7 @@ fn tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change() {
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
-    let rt = runtime(&db, project.path());
+    let rt = runtime_protecting(&db, project.path(), "read");
     rt.create_session("s").unwrap();
     let (first, last) = seed_read(
         &rt,
@@ -280,7 +280,7 @@ fn tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change() {
     drop(rt);
     drop(db);
     let db = Db::open(data.path()).unwrap();
-    let rt = runtime(&db, project.path());
+    let rt = runtime_protecting(&db, project.path(), "read");
     rt.open_session("s").unwrap();
     assert!(has_media(&wire(&rt), "read-media"));
     assert_eq!(db.turn_result("read-media").unwrap().1.unwrap(), original);

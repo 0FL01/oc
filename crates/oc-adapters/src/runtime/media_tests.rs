@@ -40,6 +40,14 @@ fn runtime<'a>(db: &'a Db, project: &std::path::Path) -> Runtime<'a> {
     .unwrap()
 }
 
+fn runtime_protecting<'a>(db: &'a Db, project: &std::path::Path, tool: &str) -> Runtime<'a> {
+    let runtime = runtime(db, project);
+    let mut config = runtime.current.read().unwrap().dcp_config.clone();
+    config.protected_tools = vec![tool.into()];
+    runtime.reload_dcp(config).unwrap();
+    runtime
+}
+
 fn seed(runtime: &Runtime<'_>, db: &Db, turn: &str, prompt: &str) -> (String, String) {
     let user = db
         .accept_turn(
@@ -128,7 +136,7 @@ fn mcp12_dcp_sql_projection_reindexes_native_facts_and_reopen_keeps_raw_history(
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
-    let rt = runtime(&db, project.path());
+    let rt = runtime_protecting(&db, project.path(), "fixture__media");
     rt.create_session("s").unwrap();
     let (first, last) = seed(&rt, &db, "media", &"removable user details ".repeat(1024));
     seed(&rt, &db, "tail", "unfinished context tail");
@@ -161,10 +169,40 @@ fn mcp12_dcp_sql_projection_reindexes_native_facts_and_reopen_keeps_raw_history(
     drop(rt);
     drop(db);
     let db = Db::open(data.path()).unwrap();
-    let rt = runtime(&db, project.path());
+    let rt = runtime_protecting(&db, project.path(), "fixture__media");
     rt.open_session("s").unwrap();
     assert!(has_media(&wire(&rt), "media"));
     assert_eq!(db.turn_result("media").unwrap().1.unwrap(), original);
+}
+
+#[test]
+fn mcp12_legacy_dcp_sql_reindexes_native_media_after_covered_user() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let rt = runtime(&db, project.path());
+    rt.create_session("s").unwrap();
+    let (first, last) = seed(&rt, &db, "media", "covered user input");
+    db.save_compression_block(
+        "s",
+        "media",
+        "summary",
+        &first,
+        &last,
+        &[first.clone(), last.clone()],
+    )
+    .unwrap();
+    let blocks = crate::dcp::load_blocks(&db, "s").unwrap();
+    let logs = db
+        .presentation_wire_logs("s", 0, &[], &blocks)
+        .unwrap()
+        .unwrap();
+    assert_eq!(logs.len(), 1);
+    let value: Value = serde_json::from_str(&logs[0]).unwrap();
+    assert_eq!(value["input"][0]["type"], "function_call");
+    assert_eq!(value["native_mcp_results"][0]["input_index"], 1);
+    let log = TurnLog::from_json(&value).unwrap();
+    assert!(has_media(&log.input, "media"));
 }
 
 #[tokio::test]

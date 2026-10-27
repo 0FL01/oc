@@ -3617,7 +3617,7 @@ fn new_from_attached_returns_home_without_an_extra_root() {
     pty.wait_visible(READY, DEADLINE);
     pty.send(b"/new\r");
     pty.wait_visible("█▀▀█", DEADLINE);
-    wait_home_selection(&pty, &fixture.project_a());
+    wait_saved_home(&pty, &fixture.project_a());
     let path = fixture.project_b().canonicalize().expect("target Location");
     pty.send(format!("/location {}\r", path.display()).as_bytes());
     wait_home_selection(&pty, &path);

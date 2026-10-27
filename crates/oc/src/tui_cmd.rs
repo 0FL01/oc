@@ -1047,6 +1047,7 @@ impl LoopState {
     fn open_home(&mut self, state: &mut TuiState, mut next: TuiState) {
         next.inherit_committed_model_choice(state);
         next.approval_roots.clone_from(&state.approval_roots);
+        next.sync_clipboard_mode_from(state);
         state.close_panel();
         next.take_tab_clocks_from(state);
         let previous = std::mem::replace(state, next);

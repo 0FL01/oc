@@ -374,6 +374,7 @@ async fn held_home_selection_survives_park_and_resume_without_replaying_enter() 
     let (app, mut inbox, _) = CoreApp::channel(8);
     let mut facts = catalog();
     facts.chrome.location = Some("/fixture".into());
+    facts.chrome.terminal_copy = Some(oc_core::queries::TerminalCopyMode::Manual);
     let mut state = TuiState::new(app.clone(), SessionId("root".into()));
     state.apply_catalog(facts.clone());
     let mut deck = LoopState::default();
@@ -381,6 +382,7 @@ async fn held_home_selection_survives_park_and_resume_without_replaying_enter() 
     apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
         .await
         .unwrap();
+    assert_eq!(state.clipboard_mode(), oc_tui::app::ClipboardMode::Manual);
     let original = state.view_identity();
     sync_home(&app, &mut state, &mut deck).await;
     let InboxMsg::HomeSelection { ack, .. } = inbox.recv().await.unwrap() else {
@@ -411,6 +413,7 @@ async fn held_home_selection_survives_park_and_resume_without_replaying_enter() 
     .await
     .unwrap();
     assert!(state.catalog_loaded());
+    assert_eq!(state.clipboard_mode(), oc_tui::app::ClipboardMode::Manual);
     assert_eq!(state.input(), "kept next prompt");
     assert!(
         inbox.try_recv().is_err(),
