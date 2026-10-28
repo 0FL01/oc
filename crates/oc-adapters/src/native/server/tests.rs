@@ -144,7 +144,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
         .submit(session.clone(), "Launch both independent jobs".into())
         .await
         .unwrap();
-    let endpoint = Endpoint::bind(&data).unwrap();
+    let endpoint = Endpoint::bind(&data).await.unwrap();
     let (disconnect, closed) = watch::channel(false);
     let state = Arc::new(Mutex::new(State {
         closing: false,
@@ -372,7 +372,7 @@ async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control
         .unwrap()
         .unwrap()
         .0;
-    let endpoint = Endpoint::bind(&data).unwrap();
+    let endpoint = Endpoint::bind(&data).await.unwrap();
     let (disconnect, closed) = watch::channel(false);
     let state = Arc::new(Mutex::new(State {
         closing: false,
@@ -537,7 +537,7 @@ async fn srv04_request_cancellation_overtakes_queued_shell_before_admission() {
         ]),
     )
     .unwrap();
-    let endpoint = Endpoint::bind(&data).unwrap();
+    let endpoint = Endpoint::bind(&data).await.unwrap();
     let (disconnect, closed) = watch::channel(false);
     let state = Arc::new(Mutex::new(State {
         closing: false,

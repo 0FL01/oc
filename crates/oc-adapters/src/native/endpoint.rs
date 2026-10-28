@@ -7,6 +7,7 @@ use std::{
     io::{self, Read, Write},
     os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
+    time::Duration,
 };
 use tokio::net::{UnixListener, UnixStream};
 
@@ -181,7 +182,6 @@ pub(super) fn read(root: &Path) -> io::Result<Option<Registration>> {
     let registration: Registration = serde_json::from_slice(&bytes).map_err(|_| refused())?;
     let identity = fs::metadata(root)?;
     if registration.uid != uid()
-        || registration.device != identity.dev()
         || registration.inode != identity.ino()
         || registration.instance.len() != 32
         || !registration
@@ -200,8 +200,11 @@ pub(super) async fn connect(root: &Path, registration: &Registration) -> io::Res
     admit_socket(&registration.socket)?;
     let stream = UnixStream::connect(&registration.socket).await?;
     let peer = stream.peer_cred()?;
+    // A dead socket must reach the normal owner election after a reboot; a
+    // live peer is never admitted against a different data-root device.
     if peer.uid() != uid()
         || peer.pid().and_then(|pid| u32::try_from(pid).ok()) != Some(registration.pid)
+        || registration.device != fs::metadata(root)?.dev()
     {
         return Err(refused());
     }
@@ -216,10 +219,33 @@ pub(super) struct Endpoint {
 }
 impl Endpoint {
     /// Caller already owns the actual Db. No pre-lock/unlock/reopen election.
-    pub(super) fn bind(root: &Path) -> io::Result<Self> {
+    pub(super) async fn bind(root: &Path) -> io::Result<Self> {
         if let Some(previous) = read(root)? {
             match admit_socket(&previous.socket) {
-                Ok(_) => fs::remove_file(&previous.socket)?,
+                Ok(_) => {
+                    // A different device may have a live owner outside this
+                    // Db lock; do not unlink a socket that is still listening.
+                    let remove = if previous.device != fs::metadata(root)?.dev() {
+                        match tokio::time::timeout(
+                            Duration::from_secs(3),
+                            UnixStream::connect(&previous.socket),
+                        )
+                        .await
+                        {
+                            Ok(Err(error)) if error.kind() == io::ErrorKind::ConnectionRefused => {
+                                true
+                            }
+                            Ok(Err(error)) if error.kind() == io::ErrorKind::NotFound => false,
+                            Ok(Err(error)) => return Err(error),
+                            Ok(Ok(_)) | Err(_) => return Err(refused()),
+                        }
+                    } else {
+                        true
+                    };
+                    if remove {
+                        fs::remove_file(&previous.socket)?;
+                    }
+                }
                 Err(error) if error.kind() == io::ErrorKind::NotFound => {}
                 Err(error) => return Err(error),
             }
@@ -269,11 +295,10 @@ impl Endpoint {
 }
 impl Drop for Endpoint {
     fn drop(&mut self) {
-        if read(&self.root)
-            .ok()
-            .flatten()
-            .is_some_and(|current| current.instance == self.registration.instance)
-        {
+        if read(&self.root).ok().flatten().is_some_and(|current| {
+            current.instance == self.registration.instance
+                && fs::metadata(&self.root).is_ok_and(|meta| meta.dev() == current.device)
+        }) {
             let _ = fs::remove_file(registry(&self.root));
         }
         if admit_socket(&self.registration.socket).is_ok_and(|meta| meta.ino() == self.socket_inode)

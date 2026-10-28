@@ -30,7 +30,7 @@ async fn srv05_private_peer_registration_and_unsafe_paths_fail_closed() {
     let temp = tempfile::tempdir().unwrap();
     let data = root(&temp.path().join("data")).unwrap();
     let db = crate::storage::Db::open(&data).unwrap();
-    let endpoint = Endpoint::bind(&data).unwrap();
+    let endpoint = Endpoint::bind(&data).await.unwrap();
     let registration = read(&data).unwrap().unwrap();
     let stream = connect(&data, &registration).await.unwrap();
     assert_eq!(stream.peer_cred().unwrap().uid(), uid());
@@ -85,18 +85,36 @@ async fn srv01_election_winner_replaces_only_its_safe_stale_socket() {
     let temp = tempfile::tempdir().unwrap();
     let data = root(&temp.path().join("data")).unwrap();
     let db = crate::storage::Db::open(&data).unwrap();
-    let first = Endpoint::bind(&data).unwrap();
+    let first = Endpoint::bind(&data).await.unwrap();
     let saved = first.registration.clone();
+    let mut stale = saved.clone();
+    stale.device ^= 1;
+    fs::write(registry(&data), serde_json::to_vec(&stale).unwrap()).unwrap();
+    let error = connect(&data, &stale).await.err().unwrap();
+    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+    let error = Endpoint::bind(&data).await.err().unwrap();
+    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+    assert_eq!(read(&data).unwrap().unwrap().device, stale.device);
+    assert!(
+        connect(&data, &saved).await.is_ok(),
+        "live socket remains usable"
+    );
     drop(first);
+    assert_eq!(read(&data).unwrap().unwrap().device, stale.device);
     // Reproduce only the on-disk endpoint left by a crash; no second Db or
     // recovery pass is opened and no live owner is killed by this unit fixture.
     let listener = std::os::unix::net::UnixListener::bind(&saved.socket).unwrap();
     fs::set_permissions(&saved.socket, fs::Permissions::from_mode(0o600)).unwrap();
     drop(listener);
-    fs::write(registry(&data), serde_json::to_vec(&saved).unwrap()).unwrap();
-    fs::set_permissions(registry(&data), fs::Permissions::from_mode(0o600)).unwrap();
-    let elected = Endpoint::bind(&data).unwrap();
+    let previous = read(&data).unwrap().unwrap();
+    let error = connect(&data, &previous).await.err().unwrap();
+    assert_eq!(error.kind(), io::ErrorKind::ConnectionRefused);
+    let elected = Endpoint::bind(&data).await.unwrap();
     assert_ne!(saved.instance, elected.registration.instance);
+    assert_eq!(
+        elected.registration.device,
+        fs::metadata(&data).unwrap().dev()
+    );
     assert!(connect(&data, &elected.registration).await.is_ok());
     assert!(matches!(
         crate::storage::Db::open(&data),

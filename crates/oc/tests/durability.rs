@@ -11,6 +11,7 @@ mod context_ids;
 mod native_owner;
 use native_owner::NativeOwner;
 use std::net::{TcpListener, TcpStream};
+use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
@@ -236,11 +237,32 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     );
     drop(db);
 
+    // Btrfs can assign a different device number after reboot while the data
+    // root inode and the crashed owner's on-disk registration remain intact.
+    let registration_path = data.join("native-owner.json");
+    let mut registration: Value = serde_json::from_slice(
+        &std::fs::read(&registration_path).expect("crashed owner registration"),
+    )
+    .unwrap();
+    let device = std::fs::metadata(&data).unwrap().dev();
+    assert_eq!(registration["device"].as_u64(), Some(device));
+    registration["device"] = json!(device ^ 1);
+    std::fs::write(
+        &registration_path,
+        serde_json::to_vec(&registration).unwrap(),
+    )
+    .unwrap();
+
     // Recovery must come from application::spawn in the actual binary, not a
     // direct recover_interrupted_tools call in this test.
     let mut titles = 0;
     let mut restarted = spawn(&home, &project, NEXT_PROMPT, "restart");
     let (mut socket, request) = accept_restart_main(&listener, &mut titles);
+    let registration: Value = serde_json::from_slice(
+        &std::fs::read(&registration_path).expect("recovered owner registration"),
+    )
+    .unwrap();
+    assert_eq!(registration["device"].as_u64(), Some(device));
     assert_eq!(
         request["input"],
         json!([user_message(FIRST_PROMPT), user_message(NEXT_PROMPT)]),

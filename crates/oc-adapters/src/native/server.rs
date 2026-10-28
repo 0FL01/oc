@@ -242,7 +242,7 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
     if let Some(composition) = admitted {
         owner.prime(composition);
     }
-    let endpoint = match Endpoint::bind(&root) {
+    let endpoint = match Endpoint::bind(&root).await {
         Ok(endpoint) => endpoint,
         Err(_) => {
             let _ = owner.shutdown().await;
