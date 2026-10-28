@@ -229,6 +229,10 @@ async fn parked_parent_discovers_running_child_before_tool_completion() {
                     assert_eq!(session, expected.parent);
                     ack.send(Ok(Vec::new())).unwrap();
                 }
+                InboxMsg::ExecuteJobs { session, ack } => {
+                    assert_eq!(session, expected.parent);
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
                 _ => panic!("navigation must not execute"),
             }
         }

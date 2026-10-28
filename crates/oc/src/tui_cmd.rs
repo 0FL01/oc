@@ -2789,6 +2789,9 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
     if let Ok(rows) = app.shell_jobs(state.session().clone()).await {
         state.apply_shell_jobs(rows);
     }
+    if let Ok(rows) = app.execute_jobs(state.session().clone()).await {
+        state.apply_execute_jobs(rows);
+    }
     refresh_dcp_summaries(app, &mut state).await;
     shared::attach(app, &mut state)
         .await
@@ -4237,6 +4240,7 @@ async fn handle_worker_event_at(
         && matches!(
             &event,
             CoreEvent::ShellChanged { .. }
+                | CoreEvent::ExecuteChanged { .. }
                 | CoreEvent::TerminalChanged { .. }
                 | CoreEvent::SessionMoved { .. }
                 | CoreEvent::PermissionAsked(_)
@@ -4253,6 +4257,7 @@ async fn handle_worker_event_at(
     if !matches!(
         &event,
         CoreEvent::ShellChanged { .. }
+            | CoreEvent::ExecuteChanged { .. }
             | CoreEvent::TerminalChanged { .. }
             | CoreEvent::SessionMoved { .. }
     ) && let Some(owner) = child_controls::event_owner(&event).cloned()
@@ -4293,7 +4298,9 @@ async fn handle_worker_event_at(
         _loop_state.terminals = jobs;
         return Ok(());
     }
-    if let CoreEvent::ShellChanged { session: owner } = &event {
+    if let CoreEvent::ShellChanged { session: owner }
+    | CoreEvent::ExecuteChanged { session: owner } = &event
+    {
         let mut jobs = std::mem::take(&mut _loop_state.reads);
         for view in read_jobs::views_mut(state, _loop_state)
             .filter(|view| view.attached_session() == Some(owner))
@@ -4366,7 +4373,9 @@ async fn handle_worker_event_at(
         | CoreEvent::OwnerDisconnected => return Ok(()),
         CoreEvent::ChildNotice(notice) => &notice.job.parent,
         CoreEvent::ShellNotice(notice) => &notice.session,
+        CoreEvent::ExecuteNotice(notice) => &notice.session,
         CoreEvent::ShellChanged { session }
+        | CoreEvent::ExecuteChanged { session }
         | CoreEvent::ParentContinuationRefused { session, .. }
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::SessionMoved { session, .. }
@@ -4421,6 +4430,7 @@ async fn handle_worker_event_at(
             }
         }
         CoreEvent::ShellChanged { .. } => unreachable!("handled above"),
+        CoreEvent::ExecuteChanged { .. } => unreachable!("handled above"),
         CoreEvent::TerminalChanged { .. } => {}
         CoreEvent::SessionModelSelected { session, commit } => {
             state.apply_session_model_selected(&session, &commit)
@@ -4457,6 +4467,13 @@ async fn handle_worker_event_at(
                 _loop_state
                     .notices
                     .request(state, CoreEvent::ShellNotice(notice));
+            }
+        }
+        CoreEvent::ExecuteNotice(notice) => {
+            if !replay {
+                _loop_state
+                    .notices
+                    .request(state, CoreEvent::ExecuteNotice(notice));
             }
         }
         CoreEvent::Compaction(_) | CoreEvent::McpChanged(_) | CoreEvent::ProviderChanged => {
@@ -4541,7 +4558,10 @@ async fn handle_worker_event_at(
                 dcp_topic,
                 output_presentation,
             );
-            if !replay && name == "subagent" && state.active_turn() == Some(&turn) {
+            if !replay
+                && matches!(name.as_str(), "subagent" | "execute")
+                && state.active_turn() == Some(&turn)
+            {
                 _loop_state.reads.request(state, false);
             }
         }

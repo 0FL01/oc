@@ -4937,6 +4937,9 @@ impl<'a> Runtime<'a> {
                 call.arguments["sessionID"] = session.into();
             }
             let mut structural = match &guarded {
+                Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL => {
+                    crate::codemode::parse_input(&call.arguments).map(|_| ())
+                }
                 Assembled::Call(call)
                     if matches!(
                         call.name.as_str(),
@@ -5223,6 +5226,9 @@ impl<'a> Runtime<'a> {
             let ctx = &invocation_ctx;
             let mut rejection = match &guarded {
                 Assembled::Failed(failure) => Some(crate::tools::diagnostic::Diagnostic::new(name, "invalid_args", &failure.error).failed()),
+                Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL && crate::codemode::parse_input(&call.arguments).is_err() => {
+                    Some(crate::tools::diagnostic::Diagnostic::new(name, "invalid_args", crate::codemode::parse_input(&call.arguments).err().expect("invalid execute")).failed())
+                }
                 Assembled::Call(call)
                     if is_builtin(&call.name) && self.validate_tool_call(call).is_err() =>
                 {
@@ -5280,6 +5286,7 @@ impl<'a> Runtime<'a> {
                 _ => None,
             };
             let mut shell_slot = None;
+            let mut execute_slot = None;
             if rejection.is_none()
                 && matches!(&guarded,Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash"))
             {
@@ -5291,6 +5298,23 @@ impl<'a> Runtime<'a> {
                             name,
                             "budget_exhausted",
                             "active shell resource ceiling",
+                        )
+                        .detail(serde_json::json!({"budget":"jobs","limit":8}))
+                        .output("failed"),
+                    ));
+                }
+            }
+            if rejection.is_none()
+                && matches!(&guarded,Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL)
+            {
+                execute_slot = self.execute_jobs.reserve();
+                if execute_slot.is_none() {
+                    rejection = Some((
+                        "failed",
+                        crate::tools::diagnostic::Diagnostic::new(
+                            name,
+                            "budget_exhausted",
+                            "active execute resource ceiling",
                         )
                         .detail(serde_json::json!({"budget":"jobs","limit":8}))
                         .output("failed"),
@@ -5678,6 +5702,7 @@ impl<'a> Runtime<'a> {
             let mut shell_text_prepared = false;
             let mut shell_presentation = None;
             let mut execute_presentation = None;
+            let mut execute_prepared = None;
             let mut read_directory = false;
             let read_path = match &guarded {
                 Assembled::Call(call) if call.name == "read" => {
@@ -5715,7 +5740,14 @@ impl<'a> Runtime<'a> {
                         match prepared.recheck(&self.db).and_then(|()| {
                             self.db
                                 .admit_session_move(&record)
-                                .map_err(|_| "move storage unavailable".into())
+                                .map_err(|error| match error {
+                                    crate::storage::StorageError::Io(ref cause)
+                                        if cause.kind() == std::io::ErrorKind::WouldBlock =>
+                                    {
+                                        "background execute report pending; retry after it is consumed".into()
+                                    }
+                                    _ => "move storage unavailable".into(),
+                                })
                         }) {
                             Ok(()) => {
                                 self.prepared_moves
@@ -6190,25 +6222,73 @@ impl<'a> Runtime<'a> {
                         }
                     }
                     Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL => {
-                        let (state, output, facts) = self
-                            .execute_code_mode(
-                                issuing,
-                                call,
-                                session,
-                                turn_id,
-                                &op,
-                                ctx,
-                                policy,
-                                attached,
-                                cancel,
-                                turn_log.display["agent"].as_str().map(str::to_string),
-                                turn_log.active_agent_digest().map(str::to_owned),
-                                &output_secrets,
-                                tool_event,
-                            )
-                            .await;
-                        execute_presentation = Some(facts);
-                        (state, output)
+                        let input = crate::codemode::parse_input(&call.arguments)
+                            .expect("execute preflight");
+                        let p = super::code_mode::jobs::Provenance {
+                            version: 1,
+                            session: session.into(),
+                            turn: turn_id.into(),
+                            operation: op.clone(),
+                            location: self.location.clone(),
+                            generation: issuing.id,
+                            output_limits: issuing.config.tool_output,
+                            output_source: source.clone(),
+                            agent: turn_log.display["agent"].as_str().map(str::to_owned),
+                            agent_digest: turn_log.active_agent_digest().map(str::to_owned),
+                            model: turn_log
+                                .requests
+                                .last()
+                                .map_or_else(|| turn_log.model.clone(), |r| r.model.id.clone()),
+                            provider: turn_log.requests.last().map_or_else(
+                                || turn_log.provider.clone(),
+                                |r| r.model.provider.clone(),
+                            ),
+                        };
+                        let capture = super::code_mode::jobs::Capture::new(
+                            issuing,
+                            call,
+                            ctx,
+                            policy,
+                            attached,
+                            output_secrets.clone(),
+                        );
+                        match self.execute_jobs.launch(
+                            self.owned_child_snapshot(),
+                            p,
+                            capture,
+                            execute_slot
+                                .take()
+                                .expect("execute reservation before intent"),
+                            input.background,
+                        ) {
+                            Ok(execute_id) => {
+                                let outcome = if input.background {
+                                    Ok(None)
+                                } else {
+                                    self.execute_jobs
+                                        .foreground(session, &execute_id, cancel, tool_event)
+                                        .await
+                                };
+                                match outcome {
+                                    Ok(None) => {
+                                        let mut facts = intent_presentation.as_ref().and_then(|p| p.execute.clone()).unwrap_or_default();
+                                        facts.background = true;
+                                        facts.state = Some("running".into());
+                                        execute_presentation = Some(facts);
+                                        ("completed", serde_json::json!({"status":"running", "executeID":execute_id,
+                                            "output":"Background program launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response."}).to_string())
+                                    }
+                                    Ok(Some(outcome)) => {
+                                        execute_prepared = Some(outcome.presentation.clone());
+                                        outcome.tool_result()
+                                    }
+                                    Err(_) => ("unknown", "error: execute worker interrupted; effects unknown; not replayed".into()),
+                                }
+                            }
+                            Err(_) => {
+                                ("failed", "error: execute admission or launch failed".into())
+                            }
+                        }
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {
                         let result = execute_batch(ctx, vec![guarded]).await.remove(0);
@@ -6233,9 +6313,11 @@ impl<'a> Runtime<'a> {
             if matches!(name, "shell" | "bash") {
                 artifact_source = self.db.output_for_operation(&op)?;
             }
-            let (output, logging_failed, mut output_presentation) = if let Some(native) =
-                native_mcp_result.as_mut()
+            let (output, logging_failed, mut output_presentation) = if let Some(presentation) =
+                execute_prepared
             {
+                (output, false, presentation)
+            } else if let Some(native) = native_mcp_result.as_mut() {
                 match native.prepare_common(&preparation) {
                     Ok(failed) => (
                         native.display().to_owned(),
@@ -6433,6 +6515,9 @@ impl<'a> Runtime<'a> {
                     patch_effects.as_ref(),
                     output_presentation.as_deref(),
                 )?;
+            }
+            if name == super::code_mode::EXECUTE_TOOL {
+                self.execute_jobs.notify();
             }
             emit_tool_finish_with_metadata(
                 tool_event,

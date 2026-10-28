@@ -6,6 +6,19 @@ use serde_json::{Value as Json, json};
 
 use super::*;
 
+#[test]
+fn execute_input_background_is_optional_and_strict() {
+    assert!(!parse_input(&json!({"code":"return 1"})).unwrap().background);
+    assert!(
+        parse_input(&json!({"code":"return 1","background":true}))
+            .unwrap()
+            .background
+    );
+    assert!(parse_input(&json!({"code":"return 1","background":"true"})).is_err());
+    assert!(parse_input(&json!({"code":"return 1","extra":1})).is_err());
+    assert!(parse_input(&json!({"background":true})).is_err());
+}
+
 fn tool(path: &str, description: &str, input: Json) -> CodeModeTool {
     CodeModeTool {
         path: path.into(),

@@ -250,6 +250,7 @@ pub enum CoreEvent {
     },
     /// Automatic shell result; history delivery is already committed.
     ShellNotice(crate::queries::ShellNotice),
+    ExecuteNotice(crate::queries::ExecuteNotice),
     ChildNotice(crate::queries::ChildNotice),
     /// A live root's automatic continuation was refused before turn acceptance.
     /// The durable child report remains available; this is not a replay request.
@@ -261,6 +262,10 @@ pub enum CoreEvent {
     },
     /// Coalesced actual supervisor drain/lifecycle change; read current facts.
     ShellChanged {
+        session: SessionId,
+    },
+    /// Coalesced program progress or lifecycle change; read current facts.
+    ExecuteChanged {
         session: SessionId,
     },
     /// Actual PTY exit/removal; frontend reads current bounded owner facts.
@@ -823,6 +828,11 @@ pub enum InboxMsg {
         session: SessionId,
         ack: oneshot::Sender<Result<Vec<crate::queries::ShellJob>, CoreError>>,
     },
+    /// Bounded running Code Mode programs in this session family.
+    ExecuteJobs {
+        session: SessionId,
+        ack: oneshot::Sender<Result<Vec<crate::queries::ExecuteJob>, CoreError>>,
+    },
     ChildJobs {
         session: SessionId,
         ack: oneshot::Sender<Result<Vec<crate::queries::ChildJob>, CoreError>>,
@@ -853,6 +863,17 @@ pub enum InboxMsg {
     BackgroundShell {
         session: SessionId,
         shell_id: String,
+        ack: oneshot::Sender<Result<(), CoreError>>,
+    },
+    ExecuteSnapshot {
+        session: SessionId,
+        execute_id: String,
+        ack: oneshot::Sender<Result<crate::queries::ExecuteSnapshot, CoreError>>,
+    },
+    BackgroundExecute {
+        session: SessionId,
+        turn: String,
+        execute_id: String,
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
     /// Bounded real saved DCP summary, identified by operation and range index.
@@ -1910,6 +1931,19 @@ impl CoreApp {
         receipt.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Current owned Code Mode programs, including descendants.
+    pub async fn execute_jobs(
+        &self,
+        session: SessionId,
+    ) -> Result<Vec<crate::queries::ExecuteJob>, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ExecuteJobs { session, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Bounded actual child family generations, including current terminal state.
     pub async fn child_jobs(
         &self,
@@ -2084,6 +2118,44 @@ impl CoreApp {
             .send(InboxMsg::BackgroundShell {
                 session,
                 shell_id,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Current or frozen Code Mode facts for the exact operation.
+    pub async fn execute_snapshot(
+        &self,
+        session: SessionId,
+        execute_id: String,
+    ) -> Result<crate::queries::ExecuteSnapshot, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ExecuteSnapshot {
+                session,
+                execute_id,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Release the exact foreground program without restarting it.
+    pub async fn background_execute(
+        &self,
+        session: SessionId,
+        turn: String,
+        execute_id: String,
+    ) -> Result<(), CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::BackgroundExecute {
+                session,
+                turn,
+                execute_id,
                 ack,
             })
             .await
@@ -3062,7 +3134,13 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::BackgroundShell { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::BackgroundExecute { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::ShellJobs { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ExecuteJobs { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::AuthMethods { ack, .. } => {
@@ -3084,6 +3162,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ShellSnapshot { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ExecuteSnapshot { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::DcpSummary { ack, .. } => {
@@ -3270,7 +3351,9 @@ mod tests {
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::ChildNotice(_)
                 | CoreEvent::ShellNotice(_)
+                | CoreEvent::ExecuteNotice(_)
                 | CoreEvent::ShellChanged { .. }
+                | CoreEvent::ExecuteChanged { .. }
                 | CoreEvent::TerminalChanged { .. } => {
                     panic!("unexpected shell in scripted runtime")
                 }
@@ -3749,7 +3832,9 @@ mod tests {
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::ChildNotice(_)
                 | CoreEvent::ShellNotice(_)
+                | CoreEvent::ExecuteNotice(_)
                 | CoreEvent::ShellChanged { .. }
+                | CoreEvent::ExecuteChanged { .. }
                 | CoreEvent::TerminalChanged { .. } => {
                     panic!("unexpected shell in scripted runtime")
                 }

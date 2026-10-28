@@ -68,6 +68,53 @@ impl Detail {
 }
 
 impl TuiState {
+    /// Refresh only the exact original operation in this view, never a new turn.
+    fn apply_execute_presentation(
+        &mut self,
+        job: &oc_core::queries::ExecuteJob,
+        output: &oc_core::tool_output::Presentation,
+    ) {
+        if self.attached_session() != Some(&job.session) || !output.is_valid() {
+            return;
+        }
+        let mut changed = self.window.refresh_execute(job, output);
+        if self
+            .active_turn
+            .as_ref()
+            .is_some_and(|turn| turn.0 == job.turn)
+        {
+            for part in &mut self.live_parts {
+                if let LivePart::Tool { card, .. } = part {
+                    changed |= crate::history::edit_card(
+                        card,
+                        |card| card.name == "execute" && card.op == job.execute_id,
+                        |card| card.refresh_execute(output),
+                    );
+                }
+            }
+        }
+        if changed {
+            self.enforce_parts();
+        }
+    }
+
+    pub fn apply_execute_jobs(&mut self, mut jobs: Vec<oc_core::queries::ExecuteJob>) {
+        jobs.truncate(8);
+        for job in &jobs {
+            if let Some(output) = &job.output {
+                self.apply_execute_presentation(job, output);
+            }
+        }
+        self.execute_jobs = jobs;
+        self.sync_foreground_hint(Instant::now());
+    }
+
+    pub fn apply_execute_snapshot(&mut self, snapshot: &oc_core::queries::ExecuteSnapshot) {
+        if let Some(output) = &snapshot.output {
+            self.apply_execute_presentation(&snapshot.job, output);
+        }
+    }
+
     pub(crate) fn execute_card(&self, operation: &str) -> Option<&crate::history::ToolCard> {
         self.live_parts
             .iter()

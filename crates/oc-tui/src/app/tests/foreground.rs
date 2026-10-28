@@ -41,6 +41,39 @@ fn key(code: char) -> KeyEvent {
 }
 
 #[tokio::test]
+async fn execute_handoff_uses_exact_foreground_operation_and_turn() {
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, sid("foreground"));
+    let turn = WorkerTurnId("parent-turn".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_tool_started(&turn, "execute-op", "execute", r#"{"code":"return 1"}"#);
+    let mut job = oc_core::queries::ExecuteJob {
+        session: sid("foreground"),
+        execute_id: "execute-op".into(),
+        location: "/captured".into(),
+        generation: 1,
+        turn: turn.0.clone(),
+        model: "m".into(),
+        provider: "p".into(),
+        background: false,
+        output: None,
+    };
+    state.apply_execute_jobs(vec![job.clone()]);
+    let Some(PanelIntent::BackgroundSession { work, .. }) = state.background_session().intent
+    else {
+        panic!("execute handoff missing");
+    };
+    assert_eq!(work, vec![ForegroundWork::Execute(Box::new(job.clone()))]);
+    job.turn = "stale".into();
+    state.apply_execute_jobs(vec![job.clone()]);
+    assert!(!state.foreground_available());
+    job.turn = turn.0.clone();
+    job.background = true;
+    state.apply_execute_jobs(vec![job]);
+    assert!(!state.foreground_available());
+}
+
+#[tokio::test]
 async fn foreground_hint_and_root_handoff_are_delayed_bounded_and_exact_current_work() {
     let (app, mut owner, _) = CoreApp::channel(8);
     let mut state = TuiState::new(app, sid("foreground"));

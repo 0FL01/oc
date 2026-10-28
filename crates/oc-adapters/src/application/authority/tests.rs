@@ -4,6 +4,7 @@ use crate::runtime::origin::{Kind, Origin};
 use oc_core::queries::{ConversationAction, SessionSelectionAction};
 use serde_json::json;
 use std::time::Duration;
+mod execute;
 mod shell;
 
 #[tokio::test]

@@ -90,6 +90,7 @@ fn plan_dcp_strategies(
     config: &DcpConfig,
     existing: &crate::storage::DcpToolProjection,
     errored: &std::collections::BTreeSet<crate::storage::DcpCallKey>,
+    live: &std::collections::BTreeSet<crate::storage::DcpCallKey>,
 ) -> crate::storage::DcpToolProjection {
     let mut projection = crate::storage::DcpToolProjection::default();
     if !config.enabled || (config.manual_mode && !config.automatic_strategies) {
@@ -148,8 +149,8 @@ fn plan_dcp_strategies(
             || crate::dcp_auto::tool_is_protected(&config.purge_protected_tools, &name);
         let age = total_users.saturating_sub(users_seen);
         let turn_protected = config.turn_protection && age <= config.turn_protection_turns;
-        let dedup_protected = dedup_protected || turn_protected;
-        let purge_protected = purge_protected || turn_protected;
+        let dedup_protected = dedup_protected || turn_protected || live.contains(&call_key);
+        let purge_protected = purge_protected || turn_protected || live.contains(&call_key);
         if config.purge_errors
             && !purge_protected
             && arguments.len() > crate::dcp_auto::LARGE_INPUT_BYTES
@@ -214,13 +215,52 @@ mod diagnostic_tests {
             &config,
             &Default::default(),
             &[key.clone()].into_iter().collect(),
+            &Default::default(),
         );
         assert_eq!(projection.purged, [key].into_iter().collect());
         assert!(
-            plan_dcp_strategies(&input, &config, &Default::default(), &Default::default())
-                .purged
-                .is_empty()
+            plan_dcp_strategies(
+                &input,
+                &config,
+                &Default::default(),
+                &Default::default(),
+                &Default::default(),
+            )
+            .purged
+            .is_empty()
         );
+    }
+
+    #[test]
+    fn dedup_preserves_a_live_execute_receipt() {
+        let mut input = Vec::new();
+        for id in ["live", "later"] {
+            input.push(InputItem::ProviderOutput(serde_json::json!({
+                "type":"function_call", "call_id":id, "name":"execute", "arguments":"{\"code\":\"x\"}"
+            })));
+            input.push(InputItem::FunctionCallOutput {
+                call_id: id.into(),
+                output: "running".into(),
+            });
+        }
+        let config = DcpConfig {
+            enabled: true,
+            manual_mode: false,
+            deduplication: true,
+            turn_protection: false,
+            ..Default::default()
+        };
+        let live = [("live".into(), 0)].into_iter().collect();
+        let projection = plan_dcp_strategies(
+            &input,
+            &config,
+            &Default::default(),
+            &Default::default(),
+            &live,
+        );
+        apply_dcp_projection(&mut input, &projection);
+        assert_eq!(input.len(), 4);
+        assert!(projection.hidden.is_empty());
     }
 }
 
@@ -1473,7 +1513,13 @@ impl<'a> Runtime<'a> {
         )?;
         let identities = dcp_call_identities(&before_logs, current)?;
         let errored = self.db.dcp_errored_call_keys(session, &identities)?;
-        let delta = plan_dcp_strategies(&raw_before, config, &existing_projection, &errored);
+        let live_calls = self.db.live_execute_call_ids(session)?;
+        let live = identities
+            .iter()
+            .filter(|(_, (turn, call, _))| live_calls.iter().any(|(t, c)| t == turn && c == call))
+            .map(|(key, _)| key.clone())
+            .collect();
+        let delta = plan_dcp_strategies(&raw_before, config, &existing_projection, &errored, &live);
         let mut candidate_projection = existing_projection.clone();
         candidate_projection
             .hidden

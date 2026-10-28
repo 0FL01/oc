@@ -57,6 +57,7 @@ struct Projection {
     compactions: Vec<oc_core::compaction::CompactionSnapshot>,
     mcp: oc_core::queries::McpSnapshot,
     shells: Option<Vec<oc_core::queries::ShellJob>>,
+    executes: Option<Vec<oc_core::queries::ExecuteJob>>,
     summaries: Vec<(String, oc_core::dcp_view::DcpSummaryPage)>,
 }
 
@@ -133,6 +134,7 @@ async fn prepare_projection(
         .map_err(|error| error.to_string())?;
     let mcp = app.mcp_status().await.map_err(|error| error.to_string())?;
     let shells = app.shell_jobs(target.id.clone()).await.ok();
+    let executes = app.execute_jobs(target.id.clone()).await.ok();
     let mut jobs = app
         .child_jobs(target.id.clone())
         .await
@@ -178,6 +180,7 @@ async fn prepare_projection(
         compactions,
         mcp,
         shells,
+        executes,
         summaries,
     }))
 }
@@ -223,6 +226,9 @@ async fn apply_projection(app: &CoreApp, view: &mut TuiState, projection: Projec
     view.apply_mcp_snapshot(projection.mcp);
     if let Some(shells) = projection.shells {
         view.apply_shell_jobs(shells);
+    }
+    if let Some(executes) = projection.executes {
+        view.apply_execute_jobs(executes);
     }
     if let Some(session) = view.attached_session().cloned() {
         for (op, page) in projection.summaries {

@@ -105,6 +105,20 @@ impl Db {
         if !valid {
             return Err(StorageError::SessionNotFound);
         }
+        // A live Execute continuation still belongs to its captured Location.
+        // Do not move its session until that report has been consumed or retired.
+        let execute_pending: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM execute_jobs j JOIN sessions s ON s.id=j.session_id AND s.parent_id IS NULL
+            LEFT JOIN messages m ON m.id=j.message_id AND m.session_id=j.session_id
+            WHERE j.session_id=?1 AND j.background=1 AND (j.phase!='terminal' OR j.message_id IS NULL OR
+                (NOT EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id AND e.kind='execute_parent_notice_consumed' AND CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.message')=j.message_id ELSE 0 END)
+                 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions x WHERE x.session_id=j.session_id AND m.seq>x.lower_seq AND m.seq<=x.upper_seq))))")?
+            .query_row([&record.session], |row| row.get(0))?;
+        if record.source != record.directory && execute_pending {
+            return Err(StorageError::Io(std::io::Error::new(
+                std::io::ErrorKind::WouldBlock,
+                "background execute report pending",
+            )));
+        }
         tx.execute("INSERT INTO session_moves(operation_id,session_id,source_turn,source,directory,fingerprint,phase) VALUES(?1,?2,?3,?4,?5,?6,'pending')",params![record.operation,record.session,record.source_turn,record.source,record.directory,record.fingerprint])?;
         tx.execute(
             "INSERT INTO events(session_id,kind,payload) VALUES(?1,'session_move_admitted',?2)",

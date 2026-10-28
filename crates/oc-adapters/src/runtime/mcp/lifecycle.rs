@@ -154,6 +154,10 @@ struct Scope {
 }
 
 impl McpOwner {
+    pub(in crate::runtime) fn has_operations(&self) -> bool {
+        *self.shared.operations.lock().expect("MCP operations") != 0
+    }
+
     pub(in crate::runtime) fn operation(self: &Arc<Self>) -> Operation {
         *self.shared.operations.lock().expect("MCP operations") += 1;
         Operation {

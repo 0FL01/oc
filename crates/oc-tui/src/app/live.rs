@@ -258,6 +258,50 @@ impl ScriptDriver {
                         }
                     }
                 }
+                Ok(Ok(CoreEvent::ExecuteNotice(notice))) => {
+                    if state.attached_session() == Some(&notice.session)
+                        && let Ok(snapshot) = state
+                            .app
+                            .execute_snapshot(notice.session.clone(), notice.execute_id.clone())
+                            .await
+                        && snapshot.job.session == notice.session
+                        && snapshot.job.execute_id == notice.execute_id
+                        && snapshot.delivery_id == notice.delivery_id
+                        && snapshot.message_id.as_deref() == Some(notice.message_id.as_str())
+                        && let Ok(exact) = state
+                            .app
+                            .history_message(
+                                notice.session.clone(),
+                                oc_core::session::MessageId(notice.message_id.clone()),
+                            )
+                            .await
+                        && exact.rows.iter().any(|row| {
+                            row.id.0 == notice.message_id
+                                && row.role == oc_core::session::Role::User
+                        })
+                    {
+                        if let Ok(recent) = state
+                            .app
+                            .history_page(notice.session, None, None, 100)
+                            .await
+                        {
+                            if state.is_busy() {
+                                state.refresh_child_notice_page(&recent);
+                            } else {
+                                state.refresh_completed_page(&recent);
+                            }
+                        }
+                        state.refresh_child_notice_page(&exact);
+                        state.apply_execute_snapshot(&snapshot);
+                    }
+                }
+                Ok(Ok(CoreEvent::ExecuteChanged { session })) => {
+                    if state.attached_session() == Some(&session)
+                        && let Ok(jobs) = state.app.execute_jobs(session).await
+                    {
+                        state.apply_execute_jobs(jobs);
+                    }
+                }
                 Ok(Ok(CoreEvent::ChildNotice(notice))) => {
                     if state.attached_session() == Some(&notice.job.parent)
                         && let Some(message) = notice.job.message_id
@@ -2875,6 +2919,25 @@ impl TuiState {
                 }
             }
             let mut finished = card_from_row(&row);
+            // A fast background completion can be observed before the launch
+            // receipt. Preserve the already-qualified terminal presentation.
+            if card.name == "execute"
+                && finished
+                    .output_presentation
+                    .as_ref()
+                    .and_then(|presentation| presentation.execute.as_ref())
+                    .and_then(|facts| facts.state.as_deref())
+                    == Some("running")
+                && let Some(terminal) = card.output_presentation.as_ref().filter(|presentation| {
+                    presentation
+                        .execute
+                        .as_ref()
+                        .and_then(|facts| facts.state.as_deref())
+                        .is_some_and(|state| state != "running")
+                })
+            {
+                finished.refresh_execute(terminal);
+            }
             finished.started_at = card.started_at;
             if let crate::tools::ToolRender::Dcp(view) = &mut finished.render {
                 view.color_index = self.live_agent_color_index;

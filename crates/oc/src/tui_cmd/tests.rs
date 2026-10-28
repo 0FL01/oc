@@ -195,6 +195,11 @@ async fn empty_shell_inventory(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>
     };
     assert_eq!(session.0, expected);
     ack.send(Ok(Vec::new())).unwrap();
+    let Some(InboxMsg::ExecuteJobs { session, ack }) = inbox.recv().await else {
+        panic!("initial source-owned execute inventory")
+    };
+    assert_eq!(session.0, expected);
+    ack.send(Ok(Vec::new())).unwrap();
 }
 
 async fn empty_mcp_status_at(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>, location: &str) {

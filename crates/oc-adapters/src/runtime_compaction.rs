@@ -908,7 +908,8 @@ impl Runtime<'_> {
                 || !dcp.protected_tools.is_empty()
                 || !dcp.dedup_protected_tools.is_empty()
                 || !dcp.purge_protected_tools.is_empty()
-                || self.db.has_active_shell_jobs(session)?;
+                || self.db.has_active_shell_jobs(session)?
+                || self.db.has_active_execute_jobs(session)?;
             // Archive/source acquisition is a host-resource decision, not a
             // model-token estimate. Inspect the full eligible source before
             // selecting protections; final provider admission remains below.
@@ -1020,7 +1021,8 @@ impl Runtime<'_> {
                 || !dcp.protected_tools.is_empty()
                 || !dcp.dedup_protected_tools.is_empty()
                 || !dcp.purge_protected_tools.is_empty()
-                || self.db.has_active_shell_jobs(session)?;
+                || self.db.has_active_shell_jobs(session)?
+                || self.db.has_active_execute_jobs(session)?;
             let source_budget = ACTIVE_CONTEXT_BYTES_CAP;
             let floor = self
                 .db

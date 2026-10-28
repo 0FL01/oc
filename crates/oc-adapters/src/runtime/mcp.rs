@@ -148,11 +148,12 @@ impl Drop for McpCallLease<'_> {
                 self.generation.remote_unknown.store(true, Ordering::SeqCst);
                 self.unsafe_retry.store(true, Ordering::SeqCst);
             }
-            if self
-                .db
-                .mark_dropped_mcp_call_unknown(self.op, self.turn)
-                .is_err()
-            {
+            let recorded = match self.db.mark_execute_effect_unknown(self.op, self.turn) {
+                Ok(true) => Ok(()),
+                Ok(false) => self.db.mark_dropped_mcp_call_unknown(self.op, self.turn),
+                Err(error) => Err(error),
+            };
+            if recorded.is_err() {
                 self.generation.cleanup_error.store(true, Ordering::SeqCst);
                 self.cleanup_failed.store(true, Ordering::SeqCst);
             }

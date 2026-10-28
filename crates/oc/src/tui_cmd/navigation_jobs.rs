@@ -66,6 +66,7 @@ struct View {
     attached: Option<shared::Attached>,
     mcp: Option<oc_core::queries::McpSnapshot>,
     shells: Vec<oc_core::queries::ShellJob>,
+    executes: Vec<oc_core::queries::ExecuteJob>,
     refresh_failed: bool,
 }
 struct Prepared {
@@ -123,6 +124,11 @@ async fn view(
     } else {
         Vec::new()
     };
+    let executes = if initial {
+        app.execute_jobs(id.clone()).await.unwrap_or_default()
+    } else {
+        Vec::new()
+    };
     let attached =
         shared::prepare_attached(app, id.clone(), catalog.chrome.location.clone(), None, 0).await;
     refresh_failed |= attached.is_err();
@@ -134,6 +140,7 @@ async fn view(
         attached: attached.ok().flatten(),
         mcp,
         shells,
+        executes,
         refresh_failed,
     })
 }
@@ -335,6 +342,7 @@ async fn build(app: &CoreApp, prepared: View) -> TuiState {
         view.apply_mcp_snapshot(mcp);
     }
     view.apply_shell_jobs(prepared.shells);
+    view.apply_execute_jobs(prepared.executes);
     if prepared.refresh_failed {
         view.push_note("Session opened; resource refresh pending");
     }

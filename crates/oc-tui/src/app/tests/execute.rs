@@ -135,6 +135,65 @@ async fn live() -> (TuiState, WorkerTurnId) {
     (state, turn)
 }
 
+#[tokio::test]
+async fn execute_terminal_snapshot_cannot_be_overwritten_by_late_receipt_or_inventory() {
+    let (mut state, turn) = live().await;
+    let job = oc_core::queries::ExecuteJob {
+        session: state.attached_session().unwrap().clone(),
+        execute_id: "execute-ui-op".into(),
+        location: "/captured".into(),
+        generation: 1,
+        turn: turn.0.clone(),
+        model: "m".into(),
+        provider: "p".into(),
+        background: true,
+        output: None,
+    };
+    let mut terminal = Presentation::new("done", 4, false);
+    terminal.execute = Some(Execute {
+        background: true,
+        state: Some("completed".into()),
+        ..facts()
+    });
+    state.apply_execute_snapshot(&oc_core::queries::ExecuteSnapshot {
+        job: job.clone(),
+        state: "completed".into(),
+        output: Some(Box::new(terminal)),
+        delivery_id: "delivery".into(),
+        message_id: Some("message".into()),
+    });
+    let mut stale = Presentation::new("", 0, false);
+    stale.execute = Some(Execute {
+        background: true,
+        state: Some("running".into()),
+        ..facts()
+    });
+    state.apply_tool_finished_with_output_presentation(
+        &turn,
+        "execute-ui-op",
+        "execute",
+        "completed",
+        "running receipt",
+        15,
+        false,
+        None,
+        None,
+        None,
+        Some(Box::new(stale.clone())),
+    );
+    state.apply_execute_jobs(vec![oc_core::queries::ExecuteJob {
+        output: Some(Box::new(stale)),
+        ..job
+    }]);
+    let card = state.execute_card("execute-ui-op").unwrap();
+    assert_eq!(
+        crate::tools::execute::facts(card).unwrap().state.as_deref(),
+        Some("completed")
+    );
+    assert!(!crate::tools::execute::running(card));
+    assert_eq!(state.input(), "exact unsent draft");
+}
+
 fn paint(state: &mut TuiState, frame: Rect) -> (Vec<crate::styled::Line>, Rect) {
     let area = crate::shell::transcript_area(state, frame);
     let (rows, total, scroll) =

@@ -2887,7 +2887,9 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
             CoreEvent::ChildNotice(_)
             | CoreEvent::ShellNotice(_)
+            | CoreEvent::ExecuteNotice(_)
             | CoreEvent::ShellChanged { .. }
+            | CoreEvent::ExecuteChanged { .. }
             | CoreEvent::TerminalChanged { .. } => {
                 panic!("unexpected shell in reasoning-only fixture")
             }

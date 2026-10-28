@@ -435,6 +435,14 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
                         assert_eq!(owner, session);
                         ack.send(Ok(Vec::new())).unwrap();
                     }
+                    InboxMsg::ExecuteJobs {
+                        session: owner,
+                        ack,
+                    } => {
+                        assert!(accepted && saves == 1);
+                        assert_eq!(owner, session);
+                        ack.send(Ok(Vec::new())).unwrap();
+                    }
                     _ => panic!("no replay or unexpected owner work"),
                 }
             }

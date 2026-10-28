@@ -9,6 +9,7 @@ struct Prepared {
     recent: HistoryPage,
     children: Option<Vec<oc_core::queries::ChildJob>>,
     shell: Option<oc_core::queries::ShellSnapshot>,
+    execute: Option<oc_core::queries::ExecuteSnapshot>,
 }
 struct Read {
     route: read_jobs::Route,
@@ -48,6 +49,7 @@ impl Jobs {
         let key = match &event {
             CoreEvent::ChildNotice(notice) => notice.job.message_id.clone(),
             CoreEvent::ShellNotice(notice) => Some(notice.message_id.clone()),
+            CoreEvent::ExecuteNotice(notice) => Some(notice.message_id.clone()),
             CoreEvent::SelectionNoticeCommitted { message, .. } => Some(message.0.clone()),
             _ => None,
         };
@@ -97,6 +99,9 @@ async fn prepare(
             CoreEvent::ShellNotice(notice) => {
                 Some(oc_core::session::MessageId(notice.message_id.clone()))
             }
+            CoreEvent::ExecuteNotice(notice) => {
+                Some(oc_core::session::MessageId(notice.message_id.clone()))
+            }
             CoreEvent::SelectionNoticeCommitted { message, .. } => Some(message.clone()),
             CoreEvent::InboxChanged { delivered, .. } => {
                 delivered.first().map(|item| item.message.clone())
@@ -108,9 +113,17 @@ async fn prepare(
         } else {
             None
         };
+        let execute = if let CoreEvent::ExecuteNotice(notice) = &event {
+            app.execute_snapshot(notice.session.clone(), notice.execute_id.clone())
+                .await
+                .ok()
+        } else {
+            None
+        };
         let qualified = exact.as_ref().is_some_and(|page| page.rows.iter().any(|row| match &event {
             CoreEvent::ChildNotice(notice) => matches!(&row.child, Some(oc_core::queries::ChildHistory::Notice(job)) if child_controls::same_launch(job, &notice.job) && job.message_id == notice.job.message_id && job.message_id.as_deref() == Some(row.id.0.as_str())),
             CoreEvent::ShellNotice(notice) => row.id.0 == notice.message_id && if notice.user_requested { row.user_shell.as_ref().is_some_and(|result| result.operation == notice.shell_id) } else { row.shell_notice.as_ref().is_some_and(|metadata| metadata.operation == notice.shell_id) },
+            CoreEvent::ExecuteNotice(notice) => row.id.0 == notice.message_id && row.role == oc_core::session::Role::User && execute.as_ref().is_some_and(|snapshot| snapshot.job.session == notice.session && snapshot.job.execute_id == notice.execute_id && snapshot.delivery_id == notice.delivery_id && snapshot.message_id.as_deref() == Some(notice.message_id.as_str())),
             CoreEvent::SelectionNoticeCommitted { message, .. } => row.id == *message,
             CoreEvent::InboxChanged { delivered, .. } => delivered.iter().any(|item| item.message == row.id),
             _ => false,
@@ -147,6 +160,7 @@ async fn prepare(
             recent,
             children,
             shell,
+            execute,
         });
     }
     Ok(prepared)
@@ -234,6 +248,7 @@ fn apply(view: &mut TuiState, prepared: Prepared) {
         recent,
         children,
         shell,
+        execute,
     } = prepared;
     if let Some(children) = children {
         view.apply_child_jobs(children);
@@ -316,6 +331,18 @@ fn apply(view: &mut TuiState, prepared: Prepared) {
                 } else {
                     view.refresh_completed_page(&recent);
                 }
+            }
+        }
+        CoreEvent::ExecuteNotice(_) => {
+            if let (Some(exact), Some(snapshot)) = (exact, execute) {
+                view.observe_history_commit();
+                if view.is_busy() {
+                    view.refresh_child_notice_page(&recent);
+                    view.refresh_child_notice_page(&exact);
+                } else {
+                    view.refresh_completed_page(&recent);
+                }
+                view.apply_execute_snapshot(&snapshot);
             }
         }
         _ => {}

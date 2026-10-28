@@ -37,6 +37,18 @@ fn execute_facts_are_additive_bounded_and_accounted() {
         serde_json::from_value::<Presentation>(serde_json::to_value(&facts).unwrap()).unwrap(),
         facts
     );
+    let mut old_execute = serde_json::to_value(&facts).unwrap();
+    old_execute["execute"]
+        .as_object_mut()
+        .unwrap()
+        .remove("background");
+    old_execute["execute"]
+        .as_object_mut()
+        .unwrap()
+        .remove("state");
+    let restored: Presentation = serde_json::from_value(old_execute).unwrap();
+    assert!(!restored.execute.as_ref().unwrap().background);
+    assert_eq!(restored.execute.as_ref().unwrap().state, None);
     let execute = facts.execute.as_mut().unwrap();
     execute
         .calls

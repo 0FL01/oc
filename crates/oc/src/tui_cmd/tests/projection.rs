@@ -329,6 +329,9 @@ async fn linked_gap_stages_all_reads_and_repairs_parent_selected_and_retained_ch
                 InboxMsg::ShellJobs { ack, .. } => {
                     ack.send(Ok(Vec::new())).unwrap();
                 }
+                InboxMsg::ExecuteJobs { ack, .. } => {
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
                 InboxMsg::McpStatus { ack } => {
                     ack.send(Ok(oc_core::queries::McpSnapshot {
                         binding: oc_core::queries::McpBinding {

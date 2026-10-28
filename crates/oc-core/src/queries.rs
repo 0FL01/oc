@@ -1924,6 +1924,42 @@ pub struct ChildNotice {
     pub text: String,
 }
 
+/// Current owned Code Mode program, independent of its immutable launch result.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ExecuteJob {
+    pub session: crate::domain::SessionId,
+    pub execute_id: String,
+    pub location: String,
+    pub generation: u64,
+    pub turn: String,
+    pub model: String,
+    pub provider: String,
+    pub background: bool,
+    pub output: Option<Box<crate::tool_output::Presentation>>,
+}
+
+/// Current or frozen facts for the exact Code Mode operation.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ExecuteSnapshot {
+    pub job: ExecuteJob,
+    pub state: String,
+    pub output: Option<Box<crate::tool_output::Presentation>>,
+    /// Durable delivery identity, present after completion notice commit.
+    pub delivery_id: String,
+    pub message_id: Option<String>,
+}
+
+/// Durable completion notification; its message identity is authoritative.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ExecuteNotice {
+    pub session: crate::domain::SessionId,
+    pub execute_id: String,
+    pub delivery_id: String,
+    pub message_id: String,
+    pub state: String,
+    pub text: String,
+}
+
 /// Current supervisor-owned running job, independent of immutable tool results.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ShellJob {

@@ -1334,6 +1334,11 @@ async fn shell_changed_updates_closed_owner_footer_and_parked_view_without_cross
                 Vec::new()
             }))
             .unwrap();
+            let InboxMsg::ExecuteJobs { session, ack } = inbox.recv().await.unwrap() else {
+                panic!("one source-owned execute inventory query")
+            };
+            assert_eq!(session, wanted);
+            ack.send(Ok(Vec::new())).unwrap();
             inbox
         });
         handle_worker_event(

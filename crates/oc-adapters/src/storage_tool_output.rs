@@ -169,6 +169,12 @@ impl Db {
             .optional()?;
         let mut presentation = frozen.and_then(|raw| serde_json::from_str(&raw).ok());
         if presentation.is_none() {
+            let execute: Option<String> = conn.prepare_cached(
+                "WITH owned AS (SELECT j.session_id,j.operation_id,o.turn_id,CASE WHEN json_valid(j.outcome) THEN j.outcome ELSE '{}' END result,CASE WHEN json_valid(j.provenance) THEN j.provenance ELSE '{}' END provenance FROM execute_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id WHERE j.session_id=?1 AND j.operation_id=?2 AND j.phase='terminal' AND o.name='execute' AND o.turn_id IS NOT NULL) SELECT json_extract(result,'$.presentation') FROM owned WHERE json_extract(result,'$.version')=1 AND json_extract(result,'$.state') IN ('completed','failed','cancelled','unknown') AND json_extract(provenance,'$.version')=1 AND json_extract(provenance,'$.session')=session_id AND json_extract(provenance,'$.operation')=operation_id AND json_extract(provenance,'$.turn')=turn_id AND json_type(result,'$.presentation')='object' AND length(CAST(json_extract(result,'$.presentation') AS BLOB))<=?3",
+            )?.query_row(params![session,operation,oc_core::tool_output::RECORD_BYTES as i64], |row| row.get(0)).optional()?;
+            presentation = execute.and_then(|raw| serde_json::from_str(&raw).ok());
+        }
+        if presentation.is_none() {
             // `events_tool_presentation` keys this exact expression: one index
             // seek per operation, not a JSON scan of every session fact.
             let raw: Option<String> = conn

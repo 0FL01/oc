@@ -141,7 +141,7 @@ impl Db {
     }
 
     /// Provider call IDs of this turn's still-live background launches (shell
-    /// jobs and subagent children), kept verbatim in HOT.
+    /// jobs, subagent children and Execute jobs), kept verbatim in HOT.
     pub(crate) fn live_background_call_ids(&self, turn: &str) -> Result<Vec<String>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let mut stmt=conn.prepare("SELECT o.provider_call_id FROM shell_jobs j JOIN tool_operations o ON o.id=j.operation_id WHERE o.turn_id=?1 AND j.phase!='terminal' AND o.provider_call_id IS NOT NULL LIMIT 9")?;
@@ -158,7 +158,14 @@ impl Db {
                 .query_map([turn], |r| r.get::<_, String>(0))?
                 .collect::<Result<Vec<_>, _>>()?,
         );
-        Ok(ids)
+        let mut execute = conn.prepare("SELECT o.provider_call_id FROM execute_jobs j JOIN tool_operations o ON o.id=j.operation_id WHERE o.turn_id=?1 AND j.phase!='terminal' AND o.provider_call_id IS NOT NULL LIMIT 9")?;
+        let execute = execute
+            .query_map([turn], |r| r.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        if execute.len() > crate::runtime::code_mode::jobs::ACTIVE_JOB_CAP {
+            return Err(invalid("active execute resource guard"));
+        }
+        Ok(ids.into_iter().chain(execute).collect())
     }
     pub(super) fn copy_turn_raw_prefix(
         conn: &Connection,
@@ -471,10 +478,10 @@ impl Db {
             if let Some(op) = part["tool"].as_str() {
                 // A background launch whose receipt is inside the closed delta is
                 // settled for the parent journal: its effect is owned by the
-                // durable shell/child job, which keeps the launch row `running`.
+                // durable shell/child/Execute job, which keeps the launch row `running`.
                 let (state, background): (String, bool) = tx
                     .prepare_cached(
-                        "SELECT o.state, EXISTS(SELECT 1 FROM child_jobs WHERE operation_id=o.id) OR EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=o.id) FROM tool_operations o WHERE o.id=?1 AND o.turn_id=?2",
+                        "SELECT o.state, EXISTS(SELECT 1 FROM child_jobs WHERE operation_id=o.id) OR EXISTS(SELECT 1 FROM shell_jobs WHERE operation_id=o.id) OR EXISTS(SELECT 1 FROM execute_jobs WHERE operation_id=o.id) FROM tool_operations o WHERE o.id=?1 AND o.turn_id=?2",
                     )?
                     .query_row(params![op, old.turn_id], |r| Ok((r.get(0)?, r.get(1)?)))?;
                 if !background

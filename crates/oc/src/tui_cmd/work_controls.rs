@@ -63,6 +63,19 @@ impl Jobs {
                                     {
                                         owner.background_shell(job.session, job.shell_id).await
                                     }
+                                    oc_tui::app::ForegroundWork::Execute(job)
+                                        if job.session == session
+                                            && job.turn == turn.0
+                                            && !job.background =>
+                                    {
+                                        owner
+                                            .background_execute(
+                                                job.session,
+                                                job.turn,
+                                                job.execute_id,
+                                            )
+                                            .await
+                                    }
                                     _ => continue,
                                 };
                                 if let Err(error) = result {

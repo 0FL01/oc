@@ -47,7 +47,7 @@ pub const TOOL_NAME: &str = "execute";
 
 /// Invariant tool guidance (donor `core/src/codemode/tool.ts`). The changing catalog is appended
 /// by [`tool_description`].
-pub const DESCRIPTION: &str = "Run JavaScript in a confined Code Mode runtime to script tool calls and HTTP requests and compose their results.\n`fetch` is available for HTTP requests. Imports, direct filesystem access, and timers are unavailable; all other external access goes through `tools`.\nWithin `{ code }`, the only callable tools are those explicitly listed in the Code Mode catalog instructions or returned by the `search` function. Inside `{ code }`, ignore tools shown outside the Code Mode catalog. They are not available in the Code Mode runtime.\nCall tools through `tools` using only exact paths and signatures from the catalog. Do not infer or normalize tool names; preserve bracket notation such as `tools.<namespace>[\"tool-name\"](input)`.\nPrefer an explicit `return`; if omitted, the final top-level expression becomes the result.\nAwait every call whose completion matters; pending calls are interrupted when execution ends. Run independent calls concurrently with `Promise.all`.";
+pub const DESCRIPTION: &str = "Run JavaScript in a confined Code Mode runtime to script tool calls and HTTP requests and compose their results.\n`fetch` is available for HTTP requests. Imports, direct filesystem access, and timers are unavailable; all other external access goes through `tools`.\nWithin `{ code }`, the only callable tools are those explicitly listed in the Code Mode catalog instructions or returned by the `search` function. Inside `{ code }`, ignore tools shown outside the Code Mode catalog. They are not available in the Code Mode runtime.\nCall tools through `tools` using only exact paths and signatures from the catalog. Do not infer or normalize tool names; preserve bracket notation such as `tools.<namespace>[\"tool-name\"](input)`.\nPrefer an explicit `return`; if omitted, the final top-level expression becomes the result.\nAwait every call whose completion matters; pending calls are interrupted when execution ends. Run independent calls concurrently with `Promise.all`.\nSet `background: true` on execute to run the entire program in the background. Completion is reported automatically; do not poll.";
 
 /// Full tool description: invariant guidance followed by the current catalog.
 pub fn tool_description(catalog: &Catalog) -> String {
@@ -62,11 +62,43 @@ pub fn input_schema() -> Json {
             "code": {
                 "type": "string",
                 "description": "JavaScript program in the Code Mode subset. Top-level await and return are allowed."
+            },
+            "background": {
+                "type": "boolean",
+                "default": false,
+                "description": "Run the entire program in the background; completion is reported automatically."
             }
         },
         "required": ["code"],
         "additionalProperties": false
     })
+}
+
+pub(crate) struct Input<'a> {
+    pub(crate) code: &'a str,
+    pub(crate) background: bool,
+}
+
+pub(crate) fn parse_input(value: &Json) -> Result<Input<'_>, String> {
+    let fields = value
+        .as_object()
+        .ok_or("execute arguments must be an object")?;
+    if fields
+        .keys()
+        .any(|key| key != "code" && key != "background")
+    {
+        return Err("unknown execute argument".into());
+    }
+    let code = fields
+        .get("code")
+        .and_then(Json::as_str)
+        .ok_or("execute requires a string `code` argument")?;
+    let background = match fields.get("background") {
+        None => false,
+        Some(Json::Bool(background)) => *background,
+        Some(_) => return Err("execute `background` must be a boolean".into()),
+    };
+    Ok(Input { code, background })
 }
 
 const INTERPRETER_STACK_BYTES: usize = 256 << 20;

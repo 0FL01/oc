@@ -737,6 +737,7 @@ async fn spawn_stages(
             .map_err(SpawnIssue::configuration)?;
     }
     db.recover_shell_jobs()
+        .and_then(|_| db.recover_execute_jobs())
         .and_then(|_| db.recover_child_jobs())
         .and_then(|_| db.recover_interrupted_tools())
         .map_err(|_| {
@@ -2176,6 +2177,15 @@ async fn start_worker_inner(
                     .diagnostic
                 });
                 runtime
+                    .execute_jobs
+                    .shutdown()
+                    .await
+                    .map_err(|e| storage_diagnostic(db.root(), &e))?;
+                runtime
+                    .execute_jobs
+                    .deliver(&events)
+                    .map_err(|e| storage_diagnostic(db.root(), &e))?;
+                runtime
                     .child_jobs
                     .shutdown()
                     .await
@@ -3261,6 +3271,7 @@ async fn query(
                 let accepted = db
                     .delete_root_family(&session.0, runtime.location())
                     .map_err(app_error)?;
+                runtime.execute_jobs.cancel_session(&session.0);
                 title_work
                     .lock()
                     .expect("title work mutex")
@@ -3323,6 +3334,7 @@ async fn query(
                         let accepted = db
                             .delete_root_family(&session.0, &location)
                             .map_err(app_error)?;
+                        runtime.execute_jobs.cancel_session(&session.0);
                         title_work
                             .lock()
                             .expect("title work mutex")
@@ -4211,6 +4223,13 @@ async fn query(
                 .map_err(|error| query_storage_error(db, error));
             let _ = ack.send(result);
         }
+        InboxMsg::ExecuteJobs { session, ack } => {
+            let result = runtime
+                .execute_jobs
+                .running(&session.0)
+                .map_err(|error| query_storage_error(db, error));
+            let _ = ack.send(result);
+        }
         InboxMsg::ChildJobs { session, ack } => {
             let result = db
                 .child_tool_jobs(&session.0)
@@ -4434,9 +4453,41 @@ async fn query(
                 });
             let _ = ack.send(result);
         }
+        InboxMsg::ExecuteSnapshot {
+            session,
+            execute_id,
+            ack,
+        } => {
+            let result = runtime
+                .execute_jobs
+                .snapshot(&session.0, &execute_id)
+                .map_err(|error| query_storage_error(db, error));
+            let _ = ack.send(result);
+        }
+        InboxMsg::BackgroundExecute {
+            session,
+            turn,
+            execute_id,
+            ack,
+        } => {
+            let result = runtime
+                .execute_jobs
+                .background(&session.0, &turn, &execute_id)
+                .map_err(|error| query_storage_error(db, error))
+                .and_then(|changed| {
+                    if changed {
+                        Ok(())
+                    } else {
+                        Err(CoreError::TurnNotActive)
+                    }
+                });
+            let _ = ack.send(result);
+        }
         InboxMsg::Cancel { session, ack } => {
             let children = runtime.child_jobs.cancel_session(&session.0);
-            let result = if runtime.shell_jobs.cancel_session(&session.0) || children {
+            let shell = runtime.shell_jobs.cancel_session(&session.0);
+            let execute = runtime.execute_jobs.cancel_session(&session.0);
+            let result = if shell || execute || children {
                 Ok(())
             } else {
                 Err(CoreError::TurnNotActive)
@@ -4496,6 +4547,7 @@ fn suppress_parent_handoffs(runtime: &Runtime<'_>) {
     if let Some(origin) = &runtime.native_origin {
         runtime.child_jobs.suppress_origin(origin.id);
         runtime.shell_jobs.suppress_origin(origin.id);
+        runtime.execute_jobs.suppress_origin(origin.id);
     }
 }
 
@@ -4584,6 +4636,10 @@ async fn worker(
             return Ok(WorkerOutcome::Stop);
         }
         if authority.is_none() && primary.is_none() {
+            runtime
+                .execute_jobs
+                .deliver(events)
+                .map_err(|e| storage_diagnostic(db.root(), &e))?;
             runtime.shell_jobs.deliver(events).map_err(|_| {
                 runtime_issue(
                     runtime.location(),
@@ -4711,6 +4767,7 @@ async fn worker(
                     biased;
                     error = runtime.wait_mcp_failure() => return Err(runtime_issue(runtime.location(), &["mcp"], &error).diagnostic),
                     () = runtime.shell_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
+                    () = runtime.execute_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
                     () = runtime.child_jobs.changed(), if authority.is_none() && primary.is_none() => { continue; }
                     () = async {
                         match primary.as_mut() {
@@ -5911,6 +5968,9 @@ async fn worker(
                             () = runtime.shell_jobs.changed(), if runtime.native_owner.is_none() => {
                                 runtime.shell_jobs.deliver(events).map_err(|_| runtime_issue(runtime.location(), &["shell", "delivery"], &RuntimeError::Storage).diagnostic)?;
                             }
+                            () = runtime.execute_jobs.changed(), if runtime.native_owner.is_none() => {
+                                runtime.execute_jobs.deliver(events).map_err(|e| storage_diagnostic(db.root(), &e))?;
+                            }
                             () = runtime.child_jobs.changed(), if runtime.native_owner.is_none() => {
                                 runtime.child_jobs.reap().await.map_err(|e| storage_diagnostic(db.root(), &e))?;
                                 runtime.child_jobs.deliver(Some(events)).map_err(|e| storage_diagnostic(db.root(), &e))?;
@@ -5948,6 +6008,7 @@ async fn worker(
                                     cancel.store(true, Ordering::Relaxed);
                                     runtime.cancel_pending_approvals();
                                     runtime.shell_jobs.cancel_session(&target.0);
+                                    runtime.execute_jobs.cancel_session(&target.0);
                                     runtime.child_jobs.cancel_session(&target.0);
                                     let _ = ack.send(Ok(()));
                                 }

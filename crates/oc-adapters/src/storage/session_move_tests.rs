@@ -32,6 +32,83 @@ fn admitted(db: &Db) -> MoveRecord {
 }
 
 #[test]
+fn background_execute_and_move_do_not_cross_the_location_boundary() {
+    use crate::runtime::code_mode::jobs::{Outcome, Provenance};
+
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    db.create_bound_session("root", "/source").unwrap();
+    db.begin_turn("turn", "root", "task").unwrap();
+    db.record_tool_intent("execute", "root", Some("turn"), "execute", "{}")
+        .unwrap();
+    let mut p = Provenance {
+        version: 1,
+        session: "root".into(),
+        turn: "turn".into(),
+        operation: "execute".into(),
+        location: "/source".into(),
+        generation: 1,
+        output_limits: Default::default(),
+        output_source: "defaults".into(),
+        agent: None,
+        agent_digest: None,
+        model: "m".into(),
+        provider: "p".into(),
+    };
+    db.admit_execute_job(&p, true).unwrap();
+    db.start_execute_job("execute").unwrap();
+    db.record_tool_intent("move", "root", Some("turn"), "opencode_session_move", "{}")
+        .unwrap();
+    let record = MoveRecord {
+        operation: "move".into(),
+        session: "root".into(),
+        source_turn: "turn".into(),
+        source: "/source".into(),
+        directory: "/destination".into(),
+        fingerprint: "a".repeat(64),
+    };
+    assert!(db.admit_session_move(&record).is_err());
+    db.finish_execute_job(
+        "execute",
+        &Outcome {
+            version: 1,
+            state: "completed".into(),
+            output: "result".into(),
+            presentation: None,
+        },
+    )
+    .unwrap();
+    let notice = db.deliver_due_execute_notices().unwrap().pop().unwrap();
+    assert!(
+        db.admit_session_move(&record).is_err(),
+        "delivery alone is not consumption"
+    );
+    db.checkpoint_turn_with_child_notices("turn", "root", "{}", &[notice.message_id])
+        .unwrap();
+    db.admit_session_move(&record).unwrap();
+
+    p.operation = "later".into();
+    db.record_tool_intent("later", "root", Some("turn"), "execute", "{}")
+        .unwrap();
+    assert!(db.admit_execute_job(&p, true).is_err());
+    db.admit_execute_job(&p, false).unwrap();
+    db.start_execute_job("later").unwrap();
+    assert!(!db.background_execute_job("root", "later").unwrap());
+    db.finish_execute_job(
+        "later",
+        &Outcome {
+            version: 1,
+            state: "completed".into(),
+            output: "foreground".into(),
+            presentation: None,
+        },
+    )
+    .unwrap();
+    db.finish_turn("turn", "completed", None).unwrap();
+    assert!(db.apply_session_move(&record).unwrap());
+}
+
+#[test]
 fn tool19_terminal_proof_atomic_rollback_and_same_id_reopen_dedup() {
     let root = tempfile::tempdir().unwrap();
     let db = Db::open(root.path()).unwrap();

@@ -140,12 +140,15 @@ rpc! {
     ShellOutput { session: SessionId, shell_id: String, offset: usize, limit: usize } -> Option<ToolOutputPage>;
     CancelShell { session: SessionId, shell_id: String } -> ();
     ShellJobs { session: SessionId } -> Vec<ShellJob>;
+    ExecuteJobs { session: SessionId } -> Vec<ExecuteJob>;
     ChildJobs { session: SessionId } -> Vec<ChildJob>;
     InterruptChild { session: SessionId, selected: ChildJob } -> ();
     BackgroundChild { session: SessionId, selected: ChildJob } -> ();
     ReadChild { session: SessionId, selected: ChildJob, window: Option<HistoryReadWindow> } -> HistoryPage;
     ShellSnapshot { session: SessionId, shell_id: String } -> ShellSnapshot;
     BackgroundShell { session: SessionId, shell_id: String } -> ();
+    ExecuteSnapshot { session: SessionId, execute_id: String } -> ExecuteSnapshot;
+    BackgroundExecute { session: SessionId, turn: String, execute_id: String } -> ();
     DcpSummary { session: SessionId, op: String, block_index: usize, offset: i64, limit: usize } -> Option<oc_core::dcp_view::DcpSummaryPage>;
     Catalog {} -> CatalogSnapshot;
     ProviderCatalog { provider: String } -> CatalogSnapshot;
@@ -266,5 +269,41 @@ impl Event {
             notice.display_name = self.display_name;
         }
         self.event
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn background_execute_rpc_preserves_the_original_fence_and_acknowledgement() {
+        let (ack, receipt) = oneshot::channel();
+        let (request, pending) = Pending::from_inbox(InboxMsg::BackgroundExecute {
+            session: SessionId("s".into()),
+            turn: "t".into(),
+            execute_id: "op".into(),
+            ack,
+        })
+        .unwrap();
+        let encoded = serde_json::to_vec(&request).unwrap();
+        let request: Request = serde_json::from_slice(&encoded).unwrap();
+        let (local, response) = request.into_local();
+        let InboxMsg::BackgroundExecute {
+            session,
+            turn,
+            execute_id,
+            ack,
+        } = local
+        else {
+            panic!("wrong RPC");
+        };
+        assert_eq!(
+            (session.0.as_str(), turn.as_str(), execute_id.as_str()),
+            ("s", "t", "op")
+        );
+        ack.send(Ok(())).unwrap();
+        pending.finish(Ok(response.await.unwrap()));
+        receipt.await.unwrap().unwrap();
     }
 }

@@ -23,9 +23,14 @@ impl Db {
         if Self::native_notice_kind_in(conn, session, message)?.is_some() {
             return Ok(true);
         }
+        // A fork retains data provenance without copying the live job or its
+        // authority to wake a parent, including before a notice was consumed.
+        if conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind='fork_native_notice' AND payload=?2)")?.query_row(params![session,message], |row| row.get(0))? {
+            return Ok(true);
+        }
         // `turns_native_input` holds only turns that carry native input, so a
         // history row no longer parses every journal of the session.
-        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND json_valid(t.result) AND json_type(t.result,'$.native_input') IS NOT NULL AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=CASE json_extract(t.result,'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 ELSE -1 END AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)")?.query_row(params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
+        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND json_valid(t.result) AND json_type(t.result,'$.native_input') IS NOT NULL AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=CASE json_extract(t.result,'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 WHEN 'execute_notices' THEN ?5 ELSE -1 END AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)")?.query_row(params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64,crate::runtime::code_mode::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
     }
 
     fn native_notice_kind_in(
@@ -34,9 +39,11 @@ impl Db {
         message: &str,
     ) -> Result<Option<NativeNoticeKind>, StorageError> {
         if Self::native_child_notice_in(conn, session, message)? {
-            Ok(Some(NativeNoticeKind::SubagentNotices))
+            Ok(Some(NativeNoticeKind::Subagent))
         } else if Self::model_shell_notice_in(conn, session, message)?.is_some() {
-            Ok(Some(NativeNoticeKind::ShellNotices))
+            Ok(Some(NativeNoticeKind::Shell))
+        } else if Self::native_execute_notice_in(conn, session, message)? {
+            Ok(Some(NativeNoticeKind::Execute))
         } else {
             Ok(None)
         }
@@ -120,7 +127,7 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<bool, StorageError> {
-        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed') AND CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message')=?2 ELSE 0 END)",params![session,message],|row|row.get(0))?)
+        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed','execute_parent_notice_consumed') AND CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message')=?2 ELSE 0 END)",params![session,message],|row|row.get(0))?)
     }
 
     fn assign_parent_notice_in(
@@ -131,8 +138,9 @@ impl Db {
     ) -> Result<(), StorageError> {
         if !Self::parent_notice_assigned_in(conn, session, message)? {
             let kind = match Self::native_notice_kind_in(conn, session, message)? {
-                Some(NativeNoticeKind::SubagentNotices) => "subagent_parent_notice_consumed",
-                Some(NativeNoticeKind::ShellNotices) => "shell_parent_notice_consumed",
+                Some(NativeNoticeKind::Subagent) => "subagent_parent_notice_consumed",
+                Some(NativeNoticeKind::Shell) => "shell_parent_notice_consumed",
+                Some(NativeNoticeKind::Execute) => "execute_parent_notice_consumed",
                 None => return Err(StorageError::OperationNotFound),
             };
             conn.execute(
@@ -241,7 +249,9 @@ impl Db {
     ) -> Result<Option<NativeNoticeKind>, StorageError> {
         let first = messages.first().ok_or(StorageError::OperationNotFound)?;
         if messages.len()
-            > crate::runtime::children::JOB_CAP.max(crate::shell::jobs::ACTIVE_JOB_CAP)
+            > crate::runtime::children::JOB_CAP
+                .max(crate::shell::jobs::ACTIVE_JOB_CAP)
+                .max(crate::runtime::code_mode::jobs::ACTIVE_JOB_CAP)
         {
             return Err(StorageError::OperationNotFound);
         }

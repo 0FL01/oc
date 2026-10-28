@@ -584,7 +584,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "opencode_session_move".into(),
-            description: "Admit a same-session directory move. Omit sessionID for current; explicit targets must be locally known idle roots. Children may move only themselves; General/Explore cannot move. Relative paths and ~ use the target's original context and admitted HOME. Existing no-follow/data-root/trust guards apply; external_directory must already be Allow. Returns pending with a durable operation ID: placement changes only after the FULL source turn is durably terminal. All same-turn tools retain source context. A destination request must be a distinct new turn. No saved grant is created.".into(),
+            description: "Admit a same-session directory move. Omit sessionID for current; explicit targets must be locally known idle roots. Children may move only themselves; General/Explore cannot move. Relative paths and ~ use the target's original context and admitted HOME. Existing no-follow/data-root/trust guards apply; external_directory must already be Allow. A root's background Execute must finish and its report be consumed before moving; a pending root move cannot start or convert a background Execute. Returns pending with a durable operation ID: placement changes only after the FULL source turn is durably terminal. All same-turn tools retain source context. A destination request must be a distinct new turn. No saved grant is created.".into(),
             parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["directory"],"properties":{
                 "directory":{"type":"string","minLength":1,"maxLength":4096},"sessionID":{"type":"string","minLength":1,"maxLength":256}}}),
         },
@@ -1214,6 +1214,7 @@ pub struct Runtime<'a> {
     pub(crate) native_owner: Option<std::sync::Weak<crate::application::authority::Owner>>,
     prepared_moves: Mutex<BTreeMap<String, crate::application::session_move::Prepared>>,
     pub(crate) shell_jobs: Arc<crate::shell::jobs::Jobs>,
+    pub(crate) execute_jobs: Arc<code_mode::jobs::Jobs>,
     pub(crate) child_jobs: Arc<children::Jobs>,
     approvals: Arc<oc_core::approval::ApprovalQueue>,
     questions: Arc<oc_core::question::QuestionQueue>,
@@ -1358,6 +1359,7 @@ impl<'a> Runtime<'a> {
             native_owner: None,
             prepared_moves: Mutex::new(BTreeMap::new()),
             shell_jobs: crate::shell::jobs::Jobs::new(db),
+            execute_jobs: code_mode::jobs::Jobs::new(db),
             child_jobs: children::Jobs::new(db),
             approvals: Arc::new(oc_core::approval::ApprovalQueue::default()),
             questions: Arc::new(oc_core::question::QuestionQueue::default()),
@@ -1646,6 +1648,13 @@ impl<'a> Runtime<'a> {
             {
                 requests.extend(state.approvals.pending());
             }
+            for request in self.execute_jobs.pending_approvals() {
+                if !requests.iter().any(|existing| {
+                    existing.id == request.id && existing.binding == request.binding
+                }) {
+                    requests.push(request);
+                }
+            }
         }
         requests
     }
@@ -1718,6 +1727,7 @@ impl<'a> Runtime<'a> {
         if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
             self.approvals.reload(None, events);
             self.questions.reload(None, events);
+            self.execute_jobs.reload_approvals(&self.location, events);
             for state in self
                 .primary_sources
                 .lock()
@@ -1743,10 +1753,32 @@ impl<'a> Runtime<'a> {
         &self,
         reply: oc_core::approval::ApprovalReply,
     ) -> Result<(), RuntimeError> {
-        use oc_core::approval::ApprovalDecision;
-        if let Some(primary) = self.primary_controls(&reply.binding.session) {
+        if let Some(primary) = self.primary_controls(&reply.binding.session)
+            && primary
+                .approvals
+                .pending()
+                .iter()
+                .any(|r| r.id == reply.id && r.binding == reply.binding)
+        {
             return primary.reply_approval(reply);
         }
+        if !self
+            .approvals
+            .pending()
+            .iter()
+            .any(|r| r.id == reply.id && r.binding == reply.binding)
+            && let Some(source) = self.execute_jobs.source_for(&reply.binding)
+        {
+            return source.reply_approval_local(reply);
+        }
+        self.reply_approval_local(reply)
+    }
+
+    fn reply_approval_local(
+        &self,
+        reply: oc_core::approval::ApprovalReply,
+    ) -> Result<(), RuntimeError> {
+        use oc_core::approval::ApprovalDecision;
         let request = self
             .approvals
             .pending()
@@ -2876,7 +2908,7 @@ fn effective_compress_permission(config: &DcpConfig, policy: &RuntimePolicy<'_>)
     }
 }
 
-mod code_mode;
+pub(crate) mod code_mode;
 mod context;
 mod instructions;
 mod mcp;

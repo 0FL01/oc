@@ -11,7 +11,7 @@ use std::{
 };
 use tokio::net::{UnixListener, UnixStream};
 
-pub(super) const VERSION: u32 = 7;
+pub(super) const VERSION: u32 = 8;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

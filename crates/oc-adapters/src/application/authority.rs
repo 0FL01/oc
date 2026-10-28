@@ -13,6 +13,7 @@ pub(crate) struct Resources {
     pub(crate) children: Arc<crate::runtime::children::Jobs>,
     pub(crate) terminals: Arc<terminals::Owner>,
     pub(crate) shell: Arc<crate::shell::jobs::Jobs>,
+    pub(crate) execute: Arc<crate::runtime::code_mode::jobs::Jobs>,
     pub(crate) compression: Arc<Mutex<()>>,
     pub(crate) approvals: Arc<oc_core::approval::ApprovalQueue>,
     pub(crate) questions: Arc<oc_core::question::QuestionQueue>,
@@ -36,6 +37,7 @@ impl Resources {
                 },
             ))),
             shell: crate::shell::jobs::Jobs::new(db),
+            execute: crate::runtime::code_mode::jobs::Jobs::new(db),
             compression: Arc::new(Mutex::new(())),
             approvals: Arc::default(),
             questions: Arc::default(),
@@ -64,6 +66,9 @@ impl Resources {
             shell
                 .deliver(events)
                 .map_err(|error| storage_diagnostic(db.root(), &error))?;
+            self.execute
+                .deliver(events)
+                .map_err(|error| storage_diagnostic(db.root(), &error))?;
             if let Some(owner) = owner.upgrade() {
                 owner.reconcile_parent_notices()?;
             }
@@ -73,8 +78,16 @@ impl Resources {
                 _ = &mut stop => break,
                 () = shell.changed() => {},
                 () = self.children.changed() => {},
+                () = self.execute.changed() => {},
             }
         }
+        self.execute
+            .shutdown()
+            .await
+            .map_err(|error| storage_diagnostic(db.root(), &error))?;
+        self.execute
+            .deliver(events)
+            .map_err(|error| storage_diagnostic(db.root(), &error))?;
         self.children
             .shutdown()
             .await
@@ -116,6 +129,7 @@ pub(crate) struct Owner {
 impl Owner {
     pub(crate) fn new(db: Db, env: BTreeMap<String, String>) -> Result<Arc<Self>, SpawnIssue> {
         db.recover_shell_jobs()
+            .and_then(|_| db.recover_execute_jobs())
             .and_then(|_| db.recover_child_jobs())
             .and_then(|_| db.recover_interrupted_tools())
             .map_err(|_| {
@@ -689,10 +703,16 @@ impl Owner {
             .shell
             .parent_batches()
             .map_err(|error| storage_diagnostic(self.db.root(), &error))?;
+        let executes = self
+            .resources
+            .execute
+            .parent_batches()
+            .map_err(|error| storage_diagnostic(self.db.root(), &error))?;
         for batch in children
             .into_iter()
             .map(ParentBatch::Children)
             .chain(shells.into_iter().map(ParentBatch::Shell))
+            .chain(executes.into_iter().map(ParentBatch::Execute))
         {
             let (parent, origin, _) = batch.data();
             let Some(location) = origin.location() else {
@@ -746,6 +766,7 @@ impl Owner {
         origin.cancel();
         self.resources.children.suppress_origin(origin.id);
         self.resources.shell.suppress_origin(origin.id);
+        self.resources.execute.suppress_origin(origin.id);
     }
 
     /// Session cancellation and automatic root admission share one decision
@@ -776,7 +797,8 @@ impl Owner {
             root.cancel.store(true, Ordering::Release);
         }
         let shell = self.resources.shell.cancel_session(session);
-        if running || children || shell {
+        let execute = self.resources.execute.cancel_session(session);
+        if running || children || shell || execute {
             Ok(())
         } else {
             Err(CoreError::TurnNotActive)
@@ -814,6 +836,7 @@ impl Owner {
         root.resume_steers.store(resume_steers, Ordering::Release);
         root.cancel.store(true, Ordering::Release);
         self.resources.shell.cancel_session(session);
+        self.resources.execute.cancel_session(session);
         Ok(())
     }
 
@@ -840,6 +863,7 @@ impl Owner {
             self.closing.store(true, Ordering::Release);
             self.resources.children.suppress_wakes();
             self.resources.shell.suppress_wakes();
+            self.resources.execute.suppress_wakes();
             roots
                 .iter()
                 .filter_map(|(session, entry)| match entry {
@@ -866,6 +890,21 @@ impl Owner {
                     .and_then(|result| result),
             );
         }
+        // Detached programs still hold this Location's MCP request leases.
+        // Cancel and join them before stopping the source supervisors below.
+        result = result.and(
+            self.resources
+                .execute
+                .shutdown()
+                .await
+                .map_err(|error| storage_diagnostic(self.db.root(), &error)),
+        );
+        result = result.and(
+            self.resources
+                .execute
+                .deliver(&self.events)
+                .map_err(|error| storage_diagnostic(self.db.root(), &error)),
+        );
         let locations: Vec<_> = self
             .locations
             .lock()
@@ -925,6 +964,7 @@ impl Owner {
 enum ParentBatch {
     Children(crate::runtime::children::ParentBatch),
     Shell(crate::shell::jobs::ParentBatch),
+    Execute(crate::runtime::code_mode::jobs::ParentBatch),
 }
 
 impl ParentBatch {
@@ -932,6 +972,7 @@ impl ParentBatch {
         match self {
             Self::Children(batch) => (&batch.parent, &batch.origin, &batch.messages),
             Self::Shell(batch) => (&batch.parent, &batch.origin, &batch.messages),
+            Self::Execute(batch) => (&batch.parent, &batch.origin, &batch.messages),
         }
     }
 
@@ -939,6 +980,7 @@ impl ParentBatch {
         match self {
             Self::Children(_) => "subagent",
             Self::Shell(_) => "shell",
+            Self::Execute(_) => "execute",
         }
     }
 
@@ -946,6 +988,7 @@ impl ParentBatch {
         match self {
             Self::Children(batch) => resources.children.batch_current(batch),
             Self::Shell(batch) => resources.shell.batch_current(batch),
+            Self::Execute(batch) => resources.execute.batch_current(batch),
         }
     }
 
@@ -953,6 +996,7 @@ impl ParentBatch {
         match self {
             Self::Children(batch) => resources.children.finish_batch(batch),
             Self::Shell(batch) => resources.shell.finish_batch(batch),
+            Self::Execute(batch) => resources.execute.finish_batch(batch),
         }
     }
 }

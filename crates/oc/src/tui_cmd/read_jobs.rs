@@ -88,6 +88,7 @@ struct Prepared {
     children: Vec<ChildJob>,
     compactions: Vec<oc_core::compaction::CompactionSnapshot>,
     shells: Vec<oc_core::queries::ShellJob>,
+    executes: Vec<oc_core::queries::ExecuteJob>,
     shell: Option<Result<ShellSnapshot, oc_core::queries::ShellJob>>,
     dcp: Option<oc_core::queries::DcpSnapshot>,
     summaries: Vec<(String, oc_core::dcp_view::DcpSummaryPage)>,
@@ -210,6 +211,7 @@ impl Reads {
                                 view.apply_compaction_history(prepared.compactions);
                             }
                             view.apply_shell_jobs(prepared.shells);
+                            view.apply_execute_jobs(prepared.executes);
                             if let Some(shell) = prepared.shell {
                                 match shell {
                                     Ok(snapshot) => view.apply_shell_snapshot(snapshot),
@@ -307,6 +309,7 @@ impl Reads {
                     Vec::new()
                 };
                 let shells = owner.shell_jobs(route.session.clone()).await?;
+                let executes = owner.execute_jobs(route.session.clone()).await?;
                 let shell = if let Some(shell) = shell {
                     Some(
                         owner
@@ -343,6 +346,7 @@ impl Reads {
                     children,
                     compactions,
                     shells,
+                    executes,
                     shell,
                     dcp,
                     summaries: pages,

@@ -113,12 +113,14 @@ pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::SelectionNoticeCommitted { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::ShellChanged { session }
+        | CoreEvent::ExecuteChanged { session }
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::InboxChanged { session, .. }
         | CoreEvent::RetryScheduled { session, .. }
         | CoreEvent::ParentContinuationRefused { session, .. } => Some(session),
         CoreEvent::ChildNotice(n) => Some(&n.job.parent),
         CoreEvent::ShellNotice(n) => Some(&n.session),
+        CoreEvent::ExecuteNotice(n) => Some(&n.session),
         _ => None,
     }
 }

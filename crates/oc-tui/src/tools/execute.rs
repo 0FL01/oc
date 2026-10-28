@@ -101,7 +101,14 @@ pub(crate) fn block(
             } else {
                 Span::plain(" ")
             },
-            Span::styled("execute", if failed { error } else { muted }),
+            Span::styled(
+                if facts.background && running(card) {
+                    "execute (background)"
+                } else {
+                    "execute"
+                },
+                if failed { error } else { muted },
+            ),
         ]),
         target: Some(Target::Parent),
     }];
@@ -274,6 +281,9 @@ pub(crate) fn block(
 }
 
 pub(crate) fn running(card: &ToolCard) -> bool {
+    if let Some(state) = facts(card).and_then(|facts| facts.state.as_deref()) {
+        return state == "running";
+    }
     is_running(&card.state)
         || matches!(
             card.state.as_str(),

@@ -974,6 +974,36 @@ impl HistoryWindow {
         changed
     }
 
+    pub(crate) fn refresh_execute(
+        &mut self,
+        job: &oc_core::queries::ExecuteJob,
+        output: &oc_core::tool_output::Presentation,
+    ) -> bool {
+        let mut changed = false;
+        for row in &mut self.rows {
+            if row.role == "tool"
+                && row
+                    .position
+                    .as_ref()
+                    .is_some_and(|position| position.turn == job.turn)
+                && let Some(card) = &mut row.tool
+            {
+                changed |= edit_card(
+                    card,
+                    |card| card.name == "execute" && card.op == job.execute_id,
+                    |card| card.refresh_execute(output),
+                );
+            }
+        }
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+        changed
+    }
+
     fn insert_durable(&mut self, row: HistoryRow) {
         let index = self
             .rows
@@ -1608,6 +1638,30 @@ pub(crate) fn edit_card(
 }
 
 impl ToolCard {
+    pub(crate) fn refresh_execute(&mut self, output: &oc_core::tool_output::Presentation) -> bool {
+        if self.name != "execute"
+            || !output.is_valid()
+            || output.execute.is_none()
+            || self.output_presentation.as_deref() == Some(output)
+        {
+            return false;
+        }
+        let current = self
+            .output_presentation
+            .as_ref()
+            .and_then(|p| p.execute.as_ref())
+            .and_then(|facts| facts.state.as_deref());
+        let incoming = output
+            .execute
+            .as_ref()
+            .and_then(|facts| facts.state.as_deref());
+        if current.is_some_and(|state| state != "running") && incoming == Some("running") {
+            return false;
+        }
+        self.output_presentation = Some(Box::new(output.clone()));
+        true
+    }
+
     pub(crate) fn spinner(&self) -> &'static str {
         self.spinner.unwrap_or(crate::tools::SPINNER)
     }

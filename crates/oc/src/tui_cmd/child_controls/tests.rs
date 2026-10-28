@@ -8,7 +8,7 @@ use oc_core::queries::{ChildState, HistoryPage, ShellNotice};
 
 #[tokio::test]
 async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context() {
-    use oc_core::queries::ShellJob;
+    use oc_core::queries::{ExecuteJob, ShellJob};
     use oc_tui::app::ForegroundWork;
     let (app, mut inbox, _) = CoreApp::channel(8);
     let turn = WorkerTurnId("parent-turn".into());
@@ -41,11 +41,23 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
         background: false,
         output: None,
     };
+    let execute = ExecuteJob {
+        session: child.parent.clone(),
+        execute_id: "execute-operation".into(),
+        generation: 29,
+        location: "/original/execute".into(),
+        model: "execute/captured-model".into(),
+        provider: "captured-provider".into(),
+        turn: turn.0.clone(),
+        background: false,
+        output: None,
+    };
     let mut state = TuiState::new(app.clone(), child.parent.clone());
     state.begin_linked_turn(turn.clone());
     state.restore_prompt("original unsent root draft".into());
     state.apply_child_jobs(vec![child.clone()]);
     state.apply_shell_jobs(vec![shell.clone()]);
+    state.apply_execute_jobs(vec![execute.clone()]);
     state.apply_tool_started(
         &turn,
         &child.operation,
@@ -58,6 +70,12 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
         "shell",
         r#"{"command":"original command"}"#,
     );
+    state.apply_tool_started(
+        &turn,
+        &execute.execute_id,
+        "execute",
+        r#"{"code":"return 1"}"#,
+    );
     let parts = state.transcript_rows();
     let action = state
         .terminal_key(crossterm::event::KeyEvent::new(
@@ -69,6 +87,7 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
     let mut deck = LoopState::default();
     let expected = child.clone();
     let expected_shell = shell.clone();
+    let expected_execute = execute.clone();
     let worker = tokio::spawn(async move {
         let Some(InboxMsg::BackgroundChild {
             session,
@@ -94,6 +113,19 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
         assert_eq!(session, expected_shell.session);
         assert_eq!(shell_id, expected_shell.shell_id);
         ack.send(Ok(())).unwrap();
+        let Some(InboxMsg::BackgroundExecute {
+            session,
+            turn,
+            execute_id,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("captured execute")
+        };
+        assert_eq!(session, expected_execute.session);
+        assert_eq!(turn, expected_execute.turn);
+        assert_eq!(execute_id, expected_execute.execute_id);
+        ack.send(Ok(())).unwrap();
         let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
             panic!("same-session inventory")
         };
@@ -107,6 +139,11 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
             panic!("same-session inventory")
         };
         assert_eq!(session, expected_shell.session);
+        ack.send(Ok(vec![])).unwrap();
+        let Some(InboxMsg::ExecuteJobs { session, ack }) = inbox.recv().await else {
+            panic!("same-session execute inventory")
+        };
+        assert_eq!(session, expected_execute.session);
         ack.send(Ok(vec![])).unwrap();
         inbox
     });
@@ -150,7 +187,10 @@ async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context()
             PanelIntent::BackgroundSession {
                 session,
                 turn: selected_turn,
-                work: vec![ForegroundWork::Shell(Box::new(shell.clone()))],
+                work: vec![
+                    ForegroundWork::Shell(Box::new(shell.clone())),
+                    ForegroundWork::Execute(Box::new(execute.clone())),
+                ],
             },
         )
         .await
@@ -287,6 +327,11 @@ async fn stale_running_child_capture_outside_inventory_reads_current_original_ow
         };
         assert_eq!(session, selected.child);
         ack.send(Ok(Vec::new())).unwrap();
+        let Some(InboxMsg::ExecuteJobs { session, ack }) = inbox.recv().await else {
+            panic!("child executes")
+        };
+        assert_eq!(session, selected.child);
+        ack.send(Ok(Vec::new())).unwrap();
         let Some(InboxMsg::PendingApprovals { ack }) = inbox.recv().await else {
             panic!("existing approval owner");
         };
@@ -365,7 +410,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
         let mut parents = [0; 4];
         let mut children = [0; 4];
         let mut qualified = [0; 4];
-        for _ in 0..17 {
+        for _ in 0..22 {
             let message = inbox.recv().await.unwrap();
             let phase = observed_phase.load(std::sync::atomic::Ordering::SeqCst);
             match message {
@@ -436,6 +481,10 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
                     ack.send(Ok(Vec::new())).unwrap();
                 }
                 InboxMsg::ShellJobs { session, ack } => {
+                    assert!(session == expected.parent || session == expected.child);
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                InboxMsg::ExecuteJobs { session, ack } => {
                     assert!(session == expected.parent || session == expected.child);
                     ack.send(Ok(Vec::new())).unwrap();
                 }
@@ -789,4 +838,195 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
     assert_eq!(child.input(), "root draft α");
     assert_eq!(child.chrome.location.as_deref(), Some("/B"));
     assert!(!deck.read_only);
+}
+
+#[tokio::test]
+async fn execute_notice_qualifies_child_source_and_preserves_parked_parent() {
+    use oc_core::queries::{ExecuteJob, ExecuteNotice, ExecuteSnapshot, HistoryMessage};
+    use oc_core::session::{MessageId, Role};
+    use oc_core::tool_output::{Execute, ExecuteOutput, ExecuteOutputKind, Presentation};
+
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let job = ChildJob {
+        parent: SessionId("parent".into()),
+        child: SessionId("child".into()),
+        operation: "child-operation".into(),
+        generation: 7,
+        location: "/A".into(),
+        agent: "helper".into(),
+        model: "captured/model".into(),
+        description: "child".into(),
+        delivery_id: "child-delivery".into(),
+        state: ChildState::Running,
+        background: true,
+        turn: Some("child-turn".into()),
+        result: None,
+        message_id: None,
+    };
+    let turn = WorkerTurnId("child-turn".into());
+    let execute = ExecuteJob {
+        session: job.child.clone(),
+        execute_id: "execute-op".into(),
+        location: "/A".into(),
+        generation: 7,
+        turn: turn.0.clone(),
+        model: "captured/model".into(),
+        provider: "fixture".into(),
+        background: true,
+        output: None,
+    };
+    let mut parent = TuiState::new(app.clone(), job.parent.clone());
+    parent.restore_prompt("parked parent draft".into());
+    let mut child = TuiState::new(app.clone(), job.child.clone());
+    child.attach_linked_child(job.clone());
+    child.begin_linked_turn(turn.clone());
+    child.restore_prompt("child draft".into());
+    child.apply_tool_started(&turn, "execute-op", "execute", r#"{"code":"return 1"}"#);
+    let mut running = Presentation::new("running receipt", 15, false);
+    running.execute = Some(Execute {
+        background: true,
+        state: Some("running".into()),
+        ..Default::default()
+    });
+    child.apply_tool_finished_with_output_presentation(
+        &turn,
+        "execute-op",
+        "execute",
+        "completed",
+        "running receipt",
+        15,
+        false,
+        None,
+        None,
+        None,
+        Some(Box::new(running)),
+    );
+    let mut deck = LoopState {
+        child_parent: Some(Box::new(parent)),
+        read_only: true,
+        ..Default::default()
+    };
+    for valid in [false, true] {
+        let expected = job.clone();
+        let operation = execute.clone();
+        let owner = tokio::spawn(async move {
+            let Some(InboxMsg::ReadChild {
+                session,
+                selected,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("qualify the retained child")
+            };
+            assert_eq!(session, expected.parent);
+            assert_eq!(selected, expected);
+            ack.send(Ok(HistoryPage {
+                child_job: Some(Box::new(expected.clone())),
+                ..Default::default()
+            }))
+            .unwrap();
+            let Some(InboxMsg::History {
+                session,
+                message,
+                ack,
+                ..
+            }) = inbox.recv().await
+            else {
+                panic!("read the exact execute notice")
+            };
+            assert_eq!(session, expected.child);
+            assert_eq!(message, Some(MessageId("message".into())));
+            ack.send(Ok(HistoryPage {
+                rows: vec![HistoryMessage {
+                    id: MessageId("message".into()),
+                    seq: 3,
+                    role: Role::User,
+                    text: "native result".into(),
+                    images: Vec::new(),
+                    turn: None,
+                    model_switch: None,
+                    agent_switch: None,
+                    user_shell: None,
+                    child: None,
+                    shell_notice: None,
+                }],
+                total: 1,
+                ..Default::default()
+            }))
+            .unwrap();
+            let Some(InboxMsg::ExecuteSnapshot {
+                session,
+                execute_id,
+                ack,
+            }) = inbox.recv().await
+            else {
+                panic!("read the exact execute owner")
+            };
+            assert_eq!(session, expected.child);
+            assert_eq!(execute_id, "execute-op");
+            let mut terminal = Presentation::new("final result", 12, false);
+            terminal.execute = Some(Execute {
+                background: true,
+                state: Some("completed".into()),
+                output: vec![ExecuteOutput {
+                    kind: ExecuteOutputKind::Text,
+                    text: "final result".into(),
+                    limited: false,
+                }],
+                ..Default::default()
+            });
+            ack.send(Ok(ExecuteSnapshot {
+                job: operation,
+                state: "completed".into(),
+                output: Some(Box::new(terminal)),
+                delivery_id: if valid { "delivery" } else { "other-delivery" }.into(),
+                message_id: Some("message".into()),
+            }))
+            .unwrap();
+            inbox
+        });
+        handle_worker_event(
+            &app,
+            &mut child,
+            &mut deck,
+            &job.child,
+            CoreEvent::ExecuteNotice(ExecuteNotice {
+                session: job.child.clone(),
+                execute_id: "execute-op".into(),
+                delivery_id: "delivery".into(),
+                message_id: "message".into(),
+                state: "completed".into(),
+                text: "native result".into(),
+            }),
+        )
+        .await
+        .unwrap();
+        settle_notices(&app, &mut child, &mut deck).await;
+        inbox = owner.await.unwrap();
+        let rows = child.transcript_rows();
+        let facts = rows[0]
+            .tool
+            .as_ref()
+            .unwrap()
+            .output_presentation
+            .as_ref()
+            .unwrap()
+            .execute
+            .as_ref()
+            .unwrap();
+        assert_eq!(
+            facts.state.as_deref(),
+            Some(if valid { "completed" } else { "running" })
+        );
+        if valid {
+            assert_eq!(facts.output[0].text, "final result");
+        }
+        assert_eq!(child.input(), "child draft");
+        assert_eq!(
+            deck.child_parent.as_ref().unwrap().input(),
+            "parked parent draft"
+        );
+        assert!(inbox.try_recv().is_err());
+    }
 }

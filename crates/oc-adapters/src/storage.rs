@@ -37,6 +37,8 @@ mod conversation;
 mod credentials;
 #[path = "storage_effort.rs"]
 mod effort;
+#[path = "storage_execute_jobs.rs"]
+mod execute_jobs;
 #[path = "storage_provider_connections.rs"]
 pub(crate) mod provider_connections;
 pub(crate) use credentials::CredentialSnapshot;
@@ -377,6 +379,7 @@ pub struct Db {
     // is converted to background: the notice query runs after such a commit
     // (and once after open), not on every live-output wake.
     shell_notices_due: Arc<std::sync::atomic::AtomicBool>,
+    execute_notices_due: Arc<std::sync::atomic::AtomicBool>,
     #[cfg(test)]
     shell_notice_queries: Arc<std::sync::atomic::AtomicUsize>,
     // Fields drop in declaration order: release ownership after SQLite closes.
@@ -605,6 +608,7 @@ impl Db {
         Self::conversation_schema(&conn)?;
         Self::session_list_schema(&conn)?;
         Self::shell_jobs_schema(&conn)?;
+        Self::execute_jobs_schema(&conn)?;
         Self::child_jobs_schema(&conn)?;
         Self::session_move_schema(&conn)?;
         Self::tool_output_schema(&conn)?;
@@ -666,6 +670,7 @@ impl Db {
             #[cfg(test)]
             quota_scans: Default::default(),
             shell_notices_due: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            execute_notices_due: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             #[cfg(test)]
             shell_notice_queries: Default::default(),
             _lock: Arc::new(lock),
@@ -694,6 +699,7 @@ impl Db {
             #[cfg(test)]
             quota_scans: self.quota_scans.clone(),
             shell_notices_due: self.shell_notices_due.clone(),
+            execute_notices_due: self.execute_notices_due.clone(),
             #[cfg(test)]
             shell_notice_queries: self.shell_notice_queries.clone(),
             _lock: self._lock.clone(),
@@ -1167,6 +1173,7 @@ impl Db {
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
         let busy: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM tool_output_resources WHERE session_id IN deleting_family AND state='Active') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))")?.query_row([], |r| r.get(0))?;
         let busy = busy || tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE parent_id IN deleting_family AND (state IN ('admitted','running') OR message_id IS NULL))")?.query_row([],|r|r.get::<_,bool>(0))?;
+        let busy = busy || tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM execute_jobs WHERE session_id IN deleting_family AND (phase!='terminal' OR (background=1 AND message_id IS NULL)))")?.query_row([],|r|r.get::<_,bool>(0))?;
         // Do not cascade away the recovery identity of a still-owned PTY.
         // Hiding/navigating is not cancellation; remove terminals explicitly.
         let busy = busy || tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM terminals WHERE session_id IN deleting_family AND live=1)")?.query_row([],
@@ -1259,6 +1266,7 @@ impl Db {
             "conversation_state",
             "turn_acceptances",
             "tool_output_resources",
+            "execute_jobs",
             "shell_jobs",
             "child_jobs",
             "session_inbox",
@@ -3039,7 +3047,34 @@ impl Db {
             "UPDATE turns SET result = ?1 WHERE id = ?2 AND status='started'",
             params![log, turn],
         )?;
-        Self::record_tool_presentation_in(&tx, op, presentation)?;
+        // A very fast background program may freeze before its launch receipt.
+        // The receipt remains immutable, but must not replace the later facts.
+        let frozen = if presentation
+            .and_then(|p| p.execute.as_ref())
+            .is_some_and(|facts| facts.background && facts.state.as_deref() == Some("running"))
+        {
+            tx.query_row(
+                "SELECT outcome FROM execute_jobs WHERE operation_id=?1 AND phase='terminal'",
+                [op],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .map(|raw| {
+                serde_json::from_str::<crate::runtime::code_mode::jobs::Outcome>(&raw)
+                    .map_err(|_| StorageError::OperationNotFound)
+            })
+            .transpose()?
+        } else {
+            None
+        };
+        Self::record_tool_presentation_in(
+            &tx,
+            op,
+            frozen
+                .as_ref()
+                .and_then(|o| o.presentation.as_deref())
+                .or(presentation),
+        )?;
         tx.commit()?;
         Ok(())
     }

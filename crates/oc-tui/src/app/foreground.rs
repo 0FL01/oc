@@ -1,6 +1,6 @@
 //! Current request handoff over the existing captured Shell/Child inventories.
 use super::*;
-use oc_core::queries::{ChildJob, ChildState, ShellJob};
+use oc_core::queries::{ChildJob, ChildState, ExecuteJob, ShellJob};
 
 const HINT_DELAY: Duration = Duration::from_secs(3);
 
@@ -8,17 +8,20 @@ const HINT_DELAY: Duration = Duration::from_secs(3);
 pub enum ForegroundWork {
     Shell(Box<ShellJob>),
     Child(Box<ChildJob>),
+    Execute(Box<ExecuteJob>),
 }
 
 enum WorkRef<'a> {
     Shell(&'a ShellJob),
     Child(&'a ChildJob),
+    Execute(&'a ExecuteJob),
 }
 impl WorkRef<'_> {
     fn captured(&self) -> ForegroundWork {
         match self {
             Self::Shell(job) => ForegroundWork::Shell(Box::new((*job).clone())),
             Self::Child(job) => ForegroundWork::Child(Box::new((*job).clone())),
+            Self::Execute(job) => ForegroundWork::Execute(Box::new((*job).clone())),
         }
     }
 }
@@ -37,6 +40,16 @@ impl TuiState {
             return None;
         }
         match &card.render {
+            _ if card.name == "execute" => self
+                .execute_jobs
+                .iter()
+                .find(|job| {
+                    &job.session == session
+                        && job.turn == turn.0
+                        && job.execute_id == card.op
+                        && !job.background
+                })
+                .map(WorkRef::Execute),
             crate::tools::ToolRender::Subagent(_) => {
                 // Native logical `running` may already be a published background
                 // handle. A late foreground inventory cannot restore its blocker.

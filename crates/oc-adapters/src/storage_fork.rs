@@ -364,6 +364,7 @@ impl Db {
         let mut ids = HashMap::new();
         let mut seqs = std::collections::BTreeMap::new();
         for (old, role, text, seq) in messages {
+            let native_notice = role == "user" && Self::native_notice_data_in(&tx, source, &old)?;
             if role == "user" {
                 // Recreate the admission event before each copied user, not a
                 // single terminal event after the whole prefix. This remains
@@ -373,6 +374,12 @@ impl Db {
                 }
             }
             let new_id = Self::insert_message(&tx, &root, &role, &text)?;
+            if native_notice {
+                tx.execute(
+                    "INSERT INTO events(session_id,kind,payload) VALUES (?1,'fork_native_notice',?2)",
+                    params![root, new_id],
+                )?;
+            }
             let new_seq: i64 = tx
                 .prepare_cached("SELECT seq FROM messages WHERE id=?1")?
                 .query_row([&new_id], |r| r.get(0))?;

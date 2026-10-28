@@ -61,11 +61,17 @@ pub struct Execute {
     pub error: bool,
     pub elapsed_ms: Option<u64>,
     pub output: Vec<ExecuteOutput>,
+    /// Launch mode and current program state, independent of the tool receipt.
+    #[serde(default)]
+    pub background: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
 }
 
 impl Execute {
     pub fn retained_bytes(&self) -> usize {
         self.code.as_ref().map_or(0, String::len)
+            + self.state.as_ref().map_or(0, String::len)
             + self
                 .calls
                 .iter()
@@ -90,6 +96,12 @@ impl Execute {
             .as_ref()
             .is_none_or(|code| code.len() <= EXECUTE_CODE_BYTES)
             && self.calls.len() <= EXECUTE_CALLS_CAP
+            && self.state.as_deref().is_none_or(|state| {
+                matches!(
+                    state,
+                    "running" | "completed" | "failed" | "cancelled" | "unknown"
+                )
+            })
             && self.calls.iter().all(|call| {
                 !call.tool.is_empty()
                     && call.tool.len() <= EXECUTE_TOOL_BYTES

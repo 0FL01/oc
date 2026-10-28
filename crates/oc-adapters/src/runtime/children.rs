@@ -757,11 +757,12 @@ impl Jobs {
                 .expect("retired child source")
                 .iter()
                 .filter(|owner| {
-                    !work.values().any(|job| {
-                        job.execution
-                            .as_ref()
-                            .is_some_and(|execution| Arc::ptr_eq(&execution.mcp, owner))
-                    })
+                    !owner.has_operations()
+                        && !work.values().any(|job| {
+                            job.execution
+                                .as_ref()
+                                .is_some_and(|execution| Arc::ptr_eq(&execution.mcp, owner))
+                        })
                 })
                 .cloned()
                 .collect::<Vec<_>>()
@@ -1143,11 +1144,13 @@ impl Jobs {
     }
 
     fn retain_source(&self, owner: Arc<mcp::McpOwner>) -> bool {
-        if !self.work.lock().expect("child work").values().any(|job| {
-            job.execution
-                .as_ref()
-                .is_some_and(|execution| Arc::ptr_eq(&execution.mcp, &owner))
-        }) {
+        if !owner.has_operations()
+            && !self.work.lock().expect("child work").values().any(|job| {
+                job.execution
+                    .as_ref()
+                    .is_some_and(|execution| Arc::ptr_eq(&execution.mcp, &owner))
+            })
+        {
             return false;
         }
         let mut retired = self.retired.lock().expect("retired child source");
@@ -1370,6 +1373,7 @@ impl Runtime<'_> {
 
     pub(crate) fn inherit_application_owners(&mut self, source: &Runtime<'_>) {
         self.shell_jobs = source.shell_jobs.clone();
+        self.execute_jobs = source.execute_jobs.clone();
         self.child_jobs = source.child_jobs.clone();
         self.approvals = source.approvals.clone();
         self.questions = source.questions.clone();
@@ -1393,6 +1397,7 @@ impl Runtime<'_> {
             native_owner: self.native_owner.clone(),
             prepared_moves: Mutex::default(),
             shell_jobs: self.shell_jobs.clone(),
+            execute_jobs: self.execute_jobs.clone(),
             child_jobs: self.child_jobs.clone(),
             approvals: self.approvals.clone(),
             questions: self.questions.clone(),
@@ -1475,6 +1480,7 @@ impl Runtime<'_> {
         resources: &crate::application::authority::Resources,
     ) {
         self.shell_jobs = resources.shell.clone();
+        self.execute_jobs = resources.execute.clone();
         self.child_jobs = resources.children.clone();
         self.compression_commit = resources.compression.clone();
         self.approvals = Arc::new(resources.approvals.new_scope());

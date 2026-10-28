@@ -20,6 +20,8 @@ use crate::codemode::{
     ObservedCall,
 };
 
+pub(crate) mod jobs;
+
 /// Model-facing name of the Code Mode tool.
 pub(crate) const EXECUTE_TOOL: &str = codemode::TOOL_NAME;
 
@@ -353,6 +355,14 @@ impl Runtime<'_> {
             )
             .await;
         if state != "completed" {
+            if state == "unknown"
+                && self
+                    .db
+                    .mark_execute_effect_unknown(inv.op, inv.turn)
+                    .is_err()
+            {
+                return Err("MCP effect unknown; storage unavailable; not replayed".into());
+            }
             return Err(text.strip_prefix("error: ").unwrap_or(&text).to_string());
         }
         Ok(match native {
@@ -421,7 +431,7 @@ impl Runtime<'_> {
         secrets: &[String],
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> (&'static str, String, Execute) {
-        let Some(code) = call.arguments.get("code").and_then(Json::as_str) else {
+        let Ok(input) = codemode::parse_input(&call.arguments) else {
             return (
                 "failed",
                 "error: execute requires a string `code` argument".into(),
@@ -432,6 +442,7 @@ impl Runtime<'_> {
                 },
             );
         };
+        let code = input.code;
         let (_, catalog) = mcp_tool_defs(attached, policy);
         let catalog = Arc::new(catalog);
         let (code_preview, code_limited) = limited_text(code, EXECUTE_CODE_BYTES, secrets);
