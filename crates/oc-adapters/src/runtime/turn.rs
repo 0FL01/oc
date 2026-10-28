@@ -764,19 +764,63 @@ struct TaskRenewalPlan {
     retire: Vec<crate::storage::DcpCallKey>,
 }
 
+/// Running-task step IDs are the request span IDs minted by `next_turn_id`.
+const STEP_ID_PREFIX: &str = "tassistant-";
+
+/// An in-task `compress`: renew the whole running task or summarize a closed
+/// step range; both are committed at the next closed boundary.
+#[derive(Clone)]
+enum InTask {
+    Renewal(String),
+    Steps(crate::tools::turn_history::StepCompression),
+}
+
 impl Runtime<'_> {
     /// R9: `compress` whose single range is exactly the running turn's
     /// accepted task message renews that task/pack HOT instead of planning a
-    /// whole-past block (which would cover the unfinished tail).
-    fn task_renewal_summary(
+    /// whole-past block (which would cover the unfinished tail). A range of
+    /// running-task step IDs summarizes those closed steps in place.
+    fn in_task_compression(
         &self,
         turn: &str,
         call: &crate::tools::ToolCall,
-    ) -> Option<Result<String, String>> {
+    ) -> Option<Result<InTask, String>> {
         if call.name != COMPRESS_TOOL {
             return None;
         }
         let content = call.arguments.get("content")?.as_array()?;
+        let step = |id: Option<&serde_json::Value>| {
+            id.and_then(serde_json::Value::as_str)
+                .is_some_and(|id| id.starts_with(STEP_ID_PREFIX))
+        };
+        let summary = || {
+            crate::dcp::validate_range_args(&call.arguments)
+                .map_err(|error| error.to_string())
+                .map(|(_, ranges)| ranges[0].summary.trim().to_string())
+        };
+        if content
+            .iter()
+            .any(|range| step(range.get("startId")) || step(range.get("endId")))
+        {
+            let [range] = content.as_slice() else {
+                return Some(Err(
+                    "send a running-task step range as the only entry of its compress call".into(),
+                ));
+            };
+            if !(step(range.get("startId")) && step(range.get("endId"))) {
+                return Some(Err(
+                    "a range cannot mix running-task steps with conversation messages".into(),
+                ));
+            }
+            let id = |key: &str| range[key].as_str().unwrap_or_default().to_string();
+            return Some(summary().map(|summary| {
+                InTask::Steps(crate::tools::turn_history::StepCompression {
+                    start: id("startId"),
+                    end: id("endId"),
+                    summary,
+                })
+            }));
+        }
         let [range] = content.as_slice() else {
             return None;
         };
@@ -787,11 +831,7 @@ impl Runtime<'_> {
         if self.db.turn_user_message(turn).ok()?.as_deref() != Some(start) {
             return None;
         }
-        Some(
-            crate::dcp::validate_range_args(&call.arguments)
-                .map_err(|error| error.to_string())
-                .map(|(_, ranges)| ranges[0].summary.trim().to_string()),
-        )
+        Some(summary().map(InTask::Renewal))
     }
 
     /// Commit an admitted task renewal at a closed boundary: RAW delta is
@@ -806,13 +846,15 @@ impl Runtime<'_> {
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
     ) -> Result<bool, RuntimeError> {
-        let Some(summary) = turn_log.task_renewal.clone() else {
-            return Ok(false);
+        let intent = match (&turn_log.task_renewal, &turn_log.step_compression) {
+            (Some(summary), _) => InTask::Renewal(summary.clone()),
+            (None, Some(steps)) => InTask::Steps(steps.clone()),
+            (None, None) => return Ok(false),
         };
         let counts = turn_log.closed_counts();
         // The sealed delta is the exact durable checkpoint (it records the
         // admitted intent); `prepare_closed_segment` drops it from the new HOT.
-        let plan = self.prepare_task_renewal(session, turn_log, &summary, config)?;
+        let plan = self.prepare_task_renewal(session, turn_log, &intent, config)?;
         let mut next_nudge = self
             .nudge_state
             .lock()
@@ -854,6 +896,7 @@ impl Runtime<'_> {
             }
             None => {
                 turn_log.task_renewal = None;
+                turn_log.step_compression = None;
                 self.db
                     .checkpoint_turn(&turn_log.turn_id, &turn_log.to_json().to_string())?;
                 Ok(false)
@@ -865,7 +908,7 @@ impl Runtime<'_> {
         &self,
         session: &str,
         log: &TurnLog,
-        summary: &str,
+        intent: &InTask,
         config: &DcpConfig,
     ) -> Result<TaskRenewalPlan, RuntimeError> {
         let request = log.requests.last().ok_or(RuntimeError::Storage)?;
@@ -877,9 +920,24 @@ impl Runtime<'_> {
         prefix_counts[0] = response_start;
         let live = self.db.live_shell_call_ids(&log.turn_id)?;
         let keep = |group: &[InputItem]| super::context::dcp_group_protected(group, &live, config);
-        let working = log
-            .renewed_task_checkpoint(summary, counts, response_start, keep)
-            .map_err(|_| RuntimeError::Storage)?;
+        let range = match intent {
+            InTask::Renewal(_) => None,
+            InTask::Steps(steps) => Some(
+                log.step_range(&steps.start, &steps.end, response_start)
+                    .map_err(RuntimeError::Compress)?,
+            ),
+        };
+        let checkpoint = |counts: [usize; 7]| match (intent, &range) {
+            (InTask::Steps(steps), Some(range)) => log
+                .compressed_steps_checkpoint(&steps.summary, range, counts, response_start, keep)
+                .map_err(RuntimeError::Compress),
+            (InTask::Renewal(summary), _)
+            | (InTask::Steps(crate::tools::turn_history::StepCompression { summary, .. }), None) => {
+                log.renewed_task_checkpoint(summary, counts, response_start, keep)
+                    .map_err(|_| RuntimeError::Storage)
+            }
+        };
+        let working = checkpoint(counts)?;
         // Compare the selected, already-delivered prefix. The current batch is
         // identical on both sides and cannot pay for an oversized summary by
         // deleting its own compression arguments or unseen sibling results.
@@ -892,11 +950,8 @@ impl Runtime<'_> {
         before
             .instruction_references
             .retain(|reference| reference.index <= response_start);
-        let after = TurnLog::from_json(
-            &log.renewed_task_checkpoint(summary, prefix_counts, response_start, keep)
-                .map_err(|_| RuntimeError::Storage)?,
-        )
-        .map_err(|_| RuntimeError::Storage)?;
+        let after =
+            TurnLog::from_json(&checkpoint(prefix_counts)?).map_err(|_| RuntimeError::Storage)?;
         let selected = TurnLog::from_json(&working).map_err(|_| RuntimeError::Storage)?;
         let active = self.active_projection(session)?;
         let prior = active
@@ -1149,7 +1204,7 @@ impl<'a> Runtime<'a> {
                 other => other.to_string(),
             })?;
         }
-        let renewal = self.task_renewal_summary(turn, call);
+        let renewal = self.in_task_compression(turn, call);
         if let Some(renewal) = &renewal {
             if !compress_available {
                 return Err("compress excluded by issuing request".into());
@@ -2620,8 +2675,15 @@ impl<'a> Runtime<'a> {
                 .transpose()
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             current_instruction_input.extend(rich_input.iter().cloned());
+            if compress_available {
+                super::context::mark_running_task(&mut current_instruction_input, &turn_log);
+            }
             let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
+            if !compress_available {
+                // IDs are compress affordances; without compress they are noise.
+                super::context::strip_message_ids(&mut projected_continuation);
+            }
             if let Some(text) = crate::plan::missing(
                 &projected_continuation,
                 lane.agent_id.as_deref(),
@@ -2704,33 +2766,34 @@ impl<'a> Runtime<'a> {
             };
             let persisted_nudge =
                 serde_json::to_string(&preview_state).map_err(|_| RuntimeError::Storage)?;
+            // Donor placement: the reminder follows the newest context (it is
+            // appended after the continuation below), never ahead of history.
             let nudge_input = nudge.as_ref().map(|nudge| {
                 InputItem::message(
                     InputRole::Developer,
-                    format!(
-                        "DCP reminder ({}): {}",
-                        match nudge.force {
-                            crate::dcp_auto::NudgeForce::Soft => "advisory",
-                            crate::dcp_auto::NudgeForce::Hard => "required before more work",
-                        },
-                        nudge.text
+                    crate::dcp_auto::nudge_with_block_guidance(
+                        &nudge.text,
+                        projected_blocks.iter().map(|block| block.id.as_str()),
                     ),
                 )
             });
             let (escaped_bytes, noncausal_tokens, measured, request_estimate) = {
                 let input = fixed_input
                     .iter()
-                    .chain(nudge_input.iter())
                     .chain(anchors.iter())
                     .chain(&projected_continuation)
+                    .chain(nudge_input.iter())
                     .collect::<Vec<_>>();
                 let bytes = super::compaction::serialized_size(&(&input, &tool_defs))?;
                 let noncausal = fixed_input
                     .iter()
                     .chain(&projected_continuation)
-                    .filter(|item| previous_instruction_input.contains(item))
-                    .chain(nudge_input.iter())
+                    .filter(|item| {
+                        previous_instruction_input.contains(item)
+                            || super::context::is_step_marker(item)
+                    })
                     .chain(anchors.iter())
+                    .chain(nudge_input.iter())
                     .collect::<Vec<_>>();
                 let noncausal_tokens = super::compaction::usage_tokens(&noncausal)?;
                 let causal = super::compaction::usage_causal(
@@ -2933,9 +2996,9 @@ impl<'a> Runtime<'a> {
             let continuation = projected_continuation;
             let input: Vec<_> = fixed_input
                 .iter()
-                .chain(nudge_input.iter())
                 .chain(anchors.iter())
                 .chain(&continuation)
+                .chain(nudge_input.iter())
                 .collect();
             let input: Vec<InputItem> = input.into_iter().cloned().collect();
             if let Err(error) = crate::attachments::admit_images(&selection.entry, &input, &[]) {
@@ -3866,21 +3929,28 @@ impl<'a> Runtime<'a> {
             let measured_usage = if let Some((input, output)) = generation.usage
                 && input > 0
             {
-                let bound = turn_log.instruction_input_for_bound(
+                let mut bound = turn_log.instruction_input_for_bound(
                     &selection.id,
                     &params.catalog.provider,
                     &instruction_facts,
                     Some(&binding),
                     Some(&lane.request_profile()),
                 );
-                let measured_input = dcp_continuation(&history, &bound, &tool_projection);
+                // Measure the same ID projection the next request will carry.
+                if compress_available {
+                    super::context::mark_running_task(&mut bound, &turn_log);
+                }
+                let mut measured_input = dcp_continuation(&history, &bound, &tool_projection);
+                if !compress_available {
+                    super::context::strip_message_ids(&mut measured_input);
+                }
                 let measured_prefix = super::compaction::usage_causal(
                     measured_input.iter(),
                     &previous_instruction_input,
                 );
                 Some(crate::compaction::UsageAnchor {
                     scope: usage_scope.clone(),
-                    prefix: crate::compaction::fingerprint(&measured_prefix),
+                    prefix: crate::compaction::prefix_fingerprint(&measured_prefix),
                     items: measured_prefix.len(),
                     tokens: input.saturating_add(output),
                     noncausal_tokens: Some(noncausal_tokens),
@@ -4101,7 +4171,7 @@ impl<'a> Runtime<'a> {
                 projected_blocks = refreshed.blocks;
             }
             closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
-            if turn_log.task_renewal.is_some()
+            if (turn_log.task_renewal.is_some() || turn_log.step_compression.is_some())
                 && self.commit_task_renewal(
                     &mut turn_log,
                     shell_notice_seq,
@@ -5311,7 +5381,7 @@ impl<'a> Runtime<'a> {
             );
             if rejection.is_none()
                 && let Assembled::Call(call) = unit
-                && let Some(renewal) = self.task_renewal_summary(turn_id, call)
+                && let Some(renewal) = self.in_task_compression(turn_id, call)
             {
                 let (state, output) = match renewal {
                     Ok(summary) => {
@@ -6344,11 +6414,26 @@ impl<'a> Runtime<'a> {
             };
             let (state, output) = match prepared {
                 Ok(plan) if plan.after_bytes < plan.before_bytes => {
-                    turn_log.task_renewal = Some(summary);
-                    ("completed", serde_json::json!({
-                        "status":"task_renewal_accepted", "appliesFrom":"next request",
-                        "note":"Your summary replaces the selected closed working context; original history stays durable and unseen sibling results stay available."
-                    }).to_string())
+                    // The latest admitted in-task intent wins; one commits.
+                    let output = match summary {
+                        InTask::Renewal(summary) => {
+                            turn_log.step_compression = None;
+                            turn_log.task_renewal = Some(summary);
+                            serde_json::json!({
+                                "status":"task_renewal_accepted", "appliesFrom":"next request",
+                                "note":"Your summary replaces the selected closed working context; original history stays durable and unseen sibling results stay available."
+                            })
+                        }
+                        InTask::Steps(steps) => {
+                            turn_log.task_renewal = None;
+                            turn_log.step_compression = Some(steps);
+                            serde_json::json!({
+                                "status":"task_renewal_accepted", "scope":"steps", "appliesFrom":"next request",
+                                "note":"Your summary replaces the selected closed steps of the running task; the task message, other steps and protected results stay, and original history stays durable."
+                            })
+                        }
+                    };
+                    ("completed", output.to_string())
                 }
                 Ok(plan) => ("no_gain", serde_json::json!({"status":"no_gain","beforeBytes":plan.before_bytes,"afterBytes":plan.after_bytes}).to_string()),
                 Err(error) => ("failed", format!("error: compress: {error}")),

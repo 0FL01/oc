@@ -372,7 +372,8 @@ array differences; a new package spelling never qualifies these or full3.2.0 par
 `experimental.customPrompts:true` in `dcp.json(c)` (or inline `dcp`) enables
 `dcp-prompts/overrides/{system,compress-range,context-limit-nudge,turn-nudge,iteration-nudge}.md`.
 The admitted Location `.opencode` wins over effective global `G` (defined above),
-then existing native behavior is used. No extra global fallback or ancestor search
+then the built-in DCP 3.2.0 body is used (`crates/oc-adapters/assets/dcp`, see its
+PROVENANCE). No extra global fallback or ancestor search
 is added. Absent/false ignores override files; no `defaults/` files are generated
 or read, and no user configuration is rewritten. `compress-message.md` is inactive
 because message mode is unsupported.

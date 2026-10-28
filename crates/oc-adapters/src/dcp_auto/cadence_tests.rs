@@ -33,7 +33,12 @@ fn dcp12_source_context_visible_distance_buffer_and_removed_anchor() {
         let replay = request(&cfg, &mut state, 201 + index, &view).unwrap();
         assert_eq!(replay.force, NudgeForce::Hard);
         assert_eq!(replay.text, first.text, "retain the history cache prefix");
-        assert!(replay.text.contains("reminder at user-0:"));
+        assert!(replay.text.contains("MAX CONTEXT LIMIT REACHED"));
+        assert_eq!(state.cadence.context.as_deref(), Some("user-0"));
+        assert!(
+            !replay.text.contains("user-0"),
+            "cadence anchors are not compress IDs"
+        );
         assert_eq!(state.emitted, 1);
         assert_eq!(state.last_reminder, Some(1));
     }
@@ -48,8 +53,9 @@ fn dcp12_source_context_visible_distance_buffer_and_removed_anchor() {
         request(&cfg, &mut reopened, 201, &view)
             .unwrap()
             .text
-            .contains("reminder at assistant-5:")
+            .contains("MAX CONTEXT LIMIT REACHED")
     );
+    assert_eq!(reopened.cadence.context.as_deref(), Some("assistant-5"));
     assert_eq!(reopened.emitted, 2);
     assert!(request(&cfg, &mut reopened, 200, &view).is_none());
     assert!(
@@ -94,7 +100,12 @@ fn dcp12_source_last_user_pair_iteration_threshold_and_new_user_reset() {
     ]);
     let nudge = request(&cfg, &mut state, 200, &view).unwrap();
     assert_eq!(nudge.force, NudgeForce::Soft, "at max is not over max");
-    assert!(nudge.text.contains("last-user/assistant"));
+    assert!(
+        nudge
+            .text
+            .contains("Evaluate the conversation for compressible ranges")
+    );
+    assert_eq!(state.cadence.turn.as_deref(), Some("next-user"));
     for index in 1..15 {
         view.push((format!("step-{index}"), false));
         assert!(request(&cfg, &mut state, 200, &view).is_none());

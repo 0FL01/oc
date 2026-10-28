@@ -96,7 +96,18 @@ Experimental message compression остаётся отложенной. Custom p
 поддерживаются для пяти active range-mode slots: см. [CONFIG](CONFIG.md#dcp-prompt-overrides).
 Они заменяют только редактируемый текст, не schema/permissions/native anchors,
 task-renewal rules или reminder cadence. Отключённый флаг и отсутствующие файлы
-сохраняют native defaults; managed upstream defaults не записываются.
+дают встроенные тела DCP 3.2.0 (`assets/dcp`, AGPL provenance); файлы defaults не
+записываются.
+
+Model-visible affordances (как в donor): при доступном `compress` запрос несёт DCP
+system guidance и полный `compress-range` + native rules в описании tool; user
+сообщения истории, блоки и текущая задача получают `<dcp-message-id>` отдельной
+runtime-частью (provider output не меняется), закрытые шаги текущей задачи —
+маркер `tassistant-…` после своих результатов. Reminder — полное тело donor после
+самого нового контекста, без внутренних lane-меток. Step range (`startId..endId` по
+маркерам) заменяет эти шаги одной summary на следующей закрытой границе, как
+task renewal; задача, прочие шаги и protected группы остаются. IDs не меняют usage
+identity: prefix fingerprint их игнорирует, маркеры учитываются как non-causal.
 Subagent integration включена owner-approved T45/R9 (2026-09-27), implementation
 pending: прежнее исключение отменено, не превращено в PASS. Explicit enable прочих
 неподдержанных режимов — UnsupportedCapability, не fallback на range. AutoUpdate и

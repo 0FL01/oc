@@ -172,7 +172,10 @@ async fn dcp10_actual_child_disabled_manual_deny_and_no_consumer_ask_keep_ids_an
                 for forbidden in [
                     "DCP context anchors",
                     "closed=true",
-                    "DCP reminder (",
+                    "MAX CONTEXT LIMIT REACHED",
+                    "Evaluate the conversation for compressible ranges",
+                    "THE PHILOSOPHY OF COMPRESS",
+                    "<dcp-message-id>",
                     "Explicit manual DCP compression admitted",
                 ] {
                     assert!(!wire.contains(forbidden));

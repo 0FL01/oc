@@ -54,6 +54,18 @@ pub(crate) fn fingerprint(value: &impl serde::Serialize) -> String {
     format!("{:x}", writer.0.finalize())
 }
 
+/// Usage-prefix identity. DCP compress IDs are request-local affordances
+/// (present only while compress is available), so they never change measured
+/// identity; an anchor recorded before IDs existed still matches.
+pub(crate) fn prefix_fingerprint(items: &[&crate::provider::InputItem]) -> String {
+    fingerprint(
+        &items
+            .iter()
+            .map(|item| crate::dcp::without_message_ids(item))
+            .collect::<Vec<_>>(),
+    )
+}
+
 impl UsageAnchor {
     pub fn suffix<'a, 'i>(
         &self,
@@ -61,7 +73,7 @@ impl UsageAnchor {
         input: &'a [&'i crate::provider::InputItem],
     ) -> Option<&'a [&'i crate::provider::InputItem]> {
         let prefix = input.get(..self.items)?;
-        if self.scope != scope || self.prefix != fingerprint(&prefix) {
+        if self.scope != scope || self.prefix != prefix_fingerprint(prefix) {
             return None;
         }
         // Only this prefix is measured. Runtime admission must price every new
@@ -388,6 +400,39 @@ mod usage_tests {
             ..c
         };
         assert!(no_buffer.required_for_budget(448_976, 500_000, Some(450_000), 448_976));
+    }
+
+    #[test]
+    fn usage_prefix_identity_ignores_compress_ids() {
+        // An anchor measured before compress IDs existed (or while compress
+        // was unavailable) still matches the tagged next request.
+        let plain = InputItem::message(InputRole::User, "measured request");
+        let anchor = UsageAnchor {
+            scope: "scope".into(),
+            prefix: fingerprint(&[&plain]),
+            items: 1,
+            tokens: 10,
+            noncausal_tokens: Some(0),
+        };
+        let mut tagged = plain.clone();
+        if let InputItem::Message { content, .. } = &mut tagged {
+            content.push(crate::provider::InputContent::InputText {
+                text: crate::dcp::message_id_tag("m0001"),
+            });
+        }
+        let next = InputItem::message(InputRole::User, "next");
+        assert_eq!(
+            anchor.suffix("scope", &[&tagged, &next]),
+            Some(&[&next][..])
+        );
+        let changed = InputItem::message(InputRole::User, "changed");
+        assert_eq!(anchor.suffix("scope", &[&changed, &next]), None);
+        // Authored text shaped like a tag is content, never a runtime ID.
+        let authored = InputItem::message(InputRole::User, crate::dcp::message_id_tag("m9"));
+        assert!(matches!(
+            crate::dcp::without_message_ids(&authored),
+            std::borrow::Cow::Borrowed(_)
+        ));
     }
 
     #[test]

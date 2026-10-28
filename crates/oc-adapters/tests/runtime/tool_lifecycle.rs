@@ -1724,10 +1724,13 @@ async fn canonical_tool_cards_keep_output_order_and_durable_read_pairing_after_r
         {
             let requests_before = requests.lock().unwrap();
             let second_input = requests_before[1]["input"].as_array().unwrap();
-            assert_eq!(
-                &second_input[second_input.len() - output.len() - 1..second_input.len() - 1],
-                output
-            );
+            // A closed-step compress-ID marker may follow the step's results.
+            let tail = second_input
+                .iter()
+                .rposition(|item| item["type"] == "function_call_output")
+                .unwrap()
+                + 1;
+            assert_eq!(&second_input[tail - output.len() - 1..tail - 1], output);
             assert_eq!(
                 function_output(&requests_before[1], "ordered"),
                 paired["output"].as_str()

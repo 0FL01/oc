@@ -33,7 +33,7 @@ const MODEL: &str = "aud-dcp-runtime-model";
 const SESSION: &str = "s-aud19-21";
 const FACT: &str = "AUD21_RETAINED_FACT=violet";
 const FILLER: &str = "AUD21_EARLY_FILLER";
-const NUDGE_FRAGMENT: &str = "exceeds soft limit";
+const NUDGE_FRAGMENT: &str = "MAX CONTEXT LIMIT REACHED";
 const CRASH_FILLER: &str = "AUD21_CRASH_COVERED_FILLER";
 const CRASH_RANGES: usize = 32;
 const CRASH_MEMBERS_PER_RANGE: usize = 56;

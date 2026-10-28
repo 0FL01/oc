@@ -515,6 +515,8 @@ mod review_tests {
             .filter_map(|item| item["content"].as_array())
             .flat_map(|parts| parts.iter())
             .filter_map(|part| part["text"].as_str())
+            // The DCP compress ID is a separate runtime part, not prompt text.
+            .filter(|text| !text.starts_with("<dcp-message-id>"))
             .collect::<Vec<_>>();
         assert_eq!(
             actual,

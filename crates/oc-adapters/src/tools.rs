@@ -1670,6 +1670,9 @@ pub struct TurnLog {
     /// R9: model-authored replacement for the current task/pack HOT, admitted
     /// by `compress` and committed at the next closed boundary.
     pub(crate) task_renewal: Option<String>,
+    /// Model-authored replacement for a closed step range of the running task,
+    /// admitted by `compress` and committed at the next closed boundary.
+    pub(crate) step_compression: Option<turn_history::StepCompression>,
     /// Only retained input origins/occurrences; never a lifetime call-id map.
     pub(crate) input_origins: Vec<Option<usize>>,
     pub(crate) call_occurrences: std::collections::BTreeMap<usize, u64>,
@@ -1718,6 +1721,7 @@ impl TurnLog {
             raw_prefix: None,
             working: None,
             task_renewal: None,
+            step_compression: None,
             input_origins: Vec::new(),
             call_occurrences: std::collections::BTreeMap::new(),
             requests: Vec::new(),
@@ -1787,6 +1791,9 @@ impl TurnLog {
         if let Some(summary) = &self.task_renewal {
             value["task_renewal"] = summary.clone().into();
         }
+        if let Some(steps) = &self.step_compression {
+            value["step_compression"] = serde_json::to_value(steps).expect("step compression");
+        }
         if !self.input_origins.is_empty() {
             value["input_origins"] = serde_json::to_value(&self.input_origins).expect("origins");
         }
@@ -1821,6 +1828,12 @@ impl TurnLog {
             Some(serde_json::Value::String(summary)) => Some(summary.clone()),
             Some(_) => return Err("invalid task renewal".into()),
         };
+        let step_compression = value
+            .get("step_compression")
+            .filter(|v| !v.is_null())
+            .map(|v| serde_json::from_value(v.clone()))
+            .transpose()
+            .map_err(|_| "invalid step compression")?;
         let log = Self {
             protocol: value
                 .get("protocol")
@@ -1837,6 +1850,7 @@ impl TurnLog {
             raw_prefix,
             working,
             task_renewal,
+            step_compression,
             input_origins: value
                 .get("input_origins")
                 .map(|v| serde_json::from_value(v.clone()))

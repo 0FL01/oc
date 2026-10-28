@@ -985,6 +985,46 @@ pub(crate) fn append_legacy_protection(
     Ok(())
 }
 
+/// Pinned `formatMessageIdTag` (XML form): the compress ID of a message.
+pub(crate) fn message_id_tag(id: &str) -> String {
+    format!("<dcp-message-id>{id}</dcp-message-id>")
+}
+
+pub(crate) fn is_message_id_tag(text: &str) -> bool {
+    text.strip_prefix("<dcp-message-id>")
+        .and_then(|rest| rest.strip_suffix("</dcp-message-id>"))
+        .is_some_and(|id| !id.is_empty() && !id.contains('<'))
+}
+
+pub(crate) fn is_message_id_part(part: &crate::provider::InputContent) -> bool {
+    matches!(part, crate::provider::InputContent::InputText { text }
+        | crate::provider::InputContent::OutputText { text } if is_message_id_tag(text))
+}
+
+/// The item without runtime compress-ID parts; borrowed when it has none.
+/// Runtime tags are always appended after the original text, so the first
+/// part (authored content) is never treated as a tag.
+pub(crate) fn without_message_ids(
+    item: &crate::provider::InputItem,
+) -> std::borrow::Cow<'_, crate::provider::InputItem> {
+    match item {
+        crate::provider::InputItem::Message { role, content }
+            if content.iter().skip(1).any(is_message_id_part) =>
+        {
+            std::borrow::Cow::Owned(crate::provider::InputItem::Message {
+                role: *role,
+                content: content
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, part)| *index == 0 || !is_message_id_part(part))
+                    .map(|(_, part)| part.clone())
+                    .collect(),
+            })
+        }
+        _ => std::borrow::Cow::Borrowed(item),
+    }
+}
+
 /// Parsed block placeholder (`(bN)` or `{block_N}`) inside a summary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockPlaceholder {

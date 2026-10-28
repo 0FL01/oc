@@ -5,6 +5,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[path = "runtime/compaction_renewal_tests.rs"]
 mod renewal_tests;
 
+#[path = "runtime/dcp_affordance_tests.rs"]
+mod affordance_tests;
+
 #[path = "runtime/instructions/tests.rs"]
 mod instruction_tests;
 
@@ -496,7 +499,9 @@ async fn measured_context_and_v0_reopen_keep_opaque_and_settled_effects() {
             crate::compaction::route_for_binding("m", &binding), &fixed, &tools, &Option::<String>::None,
         ));
         let marks = db.load_dcp_tool_projection("s").unwrap();
-        let prefix = super::super::context::dcp_continuation(&history, &log.input, &marks);
+        let mut prefix = super::super::context::dcp_continuation(&history, &log.input, &marks);
+        // The v0 producer predates DCP compress-ID tags.
+        super::super::context::strip_message_ids(&mut prefix);
         let literal = serde_json::json!({"scope":legacy_scope,"prefix":crate::compaction::fingerprint(&prefix),"items":prefix.len(),"tokens":31942});
         let anchor: crate::compaction::UsageAnchor = serde_json::from_value(literal.clone()).unwrap();
         assert_eq!(serde_json::to_value(&anchor).unwrap(), literal);

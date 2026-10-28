@@ -688,7 +688,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: COMPRESS_TOOL.to_string(),
-            description: "Replace one or more closed transcript ranges with durable summaries. Use only stable startId/endId anchors from the DCP context lane; never include the unfinished final anchor in a range. Exception: to renew the current task's working memory before finishing, send one range whose startId and endId are both that final anchor (the current task message) with a standalone summary of what still matters. It replaces already-delivered closed working context, including unprotected tool outputs, from the next request; original history stays durable. Protected groups and unseen sibling tool results stay available. A replacement that does not shrink the selected context returns no_gain.".to_string(),
+            description: COMPRESS_NATIVE_RULES.to_string(),
             parameters: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -743,21 +743,28 @@ fn file_tool_guidance(tools: &[ToolDef]) -> Option<InputItem> {
     ))
 }
 
-/// Add editable DCP prose only after tool visibility/availability is resolved.
-/// Native schema, closed-anchor/task-renewal guidance and permissions stay fixed.
+/// Native `compress` semantics; the editable DCP range prose precedes them.
+const COMPRESS_NATIVE_RULES: &str = "NATIVE RULES
+- Conversation messages carry `<dcp-message-id>mNNNN</dcp-message-id>`, compressed blocks are `bN`, and the ordered DCP context anchor list also names assistant replies. Use only closed anchors; never include the unfinished final anchor in a range.
+- Running task: every closed step of the current task ends with a `<dcp-message-id>tassistant-...</dcp-message-id>` marker. To compress finished steps while the task continues, send one range whose startId and endId are step IDs (older first); the task message and all other steps stay. Send a running-task step range as the only entry of its compress call.
+- To renew the whole running task instead, send one range whose startId and endId are both the running task's message ID, with a standalone summary of what still matters.
+- Replacements apply from the next request; original history stays durable. Protected content and unseen sibling tool results stay available. A replacement that does not shrink the selected context returns no_gain.";
+
+/// Add DCP prose only after tool visibility/availability is resolved: the
+/// built-in DCP 3.2.0 bodies or admitted overrides. Native schema,
+/// step/renewal rules and permissions stay fixed.
 fn dcp_prompt_guidance(tools: &mut [ToolDef], config: &DcpConfig) -> Option<InputItem> {
-    if !config.custom_prompts {
-        return None;
-    }
+    use crate::dcp_auto::prompts::PromptSlot;
     let tool = tools.iter_mut().find(|tool| tool.name == COMPRESS_TOOL)?;
-    if let Some(body) = &config.prompt_overrides.compress_range {
-        tool.description = format!("{body}\n\n{}", tool.description);
-    }
-    config
-        .prompt_overrides
-        .system
-        .as_ref()
-        .map(|body| InputItem::message(InputRole::Developer, body.as_ref()))
+    let prompts = &config.prompt_overrides;
+    tool.description = format!(
+        "{}\n\n{COMPRESS_NATIVE_RULES}",
+        prompts.effective(PromptSlot::CompressRange)
+    );
+    Some(InputItem::message(
+        InputRole::Developer,
+        prompts.effective(PromptSlot::System).as_ref(),
+    ))
 }
 
 /// Rough token estimate: the bytes/4 heuristic, not a counter for any

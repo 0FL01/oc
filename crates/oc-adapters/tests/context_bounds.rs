@@ -457,6 +457,16 @@ fn normalized(body: &str) -> String {
                     .and_then(|v| v.as_str())
                     .is_some_and(|text| text.starts_with("DCP context anchors"))
             });
+            // Inline compress IDs number the archive too, like the anchor list.
+            for item in items.iter_mut() {
+                if let Some(parts) = item.get_mut("content").and_then(|v| v.as_array_mut()) {
+                    parts.retain(|part| {
+                        !part["text"]
+                            .as_str()
+                            .is_some_and(|text| text.starts_with("<dcp-message-id>"))
+                    });
+                }
+            }
         }
     }
     serde_json::to_string(&value).expect("normalized json")

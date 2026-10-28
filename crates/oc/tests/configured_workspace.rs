@@ -1151,6 +1151,8 @@ fn message_texts(request: &Value, roles: &[&str]) -> Vec<String> {
         .filter_map(|item| item["content"].as_array())
         .flat_map(|parts| parts.iter())
         .filter_map(|part| part["text"].as_str().map(str::to_string))
+        // DCP compress IDs are separate runtime parts, not message text.
+        .filter(|text| !text.starts_with("<dcp-message-id>"))
         .collect()
 }
 

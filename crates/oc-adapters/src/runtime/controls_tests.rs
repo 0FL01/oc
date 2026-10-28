@@ -164,11 +164,36 @@ fn dcp_custom_prompts_follow_tool_visibility_and_keep_native_schema_and_guidance
     };
     let original = builtin_tool_defs();
     let mut tools = original.clone();
-    assert!(dcp_prompt_guidance(&mut tools, &DcpConfig::default()).is_none());
-    assert_eq!(
-        serde_json::to_value(&tools).unwrap(),
-        serde_json::to_value(&original).unwrap()
+    // Without overrides the built-in DCP 3.2.0 bodies apply, as in the donor.
+    let Some(InputItem::Message { content, .. }) =
+        dcp_prompt_guidance(&mut tools, &DcpConfig::default())
+    else {
+        panic!("default DCP system guidance");
+    };
+    assert!(
+        serde_json::to_string(&content)
+            .unwrap()
+            .contains("THE PHILOSOPHY OF COMPRESS")
     );
+    let described = tools
+        .iter()
+        .find(|tool| tool.name == COMPRESS_TOOL)
+        .unwrap();
+    assert!(
+        described
+            .description
+            .starts_with("Collapse a range in the conversation")
+    );
+    assert!(
+        described.description.ends_with(
+            &*original
+                .iter()
+                .find(|tool| tool.name == COMPRESS_TOOL)
+                .unwrap()
+                .description
+        )
+    );
+    let mut tools = original.clone();
     assert_eq!(
         dcp_prompt_guidance(&mut tools, &config),
         Some(InputItem::message(InputRole::Developer, "CUSTOM_SYSTEM"))

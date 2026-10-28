@@ -29,12 +29,15 @@ async fn dcp_custom_prompts_reach_wire_and_reload_on_the_next_same_task_request(
     let first_text = message_text(&first);
     assert_eq!(first_text.matches("CUSTOM_SYSTEM_G1").count(), 1);
     assert_eq!(first_text.matches("CUSTOM_CONTEXT_BODY").count(), 1);
-    assert!(first_text.contains("DCP reminder (required before more work)"));
+    assert!(
+        !first_text.contains("MAX CONTEXT LIMIT REACHED"),
+        "the override replaces the donor body"
+    );
     let original_tool = tool_definition(&first, "compress");
     let description = original_tool["description"].as_str().unwrap();
     assert_eq!(description.matches("CUSTOM_RANGE_BODY").count(), 1);
-    assert!(description.contains("stable startId/endId anchors"));
-    assert!(description.contains("renew the current task"));
+    assert!(description.contains("NATIVE RULES"));
+    assert!(description.contains("renew the whole running task"));
 
     let (observer, guard, _) = oc_adapters::native::attach(
         &fixture.data(),

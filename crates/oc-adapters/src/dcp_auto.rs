@@ -15,6 +15,7 @@ use crate::config::Permission;
 
 pub(crate) mod prompts;
 pub use prompts::DcpPromptOverrides;
+use prompts::PromptSlot;
 
 #[cfg(test)]
 #[path = "dcp_auto/defaults_tests.rs"]
@@ -991,26 +992,18 @@ pub(crate) fn evaluate_request(
     } else {
         0
     }) > thresholds.max_context;
-    let (force, lane, new_anchor) = if over_max {
+    let (force, slot, new_anchor) = if over_max {
         let new_anchor = add_anchor(&mut state.cadence.context);
-        (NudgeForce::Hard, "context-limit", new_anchor)
+        (NudgeForce::Hard, PromptSlot::ContextLimitNudge, new_anchor)
     } else if *last_user && messages.iter().any(|m| !m.1) {
         if state.cadence.turn.as_ref() == Some(last_id) {
             return None;
         }
         state.cadence.turn = Some(last_id.clone());
         // Donor adds both user and previous assistant anchors; soft selects the
-        // assistant and strong selects the user. Native developer placement does
-        // not alter either original body or accumulate repeated copies.
-        (
-            config.nudge_force,
-            if config.nudge_force == NudgeForce::Soft {
-                "last-user/assistant"
-            } else {
-                "last-user/user"
-            },
-            true,
-        )
+        // assistant and strong selects the user. Native placement does not
+        // alter either original body or accumulate repeated copies.
+        (config.nudge_force, PromptSlot::TurnNudge, true)
     } else {
         let last_user_index = messages.iter().rposition(|m| m.1)?;
         if (last_index.saturating_sub(last_user_index) as u64) < config.iteration_threshold
@@ -1018,36 +1011,45 @@ pub(crate) fn evaluate_request(
         {
             return None;
         }
-        (NudgeForce::Hard, "last-user/iteration", true)
+        (NudgeForce::Hard, PromptSlot::IterationNudge, true)
     };
     if new_anchor {
         state.last_reminder = Some(state.iteration);
         state.emitted += 1;
     }
-    let mut nudge = reminder(thresholds, estimated_tokens, over_max, force);
-    if config.custom_prompts {
-        let body = if over_max {
-            &config.prompt_overrides.context_limit_nudge
-        } else if *last_user {
-            &config.prompt_overrides.turn_nudge
+    // The donor's full reminder body (or its admitted override); internal
+    // cadence anchors are not compress IDs and never reach the model.
+    Some(Nudge {
+        force,
+        text: config.prompt_overrides.effective(slot).to_string(),
+    })
+}
+
+/// Pinned `appendGuidanceToDcpTag` with range-mode `buildCompressedBlockGuidance`,
+/// plus the native running-task step rule, inside the reminder's closing tag.
+pub(crate) fn nudge_with_block_guidance<'a>(
+    text: &str,
+    blocks: impl Iterator<Item = &'a str>,
+) -> String {
+    let blocks = blocks.collect::<Vec<_>>();
+    let guidance = format!(
+        "Compressed block context:\n- Active compressed blocks in this session: {} ({})\n- If your selected compression range includes any listed block, include each required placeholder exactly once in the summary using `(bN)`.\n- Closed steps of the running task end with `<dcp-message-id>tassistant-...</dcp-message-id>` markers and can be compressed as one step range; to renew the whole running task, use its message ID as both startId and endId.",
+        blocks.len(),
+        if blocks.is_empty() {
+            "none".to_string()
         } else {
-            &config.prompt_overrides.iteration_nudge
-        };
-        if let Some(body) = body {
-            nudge.text = body.to_string();
+            blocks.join(", ")
         }
+    );
+    const CLOSE: &str = "</dcp-system-reminder>";
+    match text.rfind(CLOSE) {
+        Some(index) => format!(
+            "{}\n\n{guidance}\n{}",
+            text[..index].trim_end(),
+            &text[index..]
+        ),
+        None => text.to_string(),
     }
-    nudge.text = if over_max {
-        let anchor = state
-            .cadence
-            .context
-            .as_deref()
-            .expect("context nudge anchor");
-        format!("{lane} reminder at {anchor}: {}", nudge.text)
-    } else {
-        format!("{lane} reminder: {}", nudge.text)
-    };
-    Some(nudge)
 }
 
 /// Tool-call record for compress-time strategies.

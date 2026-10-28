@@ -270,6 +270,78 @@ pub(super) fn dcp_continuation(
     input
 }
 
+use crate::dcp::{is_message_id_tag, message_id_tag};
+
+/// Append the ID as a separate runtime-owned text part (donor `injectMessageIds`).
+/// Provider output is never altered; only typed runtime messages are tagged.
+pub(crate) fn tag_message_id(item: &mut InputItem, id: &str) {
+    if let InputItem::Message { role, content } = item {
+        let text = message_id_tag(id);
+        content.push(if *role == InputRole::Assistant {
+            crate::provider::InputContent::OutputText { text }
+        } else {
+            crate::provider::InputContent::InputText { text }
+        });
+    }
+}
+
+/// A standalone running-task step marker. Markers exist only while the task
+/// runs, so usage accounting prices them as non-causal overhead and the
+/// measured prefix stays comparable after the task becomes history.
+pub(crate) fn is_step_marker(item: &InputItem) -> bool {
+    matches!(item, InputItem::Message { role: InputRole::Developer, content }
+        if matches!(content.as_slice(), [crate::provider::InputContent::InputText { text }]
+            if is_message_id_tag(text)))
+}
+
+/// Remove ID tags/markers when compression is unavailable for this request.
+pub(crate) fn strip_message_ids(input: &mut Vec<InputItem>) {
+    input.retain(|item| !is_step_marker(item));
+    for item in input.iter_mut() {
+        if let std::borrow::Cow::Owned(stripped) = crate::dcp::without_message_ids(item) {
+            *item = stripped;
+        }
+    }
+}
+
+/// Tag the running task and mark each closed step after its last visible
+/// tool result, so step ranges and renewal name what the model can see.
+pub(crate) fn mark_running_task(input: &mut Vec<InputItem>, log: &TurnLog) {
+    if let Some(task) = &log.user_message
+        && let Some(user) = input.iter_mut().find(|item| {
+            matches!(
+                item,
+                InputItem::Message {
+                    role: InputRole::User,
+                    ..
+                }
+            )
+        })
+    {
+        tag_message_id(user, task);
+    }
+    let mut markers = log
+        .visible_step_calls()
+        .into_iter()
+        .filter_map(|(span, calls)| {
+            input
+                .iter()
+                .rposition(|item| {
+                    item.call_output()
+                        .is_some_and(|(id, _)| calls.iter().any(|call| call == id))
+                })
+                .map(|index| (index + 1, span))
+        })
+        .collect::<Vec<_>>();
+    markers.sort_by(|a, b| b.0.cmp(&a.0));
+    for (index, span) in markers {
+        input.insert(
+            index,
+            InputItem::message(InputRole::Developer, message_id_tag(&span)),
+        );
+    }
+}
+
 use crate::storage::WireLog;
 
 /// Ordering keys of one wire log; the log body is skipped, not materialized.
@@ -1666,6 +1738,7 @@ impl<'a> Runtime<'a> {
             project_instructions,
             protection,
             |_| false,
+            false,
         )
         .map(|(input, _)| input)
     }
@@ -1696,6 +1769,7 @@ impl<'a> Runtime<'a> {
             true,
             &published.dcp_config,
             excluded,
+            true,
         )
     }
 
@@ -1713,6 +1787,7 @@ impl<'a> Runtime<'a> {
         project_instructions: bool,
         protection: &DcpConfig,
         excluded: impl Fn(&str) -> bool,
+        tag_ids: bool,
     ) -> Result<(Vec<InputItem>, Vec<String>), RuntimeError> {
         let mut turns = BTreeMap::new();
         let mut bucket_notices: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -1922,10 +1997,28 @@ impl<'a> Runtime<'a> {
                 }
                 continue;
             }
-            if let Some(items) = turns.remove(id) {
+            if let Some(mut items) = turns.remove(id) {
                 emitted_notices.extend(bucket_notices.remove(id).unwrap_or_default());
-                if id == "session-checkpoint" || blocks.iter().any(|block| &block.id == id) {
-                    input.push(InputItem::message(InputRole::System, text));
+                let block = blocks.iter().any(|block| &block.id == id);
+                if id == "session-checkpoint" || block {
+                    let mut summary = InputItem::message(InputRole::System, text);
+                    if tag_ids && block {
+                        tag_message_id(&mut summary, id);
+                    }
+                    input.push(summary);
+                } else if tag_ids
+                    && role.as_str() == "user"
+                    && let Some(user) = items.iter_mut().find(|item| {
+                        matches!(
+                            item,
+                            InputItem::Message {
+                                role: InputRole::User,
+                                ..
+                            }
+                        )
+                    })
+                {
+                    tag_message_id(user, id);
                 }
                 input.extend(items);
             } else if !represented.contains(id) {
@@ -1947,7 +2040,11 @@ impl<'a> Runtime<'a> {
                 } else {
                     text
                 };
-                input.push(InputItem::message(role, text));
+                let mut message = InputItem::message(role, text);
+                if tag_ids && matches!(role, InputRole::User | InputRole::Assistant) {
+                    tag_message_id(&mut message, id);
+                }
+                input.push(message);
                 if self.db.is_native_notice(session, id)? {
                     emitted_notices.push(id.clone());
                 }

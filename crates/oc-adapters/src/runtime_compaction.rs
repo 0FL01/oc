@@ -210,7 +210,9 @@ pub(super) fn usage_causal<'a>(
 ) -> Vec<&'a InputItem> {
     // Match only whole typed Fact renderings supplied by the runtime. User text
     // resembling an instruction header remains part of the causal prefix.
-    input.filter(|item| !facts.contains(item)).collect()
+    input
+        .filter(|item| !facts.contains(item) && !super::context::is_step_marker(item))
+        .collect()
 }
 
 pub(super) fn usage_tokens(input: &[&InputItem]) -> Result<u64, RuntimeError> {

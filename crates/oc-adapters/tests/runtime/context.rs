@@ -986,10 +986,12 @@ async fn aud21_turn_protection_preserves_recent_completed_turn_verbatim() {
 #[tokio::test]
 async fn aud20_summary_buffer_changes_effective_nudge_threshold() {
     let (harness, generation) = make_harness(allow_all());
+    // The max sits between the estimate with and without the active summary
+    // buffer; it includes the built-in DCP system guidance (~475 tokens).
     let mut dcp = DcpConfig {
         min_context: 500,
         min_context_percent: None,
-        max_context: 600,
+        max_context: 1150,
         max_context_percent: None,
         nudge_frequency: 1,
         summary_buffer: true,
@@ -1052,9 +1054,11 @@ async fn aud20_summary_buffer_changes_effective_nudge_threshold() {
     let requests = requests.lock().unwrap();
     let first = requests[0]["input"].to_string();
     let second = requests[1]["input"].to_string();
-    assert!(first.contains("DCP reminder (advisory)"));
-    assert!(!first.contains("required before more work"));
-    assert!(second.contains("DCP reminder (required before more work)"));
+    // Donor bodies: a soft turn reminder under the buffered max, then the
+    // context-limit reminder once the buffer no longer applies.
+    assert!(first.contains("Evaluate the conversation for compressible ranges"));
+    assert!(!first.contains("MAX CONTEXT LIMIT REACHED"));
+    assert!(second.contains("MAX CONTEXT LIMIT REACHED"));
 }
 
 #[tokio::test]
@@ -1468,7 +1472,7 @@ async fn current_task_compress_forgets_closed_payload_but_keeps_unseen_batch() {
         assert_eq!(runtime.dcp_stats().nudges_emitted, 1);
         let renewal_request = seen[1]["input"].to_string();
         assert!(renewal_request.contains("except current-task renewal"));
-        assert!(renewal_request.contains("startId and endId both equal to its final anchor"));
+        assert!(renewal_request.contains("use its message ID as both startId and endId"));
         let first = seen[2]["input"].to_string();
         assert!(first.contains("SUMMARY_FIRST"));
         assert!(!first.contains("OLD_JOURNAL_PAYLOAD"));
@@ -1704,8 +1708,11 @@ async fn aud21_model_compress_forgets_closed_tool_graph_without_replay() {
                 for part in parts {
                     if let Some(text) = part["text"].as_str() {
                         // The measured projection excludes generated anchor-lane
-                        // instructions, which are rebuilt independently per request.
-                        if !text.starts_with("DCP context anchors in order.") {
+                        // instructions and compress IDs, which are rebuilt
+                        // independently per request.
+                        if !text.starts_with("DCP context anchors in order.")
+                            && !text.starts_with("<dcp-message-id>")
+                        {
                             total += estimate(text);
                         }
                     }

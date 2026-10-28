@@ -184,7 +184,13 @@ async fn dcp12_explicit_manual_compress_is_real_scoped_and_ask_stays_captured() 
                 input.contains("Explicit manual DCP compression admitted"),
                 available
             );
-            assert!(!input.contains("DCP reminder ("));
+            for reminder in [
+                "MAX CONTEXT LIMIT REACHED",
+                "Evaluate the conversation for compressible ranges",
+                "iterating for a while",
+            ] {
+                assert!(!input.contains(reminder), "{reminder}");
+            }
             if !available {
                 assert!(input.contains("Stable text-message IDs"));
             }

@@ -30,6 +30,86 @@ impl std::fmt::Debug for DcpPromptOverrides {
     }
 }
 
+/// Prompt slot shared by admitted overrides and the built-in defaults.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PromptSlot {
+    /// DCP system guidance.
+    System,
+    /// `compress` tool instructions.
+    CompressRange,
+    /// Above the maximum threshold.
+    ContextLimitNudge,
+    /// At a qualifying new user turn.
+    TurnNudge,
+    /// After a qualifying sequence of assistant iterations.
+    IterationNudge,
+}
+
+impl PromptSlot {
+    fn file(self) -> &'static str {
+        match self {
+            Self::System => "system.md",
+            Self::CompressRange => "compress-range.md",
+            Self::ContextLimitNudge => "context-limit-nudge.md",
+            Self::TurnNudge => "turn-nudge.md",
+            Self::IterationNudge => "iteration-nudge.md",
+        }
+    }
+}
+
+impl DcpPromptOverrides {
+    fn get(&self, slot: PromptSlot) -> Option<&Arc<str>> {
+        match slot {
+            PromptSlot::System => self.system.as_ref(),
+            PromptSlot::CompressRange => self.compress_range.as_ref(),
+            PromptSlot::ContextLimitNudge => self.context_limit_nudge.as_ref(),
+            PromptSlot::TurnNudge => self.turn_nudge.as_ref(),
+            PromptSlot::IterationNudge => self.iteration_nudge.as_ref(),
+        }
+    }
+
+    /// Admitted override, else the built-in DCP 3.2.0 body. Like the donor,
+    /// `customPrompts` only gates overrides; the defaults always apply.
+    pub fn effective(&self, slot: PromptSlot) -> Arc<str> {
+        self.get(slot)
+            .cloned()
+            .unwrap_or_else(|| default_prompt(slot))
+    }
+}
+
+/// Built-in bodies from `assets/dcp` (see its PROVENANCE.md), normalized like overrides.
+fn default_prompt(slot: PromptSlot) -> Arc<str> {
+    static DEFAULTS: LazyLock<[Arc<str>; 5]> = LazyLock::new(|| {
+        [
+            PromptSlot::System,
+            PromptSlot::CompressRange,
+            PromptSlot::ContextLimitNudge,
+            PromptSlot::TurnNudge,
+            PromptSlot::IterationNudge,
+        ]
+        .map(|slot| {
+            let raw = match slot {
+                PromptSlot::System => include_str!("../../assets/dcp/system.md"),
+                PromptSlot::CompressRange => include_str!("../../assets/dcp/compress-range.md"),
+                PromptSlot::ContextLimitNudge => {
+                    include_str!("../../assets/dcp/context-limit-nudge.md")
+                }
+                PromptSlot::TurnNudge => include_str!("../../assets/dcp/turn-nudge.md"),
+                PromptSlot::IterationNudge => include_str!("../../assets/dcp/iteration-nudge.md"),
+            };
+            normalize(raw, slot.file()).expect("built-in DCP prompt")
+        })
+    });
+    let index = match slot {
+        PromptSlot::System => 0,
+        PromptSlot::CompressRange => 1,
+        PromptSlot::ContextLimitNudge => 2,
+        PromptSlot::TurnNudge => 3,
+        PromptSlot::IterationNudge => 4,
+    };
+    DEFAULTS[index].clone()
+}
+
 /// The filename is one of the five fixed names supplied by DCP admission.
 pub(crate) fn normalize(raw: &str, name: &str) -> Option<Arc<str>> {
     static COMMENTS: LazyLock<Regex> =
