@@ -561,21 +561,22 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.command("trap '' HUP; printf 'effect-two\\n' >> effect-two; sleep 30")
         wait(lambda: (root/'project/effect-two').exists(), 'second real pre-crash effect')
         crash_fixture_owner(root)
-        # A disconnected viewer retains its local UI/draft until explicit quit;
-        # killing the owner must not masquerade as a clean interactive cancel.
-        view.see('Runtime connection lost')
+        # The owner crash leaves real PTY leaders behind for recovery to judge.
+        assert all(Path(f'/proc/{pid}').exists() for pid in (third['pid'], fourth['pid'])), 'real retained orphan leaders'
+        # The viewer outlives its owner: it elects a fresh owner behind the same
+        # UI/draft, whose recovery (not the lost owner) quarantines the leaders.
+        view.see('Runtime connection restored')
+        wait(lambda: all(dead(pid) for pid in (third['pid'], fourth['pid'])), 'verified orphan quarantine')
         view.leader(b'\x1b[D')
         view.send(b'\x01\x1b[1;2F\x7f')
         view.command('/quit')
         try:
             view.child.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            raise AssertionError(('owner-lost viewer did not quit', view.screen())) from None
-        assert view.child.returncode != 0, 'owner loss is not clean interactive cancellation'
+            raise AssertionError(('reattached viewer did not quit', view.screen())) from None
+        assert view.child.returncode == 0, 'a recovered viewer quits normally'
         view.close()
-        assert all(Path(f'/proc/{pid}').exists() for pid in (third['pid'], fourth['pid'])), 'real retained orphan leaders'
         view = View(root)
-        wait(lambda: all(dead(pid) for pid in (third['pid'], fourth['pid'])), 'verified orphan quarantine')
         for interrupted in entries(root)[3:]:
             assert interrupted[1] == 0 and interrupted[0]['state'] == 'Interrupted'
         assert len(entries(root)) == 5 and selected(root) is None

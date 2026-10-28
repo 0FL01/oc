@@ -193,7 +193,8 @@ const BURST_BUDGET: Duration = Duration::from_millis(2);
 const COMPLETION_RECHECK: Duration = Duration::from_millis(1);
 const COMPLETION_FALLBACK: Duration = Duration::from_millis(100);
 const MAX_TABS: usize = 16;
-const OWNER_LOST: &str = "Runtime connection lost; operation outcome unknown. Reopen to read current state; input was not resent.";
+const OWNER_LOST: &str = "Runtime connection lost; reconnecting. In-flight input may already be accepted and was not resent; new input stays a draft.";
+const OWNER_RESTORED: &str = "Runtime connection restored; state reloaded. Nothing was resent.";
 const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
 /// Launch the interactive TUI; returns process exit code.
@@ -1839,7 +1840,25 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     loop_state.shared_refresh = true;
                 }
                 CoreEvent::OwnerDisconnected => {
-                    report_owner_lost(&mut state, &mut loop_state);
+                    report_owner(
+                        &mut state,
+                        &mut loop_state,
+                        OWNER_LOST,
+                        NoteVariant::Warning,
+                    );
+                    dirty = true;
+                    continue;
+                }
+                CoreEvent::OwnerReattached => {
+                    reattached(app, &mut state, &mut loop_state).await;
+                    dirty = true;
+                    continue;
+                }
+                CoreEvent::OwnerUnrecoverable { reason } => {
+                    let note = format!(
+                        "Runtime connection cannot be restored: {reason}. Restart oc2; input was not resent."
+                    );
+                    report_owner(&mut state, &mut loop_state, &note, NoteVariant::Error);
                     dirty = true;
                     continue;
                 }
@@ -4217,11 +4236,45 @@ fn require_session(state: &TuiState) -> Result<SessionId, String> {
         .ok_or_else(|| "no active session; submit a prompt first".to_string())
 }
 
-/// Every tab shares the dead attachment, not only the focused one.
-fn report_owner_lost(state: &mut TuiState, deck: &mut LoopState) {
+/// Every tab shares the one owner attachment, not only the focused one.
+fn report_owner(state: &mut TuiState, deck: &mut LoopState, note: &str, variant: NoteVariant) {
     for view in read_jobs::views_mut(state, deck) {
-        view.push_note(OWNER_LOST);
+        view.push_note_variant(note, variant);
     }
+}
+
+/// The same handle now serves a fresh attachment: its consumer registrations
+/// and live cursor are new, so redo the startup reads without resending input.
+async fn reattached(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    // A re-elected owner restarts live revisions; the old cursor would hide them.
+    deck.projection_revision = 0;
+    deck.shared_gap = true;
+    deck.shared_refresh = true;
+    let restored = async {
+        let catalog = app.catalog().await.map_err(|error| error.to_string())?;
+        app.register_approval_consumer(deck.cli_auto || catalog.chrome.permissions_auto)
+            .await
+            .map_err(|error| error.to_string())?;
+        app.register_question_consumer()
+            .await
+            .map_err(|error| error.to_string())?;
+        deck.permission_auto =
+            Some(catalog.auto_accept == oc_core::queries::AutoAcceptState::Enabled);
+        refresh_approvals(app, state).await
+    }
+    .await;
+    match restored {
+        Ok(()) => {
+            for view in read_jobs::views_mut(state, deck) {
+                view.push_transient_note(OWNER_RESTORED, NoteVariant::Success);
+            }
+        }
+        Err(error) => {
+            let note = format!("Runtime reconnected, but reloading failed: {error}");
+            report_owner(state, deck, &note, NoteVariant::Error);
+        }
+    }
+    deck.reads.request(state, true);
 }
 
 #[cfg(test)]
@@ -4378,7 +4431,9 @@ async fn handle_worker_event_at(
         | CoreEvent::WorkspaceChanged { .. }
         | CoreEvent::SessionViewed { .. }
         | CoreEvent::ProjectionGap
-        | CoreEvent::OwnerDisconnected => return Ok(()),
+        | CoreEvent::OwnerDisconnected
+        | CoreEvent::OwnerReattached
+        | CoreEvent::OwnerUnrecoverable { .. } => return Ok(()),
         CoreEvent::ChildNotice(notice) => &notice.job.parent,
         CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::ExecuteNotice(notice) => &notice.session,
@@ -4498,7 +4553,9 @@ async fn handle_worker_event_at(
         | CoreEvent::WorkspaceChanged { .. }
         | CoreEvent::SessionViewed { .. }
         | CoreEvent::ProjectionGap
-        | CoreEvent::OwnerDisconnected => unreachable!("handled before session routing"),
+        | CoreEvent::OwnerDisconnected
+        | CoreEvent::OwnerReattached
+        | CoreEvent::OwnerUnrecoverable { .. } => unreachable!("handled before session routing"),
         CoreEvent::SessionTitleUpdated { title, .. } => {
             if state.session_title.as_ref() != Some(&title) {
                 state.observe_history_commit();

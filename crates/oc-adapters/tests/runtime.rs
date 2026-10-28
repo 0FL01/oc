@@ -937,7 +937,9 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::WorkspaceChanged { .. }
             | CoreEvent::SessionViewed { .. }
             | CoreEvent::ProjectionGap
-            | CoreEvent::OwnerDisconnected => {}
+            | CoreEvent::OwnerDisconnected
+            | CoreEvent::OwnerReattached
+            | CoreEvent::OwnerUnrecoverable { .. } => {}
         }
     }
     let (started_op, started_name, started_input) = started.expect("tool call started event");

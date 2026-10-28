@@ -4823,7 +4823,7 @@ async fn lost_owner_keeps_its_cause_and_stops_issuing_refreshes() {
     };
     drop(ack);
     drop(inbox);
-    report_owner_lost(&mut state, &mut deck);
+    report_owner(&mut state, &mut deck, OWNER_LOST, NoteVariant::Warning);
     settle_reads(&app, &mut state, &mut deck).await;
     assert_eq!(
         state.note(),
@@ -4840,4 +4840,79 @@ async fn lost_owner_keeps_its_cause_and_stops_issuing_refreshes() {
     read_jobs::sync(&app, &mut state, &mut deck).await;
     assert!(!deck.reads.pending());
     assert_eq!(state.note(), Some(OWNER_LOST));
+}
+
+#[tokio::test]
+async fn reattached_owner_reregisters_consumers_and_restarts_the_live_cursor() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId("reattach".into()));
+    let mut deck = LoopState::default();
+    deck.sync_tabs(&mut state);
+    append_tab(&app, &mut deck, &mut state, "reattach-other");
+    deck.cli_auto = true;
+    deck.projection_revision = 900;
+    report_owner(&mut state, &mut deck, OWNER_LOST, NoteVariant::Warning);
+    let registered = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let owner = tokio::spawn({
+        let registered = registered.clone();
+        async move {
+            while let Some(message) = inbox.recv().await {
+                match message {
+                    InboxMsg::Catalog { ack } => ack.send(Ok(catalog())).unwrap(),
+                    InboxMsg::RegisterApprovalConsumer { auto_once, ack, .. } => {
+                        registered
+                            .lock()
+                            .unwrap()
+                            .push(format!("approvals auto={auto_once}"));
+                        ack.send(Ok(())).unwrap();
+                    }
+                    InboxMsg::RegisterQuestionConsumer { ack } => {
+                        registered.lock().unwrap().push("questions".to_owned());
+                        ack.send(Ok(())).unwrap();
+                    }
+                    InboxMsg::PendingApprovals { ack } => ack.send(Ok(Vec::new())).unwrap(),
+                    InboxMsg::PendingQuestions { ack } => ack.send(Ok(Vec::new())).unwrap(),
+                    _ => panic!("reattachment only re-registers and re-reads"),
+                }
+            }
+        }
+    });
+    reattached(&app, &mut state, &mut deck).await;
+    owner.abort();
+    assert_eq!(
+        registered.lock().unwrap().as_slice(),
+        ["approvals auto=true", "questions"],
+        "the new attachment answers Ask/questions with the original --auto choice"
+    );
+    assert_eq!(
+        deck.projection_revision, 0,
+        "a re-elected owner restarts revisions"
+    );
+    assert!(deck.shared_gap && deck.shared_refresh);
+    assert!(deck.reads.pending());
+    assert_eq!(state.note(), Some(OWNER_RESTORED));
+    assert_eq!(
+        deck.tabs.iter().flatten().next().unwrap().note(),
+        Some(OWNER_RESTORED)
+    );
+}
+
+#[tokio::test]
+async fn input_refused_while_reconnecting_returns_to_the_editor_as_a_draft() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId("reconnecting-draft".into()));
+    state.apply_catalog(catalog());
+    state.handle_paste("unsent words");
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::Submit { ack, .. }) = inbox.recv().await else {
+        panic!("one submission")
+    };
+    ack.send(Err(CoreError::OwnerUnavailable)).unwrap();
+    state.poll_submission();
+    assert_eq!(state.input(), "unsent words");
+    assert!(
+        !state.has_pending_submission(),
+        "no retained unknown request"
+    );
+    assert!(state.note().unwrap().contains("nothing was sent"));
 }

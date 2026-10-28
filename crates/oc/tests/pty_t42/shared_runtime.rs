@@ -821,7 +821,7 @@ fn srv01_lost_startup_intent_joins_owner_without_any_ready_client() {
 }
 
 #[test]
-fn srv03_client_crash_handoff_then_last_client_eof_settles_interrupted() {
+fn srv03_client_crash_handoff_last_crash_grace_then_quit_settles_interrupted() {
     let fixture = Fixture::new();
     let mut first = PtySession::spawn(
         fixture.clone(),
@@ -859,16 +859,27 @@ fn srv03_client_crash_handoff_then_last_client_eof_settles_interrupted() {
     ));
     second.child.kill().unwrap();
     second.child.wait().unwrap();
+    // The last viewer vanished without Release: the owner keeps the interactive
+    // turn running for the reattachment grace instead of settling it at once.
+    let previous = fixture.progress.lock().unwrap()["CLIENT-EOF"];
+    progress_after(&fixture, "CLIENT-EOF", previous);
     let mut poll = libc::pollfd {
         fd: owner.as_raw_fd(),
         events: libc::POLLIN,
         revents: 0,
     };
     // SAFETY: poll borrows this live local descriptor and the initialized pollfd.
+    let alive = unsafe { libc::poll(&mut poll, 1, 0) };
+    assert_eq!(alive, 0, "a crashed last viewer may still reattach");
+    let mut third = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], None);
+    wait_screen_row(&third, "CLIENT-EOF tick:", DEADLINE);
+    // An explicit quit keeps the immediate last-disconnect contract.
+    quit(&mut third);
+    // SAFETY: poll borrows this live local descriptor and the initialized pollfd.
     let exited = unsafe { libc::poll(&mut poll, 1, DEADLINE.as_millis() as i32) };
     assert_eq!(
         exited, 1,
-        "last crashed viewer must not leave an unowned daemon"
+        "the last released viewer must not leave an unowned daemon"
     );
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     let connection = rusqlite::Connection::open(fixture.data_dir().join("oc.sqlite")).unwrap();

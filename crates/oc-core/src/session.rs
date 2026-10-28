@@ -95,6 +95,10 @@ pub enum CoreError {
     /// Worker is shut down.
     #[error("shutdown")]
     Shutdown,
+    /// The owner connection is being re-established; this request was never
+    /// sent and is not retried.
+    #[error("owner connection lost; reconnecting; request not sent")]
+    OwnerUnavailable,
     /// Provider failure (scripted only in T03).
     #[error("provider: {0}")]
     Provider(String),

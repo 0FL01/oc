@@ -164,6 +164,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
         operations: BTreeMap::new(),
         terminals: BTreeMap::new(),
         cleanup_failed: false,
+        grace: None,
     }));
     let (mut client, server) = UnixStream::pair().unwrap();
     let budget = Budget::default();
@@ -393,6 +394,7 @@ async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control
         operations: BTreeMap::new(),
         terminals: BTreeMap::new(),
         cleanup_failed: false,
+        grace: None,
     }));
     let (mut client, server) = UnixStream::pair().unwrap();
     let budget = Budget::default();
@@ -559,6 +561,7 @@ async fn srv04_request_cancellation_overtakes_queued_shell_before_admission() {
         operations: BTreeMap::new(),
         terminals: BTreeMap::new(),
         cleanup_failed: false,
+        grace: None,
     }));
     let (mut client, server) = UnixStream::pair().unwrap();
     let budget = Budget::default();
@@ -674,6 +677,7 @@ async fn slow_viewer_overflow_degrades_to_projection_gap_instead_of_disconnect()
         operations: BTreeMap::new(),
         terminals: BTreeMap::new(),
         cleanup_failed: false,
+        grace: None,
     });
     let budget = Budget::default();
     for revision in 1..=10 {
@@ -713,5 +717,63 @@ async fn slow_viewer_overflow_degrades_to_projection_gap_instead_of_disconnect()
     assert_eq!(event, CoreEvent::ProjectionGap);
     flush_gaps(&state, &budget);
     assert!(queued.try_recv().is_err());
+    owner.shutdown().await.unwrap();
+}
+
+#[tokio::test(start_paused = true)]
+async fn lost_last_tui_keeps_owner_and_interactive_work_for_the_reattach_grace() {
+    let temp = tempfile::tempdir().unwrap();
+    let owner = Owner::new(
+        Db::open(&temp.path().join("data")).unwrap(),
+        BTreeMap::new(),
+    )
+    .unwrap();
+    let viewer = |ready| Viewer {
+        ready,
+        lease: Some(Lease::Tui),
+        output: None,
+        disconnect: watch::channel(false).0,
+        gap: None,
+    };
+    let mut state = State {
+        closing: false,
+        startup: false,
+        sequence: 2,
+        revision: 0,
+        viewers: BTreeMap::from([(1, viewer(true))]),
+        operations: BTreeMap::new(),
+        terminals: BTreeMap::new(),
+        cleanup_failed: false,
+        grace: None,
+    };
+    owner.resources.tui_present.store(true, Ordering::Release);
+    // The socket vanished without Release (frozen terminal, killed client).
+    state.disable(1, &owner, false);
+    state.viewers.remove(&1);
+    state.close_if_empty();
+    assert!(!state.closing, "the owner waits for the TUI to come back");
+    assert!(state.grace.is_some());
+    assert!(owner.resources.tui_present.load(Ordering::Acquire));
+    // A reattaching TUI ends the grace before it expires.
+    state.viewers.insert(2, viewer(true));
+    state.grace = None;
+    // An explicit detach keeps the original immediate contract.
+    state.disable(2, &owner, true);
+    state.viewers.remove(&2);
+    state.close_if_empty();
+    assert!(state.closing && state.grace.is_none());
+    assert!(!owner.resources.tui_present.load(Ordering::Acquire));
+    // Without a return, expiry applies the last-disconnect contract.
+    state.closing = false;
+    state.viewers.insert(3, viewer(true));
+    owner.resources.tui_present.store(true, Ordering::Release);
+    state.disable(3, &owner, false);
+    state.viewers.remove(&3);
+    state.expire_grace(&owner);
+    assert!(!state.closing, "not before the deadline");
+    tokio::time::advance(TUI_GRACE).await;
+    state.expire_grace(&owner);
+    assert!(state.closing && state.grace.is_none());
+    assert!(!owner.resources.tui_present.load(Ordering::Acquire));
     owner.shutdown().await.unwrap();
 }

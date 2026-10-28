@@ -63,7 +63,13 @@ struct State {
     operations: BTreeMap<u64, Operation>,
     terminals: BTreeMap<String, (oc_core::queries::TerminalRef, u64, Arc<Location>)>,
     cleanup_failed: bool,
+    /// The last interactive viewer vanished without Release. Its interactive
+    /// work and this owner survive until the deadline so it can reattach.
+    grace: Option<tokio::time::Instant>,
 }
+
+/// How long an unexpectedly lost last TUI may take to reattach.
+const TUI_GRACE: Duration = Duration::from_secs(60);
 impl State {
     fn tui_count(&self) -> usize {
         self.viewers
@@ -71,7 +77,9 @@ impl State {
             .filter(|view| view.ready && view.lease == Some(Lease::Tui))
             .count()
     }
-    fn disable(&mut self, id: u64, owner: &Owner) {
+    /// `released` is an explicit detach; any other loss of the last TUI
+    /// starts the reattachment grace instead of cancelling interactive work.
+    fn disable(&mut self, id: u64, owner: &Owner, released: bool) {
         let before = self.tui_count();
         if let Some(viewer) = self.viewers.get_mut(&id) {
             viewer.ready = false;
@@ -79,13 +87,11 @@ impl State {
             viewer.gap = None;
         }
         if before > 0 && self.tui_count() == 0 {
-            owner.resources.tui_present.store(false, Ordering::Release);
-            owner.cancel_interactive();
-            if owner.stop_interactive_terminals().is_err() {
-                self.cleanup_failed = true;
-                self.force_close();
+            if released || self.closing {
+                self.end_interactive(owner);
+            } else {
+                self.grace = Some(tokio::time::Instant::now() + TUI_GRACE);
             }
-            self.terminals.clear();
         }
         for (_, controller, _) in self.terminals.values_mut() {
             if *controller == id {
@@ -94,7 +100,30 @@ impl State {
         }
     }
     fn close_if_empty(&mut self) {
-        self.closing |= !self.startup && self.viewers.is_empty();
+        self.closing |= !self.startup && self.grace.is_none() && self.viewers.is_empty();
+    }
+    fn end_interactive(&mut self, owner: &Owner) {
+        self.grace = None;
+        owner.resources.tui_present.store(false, Ordering::Release);
+        owner.cancel_interactive();
+        if owner.stop_interactive_terminals().is_err() {
+            self.cleanup_failed = true;
+            self.force_close();
+        }
+        self.terminals.clear();
+    }
+    /// No TUI returned in time: the original last-disconnect contract applies.
+    fn expire_grace(&mut self, owner: &Owner) {
+        if self
+            .grace
+            .is_some_and(|deadline| deadline <= tokio::time::Instant::now())
+        {
+            if self.tui_count() == 0 {
+                self.end_interactive(owner);
+            }
+            self.grace = None;
+            self.close_if_empty();
+        }
     }
     fn force_close(&mut self) {
         self.closing = true;
@@ -135,7 +164,7 @@ struct LeaseGuard {
 impl Drop for LeaseGuard {
     fn drop(&mut self) {
         let mut shared = self.state.lock().expect("native leases");
-        shared.disable(self.id, &self.owner);
+        shared.disable(self.id, &self.owner, false);
         shared.viewers.remove(&self.id);
         shared.close_if_empty();
     }
@@ -272,6 +301,7 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
         operations: BTreeMap::new(),
         terminals: BTreeMap::new(),
         cleanup_failed: false,
+        grace: None,
     }));
     let mut peers = JoinSet::new();
     let mut tails = Vec::new();
@@ -280,11 +310,12 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
     let mut startup_open = true;
     let mut fatal = None;
     loop {
-        let (closing, gapped) = {
+        let (closing, gapped, grace) = {
             let shared = state.lock().expect("native leases");
             (
                 shared.closing,
                 shared.viewers.values().any(|viewer| viewer.gap.is_some()),
+                shared.grace,
             )
         };
         if closing && peers.is_empty() {
@@ -336,6 +367,9 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
                 }
             },
             () = tokio::time::sleep(Duration::from_millis(20)), if gapped => flush_gaps(&state, &budget),
+            () = tokio::time::sleep_until(grace.unwrap_or_else(tokio::time::Instant::now)), if grace.is_some() => {
+                state.lock().expect("native leases").expire_grace(&owner);
+            },
             event = live.recv(), if !closing => {
                 match event {
                     Ok(event) => publish(&owner, &state, &budget, event),
@@ -445,6 +479,7 @@ async fn connection(
         }
         if lease == Lease::Tui {
             owner.resources.tui_present.store(true, Ordering::Release);
+            shared.grace = None;
         }
     }
     let welcome = Welcome {
@@ -590,7 +625,7 @@ async fn connection(
     peer.disconnected.store(true, Ordering::Release);
     let early_release = {
         let mut shared = state.lock().expect("native leases");
-        shared.disable(id, &owner);
+        shared.disable(id, &owner, released);
         released
             && lease == Lease::Tui
             && shared

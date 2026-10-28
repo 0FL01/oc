@@ -16,7 +16,10 @@ fn pair() -> (
     let (app, inbox, controls, events, admissions) = CoreApp::native_channel(MAX_QUEUE_ITEMS, 7);
     let death = process_death(std::process::id()).unwrap();
     let task = tokio::spawn(bridge(Bridge {
-        stream: client,
+        link: Link {
+            stream: client,
+            death,
+        },
         inbox,
         controls,
         admissions,
@@ -24,7 +27,7 @@ fn pair() -> (
         events,
         budget: Budget::default(),
         epoch: 0,
-        death,
+        reattach: None,
     }));
     (app, task, server, Budget::default())
 }
@@ -823,4 +826,176 @@ async fn srv02_gap_resnapshot_discards_covered_deltas_without_replaying_work() {
     );
     task.abort();
     let _ = task.await;
+}
+
+type Offer = Result<(Link, Welcome), SpawnDiagnostic>;
+type Offers = Arc<tokio::sync::Mutex<mpsc::Receiver<Offer>>>;
+type Reattaching = (
+    CoreApp,
+    tokio::task::JoinHandle<Result<(), ()>>,
+    UnixStream,
+    mpsc::Sender<Offer>,
+    Arc<std::sync::Mutex<Vec<Option<PathBuf>>>>,
+);
+
+/// A TUI bridge whose reattachments are offered by the test, one per attempt.
+fn reattaching() -> Reattaching {
+    let (client, server) = UnixStream::pair().unwrap();
+    let (app, inbox, controls, events, admissions) = CoreApp::native_channel(MAX_QUEUE_ITEMS, 7);
+    let (offer, offers) = mpsc::channel(4);
+    let offers: Offers = Arc::new(tokio::sync::Mutex::new(offers));
+    let projects = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let seen = projects.clone();
+    let reattach = Reattach {
+        connect: Box::new(move |project| {
+            seen.lock().unwrap().push(project);
+            let offers = offers.clone();
+            Box::pin(async move { offers.lock().await.recv().await.unwrap() })
+        }),
+        project: Some(PathBuf::from("/start")),
+        attachment: app.attachment_handle(),
+    };
+    let task = tokio::spawn(bridge(Bridge {
+        link: Link {
+            stream: client,
+            death: process_death(std::process::id()).unwrap(),
+        },
+        inbox,
+        controls,
+        admissions,
+        lease: Lease::Tui,
+        events,
+        budget: Budget::default(),
+        epoch: 0,
+        reattach: Some(reattach),
+    }));
+    (app, task, server, offer, projects)
+}
+
+fn offered(attachment: u64, epoch: u64) -> ((Link, Welcome), UnixStream) {
+    let (client, server) = UnixStream::pair().unwrap();
+    let link = Link {
+        stream: client,
+        death: process_death(std::process::id()).unwrap(),
+    };
+    let welcome = Welcome {
+        version: endpoint::VERSION,
+        instance: "fresh".into(),
+        attachment,
+        location_epoch: epoch,
+        notices: Vec::new(),
+    };
+    ((link, welcome), server)
+}
+
+async fn next_event(events: &mut broadcast::Receiver<CoreEvent>) -> CoreEvent {
+    tokio::time::timeout(Duration::from_secs(5), events.recv())
+        .await
+        .unwrap()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn lost_owner_reattaches_same_handle_without_resending_and_refuses_meanwhile() {
+    let (app, task, mut server, offer, projects) = reattaching();
+    let mut events = app.subscribe();
+    let budget = Budget::default();
+    // A switch moves the attachment; the reattachment must resume there.
+    let switch = tokio::spawn({
+        let app = app.clone();
+        async move { app.switch_location("/elsewhere".into()).await }
+    });
+    let (id, switched) = request(&mut server, &budget).await;
+    assert!(matches!(switched, wire::Request::SwitchLocation { .. }));
+    answer(
+        &mut server,
+        &budget,
+        id,
+        1,
+        serde_json::json!({"location": "/elsewhere"}),
+    )
+    .await;
+    let _ = switch.await.unwrap();
+    // The owner vanishes with a read in flight: its outcome is unknown.
+    let read = tokio::spawn({
+        let app = app.clone();
+        async move { app.child_jobs(SessionId("s".into())).await }
+    });
+    let _ = request(&mut server, &budget).await;
+    drop(server);
+    assert_eq!(read.await.unwrap(), Err(wire::unknown()));
+    assert_eq!(next_event(&mut events).await, CoreEvent::OwnerDisconnected);
+    // Reconnecting: new input is refused as never sent, not queued for later.
+    assert_eq!(
+        app.submit(SessionId("s".into()), "draft".into()).await,
+        Err(CoreError::OwnerUnavailable)
+    );
+    let (fresh, mut server) = offered(42, 3);
+    offer.send(Ok(fresh)).await.unwrap();
+    assert_eq!(next_event(&mut events).await, CoreEvent::OwnerReattached);
+    assert_eq!(app.attachment(), 42);
+    assert_eq!(
+        projects.lock().unwrap().as_slice(),
+        &[Some(PathBuf::from("/elsewhere"))]
+    );
+    let read = tokio::spawn({
+        let app = app.clone();
+        async move { app.child_jobs(SessionId("s".into())).await }
+    });
+    let Client::Request {
+        id,
+        location_epoch,
+        request: sent,
+        ..
+    } = framing::read(&mut server, &budget)
+        .await
+        .unwrap()
+        .decode()
+        .unwrap()
+    else {
+        panic!("ordinary request");
+    };
+    assert_eq!(location_epoch, 3);
+    assert!(
+        matches!(*sent, wire::Request::ChildJobs { .. }),
+        "the refused submit was never replayed"
+    );
+    answer(
+        &mut server,
+        &budget,
+        id,
+        3,
+        Vec::<oc_core::queries::ChildJob>::new(),
+    )
+    .await;
+    assert_eq!(read.await.unwrap(), Ok(Vec::new()));
+    app.shutdown().await.unwrap();
+    assert!(matches!(
+        framing::read(&mut server, &budget)
+            .await
+            .unwrap()
+            .decode::<Client>()
+            .unwrap(),
+        Client::Release
+    ));
+    frame(&mut server, &budget, &Server::Released { closing: false }).await;
+    assert_eq!(task.await.unwrap(), Ok(()));
+}
+
+#[tokio::test]
+async fn changed_protocol_stops_reattaching_with_a_typed_reason() {
+    let (app, task, server, offer, _) = reattaching();
+    let mut events = app.subscribe();
+    drop(server);
+    assert_eq!(next_event(&mut events).await, CoreEvent::OwnerDisconnected);
+    offer
+        .send(Err(issue(ServiceCode::ProtocolMismatch)))
+        .await
+        .unwrap();
+    assert!(matches!(
+        next_event(&mut events).await,
+        CoreEvent::OwnerUnrecoverable { .. }
+    ));
+    assert_eq!(task.await.unwrap(), Err(()));
+    assert!(app.is_closed());
 }

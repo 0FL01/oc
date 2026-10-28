@@ -222,7 +222,15 @@ pub enum CoreEvent {
     /// A disposable live hint was lost; replace the bounded projection.
     ProjectionGap,
     /// The owner disappeared. This is not evidence that a mutation failed.
+    /// An interactive client then reattaches on its own; others stop.
     OwnerDisconnected,
+    /// The same handle serves a fresh owner attachment. Nothing was resent;
+    /// projections, consumer registrations and catalogs must be re-read.
+    OwnerReattached,
+    /// Reattachment cannot succeed (protocol/binary changed, unsafe root).
+    OwnerUnrecoverable {
+        reason: String,
+    },
     /// The session's pending inbox changed. `delivered` names steer items
     /// that just joined the running turn as user messages.
     InboxChanged {
@@ -1020,7 +1028,8 @@ struct ActiveTurn {
 /// Cloneable application handle over a bounded worker inbox.
 #[derive(Debug, Clone)]
 pub struct CoreApp {
-    attachment: u64,
+    /// Native attachment id; a reattached interactive client gets a new one.
+    attachment: Arc<AtomicU64>,
     inbox: InboxSender,
     control: Option<mpsc::Sender<NativeControl>>,
     events: broadcast::Sender<CoreEvent>,
@@ -1425,7 +1434,7 @@ impl CoreApp {
         let (inbox, receiver) = mpsc::channel(capacity);
         (
             Self {
-                attachment: 0,
+                attachment: Arc::default(),
                 inbox: InboxSender {
                     sender: inbox,
                     admissions: None,
@@ -1453,7 +1462,7 @@ impl CoreApp {
         let admissions = NativeAdmissions::default();
         app.inbox.admissions = Some(admissions.clone());
         app.control = Some(control);
-        app.attachment = attachment;
+        app.attachment.store(attachment, Ordering::Release);
         (app, inbox, receiver, events, admissions)
     }
 
@@ -1469,7 +1478,12 @@ impl CoreApp {
     }
 
     pub fn attachment(&self) -> u64 {
-        self.attachment
+        self.attachment.load(Ordering::Acquire)
+    }
+
+    /// Shared by every clone: the native transport publishes a reattachment.
+    pub fn attachment_handle(&self) -> Arc<AtomicU64> {
+        self.attachment.clone()
     }
 
     /// Forward an already typed command across the native authority's bounded
@@ -3336,6 +3350,8 @@ mod tests {
                 | CoreEvent::SessionViewed { .. }
                 | CoreEvent::ProjectionGap
                 | CoreEvent::OwnerDisconnected
+                | CoreEvent::OwnerReattached
+                | CoreEvent::OwnerUnrecoverable { .. }
                 | CoreEvent::Projection { .. } => {}
                 CoreEvent::TextDelta { delta, .. } => deltas.push(delta),
                 CoreEvent::TurnFinished { text, .. } => return (deltas, text),
@@ -3804,6 +3820,8 @@ mod tests {
                 | CoreEvent::SessionViewed { .. }
                 | CoreEvent::ProjectionGap
                 | CoreEvent::OwnerDisconnected
+                | CoreEvent::OwnerReattached
+                | CoreEvent::OwnerUnrecoverable { .. }
                 | CoreEvent::Projection { .. } => {}
                 CoreEvent::TurnInterrupted { partial, .. } => {
                     assert!(partial.contains("c0 "), "partial={partial}");

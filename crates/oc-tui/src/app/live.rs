@@ -106,7 +106,9 @@ impl ScriptDriver {
                     | CoreEvent::WorkspaceChanged { .. }
                     | CoreEvent::SessionViewed { .. }
                     | CoreEvent::ProjectionGap
-                    | CoreEvent::OwnerDisconnected,
+                    | CoreEvent::OwnerDisconnected
+                    | CoreEvent::OwnerReattached
+                    | CoreEvent::OwnerUnrecoverable { .. },
                 )) => {}
                 Ok(Ok(CoreEvent::SessionModelSelected { session, commit })) => {
                     state.apply_session_model_selected(&session, &commit)
@@ -1471,6 +1473,27 @@ impl TuiState {
     }
 
     fn fail_submission(&mut self, mut pending: PendingSubmission, error: CoreError) {
+        // Refused before it left this process while the owner reconnects: it
+        // is simply a draft again, not a retained request with unknown outcome.
+        if error == CoreError::OwnerUnavailable
+            && self.input.is_empty()
+            && !self.editor.has_images()
+            && !self.prompt_shell_mode()
+        {
+            if !matches!(pending.purpose, SubmissionPurpose::Empty) {
+                self.restore_composer_draft(pending.draft);
+            }
+            if self.status != TuiStatus::Quit {
+                self.status = if self.active_turn.is_some() {
+                    TuiStatus::Streaming
+                } else {
+                    TuiStatus::Idle
+                };
+            }
+            self.push_note("Runtime reconnecting; nothing was sent. Draft kept in the editor.");
+            self.invalidate_transcript();
+            return;
+        }
         let unknown = error == CoreError::Shutdown;
         let detail = self.submission_note(&error);
         let note = if unknown {

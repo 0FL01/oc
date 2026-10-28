@@ -2913,7 +2913,9 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             | CoreEvent::WorkspaceChanged { .. }
             | CoreEvent::SessionViewed { .. }
             | CoreEvent::ProjectionGap
-            | CoreEvent::OwnerDisconnected => {}
+            | CoreEvent::OwnerDisconnected
+            | CoreEvent::OwnerReattached
+            | CoreEvent::OwnerUnrecoverable { .. } => {}
         }
     };
     assert_eq!(reasoning, "**Planning**\n\n", "reasoning delta surfaces");

@@ -9,6 +9,7 @@ use crate::application::SpawnDiagnostic;
 use oc_core::{
     core_app::{CoreApp, CoreEvent, InboxMsg, NativeAdmissions, NativeControl, WorkerGuard},
     queries::{ServiceCode, StartupNotice},
+    session::CoreError,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -17,8 +18,9 @@ use std::{
         fd::{AsRawFd, FromRawFd, OwnedFd},
         unix::net::UnixStream as StdStream,
     },
-    path::Path,
+    path::{Path, PathBuf},
     process::Stdio,
+    sync::{Arc, atomic::AtomicU64},
     time::Duration,
 };
 use tokio::{
@@ -36,16 +38,60 @@ pub async fn attach(
 ) -> Result<(CoreApp, WorkerGuard, Vec<StartupNotice>), SpawnDiagnostic> {
     let root = endpoint::candidate(data).map_err(|error| endpoint::diagnostic(data, error))?;
     let budget = Budget::default();
+    let (link, welcome) = connect(&root, project, lease, &budget).await?;
+    match lease {
+        Lease::Tui => crate::trace::log("tui.begin", "project=configured"),
+        Lease::Run => crate::trace::log("headless.begin", "project=configured"),
+        Lease::Auth | Lease::Sessions => {}
+    }
+    let (app, inbox, controls, events, admissions) =
+        CoreApp::native_channel(oc_core::session::MAX_QUEUE_ITEMS, welcome.attachment);
+    // Only an interactive viewer outlives its socket: it rejoins (or re-elects)
+    // the owner behind the same handle. Headless/auth keep the typed loss.
+    let reattach = (lease == Lease::Tui).then(|| {
+        Reattach::owner(
+            root,
+            project.map(Path::to_path_buf),
+            app.attachment_handle(),
+            budget.clone(),
+        )
+    });
+    let notices = welcome.notices;
+    let task = tokio::spawn(async move {
+        bridge(Bridge {
+            link,
+            inbox,
+            controls,
+            admissions,
+            lease,
+            events,
+            budget,
+            epoch: welcome.location_epoch,
+            reattach,
+        })
+        .await
+        .map_err(|_| issue(ServiceCode::Transport).diagnostic)
+    });
+    Ok((app, WorkerGuard::from_diagnostic_task(task), notices))
+}
+
+/// Elect or join the owner of `root` and complete one HELLO exchange.
+async fn connect(
+    root: &Path,
+    project: Option<&Path>,
+    lease: Lease,
+    budget: &Budget,
+) -> Result<(Link, Welcome), SpawnDiagnostic> {
     loop {
         let mut startup = None;
-        let registration = match endpoint::read(&root)
-            .map_err(|error| endpoint::diagnostic(&root, error))?
+        let registration = match endpoint::read(root)
+            .map_err(|error| endpoint::diagnostic(root, error))?
         {
-            Some(registration) => match endpoint::connect(&root, &registration).await {
+            Some(registration) => match endpoint::connect(root, &registration).await {
                 Ok(stream) => {
                     let exited = process_death(registration.pid);
                     let result =
-                        handshake(stream, registration, project, lease, budget.clone(), None).await;
+                        handshake(stream, registration, project, lease, budget, None).await;
                     // This exact typed cause denotes the private HELLO socket,
                     // not a provider/MCP/configuration transport failure. No
                     // application request has been issued, so after observing
@@ -71,13 +117,13 @@ pub async fn attach(
                         io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound
                     ) =>
                 {
-                    launch(&root, project, lease, &budget, &mut startup).await?
+                    launch(root, project, lease, budget, &mut startup).await?
                 }
-                Err(error) => return Err(endpoint::diagnostic(&root, error)),
+                Err(error) => return Err(endpoint::diagnostic(root, error)),
             },
-            None => launch(&root, project, lease, &budget, &mut startup).await?,
+            None => launch(root, project, lease, budget, &mut startup).await?,
         };
-        let stream = endpoint::connect(&root, &registration)
+        let stream = endpoint::connect(root, &registration)
             .await
             .map_err(|_| issue(ServiceCode::ConnectionFailed))?;
         return handshake(stream, registration, project, lease, budget, startup).await;
@@ -190,9 +236,9 @@ async fn handshake(
     registration: endpoint::Registration,
     project: Option<&Path>,
     lease: Lease,
-    budget: Budget,
+    budget: &Budget,
     startup: Option<UnixStream>,
-) -> Result<(CoreApp, WorkerGuard, Vec<StartupNotice>), SpawnDiagnostic> {
+) -> Result<(Link, Welcome), SpawnDiagnostic> {
     if registration.version != endpoint::VERSION {
         return Err(issue(ServiceCode::ProtocolMismatch));
     }
@@ -206,11 +252,11 @@ async fn handshake(
     };
     framing::write(
         &mut stream,
-        &Message::encode(&hello, &budget).map_err(|_| issue(ServiceCode::CapacityExceeded))?,
+        &Message::encode(&hello, budget).map_err(|_| issue(ServiceCode::CapacityExceeded))?,
     )
     .await
     .map_err(|_| issue(ServiceCode::Transport))?;
-    let welcome: Result<Welcome, SpawnDiagnostic> = framing::read(&mut stream, &budget)
+    let welcome: Result<Welcome, SpawnDiagnostic> = framing::read(&mut stream, budget)
         .await
         .map_err(|_| issue(ServiceCode::Transport))?
         .decode()
@@ -220,31 +266,8 @@ async fn handshake(
     if welcome.version != endpoint::VERSION || welcome.instance != registration.instance {
         return Err(issue(ServiceCode::ProtocolMismatch));
     }
-    match lease {
-        Lease::Tui => crate::trace::log("tui.begin", "project=configured"),
-        Lease::Run => crate::trace::log("headless.begin", "project=configured"),
-        Lease::Auth | Lease::Sessions => {}
-    }
     drop(startup); // Ready attachment now owns the startup intent's lifetime.
-    let (app, inbox, controls, events, admissions) =
-        CoreApp::native_channel(oc_core::session::MAX_QUEUE_ITEMS, welcome.attachment);
-    let notices = welcome.notices;
-    let task = tokio::spawn(async move {
-        bridge(Bridge {
-            stream,
-            inbox,
-            controls,
-            admissions,
-            lease,
-            events,
-            budget,
-            epoch: welcome.location_epoch,
-            death,
-        })
-        .await
-        .map_err(|_| issue(ServiceCode::Transport).diagnostic)
-    });
-    Ok((app, WorkerGuard::from_diagnostic_task(task), notices))
+    Ok((Link { stream, death }, welcome))
 }
 
 fn process_death(pid: u32) -> io::Result<tokio::io::unix::AsyncFd<OwnedFd>> {
@@ -373,8 +396,55 @@ fn submission(request: &wire::Request) -> Option<&str> {
     }
 }
 
-struct Bridge {
+/// One ready owner socket and the owner's exit observer.
+struct Link {
     stream: UnixStream,
+    death: tokio::io::unix::AsyncFd<OwnedFd>,
+}
+
+type Connector = Box<
+    dyn Fn(
+            Option<PathBuf>,
+        )
+            -> futures_util::future::BoxFuture<'static, Result<(Link, Welcome), SpawnDiagnostic>>
+        + Send
+        + Sync,
+>;
+
+/// Interactive reattachment: a new socket behind the same `CoreApp` handle.
+struct Reattach {
+    connect: Connector,
+    /// Location of the last acknowledged switch; the next HELLO resumes there.
+    project: Option<PathBuf>,
+    attachment: Arc<AtomicU64>,
+}
+
+impl Reattach {
+    fn owner(
+        root: PathBuf,
+        project: Option<PathBuf>,
+        attachment: Arc<AtomicU64>,
+        budget: Budget,
+    ) -> Self {
+        Self {
+            connect: Box::new(move |project| {
+                let root = root.clone();
+                let budget = budget.clone();
+                Box::pin(
+                    async move { connect(&root, project.as_deref(), Lease::Tui, &budget).await },
+                )
+            }),
+            project,
+            attachment,
+        }
+    }
+}
+
+const REATTACH_FIRST: Duration = Duration::from_millis(250);
+const REATTACH_CAP: Duration = Duration::from_secs(5);
+
+struct Bridge {
+    link: Link,
     inbox: mpsc::Receiver<InboxMsg>,
     controls: mpsc::Receiver<NativeControl>,
     admissions: NativeAdmissions,
@@ -382,7 +452,22 @@ struct Bridge {
     events: broadcast::Sender<CoreEvent>,
     budget: Budget,
     epoch: u64,
-    death: tokio::io::unix::AsyncFd<OwnedFd>,
+    reattach: Option<Reattach>,
+}
+
+enum Ended {
+    Released,
+    ExitTimeout,
+    Lost {
+        reason: &'static str,
+        releasing: bool,
+    },
+}
+
+enum Recovery {
+    Restored(Link, Welcome),
+    Stopped,
+    Failed(SpawnDiagnostic),
 }
 
 // Observations order snapshots against the wire, while owned request receipts
@@ -446,7 +531,7 @@ impl Operation {
 
 async fn bridge(bridge: Bridge) -> Result<(), ()> {
     let Bridge {
-        stream,
+        mut link,
         mut inbox,
         mut controls,
         admissions,
@@ -454,9 +539,140 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
         events,
         budget,
         mut epoch,
-        death,
+        mut reattach,
     } = bridge;
+    loop {
+        let location = reattach.as_mut().map(|reattach| &mut reattach.project);
+        let ended = serve(
+            link,
+            &mut inbox,
+            &mut controls,
+            &admissions,
+            lease,
+            &events,
+            &budget,
+            epoch,
+            location,
+        )
+        .await;
+        let (reason, releasing) = match ended {
+            Ended::Released => return Ok(()),
+            Ended::ExitTimeout => return Err(()),
+            Ended::Lost { reason, releasing } => (reason, releasing),
+        };
+        crate::trace::log("native.bridge.closed", &format!("reason={reason}"));
+        let _ = events.send(CoreEvent::OwnerDisconnected);
+        let Some(reattach) = reattach.as_mut().filter(|_| !releasing) else {
+            return Err(());
+        };
+        match recover(reattach, &mut inbox, &mut controls, &admissions).await {
+            Recovery::Restored(next, welcome) => {
+                link = next;
+                epoch = welcome.location_epoch;
+                reattach
+                    .attachment
+                    .store(welcome.attachment, std::sync::atomic::Ordering::Release);
+                crate::trace::log(
+                    "native.bridge.reattached",
+                    &format!("attachment={}", welcome.attachment),
+                );
+                let _ = events.send(CoreEvent::OwnerReattached);
+            }
+            Recovery::Stopped => return Ok(()),
+            Recovery::Failed(error) => {
+                crate::trace::log("native.bridge.unrecoverable", &error.to_string());
+                let _ = events.send(CoreEvent::OwnerUnrecoverable {
+                    reason: error.to_string(),
+                });
+                return Err(());
+            }
+        }
+    }
+}
+
+/// Retry until a fresh attachment is ready. Meanwhile nothing is queued for
+/// later delivery: each request is refused as never sent, so its caller keeps
+/// the draft instead of a hidden deferred effect.
+async fn recover(
+    reattach: &Reattach,
+    inbox: &mut mpsc::Receiver<InboxMsg>,
+    controls: &mut mpsc::Receiver<NativeControl>,
+    admissions: &NativeAdmissions,
+) -> Recovery {
+    let mut delay = REATTACH_FIRST;
+    loop {
+        let wait = delay / 2 + jitter(delay / 2);
+        let attempt = async {
+            tokio::time::sleep(wait).await;
+            (reattach.connect)(reattach.project.clone()).await
+        };
+        tokio::pin!(attempt);
+        loop {
+            tokio::select! {
+                result = &mut attempt => match result {
+                    Ok((link, welcome)) => return Recovery::Restored(link, welcome),
+                    Err(error) if permanent(&error) => return Recovery::Failed(error),
+                    Err(_) => {
+                        delay = (delay * 2).min(REATTACH_CAP);
+                        break;
+                    }
+                },
+                message = controls.recv() => match message {
+                    Some(NativeControl::Cancel { admission, ack, .. }) => {
+                        let unsent = admission.is_some_and(|entry| {
+                            entry.request.load(std::sync::atomic::Ordering::Acquire) == 0
+                        });
+                        let _ = ack.send(if unsent { Ok(()) } else { Err(CoreError::OwnerUnavailable) });
+                    }
+                    Some(NativeControl::Shutdown) | None => return Recovery::Stopped,
+                },
+                message = inbox.recv() => {
+                    let Some((request, reply)) = message.and_then(Pending::from_inbox) else {
+                        return Recovery::Stopped;
+                    };
+                    if let Some(session) = submission(&request)
+                        && let Some(entry) = admissions.claim(&oc_core::domain::SessionId(session.into()))
+                    {
+                        admissions.complete(&entry);
+                    }
+                    reply.finish(Err(CoreError::OwnerUnavailable));
+                }
+            }
+        }
+    }
+}
+
+/// Retrying cannot help: a different protocol/binary or an unsafe data root.
+fn permanent(error: &SpawnDiagnostic) -> bool {
+    matches!(
+        error.diagnostic.code,
+        ServiceCode::ProtocolMismatch | ServiceCode::SpawnFailed | ServiceCode::UnsafeDataRoot
+    )
+}
+
+fn jitter(span: Duration) -> Duration {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |elapsed| elapsed.subsec_nanos());
+    span.mul_f64(f64::from(nanos) / 1e9)
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn serve(
+    link: Link,
+    inbox: &mut mpsc::Receiver<InboxMsg>,
+    controls: &mut mpsc::Receiver<NativeControl>,
+    admissions: &NativeAdmissions,
+    lease: Lease,
+    events: &broadcast::Sender<CoreEvent>,
+    budget: &Budget,
+    mut epoch: u64,
+    mut location: Option<&mut Option<PathBuf>>,
+) -> Ended {
+    let Link { stream, death } = link;
     let mut pipes = Pipes::start(stream, budget.clone());
+    // Requests whose acknowledgement moves this attachment to a Location.
+    let mut routes = BTreeSet::<u64>::new();
     let mut pending: BTreeMap<u64, Pending> = BTreeMap::new();
     let mut control_pending = BTreeSet::new();
     let mut submitted = BTreeMap::new();
@@ -498,6 +714,12 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                     Server::Reply { id, location_epoch, result } => {
                         epoch = epoch.max(location_epoch);
                         let Some(reply) = pending.remove(&id) else { break Err("unknown_reply"); };
+                        if routes.remove(&id)
+                            && let Some(slot) = location.as_mut()
+                            && let Some(path) = result.as_ref().ok().and_then(|value| value["Ok"]["location"].as_str())
+                        {
+                            **slot = Some(PathBuf::from(path));
+                        }
                         control_pending.remove(&id);
                         if let Some(entry) = submitted.remove(&id) { admissions.complete(&entry); }
                         // Failure retracts only this request's provisional owner.
@@ -592,6 +814,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                 if let Some(entry) = admission { entry.request.store(sequence, std::sync::atomic::Ordering::Release); submitted.insert(sequence, entry); }
                 let expected = control_session(&request).and_then(|session| operations.get(session).and_then(Operation::expected));
                 if let wire::Request::Workspace { selected } = &request { snapshots.insert(sequence, (selected.clone(), epoch)); }
+                if matches!(request, wire::Request::SwitchLocation { .. } | wire::Request::SwitchLocationHome { .. } | wire::Request::OpenPickerSession { .. }) { routes.insert(sequence); }
                 if let Some(session) = submission(&request) {
                     let completion = match request {
                         wire::Request::Submit { .. } | wire::Request::SubmitFresh { .. } | wire::Request::Compress { .. } => OwnedCompletion::Turn,
@@ -601,7 +824,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                     operations.entry(session.into()).or_default().owned.insert(sequence, OwnedOperation { origin: None, completion, acknowledged_at: None, compaction: None });
                 }
                 let frame = Client::Request { id: sequence, location_epoch: epoch, expected, request: Box::new(request) };
-                if send(&pipes.outgoing, &budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err("request_egress"); }
+                if send(&pipes.outgoing, budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err("request_egress"); }
                 pending.insert(sequence, reply);
             },
             () = tokio::time::sleep(Duration::from_millis(5)), if pending.values().any(Pending::has_cancellation) => {
@@ -636,19 +859,18 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
     for (_, entry) in submitted {
         admissions.complete(&entry);
     }
-    if let Err(reason) = result {
-        crate::trace::log("native.bridge.closed", &format!("reason={reason}"));
-        let _ = events.send(CoreEvent::OwnerDisconnected);
-    }
     pipes.stop().await;
-    if closing {
+    match result {
+        Err(reason) => Ended::Lost { reason, releasing },
         // Process exit is terminal readiness; there is no event to consume or clear.
-        let _exited = tokio::time::timeout(Duration::from_secs(10), death.readable())
-            .await
-            .map_err(|_| ())?
-            .map_err(|_| ())?;
+        Ok(()) if closing => {
+            match tokio::time::timeout(Duration::from_secs(10), death.readable()).await {
+                Ok(Ok(_)) => Ended::Released,
+                _ => Ended::ExitTimeout,
+            }
+        }
+        Ok(()) => Ended::Released,
     }
-    result.map_err(|_| ())
 }
 
 pub(super) fn send(

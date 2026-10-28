@@ -230,6 +230,8 @@ impl Reads {
                         // A lost owner attachment was already reported; its local
                         // "shutdown" must not replace that actionable cause.
                         Err(CoreError::Shutdown) if app.is_closed() => {}
+                        // Never sent; the reattachment re-reads everything.
+                        Err(CoreError::OwnerUnavailable) => {}
                         Err(error) => {
                             view.push_note(&format!("Refresh failed: {error}"));
                             changed = true;
