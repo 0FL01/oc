@@ -496,8 +496,11 @@ pub(crate) fn render(
         )]));
     }
     if failed {
-        for line in card.output_preview.lines() {
-            out.push(frame(vec![Span::styled(line, base.fg(theme.error()))]));
+        for line in crate::styled::display_output(&card.output_preview).lines() {
+            out.push(frame(vec![Span::styled(
+                line.to_owned(),
+                base.fg(theme.error()),
+            )]));
         }
     }
     out

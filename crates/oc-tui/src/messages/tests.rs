@@ -316,7 +316,25 @@ fn source_sanitization_preserves_only_generated_animation_cells() {
         [(3, styled::AnimationSource::Reasoning)]
     );
     safe.patch_cell(3, "⠙");
-    assert_eq!(safe.plain_text(), "   ⠙ command� literal ⋯");
+    assert_eq!(safe.plain_text(), "   ⠙ command  literal ⋯");
+    // TAB keeps its one source cell; real terminal controls stay visible.
+    let hostile = sanitize_line(Line::plain("a\tb\x1b[31m"));
+    assert_eq!(hostile.plain_text(), "a b�[31m");
+}
+
+#[test]
+fn markdown_prose_tab_is_whitespace_not_replacement() {
+    let rows = markdown(
+        "key:\tvalue\n\n| a\t| b |\n|---|---|\n| 1\t| 2 |",
+        Theme::dark(),
+    );
+    let text = rows
+        .iter()
+        .map(Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(text.contains("key:") && text.contains("value"), "{text}");
+    assert!(!text.contains(['\t', '\u{fffd}']), "{text:?}");
 }
 
 fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {

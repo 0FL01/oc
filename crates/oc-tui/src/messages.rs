@@ -5181,9 +5181,14 @@ pub fn markdown(text: &str, theme: &Theme) -> Vec<Line> {
 
 /// Model text must never emit raw terminal control sequences, even inside a
 /// code/table event. Keep printable Unicode and make controls visible as U+FFFD.
+/// A TAB is whitespace, not a hostile control: one cell keeps wrapped widths.
 fn safe_text(text: &str) -> String {
     text.chars()
-        .map(|c| if c.is_control() { '�' } else { c })
+        .map(|c| match c {
+            '\t' => ' ',
+            c if c.is_control() => '�',
+            c => c,
+        })
         .collect()
 }
 

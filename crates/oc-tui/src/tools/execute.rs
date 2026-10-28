@@ -184,7 +184,7 @@ pub(crate) fn block(
                     .saturating_sub(UnicodeWidthStr::width(prefix.as_str()))
                     .max(1);
                 let mut first = true;
-                for text in value.split('\n') {
+                for text in styled::display_output(&value).split('\n') {
                     for line in styled::wrap_line_limited(
                         &Line::styled(text, Style::default().fg(theme.text())),
                         inner,
@@ -228,6 +228,7 @@ pub(crate) fn block(
     }
     if failed {
         let text = output_text(card).unwrap_or_default();
+        let text = styled::display_output(text.trim());
         let text = text.trim();
         let max_chars = 4 * if width == 0 {
             usize::MAX / 4

@@ -470,9 +470,15 @@ fn shell_render(
         Some((stdout, stderr)) => (stdout, Some(stderr)),
         None => (rest, None),
     };
-    render.stdout = stdout.lines().map(str::to_owned).collect();
+    render.stdout = styled::display_output(stdout)
+        .lines()
+        .map(str::to_owned)
+        .collect();
     if let Some(stderr) = stderr {
-        render.stderr = stderr.lines().map(str::to_owned).collect();
+        render.stderr = styled::display_output(stderr)
+            .lines()
+            .map(str::to_owned)
+            .collect();
     }
     render
 }
@@ -671,12 +677,16 @@ fn tool_block_inner(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
             frame.row(&[Span::styled(title, frame.body_style().fg(theme.error()))]),
             frame.row(&[]),
         ];
-        lines.extend(card.output_preview.lines().map(|line| {
-            frame.row(&[Span::styled(
-                line.to_string(),
-                frame.body_style().fg(theme.text_muted()),
-            )])
-        }));
+        lines.extend(
+            styled::display_output(&card.output_preview)
+                .lines()
+                .map(|line| {
+                    frame.row(&[Span::styled(
+                        line.to_string(),
+                        frame.body_style().fg(theme.text_muted()),
+                    )])
+                }),
+        );
         lines.push(frame.row(&[]));
         return lines;
     }
@@ -1086,8 +1096,7 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
     {
         // Body is the capture owner's safe publication-order preview, not an
         // envelope to parse. Both streams are muted in pinned ShellDisplay.
-        let mut rows = output
-            .body
+        let mut rows = styled::display_output(&output.body)
             .lines()
             .map(|line| (line.to_owned(), false))
             .collect::<Vec<_>>();
@@ -1379,7 +1388,7 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
     if patch.files.is_empty() && !patch.failed {
         // Malformed or empty payload: keep the recorded outcome text instead
         // of an invented diff.
-        for line in card.output_preview.lines() {
+        for line in styled::display_output(&card.output_preview).lines() {
             out.push(frame.row(&[Span::styled(line.to_string(), muted)]));
         }
     }
@@ -1387,7 +1396,7 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
         // Pinned BlockTool separates the header and real error child by one
         // row; ApplyPatch keeps the header red but uses muted error detail.
         out.push(frame.row(&[]));
-        for line in card.output_preview.lines() {
+        for line in styled::display_output(&card.output_preview).lines() {
             if !line.is_empty() {
                 out.push(frame.row(&[Span::styled(line.to_string(), muted)]));
             }
@@ -1738,7 +1747,10 @@ fn inline_rows_expanded(
     // Read's Loaded rows require upstream metadata.loaded (:3097–3121).
     // Our recorded operation has no such metadata; a path is not evidence of it.
     if failed && (!exploration || expanded || card.state == "unknown") {
-        for line in card.output_preview.lines().take(TOOL_OUTPUT_LINES) {
+        for line in styled::display_output(&card.output_preview)
+            .lines()
+            .take(TOOL_OUTPUT_LINES)
+        {
             if line.is_empty() {
                 continue;
             }
@@ -1967,7 +1979,7 @@ pub(crate) fn generic_block_expanded(
                 .max(1)
         };
         let mut first = true;
-        for logical in value.split('\n') {
+        for logical in styled::display_output(value).split('\n') {
             for line in styled::wrap_line_limited(
                 &Line::styled(logical, ratatui::style::Style::default().fg(color)),
                 available,
@@ -3070,6 +3082,53 @@ mod tests {
                 ]
             );
         }
+    }
+
+    /// Recorded terminal output shows as text, never as U+FFFD: `ldconfig -p`
+    /// TAB rows, forced-color SGR, OSC titles and CR progress (`stripAnsi`).
+    #[test]
+    fn shell_output_terminal_controls_render_as_text() {
+        let output = "exit 0\n\tlibfoo.so (libc6) => /lib/libfoo.so\n\x1b[31mred\x1b[0m\n\
+                      \x1b]0;title\x07titled\n10%\r100%\na\x07b\n[stderr]\n\twarn\n";
+        let card = make_card(
+            "bash",
+            "completed",
+            serde_json::json!({"argv": ["ldconfig", "-p"]}),
+            Some(output),
+        );
+        let (rows, _) = render(&card, 80, 12);
+        let text = rows.join("\n");
+        for shown in [
+            "┃    libfoo.so (libc6) => /lib/libfoo.so",
+            "┃  red",
+            "┃  titled",
+            "┃  100%",
+            "┃  ab",
+            "┃    warn",
+        ] {
+            assert!(
+                rows.iter().any(|row| row == shown),
+                "{shown:?} in {rows:#?}"
+            );
+        }
+        assert!(!text.contains('\u{fffd}') && !text.chars().any(|c| c.is_control() && c != '\n'));
+
+        let failed = make_card(
+            "custom_tool",
+            "failed",
+            serde_json::json!({"query": "x"}),
+            Some("\x1b[1merror\x1b[0m:\tmissing\r\n"),
+        );
+        let ToolRender::Inline(inline) = &failed.render else {
+            panic!("generic tool")
+        };
+        let rows = generic_block_expanded(inline, &failed, Theme::dark(), 80, true)
+            .iter()
+            .map(Line::plain_text)
+            .collect::<Vec<_>>();
+        let text = rows.join("\n");
+        assert!(text.contains("error:  missing"), "{rows:#?}");
+        assert!(!text.contains('\u{fffd}') && !text.chars().any(|c| c.is_control() && c != '\n'));
     }
 
     #[test]

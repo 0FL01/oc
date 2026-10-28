@@ -587,7 +587,10 @@ pub(crate) fn visit_source_rows(
 ) {
     let glyphs = text.grapheme_indices(true).map(|(byte, glyph)| {
         let range = byte..byte + glyph.len();
-        let glyph = if glyph.chars().any(char::is_control) {
+        // Same one-cell TAB/control projection as `messages::safe_text`.
+        let glyph = if glyph == "\t" {
+            " "
+        } else if glyph.chars().any(char::is_control) {
             "�"
         } else {
             glyph
@@ -956,6 +959,81 @@ fn coalesce(cells: &[WrappedCell]) -> Vec<Span> {
     spans
 }
 
+/// Recorded tool output is a terminal byte stream, not markup. Upstream views
+/// apply `stripAnsi` and OpenTUI paints each TAB as two cells; CR overwrites
+/// its row, as progress output expects. Remaining controls never reach the
+/// terminal. Presentation only: recorded output is never rewritten.
+pub(crate) fn display_output(text: &str) -> std::borrow::Cow<'_, str> {
+    if !text.chars().any(|c| c.is_control() && c != '\n') {
+        return std::borrow::Cow::Borrowed(text);
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut row = 0;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\n' => {
+                out.push('\n');
+                row = out.len();
+            }
+            '\r' => {
+                if chars
+                    .peek()
+                    .is_some_and(|next| !matches!(next, '\n' | '\r'))
+                {
+                    out.truncate(row);
+                }
+            }
+            '\t' => out.push_str("  "),
+            '\u{1b}' => match chars.peek() {
+                Some('[') => {
+                    chars.next();
+                    skip_csi(&mut chars);
+                }
+                Some(']' | 'P' | 'X' | '^' | '_') => {
+                    chars.next();
+                    skip_control_string(&mut chars);
+                }
+                Some('\u{20}'..='\u{2f}') => {
+                    while chars
+                        .next_if(|c| matches!(c, '\u{20}'..='\u{2f}'))
+                        .is_some()
+                    {}
+                    chars.next_if(|c| matches!(c, '\u{30}'..='\u{7e}'));
+                }
+                Some('\u{30}'..='\u{7e}') => {
+                    chars.next();
+                }
+                _ => {}
+            },
+            '\u{9b}' => skip_csi(&mut chars),
+            '\u{90}' | '\u{98}' | '\u{9d}' | '\u{9e}' | '\u{9f}' => skip_control_string(&mut chars),
+            c if c.is_control() => {}
+            c => out.push(c),
+        }
+    }
+    std::borrow::Cow::Owned(out)
+}
+
+fn skip_csi(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) {
+    while chars
+        .next_if(|c| matches!(c, '\u{20}'..='\u{3f}'))
+        .is_some()
+    {}
+    chars.next_if(|c| matches!(c, '\u{40}'..='\u{7e}'));
+}
+
+/// OSC/DCS/SOS/PM/APC end at BEL or ST; an unterminated one ends at its row.
+fn skip_control_string(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) {
+    while let Some(c) = chars.next_if(|c| *c != '\n') {
+        match c {
+            '\u{7}' | '\u{9c}' => return,
+            '\u{1b}' if chars.next_if_eq(&'\\').is_some() => return,
+            _ => {}
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "styled/wrap_tests.rs"]
 mod wrap_tests;
@@ -1229,6 +1307,35 @@ mod tests {
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0].plain_text(), "abc ");
         assert_eq!(rows[1].plain_text(), "xxxx");
+    }
+
+    #[test]
+    fn display_output_strips_terminal_controls() {
+        let clean = "plain\nunicode café ⇒";
+        assert!(matches!(
+            display_output(clean),
+            std::borrow::Cow::Borrowed(text) if text == clean
+        ));
+        for (raw, shown) in [
+            (
+                "\tlibfoo.so (libc6) => /lib/libfoo.so",
+                "  libfoo.so (libc6) => /lib/libfoo.so",
+            ),
+            ("\x1b[1;31mred\x1b[0m text\x1b[K", "red text"),
+            ("\u{9b}32mgreen\u{9b}0m", "green"),
+            ("\x1b]0;title\x07after", "after"),
+            ("\x1b]8;;https://x\x1b\\link\x1b]8;;\x1b\\", "link"),
+            ("\x1b(Bcharset\x1b=", "charset"),
+            ("10%\r55%\r100%", "100%"),
+            ("crlf\r\nnext\r", "crlf\nnext"),
+            ("a\x07b\x08c\0d\x7fe", "abcde"),
+            ("\x1b[31\nkept", "\nkept"),
+            ("\x1b]unterminated\nkept", "\nkept"),
+        ] {
+            let shown_now = display_output(raw);
+            assert_eq!(shown_now, shown, "{raw:?}");
+            assert!(!shown_now.chars().any(|c| c.is_control() && c != '\n'));
+        }
     }
 
     #[test]
