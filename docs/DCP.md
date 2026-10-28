@@ -103,7 +103,7 @@ Model-visible affordances (как в donor): при доступном `compress
 system guidance и полный `compress-range` + native rules в описании tool; user
 сообщения истории, блоки и текущая задача получают `<dcp-message-id>` отдельной
 runtime-частью (provider output не меняется), закрытые шаги текущей задачи —
-маркер `tassistant-…` после своих результатов. Reminder — полное тело donor после
+маркер `tassistant-…` после своих результатов. Reminder — полное тело (donor; context-limit/iteration — native Long Horizon адаптации) после
 самого нового контекста, без внутренних lane-меток. Step range (`startId..endId` по
 маркерам) заменяет эти шаги одной summary на следующей закрытой границе, как
 task renewal; задача, прочие шаги и protected группы остаются. IDs не меняют usage
@@ -199,7 +199,7 @@ budget. Панель различает reminder thresholds и реальные 
 
 Nudge timing/placement и counter resets перенести из pinned hooks/prompts/tests. Не добавлять новую persistent reminder message на каждый token/chunk; emitted prompt projection не должна со временем накапливать дубликаты nudges. Context-limit reminder повторяется по частоте, пока превышение реально сохраняется; успешная compression пересчитывает counters. Manual mode отключает autonomous tool invocation/instructions в объёме baseline; manual automaticStrategies control не игнорируется.
 
-Частота context-limit nudges ограничивает создание новых anchors, а не видимость уже активной подсказки. Пока превышение сохраняется, каждый request получает одну transient подсказку с retained anchor; replay не увеличивает `emitted` и не переносит её на более поздний anchor. При неизменной config default-текст не меняется вслед за token estimate, чтобы не сбрасывать history prefix cache. Исчезнувший anchor, актуальные thresholds/summaryBuffer, availability и successful-compression cooldown остаются authoritative. Hard guidance допускает существующий current-task renewal, а не только закрытые диапазоны.
+Long Horizon (решение владельца 2026-10-28): context-limit nudge выдаётся только при новом anchor, т.е. не чаще раза в `nudgeFrequency` видимых сообщений/шагов, а не на каждом request — повторяемая на хвосте тревога читалась моделью как стоп-сигнал. Пороги min/max сравниваются с тем же provider-usage-anchored estimate, что admission и TUI; bytes/4 (включая opaque encrypted reasoning) — только fallback до первого совпавшего usage anchor. Native тело говорит, что soft threshold — не окно модели и не причина останавливаться/откатываться, и несёт факты: estimate, окно модели, threshold. Исчезнувший anchor, актуальные thresholds/summaryBuffer, availability и successful-compression cooldown остаются authoritative. Hard guidance допускает существующий current-task renewal, а не только закрытые диапазоны.
 
 Dedup: одинаковые tool name+canonical arguments, оставить последний нужный output, protections сохраняются. PurgeErrors: после configured turns (default 4) убрать из projection крупный input errored call, но сохранить error outcome. Эти стратегии пересчитываются при compress, как описано upstream; не запускать pruning на каждом request из инерции старых версий. Случаи manual mode уточнить по executable fixture; README не заменяет source test.
 

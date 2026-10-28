@@ -185,9 +185,9 @@ async fn dcp12_explicit_manual_compress_is_real_scoped_and_ask_stays_captured() 
                 available
             );
             for reminder in [
-                "MAX CONTEXT LIMIT REACHED",
+                "DCP SOFT CONTEXT THRESHOLD PASSED",
                 "Evaluate the conversation for compressible ranges",
-                "iterating for a while",
+                "Long-running task: many steps",
             ] {
                 assert!(!input.contains(reminder), "{reminder}");
             }

@@ -794,8 +794,8 @@ async fn aud20_nudge_cadence_and_model_compress_are_session_scoped() {
     assert_eq!(requests.len(), 7);
     assert_eq!(
         requests.iter().map(dcp_nudge_count).collect::<Vec<_>>(),
-        [1, 1, 1, 1, 1, 0, 1],
-        "active context reminders survive between cadence events; only A enters cooldown after compress"
+        [1, 0, 1, 0, 1, 0, 1],
+        "one context reminder per cadence anchor, no tail replay; only A enters cooldown after compress"
     );
     for session in ["a", "b"] {
         let state: serde_json::Value = serde_json::from_str(
@@ -806,7 +806,7 @@ async fn aud20_nudge_cadence_and_model_compress_are_session_scoped() {
                 .unwrap(),
         )
         .unwrap();
-        assert_eq!(state["emitted"], 2, "replay must not count as a new nudge");
+        assert_eq!(state["emitted"], 2, "each reminder is one cadence event");
     }
     assert_eq!(runtime.dcp_stats().nudges_emitted, 4);
     assert_eq!(harness.db.load_compression_blocks("a").unwrap().len(), 1);
@@ -868,8 +868,8 @@ async fn aud20_nudge_cadence_survives_database_and_runtime_restart() {
             .iter()
             .map(dcp_nudge_count)
             .collect::<Vec<_>>(),
-        [1, 1],
-        "restart must restore the active reminder, not create a new cadence event"
+        [1, 0],
+        "restart restores the anchor without re-announcing it or creating a new cadence event"
     );
     let state: serde_json::Value = serde_json::from_str(
         &harness
@@ -1022,9 +1022,11 @@ async fn aud20_summary_buffer_changes_effective_nudge_threshold() {
     )
     .unwrap();
     let (base, _, requests) = Fake::start_recording(
+        // No provider usage: thresholds above are calibrated for the byte
+        // fallback, which applies until a usage anchor matches.
         vec![
-            sse_delta("buffered") + &sse_completed(),
-            sse_delta("unbuffered") + &sse_completed(),
+            sse_delta("buffered") + sse_completed_without_usage(),
+            sse_delta("unbuffered") + sse_completed_without_usage(),
         ],
         Duration::ZERO,
     );
@@ -1057,8 +1059,64 @@ async fn aud20_summary_buffer_changes_effective_nudge_threshold() {
     // Donor bodies: a soft turn reminder under the buffered max, then the
     // context-limit reminder once the buffer no longer applies.
     assert!(first.contains("Evaluate the conversation for compressible ranges"));
-    assert!(!first.contains("MAX CONTEXT LIMIT REACHED"));
-    assert!(second.contains("MAX CONTEXT LIMIT REACHED"));
+    assert!(!first.contains("DCP SOFT CONTEXT THRESHOLD PASSED"));
+    assert!(second.contains("DCP SOFT CONTEXT THRESHOLD PASSED"));
+}
+
+#[tokio::test]
+async fn dcp_thresholds_use_provider_usage_not_serialized_bytes() {
+    // Live regression: opaque encrypted reasoning and multi-byte text made
+    // bytes/4 exceed the soft max while provider usage was at 46%, so every
+    // request ended with a context-limit alarm and the agent abandoned work.
+    let (harness, generation) = make_harness(allow_all());
+    let dcp = DcpConfig {
+        min_context: 3_000,
+        min_context_percent: None,
+        max_context: 3_000,
+        max_context_percent: None,
+        nudge_frequency: 1,
+        ..DcpConfig::default()
+    };
+    let runtime = runtime_with_dcp(&harness, generation, Vec::new(), dcp);
+    runtime.create_session("usage-threshold").unwrap();
+    // ~10k tokens by bytes/4, but the provider bills far fewer.
+    harness
+        .db
+        .append_message("usage-threshold", "user", &"opaque ".repeat(6_000))
+        .unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_delta("first answer") + &sse_completed_usage(1_000, 10),
+            sse_delta("second answer") + &sse_completed_usage(1_100, 10),
+        ],
+        Duration::ZERO,
+    );
+    let provider = provider_of(&base);
+    for prompt in ["first", "second"] {
+        runtime
+            .run_turn(params(
+                "usage-threshold",
+                prompt,
+                &harness,
+                provider.clone(),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+    }
+    let requests = requests.lock().unwrap();
+    // No usage anchor yet: the byte fallback still applies to the first request.
+    assert!(
+        requests[0]["input"]
+            .to_string()
+            .contains("DCP SOFT CONTEXT THRESHOLD PASSED")
+    );
+    let second = requests[1]["input"].to_string();
+    assert!(
+        !second.contains("DCP SOFT CONTEXT THRESHOLD PASSED"),
+        "measured usage is below the soft max"
+    );
+    assert!(!second.contains("Evaluate the conversation for compressible ranges"));
 }
 
 #[tokio::test]
@@ -1467,12 +1525,17 @@ async fn current_task_compress_forgets_closed_payload_but_keeps_unseen_batch() {
         assert_eq!(seen.len(), 5);
         assert_eq!(
             seen.iter().map(dcp_nudge_count).collect::<Vec<_>>(),
-            [1, 1, 0, 0, 0]
+            [1, 0, 0, 0, 0],
+            "one reminder per cadence anchor, no replay at every request tail"
         );
         assert_eq!(runtime.dcp_stats().nudges_emitted, 1);
+        assert!(
+            seen[0]["input"]
+                .to_string()
+                .contains("use its message ID as both startId and endId")
+        );
         let renewal_request = seen[1]["input"].to_string();
         assert!(renewal_request.contains("except current-task renewal"));
-        assert!(renewal_request.contains("use its message ID as both startId and endId"));
         let first = seen[2]["input"].to_string();
         assert!(first.contains("SUMMARY_FIRST"));
         assert!(!first.contains("OLD_JOURNAL_PAYLOAD"));

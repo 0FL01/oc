@@ -172,7 +172,7 @@ async fn dcp10_actual_child_disabled_manual_deny_and_no_consumer_ask_keep_ids_an
                 for forbidden in [
                     "DCP context anchors",
                     "closed=true",
-                    "MAX CONTEXT LIMIT REACHED",
+                    "DCP SOFT CONTEXT THRESHOLD PASSED",
                     "Evaluate the conversation for compressible ranges",
                     "THE PHILOSOPHY OF COMPRESS",
                     "<dcp-message-id>",

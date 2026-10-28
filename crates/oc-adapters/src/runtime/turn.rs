@@ -2745,13 +2745,39 @@ impl<'a> Runtime<'a> {
                     preview_state.on_turn();
                     preview_iteration = Some(iteration);
                 }
-                let estimate = estimate_input_tokens_from_bytes(
-                    super::compaction::serialized_size(&(
-                        fixed_input.as_slice(),
-                        projected_continuation.as_slice(),
-                    ))?,
-                    fixed_input.iter().chain(&projected_continuation),
-                );
+                // Thresholds use the same provider-usage-anchored measure as
+                // admission and the TUI. Bytes/4 counts opaque encrypted
+                // reasoning and multi-byte text as tokens, so it is only the
+                // fallback before any usage anchor matches this request.
+                let noncausal = fixed_input
+                    .iter()
+                    .chain(&projected_continuation)
+                    .filter(|item| {
+                        previous_instruction_input.contains(item)
+                            || super::context::is_step_marker(item)
+                    })
+                    .chain(anchors.iter())
+                    .collect::<Vec<_>>();
+                let measured = super::compaction::usage_estimate(
+                    usage_anchor.as_ref(),
+                    (&usage_scope, &legacy_scope),
+                    &super::compaction::usage_causal(
+                        projected_continuation.iter(),
+                        &previous_instruction_input,
+                    ),
+                    &legacy_continuation.iter().collect::<Vec<_>>(),
+                    super::compaction::usage_tokens(&noncausal)?,
+                )?;
+                let estimate = match measured {
+                    Some(measured) => measured,
+                    None => estimate_input_tokens_from_bytes(
+                        super::compaction::serialized_size(&(
+                            fixed_input.as_slice(),
+                            projected_continuation.as_slice(),
+                        ))?,
+                        fixed_input.iter().chain(&projected_continuation),
+                    ),
+                };
                 evaluate_request(
                     dcp_config,
                     &mut preview_state,

@@ -28,17 +28,25 @@ fn dcp12_source_context_visible_distance_buffer_and_removed_anchor() {
     let cfg = config();
     let first = request(&cfg, &mut state, 201, &view).unwrap();
     assert_eq!(first.force, NudgeForce::Hard);
+    assert!(first.text.contains("DCP SOFT CONTEXT THRESHOLD PASSED"));
+    assert!(first.text.contains("not the model's context limit"));
+    assert!(
+        first.text.contains(
+            "Context estimate: about 201 tokens of a 100000-token model window; DCP soft threshold 200."
+        ),
+        "{}",
+        first.text
+    );
+    assert!(
+        !first.text.contains("user-0"),
+        "cadence anchors are not compress IDs"
+    );
+    // Long Horizon: no fresh alarm at the tail of every request while the
+    // anchor is still within the cadence distance.
     for index in 1..5 {
         view.push((format!("assistant-{index}"), false));
-        let replay = request(&cfg, &mut state, 201 + index, &view).unwrap();
-        assert_eq!(replay.force, NudgeForce::Hard);
-        assert_eq!(replay.text, first.text, "retain the history cache prefix");
-        assert!(replay.text.contains("MAX CONTEXT LIMIT REACHED"));
+        assert!(request(&cfg, &mut state, 201 + index, &view).is_none());
         assert_eq!(state.cadence.context.as_deref(), Some("user-0"));
-        assert!(
-            !replay.text.contains("user-0"),
-            "cadence anchors are not compress IDs"
-        );
         assert_eq!(state.emitted, 1);
         assert_eq!(state.last_reminder, Some(1));
     }
@@ -50,10 +58,8 @@ fn dcp12_source_context_visible_distance_buffer_and_removed_anchor() {
     let saved = serde_json::to_string(&state).unwrap();
     let mut reopened: NudgeState = serde_json::from_str(&saved).unwrap();
     assert!(
-        request(&cfg, &mut reopened, 201, &view)
-            .unwrap()
-            .text
-            .contains("MAX CONTEXT LIMIT REACHED")
+        request(&cfg, &mut reopened, 201, &view).is_none(),
+        "a restored anchor is not re-announced"
     );
     assert_eq!(reopened.cadence.context.as_deref(), Some("assistant-5"));
     assert_eq!(reopened.emitted, 2);
@@ -161,7 +167,7 @@ fn dcp12_source_success_cooldown_migration_and_failure_no_reset() {
     // Invalid/no-gain calls only add a visible assistant, no success callback.
     for index in 1..=5 {
         view.push((format!("failed-step-{index}"), false));
-        assert!(request(&cfg, &mut state, 201, &view).is_some());
+        assert_eq!(request(&cfg, &mut state, 201, &view).is_some(), index == 5);
         assert_eq!(state.emitted, if index == 5 { 6 } else { 5 });
     }
     state.on_compress_success();
@@ -219,7 +225,8 @@ fn dcp_custom_prompts_replace_only_the_due_reminder_body() {
         );
         assert_eq!(actual.is_some(), expected.is_some());
         if let Some(body) = expected {
-            assert!(actual.unwrap().text.ends_with(body));
+            // Overrides replace the body; measured context facts follow it.
+            assert!(actual.unwrap().text.starts_with(body));
         }
         assert_eq!(
             serde_json::to_value(&plain_state).unwrap(),

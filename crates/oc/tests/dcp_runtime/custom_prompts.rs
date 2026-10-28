@@ -30,7 +30,7 @@ async fn dcp_custom_prompts_reach_wire_and_reload_on_the_next_same_task_request(
     assert_eq!(first_text.matches("CUSTOM_SYSTEM_G1").count(), 1);
     assert_eq!(first_text.matches("CUSTOM_CONTEXT_BODY").count(), 1);
     assert!(
-        !first_text.contains("MAX CONTEXT LIMIT REACHED"),
+        !first_text.contains("DCP SOFT CONTEXT THRESHOLD PASSED"),
         "the override replaces the donor body"
     );
     let original_tool = tool_definition(&first, "compress");
@@ -85,8 +85,8 @@ async fn dcp_custom_prompts_reach_wire_and_reload_on_the_next_same_task_request(
     assert!(!second_text.contains("CUSTOM_SYSTEM_G1"));
     assert_eq!(
         second_text.matches("CUSTOM_CONTEXT_BODY").count(),
-        1,
-        "prompt reload must preserve one active context reminder"
+        0,
+        "prompt reload must not re-announce the context reminder within its cadence"
     );
     assert_eq!(
         tool_definition(&second, "compress")["parameters"],

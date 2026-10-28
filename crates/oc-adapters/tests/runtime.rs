@@ -707,7 +707,7 @@ async fn dropped_remote_call_cannot_retry_after(shutdown: bool) {
 fn dcp_nudge_count(request: &serde_json::Value) -> usize {
     request["input"]
         .to_string()
-        .matches("MAX CONTEXT LIMIT REACHED")
+        .matches("DCP SOFT CONTEXT THRESHOLD PASSED")
         .count()
 }
 

@@ -993,8 +993,12 @@ pub(crate) fn evaluate_request(
         0
     }) > thresholds.max_context;
     let (force, slot, new_anchor) = if over_max {
-        let new_anchor = add_anchor(&mut state.cadence.context);
-        (NudgeForce::Hard, PromptSlot::ContextLimitNudge, new_anchor)
+        // One reminder per cadence anchor, never a fresh copy at the tail of
+        // every request: a repeated alarm reads as a stop signal (Long Horizon).
+        if !add_anchor(&mut state.cadence.context) {
+            return None;
+        }
+        (NudgeForce::Hard, PromptSlot::ContextLimitNudge, true)
     } else if *last_user && messages.iter().any(|m| !m.1) {
         if state.cadence.turn.as_ref() == Some(last_id) {
             return None;
@@ -1017,12 +1021,36 @@ pub(crate) fn evaluate_request(
         state.last_reminder = Some(state.iteration);
         state.emitted += 1;
     }
-    // The donor's full reminder body (or its admitted override); internal
-    // cadence anchors are not compress IDs and never reach the model.
-    Some(Nudge {
-        force,
-        text: config.prompt_overrides.effective(slot).to_string(),
-    })
+    // The reminder body (or its admitted override); internal cadence anchors
+    // are not compress IDs and never reach the model. The context-limit body
+    // carries measured facts so the model cannot mistake the soft DCP
+    // threshold for the model window.
+    let body = config.prompt_overrides.effective(slot);
+    let text = if slot == PromptSlot::ContextLimitNudge {
+        before_reminder_close(
+            &body,
+            &format!(
+                "Context estimate: about {estimated_tokens} tokens of a {model_context}-token model window; DCP soft threshold {}.",
+                thresholds.max_context
+            ),
+        )
+    } else {
+        body.to_string()
+    };
+    Some(Nudge { force, text })
+}
+
+/// Append `extra` inside the reminder's closing tag (plain text is appended).
+fn before_reminder_close(text: &str, extra: &str) -> String {
+    const CLOSE: &str = "</dcp-system-reminder>";
+    match text.rfind(CLOSE) {
+        Some(index) => format!(
+            "{}\n\n{extra}\n{}",
+            text[..index].trim_end(),
+            &text[index..]
+        ),
+        None => format!("{}\n\n{extra}", text.trim_end()),
+    }
 }
 
 /// Pinned `appendGuidanceToDcpTag` with range-mode `buildCompressedBlockGuidance`,
@@ -1041,14 +1069,10 @@ pub(crate) fn nudge_with_block_guidance<'a>(
             blocks.join(", ")
         }
     );
-    const CLOSE: &str = "</dcp-system-reminder>";
-    match text.rfind(CLOSE) {
-        Some(index) => format!(
-            "{}\n\n{guidance}\n{}",
-            text[..index].trim_end(),
-            &text[index..]
-        ),
-        None => text.to_string(),
+    if text.contains("</dcp-system-reminder>") {
+        before_reminder_close(text, &guidance)
+    } else {
+        text.to_string()
     }
 }
 

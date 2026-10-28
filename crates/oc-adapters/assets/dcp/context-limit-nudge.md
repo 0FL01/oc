@@ -1,11 +1,11 @@
 <dcp-system-reminder>
-CRITICAL WARNING: MAX CONTEXT LIMIT REACHED
+DCP SOFT CONTEXT THRESHOLD PASSED
 
-You are at or beyond the configured max context threshold. This is an emergency context-recovery moment.
+The context is above the configured DCP soft threshold. This is a context-hygiene reminder, not the model's context limit. It is not a reason to stop, shorten, roll back, hand off or end the user's task.
 
-You MUST use the `compress` tool now. Do not continue normal exploration until compression is handled.
+At the next safe boundary (after finishing the current atomic step), use the `compress` tool on older, resolved history, or renew closed steps of the running task. Then continue the task normally.
 
-If you are in the middle of a critical atomic operation, finish that atomic step first, then compress immediately.
+If nothing closed is worth compressing, keep working. The runtime compacts automatically before the real model window is reached.
 
 SELECTION PROCESS
 Start from older, resolved history and capture as much stale context as safely possible in one pass.

@@ -232,7 +232,10 @@ async fn reminder_uses_donor_body_after_the_newest_context() {
         "the reminder follows the newest context"
     );
     let reminder = last["content"][0]["text"].as_str().unwrap();
-    assert!(reminder.contains("MAX CONTEXT LIMIT REACHED"), "{reminder}");
+    assert!(
+        reminder.contains("DCP SOFT CONTEXT THRESHOLD PASSED"),
+        "{reminder}"
+    );
     assert!(reminder.contains("Compressed block context:"));
     assert!(reminder.trim_end().ends_with("</dcp-system-reminder>"));
     assert!(

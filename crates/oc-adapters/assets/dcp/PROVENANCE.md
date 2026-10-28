@@ -21,6 +21,13 @@ native compressed-block header `[compressed bN]` instead of
 `[Compressed conversation section]`. Native running-task step and renewal rules
 are appended by the runtime, not edited into these bodies.
 
+Long Horizon adaptations (derived works of the listed sources, same license):
+`context-limit-nudge.md` replaces the donor "CRITICAL WARNING: MAX CONTEXT LIMIT
+REACHED / emergency" opening with a statement that the soft DCP threshold is
+not the model window and not a reason to stop or roll back; its selection and
+summary requirements are unchanged, and the runtime appends measured context
+facts. `iteration-nudge.md` adds that many steps are not a signal to wrap up.
+
 Copyright (c) Opencode-DCP contributors. Licensed under the GNU Affero General
 Public License v3.0 or later; the complete license text is retained at
 `evidence/tui/recovery-v00/dcp-oracle20260928-native01/sources/LICENSE`.

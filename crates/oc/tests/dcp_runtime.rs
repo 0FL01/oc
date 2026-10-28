@@ -33,7 +33,7 @@ const MODEL: &str = "aud-dcp-runtime-model";
 const SESSION: &str = "s-aud19-21";
 const FACT: &str = "AUD21_RETAINED_FACT=violet";
 const FILLER: &str = "AUD21_EARLY_FILLER";
-const NUDGE_FRAGMENT: &str = "MAX CONTEXT LIMIT REACHED";
+const NUDGE_FRAGMENT: &str = "DCP SOFT CONTEXT THRESHOLD PASSED";
 const CRASH_FILLER: &str = "AUD21_CRASH_COVERED_FILLER";
 const CRASH_RANGES: usize = 32;
 const CRASH_MEMBERS_PER_RANGE: usize = 56;
@@ -550,8 +550,8 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
     );
     assert_nudges(
         &second,
-        1,
-        "retained context reminder between cadence events",
+        0,
+        "no tail replay of the context reminder between cadence events",
     );
     respond_tool(
         &mut socket,
@@ -575,8 +575,8 @@ fn aud19_aud20_aud21_binary_model_compress_nudges_and_restart() {
     );
     assert_nudges(
         &third,
-        1,
-        "retained context reminder between cadence events",
+        0,
+        "no tail replay of the context reminder between cadence events",
     );
     respond_tool(
         &mut socket,
