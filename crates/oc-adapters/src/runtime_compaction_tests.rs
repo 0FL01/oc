@@ -746,12 +746,12 @@ fn compaction_config_canonical_layers_and_invalid_leaves() {
     let mut cfg = crate::compaction::CompactionConfig::default();
     let notes = cfg.merge(&serde_json::json!({"auto":false,"buffer":2,"keep":{"tokens":4}}));
     assert!(notes.is_empty());
-    assert_eq!((cfg.auto, cfg.buffer, cfg.keep_tokens), (false, 2, 4));
+    assert_eq!((cfg.auto, cfg.buffer, cfg.keep_tokens), (false, Some(2), 4));
     assert_eq!(
         cfg.merge(&serde_json::json!({"keep":{"tokens":-1}}))[0].kind,
         oc_core::queries::ConfigDiagnosticKind::Invalid
     );
-    assert_eq!((cfg.auto, cfg.buffer, cfg.keep_tokens), (false, 2, 4));
+    assert_eq!((cfg.auto, cfg.buffer, cfg.keep_tokens), (false, Some(2), 4));
     let sources = [
         crate::config::Source {
             path: "global".into(),
@@ -774,7 +774,7 @@ fn compaction_config_canonical_layers_and_invalid_leaves() {
             generation.compaction.buffer,
             generation.compaction.keep_tokens
         ),
-        (false, 456, 654)
+        (false, Some(456), 654)
     );
     assert_eq!(generation.provenance["compaction"], "project");
     // Compaction keys outside the OC2 schema are refused, never folded in.
@@ -795,7 +795,7 @@ async fn hot01_summary_retry_and_correction_keep_the_operation_then_primary_adop
     db.create_bound_session("s", "work").unwrap();
     seed(&db, "old", &"OLD_SUMMARY_SOURCE ".repeat(1000));
     let mut generation = Generation::default();
-    generation.compaction.buffer = 0;
+    generation.compaction.buffer = Some(0);
     generation
         .permissions
         .insert("read".into(), Permission::Allow);
@@ -960,7 +960,7 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
         seed(&db, "old", &"OLD CANARY ".repeat(1000));
         let mut generation = Generation::default();
         generation.compaction.auto = auto;
-        generation.compaction.buffer = if overflow { 0 } else { 499_000 };
+        generation.compaction.buffer = Some(if overflow { 0 } else { 499_000 });
         generation
             .permissions
             .insert("bash".into(), Permission::Allow);
@@ -1113,7 +1113,7 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
             drop(db);
             let reopened = Db::open(data.path()).unwrap();
             let mut generation = Generation::default();
-            generation.compaction.buffer = 499_999; // without the checkpoint guard always due
+            generation.compaction.buffer = Some(499_999); // without the checkpoint guard always due
             generation
                 .permissions
                 .insert("read".into(), Permission::Allow);
@@ -1170,6 +1170,84 @@ async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
     }
 }
 
+#[tokio::test]
+async fn advertised_output_cap_does_not_force_automatic_compaction() {
+    // Incident: a session at ~266K/500K switched to a model whose catalog
+    // advertises a 384K output cap. Reserving that whole cap left ~115K for
+    // input and auto-compacted a context that was barely half full.
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(&db, "old", &"OLD CANARY ".repeat(25_000));
+    let mut generation = Generation::default();
+    generation
+        .permissions
+        .insert("bash".into(), Permission::Allow);
+    let runtime = runtime(&db, project.path(), generation);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    // Serve whatever arrives so a regression fails on the assertions below
+    // instead of retrying a dropped summary socket forever.
+    let task = tokio::spawn(async move {
+        let mut bodies = Vec::new();
+        loop {
+            let (mut socket, body) = read_request(&listener).await;
+            let summary = body["tools"].as_array().is_none_or(Vec::is_empty);
+            respond(
+                &mut socket,
+                &sse(if summary {
+                    "## Objective\nResume."
+                } else {
+                    "done"
+                }),
+            )
+            .await;
+            bodies.push(body);
+            if !summary {
+                return bodies;
+            }
+        }
+    });
+    let mut catalog = catalog();
+    catalog.models.get_mut("m").unwrap()["limit"] =
+        serde_json::json!({"context":500_000,"output":384_000});
+    let cancel = AtomicBool::new(false);
+    let report = runtime
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "continue".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 0,
+            provider: provider.clone(),
+            cancel: &cancel,
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        report.status,
+        TurnStatus::Completed,
+        "{:?}",
+        report.diagnostic
+    );
+    let bodies = task.await.unwrap();
+    assert_eq!(
+        bodies.len(),
+        1,
+        "no summary request before the main request"
+    );
+    assert!(db.compaction_history("s").unwrap().is_empty());
+    assert!(bodies[0]["input"].to_string().contains("OLD CANARY"));
+    let output = bodies[0]["max_output_tokens"].as_u64().unwrap();
+    assert!(
+        output <= 500_000 - 100_000,
+        "requested output {output} must fit the window beside the prompt"
+    );
+}
+
 struct Native(std::sync::atomic::AtomicUsize);
 
 #[tokio::test]
@@ -1180,7 +1258,7 @@ async fn compaction_failed_overflow_summary_does_not_retry_the_main_request() {
     db.create_bound_session("s", "work").unwrap();
     seed(&db, "old", &"preserved ".repeat(100));
     let mut generation = Generation::default();
-    generation.compaction.buffer = 0;
+    generation.compaction.buffer = Some(0);
     let runtime = runtime(&db, project.path(), generation);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let provider = config(&listener);
@@ -1715,7 +1793,7 @@ async fn compaction_auto_precancel_and_held_caller_cancel_install_no_checkpoint(
             &"old history ".repeat(if mode == "automatic" { 7800 } else { 1000 }),
         );
         let mut generation = Generation::default();
-        generation.compaction.buffer = if mode == "overflow" { 0 } else { 499_000 };
+        generation.compaction.buffer = Some(if mode == "overflow" { 0 } else { 499_000 });
         generation
             .permissions
             .insert("bash".into(), Permission::Allow);
@@ -1870,7 +1948,7 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
     db.create_bound_session("s", "work").unwrap();
     seed(&db, "old", "archive");
     let mut generation = Generation::default();
-    generation.compaction.buffer = 20_000;
+    generation.compaction.buffer = Some(20_000);
     let runtime = runtime(&db, project.path(), generation);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let mut catalog = catalog();

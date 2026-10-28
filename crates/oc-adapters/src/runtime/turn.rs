@@ -1796,11 +1796,6 @@ impl<'a> Runtime<'a> {
         );
         models::admit_budget(&selection, irreducible, budget)
             .map_err(|error| admission_budget_error(error, None))?;
-        let compaction_output = selection
-            .entry
-            .pointer("/limit/output")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(budget.output);
         let compaction_input = selection
             .entry
             .pointer("/limit/input")
@@ -1814,7 +1809,6 @@ impl<'a> Runtime<'a> {
                     compaction_config.required_for_budget(
                         estimate,
                         compaction_context,
-                        compaction_output,
                         compaction_input,
                         budget.input,
                     )
@@ -2416,11 +2410,6 @@ impl<'a> Runtime<'a> {
                 .pointer("/limit/context")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0);
-            let compaction_output = selection
-                .entry
-                .pointer("/limit/output")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(budget.output);
             let compaction_input = selection
                 .entry
                 .pointer("/limit/input")
@@ -2783,7 +2772,6 @@ impl<'a> Runtime<'a> {
                         compaction_config.required_for_budget(
                             estimate,
                             compaction_context,
-                            compaction_output,
                             compaction_input,
                             budget.input,
                         )
@@ -3190,7 +3178,7 @@ impl<'a> Runtime<'a> {
                     input_start: turn_log.original_input_index(turn_log.input.len()),
                     context_limit: budget.context,
                     input_limit: budget.input,
-                    output_limit: budget.output,
+                    output_limit: budget.request_output(request_estimate),
                     estimated_input: request_estimate,
                     dcp_min_context: reminders.min_context,
                     dcp_max_context: reminders.max_context,
@@ -3466,7 +3454,7 @@ impl<'a> Runtime<'a> {
                             selection.variant.as_ref(),
                             &input,
                             &tool_defs,
-                            budget.output,
+                            budget.request_output(request_estimate),
                             params.cancel,
                             &mut observe,
                             &mut || async {

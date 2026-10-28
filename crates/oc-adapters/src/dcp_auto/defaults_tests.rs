@@ -156,6 +156,7 @@ fn dcp12_exact_model_budget_fallback_floor_overrides_and_validation() {
         let b = crate::models::AdmissionBudget {
             context: 100003,
             output: 2048,
+            reserve: 2048,
             input: 96931,
             warning: None,
         };

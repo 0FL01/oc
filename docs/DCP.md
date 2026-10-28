@@ -180,7 +180,7 @@ T45/R9/DCP12, не claim изменения compiled code. Историческ�
 profile 50000/100000/summaryBuffer=true остаётся source baseline [D4] и может
 сохраняться как явный user override, но больше не является целевым default.
 
-Runtime hard admission учитывает requested output/safety reserve и сильнее DCP
+Runtime hard admission учитывает output reserve (явный requested output либо минимальный ответ для catalog default) и safety margin и сильнее DCP
 reminder; процентная база — positive effective context capacity, не оставшийся input
 budget. Панель различает reminder thresholds и реальные model/input constraints,
 объясняя fallback и budget clamps, а не расширяя input до reminder threshold.

@@ -93,17 +93,23 @@ pub(crate) fn route_for_binding(model: &str, binding: &oc_core::queries::WirePro
 pub struct CompactionConfig {
     pub auto: bool,
     pub keep_tokens: u64,
-    pub buffer: u64,
+    /// Explicit free room before automatic compaction; unset keeps the
+    /// pinned share-of-window reserve.
+    pub buffer: Option<u64>,
 }
 impl Default for CompactionConfig {
     fn default() -> Self {
         Self {
             auto: true,
             keep_tokens: 15_000,
-            buffer: 20_000,
+            buffer: None,
         }
     }
 }
+/// Pinned compaction.ts RESERVE_SHARE: share of the window kept free.
+const RESERVE_SHARE_PERCENT: u64 = 15;
+/// Pinned compaction.ts RESERVE_MIN.
+const RESERVE_MIN: u64 = 16_000;
 impl CompactionConfig {
     pub fn merge(&mut self, value: &serde_json::Value) -> Vec<ConfigDiagnostic> {
         self.merge_from("", value).1
@@ -122,38 +128,43 @@ impl CompactionConfig {
                 self.keep_tokens = tokens;
             }
             if let Some(buffer) = value["buffer"].as_u64() {
-                self.buffer = buffer;
+                self.buffer = Some(buffer);
             }
         }
         (normalized, notes)
     }
-    pub fn required(
-        &self,
-        input: u64,
-        context: u64,
-        output: u64,
-        input_limit: Option<u64>,
-    ) -> bool {
-        let ceiling = context
-            .saturating_sub(output.min(32_000).max(self.buffer))
-            .min(
-                input_limit
-                    .map(|limit| limit.saturating_sub(self.buffer))
-                    .unwrap_or(u64::MAX),
-            );
-        self.auto && context > 0 && input >= ceiling
+    /// Pinned compaction.ts `calculateCeiling`: the window is the input limit,
+    /// else the context. The advertised output cap is a ceiling for the reply,
+    /// not room to keep free, so it does not move the threshold. An unknown
+    /// window never triggers automatic compaction.
+    pub fn required(&self, input: u64, context: u64, input_limit: Option<u64>) -> bool {
+        let window = input_limit.filter(|limit| *limit > 0).unwrap_or(context);
+        if !self.auto || window == 0 {
+            return false;
+        }
+        let ceiling = match self.buffer {
+            // A buffer that leaves no room, such as one set for a larger model, is ignored.
+            Some(buffer) if buffer < window => window - buffer,
+            _ => window.saturating_sub((window * RESERVE_SHARE_PERCENT / 100).max(
+                if window >= 2 * RESERVE_MIN {
+                    RESERVE_MIN
+                } else {
+                    0
+                },
+            )),
+        };
+        input >= ceiling
     }
     pub(crate) fn required_for_budget(
         &self,
         input: u64,
         context: u64,
-        output: u64,
         input_limit: Option<u64>,
         admitted_input: u64,
     ) -> bool {
-        // Clamp the existing soft ceiling to admission; do not subtract the
-        // buffer again from an already reserved output/safety budget.
-        self.required(input, context, output, input_limit)
+        // The soft ceiling is clamped to admission, which already keeps the
+        // minimum reply and safety margin free.
+        self.required(input, context, input_limit)
             || (self.auto && context > 0 && input >= admitted_input)
     }
 }
@@ -301,7 +312,7 @@ mod usage_tests {
                 generation.compaction.keep_tokens,
                 generation.compaction.buffer
             ),
-            (false, 13, 15)
+            (false, 13, Some(15))
         );
         assert_eq!(generation.provenance["compaction.auto"], "global");
         assert_eq!(generation.provenance["compaction.keep.tokens"], "project");
@@ -325,7 +336,7 @@ mod usage_tests {
             CompactionConfig {
                 auto: true,
                 keep_tokens: 15_000,
-                buffer: 20_000
+                buffer: None
             }
         );
         let bad = [crate::config::Source {
@@ -338,18 +349,45 @@ mod usage_tests {
 
     #[test]
     fn compaction_exact_limit_boundary() {
+        // Pinned compaction.ts calculateCeiling: max(15% of window, 16K) is
+        // kept free; the advertised output cap does not move the threshold.
         let c = CompactionConfig::default();
-        assert!(!c.required(19_999, 40_000, 2_048, None));
-        assert!(c.required(20_000, 40_000, 2_048, None));
-        assert!(!c.required(9_999, 40_000, 2_048, Some(30_000)));
-        assert!(c.required(10_000, 40_000, 2_048, Some(30_000)));
-        assert!(!c.required(67_999, 100_000, 100_000, None));
-        assert!(c.required(68_000, 100_000, 100_000, None));
-        assert!(!c.required(u64::MAX, 0, 2_048, None));
-        assert!(c.required_for_budget(448_976, 500_000, 4096, Some(450_000), 448_976));
-        assert!(!c.required_for_budget(70_000, 100_000, 20_000, None, 78_976));
-        let no_buffer = CompactionConfig { buffer: 0, ..c };
-        assert!(no_buffer.required_for_budget(448_976, 500_000, 4096, Some(450_000), 448_976));
+        assert!(!c.required(23_999, 40_000, None));
+        assert!(c.required(24_000, 40_000, None));
+        assert!(
+            !c.required(25_499, 40_000, Some(30_000)),
+            "small window keeps only the share"
+        );
+        assert!(c.required(25_500, 40_000, Some(30_000)));
+        assert!(!c.required(424_999, 500_000, None));
+        assert!(c.required(425_000, 500_000, None));
+        assert!(!c.required(849_999, 1_000_000, None));
+        assert!(c.required(850_000, 1_000_000, None));
+        assert!(
+            !c.required(u64::MAX, 0, None),
+            "an unknown window never auto-compacts"
+        );
+        let buffered = CompactionConfig {
+            buffer: Some(20_000),
+            ..c.clone()
+        };
+        assert!(!buffered.required(479_999, 500_000, None));
+        assert!(buffered.required(480_000, 500_000, None));
+        let oversized = CompactionConfig {
+            buffer: Some(500_000),
+            ..c.clone()
+        };
+        assert!(
+            oversized.required(425_000, 500_000, None),
+            "a buffer leaving no room is ignored"
+        );
+        assert!(c.required_for_budget(448_976, 500_000, Some(450_000), 448_976));
+        assert!(!c.required_for_budget(70_000, 100_000, None, 97_952));
+        let no_buffer = CompactionConfig {
+            buffer: Some(0),
+            ..c
+        };
+        assert!(no_buffer.required_for_budget(448_976, 500_000, Some(450_000), 448_976));
     }
 
     #[test]
@@ -380,6 +418,6 @@ mod usage_tests {
             anchor.suffix(&anchor.scope, &input.iter().collect::<Vec<_>>()),
             None
         );
-        assert!(!CompactionConfig::default().required(24800, 0, 2048, None));
+        assert!(!CompactionConfig::default().required(24800, 0, None));
     }
 }

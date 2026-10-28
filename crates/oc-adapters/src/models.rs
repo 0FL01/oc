@@ -322,23 +322,49 @@ impl Default for FallbackLimits {
 
 /// Reserve for estimation uncertainty, in addition to output reservation.
 pub const SAFETY_MARGIN: u64 = 1_024;
+/// Pinned model-request.ts: a default reply never asks for less.
+pub const OUTPUT_TOKEN_MIN: u64 = 1_024;
+/// Pinned model-request.ts: no default reply needs more, however much the model allows.
+pub const OUTPUT_TOKEN_MAX: u64 = 256_000;
+/// Pinned model-request.ts ESTIMATE_ERROR (15%): estimated prompts can run low.
+const ESTIMATE_ERROR_PERCENT: u64 = 15;
 
 /// Request-local admission policy, separate from published model metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionBudget {
     /// Known context or explicitly native fallback cap.
     pub context: u64,
-    /// Clamped output tokens to send on the wire.
+    /// Clamped output ceiling; see [`AdmissionBudget::request_output`] for the wire value.
     pub output: u64,
-    /// Maximum estimated input after output and safety reservation.
+    /// Output kept free by admission. Equal to `output` unless the default
+    /// catalog output is fitted per request.
+    pub reserve: u64,
+    /// Maximum estimated input after output reserve and safety margin.
     pub input: u64,
     /// Visible diagnostic when either capacity is unknown.
     pub warning: Option<String>,
 }
 
+impl AdmissionBudget {
+    /// Output tokens to send for a request with this estimated input. An
+    /// advertised output cap is a ceiling, not space to keep free: the default
+    /// is fitted to the room the prompt leaves (pinned model-request.ts
+    /// `outputLimit`), so input plus output never exceeds the window.
+    pub fn request_output(&self, estimated_input: u64) -> u64 {
+        if self.reserve >= self.output {
+            return self.output;
+        }
+        let padded = estimated_input
+            .saturating_add((estimated_input.saturating_mul(ESTIMATE_ERROR_PERCENT)).div_ceil(100));
+        self.output
+            .min(self.context.saturating_sub(padded).max(OUTPUT_TOKEN_MIN))
+    }
+}
+
 /// Resolve a bounded workload without changing the model snapshot. Zero requested
-/// output selects the model output when context and output are known, otherwise the
-/// native fallback default.
+/// output selects the model output (at most [`OUTPUT_TOKEN_MAX`]) when context and
+/// output are known; admission then reserves only [`OUTPUT_TOKEN_MIN`] and the wire
+/// value is fitted per request. Otherwise the native fallback default is reserved.
 pub fn budget(
     selection: &Selection,
     requested_output: u64,
@@ -355,19 +381,24 @@ pub fn budget(
     let known_output = positive("/limit/output");
     let context = known_context.unwrap_or(fallback.context.get());
     let output_cap = known_output.unwrap_or(fallback.output.get());
-    let output = if requested_output == 0 {
-        if known_context.is_some() && known_output.is_some() {
-            output_cap
-        } else {
-            fallback.output.get()
-        }
+    let catalog_default =
+        requested_output == 0 && known_context.is_some() && known_output.is_some();
+    let output = if catalog_default {
+        output_cap.min(OUTPUT_TOKEN_MAX)
+    } else if requested_output == 0 {
+        fallback.output.get()
     } else {
         requested_output
     }
     .min(output_cap);
+    let reserve = if catalog_default {
+        output.min(OUTPUT_TOKEN_MIN)
+    } else {
+        output
+    };
     let input = positive("/limit/input")
         .unwrap_or(u64::MAX)
-        .min(context.saturating_sub(output))
+        .min(context.saturating_sub(reserve))
         .saturating_sub(SAFETY_MARGIN);
     let warning = (known_context.is_none() || known_output.is_none()).then(|| {
         let unknown = match (known_context, known_output) {
@@ -380,6 +411,7 @@ pub fn budget(
     AdmissionBudget {
         context,
         output,
+        reserve,
         input,
         warning,
     }
@@ -391,7 +423,7 @@ pub fn admit_budget(
     input_tokens: u64,
     budget: &AdmissionBudget,
 ) -> Result<(), SelectError> {
-    if input_tokens > budget.input || budget.output.saturating_add(SAFETY_MARGIN) >= budget.context
+    if input_tokens > budget.input || budget.reserve.saturating_add(SAFETY_MARGIN) >= budget.context
     {
         return Err(SelectError::OverContext {
             id: selection.id.clone(),
@@ -681,14 +713,51 @@ mod tests {
 
         selection.entry["limit"]["output"] = 32_000.into();
         assert_eq!(budget(&selection, 0, fallback).output, 32_000);
+        // An advertised output cap is a ceiling, not room kept free: without
+        // an input limit the default reserves only the minimum reply.
         selection.entry["limit"] = serde_json::json!({"context": 262_144, "output": 64_000});
-        assert_eq!(budget(&selection, 0, fallback).input, 197_120);
+        assert_eq!(budget(&selection, 0, fallback).input, 260_096);
+        assert_eq!(budget(&selection, 32_000, fallback).input, 229_120);
         selection.entry["limit"] = serde_json::json!({"output": 100_000});
         let partial = budget(&selection, 0, fallback);
         assert_eq!(partial.output, 2_048);
         assert!(partial.warning.is_some());
         selection.entry["limit"] = serde_json::json!({"context": 8_192, "output": 8_192});
-        assert!(admit_budget(&selection, 0, &budget(&selection, 0, fallback)).is_err());
+        assert!(admit_budget(&selection, 0, &budget(&selection, 0, fallback)).is_ok());
+        assert!(admit_budget(&selection, 0, &budget(&selection, 8_192, fallback)).is_err());
+    }
+
+    #[test]
+    fn default_output_is_fitted_to_the_room_the_prompt_leaves() {
+        use super::{FallbackLimits, OUTPUT_TOKEN_MAX, OUTPUT_TOKEN_MIN, admit_budget, budget};
+        // Incident: 500K window, 384K advertised output, ~266K prompt.
+        let selection = super::Selection {
+            id: "m".into(),
+            entry: serde_json::json!({"limit": {"context": 500_000, "output": 384_000}}),
+            variant: None,
+        };
+        let resolved = budget(&selection, 0, FallbackLimits::default());
+        assert_eq!(
+            (resolved.output, resolved.reserve, resolved.input),
+            (OUTPUT_TOKEN_MAX, OUTPUT_TOKEN_MIN, 497_952)
+        );
+        assert!(admit_budget(&selection, 266_000, &resolved).is_ok());
+        assert_eq!(resolved.request_output(0), OUTPUT_TOKEN_MAX);
+        assert_eq!(resolved.request_output(266_000), 500_000 - 305_900);
+        assert_eq!(resolved.request_output(497_952), OUTPUT_TOKEN_MIN);
+        // An explicit request is reserved and sent as resolved.
+        let explicit = budget(&selection, 32_000, FallbackLimits::default());
+        assert_eq!((explicit.reserve, explicit.input), (32_000, 466_976));
+        assert_eq!(explicit.request_output(466_976), 32_000);
+        // The input limit stays authoritative.
+        let gpt = super::Selection {
+            id: "gpt".into(),
+            entry: serde_json::json!({"limit": {"context": 500_000, "input": 372_000, "output": 128_000}}),
+            variant: None,
+        };
+        let resolved = budget(&gpt, 0, FallbackLimits::default());
+        assert_eq!(resolved.input, 370_976);
+        assert_eq!(resolved.request_output(265_907), 128_000);
     }
 
     #[test]
