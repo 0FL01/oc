@@ -291,3 +291,134 @@ async fn denied_compress_sends_no_ids_or_guidance() {
     assert!(!request.contains("<dcp-message-id>"));
     assert!(!request.contains("THE PHILOSOPHY OF COMPRESS"));
 }
+
+/// Live regression: a background subagent launch keeps its operation row
+/// `running` (the child job owns the effect). Every in-task step compression
+/// in such a turn was refused as an "unsettled closed effect" and silently
+/// dropped, so the context kept growing until automatic compaction failed.
+/// With `child_job == false` the launch is genuinely unsettled: the refusal
+/// must reach the model instead of the earlier "accepted" staying a lie.
+async fn step_compress_over_launch(child_job: bool) -> Vec<serde_json::Value> {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    for (name, body) in [
+        ("a.txt", "A_CONTENT"),
+        ("b.txt", "B_CONTENT"),
+        ("c.txt", "C_CONTENT"),
+    ] {
+        std::fs::write(project.path().join(name), body).unwrap();
+    }
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    db.create_bound_session("child", "work").unwrap();
+    let mut generation = Generation::default();
+    for name in ["read", "compress"] {
+        generation
+            .permissions
+            .insert(name.into(), Permission::Allow);
+    }
+    let runtime = runtime(&db, project.path(), generation);
+    let mut models = catalog();
+    models.models.insert(
+        "m".into(),
+        serde_json::json!({"limit":{"context":64000,"output":8000}}),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let (go, ready) = tokio::sync::oneshot::channel::<()>();
+    let (done, mutated) = tokio::sync::oneshot::channel::<()>();
+    let peer = tokio::spawn(async move {
+        let (mut go, mut mutated) = (Some(go), Some(mutated));
+        let mut seen = Vec::new();
+        for index in 0..5 {
+            let (mut socket, request) = read_request(&listener).await;
+            let output = match index {
+                0 => serde_json::json!([read("r1", "a.txt")]),
+                1 => serde_json::json!([read("r2", "b.txt")]),
+                2 => serde_json::json!([read("r3", "c.txt")]),
+                3 => {
+                    go.take().unwrap().send(()).unwrap();
+                    mutated.take().unwrap().await.unwrap();
+                    let markers = step_markers(&request);
+                    serde_json::json!([{"type":"function_call","id":"steps-item","call_id":"steps","name":"compress","arguments":serde_json::json!({
+                        "topic":"read a and b","content":[{"startId":markers[0].1,"endId":markers[1].1,"summary":"STEP_SUMMARY_FACT a and b were read"}]
+                    }).to_string()}])
+                }
+                _ => {
+                    serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"DONE"}]}])
+                }
+            };
+            seen.push(request);
+            respond(&mut socket, &completed(output)).await;
+        }
+        seen
+    });
+    let cancel = AtomicBool::new(false);
+    let mutate = async {
+        ready.await.unwrap();
+        // Shape of a background launch: the receipt was delivered, the
+        // operation row stays `running`.
+        assert_eq!(
+            db.execute_for_test(
+                "UPDATE tool_operations SET state='running' WHERE provider_call_id='r1'"
+            ),
+            1
+        );
+        if child_job {
+            assert_eq!(db.execute_for_test("INSERT INTO child_jobs(operation_id,parent_id,child_id,identity,state,delivery_id) SELECT id,'s','child','{}','completed','delivery-r1' FROM tool_operations WHERE provider_call_id='r1'"), 1);
+        }
+        done.send(()).unwrap();
+    };
+    let (report, ()) = tokio::join!(
+        runtime.run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "TASK_TEXT read the files".into(),
+            invocation: None,
+            catalog: &models,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 8000,
+            provider,
+            cancel: &cancel,
+        }),
+        mutate,
+    );
+    let seen = peer.await.unwrap();
+    assert_eq!(report.unwrap().status, TurnStatus::Completed);
+    seen
+}
+
+#[tokio::test]
+async fn step_compress_applies_over_a_settled_background_launch() {
+    let seen = tokio::time::timeout(Duration::from_secs(20), step_compress_over_launch(true))
+        .await
+        .expect("finishes within 20 seconds");
+    let after = seen[4]["input"].to_string();
+    assert!(
+        after.contains("STEP_SUMMARY_FACT"),
+        "summary replaces the steps"
+    );
+    assert!(
+        !after.contains("A_CONTENT") && !after.contains("B_CONTENT"),
+        "compressed results left HOT"
+    );
+    assert!(after.contains("C_CONTENT") && after.contains("TASK_TEXT"));
+    assert!(!after.contains("was NOT applied"));
+}
+
+#[tokio::test]
+async fn refused_step_compress_is_reported_to_the_model() {
+    let seen = tokio::time::timeout(Duration::from_secs(20), step_compress_over_launch(false))
+        .await
+        .expect("finishes within 20 seconds");
+    let after = seen[4]["input"].to_string();
+    assert!(
+        after.contains("A_CONTENT") && after.contains("B_CONTENT"),
+        "context unchanged"
+    );
+    assert!(after.contains("was NOT applied"), "{after}");
+    assert!(
+        after.contains("unsettled closed effect"),
+        "the reason is visible"
+    );
+}

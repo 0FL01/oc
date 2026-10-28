@@ -184,9 +184,12 @@ fn usage_accounting_prices_unmeasured_opaque_and_binds_typed_sources() {
     let input = [user, current.input(), opaque];
     let causal = usage_causal(input.iter(), &facts);
     let suffix = usage_tokens(&causal[1..]).unwrap();
+    // Unreported later items are estimated, but encrypted reasoning base64 is
+    // not prompt text: a live 2.04 MB turn with 538 KB of it was billed 381k
+    // input tokens, matching bytes/4 without the opaque payload.
     assert!(
-        suffix >= 1000,
-        "unreported later opaque output is not measured"
+        suffix < 1000,
+        "opaque encrypted reasoning is not charged as text: {suffix}"
     );
     for (overhead, growth) in [(100, 0), (130, 30), (70, 0)] {
         assert_eq!(
@@ -330,7 +333,9 @@ async fn incident_shell_notice_renewal_compacts_large_journals_before_continuing
                 } else {
                     match index {
                         0 => serde_json::json!([
-                            {"type":"reasoning","id":"old-reasoning","summary":[],"encrypted_content":"x".repeat(240_000)},
+                            // A large old journal must be billed text (within the window);
+                            // encrypted reasoning bytes alone are not prompt text.
+                            {"type":"reasoning","id":"old-reasoning","summary":[{"type":"summary_text","text":"x".repeat(170_000)}],"encrypted_content":"x".repeat(240_000)},
                             {"type":"function_call","id":"background-item","call_id":"background","name":"shell","arguments":serde_json::json!({
                                 "command":"n=0; while [ ! -f release ] && [ $n -lt 1000 ]; do n=$((n+1)); sleep .01; done; [ -f release ] || exit 124; printf x >> effects; printf BACKGROUND_REPORT",
                                 "background":true,"timeout":0
@@ -2070,4 +2075,86 @@ async fn compaction_publication_failure_releases_and_recovers_running_and_final(
                 .any(|snapshot| snapshot.state == CompactionState::Failed)
         );
     }
+}
+
+/// Live regression: a soft automatic compaction that freed nothing ended the
+/// whole turn as "automatic compaction failed without changing context" while
+/// the request still fit its admitted input budget. Only a request that does
+/// not fit (or a provider overflow) is an honest refusal.
+#[tokio::test]
+async fn soft_automatic_no_gain_continues_a_request_that_fits() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(&db, "old", "small old task");
+    let mut generation = Generation::default();
+    generation.compaction.buffer = Some(30_000);
+    generation.compaction.keep_tokens = 0;
+    let runtime = runtime(&db, project.path(), generation);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let task = tokio::spawn(async move {
+        let (mut socket, body) = read_request(&listener).await;
+        assert!(
+            !body["input"].to_string().contains("FINAL_REQUEST"),
+            "soft compaction first"
+        );
+        respond(
+            &mut socket,
+            &sse(&format!(
+                "## Objective\n{}",
+                "longer replacement ".repeat(100)
+            )),
+        )
+        .await;
+        let (mut socket, body) = read_request(&listener).await;
+        assert!(
+            body["input"].to_string().contains("FINAL_REQUEST"),
+            "the main request follows"
+        );
+        respond(&mut socket, &sse("DONE")).await;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                .await
+                .is_err(),
+            "no repeated no-gain compaction"
+        );
+    });
+    let mut catalog = catalog();
+    catalog.models.insert(
+        "m".into(),
+        serde_json::json!({"limit":{"context":40_000,"output":8_000}}),
+    );
+    let cancel = AtomicBool::new(false);
+    let report = tokio::time::timeout(
+        Duration::from_secs(20),
+        runtime.run_turn(TurnParams {
+            session: "s".into(),
+            // ~15k tokens of open tail: above the soft ceiling, within the
+            // admitted input, and not compaction source.
+            prompt: format!("FINAL_REQUEST {}", "open tail ".repeat(6_000)).into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1024,
+            provider,
+            cancel: &cancel,
+        }),
+    )
+    .await
+    .expect("turn finishes within 20 seconds")
+    .unwrap();
+    assert_eq!(
+        report.status,
+        TurnStatus::Completed,
+        "{:?}",
+        report.diagnostic
+    );
+    task.await.unwrap();
+    let history = db.compaction_history("s").unwrap();
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].state, CompactionState::Failed);
+    assert!(history[0].error.as_deref().unwrap().contains("no_gain"));
 }

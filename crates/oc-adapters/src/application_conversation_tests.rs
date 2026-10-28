@@ -117,15 +117,25 @@ async fn compaction_owner_automatic_failure_and_cancel_keep_promoted_user_and_hi
                             CompactionState::Failed
                         }
                     );
+                    compaction_terminal = true;
                     if !cancelled {
                         let diagnostic = snapshot.error.unwrap();
                         assert!(diagnostic.contains("VIS34 bounded summary failure"));
                         assert!(!diagnostic.contains("SECRET-"));
                         assert!(!diagnostic.contains("UNRELATED-RAW"));
+                        // A soft trigger that freed nothing is not a failure: the
+                        // primary request still fits and continues (Long Horizon).
+                        let (mut socket, body) = request(&listener).await;
+                        assert_ne!(body["tools"], serde_json::json!([]));
+                        assert!(
+                            body["input"]
+                                .to_string()
+                                .contains("genuine triggering user")
+                        );
+                        respond(&mut socket, "data: {\"type\":\"response.output_text.delta\",\"delta\":\"continued\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n").await;
                     }
-                    compaction_terminal = true;
                 }
-                CoreEvent::TurnFailed { .. } if !cancelled => {
+                CoreEvent::TurnFinished { .. } if !cancelled => {
                     assert!(compaction_terminal);
                     break;
                 }
@@ -133,8 +143,8 @@ async fn compaction_owner_automatic_failure_and_cancel_keep_promoted_user_and_hi
                     assert!(compaction_terminal);
                     break;
                 }
-                CoreEvent::TurnFinished { .. } => {
-                    panic!("failed compaction must not continue the primary request")
+                CoreEvent::TurnFailed { .. } | CoreEvent::TurnFinished { .. } => {
+                    panic!("soft compaction failure must continue; cancel must interrupt")
                 }
                 _ => {}
             }

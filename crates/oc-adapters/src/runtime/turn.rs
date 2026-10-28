@@ -836,7 +836,8 @@ impl Runtime<'_> {
 
     /// Commit an admitted task renewal at a closed boundary: RAW delta is
     /// sealed unchanged and the new HOT carries the summary in place of the
-    /// task. Any failure leaves the previous HOT in force.
+    /// task. Any failure leaves the previous HOT in force and returns its
+    /// reason, which the model must see: it was told the renewal was accepted.
     fn commit_task_renewal(
         &self,
         turn_log: &mut TurnLog,
@@ -845,11 +846,11 @@ impl Runtime<'_> {
         config: &DcpConfig,
         nudge_key: &str,
         tool_projection: &mut crate::storage::DcpToolProjection,
-    ) -> Result<bool, RuntimeError> {
+    ) -> Result<Result<(), String>, RuntimeError> {
         let intent = match (&turn_log.task_renewal, &turn_log.step_compression) {
             (Some(summary), _) => InTask::Renewal(summary.clone()),
             (None, Some(steps)) => InTask::Steps(steps.clone()),
-            (None, None) => return Ok(false),
+            (None, None) => return Ok(Err("no admitted renewal".into())),
         };
         let counts = turn_log.closed_counts();
         // The sealed delta is the exact durable checkpoint (it records the
@@ -880,26 +881,26 @@ impl Runtime<'_> {
                     Some((&plan.projection, None, &plan.retire)),
                     &preference_updates,
                 )
-                .ok()
-                .map(|()| hot),
-            Err(_) => None,
+                .map(|()| hot)
+                .map_err(|error| error.to_string()),
+            Err(error) => Err(error),
         };
         match committed {
-            Some(hot) => {
+            Ok(hot) => {
                 self.nudge_state
                     .lock()
                     .expect("nudge lock")
                     .insert(nudge_key.to_string(), next_nudge);
                 *tool_projection = plan.projection;
                 *turn_log = hot;
-                Ok(true)
+                Ok(Ok(()))
             }
-            None => {
+            Err(reason) => {
                 turn_log.task_renewal = None;
                 turn_log.step_compression = None;
                 self.db
                     .checkpoint_turn(&turn_log.turn_id, &turn_log.to_json().to_string())?;
-                Ok(false)
+                Ok(Err(reason))
             }
         }
     }
@@ -918,7 +919,7 @@ impl Runtime<'_> {
         let counts = log.closed_counts();
         let mut prefix_counts = counts;
         prefix_counts[0] = response_start;
-        let live = self.db.live_shell_call_ids(&log.turn_id)?;
+        let live = self.db.live_background_call_ids(&log.turn_id)?;
         let keep = |group: &[InputItem]| super::context::dcp_group_protected(group, &live, config);
         let range = match intent {
             InTask::Renewal(_) => None,
@@ -2125,8 +2126,14 @@ impl<'a> Runtime<'a> {
         }
         let mut overflow_recovered = false;
         let mut overflow_pending = false;
+        // After an automatic compaction that freed nothing while the request
+        // still fits, retry only once the estimate passes this point instead of
+        // re-summarizing (and failing) on every round.
+        let mut soft_compaction_floor: Option<u64> = None;
         let mut last_compacted_round = None;
         let mut last_nudged_iteration = None;
+        // One transient notice that an accepted in-task compress did not apply.
+        let mut compress_refusal: Option<InputItem> = None;
         let mut closed_boundary: Option<([usize; 7], i64)> = None;
         let mut retry_policy = retry::RetryPolicy::default();
         let mut retry_resuming = false;
@@ -2809,6 +2816,7 @@ impl<'a> Runtime<'a> {
                     .chain(anchors.iter())
                     .chain(&projected_continuation)
                     .chain(nudge_input.iter())
+                    .chain(compress_refusal.iter())
                     .collect::<Vec<_>>();
                 let bytes = super::compaction::serialized_size(&(&input, &tool_defs))?;
                 let noncausal = fixed_input
@@ -2820,6 +2828,7 @@ impl<'a> Runtime<'a> {
                     })
                     .chain(anchors.iter())
                     .chain(nudge_input.iter())
+                    .chain(compress_refusal.iter())
                     .collect::<Vec<_>>();
                 let noncausal_tokens = super::compaction::usage_tokens(&noncausal)?;
                 let causal = super::compaction::usage_causal(
@@ -2854,6 +2863,8 @@ impl<'a> Runtime<'a> {
             let automatic_due = !notice_overflow
                 && compaction_config.auto
                 && (last_compacted_round != Some(rounds) || over_budget)
+                && (over_budget
+                    || soft_compaction_floor.is_none_or(|floor| request_estimate >= floor))
                 && (!history.is_empty() || closed_boundary.is_some())
                 && self
                     .compaction_estimate(&params.session, measured, request_estimate, budget.input)?
@@ -2927,7 +2938,13 @@ impl<'a> Runtime<'a> {
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
-            if (overflow_pending || automatic_due) && !compacted {
+            if automatic_due && !compacted && !overflow_pending && !over_budget {
+                // A soft trigger that could not free context is not a failure:
+                // the request still fits its admitted input budget.
+                soft_compaction_floor =
+                    Some(request_estimate + budget.input.saturating_sub(request_estimate) / 2);
+            }
+            if (overflow_pending || (automatic_due && over_budget)) && !compacted {
                 Self::terminal_error(
                     &mut turn_log,
                     "compaction_failed",
@@ -2955,6 +2972,7 @@ impl<'a> Runtime<'a> {
             }
             overflow_pending = false;
             if compacted {
+                soft_compaction_floor = None;
                 if turn_log.raw_prefix.as_ref().is_some_and(|p| p.ends[0] > 0) && !eligible_past {
                     closed_boundary = None;
                     // Earlier output/calls remain explicitly readable in RAW;
@@ -3020,11 +3038,14 @@ impl<'a> Runtime<'a> {
                 continue 'step;
             }
             let continuation = projected_continuation;
+            // Delivered once, with the request that follows the failed commit.
+            let refusal = compress_refusal.take();
             let input: Vec<_> = fixed_input
                 .iter()
                 .chain(anchors.iter())
                 .chain(&continuation)
                 .chain(nudge_input.iter())
+                .chain(refusal.iter())
                 .collect();
             let input: Vec<InputItem> = input.into_iter().cloned().collect();
             if let Err(error) = crate::attachments::admit_images(&selection.entry, &input, &[]) {
@@ -4197,20 +4218,31 @@ impl<'a> Runtime<'a> {
                 projected_blocks = refreshed.blocks;
             }
             closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
-            if (turn_log.task_renewal.is_some() || turn_log.step_compression.is_some())
-                && self.commit_task_renewal(
+            if turn_log.task_renewal.is_some() || turn_log.step_compression.is_some() {
+                match self.commit_task_renewal(
                     &mut turn_log,
                     shell_notice_seq,
                     &params.session,
                     &published.dcp_config,
                     &state_key,
                     &mut tool_projection,
-                )?
-            {
-                // Sealed into RAW; the ongoing report keeps only its hot tail.
-                closed_boundary = None;
-                text.clear();
-                calls.clear();
+                )? {
+                    Ok(()) => {
+                        // Sealed into RAW; the ongoing report keeps only its hot tail.
+                        closed_boundary = None;
+                        text.clear();
+                        calls.clear();
+                    }
+                    // The tool already answered "accepted"; never fail silently.
+                    Err(reason) => {
+                        compress_refusal = Some(InputItem::message(
+                            InputRole::Developer,
+                            format!(
+                                "The previous compress (task renewal/step range) was NOT applied: {reason}. Context is unchanged. Continue the task; you may compress other closed history."
+                            ),
+                        ))
+                    }
+                }
             }
             // A final answer with steered input waiting is not the end of the
             // turn: the model answers that input in the next request.

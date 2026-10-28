@@ -672,7 +672,7 @@ impl Runtime<'_> {
                 snapshot.state = CompactionState::Completed;
                 if let Some((log, counts, notice_seq)) = current.as_mut() {
                     let config = &published.dcp_config;
-                    let live_calls = self.db.live_shell_call_ids(&log.turn_id)?;
+                    let live_calls = self.db.live_background_call_ids(&log.turn_id)?;
                     let working = log
                         .current_working_checkpoint(&snapshot.summary, *counts, |group| {
                             group.iter().any(|item| {

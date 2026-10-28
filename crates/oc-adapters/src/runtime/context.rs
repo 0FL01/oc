@@ -956,7 +956,7 @@ impl<'a> Runtime<'a> {
             let value: serde_json::Value =
                 serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
-            let live = self.db.live_shell_call_ids(&log.turn_id)?;
+            let live = self.db.live_background_call_ids(&log.turn_id)?;
             let selected = log
                 .selected_closed_groups(|group| dcp_group_protected(group, &live, config))
                 .map_err(|_| RuntimeError::Storage)?;

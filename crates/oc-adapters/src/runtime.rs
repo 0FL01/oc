@@ -777,8 +777,9 @@ pub fn estimate_tokens(text: &str) -> u64 {
 }
 
 // Preserve the existing JSON/text and native-read estimate, but do not charge
-// inline base64 as prompt text. Images use the same 1500-token heuristic as
-// compaction; independent serialized-byte guards still see the whole payload.
+// inline base64 (images, encrypted reasoning) as prompt text. Images use the
+// same 1500-token heuristic as compaction; independent serialized-byte guards
+// still see the whole payload.
 fn estimate_input_tokens_from_bytes<'a>(
     mut bytes: u64,
     input: impl Iterator<Item = &'a InputItem>,
@@ -803,6 +804,14 @@ fn estimate_input_tokens_from_bytes<'a>(
                     + facts["data"].as_str().expect("validated data").len();
                 bytes = bytes.saturating_sub(url_bytes as u64);
                 media = media.saturating_add(1500);
+            }
+            // Opaque encrypted reasoning is base64 the provider does not bill as
+            // prompt text: live turns matched usage within ~3% without it and
+            // were overstated by ~30% with it, triggering false compactions.
+            InputItem::ProviderOutput(value) if value["type"] == "reasoning" => {
+                if let Some(opaque) = value["encrypted_content"].as_str() {
+                    bytes = bytes.saturating_sub(opaque.len() as u64);
+                }
             }
             _ => {}
         }
