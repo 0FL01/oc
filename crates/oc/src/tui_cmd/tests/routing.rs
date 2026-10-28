@@ -4807,3 +4807,37 @@ async fn chosen_and_cycled_effort_is_remembered_immediately_without_sending() {
         "Ctrl+T cycle is remembered too"
     );
 }
+
+#[tokio::test]
+async fn lost_owner_keeps_its_cause_and_stops_issuing_refreshes() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId("lost-owner".into()));
+    let mut deck = LoopState::default();
+    deck.sync_tabs(&mut state);
+    append_tab(&app, &mut deck, &mut state, "lost-owner-other");
+    deck.reads.request(&state, true);
+    read_jobs::sync(&app, &mut state, &mut deck).await;
+    // The attachment dies with this refresh in flight.
+    let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+        panic!("refresh reads its owner")
+    };
+    drop(ack);
+    drop(inbox);
+    report_owner_lost(&mut state, &mut deck);
+    settle_reads(&app, &mut state, &mut deck).await;
+    assert_eq!(
+        state.note(),
+        Some(OWNER_LOST),
+        "local shutdown must not hide the cause"
+    );
+    assert_eq!(
+        deck.tabs.iter().flatten().next().unwrap().note(),
+        Some(OWNER_LOST),
+        "a background tab reports the same lost attachment"
+    );
+    // A periodic shell/projection refresh does not spin on the closed handle.
+    deck.reads.request(&state, true);
+    read_jobs::sync(&app, &mut state, &mut deck).await;
+    assert!(!deck.reads.pending());
+    assert_eq!(state.note(), Some(OWNER_LOST));
+}

@@ -1,6 +1,6 @@
 use super::{
     Lease,
-    client::{self, Pipes, send},
+    client::{Pipes, send},
     endpoint::{self, Endpoint},
     framing::{self, Budget, Message},
     issue,
@@ -46,6 +46,8 @@ struct Viewer {
     lease: Option<Lease>,
     output: Option<mpsc::Sender<Message>>,
     disconnect: watch::Sender<bool>,
+    /// Newest live revision dropped because this viewer's egress was full.
+    gap: Option<u64>,
 }
 struct Operation {
     origin: Weak<Origin>,
@@ -74,6 +76,7 @@ impl State {
         if let Some(viewer) = self.viewers.get_mut(&id) {
             viewer.ready = false;
             viewer.output = None;
+            viewer.gap = None;
         }
         if before > 0 && self.tui_count() == 0 {
             owner.resources.tui_present.store(false, Ordering::Release);
@@ -277,7 +280,13 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
     let mut startup_open = true;
     let mut fatal = None;
     loop {
-        let closing = state.lock().expect("native leases").closing;
+        let (closing, gapped) = {
+            let shared = state.lock().expect("native leases");
+            (
+                shared.closing,
+                shared.viewers.values().any(|viewer| viewer.gap.is_some()),
+            )
+        };
         if closing && peers.is_empty() {
             break;
         }
@@ -290,7 +299,7 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
                 shared.sequence = shared.sequence.checked_add(1).ok_or_else(|| issue(ServiceCode::CapacityExceeded))?;
                 let id = shared.sequence;
                 let (disconnect, closed) = watch::channel(false);
-                shared.viewers.insert(id, Viewer { ready: false, lease: None, output: None, disconnect });
+                shared.viewers.insert(id, Viewer { ready: false, lease: None, output: None, disconnect, gap: None });
                 drop(shared);
                 peers.spawn(connection(stream, id, endpoint.registration.clone(), owner.clone(), state.clone(), budget.clone(), closed));
             },
@@ -326,6 +335,7 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
                     Err(_) => { state.lock().expect("native leases").force_close(); },
                 }
             },
+            () = tokio::time::sleep(Duration::from_millis(20)), if gapped => flush_gaps(&state, &budget),
             event = live.recv(), if !closing => {
                 match event {
                     Ok(event) => publish(&owner, &state, &budget, event),
@@ -494,25 +504,25 @@ async fn connection(
     let mut control_sequence = 0;
     let mut overtaken = BTreeMap::<u64, String>::new();
     let mut released = false;
-    loop {
+    let reason = loop {
         tokio::select! {
             incoming = pipes.incoming.recv() => {
-                let Some(Ok(message)) = incoming else { break; };
-                let frame = match message.decode::<Client>() { Ok(frame) => frame, Err(_) => break };
+                let Some(Ok(message)) = incoming else { break "ingress_closed"; };
+                let frame = match message.decode::<Client>() { Ok(frame) => frame, Err(_) => break "decode" };
                 match frame {
-                    Client::Release => { released = true; break; },
+                    Client::Release => { released = true; break "released"; },
                     Client::CancelRequest { id } => {
                         if let Some((cancel, _)) = cancellation.get(&id) { cancel.store(true, Ordering::Release); }
                         else if id > sequence {
                             // Priority frames can overtake their queued work.
                             // Retain only this finite ingress window, never a
                             // durable retry ledger or cancellation by session.
-                            if pending_cancellations.len() >= oc_core::session::MAX_QUEUE_ITEMS && !pending_cancellations.contains(&id) { break; }
+                            if pending_cancellations.len() >= oc_core::session::MAX_QUEUE_ITEMS && !pending_cancellations.contains(&id) { break "cancel_overflow"; }
                             pending_cancellations.insert(id);
                         }
                     },
                     Client::Control { id: control_id, location_epoch, expected, session, turn } => {
-                        if control_id <= control_sequence { break; }
+                        if control_id <= control_sequence { break "control_order"; }
                         control_sequence = control_id;
                         let result = if peer.epoch() != location_epoch { Err(CoreError::TabDeckConflict) }
                         else if let Some(Expected::Pending(request)) = expected {
@@ -529,22 +539,22 @@ async fn connection(
                             } else { cancel_operation(&owner, &state, &peer, &session, expected, turn.as_ref()) }
                         } else { cancel_operation(&owner, &state, &peer, &session, expected, turn.as_ref()) };
                         let result = serde_json::to_value(result).map_err(|_| wire::unknown());
-                        if send(&pipes.priority, &budget, &Server::Reply { id: control_id, location_epoch: peer.epoch(), result }).is_err() { break; }
+                        if send(&pipes.priority, &budget, &Server::Reply { id: control_id, location_epoch: peer.epoch(), result }).is_err() { break "control_egress"; }
                     },
                     Client::Request { id: request_id, location_epoch, expected, request } => {
                         let mut request = *request;
                         request.bind_attachment(peer.id);
-                        if request_id <= sequence || work.len() >= oc_core::session::MAX_QUEUE_ITEMS { break; }
+                        if request_id <= sequence || work.len() >= oc_core::session::MAX_QUEUE_ITEMS { break "request_order"; }
                         sequence = request_id;
                         if pending_cancellations.remove(&request_id) {
-                            let Some(flag) = request.cancellation() else { break; };
+                            let Some(flag) = request.cancellation() else { break "cancel_target"; };
                             flag.store(true, Ordering::Release);
                         }
                         pending_cancellations.retain(|id| *id > sequence);
                         if let Some(session) = execution(&request) {
                             let cancel = request.cancellation().unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
                             if let Some(cancelled_session) = overtaken.remove(&request_id) {
-                                if cancelled_session != session.0 { break; }
+                                if cancelled_session != session.0 { break "cancel_target"; }
                                 cancel.store(true, Ordering::Release);
                             }
                             peer.admissions.lock().expect("peer admissions").insert(request_id, Admission {session:session.0.clone(),cancel,root:None});
@@ -557,17 +567,25 @@ async fn connection(
                             let _ingress = message;
                             let result = handle(&request_owner, &request_state, &request_peer, &output, &request_budget, request_id, location_epoch, expected, request).await;
                             let frame = Server::Reply { id: request_id, location_epoch: request_peer.epoch(), result };
-                            let sent = send(&output, &request_budget, &frame).is_ok();
+                            // A receipt waits for egress room instead of being lost
+                            // behind droppable live hints; only a closed writer fails.
+                            let sent = match Message::encode(&frame, &request_budget) {
+                                Ok(message) => output.send(message).await.is_ok(),
+                                Err(_) => false,
+                            };
                             (request_id, sent)
                         });
                     },
                 }
             },
             joined = work.join_next(), if !work.is_empty() => {
-                match joined { Some(Ok((id, true))) => { cancellation.remove(&id); peer.admissions.lock().expect("peer admissions").remove(&id); owner.resources.retired.notify_one(); }, _ => break }
+                match joined { Some(Ok((id, true))) => { cancellation.remove(&id); peer.admissions.lock().expect("peer admissions").remove(&id); owner.resources.retired.notify_one(); }, _ => break "reply_egress" }
             },
-            _ = closed.changed() => { if *closed.borrow() { break; } },
+            _ = closed.changed() => { if *closed.borrow() { break "owner_disconnect"; } },
         }
+    };
+    if !released {
+        trace_closed(id, reason);
     }
     peer.disconnected.store(true, Ordering::Release);
     let early_release = {
@@ -705,6 +723,7 @@ fn publish(
         origin: event.origin,
         event: Box::new(Event::from(event.event)),
     };
+    let revision = event.revision;
     let message = Message::encode(&frame, budget);
     let mut shared = state.lock().expect("native leases");
     if let Some((session, running)) = terminals {
@@ -716,22 +735,64 @@ fn publish(
             owner.resources.retired.notify_one();
         }
     }
-    shared.revision = event.revision;
-    for viewer in shared
+    shared.revision = revision;
+    for (&id, viewer) in shared
         .viewers
-        .values()
-        .filter(|viewer| viewer.ready && matches!(viewer.lease, Some(Lease::Tui | Lease::Run)))
+        .iter_mut()
+        .filter(|(_, viewer)| viewer.ready && matches!(viewer.lease, Some(Lease::Tui | Lease::Run)))
     {
-        if let Some(output) = &viewer.output
-            && message
-                .as_ref()
-                .map_err(|_| ())
-                .and_then(|message| client::send_encoded(output, message.clone()).map_err(|_| ()))
-                .is_err()
+        let Some(output) = &viewer.output else {
+            continue;
+        };
+        // Live hints are droppable; a busy viewer degrades to a projection gap
+        // (re-read authoritative state), never to a silently dead attachment.
+        // An exhausted shared byte budget is the same capacity condition.
+        match message
+            .as_ref()
+            .map(|message| output.try_send(message.clone()))
         {
-            viewer.disconnect.send_replace(true);
+            Ok(Ok(())) => viewer.gap = None,
+            Ok(Err(mpsc::error::TrySendError::Full(_))) | Err(_) => viewer.gap = Some(revision),
+            Ok(Err(mpsc::error::TrySendError::Closed(_))) => {
+                viewer.gap = None;
+                trace_closed(id, "egress_closed");
+                viewer.disconnect.send_replace(true);
+            }
         }
     }
+}
+
+/// Announce dropped hints once the viewer drains. The gap marker reuses the
+/// newest dropped revision, so the client re-reads instead of trusting a hole.
+fn flush_gaps(state: &Mutex<State>, budget: &Budget) {
+    let mut shared = state.lock().expect("native leases");
+    for (&id, viewer) in &mut shared.viewers {
+        let (Some(revision), Some(output)) = (viewer.gap, &viewer.output) else {
+            continue;
+        };
+        let frame = Server::Event {
+            revision,
+            origin: None,
+            event: Box::new(Event::from(CoreEvent::ProjectionGap)),
+        };
+        let Ok(message) = Message::encode(&frame, budget) else {
+            continue;
+        };
+        match output.try_send(message) {
+            Ok(()) => viewer.gap = None,
+            Err(mpsc::error::TrySendError::Full(_)) => {}
+            Err(mpsc::error::TrySendError::Closed(_)) => {
+                viewer.gap = None;
+                trace_closed(id, "egress_closed");
+                viewer.disconnect.send_replace(true);
+            }
+        }
+    }
+}
+
+/// Record why an attachment ended; the owner has no other diagnostic sink.
+fn trace_closed(id: u64, reason: &str) {
+    crate::trace::log("native.peer.closed", &format!("id={id} reason={reason}"));
 }
 
 fn execution(message: &Request) -> Option<&SessionId> {

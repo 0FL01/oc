@@ -1457,6 +1457,12 @@ impl CoreApp {
         (app, inbox, receiver, events, admissions)
     }
 
+    /// The worker or native owner bridge that served this handle is gone; every
+    /// later request fails with [`CoreError::Shutdown`] until a new attachment.
+    pub fn is_closed(&self) -> bool {
+        self.inbox.sender.is_closed()
+    }
+
     /// Native frontends mirror the authority's workspace, not a private deck.
     pub fn shares_workspace(&self) -> bool {
         self.control.is_some()

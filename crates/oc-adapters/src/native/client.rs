@@ -473,7 +473,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
             message = controls.recv(), if !releasing && control_pending.len() < 16 => {
                 let Some(NativeControl::Cancel { session, turn, admission, ack }) = message else {
                     releasing = true;
-                    if send(&pipes.priority, &control_budget, &Client::Release).is_err() { break Err(()); }
+                    if send(&pipes.priority, &control_budget, &Client::Release).is_err() { break Err("release_egress"); }
                     continue;
                 };
                 if admission.as_ref().is_some_and(|entry| entry.request.load(std::sync::atomic::Ordering::Acquire) == 0) {
@@ -482,22 +482,22 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                     let _ = ack.send(Ok(())); continue;
                 }
                 let (request, reply) = Pending::from_inbox(InboxMsg::Cancel { session: session.clone(), ack }).expect("cancel receipt");
-                sequence = match sequence.checked_add(1) { Some(value) => value, None => { reply.finish(Err(wire::unknown())); break Err(()); } };
+                sequence = match sequence.checked_add(1) { Some(value) => value, None => { reply.finish(Err(wire::unknown())); break Err("sequence"); } };
                 let expected = admission.map(|entry| Expected::Pending(entry.request.load(std::sync::atomic::Ordering::Acquire)))
                     .or_else(|| control_session(&request).and_then(|session| operations.get(session).and_then(Operation::expected)));
                 let frame = Client::Control { id: sequence, location_epoch: epoch, expected, session, turn };
-                if send(&pipes.priority, &control_budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err(()); }
+                if send(&pipes.priority, &control_budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err("control_egress"); }
                 pending.insert(sequence, reply); control_pending.insert(sequence);
             },
             incoming = pipes.incoming.recv() => {
                 // Only Released confirms joined cleanup. EOF after Release can
                 // be the owner's fatal cleanup exit, even with no pending ACKs.
-                let Some(Ok(message)) = incoming else { break Err(()); };
-                let frame = match message.decode::<Server>() { Ok(frame) => frame, Err(_) => break Err(()) };
+                let Some(Ok(message)) = incoming else { break Err("owner_eof"); };
+                let frame = match message.decode::<Server>() { Ok(frame) => frame, Err(_) => break Err("decode") };
                 match frame {
                     Server::Reply { id, location_epoch, result } => {
                         epoch = epoch.max(location_epoch);
-                        let Some(reply) = pending.remove(&id) else { break Err(()); };
+                        let Some(reply) = pending.remove(&id) else { break Err("unknown_reply"); };
                         control_pending.remove(&id);
                         if let Some(entry) = submitted.remove(&id) { admissions.complete(&entry); }
                         // Failure retracts only this request's provisional owner.
@@ -580,15 +580,15 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                 }
             },
             message = inbox.recv(), if !releasing && pending.len() - control_pending.len() < oc_core::session::MAX_QUEUE_ITEMS => {
-                let Some(message) = message else { releasing = true; if send(&pipes.priority, &control_budget, &Client::Release).is_err() { break Err(()); } continue; };
-                let Some((request, reply)) = Pending::from_inbox(message) else { releasing = true; if send(&pipes.priority, &control_budget, &Client::Release).is_err() { break Err(()); } continue; };
+                let Some(message) = message else { releasing = true; if send(&pipes.priority, &control_budget, &Client::Release).is_err() { break Err("release_egress"); } continue; };
+                let Some((request, reply)) = Pending::from_inbox(message) else { releasing = true; if send(&pipes.priority, &control_budget, &Client::Release).is_err() { break Err("release_egress"); } continue; };
                 let admission = submission(&request).and_then(|session| admissions.claim(&oc_core::domain::SessionId(session.into())));
                 if let Some(entry) = &admission && entry.cancelled.load(std::sync::atomic::Ordering::Acquire) {
                     admissions.complete(entry);
                     reply.finish(Err(oc_core::session::CoreError::Application("submission cancelled before dispatch".into())));
                     continue;
                 }
-                sequence = match sequence.checked_add(1) { Some(value) => value, None => { reply.finish(Err(wire::unknown())); break Err(()); } };
+                sequence = match sequence.checked_add(1) { Some(value) => value, None => { reply.finish(Err(wire::unknown())); break Err("sequence"); } };
                 if let Some(entry) = admission { entry.request.store(sequence, std::sync::atomic::Ordering::Release); submitted.insert(sequence, entry); }
                 let expected = control_session(&request).and_then(|session| operations.get(session).and_then(Operation::expected));
                 if let wire::Request::Workspace { selected } = &request { snapshots.insert(sequence, (selected.clone(), epoch)); }
@@ -601,12 +601,12 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
                     operations.entry(session.into()).or_default().owned.insert(sequence, OwnedOperation { origin: None, completion, acknowledged_at: None, compaction: None });
                 }
                 let frame = Client::Request { id: sequence, location_epoch: epoch, expected, request: Box::new(request) };
-                if send(&pipes.outgoing, &budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err(()); }
+                if send(&pipes.outgoing, &budget, &frame).is_err() { reply.finish(Err(oc_core::session::CoreError::QueueFull)); break Err("request_egress"); }
                 pending.insert(sequence, reply);
             },
             () = tokio::time::sleep(Duration::from_millis(5)), if pending.values().any(Pending::has_cancellation) => {
                 let cancelled: Vec<_> = pending.iter_mut().filter_map(|(&id, pending)| pending.take_cancellation().then_some(id)).collect();
-                for id in cancelled { if send(&pipes.priority, &control_budget, &Client::CancelRequest { id }).is_err() { break 'bridge Err(()); } }
+                for id in cancelled { if send(&pipes.priority, &control_budget, &Client::CancelRequest { id }).is_err() { break 'bridge Err("cancel_egress"); } }
             },
         }
         operations.retain(|_, operation| {
@@ -627,7 +627,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
             .sum::<usize>()
             > oc_core::session::MAX_QUEUE_ITEMS * (crate::storage::MAX_TABS + 2)
         {
-            break Err(());
+            break Err("bookkeeping");
         }
     };
     for (_, reply) in pending {
@@ -636,7 +636,8 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
     for (_, entry) in submitted {
         admissions.complete(&entry);
     }
-    if result.is_err() {
+    if let Err(reason) = result {
+        crate::trace::log("native.bridge.closed", &format!("reason={reason}"));
         let _ = events.send(CoreEvent::OwnerDisconnected);
     }
     pipes.stop().await;
@@ -647,7 +648,7 @@ async fn bridge(bridge: Bridge) -> Result<(), ()> {
             .map_err(|_| ())?
             .map_err(|_| ())?;
     }
-    result
+    result.map_err(|_| ())
 }
 
 pub(super) fn send(
@@ -655,13 +656,8 @@ pub(super) fn send(
     budget: &Budget,
     value: &impl serde::Serialize,
 ) -> io::Result<()> {
-    send_encoded(output, Message::encode(value, budget)?)
-}
-
-/// Queue an already encoded message; a fanout shares one encoding.
-pub(super) fn send_encoded(output: &mpsc::Sender<Message>, message: Message) -> io::Result<()> {
     output
-        .try_send(message)
+        .try_send(Message::encode(value, budget)?)
         .map_err(|_| io::Error::new(io::ErrorKind::WouldBlock, "native peer egress full"))
 }
 

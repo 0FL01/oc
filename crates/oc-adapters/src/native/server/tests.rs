@@ -158,6 +158,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
                 lease: None,
                 output: None,
                 disconnect,
+                gap: None,
             },
         )]),
         operations: BTreeMap::new(),
@@ -386,6 +387,7 @@ async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control
                 lease: None,
                 output: None,
                 disconnect,
+                gap: None,
             },
         )]),
         operations: BTreeMap::new(),
@@ -551,6 +553,7 @@ async fn srv04_request_cancellation_overtakes_queued_shell_before_admission() {
                 lease: None,
                 output: None,
                 disconnect,
+                gap: None,
             },
         )]),
         operations: BTreeMap::new(),
@@ -638,4 +641,77 @@ async fn srv04_request_cancellation_overtakes_queued_shell_before_admission() {
         owner.db.session_meta("overtaken-shell"),
         Err(StorageError::SessionNotFound)
     ));
+}
+
+#[tokio::test]
+async fn slow_viewer_overflow_degrades_to_projection_gap_instead_of_disconnect() {
+    use application::authority::live::Publication;
+    let temp = tempfile::tempdir().unwrap();
+    let owner = Owner::new(
+        Db::open(&temp.path().join("data")).unwrap(),
+        BTreeMap::new(),
+    )
+    .unwrap();
+    // A viewer that is momentarily not draining its socket (busy terminal,
+    // loaded host) while unrelated sessions stream live hints.
+    let (output, mut queued) = mpsc::channel(4);
+    let (disconnect, closed) = watch::channel(false);
+    let state = Mutex::new(State {
+        closing: false,
+        startup: false,
+        sequence: 1,
+        revision: 0,
+        viewers: BTreeMap::from([(
+            1,
+            Viewer {
+                ready: true,
+                lease: Some(Lease::Tui),
+                output: Some(output),
+                disconnect,
+                gap: None,
+            },
+        )]),
+        operations: BTreeMap::new(),
+        terminals: BTreeMap::new(),
+        cleanup_failed: false,
+    });
+    let budget = Budget::default();
+    for revision in 1..=10 {
+        let event = CoreEvent::WorkspaceChanged {
+            location: "elsewhere".into(),
+        };
+        publish(
+            &owner,
+            &state,
+            &budget,
+            Publication {
+                revision,
+                origin: None,
+                event,
+            },
+        );
+    }
+    assert!(!*closed.borrow(), "backpressure must not detach a live TUI");
+    let revision = |message: Message| match message.decode::<Server>().unwrap() {
+        Server::Event {
+            revision, event, ..
+        } => (revision, event.into_core()),
+        _ => panic!("event frame expected"),
+    };
+    for expected in 1..=4 {
+        assert_eq!(revision(queued.try_recv().unwrap()).0, expected);
+    }
+    assert!(
+        queued.try_recv().is_err(),
+        "overflow is dropped, not buffered"
+    );
+    // Once the viewer drains, it learns exactly once that hints were lost and
+    // re-reads authoritative state instead of trusting a silent hole.
+    flush_gaps(&state, &budget);
+    let (gap, event) = revision(queued.try_recv().unwrap());
+    assert_eq!(gap, 10);
+    assert_eq!(event, CoreEvent::ProjectionGap);
+    flush_gaps(&state, &budget);
+    assert!(queued.try_recv().is_err());
+    owner.shutdown().await.unwrap();
 }

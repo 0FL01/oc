@@ -227,6 +227,9 @@ impl Reads {
                             changed = true;
                         }
                         Err(CoreError::LocationChanged) => {}
+                        // A lost owner attachment was already reported; its local
+                        // "shutdown" must not replace that actionable cause.
+                        Err(CoreError::Shutdown) if app.is_closed() => {}
                         Err(error) => {
                             view.push_note(&format!("Refresh failed: {error}"));
                             changed = true;
@@ -238,6 +241,9 @@ impl Reads {
                 if !read.rerun {
                     continue;
                 }
+            }
+            if app.is_closed() {
+                continue;
             }
             let Some(route) = Route::capture(view) else {
                 continue;

@@ -193,6 +193,7 @@ const BURST_BUDGET: Duration = Duration::from_millis(2);
 const COMPLETION_RECHECK: Duration = Duration::from_millis(1);
 const COMPLETION_FALLBACK: Duration = Duration::from_millis(100);
 const MAX_TABS: usize = 16;
+const OWNER_LOST: &str = "Runtime connection lost; operation outcome unknown. Reopen to read current state; input was not resent.";
 const MENTION_DEBOUNCE: Duration = Duration::from_millis(90);
 
 /// Launch the interactive TUI; returns process exit code.
@@ -1838,7 +1839,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     loop_state.shared_refresh = true;
                 }
                 CoreEvent::OwnerDisconnected => {
-                    state.push_note("Runtime connection lost; operation outcome unknown. Reopen to read current state; input was not resent.");
+                    report_owner_lost(&mut state, &mut loop_state);
                     dirty = true;
                     continue;
                 }
@@ -4214,6 +4215,13 @@ fn require_session(state: &TuiState) -> Result<SessionId, String> {
         .attached_session()
         .cloned()
         .ok_or_else(|| "no active session; submit a prompt first".to_string())
+}
+
+/// Every tab shares the dead attachment, not only the focused one.
+fn report_owner_lost(state: &mut TuiState, deck: &mut LoopState) {
+    for view in read_jobs::views_mut(state, deck) {
+        view.push_note(OWNER_LOST);
+    }
 }
 
 #[cfg(test)]
