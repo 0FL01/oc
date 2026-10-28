@@ -842,6 +842,12 @@ pub struct SseParser {
     stream_retained: usize,
     arguments: BTreeMap<String, (usize, Option<serde_json::Value>)>,
     announced_calls: BTreeMap<String, (Option<u64>, String, String)>,
+    /// Announcement ordinal of each `output_item.added` id.
+    item_ordinals: BTreeMap<String, u64>,
+    /// First announced id per wire `output_index`.
+    index_owners: BTreeMap<u64, String>,
+    /// The wire reuses an `output_index` for distinct ids; ordinals replace it.
+    reused_indexes: bool,
     output_done: BTreeMap<u64, CompletedItem>,
     output: Option<Vec<serde_json::Value>>,
     /// Chat decoding state; `None` decodes Responses events.
@@ -1027,6 +1033,12 @@ impl SseParser {
                 })
                 .sum::<usize>()
             + self
+                .item_ordinals
+                .keys()
+                .chain(self.index_owners.values())
+                .map(|id| 2 * std::mem::size_of::<(String, u64)>() + id.capacity())
+                .sum::<usize>()
+            + self
                 .output_done
                 .values()
                 .map(|done| {
@@ -1058,8 +1070,9 @@ impl SseParser {
         if payload == "[DONE]" || payload.is_empty() {
             return Ok(None);
         }
-        let value: serde_json::Value = serde_json::from_str(&payload)
+        let mut value: serde_json::Value = serde_json::from_str(&payload)
             .map_err(|_| structural(OutputStage::Decode, OutputCode::InvalidJson))?;
+        self.normalize_output_index(&mut value);
         if value.get("type").is_none() && value.get("error").is_some() {
             self.terminal = true;
             return Err(self.provider_failure(&value));
@@ -1438,6 +1451,51 @@ impl SseParser {
         }
         self.completed = true;
         Ok(())
+    }
+
+    /// Captured proxy shape (ludka2 DeepSeek): every item of a response is
+    /// announced at the same `output_index`, and reasoning closes after the
+    /// item it preceded. Distinct non-empty ids still order the output, so
+    /// once a different id reuses an announced index, every announced item
+    /// takes its announcement ordinal. Only a stream whose earlier
+    /// announcements were positional is renumbered; identity, content and
+    /// call checks below stay strict.
+    fn normalize_output_index(&mut self, value: &mut serde_json::Value) {
+        let added = value["type"] == "response.output_item.added";
+        let id = if added || value["type"] == "response.output_item.done" {
+            value["item"]["id"].as_str()
+        } else {
+            value["item_id"].as_str()
+        };
+        let (Some(id), Some(raw)) = (
+            id.filter(|id| !id.is_empty()),
+            value
+                .get("output_index")
+                .and_then(serde_json::Value::as_u64),
+        ) else {
+            return;
+        };
+        if added && !self.item_ordinals.contains_key(id) {
+            let ordinal = self.item_ordinals.len() as u64;
+            self.item_ordinals.insert(id.to_owned(), ordinal);
+            match self.index_owners.get(&raw) {
+                None => {
+                    self.index_owners.insert(raw, id.to_owned());
+                }
+                Some(owner) if owner != id && !self.reused_indexes => {
+                    self.reused_indexes = self
+                        .index_owners
+                        .iter()
+                        .all(|(index, owner)| self.item_ordinals.get(owner) == Some(index));
+                }
+                Some(_) => {}
+            }
+        }
+        if self.reused_indexes
+            && let Some(ordinal) = self.item_ordinals.get(id)
+        {
+            value["output_index"] = (*ordinal).into();
+        }
     }
 
     fn observed_index(&self, item: &serde_json::Value) -> Option<u64> {
@@ -3328,6 +3386,146 @@ mod tests {
         assert!(!format!("{config:?}").contains("private-extra-value"));
         drop(seen);
         server.shutdown();
+    }
+
+    // Captured ludka2 ocg/deepseek-v4.1-flash shape: every item reuses
+    // output_index 0 and the reasoning item closes after the item it
+    // preceded; ids are distinct and completion carries no output array.
+    #[tokio::test]
+    async fn shared_output_index_with_distinct_ids_keeps_announced_order() {
+        use super::stream_input_observed;
+        let rs = serde_json::json!({"type":"reasoning","id":"rs_r_0","summary":[{"type":"summary_text","text":"think"}]});
+        let next = [
+            serde_json::json!({"type":"message","id":"msg_r_0","role":"assistant","content":[{"type":"output_text","text":"answer","annotations":[],"logprobs":[]}]}),
+            serde_json::json!({"type":"function_call","id":"fc_call_0","call_id":"call_0","name":"read","arguments":"{\"path\":\"README.md\"}","status":"completed"}),
+        ];
+        for item in next {
+            let mut announced = item.clone();
+            if item["type"] == "function_call" {
+                announced["arguments"] = serde_json::json!("");
+                announced.as_object_mut().unwrap().remove("status");
+            } else {
+                announced["content"] = serde_json::json!([]);
+            }
+            let chunks = vec![
+                (
+                    event(
+                        serde_json::json!({"type":"response.output_item.added","output_index":0,"item":{"type":"reasoning","id":"rs_r_0","summary":[]}}),
+                    ),
+                    0,
+                ),
+                (
+                    event(
+                        serde_json::json!({"type":"response.reasoning_summary_text.delta","item_id":"rs_r_0","output_index":0,"summary_index":0,"delta":"think"}),
+                    ),
+                    0,
+                ),
+                (
+                    event(
+                        serde_json::json!({"type":"response.output_item.added","output_index":0,"item":announced}),
+                    ),
+                    0,
+                ),
+                (
+                    event(
+                        serde_json::json!({"type":"response.output_item.done","output_index":0,"item":item}),
+                    ),
+                    0,
+                ),
+                (
+                    event(
+                        serde_json::json!({"type":"response.output_item.done","output_index":0,"item":rs}),
+                    ),
+                    0,
+                ),
+                (
+                    event(
+                        serde_json::json!({"type":"response.completed","response":{"status":"completed","usage":{"input_tokens":43,"output_tokens":286}}}),
+                    ),
+                    0,
+                ),
+            ];
+            let server = TestServer::spawn(Arc::new(move |_| Action {
+                status: "200 OK",
+                headers: vec![],
+                chunks: chunks.clone(),
+                abort_after: None,
+            }))
+            .await;
+            let generation = stream_input_observed(
+                &test_config(&server.base),
+                "m",
+                None,
+                &[],
+                &[],
+                500,
+                &NO_CANCEL,
+                &mut |_| {},
+            )
+            .await
+            .unwrap_or_else(|error| panic!("{}: {error}", item["type"]));
+            let types = generation
+                .output
+                .iter()
+                .map(|i| i["type"].clone())
+                .collect::<Vec<_>>();
+            assert_eq!(
+                types,
+                [serde_json::json!("reasoning"), item["type"].clone()]
+            );
+            server.shutdown();
+        }
+    }
+
+    #[tokio::test]
+    async fn shared_output_index_stays_strict_for_unpositional_or_changed_items() {
+        use super::stream_input_observed;
+        let rs = serde_json::json!({"type":"reasoning","id":"rs","summary":[]});
+        let msg = |text: &str| serde_json::json!({"type":"message","id":"msg","role":"assistant","content":[{"type":"output_text","text":text}]});
+        let cases = [
+            // Earlier announcements were not positional: nothing to renumber.
+            vec![
+                serde_json::json!({"type":"response.output_item.added","output_index":3,"item":rs}),
+                serde_json::json!({"type":"response.output_item.added","output_index":3,"item":msg("")}),
+                serde_json::json!({"type":"response.output_item.done","output_index":3,"item":msg("a")}),
+                serde_json::json!({"type":"response.output_item.done","output_index":3,"item":rs}),
+            ],
+            // Renumbered, but the same item still cannot change its body.
+            vec![
+                serde_json::json!({"type":"response.output_item.added","output_index":0,"item":rs}),
+                serde_json::json!({"type":"response.output_item.added","output_index":0,"item":msg("")}),
+                serde_json::json!({"type":"response.output_item.done","output_index":0,"item":msg("a")}),
+                serde_json::json!({"type":"response.output_item.done","output_index":0,"item":msg("b")}),
+            ],
+        ];
+        for events in cases {
+            let mut chunks: Vec<_> = events.into_iter().map(|e| (event(e), 0)).collect();
+            chunks.push((event(serde_json::json!({"type":"response.completed","response":{"status":"completed"}})), 0));
+            let server = TestServer::spawn(Arc::new(move |_| Action {
+                status: "200 OK",
+                headers: vec![],
+                chunks: chunks.clone(),
+                abort_after: None,
+            }))
+            .await;
+            let error = stream_input_observed(
+                &test_config(&server.base),
+                "m",
+                None,
+                &[],
+                &[],
+                500,
+                &NO_CANCEL,
+                &mut |_| {},
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(
+                error.to_string(),
+                "invalid provider output (Done/IndexConflict)"
+            );
+            server.shutdown();
+        }
     }
 
     #[tokio::test]
