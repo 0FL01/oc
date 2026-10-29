@@ -1225,15 +1225,33 @@ async fn vis38_dcp_toast_uses_existing_expiry_once_and_off_preserves_failures() 
 /// Owner effects survive every frontend adoption boundary.
 #[tokio::test]
 async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() {
-    use oc_core::queries::{DiffView, DiffWrap, HistoryTurn, ToolOpView, TranscriptPart};
+    use oc_core::{
+        queries::{
+            DiffView, DiffWrap, HistoryPartWindow, HistoryTurn, PartState, ToolOpView,
+            TranscriptPart,
+        },
+        tool_output::{Capture, CaptureState, Presentation},
+    };
     let mut state = fresh_state("patch-lifecycle").await;
     let turn = WorkerTurnId("patch-turn".into());
     state.active_turn = Some(turn.clone());
     state.status = TuiStatus::Streaming;
-    let effects = crate::patch_view::tests::effects();
+    let mut effects = crate::patch_view::tests::effects();
+    effects.truncated = true;
+    effects.total_files = 2;
+    effects.additions = 2;
+    let mut presentation = Presentation::new("stored result", 13, false);
+    presentation.capture = Some(Capture {
+        reference: Some("/data/tool-output/diff.txt".into()),
+        state: CaptureState::Complete,
+        admitted_bytes: 1024,
+        retained_bytes: 1024,
+        admitted_lines: 2,
+        retained_lines: 2,
+    });
     let operation = ToolOpView {
         child_job: None,
-        output_presentation: None,
+        output_presentation: Some(Box::new(presentation.clone())),
         question: None,
         rowid: 1,
         op: "patch-op".into(),
@@ -1248,7 +1266,7 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
         dcp_topic: None,
     };
     // A missed intent event still gets the actual result metadata.
-    state.apply_tool_finished_with_effects(
+    state.apply_tool_finished_with_output_presentation(
         &turn,
         "patch-op",
         "apply_patch",
@@ -1257,6 +1275,9 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
         13,
         false,
         Some(effects.clone()),
+        None,
+        None,
+        Some(Box::new(presentation.clone())),
     );
     assert_eq!(
         state.transcript_rows()[0]
@@ -1266,13 +1287,45 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
             .patch_effects,
         Some(effects.clone())
     );
+    assert_eq!(
+        state.transcript_rows()[0]
+            .tool
+            .as_ref()
+            .unwrap()
+            .output_presentation
+            .as_deref(),
+        Some(&presentation)
+    );
+    let live = state
+        .transcript_lines(80, 120)
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(live.contains("← Patched [preview truncated] a.txt"));
+    assert!(live.contains("old") && live.contains("let value = 42;"));
+    assert!(!live.contains("[diff preview truncated;"));
+    assert!(!live.contains("Recorded capture: Complete;"));
     let mut projection = HistoryTurn {
         id: turn.0.clone(),
         status: "completed".into(),
+        window: Some(HistoryPartWindow {
+            start: 0,
+            end: 1,
+            total: 1,
+        }),
         parts: vec![TranscriptPart::Tool(operation)],
+        part_states: vec![PartState {
+            sequence: 0,
+            status: "completed".into(),
+            ..Default::default()
+        }],
         ..Default::default()
     };
+    assert!(state.live_checkpoint_end.is_none());
     state.apply_presentation(&turn, &projection);
+    assert_eq!(state.live_checkpoint_end, Some(1));
+    assert_eq!(state.live_part_sources.get(&0), Some(&0));
     assert_eq!(
         state.transcript_rows()[0]
             .tool
@@ -1280,6 +1333,15 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
             .unwrap()
             .patch_effects,
         Some(effects.clone())
+    );
+    assert_eq!(
+        state.transcript_rows()[0]
+            .tool
+            .as_ref()
+            .unwrap()
+            .output_presentation
+            .as_deref(),
+        Some(&presentation)
     );
     let mut message = msg(1, Role::Assistant, "");
     message.turn = Some(projection.clone());
@@ -1291,18 +1353,27 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
     state.apply_finished(&turn, "", 0);
     state.attach_page(&page);
     let original = state.transcript_lines(80, 120);
-    assert!(
-        original
-            .iter()
-            .any(|l| l.plain_text().contains("← Patched a.txt"))
-    );
+    assert!(original.iter().any(|l| {
+        l.plain_text()
+            .contains("← Patched [preview truncated] a.txt")
+    }));
     state.set_session(sid("other-patch-session"));
     assert!(!state.transcript_rows().iter().any(|r| r.tool.is_some()));
     state.set_session(sid("patch-lifecycle"));
     state.attach_page(&page);
     assert_eq!(state.transcript_lines(80, 120), original);
-    // A fork changes durable identities, not the recorded filesystem projection.
+    // Simulate the fork projection clearing a reference it does not own.
     projection.id = "fork-turn".into();
+    let TranscriptPart::Tool(fork) = &mut projection.parts[0] else {
+        panic!("expected patch operation");
+    };
+    fork.output_presentation
+        .as_mut()
+        .unwrap()
+        .capture
+        .as_mut()
+        .unwrap()
+        .reference = None;
     message.turn = Some(projection);
     let mut reopened = fresh_state("fork-patch-session").await;
     reopened.attach_page(&HistoryPage {
@@ -1310,7 +1381,15 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
         total: 1,
         ..Default::default()
     });
-    assert_eq!(reopened.transcript_lines(80, 120), original);
+    let fork_before = reopened.transcript_lines(80, 120);
+    let fork_text = fork_before
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(fork_text.contains("Recorded capture: Complete; no usable path"));
+    assert!(fork_text.contains("old") && fork_text.contains("let value = 42;"));
+    assert_ne!(fork_before, original);
     reopened.chrome.diffs.view = DiffView::Split;
     reopened.chrome.diffs.wrap = DiffWrap::None;
     assert_eq!(
@@ -1321,7 +1400,7 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
             .diff_settings,
         reopened.chrome.diffs
     );
-    assert_ne!(reopened.transcript_lines(80, 120), original);
+    assert_ne!(reopened.transcript_lines(80, 120), fork_before);
     // The overlay maps to one derived card: its cached layout (and syntax
     // highlight) survives every projection instead of re-rendering per frame.
     let first = reopened.transcript_rows()[0].tool.clone().unwrap();

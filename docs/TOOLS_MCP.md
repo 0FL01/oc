@@ -254,13 +254,18 @@ Tool output в историческом T40 срезе: UI-строка опер
 
 Confirmed mutation diffs (`apply_patch` / `edit` / `write`) are streamed from the
 committed before/after images into the same registered tool-output artifact before
-the independent `PatchEffects` preview caps. The result carries the exact path and
-capture state; the TUI shows one truncation summary and the recorded reference,
-not separate hunk/file notices. Partial failure captures only committed changes,
-including the actual destination after a move. Small status text is not a second
-full diff; SQLite/TurnLog keep only bounded metadata and the reference. Capture
-cap/quota/IO loss is explicit and never reexecutes a mutation. Existing historical
-truncated DTOs cannot recover omitted text from present-day workspace files.
+the independent `PatchEffects` preview caps. The result carries the recorded path
+and capture state. The TUI marks a truncated preview in its first displayed file
+header when space permits instead of a separate summary; it hides a Complete
+capture's reference while retaining existing non-Complete and truncated
+Complete-without-reference warnings.
+These warnings remain subject to the existing confirmed-effects and Write paths.
+A recorded reference does not guarantee current readability. Partial failure captures
+only committed changes, including the actual destination after a move. Small status
+text is not a second full diff; SQLite/TurnLog keep only bounded metadata and the
+reference. Capture cap/quota/IO loss is explicit and never reexecutes a mutation.
+Existing historical truncated DTOs cannot recover omitted text from present-day
+workspace files.
 
 Owner-approved2026-10-01 [contract/RECON/ordered slices](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
 narrowly supersedes full-inline publication for **new oversized admitted text**,

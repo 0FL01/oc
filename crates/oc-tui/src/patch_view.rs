@@ -318,11 +318,27 @@ pub(crate) fn render(
         let path = file.destination.as_ref().unwrap_or(&file.path);
         // U18 BlockTool's row has separate label/path children and gap={1}
         // (session/index.tsx:2836-2856); the gap is a canvas cell.
-        out.push(frame(vec![
-            Span::styled(label, muted),
-            Span::styled(" ", padding),
-            Span::styled(path, muted),
-        ]));
+        let mut header = vec![Span::styled(label, muted)];
+        let mut trailing_marker = None;
+        if file_index == 0 && effects.truncated {
+            let heading_width =
+                3 + UnicodeWidthStr::width(label) + 1 + UnicodeWidthStr::width(path.as_str());
+            let marker = if unbounded || heading_width + " [preview truncated]".len() <= width {
+                " [preview truncated]"
+            } else {
+                " [preview…]"
+            };
+            if unbounded || heading_width + UnicodeWidthStr::width(marker) <= width {
+                header.push(Span::styled(marker, muted));
+            } else {
+                trailing_marker = Some(marker);
+            }
+        }
+        header.extend([Span::styled(" ", padding), Span::styled(path, muted)]);
+        if let Some(marker) = trailing_marker {
+            header.push(Span::styled(marker, muted));
+        }
+        out.push(frame(header));
         // U18 ApplyPatch paints the actual destination in the header only.
         // The source remains in the effect DTO, not a second transcript row.
         if file.operation == PatchOperation::Delete {
@@ -446,15 +462,6 @@ pub(crate) fn render(
         }
         out.push(frame(Vec::new()));
     }
-    if effects.truncated {
-        out.push(frame(vec![Span::styled(
-            format!(
-                "[diff preview truncated; {} confirmed files, +{} -{}]",
-                effects.total_files, effects.additions, effects.deletions
-            ),
-            muted,
-        )]));
-    }
     if let Some(capture) = card
         .output_presentation
         .as_ref()
@@ -462,8 +469,8 @@ pub(crate) fn render(
         .and_then(|presentation| presentation.capture.as_ref())
         .filter(|capture| {
             effects.total_files > 0
-                && (effects.truncated
-                    || capture.state != oc_core::tool_output::CaptureState::Complete)
+                && (capture.state != oc_core::tool_output::CaptureState::Complete
+                    || (effects.truncated && capture.reference.is_none()))
         })
     {
         let reference = capture.reference.as_ref().map_or_else(
@@ -1301,18 +1308,36 @@ pub(crate) mod tests {
             "# Deleted deleted.txt",
             "-1 line",
             "@@ -99,2 +100,2 @@",
-            "5 confirmed files",
+            "[preview truncated]",
             "lossy byte preview",
             "… [truncated]",
         ] {
             assert!(shown.contains(needle), "missing {needle}: {shown}");
         }
-        assert_eq!(shown.matches("[diff preview truncated;").count(), 1);
+        assert!(!shown.contains("[diff preview truncated;"));
         assert!(
             !shown.contains("hunk preview truncated") && !shown.contains("file preview truncated")
         );
         assert!(!shown.contains("source.rs → destination.rs"));
+        assert_eq!(effects.total_files, 5);
         assert_eq!(effects.files[2].path, "source.rs");
+        let mut literal_effects = effects.clone();
+        literal_effects.files[0].hunks[0].lines[2].text =
+            "[diff preview truncated; literal code]".into();
+        let mut literal = row(Some(literal_effects), "failed");
+        let error = "Recorded capture: Complete; literal error";
+        literal.output_presentation = Some(Box::new(oc_core::tool_output::Presentation::new(
+            error,
+            error.len() as u64,
+            false,
+        )));
+        let shown = text(&crate::tools::tool_block(
+            &card_from_row(&literal),
+            Theme::dark(),
+            120,
+        ));
+        assert!(shown.contains("[diff preview truncated; literal code]"));
+        assert!(shown.contains(error) && shown.contains("# Patch failed"));
         for state in ["unknown", "denied", "cancelled"] {
             let card = card_from_row(&row(Some(PatchEffects::default()), state));
             let shown = text(&crate::tools::tool_block(&card, Theme::dark(), 80));
@@ -1331,13 +1356,12 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn truncated_diff_reference_is_single_and_replayable_for_both_tools() {
+    fn truncated_diff_footer_is_hidden_without_losing_capture_facts() {
         use oc_core::tool_output::{Capture, CaptureState, Presentation};
         let mut effects = effects();
         effects.truncated = true;
-        effects.files[0].truncated = true;
-        effects.files[0].hunks[0].truncated = true;
-        effects.files[0].hunks[0].lines[2].truncated = true;
+        effects.total_files = 2;
+        effects.additions = 2;
         let mut presentation = Presentation::new("done", 4, true);
         presentation.capture = Some(Capture {
             reference: Some("/data/tool-output/tool_diff.txt".into()),
@@ -1347,30 +1371,75 @@ pub(crate) mod tests {
             admitted_lines: 1,
             retained_lines: 1,
         });
-        for name in ["edit", "apply_patch"] {
-            let mut operation = row(Some(effects.clone()), "completed");
+        for (name, state) in [
+            ("edit", "completed"),
+            ("apply_patch", "completed"),
+            ("write", "failed"),
+        ] {
+            let mut operation = row(Some(effects.clone()), state);
             operation.name = name.into();
-            operation.output_presentation = Some(Box::new(presentation.clone()));
+            let mut facts = presentation.clone();
+            if state == "failed" {
+                facts.body = "write failed after commit".into();
+                facts.body_bytes = facts.body.len() as u64;
+            }
+            operation.output_presentation = Some(Box::new(facts.clone()));
             let replay: ToolOpView =
                 serde_json::from_str(&serde_json::to_string(&operation).unwrap()).unwrap();
             let card = card_from_row(&operation);
-            assert_eq!(card, card_from_row(&replay));
+            let replay_card = card_from_row(&replay);
+            assert_eq!(card, replay_card);
+            assert_eq!(card.patch_effects.as_ref(), Some(&effects));
+            assert_eq!(card.output_presentation.as_deref(), Some(&facts));
+            let narrow = text(&crate::tools::tool_block(&card, Theme::dark(), 30));
+            assert!(narrow.contains("[preview…]") && narrow.contains("a.txt"));
+            let narrower = text(&crate::tools::tool_block(&card, Theme::dark(), 18));
+            assert!(narrower.contains("a.txt"));
             for width in [120, 121] {
-                let shown = text(&render(&effects, &card, Theme::dark(), width));
-                assert_eq!(shown.matches("[diff preview truncated;").count(), 1);
+                let shown = text(&crate::tools::tool_block(&card, Theme::dark(), width));
+                assert_eq!(
+                    shown,
+                    text(&crate::tools::tool_block(
+                        &replay_card,
+                        Theme::dark(),
+                        width
+                    ))
+                );
+                assert_eq!(shown.matches("[preview truncated]").count(), 1);
                 assert!(
-                    !shown.contains("hunk preview truncated")
+                    !shown.contains("[diff preview truncated;")
+                        && !shown.contains("hunk preview truncated")
                         && !shown.contains("file preview truncated")
                 );
                 assert!(
-                    shown.contains("… [truncated]") && shown.contains("1 confirmed files, +1 -1")
+                    shown.contains("a.txt")
+                        && shown.contains("old")
+                        && shown.contains("let value = 42;")
+                        && !shown.contains("… [truncated]")
                 );
                 assert!(
-                    shown.contains("Recorded capture: Complete;")
-                        && shown.contains("/data/tool-output/tool_diff.txt")
+                    !shown.contains("Recorded capture: Complete;")
+                        && !shown.contains("/data/tool-output/tool_diff.txt")
                 );
+                if state == "failed" {
+                    assert!(shown.contains("# Write failed"));
+                    assert!(shown.contains("write failed after commit"));
+                }
+                let mut no_path = card.clone();
+                no_path
+                    .output_presentation
+                    .as_mut()
+                    .unwrap()
+                    .capture
+                    .as_mut()
+                    .unwrap()
+                    .reference = None;
+                let shown = text(&render(&effects, &no_path, Theme::dark(), width));
+                assert!(shown.contains("Recorded capture: Complete; no usable path"));
                 let mut full = effects.clone();
                 full.truncated = false;
+                full.total_files = 1;
+                full.additions = 1;
                 full.files[0].truncated = false;
                 full.files[0].hunks[0].truncated = false;
                 full.files[0].hunks[0].lines[2].truncated = false;
