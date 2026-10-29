@@ -1118,6 +1118,7 @@ async fn vis37_question_transcript_reserves_and_paints_the_status_row_before_the
             agent_digest: None,
         },
         input: QuestionInput::parse(&input).unwrap(),
+        images: false,
     };
     for (width, height) in [(80, 24), (120, 40), (160, 48)] {
         let (app, _, _) = CoreApp::channel(4);

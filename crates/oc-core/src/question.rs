@@ -12,6 +12,7 @@ pub const OPTIONS_CAP: usize = 16;
 pub const PAYLOAD_CAP: usize = 64 * 1024;
 pub const RESULT_BYTES_CAP: usize = 2 * PAYLOAD_CAP + 64;
 pub const ANSWER_BYTES_CAP: usize = 4096;
+pub const IMAGES_CAP: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -89,10 +90,72 @@ pub struct QuestionRequest {
     pub id: u64,
     pub binding: ApprovalBinding,
     pub input: QuestionInput,
+    /// The issuing model accepts image input, so free-form answers may carry pasted images.
+    #[serde(default)]
+    pub images: bool,
+}
+impl QuestionRequest {
+    pub fn validate_decision(
+        &self,
+        answers: &[Vec<String>],
+        images: &[QuestionImage],
+    ) -> Result<(), QuestionReplyError> {
+        self.input.validate_answers(answers)?;
+        if images.is_empty() {
+            return Ok(());
+        }
+        let total = images
+            .iter()
+            .try_fold(0usize, |n, i| n.checked_add(i.png.len()));
+        if !self.images
+            || images.len() > IMAGES_CAP
+            || total.is_none_or(|n| n > crate::prompt::IMAGES_TOTAL_BYTES)
+            || images.iter().enumerate().any(|(i, image)| {
+                image.png.is_empty()
+                    || image.png.len() > crate::prompt::IMAGE_BYTES
+                    || answers
+                        .get(image.question)
+                        .and_then(|a| a.get(image.answer))
+                        .and_then(|text| text.get(image.mark.start..image.mark.end))
+                        != Some(image.mark.label().as_str())
+                    || images[..i].iter().any(|p| {
+                        (p.question, p.answer, p.mark.ordinal)
+                            == (image.question, image.answer, image.mark.ordinal)
+                    })
+            })
+        {
+            return Err(QuestionReplyError::InvalidAnswers);
+        }
+        Ok(())
+    }
+}
+/// A pasted image whose `[Image N]` label lies inside `answers[question][answer]`.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QuestionImage {
+    pub question: usize,
+    pub answer: usize,
+    pub mark: crate::prompt::ImageMark,
+    #[serde(with = "crate::wire_bytes::png")]
+    pub png: Arc<[u8]>,
+}
+impl std::fmt::Debug for QuestionImage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("QuestionImage")
+            .field("question", &self.question)
+            .field("answer", &self.answer)
+            .field("mark", &self.mark)
+            .field("bytes", &self.png.len())
+            .finish()
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum QuestionDecision {
-    Answers(Vec<Vec<String>>),
+    Answers {
+        answers: Vec<Vec<String>>,
+        #[serde(default)]
+        images: Vec<QuestionImage>,
+    },
     /// The owning Location explicitly published a replacement source view.
     Reloaded,
     Cancelled,
@@ -229,13 +292,19 @@ impl QuestionQueue {
             state.pending.remove(&reply.id);
             return Err(QuestionReplyError::Stale);
         }
-        if let QuestionDecision::Answers(answers) = &reply.decision {
-            pending.request.input.validate_answers(answers)?;
+        if let QuestionDecision::Answers { answers, images } = &reply.decision {
+            pending.request.validate_decision(answers, images)?;
         }
         let pending = state.pending.remove(&reply.id).expect("checked question");
+        // Every attached client observes the outcome; pasted image bytes go
+        // only to the waiting tool, never fanned out with the event.
+        let mut published = reply.decision.clone();
+        if let QuestionDecision::Answers { images, .. } = &mut published {
+            images.clear();
+        }
         let _ = events.send(CoreEvent::QuestionResolved {
             request: pending.request,
-            decision: reply.decision.clone(),
+            decision: published,
         });
         pending
             .reply

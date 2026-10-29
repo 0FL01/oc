@@ -1,6 +1,6 @@
 use super::*;
 fn request(multiple: bool) -> QuestionRequest {
-    QuestionRequest { id: 1, binding: oc_core::approval::ApprovalBinding { session: "s".into(), turn: "t".into(), call: "c".into(), operation: "o".into(), input_digest: "d".into(), location: "l".into(), generation: 1, agent: None, agent_digest: None }, input: oc_core::question::QuestionInput::parse(&serde_json::json!({"questions":[{"question":"Pick?","header":"Pick","multiple":multiple,"options":[{"label":"A","description":"first"},{"label":"B","description":"second"}]}]})).unwrap() }
+    QuestionRequest { id: 1, binding: oc_core::approval::ApprovalBinding { session: "s".into(), turn: "t".into(), call: "c".into(), operation: "o".into(), input_digest: "d".into(), location: "l".into(), generation: 1, agent: None, agent_digest: None }, input: oc_core::question::QuestionInput::parse(&serde_json::json!({"questions":[{"question":"Pick?","header":"Pick","multiple":multiple,"options":[{"label":"A","description":"first"},{"label":"B","description":"second"}]}]})).unwrap(), images: false }
 }
 #[test]
 fn multiple_requires_submit_and_error_remount_retains_exact_draft() {
@@ -17,7 +17,10 @@ fn multiple_requires_submit_and_error_remount_retains_exact_draft() {
     };
     assert_eq!(
         reply.decision,
-        QuestionDecision::Answers(vec![vec!["A".into(), "B".into()]])
+        QuestionDecision::Answers {
+            answers: vec![vec!["A".into(), "B".into()]],
+            images: vec![]
+        }
     );
     view.reply_result(&reply, Some("retry".into()));
     let mut remounted = QuestionView::default();
@@ -67,7 +70,10 @@ fn automatic_custom_single_then_esc_cancels_without_inventing_answer() {
     };
     assert_eq!(
         reply.decision,
-        QuestionDecision::Answers(vec![vec!["custom".into()]])
+        QuestionDecision::Answers {
+            answers: vec![vec!["custom".into()]],
+            images: vec![]
+        }
     );
 }
 
@@ -514,10 +520,10 @@ fn vis37_custom_tab_and_backtab_commit_without_replacing_caret_keys_or_submittin
     assert_eq!(reply.binding, source.binding);
     assert_eq!(
         reply.decision,
-        QuestionDecision::Answers(vec![
-            vec!["A".into(), "custom Ω界".into()],
-            vec!["second".into()]
-        ])
+        QuestionDecision::Answers {
+            answers: vec![vec!["A".into(), "custom Ω界".into()], vec!["second".into()]],
+            images: vec![]
+        }
     );
     assert!(view.key(KeyAction::Enter).intent.is_none());
     assert_eq!(view.active(), Some(&source));
@@ -732,7 +738,7 @@ async fn vis37_question_pointer_uses_owned_paint_and_never_submits_on_edit_drag_
         frame,
     );
     assert_eq!(
-        state.questions.drafts.lock().unwrap()[0].editor.cursor,
+        state.questions.drafts.lock().unwrap()[0].editors[0].cursor,
         "custom Ω".len()
     );
     assert!(
@@ -771,7 +777,10 @@ async fn vis37_question_pointer_uses_owned_paint_and_never_submits_on_edit_drag_
     assert_eq!(reply.binding, r.binding);
     assert_eq!(
         reply.decision,
-        QuestionDecision::Answers(vec![vec!["A".into(), "custom ΩQ界".into()]])
+        QuestionDecision::Answers {
+            answers: vec![vec!["A".into(), "custom ΩQ界".into()]],
+            images: vec![]
+        }
     );
     assert!(
         state
@@ -837,4 +846,111 @@ fn vis37_sixteen_fields_keep_fallback_actions_and_explicit_empty_review_without_
     assert_eq!(d.request.input, original);
     assert!(!d.submitting);
     assert!(label("Ω界e\u{301}👨‍👩‍👧‍👦abcdefghijklmno", 24).ends_with('…'));
+}
+
+#[test]
+fn pasted_images_stay_with_their_tab_answer_and_survive_trim() {
+    let mut r = request(false);
+    r.input = oc_core::question::QuestionInput::parse(&serde_json::json!({"questions":[
+        {"question":"Why?","header":"Why","options":[{"label":"A","description":"first"}]},
+        {"question":"More?","header":"More","multiple":true,"options":[{"label":"A","description":"first"}]}
+    ]}))
+    .unwrap();
+    let mut view = QuestionView::default();
+    view.reconcile(std::slice::from_ref(&r), vec![r.clone()]);
+    assert!(
+        view.clipboard_target().is_none(),
+        "model without image input"
+    );
+    view.paste("");
+    assert_eq!(
+        view.drafts.lock().unwrap()[0].error.as_deref(),
+        Some("selected model does not support image input")
+    );
+    r.images = true;
+    let mut view = QuestionView::default();
+    view.reconcile(std::slice::from_ref(&r), vec![r.clone()]);
+    let first: std::sync::Arc<[u8]> = b"first".as_slice().into();
+    let second: std::sync::Arc<[u8]> = b"second".as_slice().into();
+    let before = view.clipboard_target().unwrap();
+    view.paste("  ");
+    assert_ne!(
+        view.clipboard_target(),
+        Some(before),
+        "edits retire a pending read"
+    );
+    view.paste_image(first.clone()).unwrap();
+    assert_eq!(view.drafts.lock().unwrap()[0].custom[0], "  [Image 1] ");
+    view.key(KeyAction::Backspace);
+    view.key(KeyAction::Backspace);
+    assert_eq!(
+        view.drafts.lock().unwrap()[0].custom[0],
+        "  ",
+        "the label is deleted atomically"
+    );
+    view.paste_image(first.clone()).unwrap();
+    view.key(KeyAction::Char('x'));
+    view.key(KeyAction::Tab);
+    // Selecting an option first, then pasting, keeps both answers on the tab.
+    view.key(KeyAction::Enter);
+    view.paste_image(second.clone()).unwrap();
+    view.key(KeyAction::Tab);
+    let Some(PanelIntent::ReplyQuestion(reply)) = view.key(KeyAction::Enter).intent else {
+        panic!("submit");
+    };
+    let QuestionDecision::Answers { answers, images } = reply.decision else {
+        panic!("answers");
+    };
+    assert_eq!(
+        answers,
+        vec![
+            vec!["[Image 1] x".to_owned()],
+            vec!["A".into(), "[Image 1]".into()]
+        ]
+    );
+    let mark = oc_core::prompt::ImageMark {
+        start: 0,
+        end: 9,
+        ordinal: 1,
+    };
+    assert_eq!(
+        images,
+        vec![
+            QuestionImage {
+                question: 0,
+                answer: 0,
+                mark: mark.clone(),
+                png: first,
+            },
+            QuestionImage {
+                question: 1,
+                answer: 1,
+                mark,
+                png: second,
+            },
+        ]
+    );
+    assert!(r.validate_decision(&answers, &images).is_ok());
+}
+
+#[test]
+fn choosing_an_option_drops_the_custom_answer_images() {
+    let mut r = request(false);
+    r.images = true;
+    let mut view = QuestionView::default();
+    view.reconcile(std::slice::from_ref(&r), vec![r.clone()]);
+    view.paste_image(b"png".as_slice().into()).unwrap();
+    view.key(KeyAction::Cancel);
+    view.key(KeyAction::Up);
+    view.key(KeyAction::Up);
+    let Some(PanelIntent::ReplyQuestion(reply)) = view.key(KeyAction::Enter).intent else {
+        panic!("option answer");
+    };
+    assert_eq!(
+        reply.decision,
+        QuestionDecision::Answers {
+            answers: vec![vec!["A".into()]],
+            images: vec![]
+        }
+    );
 }

@@ -71,7 +71,8 @@ impl Peer {
                             .as_array()
                             .unwrap()
                             .iter()
-                            .any(|i| i["type"] == "function_call_output" && i["output"] == output)
+                            .any(|i| i["type"] == "function_call_output"
+                                && (i["output"] == output || i["output"][0]["text"] == output))
                     );
                 }
                 captured.lock().unwrap().push(request);
@@ -150,7 +151,10 @@ async fn question_real_core_binding_commit_and_restart_no_reask() {
     let reply = QuestionReply {
         id: request.id,
         binding: request.binding.clone(),
-        decision: QuestionDecision::Answers(vec![vec!["One".into()]]),
+        decision: QuestionDecision::Answers {
+            answers: vec![vec!["One".into()]],
+            images: vec![],
+        },
     };
     for binding in [
         oc_core::approval::ApprovalBinding {
@@ -177,7 +181,10 @@ async fn question_real_core_binding_commit_and_restart_no_reask() {
     }
     assert_eq!(
         app.reply_question(QuestionReply {
-            decision: QuestionDecision::Answers(vec![]),
+            decision: QuestionDecision::Answers {
+                answers: vec![],
+                images: vec![]
+            },
             ..reply.clone()
         })
         .await,
@@ -234,5 +241,113 @@ async fn question_real_core_binding_commit_and_restart_no_reask() {
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
     assert_eq!(peer.requests.lock().unwrap().len(), 2);
+    drop(peer);
+}
+
+#[tokio::test]
+async fn question_pasted_image_reaches_the_provider_and_reopens() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let peer = Peer::start(
+        vec![
+            sse_tool_call("ask", "question", &questions()) + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+            sse_delta("again") + &sse_completed(),
+        ],
+        data.path().to_owned(),
+    );
+    let config = serde_json::json!({"model":"fixture/main","compaction":{"auto":false},"agents":{"title":{"disabled":true}}, "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":peer.url,"apiKey":"synthetic"},"models":{"main":{"capabilities":{"input":["text","image"]}}}}}});
+    std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
+    let env = BTreeMap::from([
+        ("HOME".into(), home.path().display().to_string()),
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+    ]);
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(project.path(), data.path(), env.clone())
+            .await
+            .unwrap();
+    let session = SessionId("question-image".into());
+    app.create_session(session.clone()).await.unwrap();
+    app.register_question_consumer().await.unwrap();
+    let mut events = app.subscribe();
+    let finished = |events: &mut tokio::sync::broadcast::Receiver<CoreEvent>| {
+        let mut events = events.resubscribe();
+        async move {
+            tokio::time::timeout(Duration::from_secs(4), async {
+                while !matches!(events.recv().await.unwrap(), CoreEvent::TurnFinished { .. }) {}
+            })
+            .await
+            .unwrap()
+        }
+    };
+    app.submit(session.clone(), "ask".into()).await.unwrap();
+    let request = tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            if let CoreEvent::QuestionAsked(r) = events.recv().await.unwrap() {
+                break r;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(request.images, "image-capable model admits pasted answers");
+    let pixels = image::RgbaImage::from_pixel(1, 1, image::Rgba([1, 2, 3, 255]));
+    let mut png = std::io::Cursor::new(Vec::new());
+    pixels.write_to(&mut png, image::ImageFormat::Png).unwrap();
+    let image = QuestionImage {
+        question: 0,
+        answer: 0,
+        mark: oc_core::prompt::ImageMark {
+            start: 4,
+            end: 13,
+            ordinal: 1,
+        },
+        png: png.into_inner().into(),
+    };
+    let reply = |images| QuestionReply {
+        id: request.id,
+        binding: request.binding.clone(),
+        decision: QuestionDecision::Answers {
+            answers: vec![vec!["see [Image 1]".into()]],
+            images,
+        },
+    };
+    let mut unlabelled = image.clone();
+    unlabelled.mark.start = 3;
+    assert_eq!(
+        app.reply_question(reply(vec![unlabelled])).await,
+        Err(QuestionReplyError::InvalidAnswers)
+    );
+    let turn = finished(&mut events);
+    app.reply_question(reply(vec![image])).await.unwrap();
+    turn.await;
+    let carries_image = |request: &serde_json::Value| {
+        request["input"].as_array().unwrap().iter().any(|i| {
+            i["type"] == "function_call_output"
+                && i["output"][1]["text"] == "Question 1 answer [Image 1]:"
+                && i["output"][2]["image_url"]
+                    .as_str()
+                    .is_some_and(|url| url.starts_with("data:image/png;base64,"))
+        })
+    };
+    assert!(carries_image(&peer.requests.lock().unwrap()[1]));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    drop(app);
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(project.path(), data.path(), env)
+            .await
+            .unwrap();
+    let events = app.subscribe();
+    let turn = finished(&mut events.resubscribe());
+    app.submit(session, "next".into()).await.unwrap();
+    turn.await;
+    assert!(
+        carries_image(&peer.requests.lock().unwrap()[2]),
+        "stored answer images rebuild from the turn row"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
     drop(peer);
 }

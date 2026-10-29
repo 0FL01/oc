@@ -5,10 +5,11 @@ use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
 impl TurnLog {
-    pub(super) fn encode_mcp_input(&self) -> (Vec<Value>, Vec<Value>, Vec<Value>) {
+    pub(super) fn encode_mcp_input(&self) -> (Vec<Value>, Vec<Value>, Vec<Value>, Vec<Value>) {
         let mut input = Vec::with_capacity(self.input.len());
         let mut native = Vec::new();
         let mut reads = Vec::new();
+        let mut questions = Vec::new();
         for (index, item) in self.input.iter().enumerate() {
             if let InputItem::McpFunctionCallOutput { call_id, output } = item {
                 input.push(json!({"type":"function_call_output","call_id":call_id,"output":output.display()}));
@@ -16,11 +17,15 @@ impl TurnLog {
             } else if let InputItem::ReadFunctionCallOutput { call_id, output } = item {
                 input.push(json!({"type":"function_call_output","call_id":call_id,"output":output.display()}));
                 reads.push(json!({"input_index":index,"call_id":call_id,"result":output.facts()}));
+            } else if let InputItem::QuestionFunctionCallOutput { call_id, output } = item {
+                input.push(json!({"type":"function_call_output","call_id":call_id,"output":output.display()}));
+                questions
+                    .push(json!({"input_index":index,"call_id":call_id,"result":output.facts()}));
             } else {
                 input.push(serde_json::to_value(item).expect("typed input serialization"));
             }
         }
-        (input, native, reads)
+        (input, native, reads, questions)
     }
 
     pub(super) fn decode_mcp_input(value: &Value) -> Result<Vec<InputItem>, String> {
@@ -85,6 +90,35 @@ impl TurnLog {
                 return Err("native read presentation mismatch".into());
             }
             input[index] = InputItem::ReadFunctionCallOutput {
+                call_id: call_id.clone(),
+                output: facts,
+            };
+        }
+        let questions = value
+            .get("native_question_results")
+            .unwrap_or(&empty)
+            .as_array()
+            .ok_or("invalid native question attachment")?;
+        if questions.len() > input.len() {
+            return Err("invalid native question attachment".into());
+        }
+        for result in questions {
+            let index = result["input_index"]
+                .as_u64()
+                .and_then(|n| usize::try_from(n).ok())
+                .ok_or("invalid native question index")?;
+            if !seen.insert(index) {
+                return Err("duplicate native result attachment".into());
+            }
+            let Some(InputItem::FunctionCallOutput { call_id, output }) = input.get(index) else {
+                return Err("native question attachment is not a tool result".into());
+            };
+            if result["call_id"].as_str() != Some(call_id.as_str()) || !input[..index].iter().any(|i| matches!(i, InputItem::ProviderOutput(v) if v["type"] == "function_call" && v["name"] == "question" && v["call_id"].as_str() == Some(call_id.as_str()))) { return Err("native question graph mismatch".into()); }
+            let facts = crate::tools::question::QuestionToolOutput::from_stored(
+                result["result"].clone(),
+                output.clone(),
+            )?;
+            input[index] = InputItem::QuestionFunctionCallOutput {
                 call_id: call_id.clone(),
                 output: facts,
             };

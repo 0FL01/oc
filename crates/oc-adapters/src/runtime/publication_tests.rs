@@ -1347,7 +1347,10 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
         let mut reply = QuestionReply {
             id: request.id,
             binding: request.binding,
-            decision: QuestionDecision::Answers(vec![vec!["G1 answer".into()]]),
+            decision: QuestionDecision::Answers {
+                answers: vec![vec!["G1 answer".into()]],
+                images: vec![],
+            },
         };
         reply.binding.generation = owner.generation_id();
         assert!(owner.reply_question(reply.clone()).is_err());

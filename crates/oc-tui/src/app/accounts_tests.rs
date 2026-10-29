@@ -316,6 +316,7 @@ async fn go05_priority_overlay_retires_secret_without_forwarding_its_input() {
             "question":"Pick", "header":"Pick", "options":[{"label":"A","description":"first"}]
         }]}))
         .unwrap(),
+        images: false,
     };
     state
         .questions

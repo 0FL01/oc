@@ -359,7 +359,7 @@ async fn term01_permission_and_question_own_keys_and_pointer_over_focused_pty() 
         id: 2, binding: binding.clone(),
         input: QuestionInput::parse(&serde_json::json!({"questions":[{
             "question":"Choose?", "header":"Choice", "options":[{"label":"A","description":"Only option"}]
-        }]})).unwrap(),
+        }]})).unwrap(), images: false,
     };
     state
         .questions

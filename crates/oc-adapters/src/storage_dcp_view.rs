@@ -93,7 +93,11 @@ pub(super) const PRESENTATION_WIRE_LOGS_SQL: &str = "WITH logs AS MATERIALIZED (
        'native_read_results',json(COALESCE((SELECT json_group_array(json_object(
          'input_index',(SELECT count(*) FROM kept k WHERE k.turn=logs.archive_rowid AND k.key<a.value->>'$.input_index'),
          'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
-         FROM json_each(logs.result,'$.native_read_results') a),'[]')))
+         FROM json_each(logs.result,'$.native_read_results') a),'[]')),
+       'native_question_results',json(COALESCE((SELECT json_group_array(json_object(
+         'input_index',(SELECT count(*) FROM kept k WHERE k.turn=logs.archive_rowid AND k.key<a.value->>'$.input_index'),
+         'call_id',a.value->>'$.call_id','result',json(a.value->'$.result')))
+         FROM json_each(logs.result,'$.native_question_results') a),'[]')))
       AS result,archive_rowid
     FROM logs WHERE projected_member OR block_id IS NOT NULL
   ) SELECT CASE WHEN length(CAST(result AS BLOB))<=?5 THEN result END FROM visible WHERE result->>'$._dcp_block' IS NULL OR json_array_length(result,'$.input')>0 ORDER BY archive_rowid LIMIT 4097";
@@ -958,7 +962,8 @@ impl Db {
                 .filter_map(|i| match i {
                     crate::provider::InputItem::FunctionCallOutput { call_id, .. }
                     | crate::provider::InputItem::McpFunctionCallOutput { call_id, .. }
-                    | crate::provider::InputItem::ReadFunctionCallOutput { call_id, .. } => {
+                    | crate::provider::InputItem::ReadFunctionCallOutput { call_id, .. }
+                    | crate::provider::InputItem::QuestionFunctionCallOutput { call_id, .. } => {
                         Some(call_id.clone())
                     }
                     _ => None,

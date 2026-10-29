@@ -7,7 +7,7 @@ use crate::{
     messages::Locale,
     theme::Theme,
 };
-use oc_core::question::{QuestionDecision, QuestionReply, QuestionRequest};
+use oc_core::question::{QuestionDecision, QuestionImage, QuestionReply, QuestionRequest};
 use ratatui::{
     Frame,
     layout::Rect,
@@ -29,7 +29,10 @@ struct Draft {
     answered: Vec<bool>,
     custom: Vec<String>,
     editing: bool,
-    editor: Editor,
+    // One editor per question: pasted image chips belong to that tab's answer.
+    editors: Vec<Editor>,
+    // Edit identity for an in-flight clipboard read (no payload).
+    revision: u64,
     submitting: bool,
     error: Option<String>,
     scroll: usize,
@@ -60,7 +63,8 @@ impl Draft {
             answered: vec![false; count],
             custom: vec![String::new(); count],
             editing: false,
-            editor: Editor::default(),
+            editors: vec![Editor::default(); count],
+            revision: 0,
             submitting: false,
             error: None,
             scroll: 0,
@@ -89,8 +93,8 @@ impl Draft {
         }
     }
     fn reply(&mut self, decision: QuestionDecision) -> KeyOutcome {
-        if let QuestionDecision::Answers(answers) = &decision
-            && let Err(error) = self.request.input.validate_answers(answers)
+        if let QuestionDecision::Answers { answers, images } = &decision
+            && let Err(error) = self.request.validate_decision(answers, images)
         {
             self.error = Some(error.to_string());
             return KeyOutcome::default();
@@ -106,9 +110,35 @@ impl Draft {
             ..KeyOutcome::default()
         }
     }
+    /// Answers plus the images still labelled in each submitted free-form answer.
+    fn answer(&self) -> QuestionDecision {
+        let mut images = Vec::new();
+        for (question, custom) in self.custom.iter().enumerate() {
+            let Some(answer) = self.answers[question].iter().position(|a| a == custom) else {
+                continue;
+            };
+            images.extend(
+                self.editors[question]
+                    .prompt(custom)
+                    .images
+                    .into_iter()
+                    .filter(|i| custom.get(i.mark.start..i.mark.end) == Some(&i.mark.label()))
+                    .map(|i| QuestionImage {
+                        question,
+                        answer,
+                        mark: i.mark,
+                        png: i.png,
+                    }),
+            );
+        }
+        QuestionDecision::Answers {
+            answers: self.answers.clone(),
+            images,
+        }
+    }
     fn select(&mut self) -> KeyOutcome {
         if self.tab == self.answers.len() {
-            return self.reply(QuestionDecision::Answers(self.answers.clone()));
+            return self.reply(self.answer());
         }
         let q = &self.request.input.questions[self.tab];
         let selection = self.selected[self.tab];
@@ -122,7 +152,7 @@ impl Draft {
                 return KeyOutcome::default();
             }
             self.editing = true;
-            self.editor.move_to(self.custom[self.tab].len(), false);
+            self.editors[self.tab].move_to(self.custom[self.tab].len(), false);
             return KeyOutcome::default();
         }
         let label = q.options[selection].label.clone();
@@ -138,7 +168,7 @@ impl Draft {
         } else {
             self.answers[self.tab] = vec![label];
             if self.single() {
-                return self.reply(QuestionDecision::Answers(self.answers.clone()));
+                return self.reply(self.answer());
             }
             self.select_tab(self.tab + 1);
         }
@@ -175,7 +205,24 @@ impl Draft {
         self.error = None;
     }
     fn commit_custom(&mut self) -> bool {
-        let text = self.custom[self.tab].trim().to_string();
+        let raw = &self.custom[self.tab];
+        let text = raw.trim().to_string();
+        if text.len() != raw.len() {
+            // Trimming shifts byte offsets; keep pasted image chips on their labels.
+            let lead = raw.len() - raw.trim_start().len();
+            let images = self.editors[self.tab]
+                .prompt(raw)
+                .images
+                .into_iter()
+                .filter(|i| i.mark.start >= lead && i.mark.end - lead <= text.len())
+                .map(|mut i| {
+                    i.mark.start -= lead;
+                    i.mark.end -= lead;
+                    i
+                })
+                .collect();
+            self.editors[self.tab].restore_images(&text, images);
+        }
         let q = &self.request.input.questions[self.tab];
         let multiple = q.multiple;
         // QuestionTool::toField does not mark its string field required. A
@@ -271,6 +318,56 @@ impl QuestionView {
         }
         crate::events::map_key(event)
     }
+    /// Editable free-form answer that may receive a clipboard image:
+    /// request id, tab and edit revision (no payload).
+    pub(crate) fn clipboard_target(&self) -> Option<(u64, usize, u64)> {
+        let request = self.active().filter(|r| r.images)?;
+        self.drafts
+            .lock()
+            .expect("question drafts")
+            .iter()
+            .find(|d| d.request == *request && d.tab < d.answers.len() && !d.submitting)
+            .map(|d| (request.id, d.tab, d.revision))
+    }
+    pub(crate) fn paste_image(&mut self, png: std::sync::Arc<[u8]>) -> Result<(), String> {
+        let active = self.active().cloned();
+        let mut drafts = self.drafts.lock().expect("question drafts");
+        let Some(d) = drafts.iter_mut().find(|d| {
+            Some(&d.request) == active.as_ref()
+                && d.request.images
+                && d.tab < d.answers.len()
+                && !d.submitting
+        }) else {
+            return Ok(());
+        };
+        d.painted = None;
+        d.pointer_down = None;
+        d.revision += 1;
+        // The whole reply shares one image budget across its tabs.
+        let (count, bytes) = d
+            .editors
+            .iter()
+            .zip(&d.custom)
+            .flat_map(|(editor, text)| editor.prompt(text).images)
+            .fold((0, 0), |(n, b), i| (n + 1, b + i.png.len()));
+        if count >= oc_core::question::IMAGES_CAP
+            || bytes + png.len() > oc_core::prompt::IMAGES_TOTAL_BYTES
+        {
+            return Err("image draft limit exceeded".into());
+        }
+        if !d.editing {
+            d.selected[d.tab] = d.request.input.questions[d.tab].options.len();
+            d.editors[d.tab].move_to(d.custom[d.tab].len(), false);
+            d.editing = true;
+        }
+        d.editors[d.tab].paste_image(
+            &mut d.custom[d.tab],
+            png,
+            oc_core::question::ANSWER_BYTES_CAP,
+        )?;
+        d.update_custom_answer();
+        Ok(())
+    }
     pub fn paste(&mut self, text: &str) {
         let active = self.active().cloned();
         if let Some(d) = self
@@ -284,6 +381,14 @@ impl QuestionView {
         {
             d.painted = None;
             d.pointer_down = None;
+            d.revision += 1;
+            if text.is_empty() {
+                // An empty bracketed paste is how terminals deliver a clipboard image.
+                if !d.request.images {
+                    d.error = Some("selected model does not support image input".into());
+                }
+                return;
+            }
             let clean = text
                 .replace("\r\n", "\n")
                 .replace('\r', "\n")
@@ -293,10 +398,10 @@ impl QuestionView {
             if d.custom[d.tab].len() + clean.len() <= oc_core::question::ANSWER_BYTES_CAP {
                 if !d.editing {
                     d.selected[d.tab] = d.request.input.questions[d.tab].options.len();
-                    d.editor.move_to(d.custom[d.tab].len(), false);
+                    d.editors[d.tab].move_to(d.custom[d.tab].len(), false);
                     d.editing = true;
                 }
-                d.editor.replace(
+                d.editors[d.tab].replace(
                     &mut d.custom[d.tab],
                     &clean,
                     oc_core::question::ANSWER_BYTES_CAP,
@@ -322,13 +427,14 @@ impl QuestionView {
         d.painted = None;
         d.pointer_down = None;
         d.hover_tab = None;
+        d.revision += 1;
         if !d.editing
             && d.tab < d.answers.len()
             && d.selected[d.tab] == d.request.input.questions[d.tab].options.len()
             && matches!(&action, KeyAction::Char(c) if !c.is_control() && *c != ' ')
         {
             d.editing = true;
-            d.editor.move_to(d.custom[d.tab].len(), false);
+            d.editors[d.tab].move_to(d.custom[d.tab].len(), false);
         }
         if matches!(action, KeyAction::Tab | KeyAction::DialogActionPrevious) {
             let previous = action == KeyAction::DialogActionPrevious;
@@ -353,7 +459,7 @@ impl QuestionView {
                         d.editing = false;
                     } else {
                         d.custom[d.tab].clear();
-                        d.editor.move_to(0, false);
+                        d.editors[d.tab].clear();
                         d.update_custom_answer();
                     }
                 }
@@ -366,7 +472,7 @@ impl QuestionView {
                         return KeyOutcome::default();
                     }
                     if d.single() {
-                        return d.reply(QuestionDecision::Answers(d.answers.clone()));
+                        return d.reply(d.answer());
                     }
                     if !d.request.input.questions[d.tab].multiple {
                         d.select_tab(d.tab + 1);
@@ -374,7 +480,7 @@ impl QuestionView {
                 }
                 KeyAction::Char(c) if !c.is_control() => {
                     if d.custom[d.tab].len() + c.len_utf8() <= oc_core::question::ANSWER_BYTES_CAP {
-                        d.editor.replace(
+                        d.editors[d.tab].replace(
                             &mut d.custom[d.tab],
                             &c.to_string(),
                             oc_core::question::ANSWER_BYTES_CAP,
@@ -383,25 +489,31 @@ impl QuestionView {
                     }
                 }
                 KeyAction::Backspace => {
-                    d.editor.delete(&mut d.custom[d.tab], true, false);
+                    d.editors[d.tab].delete(&mut d.custom[d.tab], true, false);
                     d.update_custom_answer();
                 }
                 KeyAction::Delete => {
-                    d.editor.delete(&mut d.custom[d.tab], false, false);
+                    d.editors[d.tab].delete(&mut d.custom[d.tab], false, false);
                     d.update_custom_answer();
                 }
-                KeyAction::Left => d.editor.horizontal(&d.custom[d.tab], false, false, false),
-                KeyAction::Right => d.editor.horizontal(&d.custom[d.tab], true, false, false),
-                KeyAction::Home | KeyAction::CtrlA => d.editor.move_to(0, false),
-                KeyAction::End => d.editor.move_to(d.custom[d.tab].len(), false),
+                KeyAction::Left => {
+                    d.editors[d.tab].horizontal(&d.custom[d.tab], false, false, false)
+                }
+                KeyAction::Right => {
+                    d.editors[d.tab].horizontal(&d.custom[d.tab], true, false, false)
+                }
+                KeyAction::Home | KeyAction::CtrlA => d.editors[d.tab].move_to(0, false),
+                KeyAction::End => d.editors[d.tab].move_to(d.custom[d.tab].len(), false),
                 KeyAction::Up => {
-                    if !d.editor.vertical(&d.custom[d.tab], false, false) && d.selected[d.tab] > 0 {
+                    if !d.editors[d.tab].vertical(&d.custom[d.tab], false, false)
+                        && d.selected[d.tab] > 0
+                    {
                         d.editing = false;
                         d.selected[d.tab] -= 1;
                     }
                 }
                 KeyAction::Down => {
-                    d.editor.vertical(&d.custom[d.tab], true, false);
+                    d.editors[d.tab].vertical(&d.custom[d.tab], true, false);
                 }
                 _ => {}
             }
@@ -479,12 +591,15 @@ impl QuestionView {
             && rect.contains(point)
             && *raw == d.custom[d.tab]
         {
-            let rows = d.editor.layout_words(raw, usize::from(rect.width.max(1))).0;
+            let rows = d.editors[d.tab]
+                .layout_words(raw, usize::from(rect.width.max(1)))
+                .0;
             let offset = rows
                 .get(top + usize::from(event.row - rect.y))
                 .and_then(|row| row.offset_at(usize::from(event.column - rect.x)));
             if let Some(offset) = offset {
-                d.editor.move_to(offset, false);
+                d.editors[d.tab].move_to(offset, false);
+                d.revision += 1;
             }
             d.pointer_down = None;
             return KeyOutcome::default();
@@ -507,6 +622,7 @@ impl QuestionView {
                 }
             }
             MouseEventKind::Down(MouseButton::Left) => {
+                d.revision += 1;
                 d.pointer_down = hit.map(|target| (frame, target));
                 if !d.editing
                     && let Some(Control::Option(index)) = hit
@@ -532,7 +648,7 @@ impl QuestionView {
                         d.select_tab(index);
                     }
                     Control::Submit if d.tab == d.answers.len() => {
-                        return d.reply(QuestionDecision::Answers(d.answers.clone()));
+                        return d.reply(d.answer());
                     }
                     Control::Cancel => return d.reply(QuestionDecision::Cancelled),
                     _ => {}
@@ -848,7 +964,7 @@ fn layout(d: &Draft, width: u16, terminal_height: u16, agent_color: Color) -> Fo
         let indent: usize = prefix.iter().map(Span::width).sum();
         let text_width = content_width.saturating_sub(indent).max(1);
         if d.editing {
-            let (rows, (row, col)) = d.editor.layout_words(&d.custom[d.tab], text_width);
+            let (rows, (row, col)) = d.editors[d.tab].layout_words(&d.custom[d.tab], text_width);
             let top = row.saturating_sub(5);
             cursor = Some((out.len() + row - top, indent + col));
             input = Some((

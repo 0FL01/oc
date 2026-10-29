@@ -179,6 +179,9 @@ path-only success. Keep one successful-read nested AGENTS owner with T45/R10.
 questions/options/multiple/free-form, cancellable wait, real ordered answers, bounded
 operation/session/generation identities. No-consumer headless fails explicitly;
 --auto never supplies answers. Dismissal interrupts, stale replies never authorize.
+A free-form answer may carry clipboard PNGs (`[Image N]` chips, prompt paste binding)
+only when the issuing model accepts image input; owner re-validates label/caps/PNG and
+the tool result lowers them to `input_image`, persisted as `native_question_results`.
 
 `opencode_models` searches the existing catalog without selecting a model;
 `opencode_session_rename` persists an authorized current/explicit session title;

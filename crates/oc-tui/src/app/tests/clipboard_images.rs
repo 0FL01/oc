@@ -109,3 +109,72 @@ async fn clipboard_images_effective_binding_and_non_chat_guards() {
     state.panel = TuiPanel::Model;
     assert!(state.clipboard_target().is_none());
 }
+
+#[tokio::test]
+async fn clipboard_images_route_into_an_active_question_answer() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use oc_core::{
+        approval::ApprovalBinding,
+        question::{QuestionDecision, QuestionInput, QuestionRequest},
+    };
+    let (app, _, _) = CoreApp::channel(4);
+    let mut state = TuiState::new(app, sid("question-images"));
+    state.handle_paste("prompt draft");
+    let mut request = QuestionRequest {
+        id: 7,
+        binding: ApprovalBinding {
+            session: "question-images".into(),
+            turn: "t".into(),
+            call: "c".into(),
+            operation: "o".into(),
+            input_digest: "d".into(),
+            location: "l".into(),
+            generation: 1,
+            agent: None,
+            agent_digest: None,
+        },
+        input: QuestionInput::parse(&serde_json::json!({"questions":[{
+            "question":"What do you see?", "header":"Screen", "options":[{"label":"A", "description":"first"}]
+        }]}))
+        .unwrap(),
+        images: false,
+    };
+    let ctrl_v = KeyEvent::new(KeyCode::Char('v'), KeyModifiers::CONTROL);
+    state
+        .questions
+        .reconcile(std::slice::from_ref(&request), vec![request.clone()]);
+    assert!(
+        state.clipboard_target().is_none(),
+        "model without image input"
+    );
+    assert_ne!(state.terminal_key(ctrl_v), Some(KeyAction::Paste));
+    request.images = true;
+    state
+        .questions
+        .reconcile(std::slice::from_ref(&request), vec![request.clone()]);
+    let target = state.clipboard_target().expect("question answer target");
+    assert_eq!(state.terminal_key(ctrl_v), Some(KeyAction::Paste));
+    state.handle_paste("see ");
+    assert!(
+        state.clipboard_target() != Some(target),
+        "an edit retires a read started before it"
+    );
+    assert!(
+        state
+            .paste_clipboard_image(b"opaque".as_slice().into())
+            .note
+            .is_none()
+    );
+    assert_eq!(state.input(), "prompt draft", "the prompt is untouched");
+    assert!(!state.editor.has_images());
+    let Some(PanelIntent::ReplyQuestion(reply)) = state.handle_key(KeyAction::Enter).await.intent
+    else {
+        panic!("question reply");
+    };
+    let QuestionDecision::Answers { answers, images } = reply.decision else {
+        panic!("answers");
+    };
+    assert_eq!(answers, vec![vec!["see [Image 1]".to_owned()]]);
+    assert_eq!(images.len(), 1);
+    assert_eq!(&*images[0].png, b"opaque");
+}

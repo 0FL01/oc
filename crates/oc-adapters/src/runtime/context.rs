@@ -490,7 +490,8 @@ pub(crate) fn apply_dcp_projection(
             *occurrence += 1;
             !projection.hidden.contains(&key)
         }
-        InputItem::ReadFunctionCallOutput { call_id, .. } => {
+        InputItem::ReadFunctionCallOutput { call_id, .. }
+        | InputItem::QuestionFunctionCallOutput { call_id, .. } => {
             let occurrence = outputs.entry(call_id.clone()).or_default();
             let key = (call_id.clone(), *occurrence);
             *occurrence += 1;
@@ -523,6 +524,7 @@ pub(crate) fn dcp_contents(input: &[InputItem]) -> Vec<&str> {
                 content.extend(output.texts().iter().map(String::as_str))
             }
             InputItem::ReadFunctionCallOutput { output, .. } => content.push(output.display()),
+            InputItem::QuestionFunctionCallOutput { output, .. } => content.push(output.display()),
             InputItem::ProviderOutput(value) => {
                 if value["type"] == "function_call" {
                     if let Some(arguments) = value["arguments"].as_str() {
@@ -614,6 +616,14 @@ pub(crate) fn dcp_call_contents(
                 }
             }
             InputItem::ReadFunctionCallOutput { call_id, output } => {
+                let occurrence = outputs.entry(call_id.clone()).or_default();
+                let key = (call_id.clone(), *occurrence);
+                *occurrence += 1;
+                if !projection.hidden.contains(&key) {
+                    values.entry(key).or_default().1 = output.display().into();
+                }
+            }
+            InputItem::QuestionFunctionCallOutput { call_id, output } => {
                 let occurrence = outputs.entry(call_id.clone()).or_default();
                 let key = (call_id.clone(), *occurrence);
                 *occurrence += 1;

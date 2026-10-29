@@ -3068,6 +3068,9 @@ impl<'a> Runtime<'a> {
                             InputItem::ReadFunctionCallOutput { output, .. } => {
                                 Some(output.facts().to_string().len())
                             }
+                            InputItem::QuestionFunctionCallOutput { output, .. } => {
+                                Some(output.facts().to_string().len())
+                            }
                             _ => None,
                         })
                         .sum::<usize>(),
@@ -5698,6 +5701,7 @@ impl<'a> Runtime<'a> {
             let mut patch_effects = None;
             let mut native_mcp_result = None;
             let mut native_read_result = None;
+            let mut question_images = Vec::new();
             let mut read_producer_limited = None;
             let mut shell_text_prepared = false;
             let mut shell_presentation = None;
@@ -5901,6 +5905,7 @@ impl<'a> Runtime<'a> {
                                     agent_digest: turn_log.active_agent_digest().map(str::to_owned),
                                 },
                                 input: input.clone(),
+                                images: read_images,
                             };
                             let waiting = self.questions.wait_scoped(
                                 request,
@@ -5920,9 +5925,10 @@ impl<'a> Runtime<'a> {
                             Err(QuestionWaitError::NoConsumer)
                         };
                         match decision {
-                            Ok(QuestionDecision::Answers(answers))
+                            Ok(QuestionDecision::Answers { answers, images })
                                 if !cancel.load(Ordering::Acquire) =>
                             {
+                                question_images = images;
                                 (
                                     "completed",
                                     serde_json::to_string(&QuestionResult {
@@ -5936,7 +5942,8 @@ impl<'a> Runtime<'a> {
                                 "failed",
                                 serde_json::json!({"status":"reloaded"}).to_string(),
                             ),
-                            Ok(QuestionDecision::Answers(_)) | Ok(QuestionDecision::Cancelled) => {
+                            Ok(QuestionDecision::Answers { .. })
+                            | Ok(QuestionDecision::Cancelled) => {
                                 self.request_child_stop(
                                     cancel,
                                     super::stop::Cause::QuestionUnknown,
@@ -6392,6 +6399,27 @@ impl<'a> Runtime<'a> {
                     "failed"
                 };
             }
+            // Pasted answer images ride with the final prepared answer text.
+            let mut native_question_result = None;
+            let output =
+                if name == "question" && state == "completed" && !question_images.is_empty() {
+                    match crate::tools::question::QuestionToolOutput::new(
+                        output.clone(),
+                        &question_images,
+                        cancel,
+                    ) {
+                        Ok(native) => {
+                            native_question_result = Some(native);
+                            output
+                        }
+                        Err(error) => {
+                            state = "failed";
+                            format!("error: {error}")
+                        }
+                    }
+                } else {
+                    output
+                };
             if name == "write"
                 && state == "completed"
                 && let Assembled::Call(call) = unit
@@ -6441,6 +6469,11 @@ impl<'a> Runtime<'a> {
                     }
                 } else if let Some(native) = native_read_result {
                     InputItem::ReadFunctionCallOutput {
+                        call_id: id.clone(),
+                        output: native,
+                    }
+                } else if let Some(native) = native_question_result {
+                    InputItem::QuestionFunctionCallOutput {
                         call_id: id.clone(),
                         output: native,
                     }

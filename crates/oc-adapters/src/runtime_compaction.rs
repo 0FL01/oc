@@ -1238,6 +1238,9 @@ impl Runtime<'_> {
                 InputItem::ReadFunctionCallOutput { call_id, output } => {
                     Some((call_id, output.display()))
                 }
+                InputItem::QuestionFunctionCallOutput { call_id, output } => {
+                    Some((call_id, output.display()))
+                }
                 _ => None,
             };
             if let Some((call_id, display)) = media {

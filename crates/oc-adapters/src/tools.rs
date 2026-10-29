@@ -31,6 +31,7 @@ use crate::shell::{Shell, ShellLimits};
 use crate::storage::Db;
 
 pub(crate) mod diagnostic;
+pub mod question;
 pub mod read;
 pub(crate) mod shell_call;
 use diagnostic::Diagnostic;
@@ -1760,7 +1761,7 @@ impl TurnLog {
 
     /// Serialize for the turn row.
     pub fn to_json(&self) -> serde_json::Value {
-        let (input, native_mcp, native_read) = self.encode_mcp_input();
+        let (input, native_mcp, native_read, native_question) = self.encode_mcp_input();
         let mut value = serde_json::json!({
             "protocol": self.protocol,
             "binding": self.binding,
@@ -1806,6 +1807,9 @@ impl TurnLog {
         }
         if !native_read.is_empty() {
             value["native_read_results"] = native_read.into();
+        }
+        if !native_question.is_empty() {
+            value["native_question_results"] = native_question.into();
         }
         value
     }

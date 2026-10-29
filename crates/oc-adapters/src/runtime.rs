@@ -805,6 +805,11 @@ fn estimate_input_tokens_from_bytes<'a>(
                 bytes = bytes.saturating_sub(url_bytes as u64);
                 media = media.saturating_add(1500);
             }
+            InputItem::QuestionFunctionCallOutput { output, .. } => {
+                let (images, url_bytes) = output.media();
+                bytes = bytes.saturating_sub(url_bytes as u64);
+                media = media.saturating_add(1500 * images as u64);
+            }
             // Opaque encrypted reasoning is base64 the provider does not bill as
             // prompt text: live turns matched usage within ~3% without it and
             // were overstated by ~30% with it, triggering false compactions.

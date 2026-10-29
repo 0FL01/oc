@@ -230,6 +230,12 @@ pub enum InputItem {
         call_id: String,
         output: crate::tools::read::ReadToolOutput,
     },
+    /// Native question answers with user-pasted images.
+    #[serde(rename = "function_call_output")]
+    QuestionFunctionCallOutput {
+        call_id: String,
+        output: crate::tools::question::QuestionToolOutput,
+    },
     /// Complete output item, including opaque fields and assistant phase.
     #[serde(untagged)]
     ProviderOutput(serde_json::Value),
@@ -305,6 +311,9 @@ impl InputItem {
             Self::FunctionCallOutput { call_id, output } => Some((call_id, output)),
             Self::McpFunctionCallOutput { call_id, output } => Some((call_id, output.display())),
             Self::ReadFunctionCallOutput { call_id, output } => Some((call_id, output.display())),
+            Self::QuestionFunctionCallOutput { call_id, output } => {
+                Some((call_id, output.display()))
+            }
             _ => None,
         }
     }

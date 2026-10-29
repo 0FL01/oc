@@ -11,6 +11,8 @@ pub struct ClipboardTarget {
     revision: u64,
     cursor: usize,
     anchor: Option<usize>,
+    /// A question's free-form answer: request id, tab and its edit revision.
+    question: Option<(u64, usize, u64)>,
 }
 
 /// Mark a command as fully handled, or request its snapshot when the view
@@ -689,6 +691,9 @@ impl TuiState {
         }
         use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
         if self.panel == TuiPanel::None && self.questions.active().is_some() {
+            if self.question_paste_key(event) {
+                return Some(KeyAction::Paste);
+            }
             return self.questions.terminal_key(event);
         }
         if self.panel == TuiPanel::None && self.shell_viewer().is_some() {
@@ -901,6 +906,25 @@ impl TuiState {
                 .next
                 .split(',')
                 .any(|binding| conflicts(binding, true))
+    }
+
+    /// The prompt paste binding also reads a clipboard image into a question answer.
+    fn question_paste_key(&self, event: crossterm::event::KeyEvent) -> bool {
+        if event.kind == crossterm::event::KeyEventKind::Release
+            || self.clipboard_target().is_none()
+        {
+            return false;
+        }
+        let Some(binding) = crate::events::binding(event) else {
+            return false;
+        };
+        let candidate = crate::events::dialog_binding(&binding);
+        self.chrome
+            .prompt_paste_shortcut
+            .as_deref()
+            .unwrap_or("ctrl+v")
+            .split(',')
+            .any(|key| !key.is_empty() && crate::events::dialog_binding(key) == candidate)
     }
 
     fn prompt_history_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
@@ -1305,6 +1329,22 @@ impl TuiState {
     }
 
     pub fn clipboard_target(&self) -> Option<ClipboardTarget> {
+        if self.panel == TuiPanel::None && self.questions.active().is_some() {
+            let question = self.questions.clipboard_target();
+            return (question.is_some()
+                && self.approvals.active().is_none()
+                && self.status != TuiStatus::Quit
+                && self.clipboard_mode != ClipboardMode::Disabled)
+                .then(|| ClipboardTarget {
+                    session: self.session.clone(),
+                    generation: self.generation,
+                    config_generation: self.chrome.selection_generation,
+                    revision: self.input_revision,
+                    cursor: self.editor.cursor,
+                    anchor: self.editor.anchor,
+                    question,
+                });
+        }
         (self.prompt_mouse_editable()
             && !self.prompt_shell_mode()
             && !self.user_shell_pending()
@@ -1316,12 +1356,19 @@ impl TuiState {
                 revision: self.input_revision,
                 cursor: self.editor.cursor,
                 anchor: self.editor.anchor,
+                question: None,
             })
     }
 
     pub fn paste_clipboard_image(&mut self, png: std::sync::Arc<[u8]>) -> KeyOutcome {
-        if self.clipboard_target().is_none() {
+        let Some(target) = self.clipboard_target() else {
             return KeyOutcome::default();
+        };
+        if target.question.is_some() {
+            return KeyOutcome {
+                note: self.questions.paste_image(png).err(),
+                ..KeyOutcome::default()
+            };
         }
         match self
             .editor

@@ -647,6 +647,7 @@ async fn readonly_child_enter_preserves_real_question_binding_and_owner_reply() 
             "options":[{"label":"A","description":"first"}]
         }]}))
         .unwrap(),
+        images: false,
     };
     let mut state = TuiState::new(app.clone(), SessionId("child".into()));
     state.restore_prompt("unsubmitted readonly draft".into());
@@ -667,7 +668,10 @@ async fn readonly_child_enter_preserves_real_question_binding_and_owner_reply() 
         assert_eq!(reply.binding, request.binding);
         assert_eq!(
             reply.decision,
-            QuestionDecision::Answers(vec![vec!["A".into()]])
+            QuestionDecision::Answers {
+                answers: vec![vec!["A".into()]],
+                images: vec![]
+            }
         );
         ack.send(Err(QuestionReplyError::Unavailable)).unwrap();
         let Some(InboxMsg::PendingApprovals { ack }) = inbox.recv().await else {

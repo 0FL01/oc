@@ -148,6 +148,7 @@ async fn vis37_custom_caret_color_uses_the_focused_field_without_stealing_overla
             "question":"Pick?", "header":"Pick", "options":[{"label":"A", "description":"first"}]
         }]}))
         .unwrap(),
+        images: false,
     };
     let focused = Theme::dark().color("text.formfield.$focused").unwrap();
     assert_eq!(crate::views::cursor_color(&state), Color::Reset);
@@ -245,6 +246,7 @@ async fn vis37_visible_modal_keeps_input_ownership_when_question_arrives() {
             "question":"Pick?", "header":"Pick", "options":[{"label":"A", "description":"first"}]
         }]}))
         .unwrap(),
+        images: false,
     };
     state
         .questions
@@ -300,7 +302,10 @@ async fn vis37_visible_modal_keeps_input_ownership_when_question_arrives() {
     assert_eq!(reply.binding, request.binding);
     assert_eq!(
         reply.decision,
-        QuestionDecision::Answers(vec![vec!["A".into()]])
+        QuestionDecision::Answers {
+            answers: vec![vec!["A".into()]],
+            images: vec![]
+        }
     );
     assert_eq!(state.input(), "untouched ordinary draft Ω界");
 }

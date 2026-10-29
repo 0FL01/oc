@@ -1,7 +1,7 @@
 use super::*;
 
 fn request() -> QuestionRequest {
-    QuestionRequest { id: 0, binding: ApprovalBinding { session: "s".into(), turn: "t".into(), call: "c".into(), operation: "o".into(), input_digest: "digest".into(), location: "l".into(), generation: 7, agent: None, agent_digest: None }, input: QuestionInput::parse(&serde_json::json!({"questions":[{"question":"Choose?","header":"Choice","options":[{"label":"One","description":"first"}]}]})).unwrap() }
+    QuestionRequest { id: 0, binding: ApprovalBinding { session: "s".into(), turn: "t".into(), call: "c".into(), operation: "o".into(), input_digest: "digest".into(), location: "l".into(), generation: 7, agent: None, agent_digest: None }, input: QuestionInput::parse(&serde_json::json!({"questions":[{"question":"Choose?","header":"Choice","options":[{"label":"One","description":"first"}]}]})).unwrap(), images: false }
 }
 #[test]
 fn strict_schema_and_typed_history_are_bounded() {
@@ -50,7 +50,10 @@ async fn wait_reply_binding_errors_preserve_then_settle_once() {
     let good = QuestionReply {
         id: r.id,
         binding: r.binding.clone(),
-        decision: QuestionDecision::Answers(vec![vec!["One".into()]]),
+        decision: QuestionDecision::Answers {
+            answers: vec![vec!["One".into()]],
+            images: vec![],
+        },
     };
     for binding in [
         ApprovalBinding {
@@ -92,7 +95,10 @@ async fn wait_reply_binding_errors_preserve_then_settle_once() {
     assert_eq!(
         queue.resolve(
             QuestionReply {
-                decision: QuestionDecision::Answers(vec![]),
+                decision: QuestionDecision::Answers {
+                    answers: vec![],
+                    images: vec![]
+                },
                 ..good.clone()
             },
             &events
@@ -182,4 +188,103 @@ async fn explicit_reload_distinctly_settles_only_the_open_waiter() {
         }
     ));
     assert!(queue.pending().is_empty());
+}
+#[test]
+fn answer_images_require_capability_label_and_budget() {
+    let image = |question, answer, start| QuestionImage {
+        question,
+        answer,
+        mark: crate::prompt::ImageMark {
+            start,
+            end: start + 9,
+            ordinal: 1,
+        },
+        png: b"opaque".as_slice().into(),
+    };
+    let answers = vec![vec!["see [Image 1]".to_owned()]];
+    let mut request = request();
+    assert_eq!(
+        request.validate_decision(&answers, &[image(0, 0, 4)]),
+        Err(QuestionReplyError::InvalidAnswers),
+        "a model without image input never receives pasted images"
+    );
+    request.images = true;
+    assert!(
+        request
+            .validate_decision(&answers, &[image(0, 0, 4)])
+            .is_ok()
+    );
+    for wrong in [image(0, 0, 3), image(1, 0, 4), image(0, 1, 4)] {
+        assert!(request.validate_decision(&answers, &[wrong]).is_err());
+    }
+    assert!(
+        request
+            .validate_decision(&answers, &[image(0, 0, 4), image(0, 0, 4)])
+            .is_err(),
+        "duplicate ordinal"
+    );
+    let mut large = image(0, 0, 4);
+    large.png = vec![0; crate::prompt::IMAGE_BYTES + 1].into();
+    assert!(request.validate_decision(&answers, &[large]).is_err());
+    let decision = QuestionDecision::Answers {
+        answers: answers.clone(),
+        images: vec![image(0, 0, 4)],
+    };
+    let wire = serde_json::to_string(&decision).unwrap();
+    assert!(!wire.contains("opaque"), "PNG bytes travel base64-encoded");
+    assert_eq!(
+        serde_json::from_str::<QuestionDecision>(&wire).unwrap(),
+        decision
+    );
+}
+#[tokio::test]
+async fn resolved_event_omits_pasted_image_bytes() {
+    let queue = Arc::new(QuestionQueue::default());
+    let (events, mut rx) = broadcast::channel(8);
+    queue.register_consumer();
+    let mut asked = request();
+    asked.images = true;
+    let (q, e) = (queue.clone(), events.clone());
+    let job = tokio::spawn(async move { q.wait(asked, &e).await });
+    let CoreEvent::QuestionAsked(r) = rx.recv().await.unwrap() else {
+        panic!("asked");
+    };
+    let decision = QuestionDecision::Answers {
+        answers: vec![vec!["[Image 1]".into()]],
+        images: vec![QuestionImage {
+            question: 0,
+            answer: 0,
+            mark: crate::prompt::ImageMark {
+                start: 0,
+                end: 9,
+                ordinal: 1,
+            },
+            png: b"opaque".as_slice().into(),
+        }],
+    };
+    queue
+        .resolve(
+            QuestionReply {
+                id: r.id,
+                binding: r.binding,
+                decision: decision.clone(),
+            },
+            &events,
+        )
+        .unwrap();
+    let CoreEvent::QuestionResolved {
+        decision: published,
+        ..
+    } = rx.recv().await.unwrap()
+    else {
+        panic!("resolved");
+    };
+    assert_eq!(
+        published,
+        QuestionDecision::Answers {
+            answers: vec![vec!["[Image 1]".into()]],
+            images: vec![]
+        }
+    );
+    assert_eq!(job.await.unwrap(), Ok(decision), "the tool still gets them");
 }

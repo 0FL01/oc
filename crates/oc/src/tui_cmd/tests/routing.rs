@@ -575,6 +575,7 @@ async fn parked_root_controls_keep_bindings_without_selecting_home_or_replying()
                 multiple: false,
             }],
         },
+        images: false,
     };
     let mut parked = TuiState::new(app.clone(), root.clone());
     parked.restore_prompt("original root draft".into());

@@ -313,7 +313,8 @@ impl Db {
                     }
                     crate::provider::InputItem::FunctionCallOutput { call_id, .. }
                     | crate::provider::InputItem::McpFunctionCallOutput { call_id, .. }
-                    | crate::provider::InputItem::ReadFunctionCallOutput { call_id, .. } => {
+                    | crate::provider::InputItem::ReadFunctionCallOutput { call_id, .. }
+                    | crate::provider::InputItem::QuestionFunctionCallOutput { call_id, .. } => {
                         if !calls.remove(call_id.as_str()) {
                             return Err(refuse("wire output precedes call").into());
                         }
