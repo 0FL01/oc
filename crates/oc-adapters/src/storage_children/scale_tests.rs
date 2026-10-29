@@ -1,40 +1,7 @@
 //! Accumulated child jobs and parent events must not make hot child-job
-//! operations more expensive. Work is counted in SQLite VM steps, which is
-//! deterministic for the same data, so these checks do not depend on timing.
+//! operations more expensive (counted in deterministic SQLite VM steps).
 use super::*;
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-
-thread_local! {
-    static STARTS: RefCell<HashMap<String, i32>> = RefCell::new(HashMap::new());
-    static STEPS: Cell<i64> = const { Cell::new(0) };
-}
-
-fn count(event: rusqlite::trace::TraceEvent<'_>) {
-    use rusqlite::{StatementStatus::VmStep, trace::TraceEvent};
-    match event {
-        // Trigger subprograms report the same statement again; keep its start.
-        TraceEvent::Stmt(stmt, _) => STARTS.with_borrow_mut(|starts| {
-            starts
-                .entry(stmt.sql().into_owned())
-                .or_insert_with(|| stmt.get_status(VmStep));
-        }),
-        TraceEvent::Profile(stmt, _) => {
-            if let Some(start) = STARTS.with_borrow_mut(|starts| starts.remove(stmt.sql().as_ref()))
-            {
-                STEPS.set(STEPS.get() + i64::from(stmt.get_status(VmStep) - start));
-            }
-        }
-        _ => {}
-    }
-}
-
-fn steps<T>(operation: impl FnOnce() -> T) -> (T, i64) {
-    STARTS.with_borrow_mut(HashMap::clear);
-    STEPS.set(0);
-    let result = operation();
-    (result, STEPS.get())
-}
+use crate::storage::vm_steps::{assert_flat, install, steps};
 
 struct Population {
     _dir: tempfile::TempDir,
@@ -122,11 +89,7 @@ fn population(jobs: usize) -> Population {
         )
         .unwrap();
     admit(&db, jobs, false);
-    db.conn.lock().unwrap().trace_v2(
-        rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT
-            | rusqlite::trace::TraceEventCodes::SQLITE_TRACE_PROFILE,
-        Some(count),
-    );
+    install(&db.conn.lock().unwrap());
     Population {
         _dir: dir,
         db,
@@ -168,16 +131,7 @@ fn hot_child_job_operations_do_not_grow_with_accumulated_jobs_and_events() {
     let (small, large) = (150, 600);
     let before = measure(&population(small), small);
     let after = measure(&population(large), large);
-    for ((name, small_steps), (_, large_steps)) in before.iter().zip(&after) {
-        eprintln!("{name}: {small} jobs {small_steps} steps, {large} jobs {large_steps} steps");
-    }
-    for ((name, small_steps), (_, large_steps)) in before.into_iter().zip(after) {
-        // Four times the history may add bounded index depth, not proportional work.
-        assert!(
-            large_steps <= small_steps + small_steps / 2 + 500,
-            "{name}: {small} jobs took {small_steps} VM steps, {large} jobs took {large_steps}"
-        );
-    }
+    assert_flat((small, large), &before, &after);
 }
 
 #[test]

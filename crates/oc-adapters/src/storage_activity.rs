@@ -40,10 +40,11 @@ impl Db {
 
     fn activity_in(conn: &Connection, session: &str) -> Result<SessionActivity, StorageError> {
         conn.prepare_cached("SELECT idle_seq,viewed_seq,idle_outcome,
-            EXISTS(WITH RECURSIVE family(id) AS (
-                SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id)
-                SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status='started'
-                UNION ALL SELECT 1 FROM child_jobs j JOIN family f ON j.parent_id=f.id WHERE j.state IN ('admitted','running'))
+            EXISTS(WITH RECURSIVE busy(id) AS (
+                SELECT t.session_id FROM turns t INDEXED BY turns_started WHERE t.status='started'
+                UNION SELECT j.parent_id FROM child_jobs j INDEXED BY child_job_state WHERE j.state IN ('admitted','running')
+                UNION SELECT s.parent_id FROM sessions s JOIN busy b ON s.id=b.id WHERE s.parent_id IS NOT NULL)
+                SELECT 1 FROM busy WHERE busy.id=?1)
             FROM sessions WHERE id=?1")?.query_row([session], |row| {
                 let outcome: Option<String> = row.get(2)?;
                 Ok(SessionActivity {

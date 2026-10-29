@@ -25,7 +25,7 @@ impl Db {
         }
         // A fork retains data provenance without copying the live job or its
         // authority to wake a parent, including before a notice was consumed.
-        if conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind='fork_native_notice' AND payload=?2)")?.query_row(params![session,message], |row| row.get(0))? {
+        if conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM events INDEXED BY events_fork_native_notice WHERE session_id=?1 AND kind='fork_native_notice' AND payload=?2)")?.query_row(params![session,message], |row| row.get(0))? {
             return Ok(true);
         }
         // `turns_native_input` holds only turns that carry native input, so a

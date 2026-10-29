@@ -643,6 +643,8 @@ impl Db {
              CREATE INDEX IF NOT EXISTS events_model_selected ON events(session_id, seq) WHERE kind='session_model_selected';
              CREATE INDEX IF NOT EXISTS events_message ON events(session_id, seq) WHERE kind='message';
              CREATE INDEX IF NOT EXISTS turns_session_status ON turns(session_id, status);
+             CREATE INDEX IF NOT EXISTS turns_started ON turns(session_id) WHERE status='started';
+             CREATE INDEX IF NOT EXISTS events_fork_native_notice ON events(payload) WHERE kind='fork_native_notice';
              CREATE INDEX IF NOT EXISTS turns_native_input ON turns(session_id) WHERE json_valid(result) AND json_type(result,'$.native_input') IS NOT NULL;
              CREATE INDEX IF NOT EXISTS events_message_payload ON events(payload) WHERE kind='message';
              CREATE INDEX IF NOT EXISTS events_user_shell_admitted ON events(payload) WHERE kind='user_shell_admitted';
@@ -1111,8 +1113,9 @@ impl Db {
                  ELSE substr('SunMonTueWedThuFriSat', CAST(strftime('%w',CAST(s.updated_at AS INTEGER),'unixepoch','localtime') AS INTEGER)*3+1,3) || ' ' ||
                       substr('JanFebMarAprMayJunJulAugSepOctNovDec', (CAST(strftime('%m',CAST(s.updated_at AS INTEGER),'unixepoch','localtime') AS INTEGER)-1)*3+1,3) ||
                       strftime(' %d %Y',CAST(s.updated_at AS INTEGER),'unixepoch','localtime') END,
-            EXISTS(WITH RECURSIVE family(id) AS (SELECT s.id UNION SELECT c.id FROM sessions c JOIN family f ON c.parent_id=f.id)
-                SELECT 1 FROM turns t JOIN family f ON t.session_id=f.id WHERE t.status = 'started')
+            EXISTS(WITH RECURSIVE busy(id) AS (SELECT t.session_id FROM turns t INDEXED BY turns_started WHERE t.status='started'
+                UNION SELECT c.parent_id FROM sessions c JOIN busy b ON c.id=b.id WHERE c.parent_id IS NOT NULL)
+                SELECT 1 FROM busy WHERE busy.id=s.id)
             FROM sessions s LEFT JOIN prefs p ON p.key = 'tui.session_location.' || s.id
             WHERE s.parent_id IS NULL AND (?1 IS NULL OR p.value = ?1)
               AND instr(oc_session_lower(label), oc_session_lower(?2)) > 0
@@ -4686,7 +4689,13 @@ fn apply_turn_acceptance_schema(conn: &Connection) -> Result<(), StorageError> {
 }
 
 #[cfg(test)]
+#[path = "storage/history_scale_tests.rs"]
+mod history_scale_tests;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 #[path = "storage/transcript_tests.rs"]
 mod transcript_tests;
+#[cfg(test)]
+#[path = "storage/vm_steps.rs"]
+pub(crate) mod vm_steps;
