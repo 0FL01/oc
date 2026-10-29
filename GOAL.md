@@ -20,6 +20,10 @@ Scope текущей работы задаёт пользователь; workflo
 
 ## Незавершённые outcomes
 
+### Хранилище под нагрузкой — активно
+
+Согласованный после RECON план и итерации: [рефакторинг SQLite-хранилища](docs/goals/2026-10-29-sqlite-storage-refactor.md). Цель — 10k накопленных child jobs и 8–16 сессий без блокировки async runtime и без ослабления надёжных подтверждений.
+
 ### Provider recovery и компакция — offline fix, закрытие заблокировано
 
 Исправленный после RECON/аудита план и выполнение: [runtime recovery](docs/goals/2026-10-26-runtime-recovery.md).

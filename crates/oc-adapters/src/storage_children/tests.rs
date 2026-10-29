@@ -572,7 +572,7 @@ fn conversion_terminal_race_has_one_mode_event_one_notice_and_immutable_launch()
             .lock()
             .unwrap()
             .execute(
-                "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+                "UPDATE child_jobs SET identity=?1, background=0 WHERE operation_id='launch'",
                 [serde_json::to_string(&job).unwrap()],
             )
             .unwrap();
@@ -664,7 +664,7 @@ fn actual_concurrent_conversion_and_terminal_share_the_existing_transaction_owne
         .lock()
         .unwrap()
         .execute(
-            "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+            "UPDATE child_jobs SET identity=?1, background=0 WHERE operation_id='launch'",
             [serde_json::to_string(&job).unwrap()],
         )
         .unwrap();

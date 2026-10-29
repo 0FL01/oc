@@ -10,6 +10,10 @@ mod parent;
 #[path = "storage_children/tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "storage_children/scale_tests.rs"]
+mod scale_tests;
+
 impl Db {
     /// Read only owner-authored metadata from the exact accepted child turn.
     /// The connection-taking form also serves notice delivery's transaction.
@@ -78,10 +82,10 @@ impl Db {
         operation: &str,
     ) -> Result<Option<ChildJob>, StorageError> {
         let row = conn.prepare_cached("SELECT j.identity,j.state,j.parent_id,j.child_id,j.delivery_id,j.child_turn,j.message_id,
-             EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id),
-             (SELECT e.payload FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_launch'
+             EXISTS(SELECT 1 FROM events e INDEXED BY events_subagent_background WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id),
+             (SELECT e.payload FROM events e INDEXED BY events_subagent_launch WHERE e.session_id=j.parent_id AND e.kind='subagent_launch'
               AND length(CAST(e.payload AS BLOB))<=?3
-              AND CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation')=j.operation_id ELSE 0 END LIMIT 1)
+              AND (CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation') END)=+j.operation_id LIMIT 1)
              FROM child_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
              JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
              WHERE j.parent_id=?1 AND j.operation_id=?2 AND length(CAST(j.identity AS BLOB))<=?3")?.query_row(params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
@@ -285,7 +289,7 @@ impl Db {
     }
     pub(crate) fn child_job_outstanding(&self) -> Result<i64, StorageError> {
         Ok(self.conn.lock().expect("db mutex").query_row(
-            "SELECT count(*) FROM child_jobs j WHERE state IN ('admitted','running','unknown') OR (message_id IS NULL AND (coalesce(json_extract(identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)))",
+            "SELECT (SELECT count(*) FROM child_jobs WHERE state IN ('admitted','running','unknown'))+(SELECT count(*) FROM child_jobs INDEXED BY child_job_undelivered WHERE message_id IS NULL AND background=1 AND state NOT IN ('admitted','running','unknown'))",
             [],
             |row| row.get(0),
         )?)
@@ -305,7 +309,7 @@ impl Db {
             .prepare_cached("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=10)")?
             .query_row([], |row| row.get::<_, bool>(0))?
         {
-            return Ok(());
+            return Self::child_jobs_scale_schema(conn);
         }
         let tx =
             rusqlite::Transaction::new_unchecked(conn, rusqlite::TransactionBehavior::Immediate)?;
@@ -324,6 +328,33 @@ impl Db {
             CREATE INDEX IF NOT EXISTS child_job_family ON child_jobs(parent_id);
             CREATE INDEX IF NOT EXISTS child_job_pending ON child_jobs(state) WHERE message_id IS NULL;
             INSERT INTO schema_migrations(version,applied_at) VALUES(10,'t45-child-jobs');")?;
+        tx.commit()?;
+        Self::child_jobs_scale_schema(conn)
+    }
+
+    /// Delivery and conversion lookups use typed, indexed facts, so accumulated
+    /// settled jobs and parent events do not make launches or notices slower.
+    /// `background` is the effective mode: launch identity or later conversion.
+    fn child_jobs_scale_schema(conn: &Connection) -> Result<(), StorageError> {
+        if conn
+            .prepare_cached("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=16)")?
+            .query_row([], |row| row.get::<_, bool>(0))?
+        {
+            return Ok(());
+        }
+        let tx =
+            rusqlite::Transaction::new_unchecked(conn, rusqlite::TransactionBehavior::Immediate)?;
+        tx.execute_batch("
+            CREATE INDEX IF NOT EXISTS events_subagent_background ON events(payload) WHERE kind='subagent_background';
+            CREATE INDEX IF NOT EXISTS events_subagent_notice ON events(payload) WHERE kind='subagent_notice';
+            CREATE INDEX IF NOT EXISTS events_subagent_launch ON events(session_id,(CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='subagent_launch';
+            ALTER TABLE child_jobs ADD COLUMN background INTEGER NOT NULL DEFAULT 1 CHECK(background IN (0,1));
+            UPDATE child_jobs SET background=CASE WHEN coalesce(json_extract(identity,'$.background'),1)=1
+                OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=child_jobs.parent_id AND e.payload=child_jobs.operation_id)
+                THEN 1 ELSE 0 END;
+            CREATE INDEX IF NOT EXISTS child_job_state ON child_jobs(state);
+            CREATE INDEX IF NOT EXISTS child_job_undelivered ON child_jobs(state) WHERE message_id IS NULL AND background=1;
+            INSERT INTO schema_migrations(version,applied_at) VALUES(16,'child-job-delivery-mode');")?;
         tx.commit()?;
         Ok(())
     }
@@ -358,7 +389,7 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.id=?2 AND o.session_id=?1 AND o.name='subagent')")?.query_row(params![job.parent.0,job.operation], |r| r.get(0))?;
-        let count: i64 = tx.prepare_cached("SELECT count(*) FROM child_jobs j WHERE state IN ('admitted','running','unknown') OR (message_id IS NULL AND (coalesce(json_extract(identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)))")?.query_row([],
+        let count: i64 = tx.prepare_cached("SELECT (SELECT count(*) FROM child_jobs WHERE state IN ('admitted','running','unknown'))+(SELECT count(*) FROM child_jobs INDEXED BY child_job_undelivered WHERE message_id IS NULL AND background=1 AND state NOT IN ('admitted','running','unknown'))")?.query_row([],
             |r| r.get(0),
         )?;
         if !valid || count >= crate::runtime::children::JOB_CAP as i64 {
@@ -389,7 +420,7 @@ impl Db {
                 return Err(StorageError::SessionNotFound);
             }
         }
-        tx.execute("INSERT INTO child_jobs(operation_id,parent_id,child_id,identity,state,delivery_id) VALUES(?1,?2,?3,?4,'admitted',?5)", params![job.operation,job.parent.0,job.child.0,serde_json::to_string(job).expect("child identity"),job.delivery_id])?;
+        tx.execute("INSERT INTO child_jobs(operation_id,parent_id,child_id,identity,state,delivery_id,background) VALUES(?1,?2,?3,?4,'admitted',?5,?6)", params![job.operation,job.parent.0,job.child.0,serde_json::to_string(job).expect("child identity"),job.delivery_id,job.background])?;
         if let Some(fence) = fence {
             tx.execute("INSERT INTO events(session_id,kind,payload) VALUES(?1,'subagent_recovery_fence',?2)", params![job.child.0,serde_json::json!({"operation":job.operation,"fence":fence}).to_string()])?;
         }
@@ -415,6 +446,10 @@ impl Db {
             return Ok(false);
         };
         tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,'subagent_background',?2 WHERE NOT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind='subagent_background' AND payload=?2)", params![parent,operation])?;
+        tx.execute(
+            "UPDATE child_jobs SET background=1 WHERE operation_id=?1",
+            [operation],
+        )?;
         tx.commit()?;
         Ok(true)
     }
@@ -489,7 +524,9 @@ impl Db {
     pub(crate) fn child_tool_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
-        let mut stmt = conn.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
+        // Active jobs first, then the newest settled ones; both arms are index
+        // ranges, so settled history never has to be sorted.
+        let mut stmt = conn.prepare_cached("SELECT operation_id FROM (SELECT * FROM (SELECT j.operation_id,1 AS active,j.rowid AS position FROM child_jobs j INDEXED BY child_job_state JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 AND j.state IN ('admitted','running') ORDER BY j.rowid DESC LIMIT 16) UNION ALL SELECT * FROM (SELECT j.operation_id,0,j.rowid FROM child_jobs j INDEXED BY child_job_family JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 AND j.state NOT IN ('admitted','running') ORDER BY j.rowid DESC LIMIT 16)) ORDER BY active DESC,position DESC LIMIT 16")?;
         let rows = stmt.query_map([session], |r| r.get::<_, String>(0))?;
         let mut jobs = Vec::new();
         for row in rows {
@@ -692,7 +729,7 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let rows = {
-            let mut stmt = tx.prepare("SELECT j.operation_id FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND (coalesce(json_extract(j.identity,'$.background'),1)=1 OR EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id)) ORDER BY j.rowid LIMIT 8")?;
+            let mut stmt = tx.prepare("SELECT j.operation_id FROM child_jobs j INDEXED BY child_job_undelivered JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id WHERE j.state NOT IN ('admitted','running') AND j.message_id IS NULL AND j.background=1 ORDER BY j.rowid LIMIT 8")?;
             stmt.query_map([], |r| r.get::<_, String>(0))?
                 .collect::<Result<Vec<_>, _>>()?
         };
