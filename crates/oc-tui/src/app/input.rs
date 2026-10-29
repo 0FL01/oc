@@ -2149,12 +2149,7 @@ impl TuiState {
                         .map(|op| (op, event.column, event.row));
                     self.reasoning_down =
                         self.reasoning_hit(area, event.column, event.row).map(|id| {
-                            let rect = crate::shell::transcript_area(self, area);
-                            let (_, total, scroll) = self.visible_transcript_at_viewport(
-                                rect.width,
-                                area.width,
-                                rect.height,
-                            );
+                            let (total, scroll) = self.reasoning_geometry(area).unwrap_or((0, 0));
                             (
                                 id,
                                 event.column,
@@ -2242,32 +2237,20 @@ impl TuiState {
                         && !pointer_down
                         && event.modifiers.is_empty()
                     {
-                        let rect = crate::shell::transcript_area(self, area);
-                        let (rows, total, scroll) = self.visible_transcript_at_viewport(
-                            rect.width,
-                            area.width,
-                            rect.height,
-                        );
                         self.painted_transcript
                             .borrow()
                             .as_ref()
-                            .filter(|painted| {
-                                painted.area == rect
-                                    && painted.total == total
-                                    && painted.scroll == scroll
-                                    && painted.rows[..] == rows[..]
-                            })
-                            .and_then(|_| self.reasoning_hit(area, event.column, event.row))
-                            .map(|id| {
-                                (
+                            .and_then(|painted| {
+                                let id = self.reasoning_hit(area, event.column, event.row)?;
+                                Some((
                                     id,
                                     event.column,
                                     event.row,
                                     area,
-                                    total,
-                                    scroll,
+                                    painted.total,
+                                    painted.scroll,
                                     self.scroll,
-                                )
+                                ))
                             })
                     } else {
                         None
@@ -2275,7 +2258,7 @@ impl TuiState {
                     if event.modifiers.is_empty()
                         && self.click.is_none_or(|click| click.count == 1)
                         && !self.has_transcript_selection()
-                        && let Some((id, x, y, painted, total, scroll, requested)) =
+                        && let Some((id, x, y, painted, _total, _scroll, requested)) =
                             reasoning_pressed.or(release_only)
                         && painted == area
                         && requested == self.scroll
@@ -2283,18 +2266,37 @@ impl TuiState {
                         && self.reasoning_hit(area, x, y) == Some(id)
                     {
                         let rect = crate::shell::transcript_area(self, area);
-                        let (_, now, displayed) = self.visible_transcript_at_viewport(
-                            rect.width,
-                            area.width,
-                            rect.height,
-                        );
-                        if (now, displayed) == (total, scroll) {
+                        if let Some((now, displayed)) = self.reasoning_geometry(area) {
                             let first = now
                                 .saturating_sub(rect.height as usize)
                                 .saturating_sub(displayed);
+                            let anchor = self
+                                .large_projection()
+                                .then(|| {
+                                    let painted = self.painted_transcript.borrow();
+                                    let painted = painted.as_ref()?;
+                                    let screen_row = usize::from(y - rect.y);
+                                    let absolute = painted.top() + screen_row;
+                                    let (part, start, _) =
+                                        painted.parts.iter().find(|(_, start, end)| {
+                                            *start <= absolute && absolute < *end
+                                        })?;
+                                    Some((part.as_ref().clone(), absolute - start, screen_row))
+                                })
+                                .flatten();
                             self.prune_reasoning();
                             if !self.reasoning_expanded.insert(id) {
                                 self.reasoning_expanded.remove(&id);
+                            }
+                            if let Some((part, row, screen_row)) = anchor {
+                                self.scroll = self.scroll.max(1);
+                                self.projection_work.borrow_mut().painted_top =
+                                    Some(projection::PaintedTop {
+                                        part,
+                                        row,
+                                        screen_row,
+                                        requested_scroll: self.scroll,
+                                    });
                             }
                             let (_, after) =
                                 self.visible_transcript(rect.width, area.width, rect.height);

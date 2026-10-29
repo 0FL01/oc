@@ -3,6 +3,139 @@
 use super::transcript::{card_row, footer_row};
 use super::*;
 
+// Projection snapshots share sealed chunks, so another UI-thread append does
+// not copy the entire accumulated reasoning while the worker is running.
+const REASONING_CHUNK_BYTES: usize = 16 * 1024;
+
+#[derive(Debug, Default)]
+pub(super) struct LiveReasoning {
+    chunks: Vec<std::sync::Arc<str>>,
+    tail: String,
+    len: usize,
+}
+
+#[derive(Clone)]
+pub(super) struct ReasoningSnapshot {
+    chunks: Vec<std::sync::Arc<str>>,
+    tail: String,
+    len: usize,
+}
+
+impl LiveReasoning {
+    pub(super) fn len(&self) -> usize {
+        self.len
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub(super) fn clear(&mut self) {
+        *self = Self::default();
+    }
+
+    pub(super) fn push_str(&mut self, mut text: &str) {
+        self.len += text.len();
+        while !text.is_empty() {
+            let room = REASONING_CHUNK_BYTES - self.tail.len();
+            let prefix = crate::truncate_utf8(text, room);
+            self.tail.push_str(prefix);
+            text = &text[prefix.len()..];
+            if !text.is_empty() || self.tail.len() == REASONING_CHUNK_BYTES {
+                self.chunks.push(std::mem::take(&mut self.tail).into());
+            }
+        }
+    }
+
+    pub(super) fn snapshot(&self) -> ReasoningSnapshot {
+        ReasoningSnapshot {
+            chunks: self.chunks.clone(),
+            tail: self.tail.clone(),
+            len: self.len,
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn first_chunk_ptr(&self) -> Option<*const u8> {
+        self.chunks.first().map(|chunk| chunk.as_ptr())
+    }
+
+    // Identity/anchor bookkeeping uses only this bounded source on the UI
+    // thread. The worker replaces it with the complete snapshot.
+    pub(super) fn prefix(&self) -> crate::history::SourceText {
+        let mut prefix = String::new();
+        for chunk in self
+            .chunks
+            .iter()
+            .map(|chunk| chunk.as_ref())
+            .chain([self.tail.as_str()])
+        {
+            let room = REASONING_CHUNK_BYTES - prefix.len();
+            prefix.push_str(crate::truncate_utf8(chunk, room));
+            if prefix.len() == REASONING_CHUNK_BYTES || chunk.len() > room {
+                break;
+            }
+        }
+        prefix.into()
+    }
+
+    pub(super) fn into_source(self) -> crate::history::SourceText {
+        ReasoningSnapshot {
+            chunks: self.chunks,
+            tail: self.tail,
+            len: self.len,
+        }
+        .into_source()
+    }
+}
+
+impl ReasoningSnapshot {
+    pub(super) fn into_source(self) -> crate::history::SourceText {
+        let mut text = String::with_capacity(self.len);
+        for chunk in self.chunks {
+            text.push_str(&chunk);
+        }
+        text.push_str(&self.tail);
+        text.into()
+    }
+
+    pub(super) fn into_source_unless_cancelled(self) -> Option<crate::history::SourceText> {
+        if crate::styled::render_cancelled() {
+            return None;
+        }
+        let mut text = String::with_capacity(self.len);
+        for chunk in self.chunks {
+            if crate::styled::render_cancelled() {
+                return None;
+            }
+            text.push_str(&chunk);
+        }
+        text.push_str(&self.tail);
+        Some(text.into())
+    }
+}
+
+impl From<&str> for LiveReasoning {
+    fn from(text: &str) -> Self {
+        let mut reasoning = Self::default();
+        reasoning.push_str(text);
+        reasoning
+    }
+}
+
+impl From<String> for LiveReasoning {
+    fn from(text: String) -> Self {
+        Self::from(text.as_str())
+    }
+}
+
+#[cfg(test)]
+impl PartialEq<&str> for LiveReasoning {
+    fn eq(&self, text: &&str) -> bool {
+        self.snapshot().into_source().as_str() == *text
+    }
+}
+
 /// Rebuild the adapter catalog view from the application snapshot so the
 /// picker keeps its exact-id/variant validation over fresh discovery data.
 fn catalog_from_snapshot(snapshot: &CatalogSnapshot) -> ModelCatalog {
@@ -1918,10 +2051,11 @@ impl TuiState {
         if self.reasoning_started.is_none() {
             self.reasoning_started = Some(Instant::now());
         }
-        if self.live_reasoning.len() < WINDOW_BYTES {
-            let room = WINDOW_BYTES - self.live_reasoning.len();
-            self.live_reasoning
-                .push_str(crate::truncate_utf8(delta, room));
+        let room = WINDOW_BYTES.saturating_sub(self.live_reasoning.len());
+        let accepted = crate::truncate_utf8(delta, room);
+        self.live_preview_truncated |= accepted.len() != delta.len();
+        if !accepted.is_empty() {
+            self.live_reasoning.push_str(accepted);
             self.invalidate_live_text();
         }
     }
@@ -2323,7 +2457,7 @@ impl TuiState {
             _ => None,
         };
         self.live_parts.push(LivePart::Reasoning {
-            text: std::mem::take(&mut self.live_reasoning),
+            text: std::mem::take(&mut self.live_reasoning).into_source(),
             duration_ms,
         });
         self.reasoning_started = None;
@@ -3076,7 +3210,7 @@ impl TuiState {
             _ => None,
         };
         Some(ReasoningBlock {
-            text: std::mem::take(&mut self.live_reasoning),
+            text: std::mem::take(&mut self.live_reasoning).into_source(),
             duration_ms,
             running: false,
             expanded: false,

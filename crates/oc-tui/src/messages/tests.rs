@@ -811,6 +811,324 @@ fn a_single_reasoning_body_scrolls_past_the_row_preview_boundary() {
 }
 
 #[test]
+fn indexed_narrow_page_keeps_short_bold_span_intact() {
+    let rows = [assistant(&format!("**{}**", "x".repeat(3500)))];
+    let cache = RefCell::new(MarkdownCache::default());
+    let (lines, _) = visible_transcript_expanded(
+        &rows,
+        Theme::dark(),
+        (10, 10),
+        (32, 0, None),
+        |_| Color::Reset,
+        &cache,
+        &|_| false,
+    );
+    let spans = lines
+        .iter()
+        .flat_map(Line::spans)
+        .filter(|span| span.content().contains('x'))
+        .collect::<Vec<_>>();
+    assert!(!spans.is_empty());
+    assert!(
+        spans
+            .iter()
+            .all(|span| span.style().add_modifier.contains(Modifier::BOLD)),
+        "a page boundary must not break an otherwise renderable bold span"
+    );
+}
+
+#[test]
+fn reasoning_indexed_narrow_single_line_keeps_every_row() {
+    let mut row = assistant("");
+    row.reasoning = Some(ReasoningBlock {
+        text: "x".repeat(4096).into(),
+        duration_ms: None,
+        running: false,
+        expanded: true,
+        toggleable: false,
+        spinner: None,
+        identity: Some(ReasoningIdentity::Durable(1, 0)),
+    });
+    let cache = RefCell::new(MarkdownCache::default());
+    let rows = [row];
+    let view = |height, scroll| {
+        visible_transcript_expanded(
+            &rows,
+            Theme::dark(),
+            (10, 10),
+            (height, scroll, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        )
+    };
+    let (_, total) = view(32, 0);
+    let mut chars = 0;
+    for top in (0..total).step_by(32) {
+        let height = (total - top).min(32);
+        let (lines, measured) = view(height, total - top - height);
+        assert_eq!(measured, total);
+        for line in lines {
+            let text = line.plain_text();
+            assert!(!text.contains("preview limited"));
+            chars += text.matches('x').count();
+        }
+    }
+    assert_eq!(chars, 4096, "every character remains reachable");
+    assert!(cache.borrow().retained_bytes() <= MAX_CACHED_BYTES + MAX_INDEX_BYTES);
+}
+
+#[test]
+fn reasoning_indexed_long_first_table_cell_keeps_every_word() {
+    let mut row = assistant("");
+    row.reasoning = Some(ReasoningBlock {
+        text: format!(
+            "| Alpha Beta Gamma HEADEREND | Last |\n| --- | --- |\n| {}CELLEND | SHORTTAIL |\n| {}LASTEND |\n",
+            "word ".repeat(3800),
+            "entry ".repeat(2800),
+        )
+        .into(),
+        duration_ms: None,
+        running: false,
+        expanded: true,
+        toggleable: false,
+        spinner: None,
+        identity: Some(ReasoningIdentity::Durable(1, 0)),
+    });
+    let cache = RefCell::new(MarkdownCache::default());
+    let rows = [row];
+    let view = |height, scroll| {
+        visible_transcript_expanded(
+            &rows,
+            Theme::dark(),
+            (42, 42),
+            (height, scroll, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        )
+    };
+    let (_, total) = view(32, 0);
+    let mut words = 0;
+    let mut cell_end = 0;
+    let mut short_tail = 0;
+    let mut header_end = 0;
+    let mut entries = 0;
+    let mut last_end = 0;
+    for top in (0..total).step_by(32) {
+        let height = (total - top).min(32);
+        let (lines, measured) = view(height, total - top - height);
+        assert_eq!(measured, total);
+        for line in lines {
+            let text = line.plain_text();
+            assert!(!text.contains("preview limited"), "{text}");
+            words += text.matches("word").count();
+            cell_end += text.matches("CELLEND").count();
+            short_tail += text.matches("SHORTTAIL").count();
+            header_end += text.matches("HEADEREND").count();
+            entries += text.matches("entry").count();
+            last_end += text.matches("LASTEND").count();
+        }
+    }
+    assert_eq!(words, 3800);
+    assert_eq!(cell_end, 1);
+    assert_eq!(short_tail, 1);
+    assert_eq!(
+        header_end, 1,
+        "wrapped header is not repeated on continuation pages"
+    );
+    assert_eq!(entries, 2800, "a row with a missing cell remains pageable");
+    assert_eq!(last_end, 1);
+    assert!(cache.borrow().retained_bytes() <= MAX_CACHED_BYTES + MAX_INDEX_BYTES);
+}
+
+#[test]
+fn indexed_long_table_cells_keep_their_visual_alignment() {
+    let row = assistant(&format!(
+        "| First | Last |\n| --- | --- |\n| {} | {} |\n",
+        "x".repeat(10000),
+        "中".repeat(5000)
+    ));
+    let rows = [row];
+    let cache = RefCell::new(MarkdownCache::default());
+    let view = |height, scroll| {
+        visible_transcript(
+            &rows,
+            Theme::dark(),
+            42,
+            42,
+            (height, scroll, None),
+            |_| Color::Reset,
+            &cache,
+        )
+    };
+    let (_, total) = view(32, 0);
+    let (mut ascii, mut cjk) = (0, 0);
+    for top in (0..total).step_by(32) {
+        let height = (total - top).min(32);
+        let (lines, measured) = view(height, total - top - height);
+        assert_eq!(measured, total);
+        for line in lines {
+            let text = line.plain_text();
+            let left = text.matches('x').count();
+            let right = text.matches('中').count();
+            if left > 0 && cjk < 5000 {
+                assert!(right > 0, "right column advanced to a later page: {text}");
+            }
+            if right > 0 && ascii < 10000 {
+                assert!(left > 0, "left column advanced to a later page: {text}");
+            }
+            ascii += left;
+            cjk += right;
+        }
+    }
+    assert_eq!((ascii, cjk), (10000, 5000));
+}
+
+#[test]
+fn indexed_long_table_bold_cell_keeps_style_when_it_fits() {
+    let row = assistant(&format!(
+        "| First | Last |\n| --- | --- |\n| **{}** | tail |\n",
+        "x".repeat(6000)
+    ));
+    let cache = RefCell::new(MarkdownCache::default());
+    let (lines, _) = visible_transcript(
+        &[row],
+        Theme::dark(),
+        42,
+        42,
+        (32, 0, None),
+        |_| Color::Reset,
+        &cache,
+    );
+    let spans = lines
+        .iter()
+        .flat_map(Line::spans)
+        .filter(|span| span.content().contains('x'))
+        .collect::<Vec<_>>();
+    assert!(!spans.is_empty());
+    assert!(
+        spans
+            .iter()
+            .all(|span| span.style().add_modifier.contains(Modifier::BOLD))
+    );
+}
+
+#[test]
+fn indexed_oversized_formatted_table_cell_reports_a_limited_preview() {
+    let row = assistant(&format!(
+        "| First | Last |\n| --- | --- |\n| **{}** | tail |\n",
+        "x".repeat(20000)
+    ));
+    let cache = RefCell::new(MarkdownCache::default());
+    let (lines, _) = visible_transcript(
+        &[row],
+        Theme::dark(),
+        42,
+        42,
+        (32, 0, None),
+        |_| Color::Reset,
+        &cache,
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.plain_text().contains("preview limited"))
+    );
+    let spans = lines
+        .iter()
+        .flat_map(Line::spans)
+        .filter(|span| span.content().contains('x'))
+        .collect::<Vec<_>>();
+    assert!(!spans.is_empty());
+    assert!(
+        spans
+            .iter()
+            .all(|span| span.style().add_modifier.contains(Modifier::BOLD))
+    );
+}
+
+#[test]
+fn reasoning_indexed_long_pipe_line_in_code_keeps_every_character() {
+    let mut row = assistant("");
+    row.reasoning = Some(ReasoningBlock {
+        text: format!("```text\n| {}\n```", "x".repeat(9000)).into(),
+        duration_ms: None,
+        running: false,
+        expanded: true,
+        toggleable: false,
+        spinner: None,
+        identity: Some(ReasoningIdentity::Durable(1, 0)),
+    });
+    let rows = [row];
+    let cache = RefCell::new(MarkdownCache::default());
+    let view = |height, scroll| {
+        visible_transcript_expanded(
+            &rows,
+            Theme::dark(),
+            (6, 6),
+            (height, scroll, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        )
+    };
+    let (_, total) = view(32, 0);
+    let mut chars = 0;
+    for top in (0..total).step_by(32) {
+        let height = (total - top).min(32);
+        let (lines, measured) = view(height, total - top - height);
+        assert_eq!(measured, total);
+        for line in lines {
+            let text = line.plain_text();
+            assert!(!text.contains("preview limited"));
+            chars += text.matches('x').count();
+        }
+    }
+    assert_eq!(chars, 9000);
+}
+
+#[test]
+fn reasoning_indexed_long_pipe_line_without_table_keeps_every_character() {
+    let mut row = assistant("");
+    row.reasoning = Some(ReasoningBlock {
+        text: format!("| {}", "x".repeat(9000)).into(),
+        duration_ms: None,
+        running: false,
+        expanded: true,
+        toggleable: false,
+        spinner: None,
+        identity: Some(ReasoningIdentity::Durable(1, 0)),
+    });
+    let rows = [row];
+    let cache = RefCell::new(MarkdownCache::default());
+    let view = |height, scroll| {
+        visible_transcript_expanded(
+            &rows,
+            Theme::dark(),
+            (6, 6),
+            (height, scroll, None),
+            |_| Color::Reset,
+            &cache,
+            &|_| false,
+        )
+    };
+    let (_, total) = view(32, 0);
+    let mut chars = 0;
+    for top in (0..total).step_by(32) {
+        let height = (total - top).min(32);
+        let (lines, measured) = view(height, total - top - height);
+        assert_eq!(measured, total);
+        for line in lines {
+            let text = line.plain_text();
+            assert!(!text.contains("preview limited"));
+            chars += text.matches('x').count();
+        }
+    }
+    assert_eq!(chars, 9000);
+}
+
+#[test]
 fn hidden_running_reasoning_keeps_adjacent_group_open_without_showing_a_redacted_step() {
     let theme = Theme::dark();
     let cache = RefCell::new(MarkdownCache::default());
@@ -4241,18 +4559,6 @@ fn v06a_escaped_pipe_label_does_not_drop_long_cell_continuations() {
             separators, 2,
             "{width}: missing/duplicate grid row separator"
         );
-    }
-}
-
-#[test]
-fn v06a_blank_table_label_respects_escaped_and_inline_pipes() {
-    // The synthetic first cell is empty on later visual slices. A pipe
-    // inside either escape or code syntax must never become a delimiter.
-    for prefix in ["| a \\| b | ", "| `a | b` | "] {
-        let blank = blank_table_label(prefix);
-        let real_pipes = blank.bytes().filter(|byte| *byte == b'|').count();
-        assert_eq!(real_pipes, 2, "synthetic label added a column: {blank:?}");
-        assert_eq!(blank.len(), prefix.len());
     }
 }
 

@@ -59,24 +59,6 @@ impl SourceText {
         }
         &self[..end]
     }
-    pub(crate) fn reasoning_preview(&self, mut limit: usize, marker: &str) -> Self {
-        // Do not turn a redaction sentinel split by the byte limit into public
-        // partial text. Inspect only the bounded boundary, never the full body.
-        const REDACTED: &str = "[REDACTED]";
-        if self.len() > limit {
-            let start = limit.saturating_sub(REDACTED.len() - 1);
-            if let Some(offset) = self.as_bytes()[start..limit]
-                .iter()
-                .rposition(|byte| *byte == b'[')
-            {
-                let at = start + offset;
-                if self.get(at..at + REDACTED.len()) == Some(REDACTED) {
-                    limit = at;
-                }
-            }
-        }
-        self.preview(limit, marker)
-    }
     pub(crate) fn reasoning_content(&self) -> std::borrow::Cow<'_, str> {
         let (range, redacted) = self.reasoning_info();
         if *redacted {
@@ -202,16 +184,5 @@ mod tests {
         assert_eq!(old.reasoning_content(), "thought");
         assert_eq!(source.reasoning_content(), "thought    next");
         assert_ne!(source.token(), SourceText::from(source.as_str()).token());
-    }
-
-    #[test]
-    fn generated_preview_marker_does_not_make_redacted_or_blank_reasoning_visible() {
-        for text in ["[REDACTED]".repeat(4000), " ".repeat(40_000)] {
-            let source: SourceText = text.into();
-            let preview = source.reasoning_preview(16 * 1024, "\n\n… [reasoning preview limited]");
-            assert!(preview.len() < 17 * 1024);
-            assert!(preview.reasoning_content().is_empty());
-            assert_eq!(preview.reasoning_bounds(), Some(0..0));
-        }
     }
 }

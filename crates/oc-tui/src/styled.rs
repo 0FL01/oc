@@ -610,6 +610,38 @@ pub(crate) fn visit_source_rows(
     });
 }
 
+/// End offsets for bounded pages of a table cell, using the table's own word
+/// wrapping. Each cell advances by the same number of visual rows per page.
+pub(crate) fn table_cell_page_ends(text: &str, width: usize, page_rows: usize) -> Vec<usize> {
+    let glyphs = text.grapheme_indices(true).map(|(byte, glyph)| {
+        let range = byte..byte + glyph.len();
+        let glyph = if glyph == "\t" {
+            " "
+        } else if glyph.chars().any(char::is_control) {
+            "�"
+        } else {
+            glyph
+        };
+        (glyph, Style::default(), None, range, false)
+    });
+    let mut ends = Vec::new();
+    let mut rows = 0usize;
+    visit_wrapped_glyphs(glyphs, width, usize::MAX, false, false, false, |cells| {
+        rows += 1;
+        if rows.is_multiple_of(page_rows)
+            && let Some(end) = cells.last().map(|cell| cell.3.end)
+            && end < text.len()
+            && ends.last() != Some(&end)
+        {
+            ends.push(end);
+        }
+    });
+    if !text.is_empty() {
+        ends.push(text.len());
+    }
+    ends
+}
+
 /// Plain permission text uses OpenTUI word boundaries,
 /// with a grapheme-safe fallback for a resource longer than the available row.
 pub(crate) fn wrap_permission_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {

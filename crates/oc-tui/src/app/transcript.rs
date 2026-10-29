@@ -157,20 +157,11 @@ impl CompletionPart {
     }
 }
 
-fn open_snapshot(
-    source: &crate::history::SourceText,
-    reasoning: bool,
-) -> crate::history::SourceText {
-    let marker = if reasoning {
-        "\n\n… [reasoning preview limited]"
-    } else {
-        "\n\n… [Live Markdown preview limited; full response available in history after completion]"
-    };
-    if reasoning {
-        source.reasoning_preview(crate::messages::LIVE_MARKDOWN_BYTES, marker)
-    } else {
-        source.preview(crate::messages::LIVE_MARKDOWN_BYTES, marker)
-    }
+fn open_snapshot(source: &crate::history::SourceText) -> crate::history::SourceText {
+    source.preview(
+        crate::messages::LIVE_MARKDOWN_BYTES,
+        "\n\n… [Live Markdown preview limited; full response available in history after completion]",
+    )
 }
 
 /// One bounded render row for a tool card.
@@ -798,6 +789,8 @@ impl TuiState {
                     && previous.total == total
                     && previous.scroll == scroll
                     && same_rows(&previous.rows, rows)
+                    && previous.key.as_ref() == current.map(|view| &view.key)
+                    && previous.hits == current.map(|view| view.hits.as_slice()).unwrap_or_default()
                     && previous.user_targets == user_targets
                     && previous.child_targets == children
             }) {
@@ -806,6 +799,10 @@ impl TuiState {
                 *painted = Some(PaintedTranscript {
                     area,
                     rows: current.map_or_else(|| rows.into(), |view| view.lines.clone()),
+                    key: current.map(|view| view.key.clone()),
+                    hits: current.map(|view| view.hits.clone()).unwrap_or_default(),
+                    open_text: current.and_then(|view| view.open_text.clone()),
+                    open_reasoning: current.and_then(|view| view.open_reasoning.clone()),
                     user_targets: user_targets.to_vec(),
                     child_targets: children,
                     total,
@@ -1735,10 +1732,52 @@ impl TuiState {
         if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
             return None;
         }
-        match self.cached_transcript_hit(area, x, y) {
-            Some(crate::messages::TranscriptHit::Reasoning(id)) => Some(id),
+        let painted = self.painted_transcript.borrow();
+        let hit = if let Some(painted) = painted.as_ref() {
+            let key = painted.key.as_ref()?;
+            if painted.area != rect
+                || key.dimensions != (rect.width, area.width, rect.height)
+                || !self.projection_content_compatible(key)
+            {
+                return None;
+            }
+            crate::messages::transcript_hit(
+                &painted.hits,
+                (x - rect.x) as usize,
+                (y - rect.y) as usize,
+            )
+        } else {
+            self.cached_transcript_hit(area, x, y)
+        };
+        match hit {
+            Some(crate::messages::TranscriptHit::Reasoning(id))
+                if self
+                    .compose_structure(true)
+                    .2
+                    .iter()
+                    .any(|run| run.contains(&id)) =>
+            {
+                Some(id)
+            }
             _ => None,
         }
+    }
+
+    pub(super) fn reasoning_geometry(&self, frame: Rect) -> Option<(usize, usize)> {
+        let rect = crate::shell::transcript_area(self, frame);
+        if let Some(painted) = self.painted_transcript.borrow().as_ref() {
+            let key = painted.key.as_ref()?;
+            return (painted.area == rect
+                && key.dimensions == (rect.width, frame.width, rect.height)
+                && self.projection_content_compatible(key))
+            .then_some((painted.total, painted.scroll));
+        }
+        let dimensions = (rect.width, frame.width, rect.height);
+        self.projection_ready(dimensions).then(|| {
+            let view = self.visible_projection.borrow();
+            let view = view.as_ref().expect("ready projection");
+            (view.total, view.scroll)
+        })
     }
 
     pub(super) fn transcript_overpainted(&self, area: Rect, x: u16, y: u16) -> bool {
@@ -2346,7 +2385,7 @@ impl TuiState {
                 message_id: None,
                 role: "assistant".to_string(),
                 text: if bounded_open {
-                    open_snapshot(&self.live_text, false)
+                    open_snapshot(&self.live_text)
                 } else {
                     self.live_text.clone()
                 },
@@ -2356,9 +2395,9 @@ impl TuiState {
                 chips: Vec::new(),
                 reasoning: (!self.live_reasoning.is_empty()).then(|| ReasoningBlock {
                     text: if bounded_open {
-                        open_snapshot(&self.live_reasoning, true)
+                        self.live_reasoning.prefix()
                     } else {
-                        self.live_reasoning.clone()
+                        self.live_reasoning.snapshot().into_source()
                     },
                     duration_ms: None,
                     running: true,
@@ -3099,7 +3138,12 @@ impl TuiState {
         total: usize,
         displayed_scroll: usize,
     ) {
-        if (width != 0 && !self.projection_ready((width, terminal_width, height)))
+        if (width != 0
+            && !self.projection_geometry_compatible(
+                (width, terminal_width, height),
+                total,
+                displayed_scroll,
+            ))
             || self.has_pending_transcript_projection() && width == 0
         {
             return;

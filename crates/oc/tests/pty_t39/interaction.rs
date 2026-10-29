@@ -862,6 +862,43 @@ fn vis27_session_chrome_copy(pty: &mut PtySession, manual: bool, mut count: usiz
 }
 
 #[test]
+fn v06_real_pty_live_reasoning_click_scrolls_past_preview() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "v06-live-reasoning", None, 120, 40);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, REASONING_LIVE_PROMPT);
+    wait_screen_row(&pty, "Thinking: Live plan", DEADLINE);
+    let (x, y) = reasoning_click_header(&pty, "Thinking: Live plan");
+    mouse_click(&mut pty, x, y);
+    wait_screen_row(&pty, "PTY_LIVE_HEAD", DEADLINE);
+    let start = Instant::now();
+    loop {
+        let rows = render_screen(&pty.snapshot()).rows();
+        assert!(
+            !rows.iter().any(|row| row.contains("preview limited")),
+            "live reasoning was clipped: {rows:?}"
+        );
+        if rows.iter().any(|row| row.contains("PTY_LIVE_TAIL")) {
+            break;
+        }
+        assert!(
+            start.elapsed() < DEADLINE,
+            "live tail not reached: {rows:?}"
+        );
+        for _ in 0..8 {
+            pty.send(b"\x1b[<65;20;8M");
+        }
+        std::thread::sleep(POLL);
+    }
+    assert!(!fixture.s07_continue.load(Ordering::Relaxed));
+    fixture.s07_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&pty, "PTY_LIVE_DONE", DEADLINE);
+    wait_idle(&pty);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+}
+
+#[test]
 fn v06_real_pty_completed_reasoning_header_click_expands_and_collapses() {
     let fixture = Fixture::new();
     let session = "v06-reasoning-click";

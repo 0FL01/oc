@@ -54,6 +54,7 @@ const VIS38_RESOURCE_SUMMARY: &str =
 const REASONING_CLICK_PROMPT: &str = "pty reasoning header click";
 const REASONING_CLICK_BODY: &str = "PTY_REASONING_CLICK_BODY_7819";
 const REASONING_CLICK_ANSWER: &str = "PTY_REASONING_CLICK_FINAL_3826";
+const REASONING_LIVE_PROMPT: &str = "pty long live reasoning";
 const REASONING_STEPS_PROMPT: &str = "pty adjacent reasoning steps";
 const REASONING_STEPS_FIRST: &str = "**Inspecting**\n\nPTY_STEPS_FIRST_BODY_6148";
 const REASONING_STEPS_SECOND: &str = "**Verifying**\n\nPTY_STEPS_SECOND_BODY_7349";
@@ -300,6 +301,7 @@ enum Script {
     S07Read,
     S07Markdown,
     ReasoningClick,
+    ReasoningLive,
     ReasoningSteps,
     Question,
     Compress(String),
@@ -375,6 +377,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if prompt == REASONING_CLICK_PROMPT {
         return Script::ReasoningClick;
+    }
+    if prompt == REASONING_LIVE_PROMPT {
+        return Script::ReasoningLive;
     }
     if prompt == REASONING_STEPS_PROMPT {
         return Script::ReasoningSteps;
@@ -647,6 +652,28 @@ fn respond(
             write!(socket, "data: {reasoning}\n\n")?;
             socket.flush()?;
             finish_text(socket, REASONING_CLICK_ANSWER)
+        }
+        Script::ReasoningLive => {
+            let mut body = String::from("**Live plan**\n\nPTY_LIVE_HEAD\n\n");
+            for index in 0..240 {
+                body.push_str(&format!(
+                    "row-{index:03} public reasoning content for the live scrolling test continues here\n\n"
+                ));
+            }
+            body.push_str("PTY_LIVE_TAIL");
+            assert!(body.len() > 16 * 1024);
+            let delta = serde_json::json!({
+                "type": "response.reasoning_summary_text.delta", "delta": body
+            });
+            write!(socket, "data: {delta}\n\n")?;
+            socket.flush()?;
+            while !s07_continue.load(Ordering::Relaxed) && !stop.load(Ordering::Relaxed) {
+                std::thread::sleep(POLL);
+            }
+            if stop.load(Ordering::Relaxed) {
+                return Ok(());
+            }
+            finish_text(socket, "PTY_LIVE_DONE")
         }
         Script::ReasoningSteps => {
             let mut output = Vec::new();

@@ -1444,6 +1444,15 @@ async fn live_parts_stay_bounded_under_tool_flood() {
     }
     assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
     assert!(state.live_preview_truncated);
+    assert_eq!(
+        state.note(),
+        Some("Live output may be incomplete; check history after completion")
+    );
+    assert_eq!(state.note_variant(), Some(super::NoteVariant::Warning));
+    state.push_note_variant("higher-priority error", super::NoteVariant::Error);
+    assert_eq!(state.note(), Some("higher-priority error"));
+    state.note = None;
+    assert!(state.note().is_some(), "the incomplete warning persists");
     assert!(
         !state
             .viewport()
@@ -1457,6 +1466,7 @@ async fn live_parts_stay_bounded_under_tool_flood() {
         !state.live_preview_truncated,
         "a replaced live projection does not retain old viewing loss"
     );
+    assert_eq!(state.note(), None);
 }
 
 /// A stale turn can never grow cards into the transcript.

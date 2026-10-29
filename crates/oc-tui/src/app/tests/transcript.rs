@@ -2228,6 +2228,35 @@ async fn redacted_only_durable_reasoning_leaves_no_mouse_target_or_spacer() {
 }
 
 #[tokio::test]
+async fn redacted_only_long_live_reasoning_has_no_visible_step() {
+    let mut state = fresh_state("long-redacted-live-reasoning").await;
+    state.attach_page(&page(
+        vec![msg(1, Role::User, "visible prompt")],
+        1,
+        false,
+        false,
+    ));
+    let turn = WorkerTurnId("long-redacted-turn".into());
+    state.active_turn = Some(turn.clone());
+    // The chunk/old preview boundary falls inside a redaction sentinel.
+    state.apply_reasoning_delta(&turn, &"[REDACTED]".repeat(2_000));
+    state.visible_transcript_at_viewport(80, 80, 20);
+    state.finish_transcript_projection().await;
+    let (lines, _, _) = state.visible_transcript_at_viewport(80, 80, 20);
+    assert!(state.projection_ready((80, 80, 20)));
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.plain_text().contains("visible prompt"))
+    );
+    for line in lines {
+        let text = line.plain_text();
+        assert!(!text.contains("Thinking"), "{text}");
+        assert!(!text.contains("[REDA"), "{text}");
+    }
+}
+
+#[tokio::test]
 async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
     use crate::messages::ReasoningIdentity;
     use oc_core::queries::{HistoryTurn, TranscriptPart};

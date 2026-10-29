@@ -385,6 +385,10 @@ struct TextPoint {
 struct PaintedTranscript {
     area: Rect,
     rows: std::sync::Arc<[Line]>,
+    key: Option<projection::Key>,
+    hits: Vec<crate::messages::TranscriptRegion>,
+    open_text: Option<crate::history::SourceText>,
+    open_reasoning: Option<live::ReasoningSnapshot>,
     user_targets: Vec<Option<crate::messages::UserMessageTarget>>,
     child_targets: Vec<crate::messages::ChildNavigationHit>,
     total: usize,
@@ -699,6 +703,8 @@ struct VisibleTranscriptProjection {
     child_targets: Vec<crate::messages::ChildNavigationHit>,
     animations: Vec<(usize, usize, crate::styled::AnimationSource)>,
     hits: Vec<crate::messages::TranscriptRegion>,
+    open_text: Option<crate::history::SourceText>,
+    open_reasoning: Option<live::ReasoningSnapshot>,
     top: Option<projection::PaintedTop>,
     /// Painted `(start, end)` rows of the visible parts and of the selection
     /// endpoints' parts, in absolute transcript rows.
@@ -889,7 +895,7 @@ pub struct TuiState {
     visible_projection_builds: std::cell::Cell<usize>,
     live_text: crate::history::SourceText,
     /// Reasoning text streamed for the active turn (never persisted).
-    live_reasoning: crate::history::SourceText,
+    live_reasoning: live::LiveReasoning,
     thinking_expanded: bool,
     /// Frozen live parts (text/reasoning segments and tool cards) of the
     /// active turn, in arrival order.
@@ -1151,7 +1157,7 @@ impl TuiState {
             #[cfg(test)]
             visible_projection_builds: Default::default(),
             live_text: String::new().into(),
-            live_reasoning: String::new().into(),
+            live_reasoning: Default::default(),
             thinking_expanded: false,
             live_parts: Vec::new(),
             pending_tool_seen: Vec::new(),
@@ -1771,12 +1777,21 @@ impl TuiState {
 
     /// Status note, if any (intent errors and hints; never chat history).
     pub fn note(&self) -> Option<&str> {
-        self.note.as_ref().map(|(message, _)| message.as_str())
+        self.note
+            .as_ref()
+            .map(|(message, _)| message.as_str())
+            .or_else(|| {
+                (self.active_turn.is_some() && self.live_preview_truncated)
+                    .then_some("Live output may be incomplete; check history after completion")
+            })
     }
 
     /// Semantic color of the currently displayed note.
     pub fn note_variant(&self) -> Option<NoteVariant> {
-        self.note.as_ref().map(|(_, variant)| *variant)
+        self.note.as_ref().map(|(_, variant)| *variant).or_else(|| {
+            (self.active_turn.is_some() && self.live_preview_truncated)
+                .then_some(NoteVariant::Warning)
+        })
     }
 
     /// Window bytes plus live text, live parts and input; bounded by the

@@ -49,6 +49,9 @@ pub const FOOTER_DURATION_MIN_WIDTH: u16 = 36;
 /// `InlineToolRow` icon column width (`message-parts.tsx:18,213-219`).
 pub const INLINE_ICON_WIDTH: usize = 2;
 const MAX_MARKDOWN_ROWS: usize = 512;
+// A normal indexed source page holds at most 4096 bytes. Allow its complete
+// wrapped representation without splitting inline markup at narrow widths.
+const MAX_INDEXED_MARKDOWN_ROWS: usize = 8192;
 pub(crate) const MAX_CACHED_BYTES: usize = 512 * 1024;
 pub(crate) const MAX_INDEX_BYTES: usize = 2 * 1024 * 1024;
 pub(crate) const LIVE_MARKDOWN_BYTES: usize = 16 * 1024;
@@ -189,15 +192,16 @@ struct PageSyntax<'a> {
 #[derive(Clone)]
 struct TableSegment {
     prefix: String,
-    suffix: String,
+    cells: Vec<Option<(usize, usize)>>,
+    newline: bool,
     same_row: bool,
     terminal_newline: bool,
 }
 
 struct LongCellSegments {
     prefix: String,
-    suffix: String,
-    fragments: Vec<(usize, usize)>,
+    cells: Vec<Vec<(usize, usize)>>,
+    newline: bool,
 }
 
 /// A tool row's rendered body for one card allocation and geometry. The card
@@ -701,10 +705,10 @@ impl MarkdownCache {
                         .table_widths
                         .as_ref()
                         .map_or(0, |cols| cols.len() * std::mem::size_of::<usize>())
-                    + page
-                        .table_segment
-                        .as_ref()
-                        .map_or(0, |segment| segment.prefix.len() + segment.suffix.len())
+                    + page.table_segment.as_ref().map_or(0, |segment| {
+                        segment.prefix.len()
+                            + segment.cells.len() * std::mem::size_of::<Option<(usize, usize)>>()
+                    })
             })
             .sum()
     }
@@ -749,7 +753,15 @@ impl MarkdownCache {
         columns: Option<&[usize]>,
         syntax: Option<PageSyntax<'_>>,
     ) -> Vec<Line> {
-        let mut end = text.len().min(LIVE_MARKDOWN_BYTES);
+        // Indexed pages are already bounded by source/visual geometry. An
+        // indivisible grapheme or table context can exceed the byte target;
+        // clipping that page would discard content instead of paging it.
+        let limit = if columns.is_some() || syntax.is_some() {
+            text.len()
+        } else {
+            LIVE_MARKDOWN_BYTES
+        };
+        let mut end = text.len().min(limit);
         while !text.is_char_boundary(end) {
             end -= 1;
         }
@@ -785,7 +797,10 @@ impl MarkdownCache {
             .flat_map(Line::spans)
             .map(|s| s.content().len())
             .sum();
-        if bytes <= MAX_CACHED_BYTES && !styled::render_cancelled() {
+        if bytes <= MAX_CACHED_BYTES
+            && lines.len() <= MAX_MARKDOWN_ROWS
+            && !styled::render_cancelled()
+        {
             if let Some(position) = self
                 .blocks
                 .iter()
@@ -2137,7 +2152,7 @@ fn visit_assistant_indexed(
             let preview = &text[..end];
             // The live preview stays bounded; a completed part is indexed in
             // full and can be scrolled, including the region past this limit.
-            let height = estimated_lines(preview, width) + 1;
+            let height = estimated_lines(preview, width, MAX_MARKDOWN_ROWS) + 1;
             emit(height, false, &mut || {
                 let mut lines = cache
                     .borrow_mut()
@@ -2167,8 +2182,16 @@ fn visit_assistant_indexed(
                         let chunk = &text[page.start..page.end];
                         if let Some(segment) = &page.table_segment {
                             source.push_str(&segment.prefix);
-                            source.push_str(chunk);
-                            source.push_str(&segment.suffix);
+                            source.push('|');
+                            for cell in &segment.cells {
+                                if let Some((start, end)) = cell {
+                                    source.push_str(&text[*start..*end]);
+                                }
+                                source.push('|');
+                            }
+                            if segment.newline {
+                                source.push('\n');
+                            }
                         } else if let Some(number) = page.list_number {
                             // CommonMark numbers following a page boundary must
                             // continue from the original list, even if all source
@@ -2226,12 +2249,23 @@ fn visit_assistant_indexed(
                         };
                         if page.table_header.is_some() {
                             if page.continuation {
-                                let hidden =
-                                    if page.table_segment.as_ref().is_some_and(|s| s.same_row) {
-                                        3
-                                    } else {
-                                        2
-                                    };
+                                // A header can wrap to multiple rows. Keep the
+                                // separator between distinct body rows, but not
+                                // between fragments of the same row.
+                                let hidden = lines
+                                    .iter()
+                                    .position(|line| {
+                                        line.plain_text().trim_start().starts_with('├')
+                                    })
+                                    .map(|separator| {
+                                        separator
+                                            + usize::from(
+                                                page.table_segment
+                                                    .as_ref()
+                                                    .is_some_and(|s| s.same_row),
+                                            )
+                                    })
+                                    .unwrap_or(0);
                                 lines.drain(..hidden.min(lines.len()));
                             }
                             if !page.last_table_page
@@ -2319,7 +2353,7 @@ fn ordered_marker(line: &str) -> Option<(u64, &str)> {
     Some((line[..digits].parse().ok()?, rest))
 }
 
-fn estimated_lines(text: &str, width: u16) -> usize {
+fn estimated_lines(text: &str, width: u16, limit: usize) -> usize {
     // Cell counting is deliberately independent of Markdown parsing; this is
     // the scroll seek estimate for non-visible pages. Long visual lines use
     // the same grapheme width calculator as the renderer.
@@ -2337,9 +2371,9 @@ fn estimated_lines(text: &str, width: u16) -> usize {
             line.trim_start_matches(['#', ' ', '-', '*', '>'])
         };
         count += if line.trim_start().starts_with("- ") {
-            wrap_markdown_line(Line::plain(line.trim()), available, MAX_MARKDOWN_ROWS, true).len()
+            wrap_markdown_line(Line::plain(line.trim()), available, limit, true).len()
         } else {
-            styled::wrapped_rows(&Line::plain(content), available, MAX_MARKDOWN_ROWS)
+            styled::wrapped_rows(&Line::plain(content), available, limit)
         };
     }
     count + usize::from(text.ends_with('\n'))
@@ -2427,12 +2461,16 @@ fn fit_table_widths(mut widths: Vec<usize>, available: usize) -> Vec<usize> {
     widths
 }
 
-/// Preserve a physical table row as one semantic row. For an oversized last
-/// cell, only its *content* is paged; the real row prefix/suffix and table
-/// header are supplied to pulldown-cmark on every independently bounded page.
-fn long_table_cell_segments(raw: &str, offset: usize, budget: usize) -> Option<LongCellSegments> {
+/// Page each cell of one oversized physical row. Every page retains all
+/// columns; exhausted cells become empty rather than repeating their content.
+fn long_table_cell_segments(
+    raw: &str,
+    offset: usize,
+    widths: &[usize],
+) -> Option<LongCellSegments> {
     let (source, _) = table_source(raw);
     let before = raw.len() - source.len();
+    let source = source.trim_end();
     let mut pipes = Vec::new();
     let mut escaped = false;
     let mut code = false;
@@ -2448,78 +2486,55 @@ fn long_table_cell_segments(raw: &str, offset: usize, budget: usize) -> Option<L
             _ => {}
         }
     }
-    if pipes.len() < 3 {
+    if pipes.first() != Some(&0) || pipes.len() < 2 {
         return None;
     }
-    let cell_start = before + pipes[pipes.len() - 2] + 1;
-    let cell_end = before + pipes[pipes.len() - 1];
-    if cell_start >= cell_end {
+    let mut ranges = Vec::new();
+    for (index, pipe) in pipes.iter().enumerate() {
+        let start = pipe + 1;
+        let end = pipes.get(index + 1).copied().unwrap_or(source.len());
+        if start <= end && (start < source.len() || index + 1 < pipes.len()) {
+            ranges.push((before + start, before + end));
+        }
+    }
+    if ranges.len() > widths.len() {
         return None;
     }
-    let prefix = raw[..cell_start].to_owned();
-    let suffix = raw[cell_end..].to_owned();
-    let mut fragments = Vec::new();
-    let mut start = cell_start;
-    while start < cell_end {
-        let remaining = &raw[start..cell_end];
-        if remaining.len() <= budget {
-            fragments.push((offset + start, offset + cell_end));
-            break;
+    let mut cells = Vec::with_capacity(widths.len());
+    for ((cell_start, cell_end), width) in ranges.into_iter().zip(widths) {
+        let raw_cell = &raw[cell_start..cell_end];
+        let content = raw_cell.trim();
+        let content_start = cell_start + raw_cell.len() - raw_cell.trim_start().len();
+        let mut fragments = Vec::new();
+        let mut start = 0;
+        let ends = styled::table_cell_page_ends(content, *width, 128);
+        // Independently parsing fragments would sever inline Markdown or an
+        // escaped source sequence. Retain the original bounded table preview
+        // instead of silently changing its formatting until it can be paged
+        // with the full parsed context.
+        if ends.len() > 1
+            && !Parser::new(content)
+                .into_offset_iter()
+                .all(|(event, range)| match event {
+                    Event::Start(Tag::Paragraph) | Event::End(TagEnd::Paragraph) => true,
+                    Event::Text(value) => content.get(range) == Some(value.as_ref()),
+                    _ => false,
+                })
+        {
+            return None;
         }
-        let mut boundary = 0;
-        let mut word = 0;
-        for (at, glyph) in remaining.grapheme_indices(true) {
-            if at + glyph.len() > budget {
-                break;
-            }
-            boundary = at + glyph.len();
-            if glyph == " " {
-                word = boundary;
-            }
+        for end in ends {
+            fragments.push((offset + content_start + start, offset + content_start + end));
+            start = end;
         }
-        let taken = if word > 0 {
-            word
-        } else if boundary > 0 {
-            boundary
-        } else {
-            remaining.graphemes(true).next().map_or(0, str::len)
-        };
-        debug_assert!(taken > 0);
-        fragments.push((offset + start, offset + start + taken));
-        start += taken;
+        cells.push(fragments);
     }
+    cells.resize_with(widths.len(), Vec::new);
     Some(LongCellSegments {
-        prefix,
-        suffix,
-        fragments,
+        prefix: raw[..before].to_owned(),
+        cells,
+        newline: raw.ends_with('\n'),
     })
-}
-
-fn blank_table_label(prefix: &str) -> String {
-    let (source, _) = table_source(prefix);
-    let mut blank = prefix[..prefix.len() - source.len()].to_owned();
-    let mut escaped = false;
-    let mut code = false;
-    for ch in source.chars() {
-        // Keep only actual column delimiters. An escaped pipe or a pipe inside
-        // inline code is label content: retaining that pipe while blanking its
-        // backslash/backticks would manufacture an extra GFM table column.
-        if ch == '|' && !escaped && !code {
-            blank.push('|');
-        } else {
-            blank.push_str(&" ".repeat(ch.len_utf8()));
-        }
-        if escaped {
-            escaped = false;
-        } else {
-            match ch {
-                '\\' => escaped = true,
-                '`' => code = !code,
-                _ => {}
-            }
-        }
-    }
-    blank
 }
 
 /// Line-only structural seek pass, once per part revision+width. It recognizes
@@ -2527,21 +2542,38 @@ fn blank_table_label(prefix: &str) -> String {
 /// allocates rendered rows. A large table carries its real header/alignment to
 /// each page; only its visible slice reaches pulldown-cmark.
 fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
+    let page_budget = 4096;
     let mut lines = Vec::new();
     let mut start = 0;
-    for line in text.split_inclusive('\n') {
+    let mut source_fence = None;
+    let mut source_line_start = true;
+    let mut source_table_depth = None;
+    let mut physical_lines = text.split_inclusive('\n').peekable();
+    while let Some(line) = physical_lines.next() {
         if styled::render_cancelled() {
             return Vec::new();
         }
-        // A table row's pipes/inline Markdown are one semantic source line.
-        // Split only after its cell ranges have been identified below.
-        if table_source(line).0.starts_with('|') {
+        // Preserve only actual table rows as semantic lines. A pipe-prefixed
+        // paragraph or code line must still be split into bounded pages.
+        let (source, depth) = table_source(line);
+        let table_row = source_fence.is_none()
+            && source.starts_with('|')
+            && (source_table_depth == Some(depth)
+                || physical_lines.peek().is_some_and(|next| {
+                    let (separator, next_depth) = table_source(next);
+                    next_depth == depth
+                        && separator.trim().starts_with('|')
+                        && separator.contains("---")
+                }));
+        source_table_depth = table_row.then_some(depth);
+        advance_fence(line, &mut source_fence, &mut source_line_start);
+        if table_row || line.len() <= page_budget {
             lines.push((start, start + line.len()));
             start += line.len();
             continue;
         }
         let mut offset = 0;
-        while line.len() - offset > 4096 {
+        while line.len() - offset > page_budget {
             if styled::render_cancelled() {
                 return Vec::new();
             }
@@ -2549,7 +2581,7 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
             let mut boundary = 0;
             let mut word_boundary = 0;
             for (at, glyph) in segment.grapheme_indices(true) {
-                if at + glyph.len() > 4096 {
+                if at + glyph.len() > page_budget {
                     break;
                 }
                 boundary = at + glyph.len();
@@ -2644,76 +2676,86 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
                 if styled::render_cancelled() {
                     return Vec::new();
                 }
-                if cursor < j && line(cursor).len() > 4096 {
-                    let budget = widths
-                        .last()
-                        .copied()
-                        .unwrap_or(1)
-                        .saturating_mul(128)
-                        .clamp(128, 2048);
-                    if let Some(LongCellSegments {
+                if cursor < j
+                    && heights[cursor - i - 1]
+                        .saturating_add(heights[0])
+                        .saturating_add(3)
+                        >= MAX_MARKDOWN_ROWS
+                    && let Some(LongCellSegments {
                         prefix,
-                        suffix,
-                        fragments,
-                    }) = long_table_cell_segments(line(cursor), lines[cursor].0, budget)
-                    {
-                        let blank_prefix = blank_table_label(&prefix);
-                        let fragments_len = fragments.len();
-                        for (fragment_number, (start, end)) in fragments.into_iter().enumerate() {
-                            if styled::render_cancelled() {
-                                return Vec::new();
-                            }
-                            let same_row = fragment_number != 0;
-                            let final_page =
-                                cursor + 1 == j && fragment_number + 1 == fragments_len;
-                            let terminal_newline = final_page
-                                && lines[cursor].1 == text.len()
-                                && suffix.ends_with('\n');
-                            let content = &text[start..end];
-                            let cell_height = styled::wrap_line_limited(
-                                &Line::plain(content),
-                                *widths.last().unwrap_or(&1),
-                                MAX_MARKDOWN_ROWS,
-                            )
-                            .len();
-                            pages.push(SourcePage {
-                                start,
-                                end,
-                                table_header: Some((begin, header_end)),
-                                table_widths: Some(widths.clone()),
-                                table_segment: Some(TableSegment {
-                                    prefix: if same_row {
-                                        blank_prefix.clone()
-                                    } else {
-                                        prefix.clone()
-                                    },
-                                    suffix: suffix.clone(),
-                                    same_row,
-                                    terminal_newline,
-                                }),
-                                continuation: !first,
-                                last_table_page: final_page,
-                                fence: None,
-                                code_context: Vec::new(),
-                                source_revision: 0,
-                                list_number: None,
-                                height: (if first { 1 + heights[0] } else { 0 })
-                                    + usize::from(!same_row)
-                                    + cell_height
-                                    + usize::from(final_page)
-                                    + usize::from(terminal_newline),
-                            });
-                            first = false;
+                        cells,
+                        newline,
+                    }) = long_table_cell_segments(line(cursor), lines[cursor].0, &widths)
+                {
+                    let fragments_len = cells.iter().map(Vec::len).max().unwrap_or(1).max(1);
+                    for fragment_number in 0..fragments_len {
+                        if styled::render_cancelled() {
+                            return Vec::new();
                         }
-                        cursor += 1;
-                        continue;
+                        let same_row = fragment_number != 0;
+                        let final_page = cursor + 1 == j && fragment_number + 1 == fragments_len;
+                        let terminal_newline =
+                            final_page && lines[cursor].1 == text.len() && newline;
+                        let fragments: Vec<_> = cells
+                            .iter()
+                            .map(|cell| cell.get(fragment_number).copied())
+                            .collect();
+                        let cell_height = fragments
+                            .iter()
+                            .zip(&widths)
+                            .filter_map(|(range, width)| {
+                                range.map(|(start, end)| {
+                                    styled::wrap_line_limited(
+                                        &Line::plain(text[start..end].trim()),
+                                        *width,
+                                        MAX_MARKDOWN_ROWS,
+                                    )
+                                    .len()
+                                })
+                            })
+                            .max()
+                            .unwrap_or(1);
+                        pages.push(SourcePage {
+                            start: lines[cursor].0,
+                            end: lines[cursor].1,
+                            table_header: Some((begin, header_end)),
+                            table_widths: Some(widths.clone()),
+                            table_segment: Some(TableSegment {
+                                prefix: prefix.clone(),
+                                cells: fragments,
+                                newline,
+                                same_row,
+                                terminal_newline,
+                            }),
+                            continuation: !first,
+                            last_table_page: final_page,
+                            fence: None,
+                            code_context: Vec::new(),
+                            source_revision: 0,
+                            list_number: None,
+                            height: (if first { 1 + heights[0] } else { 0 })
+                                + usize::from(!same_row)
+                                + cell_height
+                                + usize::from(final_page)
+                                + usize::from(terminal_newline),
+                        });
+                        first = false;
                     }
+                    cursor += 1;
+                    continue;
                 }
                 let body_start = cursor;
                 let mut used = 0;
                 while cursor < j
                     && cursor - body_start < 64
                     && (used + line(cursor).len() <= 4096 || cursor == body_start)
+                    && (cursor == body_start
+                        || (body_start..cursor)
+                            .map(|row| 1 + heights[row - i - 1])
+                            .sum::<usize>()
+                            + 1
+                            + heights[cursor - i - 1]
+                            <= MAX_MARKDOWN_ROWS / 2)
                 {
                     used += line(cursor).len();
                     cursor += 1;
@@ -2760,7 +2802,7 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
         let begins_list = ordered_marker(line(i)).map(|(n, _)| n);
         while j < lines.len() && (j - i) < 128 {
             let len = line(j).len();
-            if used + len > 4096 && j > i {
+            if j > i && used + len > page_budget {
                 break;
             }
             // Break a list only between items. Keep blank lines in the page
@@ -2784,7 +2826,7 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
         let end = lines[j - 1].1;
         let chunk = &text[begin..end];
         let number = begins_list.and(next_list_number).filter(|_| i > 0);
-        let mut height = estimated_lines(chunk, width);
+        let mut height = estimated_lines(chunk, width, MAX_INDEXED_MARKDOWN_ROWS);
         if end < text.len() && chunk.ends_with('\n') {
             height = height.saturating_sub(1);
         }
@@ -5245,6 +5287,11 @@ fn markdown_at_width_with_spacing(
     compaction_style: bool,
     syntax: Option<PageSyntax<'_>>,
 ) -> Vec<Line> {
+    let row_limit = if syntax.is_some() {
+        MAX_INDEXED_MARKDOWN_ROWS
+    } else {
+        MAX_MARKDOWN_ROWS
+    };
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     let mut out = Vec::new();
@@ -5259,7 +5306,7 @@ fn markdown_at_width_with_spacing(
     let mut after_heading = false;
     let mut heading_font = Modifier::empty();
     for (event, range) in Parser::new_ext(text, options).into_offset_iter() {
-        if out.len() >= MAX_MARKDOWN_ROWS {
+        if out.len() >= row_limit {
             truncated = true;
             break;
         }
@@ -5273,7 +5320,7 @@ fn markdown_at_width_with_spacing(
                         .saturating_sub(usize::from(
                             previous_end == 0 || !text[..previous_end].ends_with('\n'),
                         ))
-                        .min((MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len())),
+                        .min((row_limit + 1).saturating_sub(out.len())),
                 ),
             );
             if after_heading && out.last().is_some_and(|line| !line.plain_text().is_empty()) {
@@ -5358,7 +5405,7 @@ fn markdown_at_width_with_spacing(
                     TagEnd::TableHead | TagEnd::TableRow => {
                         if let Some(t) = &mut table {
                             if !t.row.is_empty() {
-                                if t.rows.len() < MAX_MARKDOWN_ROWS {
+                                if t.rows.len() < row_limit {
                                     t.rows.push(std::mem::take(&mut t.row));
                                 } else {
                                     t.omitted = true;
@@ -5378,7 +5425,7 @@ fn markdown_at_width_with_spacing(
                             out.extend(
                                 render_table(&t.rows, theme, width, columns)
                                     .into_iter()
-                                    .take((MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len())),
+                                    .take((row_limit + 1).saturating_sub(out.len())),
                             );
                             if t.omitted {
                                 out.push(Line::plain("… [Markdown table preview limited]"));
@@ -5414,7 +5461,7 @@ fn markdown_at_width_with_spacing(
                                     },
                                 );
                                 for highlighted in highlighted {
-                                    if out.len() >= MAX_MARKDOWN_ROWS {
+                                    if out.len() >= row_limit {
                                         truncated = true;
                                         break;
                                     }
@@ -5423,7 +5470,7 @@ fn markdown_at_width_with_spacing(
                                         &crate::syntax::display_line(&highlighted)
                                             .with_copy(styled::RowCopy::Text),
                                         width,
-                                        (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),
+                                        (row_limit + 1).saturating_sub(out.len()),
                                     ));
                                 }
                             }
@@ -5437,7 +5484,7 @@ fn markdown_at_width_with_spacing(
                             out.extend(wrap_markdown_line(
                                 Line::new(std::mem::take(&mut spans)),
                                 width,
-                                (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),
+                                (row_limit + 1).saturating_sub(out.len()),
                                 !lists.is_empty(),
                             ));
                         }
@@ -5467,7 +5514,7 @@ fn markdown_at_width_with_spacing(
                         std::iter::repeat_with(|| Line::plain("")).take(
                             trailing
                                 .saturating_sub(1)
-                                .min((MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len())),
+                                .min((row_limit + 1).saturating_sub(out.len())),
                         ),
                     );
                     previous_end = range.end;
@@ -5502,7 +5549,7 @@ fn markdown_at_width_with_spacing(
                     out.extend(wrap_markdown_line(
                         Line::new(std::mem::take(&mut spans)),
                         width,
-                        (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),
+                        (row_limit + 1).saturating_sub(out.len()),
                         !lists.is_empty(),
                     ));
                 }
@@ -5518,11 +5565,11 @@ fn markdown_at_width_with_spacing(
             _ => {}
         }
     }
-    if out.len() > MAX_MARKDOWN_ROWS {
+    if out.len() > row_limit {
         truncated = true;
     }
     if truncated {
-        out.truncate(MAX_MARKDOWN_ROWS - 1);
+        out.truncate(row_limit - 1);
         out.push(Line::styled(
             "… [Markdown preview limited]",
             Style::default().fg(theme.text_muted()),

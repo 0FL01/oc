@@ -20,26 +20,26 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: пользовательский запрос, исправленный план пункта 1.
   - Acceptance: во время потока раскрываются и прокручиваются начало, середина и хвост уже принятого публичного reasoning; новые дельты не блокируют безопасный клик, scroll, selection или freeze. Большой источник не копируется целиком на UI при каждой дельте; один bounded/cancellable worker на view.
   - Primary evidence: focused TUI regression для live >16 KiB и взаимодействия во время delta; существующий held-worker тест для ownership/cancellation; один реальный offline PTY-сценарий клика и scroll.
-  - Status: pending
-  - Evidence: RECON и аудит только по исходникам; проверки не запускались.
+  - Status: partial
+  - Evidence: TUI regression проверил поток >16 KiB, delta между mouse down/up, anchor и freeze; held-worker regression проверил shared chunks. Offline PTY кликом раскрыл и прокрутил >16 KiB до хвоста при удерживаемой генерации. Невосстановимое вытеснение по `LIVE_PARTS_MAX` и ограничение `WINDOW_BYTES` ещё не устранены; при известной потере активный view показывает предупреждение.
 - R2: Полный reasoning доступен внутри страниц Markdown и после завершения.
   - Source: пользовательский запрос и исправленный план пункта 2.
   - Acceptance: реальный viewport позволяет прокрутить строки за 512-row clipping и длинную не последнюю ячейку таблицы за 16 KiB; count/paint/scroll согласованы, Markdown и bounded cache сохранены. Вспомогательный bounded snapshot не выдаётся за полный интерактивный просмотр.
   - Primary evidence: ближайшие indexed viewport regressions для узкой длинной строки и длинной первой table cell.
-  - Status: pending
-  - Evidence: конкретные пути потерь определены статическим аудитом, проверки не запускались.
+  - Status: partial
+  - Evidence: реальные viewport-регрессии для узкой строки, первой большой table cell, многоколоночной Unicode-геометрии и строк с `|` внутри/вне fence проходят; проверены также сохранение bold в помещающейся ячейке и 96 тестов `messages::tests::`. Очень большая ячейка с inline Markdown пока честно показывает `Markdown preview limited`: её полная пагинация с контекстом не реализована. Длинный заголовок таблицы и слишком узкий для сетки viewport также требуют решения; весь Markdown-контракт не закрыт.
 - R3: Late attach и восстановление gap не теряют уже принятый live reasoning.
   - Source: пользовательский запрос, исправленный план пункта 3.
   - Acceptance: для текущего session/turn присоединение и gap восстанавливают принятые публичные части и новые дельты ровно один раз; checkpoint/tool insertion не сдвигает принятую границу, остальные классы событий и другие views не пропадают. При настоящем сбое или утрате owner неполное восстановление не выдаётся за полное.
   - Primary evidence: focused authority/TUI attach/gap regression >256 KiB с delta и checkpoint/tool insertion race.
-  - Status: pending
-  - Evidence: static audit; проверки не запускались.
+  - Status: partial
+  - Evidence: повторная независимая read-only проверка подтвердила, что snapshot, последующий history read и события не имеют общего cut; retry может checkpoint-ить середину item, а tool insertion сдвигает sequence. Нельзя безопасно устранить дефект увеличением snapshot или общим floor. TUI теперь явно предупреждает о известном усечении; восстановление и его regression отсутствуют.
 - R4: Проверить, собрать release, закоммитить и отправить результат.
   - Source: последняя инструкция пользователя и исправленный план пунктов 4–5.
   - Acceptance: затронутая архитектурная документация актуальна; узкие проверки и scoped Clippy выполнены с честным результатом, full offline gate выполняется один раз при runtime/native lifecycle или wire changes; `target/release/oc2` собран; свои изменения закоммичены и отправлены обычным push в проверенный `origin` либо точный blocker записан без объявления завершения.
   - Primary evidence: test/build exits, diff review, commit IDs и push result.
-  - Status: pending
-  - Evidence: ещё не выполнялось.
+  - Status: partial
+  - Evidence: `cargo fmt --all -- --check`; `messages::tests::` 96 PASS; `app::projection::tests` 5 PASS; `selection` 44 PASS; bounded live-parts и long redacted live reasoning regressions PASS; offline PTY live click/scroll PASS; parked projection close PASS; `cargo clippy -p oc-tui -p oc2 --all-targets --locked -- -D warnings` PASS; `cargo build -p oc2 --bin oc2 --locked --release` PASS (`target/release/oc2`). Это проверки частичного checkpoint, не интеграционная приёмка; full offline gate и live/visual qualification не выполнялись.
 
 ### Constraints и границы
 
@@ -61,17 +61,17 @@ Allowed: необходимые runtime edits и ближайшие tests в `oc
 
 ## Current Checkpoint
 
-- Closes: R1.
-- Smallest next action: устранить 16-КиБ preview открытого reasoning с bounded projection ownership; проверить достижимое интерактивное поведение и held-worker.
-- Expected evidence: focused TUI regressions.
-- Stop or replan if: невозможно совместить непрерывные дельты с безопасным click/selection и bounded worker в существующей архитектуре.
+- Closes: незавершённые части R2, затем R3 и R1.
+- Smallest next action: заменить bounded fallback для воспроизведённой большой форматированной table cell на count/paint pagination с полным parsed Markdown context, сохранив согласованное выравнивание ячеек; проверить длинный header и слишком узкую таблицу. Затем согласовать выбранный live cut и безопасное вытеснение лишь при доступности canonical source.
+- Expected evidence: `indexed_oversized_formatted_table_cell_reports_a_limited_preview` заменить проверкой полного содержимого/форматирования реального viewport; attach/gap и checkpoint/tool insertion regressions без потерь других классов событий.
+- Stop or replan if: не удаётся доказать атомарное сочетание durable prefix, live cut и событий без подавления других классов либо без нарушения memory/IPC и exact-child fences.
 
 ## Current State
 
 - Baseline: `0578b96b53b60a95606ec394887aed29c48d7735`, рабочее дерево было чистым.
-- Resolved: цель и план зафиксированы до runtime edits.
-- Last relevant evidence: read-only RECON и четырёхчастный независимый аудит; тесты/продукт не запускались.
-- Blocker: нет. Next: R1.
+- Resolved: цель и план зафиксированы до runtime edits; прямой live >16 KiB и конкретные потери Markdown исправлены, с фокусными regressions и offline PTY. Предупреждение честно сообщает об известной потере live output.
+- Last relevant evidence: focused 96 Markdown, 5 projection, 44 selection, 1 live-parts, 1 long-redacted reasoning, 1 parked worker и 1 offline PTY tests PASS; scoped Clippy, fmt и release build PASS. Full offline gate, live/visual qualification и безопасное восстановление не проверялись.
+- Unresolved: форматированные oversized table cells пока показывают preview; безопасная граница R3 не определена. Это не доказательство полного исправления. Решение recovery должно использовать producer-known stable prefix после tool outcomes и durable availability, адресный bounded cut и идентичности/offsets, не продвигать общий floor по одному reasoning и не терять остальные события; точные root/child/location fences сохраняются.
 
 ## Material Decisions
 
@@ -80,6 +80,8 @@ Allowed: необходимые runtime edits и ближайшие tests в `oc
 ## Checkpoint History
 
 - 2026-10-29: заморожены результаты и скопирован исправленный план до реализации.
+- 2026-10-29: прямое раскрытие live reasoning и конкретные viewport-потери исправлены и частично проверены; R1/R2 остаются partial до связанных проверок и устранения невосстановимого eviction.
+- 2026-10-29: подтверждены и исправлены регрессии выравнивания и потери pipe-строк; oversized форматированная ячейка и согласование recovery остаются незавершёнными. Текущий ограниченный срез проверен offline; явное предупреждение не заменяет recovery.
 
 ## Completion
 

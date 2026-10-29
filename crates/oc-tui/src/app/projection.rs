@@ -20,6 +20,7 @@ pub(super) struct Key {
     epoch: u64,
     owner: (u64, u64),
     revision: u64,
+    structure: u64,
     window: u64,
     lengths: (usize, usize),
     pub(super) dimensions: (u16, u16, u16),
@@ -33,10 +34,27 @@ pub(super) struct Key {
     calls: BTreeMap<String, BTreeSet<usize>>,
 }
 
+impl Key {
+    // The only permitted staleness is an append to already-open sources.
+    // Every structural, viewport, owner and presentation fence stays exact.
+    fn content_compatible(&self, current: &Self) -> bool {
+        let mut comparable = current.clone();
+        comparable.revision = self.revision;
+        comparable.lengths = self.lengths;
+        self == &comparable
+            && current.revision.wrapping_sub(self.revision) <= u64::MAX / 2
+            && self.lengths.0 <= current.lengths.0
+            && self.lengths.1 <= current.lengths.1
+            && (self.lengths.0 == 0) == (current.lengths.0 == 0)
+            && (self.lengths.1 == 0) == (current.lengths.1 == 0)
+    }
+}
+
 #[derive(Clone)]
 pub(super) struct PaintedTop {
     pub(super) part: transcript::CompletionPart,
     pub(super) row: usize,
+    pub(super) screen_row: usize,
     pub(super) requested_scroll: usize,
 }
 
@@ -73,6 +91,7 @@ struct Input {
     painted_top: Option<PaintedTop>,
     attached: bool,
     selection: Vec<Arc<transcript::CompletionPart>>,
+    open_reasoning: Option<live::ReasoningSnapshot>,
 }
 
 struct Output {
@@ -126,6 +145,9 @@ fn build(
     mut input: Input,
     cache: &std::cell::RefCell<crate::messages::MarkdownCache>,
 ) -> Option<(VisibleTranscriptProjection, bool)> {
+    let open_text = input.live.map(|index| input.rows[index].text.clone());
+    let open_reasoning = input.open_reasoning.clone();
+    input.materialize_reasoning()?;
     finish_reasoning(
         &mut input.rows,
         &input.runs,
@@ -151,7 +173,7 @@ fn build(
             key.calls.get(op).is_some_and(|calls| calls.contains(&call))
         }
     };
-    let positions = |part: usize, offset: usize| {
+    let positions = |part: usize, offset: usize, screen_row: usize| {
         let mut top = None;
         let total = crate::messages::transcript_part_positions(
             rows,
@@ -166,7 +188,11 @@ fn build(
                 }
             },
         );
-        top.map(|top| total.saturating_sub(height as usize).saturating_sub(top))
+        top.map(|top| {
+            total
+                .saturating_sub(height as usize)
+                .saturating_sub(top.saturating_sub(screen_row))
+        })
     };
     let resized = input
         .previous
@@ -194,14 +220,14 @@ fn build(
                         .nth(anchor.part)
                         .map(|(index, _)| index)
                 }?;
-                positions(index, anchor.row)
+                positions(index, anchor.row, 0)
             })
             .or_else(|| {
                 input
                     .painted_top
                     .as_ref()
                     .filter(|top| top.requested_scroll == key.scroll)
-                    .and_then(|top| positions(top.part.resolve(rows)?, top.row))
+                    .and_then(|top| positions(top.part.resolve(rows)?, top.row, top.screen_row))
             })
     };
     if crate::styled::render_cancelled() {
@@ -267,6 +293,7 @@ fn build(
     let top = top.map(|(index, row)| PaintedTop {
         part: transcript::CompletionPart::capture(rows, index, input.live == Some(index)),
         row,
+        screen_row: 0,
         requested_scroll: key.scroll,
     });
     let parts = selection_parts(
@@ -317,11 +344,27 @@ fn build(
             child_targets: children,
             animations,
             hits,
+            open_text,
+            open_reasoning,
             top,
             parts,
         },
         reasoning,
     ))
+}
+
+impl Input {
+    fn materialize_reasoning(&mut self) -> Option<()> {
+        if let Some(snapshot) = self.open_reasoning.take()
+            && let Some(reasoning) = self
+                .live
+                .and_then(|index| self.rows.get_mut(index))
+                .and_then(|row| row.reasoning.as_mut())
+        {
+            reasoning.text = snapshot.into_source_unless_cancelled()?;
+        }
+        Some(())
+    }
 }
 
 /// Parts a selection point can attach to: every part intersecting the
@@ -398,6 +441,7 @@ impl TuiState {
             epoch: self.projection_work.borrow().epoch,
             owner: self.view_identity(),
             revision: self.transcript_revision,
+            structure: self.transcript_structure,
             window: self.window.revision(),
             lengths: (self.live_text.len(), self.live_reasoning.len()),
             dimensions,
@@ -433,10 +477,7 @@ impl TuiState {
                 self.live_text
                     .len()
                     .min(crate::messages::LIVE_MARKDOWN_BYTES)
-                    + self
-                        .live_reasoning
-                        .len()
-                        .min(crate::messages::LIVE_MARKDOWN_BYTES),
+                    + self.live_reasoning.len(),
                 |sum, bytes| {
                     let total = sum.saturating_add(bytes);
                     (total <= SYNC_SOURCE_BYTES).then_some(total)
@@ -447,6 +488,9 @@ impl TuiState {
 
     fn projection_input(&self, key: Key) -> Input {
         let (rows, live, runs) = self.compose_structure(true);
+        let open_reasoning = live
+            .filter(|&index| rows[index].reasoning.is_some())
+            .map(|_| self.live_reasoning.snapshot());
         let mut colors = BTreeMap::new();
         for agent in &self.agents {
             colors.insert(agent.id.clone(), self.agent_color(Some(&agent.id)));
@@ -486,6 +530,7 @@ impl TuiState {
                 .flat_map(|selected| [&selected.anchor, &selected.focus])
                 .filter_map(|point| point.part.clone())
                 .collect(),
+            open_reasoning,
         }
     }
 
@@ -504,7 +549,38 @@ impl TuiState {
             .viewport
             .get()
             .map_or(VIEWPORT_LINES as u16, |view| view.height);
-        let input = self.projection_input(self.projection_key((width, terminal_width, height)));
+        let painted = self.painted_transcript.borrow();
+        let mut input = if let Some((painted, key)) = painted.as_ref().and_then(|painted| {
+            painted
+                .key
+                .as_ref()
+                .filter(|key| {
+                    key.dimensions == (width, terminal_width, height)
+                        && self.projection_content_compatible(key)
+                })
+                .map(|key| (painted, key))
+        }) {
+            let mut input = self.projection_input(key.clone());
+            if let Some(index) = input.live
+                && let Some(text) = &painted.open_text
+            {
+                input.rows[index].text = text.clone();
+            }
+            input.open_reasoning = painted.open_reasoning.clone();
+            input
+        } else {
+            self.projection_input(self.projection_key((width, terminal_width, height)))
+        };
+        drop(painted);
+        if input.materialize_reasoning().is_none() {
+            return Ok(None);
+        }
+        finish_reasoning(
+            &mut input.rows,
+            &input.runs,
+            input.key.thinking,
+            &input.key.reasoning,
+        );
         let rows = &input.rows;
         let key = &input.key;
         let color = |agent: Option<&str>| {
@@ -576,6 +652,27 @@ impl TuiState {
                     && view.viewport.is_some_and(|view| {
                         (view.width, view.terminal_width, view.height) == dimensions
                     })
+            })
+    }
+
+    pub(super) fn projection_content_compatible(&self, key: &Key) -> bool {
+        key.content_compatible(&self.projection_key(key.dimensions))
+    }
+
+    pub(super) fn projection_geometry_compatible(
+        &self,
+        dimensions: (u16, u16, u16),
+        total: usize,
+        scroll: usize,
+    ) -> bool {
+        self.visible_projection
+            .borrow()
+            .as_ref()
+            .is_some_and(|view| {
+                view.total == total
+                    && view.scroll == scroll
+                    && view.dimensions == dimensions
+                    && self.projection_content_compatible(&view.key)
             })
     }
 
@@ -658,8 +755,7 @@ impl TuiState {
         }
         *self.markdown_cache.borrow_mut() = output.cache;
         if self.projection_work.borrow().suspended
-            || output.key != self.projection_key(output.key.dimensions)
-            || self.projection_work.borrow().desired.as_ref() != Some(&output.key)
+            || !self.projection_content_compatible(&output.key)
         {
             return;
         }
@@ -1084,23 +1180,142 @@ mod tests {
         assert!(state.next_ui_deadline().is_none());
     }
 
-    #[test]
-    fn open_reasoning_preview_is_bounded_marked_and_does_not_pin_mutable_source() {
-        let mut source = String::with_capacity(32 * 1024 * 1024 + 100);
-        source.push_str(&"中".repeat(11_000_000));
-        let mut source: crate::history::SourceText = source.into();
-        let pointer = source.as_ptr();
-        let preview = source.preview(
-            crate::messages::LIVE_MARKDOWN_BYTES,
-            "\n\n… [reasoning preview limited]",
+    #[tokio::test]
+    async fn open_reasoning_projection_shares_chunks_and_receives_the_full_snapshot() {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("reasoning-worker".into()));
+        let turn = WorkerTurnId("reasoning-turn".into());
+        state.active_turn = Some(turn.clone());
+        let body = format!(
+            "**Thinking**\n\n{}\n\nTHE END",
+            "中 reasoning\n\n".repeat(8_000)
         );
-        assert!(preview.len() < crate::messages::LIVE_MARKDOWN_BYTES + 100);
-        assert!(preview.ends_with("[reasoning preview limited]"));
+        state.apply_reasoning_delta(&turn, &body);
+        assert!(state.large_projection());
+        let first = state.live_reasoning.first_chunk_ptr().unwrap();
+        let hold = Arc::new(TestHold::default());
+        state.projection_work.borrow_mut().hold = Some(hold.clone());
+        state.visible_transcript_at_viewport(80, 100, 20);
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !hold.entered.load(Ordering::Acquire) {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        state.apply_reasoning_delta(&turn, " next");
+        assert_eq!(state.live_reasoning.first_chunk_ptr(), Some(first));
+        assert_eq!(state.live_reasoning.len(), body.len() + " next".len());
+        assert_eq!(state.projection_work.borrow().started, 1);
+        hold.release.store(true, Ordering::Release);
+        state.finish_transcript_projection().await;
+        let input = state.projection_input(state.projection_key((80, 100, 20)));
+        let source = input.open_reasoning.unwrap().into_source();
+        assert_eq!(source.as_str(), format!("{body} next"));
+        assert!(!source.contains("reasoning preview limited"));
+        state.cancel_transcript_projection();
+        state.finish_transcript_projection().await;
+    }
+
+    #[tokio::test]
+    async fn live_reasoning_click_and_scroll_survive_an_append_between_press_and_release() {
+        use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("reasoning-live-click".into()));
+        let turn = WorkerTurnId("reasoning-live-turn".into());
+        state.active_turn = Some(turn.clone());
+        let mut body = String::from("**Streaming**\n\n");
+        for i in 0..2500 {
+            body.push_str(&format!(
+                "line-{i:04} public reasoning content goes here\n\n"
+            ));
+        }
+        body.push_str("TAIL-END");
+        state.apply_reasoning_delta(&turn, &body);
+        let frame = Rect::new(0, 0, 90, 24);
+        let area = crate::shell::transcript_area(&state, frame);
+        let dimensions = (area.width, frame.width, area.height);
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.finish_transcript_projection().await;
+        let (rows, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+        state.paint_transcript_at(area, &rows, total, scroll, Some(frame), &targets);
+        let header = rows
+            .iter()
+            .position(|line| line.plain_text().contains("Thinking"))
+            .unwrap();
+        let mouse = |kind| MouseEvent {
+            kind,
+            column: area.x + 5,
+            row: area.y + header as u16,
+            modifiers: KeyModifiers::NONE,
+        };
+        state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), frame);
+        state.apply_reasoning_delta(&turn, " after-delta");
+        state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), frame);
         assert!(
-            source.starts_with(preview.completion_prefix(crate::messages::LIVE_MARKDOWN_BYTES))
+            state
+                .reasoning_expanded
+                .contains(&crate::messages::ReasoningIdentity::Live(
+                    state.reasoning_epoch,
+                    0
+                ))
         );
-        source.push_str("next");
-        assert_eq!(source.as_ptr(), pointer);
-        assert_eq!(source.len(), 33_000_004);
+        for _ in 0..3 {
+            state.finish_transcript_projection().await;
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+            if state.projection_ready(dimensions) {
+                break;
+            }
+        }
+        let (expanded, total, scroll, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+        assert!(state.projection_ready(dimensions));
+        assert!(
+            expanded[header].plain_text().contains("Thinking"),
+            "header remains anchored"
+        );
+        state.observe_transcript_viewport(area.width, frame.width, area.height, total, scroll);
+        state.paint_transcript_at(area, &expanded, total, scroll, Some(frame), &targets);
+
+        state.scroll = 0;
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.finish_transcript_projection().await;
+        let (tail, total, _) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        assert!(
+            tail.iter()
+                .any(|line| line.plain_text().contains("TAIL-END after-delta"))
+        );
+        state.scroll = total.saturating_sub(area.height as usize);
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.finish_transcript_projection().await;
+        let (head, _, _) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        assert!(
+            head.iter()
+                .any(|line| line.plain_text().contains("line-0000"))
+        );
+        state.scroll = total.saturating_sub(area.height as usize) / 2;
+        state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        state.finish_transcript_projection().await;
+        let (middle, _, _) =
+            state.visible_transcript_at_viewport(area.width, frame.width, area.height);
+        assert!(
+            middle
+                .iter()
+                .any(|line| line.plain_text().contains("line-12"))
+        );
+        assert!(
+            !middle
+                .iter()
+                .any(|line| line.plain_text().contains("preview limited"))
+        );
+        state.apply_reasoning_item_ended(&turn);
+        assert!(
+            matches!(&state.live_parts[0], LivePart::Reasoning { text, .. }
+            if text.ends_with("TAIL-END after-delta"))
+        );
     }
 }
