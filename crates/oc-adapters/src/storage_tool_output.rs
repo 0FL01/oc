@@ -426,9 +426,12 @@ impl Db {
         secrets: Vec<String>,
     ) -> Result<Writer, StorageError> {
         self.expire_tool_outputs(timestamp())?;
-        let conn = self.conn.lock().expect("db mutex");
+        let _store = self.file_store.lock().expect("file store");
         self.verify_output_dir()?;
-        let belongs: bool = conn
+        let belongs: bool = self
+            .conn
+            .lock()
+            .expect("db mutex")
             .prepare_cached(
                 "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
             )?
@@ -477,11 +480,11 @@ impl Db {
             state: CaptureState::Active,
             shell: None,
         };
-        file.sync_all()?;
-        self.output_dir.sync_all()?;
-        File::open(&self.root)?.sync_all()?;
+        self.sync_durable(&file)?;
+        self.sync_durable(&self.output_dir)?;
+        self.sync_durable(&File::open(&self.root)?)?;
         let raw = serde_json::to_string(&resource).map_err(|_| invalid())?;
-        if let Err(error) = conn.execute(
+        let inserted = self.conn.lock().expect("db mutex").execute(
             "INSERT INTO tool_output_resources VALUES(?1,?2,?3,?4,?5,?6,?7,0,'Active',NULL)",
             params![
                 resource.id,
@@ -492,9 +495,10 @@ impl Db {
                 meta.dev() as i64,
                 meta.ino() as i64
             ],
-        ) {
+        );
+        if let Err(error) = inserted {
             unlink(&self.output_dir, &name)?;
-            self.output_dir.sync_all()?;
+            self.sync_durable(&self.output_dir)?;
             return Err(error.into());
         }
         Ok(Writer {
@@ -709,21 +713,32 @@ impl Db {
 
     /// Bounded owner cleanup. Immutable operation output/reference is retained.
     pub(crate) fn expire_tool_outputs(&self, now: i64) -> Result<usize, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        let _store = self.file_store.lock().expect("file store");
         self.verify_output_dir()?;
-        let readers = self.output_readers.lock().expect("reader leases");
-        let rows:Vec<(String,String)>=conn.prepare("SELECT id,name FROM tool_output_resources WHERE state NOT IN ('Active','Expired') AND completed<=?1 ORDER BY completed LIMIT 128")?.query_map([now.saturating_sub(TTL)],|r|Ok((r.get(0)?,r.get(1)?)))?.collect::<Result<_,_>>()?;
+        // Expiry is atomic with reader admission (both under `conn`); files are
+        // removed after the database is released. A crash before the unlink
+        // leaves an Expired row's file, which the orphan scan below collects.
+        let expired = {
+            let conn = self.conn.lock().expect("db mutex");
+            let readers = self.output_readers.lock().expect("reader leases");
+            let rows:Vec<(String,String)>=conn.prepare("SELECT id,name FROM tool_output_resources WHERE state NOT IN ('Active','Expired') AND completed<=?1 ORDER BY completed LIMIT 128")?.query_map([now.saturating_sub(TTL)],|r|Ok((r.get(0)?,r.get(1)?)))?.collect::<Result<_,_>>()?;
+            let mut expired = Vec::new();
+            for (id, name) in rows {
+                if readers.get(&id).copied().unwrap_or(0) > 0 {
+                    continue;
+                }
+                if name.contains('/') {
+                    return Err(invalid());
+                }
+                conn.execute("UPDATE tool_output_resources SET state='Expired',descriptor=json_set(descriptor,'$.state','Expired') WHERE id=?1",[id])?;
+                expired.push(name);
+            }
+            expired
+        };
         let mut removed = 0;
-        for (id, name) in rows {
-            if readers.get(&id).copied().unwrap_or(0) > 0 {
-                continue;
-            }
-            if name.contains('/') {
-                return Err(invalid());
-            }
+        for name in expired {
             unlink(&self.output_dir, &name)?;
-            self.output_dir.sync_all()?;
-            conn.execute("UPDATE tool_output_resources SET state='Expired',descriptor=json_set(descriptor,'$.state','Expired') WHERE id=?1",[id])?;
+            self.sync_durable(&self.output_dir)?;
             removed += 1;
         }
         // Crash temps/orphans count against quota until this bounded cleanup.
@@ -740,11 +755,22 @@ impl Db {
                 .strip_suffix(".part")
                 .or_else(|| name.strip_suffix(".txt"))
                 .expect("generated suffix");
-            if readers.get(id).copied().unwrap_or(0) > 0 {
+            if self
+                .output_readers
+                .lock()
+                .expect("reader leases")
+                .get(id)
+                .copied()
+                .unwrap_or(0)
+                > 0
+            {
                 continue;
             }
-            let registered: bool = conn
-                .prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_output_resources WHERE name=?1)")?
+            let registered: bool = self
+                .conn
+                .lock()
+                .expect("db mutex")
+                .prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_output_resources WHERE name=?1 AND state<>'Expired')")?
                 .query_row([&name], |r| r.get(0))?;
             let meta = fs::symlink_metadata(entry.path())?;
             let age = meta
@@ -754,7 +780,7 @@ impl Db {
                 .as_secs() as i64;
             if !registered && meta.is_file() && age <= now.saturating_sub(TTL) {
                 unlink(&self.output_dir, &name)?;
-                self.output_dir.sync_all()?;
+                self.sync_durable(&self.output_dir)?;
                 removed += 1;
             }
         }
@@ -797,7 +823,7 @@ impl Writer {
         }
         self.resource.admitted_lines = self.admitted_newlines
             + u64::from(self.resource.admitted_bytes > 0 && !self.last_newline);
-        let _conn = self.db.conn.lock().expect("db mutex");
+        let _store = self.db.file_store.lock().expect("file store");
         if self.resource.state == CaptureState::Active {
             let available = CAP.saturating_sub(self.resource.bytes);
             // The pinned directory is still the root's before any byte lands,
@@ -809,7 +835,7 @@ impl Writer {
             if kept > 0 {
                 if self.file.write_all(&text.as_bytes()[..kept]).is_err() {
                     self.file.set_len(self.resource.bytes)?;
-                    self.file.sync_all()?;
+                    self.db.sync_durable(&self.file)?;
                     self.resource.state = CaptureState::Io;
                 } else {
                     self.db.quota_grew(kept as u64);
@@ -834,9 +860,8 @@ impl Writer {
     // One caller append is the publication boundary. Internal redactor chunks
     // stay bounded, quota-counted on disk, and unadvertised until synced here.
     fn publish_extent(&mut self) -> Result<(), StorageError> {
-        let conn = self.db.conn.lock().expect("db mutex");
-        self.file.sync_all()?;
-        conn.execute(
+        self.db.sync_durable(&self.file)?;
+        self.db.conn.lock().expect("db mutex").execute(
             "UPDATE tool_output_resources SET descriptor=?2,extent=?3 WHERE id=?1",
             params![
                 self.resource.id,
@@ -859,9 +884,10 @@ impl Writer {
         let admitted = self.redactor.push("", true);
         self.write_admitted(&admitted)?;
         self.publish_extent()?;
-        let conn = self.db.conn.lock().expect("db mutex");
+        // Rename and registration stay atomic for the orphan scan.
+        let _store = self.db.file_store.lock().expect("file store");
         self.db.verify_output_dir()?;
-        self.file.sync_all()?;
+        self.db.sync_durable(&self.file)?;
         let name = format!("{}.txt", self.resource.id);
         let old = CString::new(self.name.as_str()).map_err(|_| invalid())?;
         let new = CString::new(name.as_str()).map_err(|_| invalid())?;
@@ -877,7 +903,7 @@ impl Writer {
         {
             return Err(std::io::Error::last_os_error().into());
         }
-        self.db.output_dir.sync_all()?;
+        self.db.sync_durable(&self.db.output_dir)?;
         self.name = name;
         self.resource.path = self
             .db
@@ -890,7 +916,7 @@ impl Writer {
             self.resource.state = terminal;
         }
         let raw = serde_json::to_string(&self.resource).map_err(|_| invalid())?;
-        conn.execute("UPDATE tool_output_resources SET name=?2,descriptor=?3,extent=?4,state=?5,completed=?6 WHERE id=?1",params![self.resource.id,self.name,raw,self.resource.bytes as i64,format!("{:?}",self.resource.state),timestamp()])?;
+        self.db.conn.lock().expect("db mutex").execute("UPDATE tool_output_resources SET name=?2,descriptor=?3,extent=?4,state=?5,completed=?6 WHERE id=?1",params![self.resource.id,self.name,raw,self.resource.bytes as i64,format!("{:?}",self.resource.state),timestamp()])?;
         self.finished = true;
         Ok(self.resource.clone())
     }
@@ -906,15 +932,18 @@ impl Writer {
             .map(|reader| reader.resource.clone())
     }
     fn freeze_prefix(&mut self, state: CaptureState) -> Result<(), StorageError> {
-        let conn = self.db.conn.lock().expect("db mutex");
-        let raw: String = conn
+        let raw: String = self
+            .db
+            .conn
+            .lock()
+            .expect("db mutex")
             .prepare_cached("SELECT descriptor FROM tool_output_resources WHERE id=?1")?
             .query_row([&self.resource.id], |row| row.get(0))?;
         self.resource = serde_json::from_str(&raw).map_err(|_| invalid())?;
         self.file.set_len(self.resource.bytes)?;
-        self.file.sync_all()?;
+        self.db.sync_durable(&self.file)?;
         self.resource.state = state;
-        conn.execute(
+        self.db.conn.lock().expect("db mutex").execute(
             "UPDATE tool_output_resources SET descriptor=?2,state=?3,completed=?4 WHERE id=?1",
             params![
                 self.resource.id,

@@ -959,3 +959,63 @@ fn appends_reuse_the_quota_bound_and_stay_within_quota() {
     );
     assert!(used + 1000 > quota, "the capture used the remaining quota");
 }
+
+/// File and directory fsyncs of the file store (tool output and blobs) never
+/// hold the database mutex, so a slow disk does not stall unrelated SQL.
+#[test]
+fn file_store_fsyncs_run_outside_the_database_mutex() {
+    use crate::storage::FSYNC_UNDER_DB;
+    let (_dir, db) = fixture(CAP);
+    FSYNC_UNDER_DB.with(|count| count.set(0));
+    let mut writer = db
+        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .unwrap();
+    writer.append("first line\n").unwrap();
+    writer.append("second line\n").unwrap();
+    let resource = writer.finish(false).unwrap();
+    db.record_tool_intent("op2", "s", None, "skill", "{}")
+        .unwrap();
+    let mut interrupted = db
+        .begin_tool_output("op2", "s", "/project", 2, "default", vec![])
+        .unwrap();
+    interrupted.append("partial\n").unwrap();
+    drop(interrupted);
+    let digest = db.write_blob(b"image bytes").unwrap();
+    assert_eq!(db.read_blob(&digest).unwrap(), b"image bytes");
+    db.write_blob(b"image bytes").unwrap();
+    assert_eq!(db.gc_orphans(Duration::ZERO).unwrap(), 0);
+    assert_eq!(db.expire_tool_outputs(timestamp() + TTL + 1).unwrap(), 2);
+    assert!(db.open_tool_output("s", &resource.path).is_err());
+    assert_eq!(FSYNC_UNDER_DB.with(std::cell::Cell::get), 0);
+}
+
+/// An expired row whose file survived a crash before unlink is collected by
+/// the orphan scan instead of being kept forever.
+#[test]
+fn expired_row_file_left_by_a_crash_is_collected_as_an_orphan() {
+    let (dir, db) = fixture(CAP);
+    let mut writer = db
+        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .unwrap();
+    writer.append("kept bytes\n").unwrap();
+    let resource = writer.finish(false).unwrap();
+    let name = Path::new(&resource.path).file_name().unwrap().to_owned();
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE tool_output_resources SET state='Expired' WHERE id=?1",
+            [&resource.id],
+        )
+        .unwrap();
+    let file = dir.path().join("tool-output").join(&name);
+    let old = std::time::SystemTime::UNIX_EPOCH + Duration::from_secs(1);
+    fs::File::options()
+        .write(true)
+        .open(&file)
+        .unwrap()
+        .set_modified(old)
+        .unwrap();
+    assert_eq!(db.expire_tool_outputs(timestamp()).unwrap(), 1);
+    assert!(!file.exists());
+}

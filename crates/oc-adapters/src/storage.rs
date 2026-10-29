@@ -359,6 +359,10 @@ pub struct Db {
     conn: Arc<Mutex<Connection>>,
     output_dir: Arc<File>,
     output_readers: Arc<Mutex<std::collections::HashMap<String, usize>>>,
+    // Orders quota, publication, GC and expiry of blob/tool-output files.
+    // Filesystem I/O and fsync run under this lock, never under `conn`;
+    // acquisition order is `file_store` -> `conn` -> `output_readers`.
+    file_store: Arc<Mutex<()>>,
     // Actual payload transfers: HOT, explicit RAW page, bounded UI window.
     history_reads: Arc<[std::sync::atomic::AtomicU64; 10]>,
     public_catalog: Arc<std::sync::OnceLock<Arc<crate::models_dev::GoCatalog>>>,
@@ -660,6 +664,7 @@ impl Db {
             conn: Arc::new(Mutex::new(conn)),
             output_dir: Arc::new(output_dir),
             output_readers: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            file_store: Arc::default(),
             history_reads: Arc::new(std::array::from_fn(|_| {
                 std::sync::atomic::AtomicU64::new(0)
             })),
@@ -691,6 +696,7 @@ impl Db {
             conn: self.conn.clone(),
             output_dir: self.output_dir.clone(),
             output_readers: self.output_readers.clone(),
+            file_store: self.file_store.clone(),
             history_reads: self.history_reads.clone(),
             public_catalog: self.public_catalog.clone(),
             credential_refresh: self.credential_refresh.clone(),
@@ -4247,8 +4253,9 @@ impl Db {
     pub fn write_blob(&self, data: &[u8]) -> Result<String, StorageError> {
         let digest = hex_digest(data);
         let target = self.blob_path(&digest)?;
-        // Keep publication and GC under the same lock, including filesystem I/O.
-        let conn = self.conn.lock().expect("db mutex");
+        // Publication and GC share the file-store lock, including filesystem
+        // I/O; the database is locked only for the final row.
+        let _store = self.file_store.lock().expect("file store");
         let existing = match fs::symlink_metadata(&target) {
             Ok(meta) if meta.is_file() => {
                 if fs::read(&target)? != data {
@@ -4275,16 +4282,16 @@ impl Db {
         *self.quota_used.lock().expect("quota bound") = Some(used);
         if existing {
             // An orphan may have been left before file/directory sync completed.
-            File::open(&target)?.sync_all()?;
+            self.sync_durable(&File::open(&target)?)?;
         } else {
             self.publish_blob(&target, &digest, data)?;
         }
-        File::open(&self.blob_dir)?.sync_all()?;
+        self.sync_durable(&File::open(&self.blob_dir)?)?;
         // Also persist the blob-directory entry when the data root is fresh.
-        File::open(&self.root)?.sync_all()?;
+        self.sync_durable(&File::open(&self.root)?)?;
         let size = i64::try_from(data.len()).map_err(|_| StorageError::StorageFull)?;
         // File existence alone is insufficient: repair absent/stale metadata.
-        conn.execute(
+        self.conn.lock().expect("db mutex").execute(
             "INSERT INTO blobs(digest, size, path) VALUES (?1, ?2, ?1)
              ON CONFLICT(digest) DO UPDATE SET size = excluded.size, path = excluded.path",
             params![digest, size],
@@ -4310,13 +4317,13 @@ impl Db {
         };
         let result = (|| {
             tmp.write_all(data)?;
-            tmp.sync_all()?;
+            self.sync_durable(&tmp)?;
             fs::rename(&tmp_path, target)
         })();
         if result.is_err() {
             // Only remove the temporary file this invocation actually created.
             fs::remove_file(&tmp_path)?;
-            File::open(&self.blob_dir)?.sync_all()?;
+            self.sync_durable(&File::open(&self.blob_dir)?)?;
         }
         result.map_err(StorageError::from)
     }
@@ -4324,8 +4331,11 @@ impl Db {
     /// Read blob bytes by digest.
     pub fn read_blob(&self, digest: &str) -> Result<Vec<u8>, StorageError> {
         let path = self.blob_path(digest)?;
-        let conn = self.conn.lock().expect("db mutex");
-        let metadata: Option<(i64, String)> = conn
+        // Referenced blobs are never collected, so the file read needs no lock.
+        let metadata: Option<(i64, String)> = self
+            .conn
+            .lock()
+            .expect("db mutex")
             .query_row(
                 "SELECT size, path FROM blobs WHERE digest = ?1",
                 params![digest],
@@ -4350,8 +4360,9 @@ impl Db {
     /// Never deletes referenced blobs. Never follows symlinks outside the
     /// blob dir and never deletes outside it (cleanup-escape refusal).
     pub fn gc_orphans(&self, grace: Duration) -> Result<usize, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        let _store = self.file_store.lock().expect("file store");
         let referenced: std::collections::HashSet<String> = {
+            let conn = self.conn.lock().expect("db mutex");
             let mut stmt = conn.prepare_cached("SELECT digest FROM blobs")?;
             let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
             let mut set = std::collections::HashSet::new();
@@ -4378,11 +4389,21 @@ impl Db {
             }
             if is_older_than(&path, grace)? {
                 fs::remove_file(&path)?;
-                File::open(&self.blob_dir)?.sync_all()?;
+                self.sync_durable(&File::open(&self.blob_dir)?)?;
                 removed += 1;
             }
         }
         Ok(removed)
+    }
+
+    /// Every file/directory fsync of the file store. Tests record an fsync
+    /// that runs while this database's connection mutex is held.
+    pub(super) fn sync_durable(&self, file: &File) -> std::io::Result<()> {
+        #[cfg(test)]
+        if self.conn.try_lock().is_err() {
+            FSYNC_UNDER_DB.with(|count| count.set(count.get() + 1));
+        }
+        file.sync_all()
     }
 
     fn blob_path(&self, digest: &str) -> Result<PathBuf, StorageError> {
@@ -4395,6 +4416,12 @@ impl Db {
         }
         Ok(path)
     }
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Single-threaded tests own their database: a held mutex is their own.
+    pub(crate) static FSYNC_UNDER_DB: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 fn hex_digest(data: &[u8]) -> String {

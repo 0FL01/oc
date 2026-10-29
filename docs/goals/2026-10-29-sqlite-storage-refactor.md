@@ -36,7 +36,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: частичные индексы для всех `events(kind,payload)`-поисков из горячих путей; `child_job_outstanding`, `deliver_child_notices`, `background_child_job`, `child_history` не зависят от числа исторических jobs/событий; fsync файла вне мьютекса БД; `cache_size` выбран по замеру.
   - Primary evidence: тесты R1 до/после.
   - Status: partial
-  - Evidence: путь child jobs (итерация 1) и чтения истории, пикер и активность вкладок (итерация 2) закрыты. Открыты прочие `events(kind,payload)`-поиски вне измеренных путей (например `tool_output_question` на строках вопросов), fsync файла вне мьютекса, `cache_size`.
+  - Evidence: путь child jobs (итерация 1), чтения истории, пикер и активность вкладок (итерация 2), fsync файлового хранилища вне мьютекса БД (итерация 3) закрыты. Открыты прочие `events(kind,payload)`-поиски вне измеренных путей (например `tool_output_question` на строках вопросов, поиск ресурса по `json_extract(descriptor,'$.path')` в `open_tool_output`) и `cache_size`.
 - R3: Хранилище как компонент вне async runtime (Фаза 2).
   - Acceptance: выделенные OS-потоки: один писатель с групповым коммитом (SAVEPOINT на операцию, один fsync на пачку, подтверждение только после fsync своей пачки, `synchronous=FULL` сохраняется) и пул читателей WAL; async-код не держит мьютекс БД и не выполняет fsync; кэши на `total_changes` переведены на счётчик коммитов писателя; одна версионированная цепочка миграций при открытии.
   - Primary evidence: метрики R1 (ожидание на async-воркерах ≈0), synthetic 8–16 сессий, fault-тесты.
@@ -93,3 +93,10 @@ Allowed: `oc-adapters` (storage, runtime, application, native), `oc-core` при
 - Новые индексы при открытии (без версии схемы, как существующий hot-path блок): частичный `turns_started` и `events_fork_native_notice`. Проверка «работает ли семейство» идёт вверх от работающих turn'ов и активных child jobs, а не вниз по всем потомкам. После правки все восемь операций константны (`child_history` 265, `session_list` 174, `session_activity` 66 шагов при 50 и 200 turn'ах).
 - Семантика: новый тест `busy_family_follows_running_turns_and_active_child_jobs_upward` (внук с работающим turn'ом, активный child job, посторонний корень). На копии реальной БД (252 сессии, три последних turn'а переведены в `started`) старый и новый probe совпали для всех сессий.
 - Проверки: `oc-adapters --lib` (nextest) 1027 PASS; `oc2 --bin` 183 PASS; `pty_t42` 48 PASS; Clippy `oc-adapters --all-targets -D warnings` PASS.
+
+### 3. fsync файлового хранилища вне мьютекса БД (R2 partial)
+
+- Tool output (начало, каждая публикация append'а, завершение с rename, заморозка префикса, expiry) и blob'ы (запись, GC) выполняли fsync файлов и каталогов под мьютексом соединения: стриминг shell-вывода одной сессии задерживал любой SQL остальных.
+- Новый `file_store` замок упорядочивает квоту, публикацию, rename, GC и expiry; порядок захвата `file_store` → `conn` → `output_readers`, соединение берётся только на SQL. Все fsync идут через `Db::sync_durable`, который в тестах считает fsync при занятом мьютексе БД.
+- Expiry помечает строку `Expired` атомарно с допуском читателей (под `conn`), а unlink и fsync каталога выполняет после; файл `Expired`-строки, оставшийся после падения между ними, собирает скан сирот.
+- Проверки: новые `file_store_fsyncs_run_outside_the_database_mutex` (с временно возвращённым удержанием мьютекса в `publish_extent` фиксирует 4 нарушения) и `expired_row_file_left_by_a_crash_is_collected_as_an_orphan`; `tool_output` 16 PASS; `oc-adapters` целиком (nextest, unit и integration) 1330 PASS, 5 skipped; `pty_t39` 68 PASS и `terminals` 1 PASS (в первом общем прогоне один раз упал `vis15_real_pty_adjacent_reasoning_parts_group_and_replay_after_restart` по таймауту экрана TUI, в одиночку и при повторе всего набора PASS — не связан с файловым хранилищем); Clippy `oc-adapters --all-targets -D warnings` PASS.
