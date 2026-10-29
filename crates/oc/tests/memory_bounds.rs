@@ -12,8 +12,14 @@
 //! * active pairs: `ACTIVE_PAIRS` x `ACTIVE_BYTES`, identical in both runs.
 //!
 //! Measured on the actual client + native owner + owned process tree:
-//! baseline/peak/post-idle RSS, peak PSS, children and archive size on disk. The bound below
-//! was chosen before the first measurement and is not adjusted afterwards.
+//! baseline/peak/post-idle RSS, peak PSS, children and archive size on disk.
+//!
+//! The asserted quantity is the archive's own effect: the large run's peak
+//! minus the small run's peak. Both runs share binary, process tree and
+//! workload, so the difference isolates the archive. An absolute peak is not a
+//! growth metric here: the first sample precedes loading the ELF, and the
+//! summed VmHWM counts the same `oc2` file pages once per process (client and
+//! owner), so it tracked code size rather than archive reads.
 
 use std::io::{BufRead, BufReader, Read, Write};
 #[path = "support/context_ids.rs"]
@@ -42,10 +48,11 @@ const ARCHIVE_BYTES: usize = 16 * 1024;
 const ACTIVE_PAIRS: usize = 2;
 /// Bytes per live message.
 const ACTIVE_BYTES: usize = 1_024;
-/// Peak-RSS growth bound for the large run (fixed before measuring): a full
-/// read of the large archive is 96 MiB of messages plus 48 MiB of turn logs,
-/// so an unbounded turn cannot fit under this bound.
-const PEAK_RSS_BOUND_KB: u64 = 64 * 1024;
+/// Archive-induced peak growth bound, equal to the product's 16 MiB active
+/// context cap. A full read of the large archive is 96 MiB of messages plus
+/// 48 MiB of turn logs, so reading even ~11% of it cannot fit; run-to-run
+/// noise of the identical rest of the tree is about 1 MiB.
+const ARCHIVE_GROWTH_BOUND_KB: u64 = 16 * 1024;
 
 fn sse_delta(text: &str) -> String {
     format!(
@@ -558,17 +565,13 @@ fn aud32_actual_binary_bounds_active_context_with_growing_archive() {
         "the large archive must really be large: {} bytes",
         large.run.db_bytes
     );
-    let small_delta = small
-        .run
-        .peak_hwm_kb
-        .saturating_sub(small.run.baseline.rss_kb);
-    let large_delta = large
-        .run
-        .peak_hwm_kb
-        .saturating_sub(large.run.baseline.rss_kb);
+    let growth = large.run.peak_hwm_kb.saturating_sub(small.run.peak_hwm_kb);
     assert!(
-        large_delta < PEAK_RSS_BOUND_KB,
-        "peak RSS followed the archive: {large_delta} KiB for {} archived pairs (small run: {small_delta} KiB, bound {PEAK_RSS_BOUND_KB} KiB)",
-        large.pairs
+        growth < ARCHIVE_GROWTH_BOUND_KB,
+        "peak RSS followed the archive: +{growth} KiB for {} vs {} archived pairs (peaks {} / {} KiB, bound {ARCHIVE_GROWTH_BOUND_KB} KiB)",
+        large.pairs,
+        small.pairs,
+        large.run.peak_hwm_kb,
+        small.run.peak_hwm_kb
     );
 }
