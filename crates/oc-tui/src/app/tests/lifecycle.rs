@@ -1449,10 +1449,36 @@ async fn live_parts_stay_bounded_under_tool_flood() {
         Some("Live output may be incomplete; check history after completion")
     );
     assert_eq!(state.note_variant(), Some(super::NoteVariant::Warning));
+    // Its close glyph dismisses it; later evictions in this turn stay quiet.
+    let frame = ratatui::layout::Rect::new(0, 0, 120, 40);
+    let toast = crate::shell::toast_rect(&state, frame).unwrap();
+    for kind in [
+        crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
+        crossterm::event::MouseEventKind::Up(crossterm::event::MouseButton::Left),
+    ] {
+        state.handle_mouse(
+            crossterm::event::MouseEvent {
+                kind,
+                column: toast.right() - 4,
+                row: toast.y + 1,
+                modifiers: crossterm::event::KeyModifiers::NONE,
+            },
+            frame,
+        );
+    }
+    assert_eq!(state.note(), None);
+    let flood = |state: &mut super::TuiState, index: usize| {
+        let turn = WorkerTurnId("t-flood".to_string());
+        let op = format!("late-{index}");
+        state.apply_tool_started(&turn, &op, "read", "{}");
+        state.apply_tool_finished(&turn, &op, "read", "completed", "ok", 2, false);
+    };
+    flood(&mut state, 0);
+    assert_eq!(state.note(), None, "one warning per turn");
     state.push_note_variant("higher-priority error", super::NoteVariant::Error);
+    flood(&mut state, 1);
     assert_eq!(state.note(), Some("higher-priority error"));
     state.note = None;
-    assert!(state.note().is_some(), "the incomplete warning persists");
     assert!(
         !state
             .viewport()

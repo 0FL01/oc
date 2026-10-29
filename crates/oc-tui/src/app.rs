@@ -908,6 +908,9 @@ pub struct TuiState {
     live_terminal_status: Option<String>,
     live_model_label: Option<String>,
     live_preview_truncated: bool,
+    /// Turn already warned about its limited live preview. Surviving projection
+    /// repairs keeps a replayed limit from repeating the toast.
+    live_preview_warned: Option<WorkerTurnId>,
     /// First reasoning delta of the active turn, for the collapsed header's
     /// duration (`part.time.created` upstream).
     reasoning_started: Option<Instant>,
@@ -1167,6 +1170,7 @@ impl TuiState {
             live_terminal_status: None,
             live_model_label: None,
             live_preview_truncated: false,
+            live_preview_warned: None,
             reasoning_started: None,
             reasoning_finished: None,
             turn_usage: None,
@@ -1777,21 +1781,12 @@ impl TuiState {
 
     /// Status note, if any (intent errors and hints; never chat history).
     pub fn note(&self) -> Option<&str> {
-        self.note
-            .as_ref()
-            .map(|(message, _)| message.as_str())
-            .or_else(|| {
-                (self.active_turn.is_some() && self.live_preview_truncated)
-                    .then_some("Live output may be incomplete; check history after completion")
-            })
+        self.note.as_ref().map(|(message, _)| message.as_str())
     }
 
     /// Semantic color of the currently displayed note.
     pub fn note_variant(&self) -> Option<NoteVariant> {
-        self.note.as_ref().map(|(_, variant)| *variant).or_else(|| {
-            (self.active_turn.is_some() && self.live_preview_truncated)
-                .then_some(NoteVariant::Warning)
-        })
+        self.note.as_ref().map(|(_, variant)| *variant)
     }
 
     /// Window bytes plus live text, live parts and input; bounded by the

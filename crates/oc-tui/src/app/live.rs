@@ -1919,7 +1919,26 @@ impl TuiState {
 
     pub fn cover_projection(&mut self, revision: u64, truncated: bool) {
         self.projection_floor = self.projection_floor.max(revision);
-        self.live_preview_truncated |= truncated;
+        self.limit_live_preview(truncated);
+    }
+
+    /// The footer keeps `preview_limited`; the toast is a one-time, timed and
+    /// dismissible hint per turn that never replaces another note.
+    fn limit_live_preview(&mut self, limited: bool) {
+        if !limited {
+            return;
+        }
+        self.live_preview_truncated = true;
+        if self.note.is_none()
+            && self.active_turn.is_some()
+            && self.live_preview_warned != self.active_turn
+        {
+            self.live_preview_warned = self.active_turn.clone();
+            self.push_transient_note(
+                "Live output may be incomplete; check history after completion",
+                NoteVariant::Warning,
+            );
+        }
     }
 
     /// Replace only disposable turn presentation after a canonical/live repair.
@@ -2053,7 +2072,7 @@ impl TuiState {
         }
         let room = WINDOW_BYTES.saturating_sub(self.live_reasoning.len());
         let accepted = crate::truncate_utf8(delta, room);
-        self.live_preview_truncated |= accepted.len() != delta.len();
+        self.limit_live_preview(accepted.len() != delta.len());
         if !accepted.is_empty() {
             self.live_reasoning.push_str(accepted);
             self.invalidate_live_text();
@@ -2123,7 +2142,7 @@ impl TuiState {
             }
         }
         self.invalidate_transcript();
-        self.live_preview_truncated |= projection.truncated;
+        self.limit_live_preview(projection.truncated);
         self.live_agent_color_index = projection.agent_color_index;
         if projection.status != "started" {
             self.live_terminal_status = Some(projection.status.clone());
@@ -3153,7 +3172,7 @@ impl TuiState {
             self.live_parts.remove(0);
             self.live_part_sources.remove(&self.live_part_offset);
             self.live_part_offset += 1;
-            self.live_preview_truncated = true;
+            self.limit_live_preview(true);
         }
         self.prune_reasoning();
     }
