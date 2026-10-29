@@ -1,6 +1,6 @@
 # Goal: скрыть служебный блок подтверждённого diff в TUI
 
-Status: active
+Status: complete
 Source: запрос пользователя скрыть выделенный блок Edit/Patch и согласованный после аудита план; инструкция «копию плана в цель и итеративно реализовать и коммит пуш билд».
 Last updated: 2026-10-29
 
@@ -33,8 +33,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: инструкция пользователя «коммит пуш билд».
   - Acceptance: targeted tests, scoped fmt/Clippy и diff review завершены; `target/release/oc2` собран; изменения закоммичены и обычным push отправлены в проверенный `origin/master`, либо зафиксирован конкретный blocker.
   - Primary evidence: результаты команд, commit и push.
-  - Status: in_progress
-  - Evidence: scoped fmt и `CARGO_INCREMENTAL=0 cargo clippy -p oc-tui --all-targets --locked -- -D warnings` PASS; `CARGO_INCREMENTAL=0 cargo build -p oc2 --bin oc2 --locked --release` PASS, SHA-256 `5c846aa857432720b8eae81dad5496be8ccee600ce6bcc55b2a22e59118eb01e`. Остались diff review, commit и push.
+  - Status: verified
+  - Evidence: scoped fmt и `CARGO_INCREMENTAL=0 cargo clippy -p oc-tui --all-targets --locked -- -D warnings` PASS; `CARGO_INCREMENTAL=0 cargo build -p oc2 --bin oc2 --locked --release` PASS, SHA-256 `5c846aa857432720b8eae81dad5496be8ccee600ce6bcc55b2a22e59118eb01e`. Diff review и staged `git diff --check` PASS; commit `d67d0736d6f122ed258d9ff5ef10f5ac173acd7d` отправлен в `origin/master`, remote HEAD сверен.
 
 ### Constraints
 
@@ -57,17 +57,14 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: итоговый diff review; затем commit и push в проверенный origin.
-- Expected evidence: успешные команды, scope review и опубликованный commit.
-- Stop or replan if: обнаружен чужой concurrent diff, обязательная проверка падает либо push требует изменения authority.
+- Все outcomes закрыты; дальнейшая реализация не требуется.
 
 ## Current State
 
-- Resolved: R1 и R2; предыдущая историческая цель сохранена без изменений.
-- Last relevant evidence: после правки узкого заголовка повторно PASS 11 patch-view tests, 1 lifecycle test, scoped fmt/Clippy и release build на исходном HEAD `4551870a`; `master` отслеживает `origin/master`.
+- Resolved: R1–R3; предыдущая историческая цель сохранена без изменений.
+- Last relevant evidence: 11 patch-view tests, 1 lifecycle test, scoped fmt/Clippy и release build PASS; реализация `d67d0736d` опубликована в `origin/master`.
 - Blocker: нет.
-- Next: проверки и доставка R3.
+- Next: нет.
 
 ## Material Decisions
 
@@ -78,7 +75,11 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - 2026-10-29: R1–R3 зафиксированы после read-only RECON и независимого аудита.
 - 2026-10-29: R1–R2 реализованы и проверены targeted tests. Первый компилятор был прерван по timeout, следующая incremental-линковка получила undefined LLVM symbols; после диагностики тот же тест PASS с `CARGO_INCREMENTAL=0`, без удаления artifacts.
 - 2026-10-29: при review исправлено вытеснение пути меткой в узком заголовке; targeted tests, fmt/Clippy и release build повторно PASS.
+- 2026-10-29: R3 закрыт: diff проверен, release собран, commit `d67d0736d` отправлен в `origin/master` и remote HEAD сверен.
 
 ## Completion
 
-Pending.
+- Resolved outcomes: R1–R3 verified.
+- Commands and artifacts: targeted tests, scoped fmt/Clippy, `git diff --check`, release `target/release/oc2`, commit и push указаны выше.
+- Constraint and diff-scope check: изменены только TUI renderer/tests, актуальная документация и эта цель; capture и backend не менялись. Live/visual qualification и полный offline gate не заявляются.
+- Final status: complete.
