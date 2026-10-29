@@ -254,6 +254,7 @@ async fn question_pasted_image_reaches_the_provider_and_reopens() {
             sse_tool_call("ask", "question", &questions()) + &sse_completed(),
             sse_delta("done") + &sse_completed(),
             sse_delta("again") + &sse_completed(),
+            sse_delta("without images") + &sse_completed(),
         ],
         data.path().to_owned(),
     );
@@ -295,6 +296,7 @@ async fn question_pasted_image_reaches_the_provider_and_reopens() {
     let pixels = image::RgbaImage::from_pixel(1, 1, image::Rgba([1, 2, 3, 255]));
     let mut png = std::io::Cursor::new(Vec::new());
     pixels.write_to(&mut png, image::ImageFormat::Png).unwrap();
+    let image_png: std::sync::Arc<[u8]> = png.into_inner().into();
     let image = QuestionImage {
         question: 0,
         answer: 0,
@@ -303,7 +305,7 @@ async fn question_pasted_image_reaches_the_provider_and_reopens() {
             end: 13,
             ordinal: 1,
         },
-        png: png.into_inner().into(),
+        png: image_png.clone(),
     };
     let reply = |images| QuestionReply {
         id: request.id,
@@ -336,16 +338,73 @@ async fn question_pasted_image_reaches_the_provider_and_reopens() {
     guard.join().await.unwrap();
     drop(app);
     let (app, guard, _) =
-        oc_adapters::application::spawn_with_env(project.path(), data.path(), env)
+        oc_adapters::application::spawn_with_env(project.path(), data.path(), env.clone())
             .await
             .unwrap();
     let events = app.subscribe();
     let turn = finished(&mut events.resubscribe());
-    app.submit(session, "next".into()).await.unwrap();
+    app.submit(session.clone(), "next".into()).await.unwrap();
     turn.await;
     assert!(
         carries_image(&peer.requests.lock().unwrap()[2]),
         "stored answer images rebuild from the turn row"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    drop(app);
+
+    // A text-only model continues the same session: history images and a new
+    // pasted one become notes instead of refusing every later request.
+    let mut text_only = config;
+    text_only["providers"]["fixture"]["models"]["main"] = serde_json::json!({});
+    std::fs::write(project.path().join("opencode.json"), text_only.to_string()).unwrap();
+    let (app, guard, _) =
+        oc_adapters::application::spawn_with_env(project.path(), data.path(), env)
+            .await
+            .unwrap();
+    let mut events = app.subscribe();
+    let prompt = oc_core::prompt::PromptInput {
+        text: "now [Image 1]".into(),
+        images: vec![oc_core::prompt::PromptImage {
+            mark: oc_core::prompt::ImageMark {
+                start: 4,
+                end: 13,
+                ordinal: 1,
+            },
+            png: image_png.clone(),
+        }],
+    };
+    let _receipt = app
+        .request_submit_input_selected(session, prompt, None)
+        .unwrap();
+    let warnings = tokio::time::timeout(Duration::from_secs(4), async {
+        loop {
+            match events.recv().await.unwrap() {
+                CoreEvent::TurnFinished { warnings, .. } => break warnings,
+                CoreEvent::TurnFailed { error, .. } => panic!("turn failed: {error:?}"),
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w == "the selected model cannot see images; sent without them"),
+        "{warnings:?}"
+    );
+    let request = serde_json::to_string(&peer.requests.lock().unwrap()[3]).unwrap();
+    assert!(
+        !request.contains("input_image"),
+        "no image reaches a text-only model"
+    );
+    assert_eq!(
+        request
+            .matches("image omitted: the selected model cannot see images")
+            .count(),
+        2,
+        "the question answer and the new prompt image"
     );
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();

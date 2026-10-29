@@ -282,9 +282,14 @@ async fn mcp12_compaction_receives_native_media_and_recent_checkpoint_tail_reope
         );
         socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
     });
+    // Only an image-capable summarizer receives native media pairs.
     let catalog = ModelCatalog {
         provider: "fixture".into(),
-        models: [("m".into(), json!({"limit":{"context":65536,"output":4096}}))].into(),
+        models: [(
+            "m".into(),
+            json!({"modalities":{"input":["text","image"]},"limit":{"context":65536,"output":4096}}),
+        )]
+        .into(),
     };
     rt.queue_compaction("s", oc_core::compaction::CompactionReason::Manual)
         .unwrap();

@@ -1246,6 +1246,9 @@ pub struct Runtime<'a> {
     webfetch_auth: Option<String>,
     webfetch_allow_private: bool,
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
+    // Turns whose own images the selected model could not receive; reported
+    // once as a turn warning, never persisted.
+    omitted_images: Mutex<std::collections::BTreeSet<String>>,
     // Sibling runtimes share the durable block allocator. Hold only across the
     // synchronous refresh/measure/commit section, never provider IO or approval.
     compression_commit: Arc<Mutex<()>>,
@@ -1399,6 +1402,7 @@ impl<'a> Runtime<'a> {
             webfetch_auth,
             webfetch_allow_private,
             nudge_state: Mutex::new(BTreeMap::new()),
+            omitted_images: Mutex::default(),
             compression_commit: Arc::new(Mutex::new(())),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(Arc::new(mcp::McpOwner::new(location, 1))),

@@ -1257,6 +1257,13 @@ impl Runtime<'_> {
         // Opaque continuation is meaningful only to its original provider, not
         // as ciphertext quoted to a text summarizer. Keep public reasoning and
         // complete tool pairs; RAW, source pricing and native input are intact.
+        // Quoted JSON never carries image base64; pairs follow the summarizer.
+        crate::attachments::project_media(&mut transcript, false, true);
+        crate::attachments::project_media(
+            &mut media_pairs,
+            models::capabilities(&selection.entry).supports_image(),
+            binding.protocol == oc_core::queries::NativeProtocol::Chat,
+        );
         let transcript = transcript.into_iter().filter_map(|item| {
             if matches!(&item, InputItem::ProviderOutput(value) if matches!(value["type"].as_str(), Some("reasoning" | "compaction"))) {
                 crate::tools::model_history::neutral(&item)

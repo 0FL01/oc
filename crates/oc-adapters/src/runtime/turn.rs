@@ -32,6 +32,10 @@ mod child_dcp_tests;
 #[path = "context_tests.rs"]
 mod context_tests;
 
+/// Turn warning when the selected model could not receive this turn's images.
+pub(crate) const OMITTED_IMAGES_WARNING: &str =
+    "the selected model cannot see images; sent without them";
+
 /// Bound for walking a session's parent chain (cycle guard).
 const SUBAGENT_DEPTH_WALK_CAP: u32 = 64;
 
@@ -1488,6 +1492,14 @@ impl<'a> Runtime<'a> {
         if let Some(warning) = budget.warning {
             report.warnings.push(warning);
         }
+        if self
+            .omitted_images
+            .lock()
+            .expect("omitted images")
+            .remove(&report.turn_id)
+        {
+            report.warnings.push(OMITTED_IMAGES_WARNING.into());
+        }
         Ok(report)
     }
 
@@ -1788,8 +1800,6 @@ impl<'a> Runtime<'a> {
             .iter()
             .filter(|item| !accounting_facts.contains(item))
             .collect::<Vec<_>>();
-        crate::attachments::admit_images(&selection.entry, &legacy_history, &prompt_input)
-            .map_err(RuntimeError::InvalidArgs)?;
         let admission_bytes = super::compaction::serialized_size(&(
             &fixed_input,
             &admitted_history,
@@ -3047,17 +3057,19 @@ impl<'a> Runtime<'a> {
                 .chain(nudge_input.iter())
                 .chain(refusal.iter())
                 .collect();
-            let input: Vec<InputItem> = input.into_iter().cloned().collect();
-            if let Err(error) = crate::attachments::admit_images(&selection.entry, &input, &[]) {
-                if let Some(prepared) = &pending {
-                    self.fail_pending(
-                        &params.session,
-                        &prepared.pending.item,
-                        &oc_core::session::CoreError::Application(error),
-                    )?;
-                    continue 'step;
+            let mut input: Vec<InputItem> = input.into_iter().cloned().collect();
+            // History images never block a model switch: what this model or
+            // wire cannot take is sent as a note; raw history keeps the image.
+            let vision = crate::models::capabilities(&selection.entry).supports_image();
+            let chat = binding.protocol == oc_core::queries::NativeProtocol::Chat;
+            crate::attachments::project_media(&mut input, vision, chat);
+            if crate::attachments::omitted_images(&turn_log.input, vision, chat) > 0 {
+                let mut omitted = self.omitted_images.lock().expect("omitted images");
+                // Turns that end in an error never collect their warning.
+                if omitted.len() >= 64 {
+                    omitted.clear();
                 }
-                return Err(RuntimeError::InvalidArgs(error));
+                omitted.insert(turn_id.clone());
             }
             let read_context_bytes = usize::try_from(super::compaction::serialized_size(&input)?)
                 .map_err(|_| RuntimeError::Storage)?

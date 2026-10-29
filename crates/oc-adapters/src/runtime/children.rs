@@ -1423,6 +1423,7 @@ impl Runtime<'_> {
             webfetch_auth: self.webfetch_auth.clone(),
             webfetch_allow_private: self.webfetch_allow_private,
             nudge_state: Mutex::default(),
+            omitted_images: Mutex::default(),
             compression_commit: self.compression_commit.clone(),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(self.mcp_generation.read().expect("mcp").clone()),

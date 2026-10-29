@@ -183,6 +183,12 @@ A free-form answer may carry clipboard PNGs (`[Image N]` chips, prompt paste bin
 only when the issuing model accepts image input; owner re-validates label/caps/PNG and
 the tool result lowers them to `input_image`, persisted as `native_question_results`.
 
+Images never block a later request: raw history keeps every prompt/read/question/MCP
+image, and `attachments::project_media` sends a text note in place of each one the
+selected model (no `image` input) or wire (Chat tool messages) cannot take; compaction
+transcripts never quote image base64. A turn whose own images were dropped warns
+"the selected model cannot see images; sent without them".
+
 `opencode_models` searches the existing catalog without selecting a model;
 `opencode_session_rename` persists an authorized current/explicit session title;
 `opencode_session_move` admits a trusted destination for the same ID and applies it

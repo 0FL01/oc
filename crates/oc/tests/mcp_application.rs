@@ -959,8 +959,10 @@ impl Fixture {
             "providers": {"fixture": {
                 "package": "@ai-sdk/openai",
                 "settings": {"baseURL": provider.base_url, "apiKey": "responses-key"},
+                // Image input lets native MCP media reach the wire unprojected.
                 "models": {MODEL: {
                     "name": "MCP application fixture",
+                    "capabilities": {"input": ["text", "image"]},
                     "limit": {"context": 65536, "output": 4096},
                 }},
             }},

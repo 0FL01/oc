@@ -7,24 +7,10 @@
 
 use thiserror::Error;
 
+mod projection;
 mod prompt;
+pub(crate) use projection::{omitted_images, project_media};
 pub(crate) use prompt::{image_metadata, prepare_prompt, restore_prompt};
-
-pub(crate) fn admit_images(
-    entry: &serde_json::Value,
-    history: &[crate::provider::InputItem],
-    pending: &[crate::provider::InputItem],
-) -> Result<(), String> {
-    use crate::provider::{InputContent, InputItem};
-    if history.iter().chain(pending).any(|item| {
-        matches!(item, InputItem::Message { content, .. }
-        if content.iter().any(|part| matches!(part, InputContent::InputImage { .. })))
-    }) && !crate::models::capabilities(entry).supports_image()
-    {
-        return Err("selected model does not support image input".into());
-    }
-    Ok(())
-}
 
 /// Full bounded PNG verification shared by clipboard acquisition and admission.
 pub fn validate_png(

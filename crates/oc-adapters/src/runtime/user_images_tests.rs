@@ -220,7 +220,7 @@ async fn clipboard_images_atomic_admission_wire_retirement_reopen_revert_and_for
 }
 
 #[tokio::test]
-async fn clipboard_images_refuse_invalid_media_and_unknown_capability_before_fresh_root() {
+async fn clipboard_images_refuse_invalid_media_before_fresh_root() {
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
@@ -246,9 +246,12 @@ async fn clipboard_images_refuse_invalid_media_and_unknown_capability_before_fre
         cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
+    // A valid image for a model without image input is a note, not a refusal
+    // (question_lifecycle covers that fallback end to end).
     let mut invalid = prompt();
     invalid.images[0].png = b"\x89PNG\r\n\x1a\n".as_slice().into();
-    for input in [invalid, prompt()] {
+    {
+        let input = invalid;
         let result = rt
             .run_fresh_turn_with_tool_events(
                 TurnParams {
