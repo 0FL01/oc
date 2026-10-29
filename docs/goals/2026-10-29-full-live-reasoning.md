@@ -21,7 +21,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: во время потока раскрываются и прокручиваются начало, середина и хвост уже принятого публичного reasoning; новые дельты не блокируют безопасный клик, scroll, selection или freeze. Большой источник не копируется целиком на UI при каждой дельте; один bounded/cancellable worker на view.
   - Primary evidence: focused TUI regression для live >16 KiB и взаимодействия во время delta; существующий held-worker тест для ownership/cancellation; один реальный offline PTY-сценарий клика и scroll.
   - Status: partial
-  - Evidence: TUI regression проверил поток >16 KiB, delta между mouse down/up, anchor и freeze; held-worker regression проверил shared chunks. Offline PTY кликом раскрыл и прокрутил >16 KiB до хвоста при удерживаемой генерации. Невосстановимое вытеснение по `LIVE_PARTS_MAX` и ограничение `WINDOW_BYTES` ещё не устранены; при известной потере активный view показывает предупреждение.
+  - Evidence: TUI regression проверил поток >16 KiB, delta между mouse down/up, anchor и freeze; held-worker regression проверил shared chunks. Отдельная regression проверила выделение и copy живого reasoning >16 KiB при delta между mouse down и up. Offline PTY кликом раскрыл и прокрутил >16 KiB до хвоста при удерживаемой генерации. Невосстановимое вытеснение по `LIVE_PARTS_MAX` и ограничение `WINDOW_BYTES` ещё не устранены; при известной потере активный view показывает предупреждение.
 - R2: Полный reasoning доступен внутри страниц Markdown и после завершения.
   - Source: пользовательский запрос и исправленный план пункта 2.
   - Acceptance: реальный viewport позволяет прокрутить строки за 512-row clipping и длинную не последнюю ячейку таблицы за 16 KiB; count/paint/scroll согласованы, Markdown и bounded cache сохранены. Вспомогательный bounded snapshot не выдаётся за полный интерактивный просмотр.
@@ -62,7 +62,7 @@ Allowed: необходимые runtime edits и ближайшие tests в `oc
 ## Current Checkpoint
 
 - Closes: незавершённые части R2, затем R3 и R1.
-- Smallest next action: заменить bounded fallback для воспроизведённой большой форматированной table cell на count/paint pagination с полным parsed Markdown context, сохранив согласованное выравнивание ячеек; проверить длинный header и слишком узкую таблицу. Затем согласовать выбранный live cut и безопасное вытеснение лишь при доступности canonical source.
+- Smallest next action: спроектировать count/paint pagination большой форматированной table cell по визуальным строкам полного parsed Markdown context, сохранив стили, выравнивание, bounded work и cancellation; проверить длинный header и слишком узкую таблицу. Затем доказать выбранный live cut и безопасное вытеснение лишь при доступности canonical source.
 - Expected evidence: `indexed_oversized_formatted_table_cell_reports_a_limited_preview` заменить проверкой полного содержимого/форматирования реального viewport; attach/gap и checkpoint/tool insertion regressions без потерь других классов событий.
 - Stop or replan if: не удаётся доказать атомарное сочетание durable prefix, live cut и событий без подавления других классов либо без нарушения memory/IPC и exact-child fences.
 
@@ -70,8 +70,8 @@ Allowed: необходимые runtime edits и ближайшие tests в `oc
 
 - Baseline: `0578b96b53b60a95606ec394887aed29c48d7735`, рабочее дерево было чистым.
 - Resolved: цель и план зафиксированы до runtime edits; прямой live >16 KiB и конкретные потери Markdown исправлены, с фокусными regressions и offline PTY. Предупреждение честно сообщает об известной потере live output.
-- Last relevant evidence: focused 96 Markdown, 5 projection, 44 selection, 1 live-parts, 1 long-redacted reasoning, 1 parked worker и 1 offline PTY tests PASS; scoped Clippy, fmt и release build PASS. Full offline gate, live/visual qualification и безопасное восстановление не проверялись.
-- Unresolved: форматированные oversized table cells пока показывают preview; безопасная граница R3 не определена. Это не доказательство полного исправления. Решение recovery должно использовать producer-known stable prefix после tool outcomes и durable availability, адресный bounded cut и идентичности/offsets, не продвигать общий floor по одному reasoning и не терять остальные события; точные root/child/location fences сохраняются.
+- Last relevant evidence: focused 96 Markdown, 5 projection, 44 selection, 1 live-reasoning selection/delta, 1 live-parts, 1 long-redacted reasoning, 1 parked worker и 1 offline PTY tests PASS; scoped Clippy, fmt и release build PASS. Full offline gate, live/visual qualification и безопасное восстановление не проверялись.
+- Unresolved: форматированные oversized table cells пока показывают preview; безопасная граница R3 не определена. Для таблиц нельзя независимо парсить исходные куски через границы стилей и ссылок; первый проход существующего Markdown parser не является кооперативно отменяемым, а новый произвольный byte cap лишь перенёс бы ограничение. Для recovery недостаточно revisioned reasoning cut: поздний history read может увидеть уже обновлённое tool presentation, и terminal удаляет активный turn. Нужны producer-known stable prefix после tool outcomes и durable availability, адресный bounded cut, identities/offsets и согласование **всех** классов post-cut событий; общий floor по одному reasoning и потеря root/child/location fences недопустимы. Ни один такой механизм пока не доказан.
 
 ## Material Decisions
 

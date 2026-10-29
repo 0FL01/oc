@@ -4847,6 +4847,41 @@ fn first_painted_number(state: &TuiState) -> usize {
 }
 
 #[tokio::test]
+async fn reasoning_selection_uses_the_painted_live_snapshot_during_delta() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    let mut state = fresh_state("selection-live-reasoning").await;
+    let frame = Rect::new(0, 0, 60, 18);
+    let turn = WorkerTurnId("selection-live-reasoning-turn".into());
+    state.active_turn = Some(turn.clone());
+    state.thinking_expanded = true;
+    state.set_clipboard_mode(super::ClipboardMode::Select);
+    let body = format!("{}alpha one\n\nbeta two", "filler\n\n".repeat(3_000));
+    assert!(body.len() > 16 * 1024);
+    state.apply_reasoning_delta(&turn, &body);
+    paint_selection_fixture(&mut state, frame, "alpha");
+    repaint_transcript(&state, frame);
+    let (x, y) = painted_cell(&state, frame, "alpha");
+    let (bx, by) = painted_cell(&state, frame, "beta");
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+        frame,
+    );
+    state.apply_reasoning_delta(&turn, " additional streaming text");
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Drag(MouseButton::Left), bx + 4, by),
+        frame,
+    );
+    state.handle_mouse(
+        selection_mouse(MouseEventKind::Up(MouseButton::Left), bx + 4, by),
+        frame,
+    );
+    assert_eq!(
+        state.take_copy_request().as_deref(),
+        Some("alpha one\nbeta")
+    );
+}
+
+#[tokio::test]
 async fn transcript_selection_survives_live_updates_and_refreshes() {
     use crossterm::event::{MouseButton, MouseEventKind};
     let mut state = fresh_state("selection-live-updates").await;
