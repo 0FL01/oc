@@ -184,6 +184,9 @@ impl FrameMetrics {
 /// input still yields to the worker drain below each frame).
 const MAX_KEYS_PER_FRAME: usize = 256;
 const MAX_WORKER_EVENTS_PER_FRAME: usize = 256;
+/// Live turn events retained while a workspace read is in flight. Overflow
+/// drops them and requests another gap read.
+const MAX_DEFERRED_EVENTS: usize = 4 * oc_core::session::MAX_QUEUE_ITEMS;
 /// Input/worker drain slice per loop turn; fairness, not the paint rate.
 const BURST_BUDGET: Duration = Duration::from_millis(2);
 /// Background lanes and receipts wake the loop through `oc_core::wake` when
@@ -324,6 +327,12 @@ struct LoopState {
     controls: control_jobs::Controls,
     terminals: terminal_controls::Jobs,
     workspace_job: Option<shared::Job>,
+    /// Applying a live turn event advances the projection floor that an
+    /// in-flight workspace read was captured against. A streaming turn would
+    /// then make every repair stale and request another gap read forever, so
+    /// these wait, already revision-checked, until the read is applied.
+    deferred_events: std::collections::VecDeque<(CoreEvent, u64)>,
+    workspace_reads: u64,
     navigation_revision: u64,
     pointer_revision: u64,
     interaction_revision: u64,
@@ -1781,39 +1790,62 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         }
         let worker_start = Instant::now();
         for _ in 0..MAX_WORKER_EVENTS_PER_FRAME {
-            let event = match worker_ready
-                .take()
-                .map(Ok)
-                .unwrap_or_else(|| try_worker_event(&mut rx, frame_metrics.as_mut()))
-            {
-                Ok(event) => event,
-                Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {
-                    if app.shares_workspace() {
-                        loop_state.shared_refresh = true;
+            let deferred = loop_state
+                .workspace_job
+                .is_none()
+                .then(|| loop_state.deferred_events.pop_front())
+                .flatten();
+            let (event, event_revision) = if let Some((event, revision)) = deferred {
+                (event, Some(revision))
+            } else {
+                let event = match worker_ready
+                    .take()
+                    .map(Ok)
+                    .unwrap_or_else(|| try_worker_event(&mut rx, frame_metrics.as_mut()))
+                {
+                    Ok(event) => event,
+                    Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {
+                        if app.shares_workspace() {
+                            loop_state.shared_refresh = true;
+                            loop_state.shared_gap = true;
+                            dirty = true;
+                        }
+                        break;
+                    }
+                    Err(_) => break,
+                };
+                let (event, event_revision) = match event {
+                    CoreEvent::Projection { revision, event } => {
+                        if revision <= loop_state.projection_revision {
+                            continue;
+                        }
+                        if loop_state.projection_revision != 0
+                            && revision != loop_state.projection_revision + 1
+                        {
+                            loop_state.shared_gap = true;
+                            loop_state.shared_refresh = true;
+                        }
+                        loop_state.projection_revision = revision;
+                        (*event, Some(revision))
+                    }
+                    event => (event, None),
+                };
+                loop_state.activity.observe(&event);
+                if let Some(revision) = event_revision
+                    && loop_state.workspace_job.is_some()
+                    && shared::turn_event(&event)
+                {
+                    if loop_state.deferred_events.len() < MAX_DEFERRED_EVENTS {
+                        loop_state.deferred_events.push_back((event, revision));
+                    } else {
+                        loop_state.deferred_events.clear();
                         loop_state.shared_gap = true;
-                        dirty = true;
-                    }
-                    break;
-                }
-                Err(_) => break,
-            };
-            let (event, event_revision) = match event {
-                CoreEvent::Projection { revision, event } => {
-                    if revision <= loop_state.projection_revision {
-                        continue;
-                    }
-                    if loop_state.projection_revision != 0
-                        && revision != loop_state.projection_revision + 1
-                    {
-                        loop_state.shared_gap = true;
                         loop_state.shared_refresh = true;
                     }
-                    loop_state.projection_revision = revision;
-                    (*event, Some(revision))
+                    continue;
                 }
-                event => (event, None),
+                (event, event_revision)
             };
-            loop_state.activity.observe(&event);
             match &event {
                 CoreEvent::SessionViewed { .. } => {
                     loop_state.sync_tabs(&mut state);
@@ -1939,6 +1971,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         }
         if dirty || tabs_dirty {
             deadline = Some(deadline.map_or(paint_due, |at| at.min(paint_due)));
+        }
+        if loop_state.workspace_job.is_none() && !loop_state.deferred_events.is_empty() {
+            deadline = Some(Instant::now());
         }
         if std::iter::once(&state)
             .chain(loop_state.tabs.iter().flatten())
@@ -4248,6 +4283,7 @@ fn report_owner(state: &mut TuiState, deck: &mut LoopState, note: &str, variant:
 async fn reattached(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
     // A re-elected owner restarts live revisions; the old cursor would hide them.
     deck.projection_revision = 0;
+    deck.deferred_events.clear();
     deck.shared_gap = true;
     deck.shared_refresh = true;
     let restored = async {
@@ -4899,6 +4935,7 @@ fn write_metrics(state: &TuiState, deck: &LoopState, frames: Option<&FrameMetric
         "display_hz": frames.and_then(|frames| frames.display_hz),
         "input_events": frames.map_or(0, |frames| frames.input_events),
         "worker_events": frames.map_or(0, |frames| frames.worker_events),
+        "workspace_reads": deck.workspace_reads,
         "terminal_write_calls": frames.map_or(0, |frames| frames.writes.calls),
         "terminal_flush_calls": frames.map_or(0, |frames| frames.writes.flush_calls),
         "terminal_write_bytes": frames.map_or(0, |frames| frames.writes.bytes),

@@ -569,6 +569,7 @@ pub(super) async fn sync(
             provisional: request.provisional.clone(),
         };
         let owner = app.clone();
+        deck.workspace_reads += 1;
         deck.workspace_job = Some(Job {
             request,
             job: oc_core::wake::spawn(async move { prepare(&owner, &captured).await }),

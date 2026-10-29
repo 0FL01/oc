@@ -176,6 +176,15 @@ impl Fixture {
                                     &stopping,
                                     &progress,
                                 );
+                            } else if let Script::Burst(label) = &scripted {
+                                let _ = shared_runtime::stream_paced(
+                                    &mut socket,
+                                    label,
+                                    &stopping,
+                                    &progress,
+                                    Duration::from_millis(1),
+                                    200,
+                                );
                             } else {
                                 let _ = respond(&mut socket, &scripted, &stopping);
                             }
@@ -269,6 +278,7 @@ impl Drop for Fixture {
 /// One scripted peer answer: text, or a `compress` function call.
 enum Script {
     Progress(String),
+    Burst(String),
     Text(String),
     Slow(String),
     Patch(String),
@@ -288,6 +298,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if let Some(label) = prompt.strip_prefix("srv-progress ") {
         return Script::Progress(label.into());
+    }
+    if let Some(label) = prompt.strip_prefix("srv-burst ") {
+        return Script::Burst(label.into());
     }
     if prompt.starts_with("patch ") {
         let arguments = serde_json::json!({"patchText": PATCH}).to_string();
@@ -389,7 +402,7 @@ fn respond(socket: &mut TcpStream, script: &Script, stop: &AtomicBool) -> std::i
         Script::Patch(arguments) => finish_call(socket, "apply_patch", arguments),
         Script::Move(arguments) => finish_call(socket, "opencode_session_move", arguments),
         Script::Slow(_) => unreachable!("handled above"),
-        Script::Progress(_) => unreachable!("streamed by concurrent fixture"),
+        Script::Progress(_) | Script::Burst(_) => unreachable!("streamed by concurrent fixture"),
     }
 }
 

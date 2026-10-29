@@ -474,6 +474,17 @@ pub(super) fn stream(
     stop: &AtomicBool,
     progress: &Mutex<std::collections::BTreeMap<String, usize>>,
 ) -> std::io::Result<()> {
+    stream_paced(socket, label, stop, progress, Duration::from_millis(50), 0)
+}
+
+pub(super) fn stream_paced(
+    socket: &mut TcpStream,
+    label: &str,
+    stop: &AtomicBool,
+    progress: &Mutex<std::collections::BTreeMap<String, usize>>,
+    pace: Duration,
+    padding: usize,
+) -> std::io::Result<()> {
     write!(
         socket,
         "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n"
@@ -483,12 +494,12 @@ pub(super) fn stream(
         if stop.load(Ordering::Acquire) {
             return Ok(());
         }
-        let delta = serde_json::json!({"type":"response.output_text.delta", "delta":format!("{label} tick:{tick} ")});
+        let delta = serde_json::json!({"type":"response.output_text.delta", "delta":format!("{label} tick:{tick} {}", "x".repeat(padding))});
         write!(socket, "data: {delta}\n\n")?;
         socket.flush()?;
         progress.lock().unwrap().insert(label.into(), tick);
         // Deliberately paced ongoing generation; assertions observe progress.
-        std::thread::sleep(Duration::from_millis(50));
+        std::thread::sleep(pace);
     }
     Ok(())
 }
@@ -818,6 +829,39 @@ fn srv01_lost_startup_intent_joins_owner_without_any_ready_client() {
             .is_empty()
     );
     assert!(fixture.requests.lock().unwrap().is_empty());
+}
+
+/// A gap repair is captured against the view's projection floor. Deltas that
+/// arrive while it is read wait for it; applying them first made every repair
+/// stale and requested another workspace read until the stream ended.
+#[test]
+fn reattach_during_fast_stream_settles_workspace_repairs() {
+    let fixture = Fixture::new();
+    let mut first = PtySession::spawn(
+        fixture.clone(),
+        &fixture.project_a(),
+        &["tui", "--session", "burst-repair"],
+        None,
+    );
+    wait_screen_row(&first, READY, DEADLINE);
+    first.send(b"srv-burst BURST\r");
+    // A large live turn keeps each repair open while many deltas land.
+    progress_after(&fixture, "BURST", 2_000);
+    first.child.kill().unwrap();
+    first.child.wait().unwrap();
+    let path = fixture.root.path().join("burst-repair-metrics.json");
+    let mut second = PtySession::spawn(fixture.clone(), &fixture.project_a(), &[], Some(&path));
+    wait_screen_row(&second, "BURST tick:", DEADLINE);
+    // About half a second of 1 ms deltas while the reattached view repairs.
+    let attached = progress_after(&fixture, "BURST", 0);
+    progress_after(&fixture, "BURST", attached + 500);
+    wait_screen_row(&second, "BURST tick:", DEADLINE);
+    quit(&mut second);
+    let reads = metrics(&path)["workspace_reads"].as_u64().unwrap();
+    assert!(
+        reads <= 8,
+        "workspace repairs did not settle: {reads} reads"
+    );
 }
 
 #[test]
