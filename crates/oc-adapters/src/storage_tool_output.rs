@@ -532,7 +532,12 @@ impl Db {
         path: &str,
     ) -> Result<Reader, StorageError> {
         self.verify_output_dir()?;
-        let (raw,name,dev,ino,extent,state):(String,String,i64,i64,i64,String)=conn.prepare_cached("WITH RECURSIVE owned(id,depth) AS (SELECT ?1,0 UNION ALL SELECT s.id,owned.depth+1 FROM sessions s JOIN owned ON s.parent_id=owned.id WHERE owned.depth<32) SELECT r.descriptor,r.name,r.dev,r.ino,r.extent,r.state FROM tool_output_resources r JOIN tool_operations o ON o.id=r.operation_id AND o.session_id=r.session_id WHERE r.session_id IN (SELECT id FROM owned) AND json_extract(r.descriptor,'$.path')=?2")?.query_row(params![session,path],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional()?.ok_or_else(invalid)?;
+        // The unique file name keys the lookup; the full path is checked below.
+        let file_name = Path::new(path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(invalid)?;
+        let (raw,name,dev,ino,extent,state):(String,String,i64,i64,i64,String)=conn.prepare_cached("WITH RECURSIVE owned(id,depth) AS (SELECT ?1,0 UNION ALL SELECT s.id,owned.depth+1 FROM sessions s JOIN owned ON s.parent_id=owned.id WHERE owned.depth<32) SELECT r.descriptor,r.name,r.dev,r.ino,r.extent,r.state FROM tool_output_resources r JOIN tool_operations o ON o.id=r.operation_id AND o.session_id=r.session_id WHERE r.name=?2 AND r.session_id IN (SELECT id FROM owned)")?.query_row(params![session,file_name],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional()?.ok_or_else(invalid)?;
         let extent = u64::try_from(extent).map_err(|_| invalid())?;
         if state == "Expired" {
             return Err(invalid());

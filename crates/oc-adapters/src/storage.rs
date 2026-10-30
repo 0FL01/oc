@@ -644,7 +644,8 @@ impl Db {
         conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
         // Hot-path lookups must not scan the whole archive: global message
         // sequence allocation, per-session tool lists/counts, effort facts and
-        // their next-message anchor, and the busy-family activity probe.
+        // their next-message anchor, the busy-family activity probe, question
+        // results of listed tools, output expiry and live shell/Code Mode jobs.
         conn.execute_batch(
             "CREATE INDEX IF NOT EXISTS messages_seq ON messages(seq);
              CREATE INDEX IF NOT EXISTS tool_operations_session ON tool_operations(session_id);
@@ -658,7 +659,11 @@ impl Db {
              CREATE INDEX IF NOT EXISTS events_user_shell_admitted ON events(payload) WHERE kind='user_shell_admitted';
              CREATE INDEX IF NOT EXISTS events_shell_foreground ON events(payload) WHERE kind='shell_foreground';
              CREATE INDEX IF NOT EXISTS events_shell_background ON events(payload) WHERE kind='shell_background';
-             CREATE INDEX IF NOT EXISTS events_tool_presentation ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_presentation';",
+             CREATE INDEX IF NOT EXISTS events_tool_presentation ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_presentation';
+             CREATE INDEX IF NOT EXISTS events_tool_question ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_question';
+             CREATE INDEX IF NOT EXISTS tool_output_expiry ON tool_output_resources(completed) WHERE state NOT IN ('Active','Expired');
+             CREATE INDEX IF NOT EXISTS shell_jobs_live ON shell_jobs(session_id) WHERE phase!='terminal';
+             CREATE INDEX IF NOT EXISTS execute_jobs_live ON execute_jobs(session_id) WHERE phase!='terminal';",
         )?;
 
         let db = Self {
@@ -1580,7 +1585,7 @@ impl Db {
                          THEN substr(output, 1, ?4) ELSE output END,
                     length(CAST(output AS BLOB)), archive_rowid,
                     (SELECT metadata FROM patch_effects WHERE op_id=conversation_tools.id),
-                    CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=conversation_tools.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=conversation_tools.id LIMIT 1),substr(output,1,131136)) ELSE NULL END
+                    CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=conversation_tools.session_id AND e.kind='tool_output_question' AND (CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation') END)=+conversation_tools.id LIMIT 1),substr(output,1,131136)) ELSE NULL END
                FROM conversation_tools
               WHERE session_id = ?1 AND (?2 IS NULL OR archive_rowid < ?2)
               ORDER BY archive_rowid DESC LIMIT ?3",
@@ -1793,7 +1798,7 @@ impl Db {
                          THEN substr(output, 1, ?3) ELSE output END,
                     length(CAST(output AS BLOB)), rowid,
                     (SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),
-                    CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END
+                    CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND (CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation') END)=+tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END
                FROM tool_operations
               WHERE session_id = ?1 ORDER BY rowid ASC LIMIT ?2",
         )?;
@@ -3463,7 +3468,7 @@ impl Db {
                 // boundary destroys patch/path metadata. Preserve complete input
                 // within its producer-derived canonical encoding bound, not what an
                 // unrelated operation left in a shared turn budget.
-                let view=conn.prepare_cached("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND json_extract(e.payload,'$.operation')=tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2")?.query_row(params![op,id,TOOL_OP_PREVIEW_BYTES as i64,TOOL_INPUT_JSON_BYTES as i64],|r| {
+                let view=conn.prepare_cached("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND (CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation') END)=+tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2")?.query_row(params![op,id,TOOL_OP_PREVIEW_BYTES as i64,TOOL_INPUT_JSON_BYTES as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
                     let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
@@ -4409,6 +4414,10 @@ impl Db {
         if self.conn.is_held() {
             FSYNC_UNDER_DB.with(|count| count.set(count.get() + 1));
         }
+        #[cfg(test)]
+        if self.conn.skip_sync.load(std::sync::atomic::Ordering::SeqCst) {
+            return Ok(());
+        }
         file.sync_all()
     }
 
@@ -4729,6 +4738,9 @@ mod commit_probe_tests;
 mod history_scale_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "storage/tool_output_scale_tests.rs"]
+mod tool_output_scale_tests;
 #[cfg(test)]
 #[path = "storage/transcript_tests.rs"]
 mod transcript_tests;
