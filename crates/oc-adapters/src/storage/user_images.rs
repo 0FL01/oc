@@ -16,10 +16,11 @@ impl Db {
         message: &str,
         text: &str,
     ) -> Result<Vec<ImageMark>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        Ok(Self::user_image_metadata_in(&conn, session, message, text)?
-            .map(|(_, metadata)| metadata.images)
-            .unwrap_or_default())
+        self.readers.read(|conn| {
+            Ok(Self::user_image_metadata_in(conn, session, message, text)?
+                .map(|(_, metadata)| metadata.images)
+                .unwrap_or_default())
+        })
     }
 
     fn user_image_metadata_in(

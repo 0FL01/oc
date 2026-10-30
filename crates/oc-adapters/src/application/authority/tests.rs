@@ -614,7 +614,7 @@ async fn source_queries_and_sibling_primary_cannot_consume_an_owned_move() {
             .await
             .unwrap();
     }
-    let gate = target.deck_gate.lock().await;
+    let gate = target.deck_gate.write().await;
     let sibling_origin = Arc::new(Origin::new(Kind::Interactive, false).at(source.clone()));
     let sibling = owner
         .begin(

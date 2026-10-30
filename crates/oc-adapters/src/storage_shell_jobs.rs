@@ -534,16 +534,17 @@ impl Db {
         session: &str,
         message: &oc_core::session::MessageId,
     ) -> Result<Option<oc_core::queries::ShellHistoryNotice>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        let visible: bool = conn
-            .prepare_cached(
-                "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
-            )?
-            .query_row(params![session, message.0], |row| row.get(0))?;
-        if !visible {
-            return Ok(None);
-        }
-        Self::model_shell_notice_in(&conn, session, &message.0)
+        self.readers.read(|conn| {
+            let visible: bool = conn
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+                )?
+                .query_row(params![session, message.0], |row| row.get(0))?;
+            if !visible {
+                return Ok(None);
+            }
+            Self::model_shell_notice_in(conn, session, &message.0)
+        })
     }
 
     /// Exact native input/result association, shared with conversation target
@@ -588,9 +589,9 @@ impl Db {
         session: &str,
         message: &oc_core::session::MessageId,
     ) -> Result<Option<oc_core::queries::UserShellResult>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        self.readers.read(|conn| {
         let Some((operation, superseded_input, input)) =
-            Self::user_shell_link_in(&conn, session, &message.0)?
+            Self::user_shell_link_in(conn, session, &message.0)?
         else {
             return Ok(None);
         };
@@ -629,7 +630,7 @@ impl Db {
         {
             return Err(StorageError::OperationNotFound);
         }
-        let output = Self::tool_presentation_in(&conn, session, &operation)?
+        let output = Self::tool_presentation_in(conn, session, &operation)?
             .filter(|presentation| presentation.shell.is_some())
             .unwrap_or_else(|| outcome.user_presentation());
         let end = provenance
@@ -647,6 +648,7 @@ impl Db {
                 .diagnostic
                 .map(|text| text[..text.floor_char_boundary(TOOL_OP_PREVIEW_BYTES)].into()),
         }))
+        })
     }
 
     pub(crate) fn shell_notices_after(

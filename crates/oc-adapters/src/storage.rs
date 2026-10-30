@@ -1470,7 +1470,7 @@ impl Db {
     /// Count visible committed messages (UI03 pager total). Harness system
     /// reminders stay in raw/active history but are not transcript rows.
     pub fn history_len(&self, session: &str) -> Result<usize, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        self.readers.read(|conn| {
         let count: Option<i64> = conn
             .query_row(
                 "SELECT COUNT(*) FROM conversation_messages WHERE session_id = ?1 AND role != 'system'",
@@ -1480,9 +1480,10 @@ impl Db {
             .optional()?;
         let count = count.unwrap_or(0).max(0) as usize;
         if count == 0 {
-            Self::require_session(&conn, session)?;
+            Self::require_session(conn, session)?;
         }
         Ok(count)
+        })
     }
 
     /// Read one newest-first page: `(seq, role, text)` with `seq` below
@@ -1506,8 +1507,8 @@ impl Db {
         session: &str,
         message: &oc_core::session::MessageId,
     ) -> Result<Option<HistoryPageRow>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        Self::require_session(&conn, session)?;
+        self.readers.read(|conn| {
+        Self::require_session(conn, session)?;
         let mut remaining = HISTORY_PAGE_ID_BYTES;
         conn.prepare_cached("SELECT seq,role,text,id FROM conversation_messages WHERE session_id=?1 AND id=?2 AND role!='system'")?.query_row(params![session, message.0],
             |row| {
@@ -1521,6 +1522,7 @@ impl Db {
         )
         .optional()
         .map_err(Into::into)
+        })
     }
 
     /// Newest-first bounded page with exact durable IDs.
@@ -1584,29 +1586,30 @@ impl Db {
         after_seq: i64,
     ) -> Result<Vec<HistoryPageRow>, StorageError> {
         let limit = (limit.min(HISTORY_PAGE_MAX) as i64).max(0);
-        let conn = self.conn.lock().expect("db mutex");
-        let mut stmt = conn.prepare_cached(
-            "SELECT seq, role, text, id FROM conversation_messages
+        self.readers.read(|conn| {
+            let mut stmt = conn.prepare_cached(
+                "SELECT seq, role, text, id FROM conversation_messages
                    WHERE session_id = ?1 AND role != 'system' AND seq > ?2
              ORDER BY seq ASC LIMIT ?3",
-        )?;
-        let mut remaining = HISTORY_PAGE_ID_BYTES;
-        let rows = stmt.query_map(params![session, after_seq, limit], |row| {
-            Ok(HistoryPageRow {
-                id: page_message_id(row, &mut remaining)?,
-                seq: row.get(0)?,
-                role: row.get(1)?,
-                text: row.get(2)?,
-            })
-        })?;
-        let mut out = Vec::new();
-        for row in rows {
-            out.push(row?);
-        }
-        if out.is_empty() {
-            Self::require_session(&conn, session)?;
-        }
-        Ok(out)
+            )?;
+            let mut remaining = HISTORY_PAGE_ID_BYTES;
+            let rows = stmt.query_map(params![session, after_seq, limit], |row| {
+                Ok(HistoryPageRow {
+                    id: page_message_id(row, &mut remaining)?,
+                    seq: row.get(0)?,
+                    role: row.get(1)?,
+                    text: row.get(2)?,
+                })
+            })?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            if out.is_empty() {
+                Self::require_session(conn, session)?;
+            }
+            Ok(out)
+        })
     }
 
     /// Public notice adjacent to the last accepted user row, if present.
@@ -1645,7 +1648,7 @@ impl Db {
         &self,
         session: &str,
     ) -> Result<(Option<i64>, Option<i64>), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        self.readers.read(|conn| {
         let bounds: Option<(Option<i64>, Option<i64>)> = conn
             .query_row(
                 "SELECT MIN(seq), MAX(seq) FROM conversation_messages WHERE session_id = ?1 AND role != 'system'",
@@ -1655,9 +1658,10 @@ impl Db {
             .optional()?;
         let (min, max) = bounds.unwrap_or((None, None));
         if min.is_none() {
-            Self::require_session(&conn, session)?;
+            Self::require_session(conn, session)?;
         }
         Ok((min, max))
+        })
     }
 
     /// Read one newest-first tool-operation page below `before_rowid`.
@@ -1709,6 +1713,7 @@ impl Db {
                         &name,
                         &row.get::<_, String>(3)?,
                         row.get::<_, Option<String>>(9)?.as_deref(),
+                        true,
                     ),
                     dcp_topic,
                     dcp,
@@ -1921,6 +1926,7 @@ impl Db {
                         &name,
                         &row.get::<_, String>(3)?,
                         row.get::<_, Option<String>>(9)?.as_deref(),
+                        true,
                     ),
                     dcp_topic,
                     dcp,
@@ -3360,10 +3366,9 @@ impl Db {
         cursor: Option<&oc_core::queries::HistoryPartCursor>,
         from_start: bool,
     ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
-        let id = {
-            let conn = self.conn.lock().expect("db mutex");
-            conn.prepare_cached("SELECT t.id FROM turns t JOIN messages m ON m.session_id=t.session_id WHERE json_valid(t.result) AND t.session_id=?1 AND m.seq=?2 AND m.id=COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message')) LIMIT 1")?.query_row(params![session,seq], |r|r.get::<_,String>(0)).optional()?
-        };
+        let id = self.readers.read(|conn| {
+            Ok(conn.prepare_cached("SELECT t.id FROM turns t JOIN messages m ON m.session_id=t.session_id WHERE json_valid(t.result) AND t.session_id=?1 AND m.seq=?2 AND m.id=COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message')) LIMIT 1")?.query_row(params![session,seq], |r|r.get::<_,String>(0)).optional()?)
+        })?;
         match id {
             Some(id) => self.turn_presentation_range(session, &id, cursor, from_start),
             None => Ok(None),
@@ -3396,8 +3401,9 @@ impl Db {
         from_start: bool,
     ) -> Result<Option<oc_core::queries::HistoryTurn>, StorageError> {
         use oc_core::queries::{HistoryTurn, PartState, ToolOpView, TranscriptPart};
-        let locked = self.conn.lock().expect("db mutex");
-        let conn = locked.unchecked_transaction()?;
+        // One snapshot on a pooled reader; a question's file lease is admitted
+        // on the writer (`question_presentation_in`), atomic with expiry.
+        self.readers.read(|conn| {
         let record: Option<(String, String, String, String)> = conn.prepare_cached("SELECT t.id, t.status, COALESCE(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.display'),'{}'), COALESCE(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.model'),'')
              FROM turns t WHERE json_valid(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result)) AND t.session_id=?1 AND t.id=?2 LIMIT 1")?.query_row(params![session,id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
         let Some((id, status, metadata, model)) = record else {
@@ -3405,7 +3411,7 @@ impl Db {
         };
         let meta: serde_json::Value = serde_json::from_str(&metadata).unwrap_or_default();
         let revision: i64 = conn.query_row("SELECT MAX((SELECT COALESCE(MAX(seq),0) FROM events WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM events WHERE kind='generation_dispatched' AND json_extract(payload,'$.operation')=?2),(SELECT COALESCE(MAX(seq),0) FROM events WHERE kind='dispatch_group_state' AND json_extract(payload,'$.operation')=?2))", params![session, &id], |r| r.get(0))?;
-        let physical = Self::dispatch_count(&conn, &id)?;
+        let physical = Self::dispatch_count(conn, &id)?;
         let mut turn = HistoryTurn {
             revision: revision as u64,
             physical_requests: physical as u64,
@@ -3427,7 +3433,7 @@ impl Db {
             ..HistoryTurn::default()
         };
         // Bounded presentation window, not a runtime step/retry admission limit.
-        turn.spans = self.latest_turn_spans(&conn, &id)?;
+        turn.spans = self.latest_turn_spans(conn, &id)?;
         let total: Option<i64> = conn.prepare_cached("SELECT COALESCE(json_extract(head,'$.raw_prefix.ends[4]'),0)+json_array_length(head,'$.display_parts') FROM turn_log_heads WHERE id=?1")?.query_row([&id],
             |r| r.get(0),
         )?;
@@ -3453,9 +3459,9 @@ impl Db {
             end
         };
         let mut refs = if cursor.is_none() && !from_start {
-            self.latest_turn_parts(&conn, &id)?
+            self.latest_turn_parts(conn, &id)?
         } else {
-            self.turn_part_refs(&conn, &id, start, end, newer)?
+            self.turn_part_refs(conn, &id, start, end, newer)?
         };
         if !newer {
             refs.reverse();
@@ -3551,15 +3557,15 @@ impl Db {
                 let view=conn.prepare_cached("SELECT rowid,name,state,CASE WHEN length(CAST(input AS BLOB))<=?4 THEN input ELSE NULL END,substr(output,1,?3),length(CAST(output AS BLOB)),(SELECT metadata FROM patch_effects WHERE op_id=tool_operations.id),CASE WHEN name='question' THEN COALESCE((SELECT COALESCE(json_extract(e.payload,'$.result'),json_extract(e.payload,'$.question_resource')) FROM events e WHERE e.session_id=tool_operations.session_id AND e.kind='tool_output_question' AND (CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation') END)=+tool_operations.id LIMIT 1),substr(output,1,131136)) ELSE NULL END FROM tool_operations WHERE id=?1 AND turn_id=?2")?.query_row(params![op,id,TOOL_OP_PREVIEW_BYTES as i64,TOOL_INPUT_JSON_BYTES as i64],|r| {
                     let bytes=r.get::<_,Option<i64>>(5)?.unwrap_or(0);
                     let (output,output_truncated)=bound_preview(r.get(4)?,bytes);
-                    let dcp = Self::dcp_run_in(&conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                    let dcp = Self::dcp_run_in(conn,session,op).map_err(|_| rusqlite::Error::InvalidQuery)?;
                     let name: String = r.get(1)?;
                     let input: Option<String> = r.get(3)?;
                     let dcp_topic = if name == "compress" { dcp.as_ref().map(|run|run.topic.clone()).or_else(||crate::dcp::presentation_topic(&name,input.as_deref())) } else { None };
                     let raw: Option<String> = r.get(7)?;
                     let state: String = r.get(2)?;
-                    let question = self.question_presentation_in(&conn, &name, &state, raw.as_deref());
-                    let output_presentation=Self::tool_presentation_in(&conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?;
-                    let child_job=if name=="subagent" { Self::child_tool_job_in(&conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?.map(Box::new) } else { None };
+                    let question = self.question_presentation_in(conn, &name, &state, raw.as_deref(), false);
+                    let output_presentation=Self::tool_presentation_in(conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?;
+                    let child_job=if name=="subagent" { Self::child_tool_job_in(conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?.map(Box::new) } else { None };
                     Ok(ToolOpView{child_job,output_presentation,question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
                 if let Some(view) = view {
@@ -3605,9 +3611,9 @@ impl Db {
             turn.omitted_parts = (end - start).saturating_sub(turn.parts.len() + pending_text);
         }
         turn.truncated |= turn.omitted_parts > 0;
-        turn.notice_order = self.turn_notice_order_in(&conn, session, &id)?;
-        conn.commit()?;
+        turn.notice_order = self.turn_notice_order_in(conn, session, &id)?;
         Ok(Some(turn))
+        })
     }
 
     /// Read a turn's terminal status and result JSON (turn-log replay).

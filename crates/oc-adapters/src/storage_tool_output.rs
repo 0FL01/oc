@@ -675,12 +675,15 @@ impl Db {
     /// can present its source question, but cannot grant model read/grep access.
     /// Never called by wire/history/DCP reconstruction. Missing/expired/swapped
     /// resources leave the immutable bounded outcome/reference visible.
+    /// `conn` is the writer's when `on_writer`; a pooled reader's snapshot only
+    /// finds the resource, whose lease the writer admits (atomic with expiry).
     pub(super) fn question_presentation_in(
         &self,
         conn: &Connection,
         name: &str,
         state: &str,
         raw: Option<&str>,
+        on_writer: bool,
     ) -> Option<oc_core::question::QuestionResult> {
         use oc_core::question::{QuestionInput, QuestionResult, RESULT_BYTES_CAP};
         if let Some(result) = QuestionResult::from_output(name, state, raw) {
@@ -698,9 +701,12 @@ impl Db {
         if resource.bytes > RESULT_BYTES_CAP as u64 {
             return None;
         }
-        let lease = self
-            .open_tool_output_in(conn, &reference.source_session, &resource.path)
-            .ok()?;
+        let lease = if on_writer {
+            self.open_tool_output_in(conn, &reference.source_session, &resource.path)
+        } else {
+            self.open_tool_output(&reference.source_session, &resource.path)
+        }
+        .ok()?;
         // Parsing is bounded by the original native question cap, not the generic
         // 16-MiB capture cap. Hold the identity-checked reader lease throughout.
         let result: QuestionResult =

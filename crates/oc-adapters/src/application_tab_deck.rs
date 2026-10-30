@@ -15,8 +15,8 @@ use oc_core::session::CoreError;
 
 // The runtime binding, rather than the preference or a frontend path, is
 // authoritative. Check the actual row too: an orphaned binding is not a tab.
-fn root_exists(db: &Db, runtime: &Runtime<'_>, id: &str) -> Result<bool, CoreError> {
-    match runtime.open_session(id) {
+fn root_exists(db: &Db, location: &str, id: &str) -> Result<bool, CoreError> {
+    match crate::runtime::session_bound(db, location, id) {
         Ok(()) => {}
         Err(RuntimeError::SessionNotFound | RuntimeError::LocationMismatch { .. }) => {
             return Ok(false);
@@ -31,16 +31,19 @@ fn root_exists(db: &Db, runtime: &Runtime<'_>, id: &str) -> Result<bool, CoreErr
 }
 
 pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, CoreError> {
-    let key = selection::tab_deck_key(runtime.location());
-    let location = runtime.location().to_string();
-    let pending = db
-        .tab_adoptions(runtime.location())
-        .map_err(|error| match error {
-            StorageError::Io(error) if error.kind() == std::io::ErrorKind::InvalidData => {
-                CoreError::StoredTabDeck
-            }
-            _ => CoreError::TabDeckStorage,
-        })?;
+    load_at(db, runtime.location())
+}
+
+/// The deck of `location`, from the database alone.
+pub(super) fn load_at(db: &Db, at: &str) -> Result<TabDeckSnapshot, CoreError> {
+    let key = selection::tab_deck_key(at);
+    let location = at.to_string();
+    let pending = db.tab_adoptions(at).map_err(|error| match error {
+        StorageError::Io(error) if error.kind() == std::io::ErrorKind::InvalidData => {
+            CoreError::StoredTabDeck
+        }
+        _ => CoreError::TabDeckStorage,
+    })?;
     let raw = match db
         .get_pref_bounded(&key, MAX_TAB_DECK_BYTES)
         .map_err(|_| CoreError::TabDeckStorage)?
@@ -56,7 +59,7 @@ pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, Co
     let mut seen = HashSet::new();
     let mut projected = false;
     for (index, id) in stored.sessions.into_iter().enumerate() {
-        if valid_tab_id(&id) && seen.insert(id.clone()) && root_exists(db, runtime, &id)? {
+        if valid_tab_id(&id) && seen.insert(id.clone()) && root_exists(db, at, &id)? {
             sessions.push(SessionId(id));
             new_session_titles.push(
                 stored
@@ -82,7 +85,7 @@ pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, Co
     for id in &pending {
         // A pending root must still be owned by this exact Location, exist as
         // a root, and not be silently omitted by projection.
-        if !root_exists(db, runtime, id)? {
+        if !root_exists(db, at, id)? {
             return Err(CoreError::StoredTabDeck);
         }
         if seen.insert(id.clone()) {
@@ -143,7 +146,7 @@ pub(super) fn save(
         if !valid_tab_id(&id.0) || !seen.insert(&id.0) {
             return Err(CoreError::InvalidTabDeck);
         }
-        if !root_exists(db, runtime, &id.0)? {
+        if !root_exists(db, runtime.location(), &id.0)? {
             return Err(CoreError::InvalidTabDeck);
         }
     }

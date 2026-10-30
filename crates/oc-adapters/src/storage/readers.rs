@@ -6,7 +6,8 @@
 //! take no file lease and decide no irreversible effect belong here: a reader
 //! can observe a commit whose writer has not published it yet, which `fence`
 //! does not cover. Reads inside a write transaction keep using that
-//! transaction.
+//! transaction. Lock order: a read may take the writer (a file lease), the
+//! writer never waits for a pooled connection.
 use super::{StorageError, configure_connection, writer};
 use rusqlite::{Connection, OpenFlags};
 use std::path::PathBuf;
@@ -157,6 +158,57 @@ mod tests {
         let after = idle_seq(&db).recv_timeout(Duration::from_secs(10));
         assert_eq!(after, Ok(Some(7)));
         drop(writer);
+    }
+
+    /// Every read of a History page runs on the pool: none waits behind a
+    /// writer holding the connection.
+    #[test]
+    fn history_page_reads_do_not_wait_behind_the_writer() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        db.create_session("s").unwrap();
+        db.begin_turn("t", "s", "question").unwrap();
+        let log = serde_json::json!({
+            "display_parts": [{"message": 0}],
+            "input": [{"content": [{"type": "output_text", "text": "answer"}]}],
+        })
+        .to_string();
+        db.commit_turn("t", "completed", Some(&log), Some("answer"))
+            .unwrap();
+        let writer = db.conn.lock().unwrap();
+        let reader = db.shared_handle();
+        let (sent, received) = mpsc::channel();
+        std::thread::spawn(move || {
+            let window = oc_core::queries::HistoryReadWindow {
+                before_seq: None,
+                after_seq: None,
+                part: None,
+            };
+            let rows = reader.read_transcript_rows("s", &window, 100).unwrap();
+            reader.history_bounds("s").unwrap();
+            reader.history_len("s").unwrap();
+            reader.read_history_after_typed("s", 100, 0).unwrap();
+            let mut turns = 0;
+            for row in &rows {
+                reader.read_history_message_typed("s", &row.id).unwrap();
+                reader.user_shell_result("s", &row.id).unwrap();
+                reader.child_history("s", &row.id).unwrap();
+                reader.model_shell_notice("s", &row.id).unwrap();
+                reader.user_images("s", &row.id.0, &row.text).unwrap();
+                turns += usize::from(
+                    reader
+                        .history_turn_window("s", row.seq, None, false)
+                        .unwrap()
+                        .is_some(),
+                );
+            }
+            reader.child_tool_jobs("s").unwrap();
+            sent.send((rows.len(), turns)).unwrap();
+        });
+        let read = received.recv_timeout(Duration::from_secs(10));
+        drop(writer);
+        let (rows, turns) = read.expect("a History read waited behind the writer");
+        assert!(rows >= 1 && turns >= 1, "{rows} rows, {turns} turns");
     }
 
     /// Reads beyond the pool size wait for a returned connection.

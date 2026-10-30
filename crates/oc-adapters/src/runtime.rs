@@ -1269,6 +1269,22 @@ impl Drop for ActiveLease<'_> {
     }
 }
 
+/// `id` is bound to `location`: the authoritative Location binding.
+pub(crate) fn session_bound(
+    db: &crate::storage::Db,
+    location: &str,
+    id: &str,
+) -> Result<(), RuntimeError> {
+    match db.get_pref(&session_location_key(id))? {
+        Some(owner) if owner == location => Ok(()),
+        Some(owner) => Err(RuntimeError::LocationMismatch {
+            session: id.to_string(),
+            location: owner,
+        }),
+        None => Err(RuntimeError::SessionNotFound),
+    }
+}
+
 fn session_location_key(id: &str) -> String {
     format!("{SESSION_LOCATION_PREFIX}{id}")
 }
@@ -2505,14 +2521,7 @@ impl<'a> Runtime<'a> {
 
     /// Open a session after verifying its Location binding.
     pub fn open_session(&self, id: &str) -> Result<(), RuntimeError> {
-        match self.db.get_pref(&session_location_key(id))? {
-            Some(owner) if owner == self.location => Ok(()),
-            Some(owner) => Err(RuntimeError::LocationMismatch {
-                session: id.to_string(),
-                location: owner,
-            }),
-            None => Err(RuntimeError::SessionNotFound),
-        }
+        session_bound(&self.db, &self.location, id)
     }
 
     /// Run one generation-guarded turn to durable records.

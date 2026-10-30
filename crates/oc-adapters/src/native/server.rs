@@ -1135,7 +1135,7 @@ async fn handle(
         owner.settle_origin(root.origin.id).await;
     }
     if let Request::Workspace { selected } = &request {
-        let _deck = location.deck_gate.lock().await;
+        let _deck = location.deck_gate.read().await;
         let deck = location.app.tab_deck().await?;
         let mut snapshot = owner.resources.live.snapshot(deck, selected.as_ref());
         let mut roots = snapshot.deck.sessions.clone();
@@ -1198,8 +1198,14 @@ async fn handle(
                 }
                 | Request::OpenPickerSession { .. }
         );
-    let _deck = if deck_write || matches!(request, Request::History { .. }) {
-        Some(location.deck_gate.lock().await)
+    let _deck_write = if deck_write {
+        Some(location.deck_gate.write().await)
+    } else {
+        None
+    };
+    // Concurrent History reads share the gate; only deck writes exclude them.
+    let _deck_read = if !deck_write && matches!(request, Request::History { .. }) {
+        Some(location.deck_gate.read().await)
     } else {
         None
     };
@@ -1634,9 +1640,9 @@ async fn open_picker(
     } else {
         (&target, &source)
     };
-    let _first = first.deck_gate.lock().await;
+    let _first = first.deck_gate.write().await;
     let _second = if first.project != second.project {
-        Some(second.deck_gate.lock().await)
+        Some(second.deck_gate.write().await)
     } else {
         None
     };

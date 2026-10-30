@@ -1065,7 +1065,9 @@ pub(super) struct ParentNotices {
 pub(crate) struct Location {
     pub(crate) retired: Arc<tokio::sync::Notify>,
     pub(crate) project: PathBuf,
-    pub(crate) deck_gate: tokio::sync::Mutex<()>,
+    /// Deck writes and moves exclude each other and the reads that must not
+    /// race their publication (History, Workspace); those reads share it.
+    pub(crate) deck_gate: tokio::sync::RwLock<()>,
     pub(crate) app: CoreApp,
     guard: Mutex<Option<WorkerGuard>>,
     pub(crate) notices: Vec<StartupNotice>,
@@ -1229,9 +1231,9 @@ impl Primary {
                 } else {
                     (target, source)
                 };
-                let _first = first.deck_gate.lock().await;
+                let _first = first.deck_gate.write().await;
                 let _second = if first.project != second.project {
-                    Some(second.deck_gate.lock().await)
+                    Some(second.deck_gate.write().await)
                 } else {
                     None
                 };
@@ -1420,7 +1422,7 @@ pub(crate) async fn start(
         Ok(Ok(_notes)) => Ok(Location {
             retired,
             project: project.to_path_buf(),
-            deck_gate: tokio::sync::Mutex::new(()),
+            deck_gate: tokio::sync::RwLock::new(()),
             app,
             guard: Mutex::new(Some(guard)),
             notices,

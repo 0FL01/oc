@@ -2907,8 +2907,255 @@ fn picker_target(
     Ok(location)
 }
 
+/// One History page, from the database and the captured model catalog
+/// alone (it also runs beside the Location worker, see `off_queue`).
 #[allow(clippy::too_many_arguments)]
+fn history_page(
+    db: &Db,
+    location: &str,
+    catalog: &crate::models::ModelCatalog,
+    session: SessionId,
+    message: Option<MessageId>,
+    before_seq: Option<i64>,
+    after_seq: Option<i64>,
+    limit: usize,
+    window: Option<oc_core::queries::HistoryReadWindow>,
+) -> Result<HistoryPage, CoreError> {
+    crate::runtime::session_bound(db, location, &session.0)
+        .map_err(|error| runtime_query_error(db, error))?;
+    let (min, max) = db
+        .history_bounds(&session.0)
+        .map_err(|error| query_storage_error(db, error))?;
+    let total = db
+        .history_len(&session.0)
+        .map_err(|error| query_storage_error(db, error))?;
+    let limit = limit.min(HISTORY_PAGE_LIMIT);
+    if let Some(window) = &window
+        && (window.before_seq != before_seq
+            || window.after_seq != after_seq
+            || (before_seq.is_some() && after_seq.is_some())
+            || (window.part.is_some() && (before_seq.is_some() || after_seq.is_some()))
+            || window.part.as_ref().map(|part| &part.message) != message.as_ref())
+    {
+        return Err(CoreError::Application("invalid history window".into()));
+    }
+    let (page, ascending) = if let Some(window) = &window {
+        (
+            db.read_transcript_rows(&session.0, window, limit)
+                .map_err(|error| query_storage_error(db, error))?,
+            after_seq.is_some(),
+        )
+    } else if let Some(message) = message {
+        (
+            db.read_history_message_typed(&session.0, &message)
+                .map_err(|error| query_storage_error(db, error))?
+                .into_iter()
+                .collect(),
+            false,
+        )
+    } else {
+        match after_seq {
+            Some(after) => (
+                db.read_history_after_typed(&session.0, limit, after)
+                    .map_err(|error| query_storage_error(db, error))?,
+                true,
+            ),
+            None => (
+                db.read_history_page_typed(&session.0, limit, before_seq)
+                    .map_err(|error| query_storage_error(db, error))?,
+                false,
+            ),
+        }
+    };
+    let mut rows = Vec::new();
+    let mut served_bytes = 0usize;
+    for crate::storage::HistoryPageRow {
+        id,
+        seq,
+        role,
+        text,
+    } in page
+    {
+        let model_switch = if role == "model_switch" {
+            let notice = serde_json::from_str(&text).map_err(|_| {
+                CoreError::Diagnostic(saved_selection_issue(db, &["history", "model"]).diagnostic)
+            })?;
+            Some(project_model_switch(notice, catalog))
+        } else {
+            None
+        };
+        let agent_switch = if role == "agent_switch" {
+            Some(serde_json::from_str(&text).map_err(|_| {
+                CoreError::Diagnostic(saved_selection_issue(db, &["history", "agent"]).diagnostic)
+            })?)
+        } else {
+            None
+        };
+        let user_shell = db
+            .user_shell_result(&session.0, &id)
+            .map_err(|error| query_storage_error(db, error))?;
+        let child = db
+            .child_history(&session.0, &id)
+            .map_err(|error| query_storage_error(db, error))?;
+        let shell_notice = db
+            .model_shell_notice(&session.0, &id)
+            .map_err(|error| query_storage_error(db, error))?;
+        let row = HistoryMessage {
+            images: db
+                .user_images(&session.0, &id.0, &text)
+                .map_err(|error| query_storage_error(db, error))?,
+            id,
+            user_shell,
+            child,
+            shell_notice,
+            turn: if model_switch.is_some() || agent_switch.is_some() {
+                None
+            } else {
+                db.history_turn_window(
+                    &session.0,
+                    seq,
+                    window.as_ref().and_then(|w| w.part.as_ref()),
+                    window.is_some() && ascending,
+                )
+                .map_err(|error| query_storage_error(db, error))?
+                .or_else(|| {
+                    (role == "assistant").then(|| oc_core::queries::HistoryTurn {
+                        legacy_text_only: true,
+                        ..Default::default()
+                    })
+                })
+            },
+            model_switch,
+            agent_switch,
+            seq,
+            role: if role == "user" {
+                Role::User
+            } else {
+                Role::Assistant
+            },
+            text: if matches!(role.as_str(), "model_switch" | "agent_switch") {
+                String::new()
+            } else {
+                text
+            },
+        };
+        if window.is_some() {
+            let bytes = serde_json::to_vec(&row).expect("history message").len();
+            if !rows.is_empty()
+                && served_bytes.saturating_add(bytes) > crate::storage::TRANSCRIPT_PAGE_BYTES
+            {
+                break;
+            }
+            served_bytes = served_bytes.saturating_add(bytes);
+        }
+        // Edge cursors cannot recover a gap inside the message page.
+        // Finish this turn before crossing its message boundary.
+        let partial = window.is_some()
+            && row
+                .turn
+                .as_ref()
+                .and_then(|t| t.window.as_ref())
+                .is_some_and(|w| {
+                    if ascending {
+                        w.end < w.total
+                    } else {
+                        w.start > 0
+                    }
+                });
+        rows.push(row);
+        if partial || (window.is_some() && served_bytes >= crate::storage::TRANSCRIPT_PAGE_BYTES) {
+            break;
+        }
+    }
+    if !ascending {
+        rows.reverse();
+    }
+    let has_older = matches!((rows.first(),min),(Some(row),Some(min)) if row.seq>min);
+    let has_newer = matches!((rows.last(),max),(Some(row),Some(max)) if row.seq<max);
+    Ok(HistoryPage {
+        child_job: None,
+        reverted: db
+            .reverted_conversation(&session.0)
+            .map_err(|error| query_storage_error(db, error))?,
+        parent_id: db
+            .session_meta(&session.0)
+            .map_err(|error| query_storage_error(db, error))?
+            .parent_id,
+        title: db
+            .session_meta(&session.0)
+            .map_err(|error| query_storage_error(db, error))?
+            .title,
+        rows,
+        total,
+        has_older,
+        has_newer,
+    })
+}
+
+/// The tab deck reply, with the storage diagnostic the worker gives.
+fn tab_deck_reply(db: &Db, location: &str) -> Result<oc_core::queries::TabDeckSnapshot, CoreError> {
+    tab_deck::load_at(db, location).map_err(|error| match error {
+        CoreError::TabDeckStorage => {
+            let mut issue = saved_selection_issue(db, &["tab_deck"]);
+            issue.diagnostic.code = oc_core::queries::ServiceCode::StorageUnavailable;
+            CoreError::Diagnostic(issue.diagnostic)
+        }
+        other => other,
+    })
+}
+
+/// History, child-job and tab-deck reads need only the database (its pooled
+/// readers) and captured Location facts: they run on the blocking pool beside
+/// this Location's sequential worker instead of queueing behind its commands.
+fn off_queue(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    composition: &Composition,
+    message: InboxMsg,
+) -> Option<InboxMsg> {
+    match message {
+        InboxMsg::History {
+            session,
+            message,
+            before_seq,
+            after_seq,
+            limit,
+            window,
+            ack,
+        } => {
+            let (db, location) = (db.shared_handle(), runtime.location().to_owned());
+            let catalog = composition.catalog.clone();
+            tokio::task::spawn_blocking(move || {
+                let _ = ack.send(history_page(
+                    &db, &location, &catalog, session, message, before_seq, after_seq, limit,
+                    window,
+                ));
+            });
+            None
+        }
+        InboxMsg::ChildJobs { session, ack } => {
+            let db = db.shared_handle();
+            tokio::task::spawn_blocking(move || {
+                let result = db
+                    .child_tool_jobs(&session.0)
+                    .map_err(|error| query_storage_error(&db, error));
+                let _ = ack.send(result);
+            });
+            None
+        }
+        InboxMsg::TabDeck { ack } => {
+            let (db, location) = (db.shared_handle(), runtime.location().to_owned());
+            tokio::task::spawn_blocking(move || {
+                let _ = ack.send(tab_deck_reply(&db, &location));
+            });
+            None
+        }
+        other => Some(other),
+    }
+}
+
 /// Handle one owner-only query or action; streaming admits read snapshots.
+#[allow(clippy::too_many_arguments)]
 async fn query(
     db: &Db,
     runtime: &Runtime<'_>,
@@ -3423,14 +3670,7 @@ async fn query(
             let _ = ack.send(result);
         }
         InboxMsg::TabDeck { ack } => {
-            let _ = ack.send(tab_deck::load(db, runtime).map_err(|error| match error {
-                CoreError::TabDeckStorage => {
-                    let mut issue = saved_selection_issue(db, &["tab_deck"]);
-                    issue.diagnostic.code = oc_core::queries::ServiceCode::StorageUnavailable;
-                    CoreError::Diagnostic(issue.diagnostic)
-                }
-                other => other,
-            }));
+            let _ = ack.send(tab_deck_reply(db, runtime.location()));
         }
         InboxMsg::SaveTabDeck { deck, ack } => {
             let result = tab_deck::save(db, runtime, &deck).map_err(|error| match error {
@@ -3479,187 +3719,17 @@ async fn query(
             window,
             ack,
         } => {
-            let result = (|| -> Result<HistoryPage, CoreError> {
-                runtime
-                    .open_session(&session.0)
-                    .map_err(|error| runtime_query_error(db, error))?;
-                let (min, max) = db
-                    .history_bounds(&session.0)
-                    .map_err(|error| query_storage_error(db, error))?;
-                let total = db
-                    .history_len(&session.0)
-                    .map_err(|error| query_storage_error(db, error))?;
-                let limit = limit.min(HISTORY_PAGE_LIMIT);
-                if let Some(window) = &window
-                    && (window.before_seq != before_seq
-                        || window.after_seq != after_seq
-                        || (before_seq.is_some() && after_seq.is_some())
-                        || (window.part.is_some() && (before_seq.is_some() || after_seq.is_some()))
-                        || window.part.as_ref().map(|part| &part.message) != message.as_ref())
-                {
-                    return Err(CoreError::Application("invalid history window".into()));
-                }
-                let (page, ascending) = if let Some(window) = &window {
-                    (
-                        db.read_transcript_rows(&session.0, window, limit)
-                            .map_err(|error| query_storage_error(db, error))?,
-                        after_seq.is_some(),
-                    )
-                } else if let Some(message) = message {
-                    (
-                        db.read_history_message_typed(&session.0, &message)
-                            .map_err(|error| query_storage_error(db, error))?
-                            .into_iter()
-                            .collect(),
-                        false,
-                    )
-                } else {
-                    match after_seq {
-                        Some(after) => (
-                            db.read_history_after_typed(&session.0, limit, after)
-                                .map_err(|error| query_storage_error(db, error))?,
-                            true,
-                        ),
-                        None => (
-                            db.read_history_page_typed(&session.0, limit, before_seq)
-                                .map_err(|error| query_storage_error(db, error))?,
-                            false,
-                        ),
-                    }
-                };
-                let mut rows = Vec::new();
-                let mut served_bytes = 0usize;
-                for crate::storage::HistoryPageRow {
-                    id,
-                    seq,
-                    role,
-                    text,
-                } in page
-                {
-                    let model_switch = if role == "model_switch" {
-                        let notice = serde_json::from_str(&text).map_err(|_| {
-                            CoreError::Diagnostic(
-                                saved_selection_issue(db, &["history", "model"]).diagnostic,
-                            )
-                        })?;
-                        Some(project_model_switch(notice, &composition.catalog))
-                    } else {
-                        None
-                    };
-                    let agent_switch = if role == "agent_switch" {
-                        Some(serde_json::from_str(&text).map_err(|_| {
-                            CoreError::Diagnostic(
-                                saved_selection_issue(db, &["history", "agent"]).diagnostic,
-                            )
-                        })?)
-                    } else {
-                        None
-                    };
-                    let user_shell = db
-                        .user_shell_result(&session.0, &id)
-                        .map_err(|error| query_storage_error(db, error))?;
-                    let child = db
-                        .child_history(&session.0, &id)
-                        .map_err(|error| query_storage_error(db, error))?;
-                    let shell_notice = db
-                        .model_shell_notice(&session.0, &id)
-                        .map_err(|error| query_storage_error(db, error))?;
-                    let row = HistoryMessage {
-                        images: db
-                            .user_images(&session.0, &id.0, &text)
-                            .map_err(|error| query_storage_error(db, error))?,
-                        id,
-                        user_shell,
-                        child,
-                        shell_notice,
-                        turn: if model_switch.is_some() || agent_switch.is_some() {
-                            None
-                        } else {
-                            db.history_turn_window(
-                                &session.0,
-                                seq,
-                                window.as_ref().and_then(|w| w.part.as_ref()),
-                                window.is_some() && ascending,
-                            )
-                            .map_err(|error| query_storage_error(db, error))?
-                            .or_else(|| {
-                                (role == "assistant").then(|| oc_core::queries::HistoryTurn {
-                                    legacy_text_only: true,
-                                    ..Default::default()
-                                })
-                            })
-                        },
-                        model_switch,
-                        agent_switch,
-                        seq,
-                        role: if role == "user" {
-                            Role::User
-                        } else {
-                            Role::Assistant
-                        },
-                        text: if matches!(role.as_str(), "model_switch" | "agent_switch") {
-                            String::new()
-                        } else {
-                            text
-                        },
-                    };
-                    if window.is_some() {
-                        let bytes = serde_json::to_vec(&row).expect("history message").len();
-                        if !rows.is_empty()
-                            && served_bytes.saturating_add(bytes)
-                                > crate::storage::TRANSCRIPT_PAGE_BYTES
-                        {
-                            break;
-                        }
-                        served_bytes = served_bytes.saturating_add(bytes);
-                    }
-                    // Edge cursors cannot recover a gap inside the message page.
-                    // Finish this turn before crossing its message boundary.
-                    let partial = window.is_some()
-                        && row
-                            .turn
-                            .as_ref()
-                            .and_then(|t| t.window.as_ref())
-                            .is_some_and(|w| {
-                                if ascending {
-                                    w.end < w.total
-                                } else {
-                                    w.start > 0
-                                }
-                            });
-                    rows.push(row);
-                    if partial
-                        || (window.is_some()
-                            && served_bytes >= crate::storage::TRANSCRIPT_PAGE_BYTES)
-                    {
-                        break;
-                    }
-                }
-                if !ascending {
-                    rows.reverse();
-                }
-                let has_older = matches!((rows.first(),min),(Some(row),Some(min)) if row.seq>min);
-                let has_newer = matches!((rows.last(),max),(Some(row),Some(max)) if row.seq<max);
-                Ok(HistoryPage {
-                    child_job: None,
-                    reverted: db
-                        .reverted_conversation(&session.0)
-                        .map_err(|error| query_storage_error(db, error))?,
-                    parent_id: db
-                        .session_meta(&session.0)
-                        .map_err(|error| query_storage_error(db, error))?
-                        .parent_id,
-                    title: db
-                        .session_meta(&session.0)
-                        .map_err(|error| query_storage_error(db, error))?
-                        .title,
-                    rows,
-                    total,
-                    has_older,
-                    has_newer,
-                })
-            })();
-            let _ = ack.send(result);
+            let _ = ack.send(history_page(
+                db,
+                runtime.location(),
+                &composition.catalog,
+                session,
+                message,
+                before_seq,
+                after_seq,
+                limit,
+                window,
+            ));
         }
         InboxMsg::ToolOps {
             session,
@@ -4808,6 +4878,9 @@ async fn worker(
                         None => break,
                     },
                 }
+            };
+            let Some(message) = off_queue(db, runtime, composition, message) else {
+                continue;
             };
             if reload_work.forced()
                 && matches!(
