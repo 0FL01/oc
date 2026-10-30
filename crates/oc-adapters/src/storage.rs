@@ -4755,6 +4755,9 @@ fn apply_turn_acceptance_schema(conn: &Connection) -> Result<(), StorageError> {
 #[path = "storage/commit_probe_tests.rs"]
 mod commit_probe_tests;
 #[cfg(test)]
+#[path = "storage/fault_tests.rs"]
+mod fault_tests;
+#[cfg(test)]
 #[path = "storage/history_scale_tests.rs"]
 mod history_scale_tests;
 #[cfg(test)]
@@ -4762,6 +4765,9 @@ mod history_scale_tests;
 mod load_probe_tests;
 #[path = "storage/readers.rs"]
 mod readers;
+#[cfg(test)]
+#[path = "storage/schema_tests.rs"]
+mod schema_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

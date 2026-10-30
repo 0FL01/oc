@@ -30,8 +30,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - R1: Синтетика и страховочные тесты (Фаза 0).
   - Acceptance: в gate детерминированные тесты масштабирования реальных функций `Db` по VM-шагам SQLite (работа операции не растёт с числом накопленных jobs/событий), равенство схемы свежей и мигрированной БД, fault-тесты `kill -9` между intent/effect/outcome без переисполнения неизвестного эффекта; opt-in метрики хранилища (ожидание/удержание мьютекса, коммиты, fsync) и opt-in синтетика 1k/10k child jobs и 1/4/8/16 сессий; инвентарь durable-точек.
   - Primary evidence: тесты и opt-in печать базовой линии.
-  - Status: partial
-  - Evidence: общий тестовый счётчик `storage::vm_steps` (rusqlite feature `trace` только в dev; `OC_VM_STEPS_DEBUG=1` печатает самые дорогие операторы) проверяет реальные функции `Db`: child jobs (150 → 600 накопленных jobs, 20 событий родителя на job) и чтения истории (50 → 200 turn'ов по три tool-операции). Открыты: равенство свежей и мигрированной схемы целиком, fault-тесты, opt-in метрики и синтетика сессий, инвентарь durable-точек.
+  - Status: done
+  - Evidence: общий тестовый счётчик `storage::vm_steps` (rusqlite feature `trace` только в dev; `OC_VM_STEPS_DEBUG=1` печатает самые дорогие операторы) проверяет реальные функции `Db`: child jobs (150 → 600 накопленных jobs, 20 событий родителя на job) и чтения истории (50 → 200 turn'ов по три tool-операции). Opt-in метрики и синтетика (итерация 10); равенство схемы целиком, fault-тесты `SIGKILL` и инвентарь durable-точек (итерация 11).
 - R2: Точечные исправления масштабирования (Фаза 1).
   - Acceptance: частичные индексы для всех `events(kind,payload)`-поисков из горячих путей; `child_job_outstanding`, `deliver_child_notices`, `background_child_job`, `child_history` не зависят от числа исторических jobs/событий; fsync файла вне мьютекса БД; `cache_size` выбран по замеру.
   - Primary evidence: тесты R1 до/после.
@@ -154,3 +154,24 @@ Allowed: `oc-adapters` (storage, runtime, application, native), `oc-core` при
   - сессии 1/4/8/16: 148/344/566/1016 надёжных записей/с; p50 подтверждения 6.4/13.1/13.4/13.9 мс (свой fsync плюс идущий), p99 12/25/40/45 мс — хвост задают паузы checkpoint'а (~25 мс раз в 1000 страниц); лаг таймера несвязанной задачи p99 1.13 мс, максимум ≤ 3.2 мс; `stalled_waits=0`.
   - 1k/10k child jobs: запуск в форме owner'а (intent, свежая дочерняя сессия с job одним коммитом, running outcome — три подтверждённых коммита) p50 21–29 мс, p95 31–47 мс при 1k и 48–50 мс при 10k (одинаково: работа не растёт, время — три fsync); страница истории с классификацией строк и `child_tool_jobs` p95 1.5–2.2 мс; `child_job_outstanding` 0.04 мс.
 - Проверки: `oc-adapters` целиком (nextest) 1340 PASS, 8 skipped; `storage::writer` 7 PASS; Clippy `oc-adapters --all-targets -D warnings` PASS. `docs/ARCHITECTURE.md` обновлён.
+
+### 11. Равенство схемы, SIGKILL fault-тест и инвентарь durable-точек (R1 done)
+
+- `a_database_upgraded_from_v1_has_the_fresh_schema`: БД старейшей поддерживаемой схемы (v1) после `Db::open` и DCP/grants-схемы runtime совпадает со свежей построчно — колонки (тип, NOT NULL, default, PK) каждой таблицы, индексы, триггеры и view (>100 строк). Opt-in `a_copied_database_upgrades_to_the_fresh_schema` (`OC_SCHEMA_COPY=<копия data root>`): копия живой БД после апгрейда совпадает со свежей схемой.
+- `kill_at_each_durable_point_never_replays_the_effect`: тестовый бинарник перезапускает себя дочерним процессом-владельцем, который подтверждает intent, выполняет эффект (запись маркера с fsync), подтверждает outcome и после каждой точки ждёт; родитель шлёт `SIGKILL` в точке, затем открывает БД и восстанавливает: после intent — `unknown`, 0 эффектов; после эффекта — `unknown`, 1 эффект; после outcome — `completed`, 1 эффект. Повторное восстановление и переоткрытие ничего не меняют, эффект не переисполняется. Бинарный AUD06 (`crates/oc/tests/durability.rs`) по-прежнему покрывает kill настоящего owner'а между shell-эффектом и outcome.
+- Инвентарь durable-точек (статический, Explore-агент, HEAD `40ebe4706`, уровень Evidence):
+
+| Эффект | Durable до | Durable после | После сбоя |
+|---|---|---|---|
+| Generation (HTTP/WebSocket frame, compaction) | принятый turn, `generation_dispatch`/`generation_retry_dispatch` до отправки | checkpoints потока, usage, результат turn'а | `recover_interrupted_tools`: turn/span `unknown`; счётчики dispatch сохраняются |
+| OAuth refresh | `begin_credential_refresh` (`refresh_pending`) | `rotate_credential` | pending refresh требует повторной авторизации, не повторяется |
+| Model/user shell | tool intent; `admit_shell_job_mode`/`admit_user_shell_job` | `start_shell_job` (PID), `finish_shell_job`, tool outcome | `recover_shell_jobs`: карантин известного PID или `interrupted`, затем `unknown` |
+| Patch/edit/write, MCP tool call, webfetch | tool intent | tool outcome (с patch effects) | `recover_interrupted_tools`: `unknown`, без повтора |
+| Code Mode program (вложенные MCP/fetch покрывает intent программы) | tool intent, `admit_execute_job`, `start_execute_job` | `finish_execute_job`, `mark_execute_effect_unknown` | `recover_execute_jobs`: `unknown` |
+| Subagent | tool intent, `admit_recoverable_child_job` | `finish_child_job`, результат/notice | `recover_child_jobs`; безопасный background checkpoint может продолжиться, pending calls не повторяются |
+| Notices родителю/пользователю | terminal outcome job'а | сообщение и событие notice в одной транзакции до broadcast | durable notice остаётся; live broadcast не подтверждается |
+| Expiry tool output / GC сирот | `Expired` до unlink; GC после `fence` | unlink + fsync каталога | скан сирот добирает оставшиеся файлы |
+| Файлы blob/tool output | файл с fsync до строки (сирота безопасна) | строка ресурса/blob | GC/скан сирот |
+
+  Без durable intent до эффекта (существующие контракты runtime, вне этого хранилищного scope): WebSocket upgrade (сам frame учтён), spawn PTY терминала (`record_terminal` после spawn), spawn/подключение MCP-сервера, окно spawn → `start_shell_job` (нет PID для карантина).
+- Проверки: `storage::schema_tests` и `storage::fault_tests` 3 прогона PASS (3 с); Clippy `oc-adapters --all-targets -D warnings` PASS.
