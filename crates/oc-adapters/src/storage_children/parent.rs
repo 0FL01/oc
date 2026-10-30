@@ -127,7 +127,8 @@ impl Db {
         session: &str,
         message: &str,
     ) -> Result<bool, StorageError> {
-        Ok(conn.query_row("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed','execute_parent_notice_consumed') AND CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message')=?2 ELSE 0 END)",params![session,message],|row|row.get(0))?)
+        // `events_parent_notice_consumed` keys this exact expression.
+        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM events WHERE session_id=?1 AND kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed','execute_parent_notice_consumed') AND (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message') END)=?2)")?.query_row(params![session,message],|row|row.get(0))?)
     }
 
     fn assign_parent_notice_in(

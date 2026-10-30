@@ -113,6 +113,11 @@ fn measure(population: &Population, jobs: usize) -> Vec<(&'static str, i64)> {
     let (history, history_steps) =
         steps(|| db.child_history("parent", &population.notice).unwrap());
     assert!(matches!(history, Some(ChildHistory::Notice(_))));
+    let notice = &population.notice.0;
+    let (state, state_steps) = steps(|| db.parent_notice_state("parent", notice).unwrap());
+    assert!(matches!(state, ParentNoticeState::Ready));
+    let (native, native_steps) = steps(|| db.is_native_notice("parent", notice).unwrap());
+    assert!(native);
     let (converted, convert_steps) =
         steps(|| db.background_child_job(&format!("launch-{jobs}")).unwrap());
     assert!(converted);
@@ -121,6 +126,8 @@ fn measure(population: &Population, jobs: usize) -> Vec<(&'static str, i64)> {
         ("deliver_child_notices", deliver_steps),
         ("child_tool_jobs", cards_steps),
         ("child_history notice", history_steps),
+        ("parent_notice_state", state_steps),
+        ("is_native_notice", native_steps),
         ("background_child_job", convert_steps),
     ]
 }

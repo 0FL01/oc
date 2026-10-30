@@ -670,7 +670,8 @@ impl Db {
              CREATE INDEX IF NOT EXISTS events_tool_question ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_question';
              CREATE INDEX IF NOT EXISTS tool_output_expiry ON tool_output_resources(completed) WHERE state NOT IN ('Active','Expired');
              CREATE INDEX IF NOT EXISTS shell_jobs_live ON shell_jobs(session_id) WHERE phase!='terminal';
-             CREATE INDEX IF NOT EXISTS execute_jobs_live ON execute_jobs(session_id) WHERE phase!='terminal';",
+             CREATE INDEX IF NOT EXISTS execute_jobs_live ON execute_jobs(session_id) WHERE phase!='terminal';
+             CREATE INDEX IF NOT EXISTS events_parent_notice_consumed ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message') END)) WHERE kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed','execute_parent_notice_consumed');",
         )?;
 
         let db = Self {
