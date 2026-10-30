@@ -733,6 +733,12 @@ impl Db {
         }
     }
 
+    /// Writer lock, commit and fsync counters since open.
+    #[cfg(test)]
+    pub(crate) fn storage_metrics(&self) -> writer::StorageMetrics {
+        self.conn.metrics()
+    }
+
     /// Data-root path (owned).
     pub fn root(&self) -> &Path {
         &self.root
@@ -4751,6 +4757,9 @@ mod commit_probe_tests;
 #[cfg(test)]
 #[path = "storage/history_scale_tests.rs"]
 mod history_scale_tests;
+#[cfg(test)]
+#[path = "storage/load_probe_tests.rs"]
+mod load_probe_tests;
 #[path = "storage/readers.rs"]
 mod readers;
 #[cfg(test)]

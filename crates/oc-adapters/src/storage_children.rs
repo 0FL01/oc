@@ -12,7 +12,7 @@ mod tests;
 
 #[cfg(test)]
 #[path = "storage_children/scale_tests.rs"]
-mod scale_tests;
+pub(super) mod scale_tests;
 
 impl Db {
     /// Read only owner-authored metadata from the exact accepted child turn.

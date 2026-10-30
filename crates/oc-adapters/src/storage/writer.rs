@@ -14,11 +14,32 @@
 //! commit as started; a commit counts as completed when its holder releases
 //! the connection. A WAL fsync failure is latched: no later waiter is
 //! acknowledged after it (Linux reports a writeback error only once).
+//!
+//! The checkpoint (copying the WAL into the database file, with its fsyncs)
+//! keeps SQLite's automatic threshold and its place under the mutex, which
+//! lets the next write restart the WAL from its start (overwriting an
+//! allocated file keeps `fdatasync` cheap). The committing holder runs it on
+//! release instead of inside its COMMIT, as a handed-off wait like the others.
 use rusqlite::Connection;
+use std::cell::Cell;
 use std::fs::File;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, LockResult, Mutex, MutexGuard, PoisonError, TryLockError};
+use std::time::Instant;
+
+/// SQLite's automatic checkpoint threshold.
+const CHECKPOINT_PAGES: i32 = 1000;
+
+thread_local! {
+    // WAL size after the last commit on this thread: the holder's own.
+    static WAL_PAGES: Cell<i32> = const { Cell::new(0) };
+}
+
+fn wal_pages(_: &rusqlite::hooks::Wal, pages: std::ffi::c_int) -> rusqlite::Result<()> {
+    WAL_PAGES.set(pages);
+    Ok(())
+}
 
 pub(crate) struct Conn {
     conn: Mutex<Connection>,
@@ -29,6 +50,7 @@ pub(crate) struct Conn {
     sync: Mutex<Sync>,
     synced: Condvar,
     wal: File,
+    metrics: Metrics,
     #[cfg(test)]
     pub(crate) syncs: std::sync::atomic::AtomicUsize,
     #[cfg(test)]
@@ -38,6 +60,91 @@ pub(crate) struct Conn {
     // Test populations that do not measure durability skip the WAL fsync.
     #[cfg(test)]
     pub(crate) skip_sync: std::sync::atomic::AtomicBool,
+}
+
+/// Always-on counters of the writer: `Db::storage_metrics` snapshots them,
+/// and `OC_STORAGE_METRICS=1` prints them when the connection closes.
+#[derive(Default)]
+struct Metrics {
+    locks: AtomicU64,
+    contended: AtomicU64,
+    wait_ns: AtomicU64,
+    max_wait_ns: AtomicU64,
+    hold_ns: AtomicU64,
+    max_hold_ns: AtomicU64,
+    runtime_holds: AtomicU64,
+    max_runtime_hold_ns: AtomicU64,
+    durable_waits: AtomicU64,
+    durable_wait_ns: AtomicU64,
+    max_durable_wait_ns: AtomicU64,
+    fsyncs: AtomicU64,
+    fsync_ns: AtomicU64,
+    stalled_waits: AtomicU64,
+    checkpoints: AtomicU64,
+    checkpoint_ns: AtomicU64,
+    max_checkpoint_ns: AtomicU64,
+}
+
+/// Snapshot of the writer counters; times in microseconds.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct StorageMetrics {
+    pub locks: u64,
+    /// Lock requests that found the connection held and waited.
+    pub contended: u64,
+    pub wait_us: u64,
+    pub max_wait_us: u64,
+    pub hold_us: u64,
+    pub max_hold_us: u64,
+    /// Holds on a tokio runtime thread, which run SQL on that thread.
+    pub runtime_holds: u64,
+    pub max_runtime_hold_us: u64,
+    pub commits: u64,
+    /// Releases that waited for a WAL fsync covering their commits.
+    pub durable_waits: u64,
+    pub durable_wait_us: u64,
+    pub max_durable_wait_us: u64,
+    pub fsyncs: u64,
+    pub fsync_us: u64,
+    /// WAL checkpoints run by releasing holders.
+    pub checkpoints: u64,
+    pub checkpoint_us: u64,
+    pub max_checkpoint_us: u64,
+    /// Waits on a runtime worker that could not hand its tasks off
+    /// (a current-thread runtime); the owner's runtime has none.
+    pub stalled_waits: u64,
+}
+
+impl std::fmt::Display for StorageMetrics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "locks={} contended={} wait_us={} max_wait_us={} hold_us={} max_hold_us={} runtime_holds={} max_runtime_hold_us={} commits={} durable_waits={} durable_wait_us={} max_durable_wait_us={} fsyncs={} fsync_us={} checkpoints={} checkpoint_us={} max_checkpoint_us={} stalled_waits={}",
+            self.locks,
+            self.contended,
+            self.wait_us,
+            self.max_wait_us,
+            self.hold_us,
+            self.max_hold_us,
+            self.runtime_holds,
+            self.max_runtime_hold_us,
+            self.commits,
+            self.durable_waits,
+            self.durable_wait_us,
+            self.max_durable_wait_us,
+            self.fsyncs,
+            self.fsync_us,
+            self.checkpoints,
+            self.checkpoint_us,
+            self.max_checkpoint_us,
+            self.stalled_waits,
+        )
+    }
+}
+
+fn add(total: &AtomicU64, max: &AtomicU64, since: Instant) {
+    let ns = u64::try_from(since.elapsed().as_nanos()).unwrap_or(u64::MAX);
+    total.fetch_add(ns, Ordering::Relaxed);
+    max.fetch_max(ns, Ordering::Relaxed);
 }
 
 struct Sync {
@@ -50,6 +157,7 @@ pub(crate) struct Guard<'a> {
     owner: &'a Conn,
     conn: Option<MutexGuard<'a, Connection>>,
     start: u64,
+    acquired: Instant,
 }
 
 impl Deref for Guard<'_> {
@@ -71,11 +179,39 @@ impl Drop for Guard<'_> {
         // other committers: its commits are complete in the WAL file. Publish
         // that before releasing, then wait for durability outside the mutex,
         // also while unwinding (a destructor may record an unknown effect).
+        let pages = WAL_PAGES.replace(0);
+        if pages >= CHECKPOINT_PAGES
+            && let Some(conn) = self.conn.as_ref()
+            && conn.is_autocommit()
+        {
+            let since = Instant::now();
+            self.owner.count_stall();
+            if blocking(|| conn.execute_batch("PRAGMA wal_checkpoint(PASSIVE)")).is_ok() {
+                let metrics = &self.owner.metrics;
+                metrics.checkpoints.fetch_add(1, Ordering::Relaxed);
+                add(&metrics.checkpoint_ns, &metrics.max_checkpoint_ns, since);
+            }
+        }
         let end = self.owner.started.load(Ordering::SeqCst);
         self.owner.completed.store(end, Ordering::SeqCst);
         self.conn.take();
+        let metrics = &self.owner.metrics;
+        add(&metrics.hold_ns, &metrics.max_hold_ns, self.acquired);
+        if tokio::runtime::Handle::try_current().is_ok() {
+            metrics.runtime_holds.fetch_add(1, Ordering::Relaxed);
+            let ns = u64::try_from(self.acquired.elapsed().as_nanos()).unwrap_or(u64::MAX);
+            metrics.max_runtime_hold_ns.fetch_max(ns, Ordering::Relaxed);
+        }
         if end > self.start && !self.owner.is_durable(end) {
+            let since = Instant::now();
+            self.owner.count_stall();
             blocking(|| self.owner.durable(end));
+            metrics.durable_waits.fetch_add(1, Ordering::Relaxed);
+            add(
+                &metrics.durable_wait_ns,
+                &metrics.max_durable_wait_ns,
+                since,
+            );
         }
     }
 }
@@ -84,6 +220,9 @@ impl Conn {
     /// `conn` is the open WAL database; `wal` is its `-wal` file.
     pub(crate) fn new(conn: Connection, wal: File) -> rusqlite::Result<Self> {
         conn.pragma_update(None, "synchronous", "NORMAL")?;
+        // Replaces SQLite's automatic checkpoint (itself a WAL hook).
+        conn.wal_hook(Some(wal_pages));
+        let metrics = Metrics::default();
         let started = Arc::new(AtomicU64::new(0));
         let counter = started.clone();
         conn.commit_hook(Some(move || {
@@ -101,6 +240,7 @@ impl Conn {
             }),
             synced: Condvar::new(),
             wal,
+            metrics,
             #[cfg(test)]
             syncs: std::sync::atomic::AtomicUsize::new(0),
             #[cfg(test)]
@@ -119,11 +259,20 @@ impl Conn {
             owner: self,
             conn: Some(conn),
             start: self.started.load(Ordering::SeqCst),
+            acquired: Instant::now(),
         };
+        self.metrics.locks.fetch_add(1, Ordering::Relaxed);
         let locked = match self.conn.try_lock() {
             Ok(conn) => Ok(conn),
             Err(TryLockError::Poisoned(poisoned)) => Err(poisoned),
-            Err(TryLockError::WouldBlock) => blocking(|| self.conn.lock()),
+            Err(TryLockError::WouldBlock) => {
+                let since = Instant::now();
+                self.metrics.contended.fetch_add(1, Ordering::Relaxed);
+                self.count_stall();
+                let locked = blocking(|| self.conn.lock());
+                add(&self.metrics.wait_ns, &self.metrics.max_wait_ns, since);
+                locked
+            }
         };
         match locked {
             Ok(conn) => Ok(guard(conn)),
@@ -138,6 +287,40 @@ impl Conn {
         let target = self.completed.load(Ordering::SeqCst);
         if !self.is_durable(target) {
             blocking(|| self.durable(target));
+        }
+    }
+
+    fn count_stall(&self) {
+        if tokio::runtime::Handle::try_current().is_ok_and(|handle| {
+            handle.runtime_flavor() != tokio::runtime::RuntimeFlavor::MultiThread
+        }) {
+            self.metrics.stalled_waits.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    pub(crate) fn metrics(&self) -> StorageMetrics {
+        let m = &self.metrics;
+        let us = |ns: &AtomicU64| ns.load(Ordering::Relaxed) / 1000;
+        let n = |count: &AtomicU64| count.load(Ordering::Relaxed);
+        StorageMetrics {
+            locks: n(&m.locks),
+            contended: n(&m.contended),
+            wait_us: us(&m.wait_ns),
+            max_wait_us: us(&m.max_wait_ns),
+            hold_us: us(&m.hold_ns),
+            max_hold_us: us(&m.max_hold_ns),
+            runtime_holds: n(&m.runtime_holds),
+            max_runtime_hold_us: us(&m.max_runtime_hold_ns),
+            commits: self.started.load(Ordering::SeqCst),
+            durable_waits: n(&m.durable_waits),
+            durable_wait_us: us(&m.durable_wait_ns),
+            max_durable_wait_us: us(&m.max_durable_wait_ns),
+            fsyncs: n(&m.fsyncs),
+            fsync_us: us(&m.fsync_ns),
+            checkpoints: n(&m.checkpoints),
+            checkpoint_us: us(&m.checkpoint_ns),
+            max_checkpoint_us: us(&m.max_checkpoint_ns),
+            stalled_waits: n(&m.stalled_waits),
         }
     }
 
@@ -182,6 +365,7 @@ impl Conn {
             let upto = self.completed.load(Ordering::SeqCst);
             #[cfg(test)]
             self.syncs.fetch_add(1, Ordering::SeqCst);
+            let since = Instant::now();
             #[cfg(test)]
             let result = if self.fail_sync.load(Ordering::SeqCst) {
                 Err(std::io::Error::other("injected writeback failure"))
@@ -190,6 +374,9 @@ impl Conn {
             };
             #[cfg(not(test))]
             let result = self.wal.sync_data();
+            self.metrics.fsyncs.fetch_add(1, Ordering::Relaxed);
+            let ns = u64::try_from(since.elapsed().as_nanos()).unwrap_or(u64::MAX);
+            self.metrics.fsync_ns.fetch_add(ns, Ordering::Relaxed);
             sync = self.sync.lock().expect("wal sync");
             sync.running = false;
             match result {
@@ -197,6 +384,14 @@ impl Conn {
                 Err(_) => sync.failed = true,
             }
             self.synced.notify_all();
+        }
+    }
+}
+
+impl Drop for Conn {
+    fn drop(&mut self) {
+        if std::env::var_os("OC_STORAGE_METRICS").is_some() {
+            eprintln!("oc storage metrics: {}", self.metrics());
         }
     }
 }
@@ -422,5 +617,52 @@ mod tests {
             tick.await.unwrap();
         });
         assert_eq!(conn.syncs.load(Ordering::SeqCst), 1);
+        let metrics = conn.metrics();
+        assert_eq!(
+            (metrics.contended, metrics.stalled_waits, metrics.commits),
+            (1, 0, 1)
+        );
+        assert_eq!((metrics.fsyncs, metrics.durable_waits), (1, 1));
+        assert!(metrics.runtime_holds >= 1 && metrics.max_wait_us > 0);
+    }
+
+    /// The releasing holder checkpoints at SQLite's threshold, and the WAL
+    /// restarts instead of growing.
+    #[test]
+    fn a_releasing_holder_checkpoints_the_wal() {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = open(dir.path());
+        conn.skip_sync.store(true, Ordering::SeqCst);
+        for _ in 0..3000 {
+            conn.lock()
+                .unwrap()
+                .execute_batch("INSERT INTO t VALUES(randomblob(4096))")
+                .unwrap();
+        }
+        assert!(conn.metrics().checkpoints >= 2, "{}", conn.metrics());
+        let wal = std::fs::metadata(dir.path().join("w.sqlite-wal"))
+            .unwrap()
+            .len();
+        assert!(wal < 2 * 1100 * 4200, "the WAL grew to {wal} bytes");
+    }
+
+    /// A current-thread runtime cannot hand off: such waits (here for the
+    /// connection, then for the fsync of the commit) are counted.
+    #[test]
+    fn waits_without_a_handoff_are_counted() {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = open(dir.path());
+        let held = conn.lock().unwrap();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        std::thread::scope(|scope| {
+            scope.spawn(|| runtime.block_on(async { insert(&conn, 1) }));
+            while conn.metrics().contended == 0 {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            drop(held);
+        });
+        assert_eq!(conn.metrics().stalled_waits, 2);
     }
 }

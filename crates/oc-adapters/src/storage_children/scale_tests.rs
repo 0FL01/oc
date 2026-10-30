@@ -9,7 +9,7 @@ struct Population {
     notice: oc_core::session::MessageId,
 }
 
-fn job(i: usize, background: bool) -> ChildJob {
+pub(in crate::storage) fn job(i: usize, background: bool) -> ChildJob {
     ChildJob {
         parent: oc_core::domain::SessionId("parent".into()),
         child: oc_core::domain::SessionId(format!("child-{i}")),
@@ -28,7 +28,7 @@ fn job(i: usize, background: bool) -> ChildJob {
     }
 }
 
-fn admit(db: &Db, i: usize, background: bool) -> ChildJob {
+pub(in crate::storage) fn admit(db: &Db, i: usize, background: bool) -> ChildJob {
     let job = job(i, background);
     db.create_child_session(
         "parent",
