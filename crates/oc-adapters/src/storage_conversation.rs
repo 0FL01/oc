@@ -70,6 +70,8 @@ pub(crate) type ContextMessage = (String, String, String);
 impl Db {
     pub(super) fn conversation_schema(conn: &Connection) -> Result<(), StorageError> {
         Self::dcp_view_schema(conn)?;
+        // Conversation turns read whole journals, chunked while live.
+        super::turn_chunks::schema(conn)?;
         conn.execute_batch("CREATE TABLE IF NOT EXISTS conversation_state(
             session_id TEXT PRIMARY KEY REFERENCES sessions(id), upper_seq INTEGER);
           CREATE TABLE IF NOT EXISTS conversation_exclusions(
@@ -88,7 +90,8 @@ impl Db {
           CREATE VIEW IF NOT EXISTS conversation_messages AS SELECT m.* FROM messages m
             WHERE NOT EXISTS(SELECT 1 FROM conversation_state s WHERE s.session_id=m.session_id AND m.seq>s.upper_seq)
             AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=m.session_id AND m.seq>e.lower_seq AND m.seq<=e.upper_seq);
-          CREATE VIEW IF NOT EXISTS conversation_turns AS SELECT t.*,t.rowid AS archive_rowid FROM turns t
+          DROP VIEW IF EXISTS conversation_turns;
+          CREATE VIEW conversation_turns AS SELECT t.id,t.session_id,t.status,t.prompt,t.result,t.turn_rowid AS archive_rowid FROM turn_logs t
             WHERE NOT EXISTS(SELECT 1 FROM conversation_points p WHERE p.turn_id=t.id AND
               (p.active=0 OR EXISTS(SELECT 1 FROM conversation_state s WHERE s.session_id=t.session_id AND p.pre_seq>=s.upper_seq)));
           CREATE VIEW IF NOT EXISTS conversation_tools AS SELECT o.*,o.rowid AS archive_rowid FROM tool_operations o

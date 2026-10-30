@@ -83,6 +83,8 @@ struct Metrics {
     checkpoints: AtomicU64,
     checkpoint_ns: AtomicU64,
     max_checkpoint_ns: AtomicU64,
+    wal_pages: AtomicU64,
+    wal_frames: AtomicU64,
 }
 
 /// Snapshot of the writer counters; times in microseconds.
@@ -105,6 +107,8 @@ pub(crate) struct StorageMetrics {
     pub max_durable_wait_us: u64,
     pub fsyncs: u64,
     pub fsync_us: u64,
+    /// Pages committed into the WAL: the database's write volume.
+    pub wal_frames: u64,
     /// WAL checkpoints run by releasing holders.
     pub checkpoints: u64,
     pub checkpoint_us: u64,
@@ -118,7 +122,7 @@ impl std::fmt::Display for StorageMetrics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "locks={} contended={} wait_us={} max_wait_us={} hold_us={} max_hold_us={} runtime_holds={} max_runtime_hold_us={} commits={} durable_waits={} durable_wait_us={} max_durable_wait_us={} fsyncs={} fsync_us={} checkpoints={} checkpoint_us={} max_checkpoint_us={} stalled_waits={}",
+            "locks={} contended={} wait_us={} max_wait_us={} hold_us={} max_hold_us={} runtime_holds={} max_runtime_hold_us={} commits={} durable_waits={} durable_wait_us={} max_durable_wait_us={} fsyncs={} fsync_us={} wal_frames={} checkpoints={} checkpoint_us={} max_checkpoint_us={} stalled_waits={}",
             self.locks,
             self.contended,
             self.wait_us,
@@ -133,6 +137,7 @@ impl std::fmt::Display for StorageMetrics {
             self.max_durable_wait_us,
             self.fsyncs,
             self.fsync_us,
+            self.wal_frames,
             self.checkpoints,
             self.checkpoint_us,
             self.max_checkpoint_us,
@@ -188,6 +193,17 @@ impl Drop for Guard<'_> {
             metrics.max_runtime_hold_ns.fetch_max(ns, Ordering::Relaxed);
         }
         let pages = WAL_PAGES.replace(0);
+        if pages > 0 {
+            let pages = pages as u64;
+            let before = metrics.wal_pages.swap(pages, Ordering::Relaxed);
+            // A smaller WAL after a checkpoint restarted it from the start.
+            let frames = if pages >= before {
+                pages - before
+            } else {
+                pages
+            };
+            metrics.wal_frames.fetch_add(frames, Ordering::Relaxed);
+        }
         if pages >= CHECKPOINT_PAGES
             && let Some(conn) = self.conn.as_ref()
             && conn.is_autocommit()
@@ -322,6 +338,7 @@ impl Conn {
             max_durable_wait_us: us(&m.max_durable_wait_ns),
             fsyncs: n(&m.fsyncs),
             fsync_us: us(&m.fsync_ns),
+            wal_frames: n(&m.wal_frames),
             checkpoints: n(&m.checkpoints),
             checkpoint_us: us(&m.checkpoint_ns),
             max_checkpoint_us: us(&m.max_checkpoint_ns),

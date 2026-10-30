@@ -21,13 +21,13 @@ impl Db {
         conn: &Connection,
         operation: &str,
     ) -> Result<Option<Diagnostic>, StorageError> {
-        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN json_valid(t.result) AND json_valid(j.identity) THEN CASE WHEN t.status IN ('completed','cancelled','interrupted','failed','incomplete')
-              AND json_extract(t.result,'$.display.owning_operation')=j.operation_id
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN json_valid(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result)) AND json_valid(j.identity) THEN CASE WHEN t.status IN ('completed','cancelled','interrupted','failed','incomplete')
+              AND json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.display.owning_operation')=j.operation_id
               AND json_extract(j.identity,'$.operation')=j.operation_id
               AND json_extract(j.identity,'$.child')=j.child_id
               AND json_extract(j.identity,'$.parent')=j.parent_id
-              AND length(CAST(json_extract(t.result,'$.display.terminal_diagnostic') AS BLOB))<=8192
-              THEN json_extract(t.result,'$.display.terminal_diagnostic') END END
+              AND length(CAST(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.display.terminal_diagnostic') AS BLOB))<=8192
+              THEN json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.display.terminal_diagnostic') END END
              FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
              JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
              LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([operation], |row| row.get(0),
@@ -48,7 +48,7 @@ impl Db {
     ) -> Result<Option<(ChildState, String)>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let (status, text): (Option<String>, Option<String>) = conn.prepare_cached("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id
-             LEFT JOIN messages m ON m.id=CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.assistant_message') END AND m.session_id=j.child_id
+             LEFT JOIN messages m ON m.id=CASE WHEN json_valid(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result)) THEN json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.assistant_message') END AND m.session_id=j.child_id
              WHERE j.operation_id=?1")?.query_row([operation], |r| Ok((r.get(0)?,r.get(1)?)))?;
         let diagnostic = Self::child_diagnostic_in(&conn, operation)?;
         let reason = diagnostic.as_ref().map(|d| d.message.clone());
@@ -561,7 +561,7 @@ impl Db {
             // or the child's latest message. The batch above retains only IDs.
             let (status, result) = {
                 let conn = self.conn.lock().expect("db mutex");
-                conn.prepare_cached("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id LEFT JOIN messages m ON json_valid(t.result) AND m.id=json_extract(t.result,'$.assistant_message') AND m.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([&operation], |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, Option<String>>(1)?)))?
+                conn.prepare_cached("SELECT t.status,m.text FROM child_jobs j LEFT JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id LEFT JOIN messages m ON json_valid(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result)) AND m.id=json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.assistant_message') AND m.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([&operation], |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, Option<String>>(1)?)))?
             };
             let (state,text) = match status.as_deref() {
                 Some("completed") => {
@@ -583,7 +583,7 @@ impl Db {
     /// external effect; other compress outcomes stay conservatively unsafe.
     fn child_checkpoint_safe(&self, operation: &str) -> Result<bool, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let raw: Option<String> = conn.prepare_cached("SELECT t.result FROM child_jobs j JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([operation], |r|r.get(0))?;
+        let raw: Option<String> = conn.prepare_cached("SELECT t.result FROM child_jobs j JOIN turn_logs t ON t.id=j.child_turn AND t.session_id=j.child_id WHERE j.operation_id=?1")?.query_row([operation], |r|r.get(0))?;
         let Some(raw) = raw.filter(|s| s.len() <= crate::runtime::ACTIVE_CONTEXT_BYTES_CAP) else {
             return Ok(false);
         };
@@ -717,7 +717,7 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' JOIN turns t ON t.id=j.child_turn AND t.session_id=j.child_id JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=c.id JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=c.id JOIN prefs l ON l.key='tui.session_location.'||c.id WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state='running' AND t.status='started' AND t.result=?5 AND a.user_message=json_extract(t.result,'$.user_message') AND json_extract(a.model_ref,'$.provider')=json_extract(t.result,'$.provider') AND json_extract(a.model_ref,'$.id')=json_extract(t.result,'$.model') AND l.value=?6 AND c.agent=?7 AND c.model=?8)")?.query_row(params![job.operation,job.parent.0,job.child.0,job.delivery_id,checkpoint,job.location,job.agent,job.model],|r|r.get(0))?;
+        let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id JOIN sessions p ON p.id=j.parent_id JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent' JOIN turn_logs t ON t.id=j.child_turn AND t.session_id=j.child_id JOIN turn_acceptances a ON a.turn_id=t.id AND a.session_id=c.id JOIN conversation_messages m ON m.id=a.user_message AND m.session_id=c.id JOIN prefs l ON l.key='tui.session_location.'||c.id WHERE j.operation_id=?1 AND j.parent_id=?2 AND j.child_id=?3 AND j.delivery_id=?4 AND j.state='running' AND t.status='started' AND t.result=?5 AND a.user_message=json_extract(t.result,'$.user_message') AND json_extract(a.model_ref,'$.provider')=json_extract(t.result,'$.provider') AND json_extract(a.model_ref,'$.id')=json_extract(t.result,'$.model') AND l.value=?6 AND c.agent=?7 AND c.model=?8)")?.query_row(params![job.operation,job.parent.0,job.child.0,job.delivery_id,checkpoint,job.location,job.agent,job.model],|r|r.get(0))?;
         let attempts: i64 = tx.prepare_cached("SELECT count(*) FROM events WHERE session_id=?1 AND kind='subagent_resume_claim' AND json_extract(payload,'$.operation')=?2")?.query_row(params![job.child.0,job.operation],|r|r.get(0))?;
         if !valid || attempts >= 10 {
             return Err(StorageError::OperationNotFound);

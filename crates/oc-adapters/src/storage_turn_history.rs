@@ -85,8 +85,8 @@ impl Db {
                     CASE WHEN m.role='assistant' AND EXISTS (
                       SELECT 1 FROM turns t WHERE t.session_id=m.session_id AND json_valid(t.result)
                       AND COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message'))=+m.id
-                      AND json_extract(t.result,'$.assistant_message')=m.id
-                      AND json_type(t.result,'$.display_parts')='array') THEN ''
+                      AND json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.assistant_message')=m.id
+                      AND json_type(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.display_parts')='array') THEN ''
                     WHEN length(CAST(m.text AS BLOB))<=?6 THEN m.text END AS text
                   FROM conversation_messages m WHERE m.session_id=?1
                     AND m.role!='system'
@@ -179,7 +179,7 @@ impl Db {
         // The fork owner has already admitted total requested rows and bytes.
         // Transfer one bounded segment at a time; source rows never change.
         let source_raw: String = conn
-            .prepare_cached("SELECT result FROM turns WHERE id=?1")?
+            .prepare_cached("SELECT result FROM turn_logs WHERE id=?1")?
             .query_row([source], |r| r.get(0))?;
         let source_log = TurnLog::from_json(
             &serde_json::from_str(&source_raw).map_err(|_| invalid("invalid source journal"))?,
@@ -233,7 +233,7 @@ impl Db {
             )?;
         }
         let raw: String = conn
-            .prepare_cached("SELECT result FROM turns WHERE id=?1")?
+            .prepare_cached("SELECT result FROM turn_logs WHERE id=?1")?
             .query_row([destination], |r| r.get(0))?;
         let mut journal: serde_json::Value =
             serde_json::from_str(&raw).map_err(|_| invalid("invalid fork hot journal"))?;
@@ -248,10 +248,7 @@ impl Db {
                 .map_or(0, |(_, seq)| *seq)
                 .into();
         }
-        conn.execute(
-            "UPDATE turns SET result=?1 WHERE id=?2",
-            params![journal.to_string(), destination],
-        )?;
+        Self::write_turn_result(conn, destination, None, false, Some(&journal.to_string()))?;
         Ok(())
     }
 
@@ -470,7 +467,7 @@ impl Db {
         let tx = conn.transaction()?;
         Self::validate_raw_prefix(&tx, &old.turn_id, old.raw_prefix.as_ref())?;
         let current: Option<String> = tx
-            .prepare_cached("SELECT result FROM turns WHERE id=?1 AND status='started'")?
+            .prepare_cached("SELECT result FROM turn_logs WHERE id=?1 AND status='started'")?
             .query_row([&old.turn_id], |r| r.get(0))?;
         if current.as_deref() != Some(old.to_json().to_string().as_str()) {
             return Err(invalid("stale closed checkpoint"));
@@ -497,9 +494,12 @@ impl Db {
         }
         tx.execute("INSERT INTO turn_raw_segments(turn_id,ordinal,input_end,span_end,part_end,descriptor,payload,base_descriptor) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
             params![old.turn_id,i64::try_from(end.ordinal).map_err(|_| invalid("raw ordinal overflow"))?,i64::try_from(end.ends[0]).map_err(|_| invalid("raw input overflow"))?,i64::try_from(end.ends[2]).map_err(|_| invalid("raw span overflow"))?,i64::try_from(end.ends[4]).map_err(|_| invalid("raw part overflow"))?,serde_json::to_string(&end).expect("descriptor"),segment.to_string(),serde_json::to_string(&base).expect("descriptor")])?;
-        if tx.execute(
-            "UPDATE turns SET result=?1 WHERE id=?2 AND status='started'",
-            params![hot.to_json().to_string(), old.turn_id],
+        if Self::write_turn_result(
+            &tx,
+            &old.turn_id,
+            None,
+            true,
+            Some(&hot.to_json().to_string()),
         )? != 1
         {
             return Err(invalid("turn settled during raw commit"));
@@ -813,7 +813,7 @@ impl Db {
         {
             return Ok(None);
         }
-        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) AS BLOB))<=?2 THEN json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) END FROM turns WHERE id=?1")?.query_row(params![turn,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0))?;
+        let raw: Option<String> = conn.prepare_cached("SELECT CASE WHEN length(CAST(json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) AS BLOB))<=?2 THEN json_object('user_message',json_extract(result,'$.user_message'),'raw_prefix',json_extract(result,'$.raw_prefix'),'input',json_extract(result,'$.input'),'requests',json_extract(result,'$.requests'),'spans',json_extract(result,'$.spans'),'display_parts',json_extract(result,'$.display_parts'),'shell_notice_messages',json_extract(result,'$.shell_notice_messages')) END FROM turn_logs WHERE id=?1")?.query_row(params![turn,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r|r.get(0))?;
         let Some(raw) = raw else { return Ok(None) };
         let hot: serde_json::Value =
             serde_json::from_str(&raw).map_err(|_| invalid("notice original journal"))?;
@@ -967,11 +967,13 @@ impl Db {
         conn: &Connection,
         turn: &str,
     ) -> Result<Vec<oc_core::queries::AssistantSpan>, StorageError> {
-        let total: i64 = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[2]'),0)+COALESCE(json_array_length(result,'$.spans'),0) FROM turns WHERE id=?1")?.query_row([turn],|r| r.get(0))?;
+        let total: i64 = conn.prepare_cached("SELECT COALESCE(json_extract(head,'$.raw_prefix.ends[2]'),0)+COALESCE(json_array_length(head,'$.spans'),0) FROM turn_log_heads WHERE id=?1")?.query_row([turn],|r| r.get(0))?;
         let floor = (total - 192).max(0);
-        let mut stmt=conn.prepare_cached("WITH recent AS (SELECT ordinal,payload FROM turn_raw_segments WHERE turn_id=?1 AND span_end>?2 ORDER BY ordinal DESC LIMIT 192), spans AS (
-          SELECT json_extract(r.payload,'$.base.ends[2]')+s.key AS seq,s.value FROM recent r,json_each(r.payload,'$.journal.spans') s WHERE json_extract(r.payload,'$.base.ends[2]')+s.key>=?2
-          UNION ALL SELECT COALESCE(json_extract(t.result,'$.raw_prefix.ends[2]'),0)+s.key,s.value FROM turns t,json_each(t.result,'$.spans') s WHERE t.id=?1)
+        let mut stmt=conn.prepare_cached("WITH recent AS MATERIALIZED (SELECT r.ordinal,COALESCE(h.head,r.payload) AS payload FROM turn_raw_segments r LEFT JOIN turn_raw_heads h ON h.turn_id=r.turn_id AND h.ordinal=r.ordinal WHERE r.turn_id=?1 AND r.span_end>?2 ORDER BY r.ordinal DESC LIMIT 192),
+          raw AS MATERIALIZED (SELECT json_extract(payload,'$.base.ends[2]') AS base,payload FROM recent),
+          live AS MATERIALIZED (SELECT COALESCE(json_extract(head,'$.raw_prefix.ends[2]'),0) AS base,head FROM turn_log_heads WHERE id=?1), spans AS (
+          SELECT r.base+s.key AS seq,s.value FROM raw r,json_each(r.payload,'$.journal.spans') s WHERE r.base+s.key>=?2
+          UNION ALL SELECT t.base+s.key,s.value FROM live t,json_each(t.head,'$.spans') s)
           SELECT CASE WHEN SUM(length(CAST(value AS BLOB))) OVER (ORDER BY seq)<=?3 THEN value END FROM (SELECT seq,value FROM spans ORDER BY seq DESC LIMIT 192) ORDER BY seq")?;
         stmt.query_map(
             params![turn, floor, crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],
@@ -991,7 +993,7 @@ impl Db {
         conn: &Connection,
         turn: &str,
     ) -> Result<Vec<(usize, Option<i64>, serde_json::Value)>, StorageError> {
-        let total: i64=conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+COALESCE(json_array_length(result,'$.display_parts'),0) FROM turns WHERE id=?1")?.query_row([turn],|r| r.get(0))?;
+        let total: i64=conn.prepare_cached("SELECT COALESCE(json_extract(head,'$.raw_prefix.ends[4]'),0)+COALESCE(json_array_length(head,'$.display_parts'),0) FROM turn_log_heads WHERE id=?1")?.query_row([turn],|r| r.get(0))?;
         self.turn_part_refs(
             conn,
             turn,
@@ -1016,10 +1018,10 @@ impl Db {
         let mut stmt=conn.prepare_cached(&format!("WITH owners AS (
           SELECT MIN(ordinal) AS ordinal FROM turn_raw_segments
           WHERE turn_id=?1 AND part_end>?2 GROUP BY part_end ORDER BY part_end LIMIT 240
-          ), recent AS (SELECT r.ordinal,r.payload FROM turn_raw_segments r JOIN owners o ON o.ordinal=r.ordinal
-          WHERE r.turn_id=?1 AND json_extract(r.payload,'$.base.ends[4]')<?3), parts AS (
-          SELECT json_extract(r.payload,'$.base.ends[4]')+p.key AS seq,r.ordinal,p.value FROM recent r,json_each(r.payload,'$.journal.display_parts') p
-          UNION ALL SELECT COALESCE(json_extract(t.result,'$.raw_prefix.ends[4]'),0)+p.key,NULL,p.value FROM turns t,json_each(t.result,'$.display_parts') p WHERE t.id=?1)
+          ), recent AS MATERIALIZED (SELECT r.ordinal,json_extract(COALESCE(h.head,r.payload),'$.base.ends[4]') AS base,COALESCE(h.head,r.payload) AS payload FROM turn_raw_segments r JOIN owners o ON o.ordinal=r.ordinal LEFT JOIN turn_raw_heads h ON h.turn_id=r.turn_id AND h.ordinal=r.ordinal
+          WHERE r.turn_id=?1), live AS MATERIALIZED (SELECT COALESCE(json_extract(head,'$.raw_prefix.ends[4]'),0) AS base,head FROM turn_log_heads WHERE id=?1), parts AS (
+          SELECT r.base+p.key AS seq,r.ordinal,p.value FROM recent r,json_each(r.payload,'$.journal.display_parts') p WHERE r.base<?3
+          UNION ALL SELECT t.base+p.key,NULL,p.value FROM live t,json_each(t.head,'$.display_parts') p)
           , bounded AS (SELECT seq,ordinal,value,SUM(length(CAST(value AS BLOB))) OVER (ORDER BY seq {order}) AS bytes,
             ROW_NUMBER() OVER (ORDER BY seq {order}) AS position FROM parts WHERE seq>=?2 AND seq<?3)
           SELECT seq,ordinal,CASE WHEN bytes<=?4 OR (position=1 AND length(CAST(value AS BLOB))<=?5) THEN value END FROM bounded WHERE bytes<=?4 OR position=1 ORDER BY seq"))?;

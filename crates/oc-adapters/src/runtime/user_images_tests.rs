@@ -74,7 +74,10 @@ async fn clipboard_images_atomic_admission_wire_retirement_reopen_revert_and_for
             )
             .unwrap();
             let raw: String = reopened
-                .query_row("SELECT result FROM turns WHERE id=?1", [turn], |r| r.get(0))
+                // A live turn's whole journal (`turns.result` holds its stub).
+                .query_row("SELECT result FROM turn_logs WHERE id=?1", [turn], |r| {
+                    r.get(0)
+                })
                 .unwrap();
             let value: Value = serde_json::from_str(&raw).unwrap();
             let log = TurnLog::from_json(&value).unwrap();

@@ -191,10 +191,7 @@ impl Db {
         {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
-        tx.execute(
-            "UPDATE turns SET result=?1 WHERE id=?2 AND status='started'",
-            params![staged.to_string(), turn],
-        )?;
+        Self::write_turn_result(&tx, turn, None, true, Some(&staged.to_string()))?;
         let mut presentation = outcome
             .as_ref()
             .and_then(|outcome| outcome.presentation.cloned());

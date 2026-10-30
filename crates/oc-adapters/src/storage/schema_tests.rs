@@ -130,7 +130,7 @@ fn schema_version_tracks_the_schema() {
             SCHEMA_CHAIN_VERSION,
             format!("{:016x}", fingerprint(&fresh))
         ),
-        (17, "de85ad2c81477f74".to_owned()),
+        (20, "38806a34954f7503".to_owned()),
         "the schema changed: bump SCHEMA_CHAIN_VERSION and record the new fingerprint"
     );
 }

@@ -382,11 +382,7 @@ impl Db {
         tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,provider_call_id,call_occurrence,original_input_index)
             VALUES(?1,?2,?3,'subagent','started',?4,?5,?6,?7)",params![op,session,turn,input,
             identity.as_ref().map(|v|&v.0),identity.as_ref().map(|v|v.1),identity.as_ref().map(|v|v.2)])?;
-        if tx.execute(
-            "UPDATE turns SET result=?2 WHERE id=?1 AND session_id=?3 AND status='started'",
-            params![turn, journal, session],
-        )? != 1
-        {
+        if Self::write_turn_result(&tx, &turn, Some(session), true, Some(&journal))? != 1 {
             return Err(StorageError::OperationNotFound);
         }
         tx.commit()?;

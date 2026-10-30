@@ -102,11 +102,7 @@ impl Db {
             .map_err(|_| StorageError::CompressionConflict)?;
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        if tx.execute(
-            "UPDATE turns SET result=?1 WHERE id=?2 AND session_id=?3 AND status='started'",
-            params![result, turn, session],
-        )? != 1
-        {
+        if Self::write_turn_result(&tx, turn, Some(session), true, Some(result))? != 1 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
         if let Some(raw) = raw {
@@ -260,7 +256,7 @@ impl Db {
                 continue;
             }
             let gap_start = interval.map_or(after, |(_, end, _)| end).max(after);
-            let row:Option<(i64,i64)>=conn.prepare_cached("SELECT a.seq,COALESCE(length(CAST(t.result AS BLOB)),0)+(SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>=a.seq AND m.seq<=?3) FROM conversation_messages a LEFT JOIN turn_acceptances accepted ON accepted.user_message=a.id LEFT JOIN turns t ON t.id=accepted.turn_id WHERE a.session_id=?1 AND a.role='user' AND a.seq>?2 AND a.seq<=?3 ORDER BY a.seq DESC LIMIT 1")?.query_row(params![session,gap_start,cursor],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+            let row:Option<(i64,i64)>=conn.prepare_cached("SELECT a.seq,COALESCE(length(CAST(t.result AS BLOB)),0)+(SELECT COALESCE(SUM(length(CAST(m.text AS BLOB))),0) FROM conversation_messages m WHERE m.session_id=?1 AND m.seq>=a.seq AND m.seq<=?3) FROM conversation_messages a LEFT JOIN turn_acceptances accepted ON accepted.user_message=a.id LEFT JOIN turn_logs t ON t.id=accepted.turn_id WHERE a.session_id=?1 AND a.role='user' AND a.seq>?2 AND a.seq<=?3 ORDER BY a.seq DESC LIMIT 1")?.query_row(params![session,gap_start,cursor],|r|Ok((r.get(0)?,r.get(1)?))).optional()?;
             let Some((start, size)) = row else {
                 if gap_start > after {
                     cursor = gap_start;

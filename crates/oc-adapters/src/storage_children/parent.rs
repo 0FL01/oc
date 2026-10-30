@@ -30,7 +30,7 @@ impl Db {
         }
         // `turns_native_input` holds only turns that carry native input, so a
         // history row no longer parses every journal of the session.
-        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND json_valid(t.result) AND json_type(t.result,'$.native_input') IS NOT NULL AND CASE WHEN json_valid(t.result) THEN json_extract(t.result,'$.native_input.version')=1 AND json_type(t.result,'$.native_input.messages')='array' AND json_array_length(t.result,'$.native_input.messages')<=CASE json_extract(t.result,'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 WHEN 'execute_notices' THEN ?5 ELSE -1 END AND (json_extract(t.result,'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(t.result,'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)")?.query_row(params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64,crate::runtime::code_mode::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
+        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turns t WHERE t.session_id=?1 AND json_valid(t.result) AND json_type(t.result,'$.native_input') IS NOT NULL AND CASE WHEN json_valid(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result)) THEN json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.native_input.version')=1 AND json_type(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.native_input.messages')='array' AND json_array_length(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.native_input.messages')<=CASE json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.native_input.kind') WHEN 'subagent_notices' THEN ?3 WHEN 'shell_notices' THEN ?4 WHEN 'execute_notices' THEN ?5 ELSE -1 END AND (json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.user_message')=?2 OR EXISTS(SELECT 1 FROM json_each(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.native_input.messages') n WHERE n.type='text' AND n.value=?2)) ELSE 0 END)")?.query_row(params![session,message,crate::runtime::children::JOB_CAP as i64,crate::shell::jobs::ACTIVE_JOB_CAP as i64,crate::runtime::code_mode::jobs::ACTIVE_JOB_CAP as i64],|row|row.get(0))?)
     }
 
     fn native_notice_kind_in(
@@ -315,9 +315,12 @@ impl Db {
             .transpose()?
             .into_iter()
             .collect();
-        if tx.execute(
-            "UPDATE turns SET result=?1 WHERE id=?2 AND session_id=?3 AND status='started'",
-            params![next.to_json().to_string(), turn, session],
+        if Self::write_turn_result(
+            &tx,
+            &turn,
+            Some(session),
+            true,
+            Some(&next.to_json().to_string()),
         )? != 1
         {
             return Err(StorageError::OperationNotFound);

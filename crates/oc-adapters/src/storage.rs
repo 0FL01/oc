@@ -560,7 +560,7 @@ pub(crate) struct CompressionPlanCommit<'a> {
 
 /// Schema of this build (`PRAGMA user_version`). Bump it with any change to
 /// a step of `Db::migrate`; `schema_version_tracks_the_schema` fails until then.
-const SCHEMA_CHAIN_VERSION: i64 = 17;
+const SCHEMA_CHAIN_VERSION: i64 = 20;
 
 /// Settings shared by the writer and pooled reader connections.
 fn configure_connection(conn: &Connection) -> Result<(), StorageError> {
@@ -676,6 +676,10 @@ impl Db {
         if version == SCHEMA_CHAIN_VERSION {
             return Ok(());
         }
+        // One fsync for the chain, not one per step: the WAL's checksums keep
+        // an interrupted chain at a whole step, the version is stored last and
+        // its FULL commit makes every earlier step durable.
+        conn.pragma_update(None, "synchronous", "OFF")?;
         apply_schema(conn)?;
         Self::compaction_schema(conn)?;
         Self::renewal_schema(conn)?;
@@ -712,6 +716,8 @@ impl Db {
              CREATE INDEX IF NOT EXISTS events_user_shell_admitted ON events(payload) WHERE kind='user_shell_admitted';
              CREATE INDEX IF NOT EXISTS events_shell_foreground ON events(payload) WHERE kind='shell_foreground';
              CREATE INDEX IF NOT EXISTS events_shell_background ON events(payload) WHERE kind='shell_background';
+             CREATE INDEX IF NOT EXISTS events_shell_notice ON events(payload) WHERE kind='shell_notice';
+             CREATE INDEX IF NOT EXISTS events_execute_notice ON events(payload) WHERE kind='execute_notice';
              CREATE INDEX IF NOT EXISTS events_tool_presentation ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_presentation';
              CREATE INDEX IF NOT EXISTS events_tool_question ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_question';
              CREATE INDEX IF NOT EXISTS tool_output_expiry ON tool_output_resources(completed) WHERE state NOT IN ('Active','Expired');
@@ -722,8 +728,44 @@ impl Db {
         // The runtime's DCP and grant tables, formerly created lazily.
         Self::dcp_schema(conn)?;
         Self::grants_schema_in(conn)?;
+        turn_chunks::raw_schema(conn)?;
+        conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "user_version", SCHEMA_CHAIN_VERSION)?;
         Ok(())
+    }
+
+    /// Replace the journal of `turn` (of `session`, and only while `started`
+    /// when `started_only`), like the `UPDATE turns SET result` it replaces:
+    /// the number of turns written. A live turn's journal is chunked (see
+    /// `turn_chunks`); readers of its growing values use `turn_logs`.
+    fn write_turn_result(
+        conn: &Connection,
+        turn: &str,
+        session: Option<&str>,
+        started_only: bool,
+        log: Option<&str>,
+    ) -> Result<usize, StorageError> {
+        let status: Option<String> = conn
+            .prepare_cached(
+                "SELECT status FROM turns WHERE id=?1 AND (?2 IS NULL OR session_id=?2)",
+            )?
+            .query_row(params![turn, session], |row| row.get(0))
+            .optional()?;
+        let Some(status) = status else {
+            return Ok(0);
+        };
+        if started_only && status != "started" {
+            return Ok(0);
+        }
+        match log {
+            Some(log) if status == "started" => turn_chunks::store_live(conn, turn, log)?,
+            _ => {
+                turn_chunks::clear(conn, turn)?;
+                conn.prepare_cached("UPDATE turns SET result=?2 WHERE id=?1")?
+                    .execute(params![turn, log])?;
+            }
+        }
+        Ok(1)
     }
 
     /// Restart recovery that runs on every open, outside the schema chain: a
@@ -2782,10 +2824,7 @@ impl Db {
             input.append(&mut log.input);
             log.input = input;
             log.user_message = Some(user_message.clone());
-            conn.execute(
-                "UPDATE turns SET result=?2 WHERE id=?1",
-                params![turn, log.to_json().to_string()],
-            )?;
+            Self::write_turn_result(conn, turn, None, false, Some(&log.to_json().to_string()))?;
         }
         Ok(AcceptedTurn {
             user_message,
@@ -2916,10 +2955,7 @@ impl Db {
     /// Persist a completed generation before dispatch, without finishing its turn.
     pub(crate) fn checkpoint_turn(&self, turn: &str, result: &str) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        let affected = conn.execute(
-            "UPDATE turns SET result = ?1 WHERE id = ?2 AND status = 'started'",
-            params![result, turn],
-        )?;
+        let affected = Self::write_turn_result(&conn, turn, None, true, Some(result))?;
         if affected != 1 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
@@ -2938,11 +2974,7 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        if tx.execute(
-            "UPDATE turns SET result=?1 WHERE id=?2 AND session_id=?3 AND status='started'",
-            params![result, turn, session],
-        )? != 1
-        {
+        if Self::write_turn_result(&tx, turn, Some(session), true, Some(result))? != 1 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
         if aggregate {
@@ -3010,7 +3042,7 @@ impl Db {
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         // An inherited operation remains fixed even when a later root turn starts.
-        let root_operation: Option<String> = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
+        let root_operation: Option<String> = conn.prepare_cached("SELECT COALESCE(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=turns.id),result),'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
         Self::dispatch_count(&conn, root_operation.as_deref().unwrap_or(operation))?
             .checked_add(1)
             .ok_or_else(|| {
@@ -3030,7 +3062,7 @@ impl Db {
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let root: Option<String> = tx.prepare_cached("SELECT COALESCE(json_extract(result,'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
+        let root: Option<String> = tx.prepare_cached("SELECT COALESCE(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=turns.id),result),'$.display.owning_operation'),id) FROM turns WHERE id=?1 OR (session_id=?2 AND status='started') ORDER BY id=?1 DESC,rowid DESC LIMIT 1")?.query_row(params![operation,session], |r|r.get(0)).optional()?;
         let root = root.as_deref().unwrap_or(operation);
         Self::dispatch_count(&tx, root)?
             .checked_add(1)
@@ -3109,10 +3141,7 @@ impl Db {
                 params![op, json],
             )?;
         }
-        tx.execute(
-            "UPDATE turns SET result = ?1 WHERE id = ?2 AND status='started'",
-            params![log, turn],
-        )?;
+        Self::write_turn_result(&tx, turn, None, true, Some(log))?;
         // A very fast background program may freeze before its launch receipt.
         // The receipt remains immutable, but must not replace the later facts.
         let frozen = if presentation
@@ -3175,7 +3204,10 @@ impl Db {
         metadata: &serde_json::Value,
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        conn.execute("UPDATE turns SET result = json_set(result, '$.display', json_patch(COALESCE(json_extract(result, '$.display'), '{}'), json(?2))) WHERE id = ?1", params![turn, metadata.to_string()])?;
+        let patched: Option<String> = conn.query_row("SELECT json_set(result, '$.display', json_patch(COALESCE(json_extract(result, '$.display'), '{}'), json(?2))) FROM turn_logs WHERE id = ?1", params![turn, metadata.to_string()], |row| row.get(0)).optional()?.flatten();
+        if let Some(patched) = patched {
+            Self::write_turn_result(&conn, turn, None, false, Some(&patched))?;
+        }
         Ok(())
     }
 
@@ -3366,8 +3398,8 @@ impl Db {
         use oc_core::queries::{HistoryTurn, PartState, ToolOpView, TranscriptPart};
         let locked = self.conn.lock().expect("db mutex");
         let conn = locked.unchecked_transaction()?;
-        let record: Option<(String, String, String, String)> = conn.prepare_cached("SELECT t.id, t.status, COALESCE(json_extract(t.result,'$.display'),'{}'), COALESCE(json_extract(t.result,'$.model'),'')
-             FROM turns t WHERE json_valid(t.result) AND t.session_id=?1 AND t.id=?2 LIMIT 1")?.query_row(params![session,id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
+        let record: Option<(String, String, String, String)> = conn.prepare_cached("SELECT t.id, t.status, COALESCE(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.display'),'{}'), COALESCE(json_extract(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result),'$.model'),'')
+             FROM turns t WHERE json_valid(coalesce((SELECT th.head FROM turn_heads th WHERE th.turn_id=t.id),t.result)) AND t.session_id=?1 AND t.id=?2 LIMIT 1")?.query_row(params![session,id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).optional()?;
         let Some((id, status, metadata, model)) = record else {
             return Ok(None);
         };
@@ -3396,7 +3428,7 @@ impl Db {
         };
         // Bounded presentation window, not a runtime step/retry admission limit.
         turn.spans = self.latest_turn_spans(&conn, &id)?;
-        let total: Option<i64> = conn.prepare_cached("SELECT COALESCE(json_extract(result,'$.raw_prefix.ends[4]'),0)+json_array_length(result,'$.display_parts') FROM turns WHERE id=?1")?.query_row([&id],
+        let total: Option<i64> = conn.prepare_cached("SELECT COALESCE(json_extract(head,'$.raw_prefix.ends[4]'),0)+json_array_length(head,'$.display_parts') FROM turn_log_heads WHERE id=?1")?.query_row([&id],
             |r| r.get(0),
         )?;
         turn.legacy_text_only = total.is_none();
@@ -3458,7 +3490,7 @@ impl Db {
             let older_span = if let Some(span_id) = part["span"].as_str()
                 && !turn.spans.iter().any(|s| s.id == span_id)
             {
-                let raw: Option<Option<String>>=conn.prepare_cached("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT json_extract(payload,'$.journal') FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?3) SELECT CASE WHEN length(CAST(s.value AS BLOB))<=?4 THEN s.value END FROM source,json_each(source.payload,'$.spans') s WHERE s.value->>'$.id'=?2 LIMIT 1")?.query_row(params![id,span_id,ordinal,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r| r.get(0)).optional()?;
+                let raw: Option<Option<String>>=conn.prepare_cached("WITH source AS (SELECT head AS payload FROM turn_log_heads WHERE id=?1 AND ?3 IS NULL UNION ALL SELECT json_extract(COALESCE(h.head,r.payload),'$.journal') FROM turn_raw_segments r LEFT JOIN turn_raw_heads h ON h.turn_id=r.turn_id AND h.ordinal=r.ordinal WHERE r.turn_id=?1 AND r.ordinal=?3) SELECT CASE WHEN length(CAST(s.value AS BLOB))<=?4 THEN s.value END FROM source,json_each(source.payload,'$.spans') s WHERE s.value->>'$.id'=?2 LIMIT 1")?.query_row(params![id,span_id,ordinal,crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64],|r| r.get(0)).optional()?;
                 if raw == Some(None) {
                     return Err(StorageError::CompressionConflict);
                 }
@@ -3492,7 +3524,7 @@ impl Db {
                     "$.{}input[{index}].content",
                     if ordinal.is_some() { "journal." } else { "" }
                 );
-                let mut texts=conn.prepare_cached("WITH source AS (SELECT result AS payload FROM turns WHERE id=?1 AND ?4 IS NULL UNION ALL SELECT payload FROM turn_raw_segments WHERE turn_id=?1 AND ordinal=?4) SELECT CASE WHEN length(CAST(c.value ->> '$.text' AS BLOB))<=?3 THEN c.value ->> '$.text' END FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'")?;
+                let mut texts=conn.prepare_cached("WITH source AS (SELECT head AS payload FROM turn_log_heads WHERE id=?1 AND ?4 IS NULL UNION ALL SELECT COALESCE(h.head,r.payload) FROM turn_raw_segments r LEFT JOIN turn_raw_heads h ON h.turn_id=r.turn_id AND h.ordinal=r.ordinal WHERE r.turn_id=?1 AND r.ordinal=?4) SELECT CASE WHEN length(CAST(c.value ->> '$.text' AS BLOB))<=?3 THEN c.value ->> '$.text' END FROM source,json_each(source.payload,?2) c WHERE c.value ->> '$.type'='output_text'")?;
                 let mut text = String::new();
                 for item in texts.query_map(
                     params![
@@ -3583,7 +3615,7 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let bytes: i64 = conn
             .prepare_cached(
-                "SELECT COALESCE(length(CAST(result AS BLOB)),0) FROM turns WHERE id=?1",
+                "SELECT COALESCE(length(CAST(result AS BLOB)),0) FROM turn_logs WHERE id=?1",
             )?
             .query_row([turn], |r| r.get(0))?;
         if bytes < 0 || bytes as u64 > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as u64 {
@@ -3610,7 +3642,7 @@ impl Db {
         Self::validate_raw_prefix(&conn, turn, prefix.as_ref())?;
         let result = conn
             .query_row(
-                "SELECT status, result FROM turns WHERE id = ?1",
+                "SELECT status, result FROM turn_logs WHERE id = ?1",
                 params![turn],
                 |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
             )
@@ -4047,10 +4079,7 @@ impl Db {
                 ],
             )?;
             if let (Some(turn), Some(log)) = (tool.turn_id, tool.turn_log) {
-                tx.execute(
-                    "UPDATE turns SET result = ?1 WHERE id = ?2",
-                    params![log, turn],
-                )?;
+                Self::write_turn_result(&tx, turn, None, false, Some(log))?;
             }
             for (key, value) in tool.preference_updates {
                 tx.execute(
@@ -4197,10 +4226,7 @@ impl Db {
         let tx = conn.transaction()?;
         let identity = Self::call_identity(op, turn, journal)?;
         tx.execute("INSERT INTO tool_operations(id,session_id,turn_id,name,state,input,output,provider_call_id,call_occurrence,original_input_index) VALUES(?1,?2,?3,?4,'started',?5,NULL,?6,?7,?8)", params![op,session,turn,name,input,identity.as_ref().map(|v|&v.0),identity.as_ref().map(|v|v.1),identity.as_ref().map(|v|v.2)])?;
-        let n = tx.execute(
-            "UPDATE turns SET result=?2 WHERE id=?1 AND session_id=?3 AND status='started'",
-            params![turn, journal, session],
-        )?;
+        let n = Self::write_turn_result(&tx, turn, Some(session), true, Some(journal))?;
         if n != 1 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
@@ -4284,7 +4310,11 @@ impl Db {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as i64;
-            tx.execute("UPDATE turns SET result=json_set(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].status','unknown','$.spans['||(json_array_length(result,'$.spans')-1)||'].completed',?2) WHERE id=?1 AND json_valid(result) AND json_array_length(result,'$.spans')>0 AND json_extract(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].completed') IS NULL",params![turn,now])?;
+            // The journal of a live turn may be chunked: patch the whole one.
+            let patched: Option<String> = tx.query_row("SELECT CASE WHEN json_valid(result) AND json_array_length(result,'$.spans')>0 AND json_extract(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].completed') IS NULL THEN json_set(result,'$.spans['||(json_array_length(result,'$.spans')-1)||'].status','unknown','$.spans['||(json_array_length(result,'$.spans')-1)||'].completed',?2) END FROM turn_logs WHERE id=?1",params![turn,now],|row|row.get(0)).optional()?.flatten();
+            if let Some(patched) = patched {
+                Self::write_turn_result(&tx, &turn, None, true, Some(&patched))?;
+            }
         }
         tx.execute(
             "UPDATE turns SET status = 'unknown' WHERE status = 'started' AND NOT EXISTS(SELECT 1 FROM child_jobs j WHERE j.child_turn=turns.id AND j.state='running')",
@@ -4811,6 +4841,11 @@ mod tool_output_scale_tests;
 #[cfg(test)]
 #[path = "storage/transcript_tests.rs"]
 mod transcript_tests;
+#[path = "storage/turn_chunks.rs"]
+mod turn_chunks;
+#[cfg(test)]
+#[path = "storage/turn_volume_tests.rs"]
+mod turn_volume_tests;
 #[cfg(test)]
 #[path = "storage/vm_steps.rs"]
 pub(crate) mod vm_steps;

@@ -5,6 +5,7 @@ use super::children::scale_tests::admit;
 use super::*;
 use oc_core::queries::ModelRef;
 use serde_json::json;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 fn percentile(samples: &mut [Duration], p: f64) -> Duration {
@@ -232,4 +233,183 @@ fn session_turns(db: &Db, session: &str, turns: usize, tools: usize) -> Vec<Dura
         });
     }
     acks
+}
+
+/// Opt-in: `OC_PROBE_COPY=<copied data root>` (upgraded in place). The newest
+/// History window of the session with the largest journals, projected per row
+/// as the application does.
+#[test]
+#[ignore = "needs a copied database"]
+fn load_probe_history_on_copy() {
+    let root = std::path::PathBuf::from(std::env::var_os("OC_PROBE_COPY").expect("OC_PROBE_COPY"));
+    let db = Db::open(&root).unwrap();
+    let (session, bytes): (String, i64) = db
+        .conn
+        .lock()
+        .unwrap()
+        .query_row(
+            "SELECT session_id,sum(length(result)) AS bytes FROM turns GROUP BY session_id ORDER BY bytes DESC LIMIT 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let window = oc_core::queries::HistoryReadWindow {
+        before_seq: None,
+        after_seq: None,
+        part: None,
+    };
+    let mut parts = [Duration::ZERO; 6];
+    let mut timed = |part: usize, run: &mut dyn FnMut()| {
+        let since = Instant::now();
+        run();
+        parts[part] += since.elapsed();
+    };
+    let mut pages: Vec<Duration> = (0..10)
+        .map(|_| {
+            let since = Instant::now();
+            let mut rows = Vec::new();
+            timed(0, &mut || {
+                rows = db.read_transcript_rows(&session, &window, 100).unwrap()
+            });
+            for row in rows {
+                timed(1, &mut || {
+                    drop(db.user_shell_result(&session, &row.id).unwrap())
+                });
+                timed(2, &mut || {
+                    drop(db.child_history(&session, &row.id).unwrap())
+                });
+                timed(3, &mut || {
+                    drop(db.model_shell_notice(&session, &row.id).unwrap())
+                });
+                timed(4, &mut || {
+                    drop(db.user_images(&session, &row.id.0, &row.text).unwrap())
+                });
+                timed(5, &mut || {
+                    drop(
+                        db.history_turn_window(&session, row.seq, None, false)
+                            .unwrap(),
+                    )
+                });
+            }
+            since.elapsed()
+        })
+        .collect();
+    if std::env::var_os("OC_PROBE_PROFILE").is_some() {
+        db.conn.lock().unwrap().trace_v2(
+            rusqlite::trace::TraceEventCodes::SQLITE_TRACE_PROFILE,
+            Some(profile),
+        );
+        for row in db.read_transcript_rows(&session, &window, 100).unwrap() {
+            db.model_shell_notice(&session, &row.id).unwrap();
+            db.history_turn_window(&session, row.seq, None, false)
+                .unwrap();
+        }
+        PROFILE.with_borrow(|costs| {
+            let mut costs: Vec<_> = costs.iter().collect();
+            costs.sort_by_key(|(_, (time, _))| std::cmp::Reverse(*time));
+            for (sql, (time, calls)) in costs.into_iter().take(6) {
+                let sql: String = sql.split_whitespace().collect::<Vec<_>>().join(" ");
+                eprintln!(
+                    "  {:>8.1}ms {calls:>4}x {}",
+                    ms(*time),
+                    &sql[..sql.len().min(300)]
+                );
+            }
+        });
+    }
+    for (name, total) in [
+        "transcript",
+        "user_shell",
+        "child",
+        "shell_notice",
+        "images",
+        "turn_window",
+    ]
+    .iter()
+    .zip(parts)
+    {
+        eprintln!("  {name}: {:.1}ms per window", ms(total) / 10.0);
+    }
+    eprintln!(
+        "session with {} MiB of journals: history window p50={:.1}ms p95={:.1}ms",
+        bytes >> 20,
+        ms(percentile(&mut pages, 0.5)),
+        ms(percentile(&mut pages, 0.95)),
+    );
+}
+
+thread_local! {
+    static PROFILE: std::cell::RefCell<HashMap<String, (Duration, usize)>> = Default::default();
+}
+
+fn profile(event: rusqlite::trace::TraceEvent<'_>) {
+    if let rusqlite::trace::TraceEvent::Profile(stmt, time) = event {
+        PROFILE.with_borrow_mut(|costs| {
+            let cost = costs.entry(stmt.sql().into_owned()).or_default();
+            cost.0 += time;
+            cost.1 += 1;
+        });
+    }
+}
+
+/// Opt-in: WAL pages and time of a tracked DCP preference update (the most
+/// frequent versioned mutation) with and without the versioning triggers.
+#[test]
+#[ignore = "opt-in load probe"]
+fn load_probe_dcp_versioning() {
+    let run = |tracked: bool| {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        quiet(&db, true);
+        db.create_session("s").unwrap();
+        if !tracked {
+            let conn = db.conn.lock().unwrap();
+            let triggers: Vec<String> = conn
+                .prepare("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'conversation_track_%'")
+                .unwrap()
+                .query_map([], |row| row.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap();
+            for trigger in triggers {
+                conn.execute_batch(&format!("DROP TRIGGER {trigger}"))
+                    .unwrap();
+            }
+        }
+        let before = db.storage_metrics().wal_frames;
+        let since = Instant::now();
+        for k in 0..1000 {
+            db.set_pref(
+                "dcp.nudge.s\0fixture\0m",
+                &format!("{{\"turns_since_compress\":{k}}}"),
+            )
+            .unwrap();
+        }
+        (db.storage_metrics().wal_frames - before, since.elapsed())
+    };
+    let (tracked, untracked) = (run(true), run(false));
+    eprintln!(
+        "1000 tracked pref updates: {} WAL pages {:.0}ms; untracked: {} pages {:.0}ms",
+        tracked.0,
+        ms(tracked.1),
+        untracked.0,
+        ms(untracked.1)
+    );
+}
+
+/// Opt-in: time of opening a fresh and an existing data root.
+#[test]
+#[ignore = "opt-in load probe"]
+fn load_probe_open() {
+    let dir = tempfile::tempdir().unwrap();
+    let since = Instant::now();
+    drop(Db::open(&dir.path().join("a")).unwrap());
+    let fresh = since.elapsed();
+    let since = Instant::now();
+    drop(Db::open(&dir.path().join("a")).unwrap());
+    eprintln!(
+        "open fresh {:.0}ms, existing {:.0}ms",
+        ms(fresh),
+        ms(since.elapsed())
+    );
 }
