@@ -17,10 +17,8 @@
 use rusqlite::Connection;
 use std::fs::File;
 use std::ops::{Deref, DerefMut};
-#[cfg(test)]
-use std::sync::TryLockError;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Condvar, LockResult, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Condvar, LockResult, Mutex, MutexGuard, PoisonError, TryLockError};
 
 pub(crate) struct Conn {
     conn: Mutex<Connection>,
@@ -76,8 +74,8 @@ impl Drop for Guard<'_> {
         let end = self.owner.started.load(Ordering::SeqCst);
         self.owner.completed.store(end, Ordering::SeqCst);
         self.conn.take();
-        if end > self.start {
-            self.owner.durable(end);
+        if end > self.start && !self.owner.is_durable(end) {
+            blocking(|| self.owner.durable(end));
         }
     }
 }
@@ -122,7 +120,12 @@ impl Conn {
             conn: Some(conn),
             start: self.started.load(Ordering::SeqCst),
         };
-        match self.conn.lock() {
+        let locked = match self.conn.try_lock() {
+            Ok(conn) => Ok(conn),
+            Err(TryLockError::Poisoned(poisoned)) => Err(poisoned),
+            Err(TryLockError::WouldBlock) => blocking(|| self.conn.lock()),
+        };
+        match locked {
             Ok(conn) => Ok(guard(conn)),
             Err(poisoned) => Err(PoisonError::new(guard(poisoned.into_inner()))),
         }
@@ -132,7 +135,15 @@ impl Conn {
     /// decided from database state (for example deleting a file whose row
     /// another holder removed but has not yet been acknowledged).
     pub(crate) fn fence(&self) {
-        self.durable(self.completed.load(Ordering::SeqCst));
+        let target = self.completed.load(Ordering::SeqCst);
+        if !self.is_durable(target) {
+            blocking(|| self.durable(target));
+        }
+    }
+
+    fn is_durable(&self, target: u64) -> bool {
+        let sync = self.sync.lock().expect("wal sync");
+        !sync.failed && sync.durable >= target
     }
 
     /// True while another holder owns the connection (tests only).
@@ -187,6 +198,18 @@ impl Conn {
             }
             self.synced.notify_all();
         }
+    }
+}
+
+/// Waiting on the connection or a WAL fsync from a tokio worker of the
+/// owner's small multi-thread runtime hands that worker's other tasks to the
+/// runtime instead of stalling them; other contexts simply block.
+fn blocking<T>(wait: impl FnOnce() -> T) -> T {
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread => {
+            tokio::task::block_in_place(wait)
+        }
+        _ => wait(),
     }
 }
 
@@ -354,6 +377,50 @@ mod tests {
         conn.fail_sync.store(false, Ordering::SeqCst);
         let later = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| insert(&conn, 2)));
         assert!(later.is_err(), "no acknowledgement after a lost writeback");
+        assert_eq!(conn.syncs.load(Ordering::SeqCst), 1);
+    }
+
+    /// A task waiting for the connection on a tokio worker does not stall the
+    /// other tasks of that worker: with one worker thread, a timer task still
+    /// completes while the connection is held elsewhere.
+    #[test]
+    fn waiting_for_the_connection_does_not_stall_the_runtime() {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = open(dir.path());
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap();
+        let held = conn.lock().unwrap();
+        let ticked = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        runtime.block_on(async {
+            let waiter = {
+                let conn = conn.clone();
+                tokio::spawn(async move {
+                    insert(&conn, 1);
+                })
+            };
+            tokio::task::yield_now().await;
+            let tick = {
+                let ticked = ticked.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                    ticked.store(true, Ordering::SeqCst);
+                })
+            };
+            let deadline = Instant::now() + Duration::from_secs(10);
+            while !ticked.load(Ordering::SeqCst) {
+                assert!(
+                    Instant::now() < deadline,
+                    "the worker stalled behind the connection"
+                );
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            drop(held);
+            waiter.await.unwrap();
+            tick.await.unwrap();
+        });
         assert_eq!(conn.syncs.load(Ordering::SeqCst), 1);
     }
 }

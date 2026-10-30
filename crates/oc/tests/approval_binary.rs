@@ -114,6 +114,26 @@ fn run(auto_flag: Option<&str>, deny: bool) {
                     }
                 }
             }
+            // Title generation is automatic and runs concurrently with the
+            // main request; it never consumes the scripted main-turn answer.
+            let request: serde_json::Value = bytes
+                .windows(4)
+                .position(|b| b == b"\r\n\r\n")
+                .and_then(|at| serde_json::from_slice(&bytes[at + 4..]).ok())
+                .unwrap_or_default();
+            if request["max_output_tokens"] == 256
+                && request["tools"]
+                    .as_array()
+                    .is_none_or(|tools| tools.is_empty())
+            {
+                let reply = "data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"Fixture title\"}]}]}}\n\n";
+                let _ = write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{reply}",
+                    reply.len()
+                );
+                continue;
+            }
             let mut body = String::new();
             if count == 0 {
                 let args =
