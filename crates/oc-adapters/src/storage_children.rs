@@ -186,48 +186,49 @@ impl Db {
         session: &str,
         message: &oc_core::session::MessageId,
     ) -> Result<Option<ChildHistory>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        if !conn
-            .prepare_cached(
-                "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
-            )?
-            .query_row(params![session, message.0], |row| row.get::<_, bool>(0))?
-        {
-            return Ok(None);
-        }
-        if let Some(job) = Self::child_notice_in(&conn, session, &message.0)? {
-            return Ok(Some(ChildHistory::Notice(Box::new(job))));
-        }
-        if Self::native_notice_data_in(&conn, session, &message.0)?
-            && conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turn_acceptances WHERE session_id=?1 AND user_message=?2)")?.query_row(params![session,message.0],|row|row.get::<_,bool>(0))? {
-            return Ok(Some(ChildHistory::NativeControl));
-        }
-        // Read the original structured tool argument of this exact acceptance,
-        // not delimiters inside its transformed native host/context-pack text.
-        let task = conn.prepare_cached("SELECT substr(CAST(json_extract(o.input,'$.prompt') AS BLOB),1,65536),length(CAST(json_extract(o.input,'$.prompt') AS BLOB))
-             FROM conversation_messages m JOIN turn_acceptances a ON a.user_message=m.id AND a.session_id=m.session_id
-             JOIN child_jobs j ON j.child_turn=a.turn_id AND j.child_id=a.session_id
-             JOIN turns t ON t.id=a.turn_id AND t.session_id=j.child_id
-             JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
-             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
-             WHERE m.session_id=?1 AND m.id=?2 AND m.role='user'
-             AND CASE WHEN json_valid(o.input) AND json_valid(j.identity) THEN
-                json_type(o.input,'$.prompt')='text'
-                AND json_extract(j.identity,'$.operation')=j.operation_id
-                AND json_extract(j.identity,'$.parent')=j.parent_id
-                AND json_extract(j.identity,'$.child')=j.child_id
-                AND json_extract(j.identity,'$.delivery_id')=j.delivery_id
-                AND json_extract(j.identity,'$.agent')=json_extract(o.input,'$.agent')
-             ELSE 0 END")?.query_row(params![session,message.0],
-            |row| Ok((row.get::<_,Vec<u8>>(0)?,row.get::<_,i64>(1)?)),
-        ).optional()?;
-        Ok(task.map(|(text, bytes)| {
-            let end = std::str::from_utf8(&text).map_or_else(|error| error.valid_up_to(), str::len);
-            ChildHistory::Task {
-                text: String::from_utf8_lossy(&text[..end]).into_owned(),
-                limited: bytes > end as i64,
+        self.readers.read(|conn| {
+            if !conn
+                .prepare_cached(
+                    "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+                )?
+                .query_row(params![session, message.0], |row| row.get::<_, bool>(0))?
+            {
+                return Ok(None);
             }
-        }))
+            if let Some(job) = Self::child_notice_in(conn, session, &message.0)? {
+                return Ok(Some(ChildHistory::Notice(Box::new(job))));
+            }
+            if Self::native_notice_data_in(conn, session, &message.0)?
+                && conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM turn_acceptances WHERE session_id=?1 AND user_message=?2)")?.query_row(params![session,message.0],|row|row.get::<_,bool>(0))? {
+                return Ok(Some(ChildHistory::NativeControl));
+            }
+            // Read the original structured tool argument of this exact acceptance,
+            // not delimiters inside its transformed native host/context-pack text.
+            let task = conn.prepare_cached("SELECT substr(CAST(json_extract(o.input,'$.prompt') AS BLOB),1,65536),length(CAST(json_extract(o.input,'$.prompt') AS BLOB))
+                 FROM conversation_messages m JOIN turn_acceptances a ON a.user_message=m.id AND a.session_id=m.session_id
+                 JOIN child_jobs j ON j.child_turn=a.turn_id AND j.child_id=a.session_id
+                 JOIN turns t ON t.id=a.turn_id AND t.session_id=j.child_id
+                 JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
+                 JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
+                 WHERE m.session_id=?1 AND m.id=?2 AND m.role='user'
+                 AND CASE WHEN json_valid(o.input) AND json_valid(j.identity) THEN
+                    json_type(o.input,'$.prompt')='text'
+                    AND json_extract(j.identity,'$.operation')=j.operation_id
+                    AND json_extract(j.identity,'$.parent')=j.parent_id
+                    AND json_extract(j.identity,'$.child')=j.child_id
+                    AND json_extract(j.identity,'$.delivery_id')=j.delivery_id
+                    AND json_extract(j.identity,'$.agent')=json_extract(o.input,'$.agent')
+                 ELSE 0 END")?.query_row(params![session,message.0],
+                |row| Ok((row.get::<_,Vec<u8>>(0)?,row.get::<_,i64>(1)?)),
+            ).optional()?;
+            Ok(task.map(|(text, bytes)| {
+                let end = std::str::from_utf8(&text).map_or_else(|error| error.valid_up_to(), str::len);
+                ChildHistory::Task {
+                    text: String::from_utf8_lossy(&text[..end]).into_owned(),
+                    limited: bytes > end as i64,
+                }
+            }))
+        })
     }
 
     /// Exact delivery identity, including hidden RAW rows for Revert counting.
@@ -522,22 +523,23 @@ impl Db {
 
     /// Bounded positive launch projections for the existing frontend inventory.
     pub(crate) fn child_tool_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        Self::require_session(&conn, session)?;
-        // Active jobs first, then the newest settled ones; both arms are index
-        // ranges, so settled history never has to be sorted.
-        let mut stmt = conn.prepare_cached("SELECT operation_id FROM (SELECT * FROM (SELECT j.operation_id,1 AS active,j.rowid AS position FROM child_jobs j INDEXED BY child_job_state JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 AND j.state IN ('admitted','running') ORDER BY j.rowid DESC LIMIT 16) UNION ALL SELECT * FROM (SELECT j.operation_id,0,j.rowid FROM child_jobs j INDEXED BY child_job_family JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 AND j.state NOT IN ('admitted','running') ORDER BY j.rowid DESC LIMIT 16)) ORDER BY active DESC,position DESC LIMIT 16")?;
-        let rows = stmt.query_map([session], |r| r.get::<_, String>(0))?;
-        let mut jobs = Vec::new();
-        for row in rows {
-            let operation = row?;
-            // Live inventory and cold tool projection use the same positive
-            // original-launch fence; neither copied nor malformed data can link.
-            if let Some(job) = Self::child_tool_job_in(&conn, session, &operation)? {
-                jobs.push(job);
+        self.readers.read(|conn| {
+            Self::require_session(conn, session)?;
+            // Active jobs first, then the newest settled ones; both arms are index
+            // ranges, so settled history never has to be sorted.
+            let mut stmt = conn.prepare_cached("SELECT operation_id FROM (SELECT * FROM (SELECT j.operation_id,1 AS active,j.rowid AS position FROM child_jobs j INDEXED BY child_job_state JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 AND j.state IN ('admitted','running') ORDER BY j.rowid DESC LIMIT 16) UNION ALL SELECT * FROM (SELECT j.operation_id,0,j.rowid FROM child_jobs j INDEXED BY child_job_family JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 AND j.state NOT IN ('admitted','running') ORDER BY j.rowid DESC LIMIT 16)) ORDER BY active DESC,position DESC LIMIT 16")?;
+            let rows = stmt.query_map([session], |r| r.get::<_, String>(0))?;
+            let mut jobs = Vec::new();
+            for row in rows {
+                let operation = row?;
+                // Live inventory and cold tool projection use the same positive
+                // original-launch fence; neither copied nor malformed data can link.
+                if let Some(job) = Self::child_tool_job_in(conn, session, &operation)? {
+                    jobs.push(job);
+                }
             }
-        }
-        Ok(jobs)
+            Ok(jobs)
+        })
     }
 
     pub(crate) fn recover_child_jobs(&self) -> Result<(), StorageError> {

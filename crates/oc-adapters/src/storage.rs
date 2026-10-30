@@ -386,6 +386,7 @@ pub struct Db {
     execute_notices_due: Arc<std::sync::atomic::AtomicBool>,
     #[cfg(test)]
     shell_notice_queries: Arc<std::sync::atomic::AtomicUsize>,
+    readers: Arc<readers::Readers>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -557,6 +558,25 @@ pub(crate) struct CompressionPlanCommit<'a> {
     pub(crate) tool: Option<&'a ToolOutcomeLogCommit<'a>>,
 }
 
+/// Settings shared by the writer and pooled reader connections.
+fn configure_connection(conn: &Connection) -> Result<(), StorageError> {
+    // Bound SQLite's process-resident page cache independently of a
+    // Location's archived history. This is per connection, in KiB.
+    conn.pragma_update(None, "cache_size", -512_i64)?;
+    // Hot reads reuse compiled statements; the distinct SQL texts number in
+    // the low hundreds, so compiling per call (a page renders many parts)
+    // would dominate.
+    conn.set_prepared_statement_cache_capacity(512);
+    conn.create_scalar_function(
+        "oc_session_lower",
+        1,
+        rusqlite::functions::FunctionFlags::SQLITE_UTF8
+            | rusqlite::functions::FunctionFlags::SQLITE_DETERMINISTIC,
+        |context| Ok(context.get::<String>(0)?.to_lowercase()),
+    )?;
+    Ok(())
+}
+
 impl Db {
     /// Open (or create) a data root with default quota.
     pub fn open(root: &Path) -> Result<Self, StorageError> {
@@ -589,20 +609,7 @@ impl Db {
         secure_sqlite_file(&root.join("oc.sqlite-wal"), false)?;
         secure_sqlite_file(&root.join("oc.sqlite-shm"), false)?;
         let conn = Connection::open(&db_path)?;
-        // Bound SQLite's process-resident page cache independently of a
-        // Location's archived history. This is per connection, in KiB.
-        conn.pragma_update(None, "cache_size", -512_i64)?;
-        // Hot reads reuse compiled statements; the distinct SQL texts number in
-        // the low hundreds, so compiling per call (a page renders many parts)
-        // would dominate.
-        conn.set_prepared_statement_cache_capacity(512);
-        conn.create_scalar_function(
-            "oc_session_lower",
-            1,
-            rusqlite::functions::FunctionFlags::SQLITE_UTF8
-                | rusqlite::functions::FunctionFlags::SQLITE_DETERMINISTIC,
-            |context| Ok(context.get::<String>(0)?.to_lowercase()),
-        )?;
+        configure_connection(&conn)?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
@@ -689,6 +696,7 @@ impl Db {
             execute_notices_due: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             #[cfg(test)]
             shell_notice_queries: Default::default(),
+            readers: Arc::new(readers::Readers::new(db_path)),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -719,6 +727,7 @@ impl Db {
             execute_notices_due: self.execute_notices_due.clone(),
             #[cfg(test)]
             shell_notice_queries: self.shell_notice_queries.clone(),
+            readers: self.readers.clone(),
             _lock: self._lock.clone(),
         }
     }
@@ -1442,34 +1451,35 @@ impl Db {
         before_seq: Option<i64>,
     ) -> Result<Vec<HistoryPageRow>, StorageError> {
         let limit = (limit.min(HISTORY_PAGE_MAX) as i64).max(0);
-        let conn = self.conn.lock().expect("db mutex");
-        let mut stmt = conn.prepare_cached(
-            "SELECT seq, role, text, id FROM conversation_messages
-             WHERE session_id = ?1 AND role != 'system'
-               AND (?2 IS NULL OR seq < ?2)
-             ORDER BY seq DESC LIMIT ?3",
-        )?;
-        let mut remaining = HISTORY_PAGE_ID_BYTES;
-        let rows = stmt.query_map(params![session, before_seq, limit], |row| {
-            let id = page_message_id(row, &mut remaining)?;
-            let seq: i64 = row.get(0)?;
-            let role: String = row.get(1)?;
-            let text: String = row.get(2)?;
-            Ok(HistoryPageRow {
-                id,
-                seq,
-                role,
-                text,
-            })
-        })?;
-        let mut out = Vec::new();
-        for row in rows {
-            out.push(row?);
-        }
-        if out.is_empty() {
-            Self::require_session(&conn, session)?;
-        }
-        Ok(out)
+        self.readers.read(|conn| {
+            let mut stmt = conn.prepare_cached(
+                "SELECT seq, role, text, id FROM conversation_messages
+                 WHERE session_id = ?1 AND role != 'system'
+                   AND (?2 IS NULL OR seq < ?2)
+                 ORDER BY seq DESC LIMIT ?3",
+            )?;
+            let mut remaining = HISTORY_PAGE_ID_BYTES;
+            let rows = stmt.query_map(params![session, before_seq, limit], |row| {
+                let id = page_message_id(row, &mut remaining)?;
+                let seq: i64 = row.get(0)?;
+                let role: String = row.get(1)?;
+                let text: String = row.get(2)?;
+                Ok(HistoryPageRow {
+                    id,
+                    seq,
+                    role,
+                    text,
+                })
+            })?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            if out.is_empty() {
+                Self::require_session(conn, session)?;
+            }
+            Ok(out)
+        })
     }
 
     /// Read one oldest-first page of rows newer than `after_seq`.
@@ -4415,7 +4425,11 @@ impl Db {
             FSYNC_UNDER_DB.with(|count| count.set(count.get() + 1));
         }
         #[cfg(test)]
-        if self.conn.skip_sync.load(std::sync::atomic::Ordering::SeqCst) {
+        if self
+            .conn
+            .skip_sync
+            .load(std::sync::atomic::Ordering::SeqCst)
+        {
             return Ok(());
         }
         file.sync_all()
@@ -4736,6 +4750,8 @@ mod commit_probe_tests;
 #[cfg(test)]
 #[path = "storage/history_scale_tests.rs"]
 mod history_scale_tests;
+#[path = "storage/readers.rs"]
+mod readers;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

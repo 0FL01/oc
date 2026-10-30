@@ -204,7 +204,7 @@ impl Conn {
 /// Waiting on the connection or a WAL fsync from a tokio worker of the
 /// owner's small multi-thread runtime hands that worker's other tasks to the
 /// runtime instead of stalling them; other contexts simply block.
-fn blocking<T>(wait: impl FnOnce() -> T) -> T {
+pub(super) fn blocking<T>(wait: impl FnOnce() -> T) -> T {
     match tokio::runtime::Handle::try_current() {
         Ok(handle) if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread => {
             tokio::task::block_in_place(wait)

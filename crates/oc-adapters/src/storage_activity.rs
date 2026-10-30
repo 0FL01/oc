@@ -61,11 +61,12 @@ impl Db {
         &self,
         sessions: &[SessionId],
     ) -> Result<Vec<SessionActivity>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        sessions
-            .iter()
-            .map(|session| Self::activity_in(&conn, &session.0))
-            .collect()
+        self.readers.read(|conn| {
+            sessions
+                .iter()
+                .map(|session| Self::activity_in(conn, &session.0))
+                .collect()
+        })
     }
 
     pub(crate) fn session_viewed(

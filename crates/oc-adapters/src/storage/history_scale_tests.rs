@@ -54,6 +54,7 @@ fn session(turns: usize) -> Session {
             .unwrap();
     }
     install(&db.conn.lock().unwrap());
+    db.readers.trace();
     Session {
         _dir: dir,
         db,

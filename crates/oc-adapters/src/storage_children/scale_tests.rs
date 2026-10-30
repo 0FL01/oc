@@ -88,6 +88,7 @@ fn population(jobs: usize) -> Population {
         .unwrap();
     admit(&db, jobs, false);
     install(&db.conn.lock().unwrap());
+    db.readers.trace();
     Population {
         _dir: dir,
         db,

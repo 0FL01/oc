@@ -70,56 +70,57 @@ impl Db {
         window: &oc_core::queries::HistoryReadWindow,
         limit: usize,
     ) -> Result<Vec<super::HistoryPageRow>, StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
-        Self::require_session(&conn, session)?;
-        let order = if window.after_seq.is_some() {
-            "ASC"
-        } else {
-            "DESC"
-        };
-        // The anchor term matches `turns_display_anchor`: an indexed probe per
-        // assistant row, not a JSON scan of every journal in the session.
-        let mut statement = conn.prepare_cached(&format!(
-            "WITH projected AS (
-              SELECT m.seq,m.role,m.id,
-                CASE WHEN m.role='assistant' AND EXISTS (
-                  SELECT 1 FROM turns t WHERE t.session_id=m.session_id AND json_valid(t.result)
-                  AND COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message'))=+m.id
-                  AND json_extract(t.result,'$.assistant_message')=m.id
-                  AND json_type(t.result,'$.display_parts')='array') THEN ''
-                WHEN length(CAST(m.text AS BLOB))<=?6 THEN m.text END AS text
-              FROM conversation_messages m WHERE m.session_id=?1
-                AND m.role!='system'
-                AND (?2 IS NULL OR m.seq<?2) AND (?3 IS NULL OR m.seq>?3)
-                AND (?4 IS NULL OR m.id=?4) ORDER BY m.seq {order} LIMIT ?5
-            ), bounded AS (
-              SELECT *,SUM(COALESCE(length(CAST(text AS BLOB)),0)) OVER (ORDER BY seq {order}) AS bytes,
-                ROW_NUMBER() OVER (ORDER BY seq {order}) AS position FROM projected
-            ) SELECT seq,role,text,id FROM bounded WHERE bytes<=?7 OR position=1 ORDER BY seq {order}"
-        ))?;
-        let mut identities = super::HISTORY_PAGE_ID_BYTES;
-        statement
-            .query_map(
-                params![
-                    session,
-                    window.before_seq,
-                    window.after_seq,
-                    window.part.as_ref().map(|p| &p.message.0),
-                    limit.min(super::HISTORY_PAGE_MAX) as i64,
-                    crate::provider::GENERATION_BYTE_CAP as i64,
-                    super::TRANSCRIPT_PAGE_BYTES as i64
-                ],
-                |row| {
-                    Ok(super::HistoryPageRow {
-                        id: super::page_message_id(row, &mut identities)?,
-                        seq: row.get(0)?,
-                        role: row.get(1)?,
-                        text: row.get(2)?,
-                    })
-                },
-            )?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(Into::into)
+        self.readers.read(|conn| {
+            Self::require_session(conn, session)?;
+            let order = if window.after_seq.is_some() {
+                "ASC"
+            } else {
+                "DESC"
+            };
+            // The anchor term matches `turns_display_anchor`: an indexed probe per
+            // assistant row, not a JSON scan of every journal in the session.
+            let mut statement = conn.prepare_cached(&format!(
+                "WITH projected AS (
+                  SELECT m.seq,m.role,m.id,
+                    CASE WHEN m.role='assistant' AND EXISTS (
+                      SELECT 1 FROM turns t WHERE t.session_id=m.session_id AND json_valid(t.result)
+                      AND COALESCE(json_extract(t.result,'$.assistant_message'),json_extract(t.result,'$.user_message'))=+m.id
+                      AND json_extract(t.result,'$.assistant_message')=m.id
+                      AND json_type(t.result,'$.display_parts')='array') THEN ''
+                    WHEN length(CAST(m.text AS BLOB))<=?6 THEN m.text END AS text
+                  FROM conversation_messages m WHERE m.session_id=?1
+                    AND m.role!='system'
+                    AND (?2 IS NULL OR m.seq<?2) AND (?3 IS NULL OR m.seq>?3)
+                    AND (?4 IS NULL OR m.id=?4) ORDER BY m.seq {order} LIMIT ?5
+                ), bounded AS (
+                  SELECT *,SUM(COALESCE(length(CAST(text AS BLOB)),0)) OVER (ORDER BY seq {order}) AS bytes,
+                    ROW_NUMBER() OVER (ORDER BY seq {order}) AS position FROM projected
+                ) SELECT seq,role,text,id FROM bounded WHERE bytes<=?7 OR position=1 ORDER BY seq {order}"
+            ))?;
+            let mut identities = super::HISTORY_PAGE_ID_BYTES;
+            statement
+                .query_map(
+                    params![
+                        session,
+                        window.before_seq,
+                        window.after_seq,
+                        window.part.as_ref().map(|p| &p.message.0),
+                        limit.min(super::HISTORY_PAGE_MAX) as i64,
+                        crate::provider::GENERATION_BYTE_CAP as i64,
+                        super::TRANSCRIPT_PAGE_BYTES as i64
+                    ],
+                    |row| {
+                        Ok(super::HistoryPageRow {
+                            id: super::page_message_id(row, &mut identities)?,
+                            seq: row.get(0)?,
+                            role: row.get(1)?,
+                            text: row.get(2)?,
+                        })
+                    },
+                )?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(Into::into)
+        })
     }
 
     pub(super) fn count_history_read(&self, kind: usize, bytes: usize) {

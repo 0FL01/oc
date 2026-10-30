@@ -22,20 +22,28 @@ fn population(ops: usize) -> Population {
     db.create_session("s").unwrap();
     let mut newest_path = String::new();
     for i in 0..ops {
-        for (op, tool) in [(format!("bash-{i}"), "bash"), (format!("ask-{i}"), "question")] {
+        for (op, tool) in [
+            (format!("bash-{i}"), "bash"),
+            (format!("ask-{i}"), "question"),
+        ] {
             db.record_tool_intent(&op, "s", None, tool, "{}").unwrap();
             let mut writer = db
                 .begin_tool_output(&op, "s", "/project", 1, "default", vec![])
                 .unwrap();
             writer.append("output\n").unwrap();
             newest_path = writer.finish(false).unwrap().path;
-            db.record_tool_outcome(&op, "completed", Some("{}")).unwrap();
+            db.record_tool_outcome(&op, "completed", Some("{}"))
+                .unwrap();
         }
         db.record_tool_output_question(&format!("ask-{i}"), "s")
             .unwrap();
         let conn = db.conn.lock().unwrap();
         for table in ["shell_jobs", "execute_jobs"] {
-            let background = if table == "execute_jobs" { ",background" } else { "" };
+            let background = if table == "execute_jobs" {
+                ",background"
+            } else {
+                ""
+            };
             let flag = if table == "execute_jobs" { ",0" } else { "" };
             conn.execute(
                 &format!("INSERT INTO {table}(operation_id,session_id,version,provenance,phase,delivery_id{background}) VALUES(?1,'s',1,'{{}}','terminal',?2{flag})"),
@@ -47,6 +55,7 @@ fn population(ops: usize) -> Population {
     db.record_tool_intent("probe", "s", None, "bash", "{}")
         .unwrap();
     install(&db.conn.lock().unwrap());
+    db.readers.trace();
     Population {
         _dir: dir,
         db,

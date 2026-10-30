@@ -82,6 +82,10 @@ pub(crate) fn assert_flat(sizes: (usize, usize), before: &[(&str, i64)], after: 
     }
     for ((name, small), (_, large)) in before.iter().zip(after) {
         assert!(
+            *small > 0 && *large > 0,
+            "{name}: no statements were counted"
+        );
+        assert!(
             *large <= small + small / 2 + 500,
             "{name}: {} took {small} VM steps, {} took {large}",
             sizes.0,
