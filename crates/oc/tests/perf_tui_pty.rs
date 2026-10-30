@@ -78,7 +78,10 @@ fn stream_reply() -> Vec<String> {
 /// F scenarios: the prompt names the command; the tool result gets a short answer.
 fn shell_reply(request: &serde_json::Value) -> Option<String> {
     let input = request["input"].as_array()?;
-    let last = input.last()?;
+    // DCP follows a tool output with the model-facing id of its span.
+    let last = input.iter().rev().find(|item| {
+        item["role"] != "developer" || !item.to_string().contains("<dcp-message-id>")
+    })?;
     let output = if last["type"] == "function_call_output" {
         serde_json::json!({"type":"message","role":"assistant","id":"m-shell",
             "status":"completed","content":[{"type":"output_text","text":"SHELL-DONE"}]})
