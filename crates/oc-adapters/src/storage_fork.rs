@@ -1029,6 +1029,11 @@ mod tests {
                 .unwrap()
                 .execute("DELETE FROM schema_migrations WHERE version=4", [])
                 .unwrap();
+            db.conn
+                .lock()
+                .unwrap()
+                .execute_batch("PRAGMA user_version=0")
+                .unwrap();
         }
         let db = Db::open(tmp.path()).unwrap();
         let fork = db

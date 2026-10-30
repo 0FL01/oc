@@ -1,0 +1,5 @@
+# The writer's connection guard runs SQL and waits for durability; holding it
+# across an await would park other writers behind a suspended task.
+await-holding-invalid-types = [
+    { path = "oc_adapters::storage::writer::Guard", reason = "release the database connection before awaiting" },
+]

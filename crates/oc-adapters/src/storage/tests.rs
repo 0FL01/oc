@@ -112,7 +112,7 @@ fn legacy_acceptance_migration_is_linear_atomic_and_one_time() {
                 .unwrap();
             }
         }
-        tx.execute_batch("DELETE FROM schema_migrations WHERE version=4;
+        tx.execute_batch("PRAGMA user_version=0; DELETE FROM schema_migrations WHERE version=4;
                 DROP INDEX events_session_seq;
                 CREATE TRIGGER fail_acceptance BEFORE INSERT ON turn_acceptances WHEN NEW.turn_id='legacy-512' BEGIN SELECT RAISE(ABORT,'injected'); END;").unwrap();
         tx.commit().unwrap();
@@ -259,6 +259,8 @@ fn legacy_acceptance_migration_accepts_large_aggregate_and_reopens_once() {
         }
         tx.execute("DELETE FROM schema_migrations WHERE version=4", [])
             .unwrap();
+        // Real legacy databases predate the schema chain version.
+        tx.execute_batch("PRAGMA user_version=0").unwrap();
         tx.commit().unwrap();
     }
     {
@@ -1189,7 +1191,7 @@ fn child_schema_migration_is_idempotent_across_reopen() {
     // T50 shell, T45 child (and its v16 delivery mode), T53/T57 credentials, T56 terminals and T59 connections leave sessions intact.
     assert_eq!(
         migrations(&db),
-        vec![1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]
+        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     );
     let conn = db.conn.lock().expect("db mutex");
     let applied: String = conn
@@ -1221,7 +1223,7 @@ fn child_schema_upgrades_legacy_database_to_same_schema() {
     let db = Db::open(&root).expect("open legacy");
     assert_eq!(
         migrations(&db),
-        vec![1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]
+        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     );
     let legacy = db.session_meta("legacy").expect("legacy meta");
     assert_eq!(

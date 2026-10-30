@@ -310,7 +310,7 @@ fn auth03_legacy_oauth_additive_upgrade_method_metadata_and_cas_identity() {
         conn.execute_batch("ALTER TABLE credential_accounts DROP COLUMN selection_revision;
             ALTER TABLE credential_accounts DROP COLUMN material_revision;
             ALTER TABLE credential_accounts DROP COLUMN refresh_pending;
-            DELETE FROM schema_migrations WHERE version=13;
+            DELETE FROM schema_migrations WHERE version=13; PRAGMA user_version=0;
             INSERT INTO credential_accounts(id,provider_namespace,label,tagged_value_json,active,created_at)
             VALUES('legacy','scope','legacy','{\"type\":\"oauth\",\"access\":\"LEGACY_ACCESS_CANARY\",\"refresh\":\"LEGACY_REFRESH_CANARY\",\"expires_at\":1234}',1,1);").unwrap();
     }

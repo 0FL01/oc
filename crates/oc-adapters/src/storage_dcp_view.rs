@@ -289,13 +289,14 @@ impl Db {
     ) -> Result<Option<Vec<WireLog>>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         // One step reads the same projection several times (history, cadence,
-        // measurement). Reuse it while this sole writer connection is unchanged.
+        // measurement). Reuse it while the writer has committed nothing since:
+        // read under its lock, no transaction of another holder is open.
         let key = WireLogKey {
             session: session.to_owned(),
             after_seq,
             projected: projected.iter().map(|row| row.0.clone()).collect(),
             blocks: blocks.to_vec(),
-            changes: conn.total_changes(),
+            changes: self.conn.commits(),
         };
         let memo = self
             .wire_log_memo

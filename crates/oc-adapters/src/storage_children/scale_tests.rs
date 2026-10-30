@@ -180,7 +180,7 @@ fn delivery_mode_migration_backfills_launch_mode_and_conversion_once() {
             "DROP INDEX child_job_undelivered; DROP INDEX child_job_state;
              DROP INDEX events_subagent_background; DROP INDEX events_subagent_notice; DROP INDEX events_subagent_launch;
              ALTER TABLE child_jobs DROP COLUMN background;
-             DELETE FROM schema_migrations WHERE version=16;",
+             DELETE FROM schema_migrations WHERE version=16; PRAGMA user_version=0;",
         )
         .unwrap();
     drop(db);

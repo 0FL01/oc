@@ -171,7 +171,7 @@ fn load_probe_sessions() {
         let after = db.storage_metrics();
         let writes = acks.len();
         eprintln!(
-            "sessions={sessions}: {writes} writes in {:.2}s = {:.0}/s; ack p50={:.2}ms p99={:.2}ms max={:.2}ms; timer lag p99={:.2}ms max={:.2}ms; fsyncs={} commits={} max_runtime_hold={}us checkpoints={} max_checkpoint={}us stalled_waits={}",
+            "sessions={sessions}: {writes} writes in {:.2}s = {:.0}/s; ack p50={:.2}ms p99={:.2}ms max={:.2}ms; timer lag p99={:.2}ms max={:.2}ms; fsyncs={} commits={} mean_hold={}us max_runtime_hold={}us checkpoints={} max_checkpoint={}us stalled_waits={}",
             elapsed.as_secs_f64(),
             writes as f64 / elapsed.as_secs_f64(),
             ms(percentile(&mut acks, 0.5)),
@@ -181,6 +181,7 @@ fn load_probe_sessions() {
             ms(percentile(&mut lags, 1.0)),
             after.fsyncs - before.fsyncs,
             after.commits - before.commits,
+            (after.hold_us - before.hold_us) / (after.locks - before.locks).max(1),
             after.max_runtime_hold_us,
             after.checkpoints - before.checkpoints,
             after.max_checkpoint_us,

@@ -2,11 +2,8 @@
 //! schema of a fresh one: tables and columns, indexes, triggers and views.
 use super::*;
 
-/// One normalized line per column, index, trigger and view, after the
-/// schema the runtime adds before its first turn.
+/// One normalized line per column, index, trigger and view.
 fn schema(db: &Db) -> Vec<String> {
-    crate::dcp::apply_dcp_schema(db).unwrap();
-    db.grants_schema().unwrap();
     let conn = db.conn.lock().unwrap();
     let tables: Vec<String> = conn
         .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
@@ -111,4 +108,62 @@ fn a_copied_database_upgrades_to_the_fresh_schema() {
         missing.is_empty() && extra.is_empty(),
         "the upgrade lacks {missing:#?}\nand has extra {extra:#?}"
     );
+}
+
+fn fingerprint(lines: &[String]) -> u64 {
+    lines
+        .join("\n")
+        .bytes()
+        .fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+            (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3)
+        })
+}
+
+/// Any change to a step of `Db::migrate` changes the fresh schema; existing
+/// databases only run the chain again under a new `SCHEMA_CHAIN_VERSION`.
+#[test]
+fn schema_version_tracks_the_schema() {
+    let dir = tempfile::tempdir().unwrap();
+    let fresh = schema(&Db::open(dir.path()).unwrap());
+    assert_eq!(
+        (
+            SCHEMA_CHAIN_VERSION,
+            format!("{:016x}", fingerprint(&fresh))
+        ),
+        (17, "de85ad2c81477f74".to_owned()),
+        "the schema changed: bump SCHEMA_CHAIN_VERSION and record the new fingerprint"
+    );
+}
+
+/// The chain is skipped at the current version and runs again otherwise.
+#[test]
+fn the_chain_runs_only_below_the_current_version() {
+    let dir = tempfile::tempdir().unwrap();
+    let has_index = |db: &Db| -> bool {
+        db.conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name='events_tool_question')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap()
+    };
+    let db = Db::open(dir.path()).unwrap();
+    db.conn
+        .lock()
+        .unwrap()
+        .execute_batch("DROP INDEX events_tool_question")
+        .unwrap();
+    drop(db);
+    let db = Db::open(dir.path()).unwrap();
+    assert!(!has_index(&db), "the current version skips the chain");
+    db.conn
+        .lock()
+        .unwrap()
+        .pragma_update(None, "user_version", SCHEMA_CHAIN_VERSION - 1)
+        .unwrap();
+    drop(db);
+    assert!(has_index(&Db::open(dir.path()).unwrap()));
 }

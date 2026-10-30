@@ -1355,10 +1355,6 @@ impl<'a> Runtime<'a> {
         if location.trim().is_empty() {
             return Err(RuntimeError::InvalidArgs("empty location".to_string()));
         }
-        // Outbound projection reads compression tables: ensure the
-        // additive idempotent DCP schema before the first turn.
-        crate::dcp::apply_dcp_schema(db).map_err(|_| RuntimeError::Storage)?;
-        db.grants_schema()?;
         Ok(Self {
             primary_sources: Arc::new(Mutex::new(publication::PrimarySources::default())),
             primary: None,

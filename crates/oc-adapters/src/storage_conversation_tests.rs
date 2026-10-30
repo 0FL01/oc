@@ -1032,7 +1032,7 @@ fn conversation_migration_bootstraps_real_rows_and_reads_genuine_legacy_json() {
                     .unwrap();
             }
         }
-        conn.execute_batch("DROP TABLE conversation_versions; DROP TABLE conversation_objects; DROP TABLE conversation_revision; DROP TABLE conversation_tracked;").unwrap();
+        conn.execute_batch("DROP TABLE conversation_versions; DROP TABLE conversation_objects; DROP TABLE conversation_revision; DROP TABLE conversation_tracked; PRAGMA user_version=0;").unwrap();
     }
     drop(db);
     let db = Db::open(root.path()).unwrap();

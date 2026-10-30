@@ -179,6 +179,14 @@ impl Drop for Guard<'_> {
         // other committers: its commits are complete in the WAL file. Publish
         // that before releasing, then wait for durability outside the mutex,
         // also while unwinding (a destructor may record an unknown effect).
+        // Holds count the holder's own SQL, not the handed-off checkpoint.
+        let metrics = &self.owner.metrics;
+        add(&metrics.hold_ns, &metrics.max_hold_ns, self.acquired);
+        if tokio::runtime::Handle::try_current().is_ok() {
+            metrics.runtime_holds.fetch_add(1, Ordering::Relaxed);
+            let ns = u64::try_from(self.acquired.elapsed().as_nanos()).unwrap_or(u64::MAX);
+            metrics.max_runtime_hold_ns.fetch_max(ns, Ordering::Relaxed);
+        }
         let pages = WAL_PAGES.replace(0);
         if pages >= CHECKPOINT_PAGES
             && let Some(conn) = self.conn.as_ref()
@@ -187,7 +195,6 @@ impl Drop for Guard<'_> {
             let since = Instant::now();
             self.owner.count_stall();
             if blocking(|| conn.execute_batch("PRAGMA wal_checkpoint(PASSIVE)")).is_ok() {
-                let metrics = &self.owner.metrics;
                 metrics.checkpoints.fetch_add(1, Ordering::Relaxed);
                 add(&metrics.checkpoint_ns, &metrics.max_checkpoint_ns, since);
             }
@@ -195,13 +202,6 @@ impl Drop for Guard<'_> {
         let end = self.owner.started.load(Ordering::SeqCst);
         self.owner.completed.store(end, Ordering::SeqCst);
         self.conn.take();
-        let metrics = &self.owner.metrics;
-        add(&metrics.hold_ns, &metrics.max_hold_ns, self.acquired);
-        if tokio::runtime::Handle::try_current().is_ok() {
-            metrics.runtime_holds.fetch_add(1, Ordering::Relaxed);
-            let ns = u64::try_from(self.acquired.elapsed().as_nanos()).unwrap_or(u64::MAX);
-            metrics.max_runtime_hold_ns.fetch_max(ns, Ordering::Relaxed);
-        }
         if end > self.start && !self.owner.is_durable(end) {
             let since = Instant::now();
             self.owner.count_stall();
@@ -288,6 +288,11 @@ impl Conn {
         if !self.is_durable(target) {
             blocking(|| self.durable(target));
         }
+    }
+
+    /// Commits started on this connection: unchanged means no write since.
+    pub(crate) fn commits(&self) -> u64 {
+        self.started.load(Ordering::SeqCst)
     }
 
     fn count_stall(&self) {

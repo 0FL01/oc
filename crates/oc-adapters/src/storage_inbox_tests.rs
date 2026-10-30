@@ -556,7 +556,7 @@ fn delivered_command_keeps_capture_and_expansion_after_reopen_and_fork() {
 fn legacy_text_schema_upgrades_without_losing_pending_or_delivered_links() {
     let (tmp, db) = db();
     let message = Db::insert_message(&db.conn.lock().unwrap(), "s", "user", "delivered").unwrap();
-    db.conn.lock().unwrap().execute_batch("DROP TABLE session_inbox; CREATE TABLE session_inbox(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES sessions(id),delivery TEXT NOT NULL CHECK(delivery IN ('steer','queue')),text TEXT NOT NULL,message_id TEXT UNIQUE REFERENCES messages(id)); INSERT INTO session_inbox VALUES('legacy','s','queue','old text',NULL);").unwrap();
+    db.conn.lock().unwrap().execute_batch("DROP TABLE session_inbox; CREATE TABLE session_inbox(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES sessions(id),delivery TEXT NOT NULL CHECK(delivery IN ('steer','queue')),text TEXT NOT NULL,message_id TEXT UNIQUE REFERENCES messages(id)); INSERT INTO session_inbox VALUES('legacy','s','queue','old text',NULL); PRAGMA user_version=0;").unwrap();
     db.conn
         .lock()
         .unwrap()

@@ -558,6 +558,10 @@ pub(crate) struct CompressionPlanCommit<'a> {
     pub(crate) tool: Option<&'a ToolOutcomeLogCommit<'a>>,
 }
 
+/// Schema of this build (`PRAGMA user_version`). Bump it with any change to
+/// a step of `Db::migrate`; `schema_version_tracks_the_schema` fails until then.
+const SCHEMA_CHAIN_VERSION: i64 = 17;
+
 /// Settings shared by the writer and pooled reader connections.
 fn configure_connection(conn: &Connection) -> Result<(), StorageError> {
     // Bound SQLite's process-resident page cache independently of a
@@ -613,22 +617,8 @@ impl Db {
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "synchronous", "FULL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
-        apply_schema(&conn)?;
-        Self::compaction_schema(&conn)?;
-        Self::renewal_schema(&conn)?;
-        Self::conversation_schema(&conn)?;
-        Self::session_list_schema(&conn)?;
-        Self::shell_jobs_schema(&conn)?;
-        Self::execute_jobs_schema(&conn)?;
-        Self::child_jobs_schema(&conn)?;
-        Self::session_move_schema(&conn)?;
-        Self::tool_output_schema(&conn)?;
-        Self::apply_turn_history_schema(&conn)?;
-        Self::credentials_schema(&conn)?;
-        Self::custom_provider_schema(&conn)?;
-        Self::terminals_schema(&conn)?;
-        Self::inbox_schema(&conn)?;
-        Self::activity_schema(&conn)?;
+        Self::migrate(&conn)?;
+        Self::recover_on_open(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {
             Ok(()) => {}
@@ -646,33 +636,6 @@ impl Db {
             ));
         }
         output_dir.set_permissions(fs::Permissions::from_mode(0o700))?;
-        // Same journal, indexed anchor lookup: history paging must not parse
-        // every archived turn. Legacy non-JSON results are excluded safely.
-        conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
-        // Hot-path lookups must not scan the whole archive: global message
-        // sequence allocation, per-session tool lists/counts, effort facts and
-        // their next-message anchor, the busy-family activity probe, question
-        // results of listed tools, output expiry and live shell/Code Mode jobs.
-        conn.execute_batch(
-            "CREATE INDEX IF NOT EXISTS messages_seq ON messages(seq);
-             CREATE INDEX IF NOT EXISTS tool_operations_session ON tool_operations(session_id);
-             CREATE INDEX IF NOT EXISTS events_model_selected ON events(session_id, seq) WHERE kind='session_model_selected';
-             CREATE INDEX IF NOT EXISTS events_message ON events(session_id, seq) WHERE kind='message';
-             CREATE INDEX IF NOT EXISTS turns_session_status ON turns(session_id, status);
-             CREATE INDEX IF NOT EXISTS turns_started ON turns(session_id) WHERE status='started';
-             CREATE INDEX IF NOT EXISTS events_fork_native_notice ON events(payload) WHERE kind='fork_native_notice';
-             CREATE INDEX IF NOT EXISTS turns_native_input ON turns(session_id) WHERE json_valid(result) AND json_type(result,'$.native_input') IS NOT NULL;
-             CREATE INDEX IF NOT EXISTS events_message_payload ON events(payload) WHERE kind='message';
-             CREATE INDEX IF NOT EXISTS events_user_shell_admitted ON events(payload) WHERE kind='user_shell_admitted';
-             CREATE INDEX IF NOT EXISTS events_shell_foreground ON events(payload) WHERE kind='shell_foreground';
-             CREATE INDEX IF NOT EXISTS events_shell_background ON events(payload) WHERE kind='shell_background';
-             CREATE INDEX IF NOT EXISTS events_tool_presentation ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_presentation';
-             CREATE INDEX IF NOT EXISTS events_tool_question ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_question';
-             CREATE INDEX IF NOT EXISTS tool_output_expiry ON tool_output_resources(completed) WHERE state NOT IN ('Active','Expired');
-             CREATE INDEX IF NOT EXISTS shell_jobs_live ON shell_jobs(session_id) WHERE phase!='terminal';
-             CREATE INDEX IF NOT EXISTS execute_jobs_live ON execute_jobs(session_id) WHERE phase!='terminal';
-             CREATE INDEX IF NOT EXISTS events_parent_notice_consumed ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message') END)) WHERE kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed','execute_parent_notice_consumed');",
-        )?;
 
         let db = Self {
             root,
@@ -702,6 +665,74 @@ impl Db {
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
         Ok(db)
+    }
+
+    /// One ordered chain of idempotent schema steps, skipped when the
+    /// database already has this build's `SCHEMA_CHAIN_VERSION`. Numbered steps
+    /// keep recording their own `schema_migrations` markers. A crash before
+    /// the version is stored re-runs the chain on the next open.
+    fn migrate(conn: &Connection) -> Result<(), StorageError> {
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+        if version == SCHEMA_CHAIN_VERSION {
+            return Ok(());
+        }
+        apply_schema(conn)?;
+        Self::compaction_schema(conn)?;
+        Self::renewal_schema(conn)?;
+        Self::conversation_schema(conn)?;
+        Self::session_list_schema(conn)?;
+        Self::shell_jobs_schema(conn)?;
+        Self::execute_jobs_schema(conn)?;
+        Self::child_jobs_schema(conn)?;
+        Self::session_move_schema(conn)?;
+        Self::tool_output_schema(conn)?;
+        Self::apply_turn_history_schema(conn)?;
+        Self::credentials_schema(conn)?;
+        Self::custom_provider_schema(conn)?;
+        Self::terminals_schema(conn)?;
+        Self::inbox_schema(conn)?;
+        Self::activity_schema(conn)?;
+        // Same journal, indexed anchor lookup: history paging must not parse
+        // every archived turn. Legacy non-JSON results are excluded safely.
+        conn.execute_batch("CREATE INDEX IF NOT EXISTS turns_display_anchor ON turns(session_id, COALESCE(json_extract(result,'$.assistant_message'),json_extract(result,'$.user_message'))) WHERE json_valid(result)")?;
+        // Hot-path lookups must not scan the whole archive: global message
+        // sequence allocation, per-session tool lists/counts, effort facts and
+        // their next-message anchor, the busy-family activity probe, question
+        // results of listed tools, output expiry and live shell/Code Mode jobs.
+        conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS messages_seq ON messages(seq);
+             CREATE INDEX IF NOT EXISTS tool_operations_session ON tool_operations(session_id);
+             CREATE INDEX IF NOT EXISTS events_model_selected ON events(session_id, seq) WHERE kind='session_model_selected';
+             CREATE INDEX IF NOT EXISTS events_message ON events(session_id, seq) WHERE kind='message';
+             CREATE INDEX IF NOT EXISTS turns_session_status ON turns(session_id, status);
+             CREATE INDEX IF NOT EXISTS turns_started ON turns(session_id) WHERE status='started';
+             CREATE INDEX IF NOT EXISTS events_fork_native_notice ON events(payload) WHERE kind='fork_native_notice';
+             CREATE INDEX IF NOT EXISTS turns_native_input ON turns(session_id) WHERE json_valid(result) AND json_type(result,'$.native_input') IS NOT NULL;
+             CREATE INDEX IF NOT EXISTS events_message_payload ON events(payload) WHERE kind='message';
+             CREATE INDEX IF NOT EXISTS events_user_shell_admitted ON events(payload) WHERE kind='user_shell_admitted';
+             CREATE INDEX IF NOT EXISTS events_shell_foreground ON events(payload) WHERE kind='shell_foreground';
+             CREATE INDEX IF NOT EXISTS events_shell_background ON events(payload) WHERE kind='shell_background';
+             CREATE INDEX IF NOT EXISTS events_tool_presentation ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_presentation';
+             CREATE INDEX IF NOT EXISTS events_tool_question ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.operation') END)) WHERE kind='tool_output_question';
+             CREATE INDEX IF NOT EXISTS tool_output_expiry ON tool_output_resources(completed) WHERE state NOT IN ('Active','Expired');
+             CREATE INDEX IF NOT EXISTS shell_jobs_live ON shell_jobs(session_id) WHERE phase!='terminal';
+             CREATE INDEX IF NOT EXISTS execute_jobs_live ON execute_jobs(session_id) WHERE phase!='terminal';
+             CREATE INDEX IF NOT EXISTS events_parent_notice_consumed ON events(session_id, (CASE WHEN json_valid(payload) THEN json_extract(payload,'$.message') END)) WHERE kind IN ('subagent_parent_notice_consumed','shell_parent_notice_consumed','execute_parent_notice_consumed');",
+        )?;
+        // The runtime's DCP and grant tables, formerly created lazily.
+        Self::dcp_schema(conn)?;
+        Self::grants_schema_in(conn)?;
+        conn.pragma_update(None, "user_version", SCHEMA_CHAIN_VERSION)?;
+        Ok(())
+    }
+
+    /// Restart recovery that runs on every open, outside the schema chain: a
+    /// lost compaction stream never installs partial context, and a capture
+    /// that was active when the owner stopped is interrupted.
+    fn recover_on_open(conn: &Connection) -> Result<(), StorageError> {
+        conn.execute("UPDATE session_compactions SET snapshot=json_set(snapshot,'$.state','cancelled','$.error','interrupted by restart') WHERE json_extract(snapshot,'$.state') IN ('queued','running')", [])?;
+        conn.execute("UPDATE tool_output_resources SET state='Interrupted', completed=unixepoch(), descriptor=json_set(descriptor,'$.state','Interrupted') WHERE state='Active'", [])?;
+        Ok(())
     }
 
     // Completion workers retain this same connection and flock. This cannot open
@@ -3592,7 +3623,10 @@ impl Db {
 
     /// Apply the DCP v2 schema migration (idempotent, additive only).
     pub fn apply_dcp_schema(&self) -> Result<(), StorageError> {
-        let conn = self.conn.lock().expect("db mutex");
+        Self::dcp_schema(&self.conn.lock().expect("db mutex"))
+    }
+
+    fn dcp_schema(conn: &Connection) -> Result<(), StorageError> {
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS compression_blocks(
                id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
@@ -3630,8 +3664,8 @@ impl Db {
               CREATE TABLE IF NOT EXISTS dcp_run_identity(session_id TEXT PRIMARY KEY REFERENCES sessions(id), high_water INTEGER NOT NULL);
               INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, 't17');",
         )?;
-        Self::renewal_schema(&conn)?;
-        Self::install_context_tracking(&conn)
+        Self::renewal_schema(conn)?;
+        Self::install_context_tracking(conn)
     }
 
     /// Persist one compression block with explicit membership rows.
@@ -4439,7 +4473,8 @@ impl Db {
         {
             return Ok(());
         }
-        file.sync_all()
+        // A file fsync is a wait like the writer's: hand off a tokio worker.
+        writer::blocking(|| file.sync_all())
     }
 
     fn blob_path(&self, digest: &str) -> Result<PathBuf, StorageError> {

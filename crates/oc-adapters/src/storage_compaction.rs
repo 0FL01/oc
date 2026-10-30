@@ -61,8 +61,6 @@ impl Db {
           id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id), snapshot TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS session_usage_anchor(
           session_id TEXT PRIMARY KEY REFERENCES sessions(id), anchor TEXT NOT NULL);")?;
-        // A lost stream never installs partial context. Reopening marks it cancelled.
-        conn.execute("UPDATE session_compactions SET snapshot=json_set(snapshot,'$.state','cancelled','$.error','interrupted by restart') WHERE json_extract(snapshot,'$.state') IN ('queued','running')", [])?;
         Ok(())
     }
     pub(crate) fn save_compaction(

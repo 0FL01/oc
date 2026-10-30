@@ -47,8 +47,8 @@ impl Db {
         tx.commit()?;
         Ok(())
     }
-    pub(crate) fn grants_schema(&self) -> Result<(), StorageError> {
-        self.conn.lock().expect("db lock").execute_batch("CREATE TABLE IF NOT EXISTS permission_grants(project TEXT NOT NULL, action TEXT NOT NULL, pattern TEXT NOT NULL, PRIMARY KEY(project,action,pattern));")?;
+    pub(super) fn grants_schema_in(conn: &Connection) -> Result<(), StorageError> {
+        conn.execute_batch("CREATE TABLE IF NOT EXISTS permission_grants(project TEXT NOT NULL, action TEXT NOT NULL, pattern TEXT NOT NULL, PRIMARY KEY(project,action,pattern));")?;
         Ok(())
     }
     pub(crate) fn permission_grant_matches(

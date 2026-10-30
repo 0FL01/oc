@@ -340,8 +340,6 @@ impl Db {
             state TEXT NOT NULL, completed INTEGER);
           CREATE INDEX IF NOT EXISTS tool_output_operation ON tool_output_resources(operation_id);
           INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(7,'t50-tool-output');
-          UPDATE tool_output_resources SET state='Interrupted', completed=unixepoch(),
-            descriptor=json_set(descriptor,'$.state','Interrupted') WHERE state='Active';
           COMMIT;",
         )?;
         Ok(())
