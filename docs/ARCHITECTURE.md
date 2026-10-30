@@ -56,7 +56,7 @@ oc2 (crates/oc)          binary, bootstrap, event loop, headless
 
 ## Storage и effects
 
-- Одна SQLite DB/worker с короткими transactions, WAL и `synchronous=FULL`; synchronous work не выполняется на async runtime worker. Никаких network/LLM waits внутри transaction; inbox bounded.
+- Одна SQLite DB/worker с короткими transactions и WAL. Подтверждение записи — после `fdatasync` WAL-файла, покрывающего завершённый коммит (гарантия `synchronous=FULL`), но fsync выполняется вне мьютекса соединения и один на все коммиты, завершённые до него (group commit); сбой fsync защёлкивается и больше ничего не подтверждает; необратимое файловое действие по состоянию БД (GC/expiry) сначала делает все завершённые коммиты durable; synchronous work не выполняется на async runtime worker. Никаких network/LLM waits внутри transaction; inbox bounded.
 - Messages/operations и небольшое monotonic session event сохраняются одной transaction; notifications после commit. Это transactional journal, не event-sourcing платформа; coalescing UI hints не теряет единственный terminal outcome.
 - В `sessions` nullable `idle_seq`, `viewed_seq`, `idle_outcome`: terminal использует существующий journal sequence в той же transaction; shutdown не создаёт unread. Старые строки остаются без выдуманной activity, stale ACK не покрывает новый terminal. Private native protocol version 8 сохраняет bounded activity, отдельный viewed ACK/event и atomic agent/model commit, добавляя background Execute control и notices.
 - Own data root отделён от upstream, no-follow/restrictive ownership; advisory lock удерживается до joined shutdown. Lock inode не удалять по PID. Guarded read-only catalog/cache connection допустим без writes/recovery/второго owner. Network filesystem не квалифицирован.

@@ -18,10 +18,8 @@ fn session(turns: usize) -> Session {
     let db = Db::open(dir.path()).unwrap();
     // Population speed only: the measured statements do not depend on fsync.
     db.conn
-        .lock()
-        .unwrap()
-        .pragma_update(None, "synchronous", "OFF")
-        .unwrap();
+        .skip_sync
+        .store(true, std::sync::atomic::Ordering::SeqCst);
     db.create_session("s").unwrap();
     let model = oc_core::queries::ModelRef {
         provider: "fixture".into(),

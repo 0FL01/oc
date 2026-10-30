@@ -779,6 +779,8 @@ impl Db {
                 .unwrap_or_default()
                 .as_secs() as i64;
             if !registered && meta.is_file() && age <= now.saturating_sub(TTL) {
+                // "Unregistered" may come from an unacknowledged row deletion.
+                self.conn.fence();
                 unlink(&self.output_dir, &name)?;
                 self.sync_durable(&self.output_dir)?;
                 removed += 1;

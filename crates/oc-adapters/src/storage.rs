@@ -356,7 +356,7 @@ pub struct Db {
     root: PathBuf,
     blob_dir: PathBuf,
     quota_bytes: u64,
-    conn: Arc<Mutex<Connection>>,
+    conn: Arc<writer::Conn>,
     output_dir: Arc<File>,
     output_readers: Arc<Mutex<std::collections::HashMap<String, usize>>>,
     // Orders quota, publication, GC and expiry of blob/tool-output files.
@@ -629,6 +629,10 @@ impl Db {
             Err(error) => return Err(error.into()),
         }
         let output_dir = tool_output::open_directory(&output_path)?;
+        // Acknowledged commits wait for an fsync of this WAL file (see
+        // `writer`); persist its directory entry once.
+        let wal = File::open(root.join("oc.sqlite-wal"))?;
+        File::open(&root)?.sync_all()?;
         if output_dir.metadata()?.uid() != fs::metadata(&root)?.uid() {
             return Err(StorageError::UnsafeRoot(
                 "tool output directory owner".into(),
@@ -661,7 +665,7 @@ impl Db {
             root,
             blob_dir,
             quota_bytes,
-            conn: Arc::new(Mutex::new(conn)),
+            conn: Arc::new(writer::Conn::new(conn, wal)?),
             output_dir: Arc::new(output_dir),
             output_readers: Arc::new(Mutex::new(std::collections::HashMap::new())),
             file_store: Arc::default(),
@@ -4388,6 +4392,8 @@ impl Db {
                 continue;
             }
             if is_older_than(&path, grace)? {
+                // The reference set may reflect an unacknowledged deletion.
+                self.conn.fence();
                 fs::remove_file(&path)?;
                 self.sync_durable(&File::open(&self.blob_dir)?)?;
                 removed += 1;
@@ -4400,7 +4406,7 @@ impl Db {
     /// that runs while this database's connection mutex is held.
     pub(super) fn sync_durable(&self, file: &File) -> std::io::Result<()> {
         #[cfg(test)]
-        if self.conn.try_lock().is_err() {
+        if self.conn.is_held() {
             FSYNC_UNDER_DB.with(|count| count.set(count.get() + 1));
         }
         file.sync_all()
@@ -4716,6 +4722,9 @@ fn apply_turn_acceptance_schema(conn: &Connection) -> Result<(), StorageError> {
 }
 
 #[cfg(test)]
+#[path = "storage/commit_probe_tests.rs"]
+mod commit_probe_tests;
+#[cfg(test)]
 #[path = "storage/history_scale_tests.rs"]
 mod history_scale_tests;
 #[cfg(test)]
@@ -4726,3 +4735,5 @@ mod transcript_tests;
 #[cfg(test)]
 #[path = "storage/vm_steps.rs"]
 pub(crate) mod vm_steps;
+#[path = "storage/writer.rs"]
+mod writer;

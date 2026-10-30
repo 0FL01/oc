@@ -61,10 +61,8 @@ fn population(jobs: usize) -> Population {
     let db = Db::open(dir.path()).unwrap();
     // Population speed only: the measured statements do not depend on fsync.
     db.conn
-        .lock()
-        .unwrap()
-        .pragma_update(None, "synchronous", "OFF")
-        .unwrap();
+        .skip_sync
+        .store(true, std::sync::atomic::Ordering::SeqCst);
     db.create_session("parent").unwrap();
     let mut notice = None;
     for i in 0..jobs {
