@@ -95,7 +95,7 @@ async fn child_notice_order_metadata_only_refresh_paths_enforce_the_window_budge
         if detached {
             state
                 .window
-                .refresh_completed(&page(vec![update], 2, false, false), true);
+                .refresh_completed(&page(vec![update], 2, false, false), true, |_| None);
         } else {
             state.refresh_child_notice_page(&page(vec![update], 2, false, false));
         }
@@ -3120,6 +3120,42 @@ async fn vis32_completion_preserves_cached_part_expansion_paging_and_resize() {
     state.set_session(oc_core::domain::SessionId("other-route".into()));
     assert_eq!(state.scroll(), 0);
     assert!(state.completion_anchor.borrow().is_none());
+}
+
+#[tokio::test]
+async fn detached_completion_overflowing_the_window_keeps_the_reader_on_the_tail() {
+    fn paint(state: &super::TuiState) -> Vec<String> {
+        let (lines, total, scroll) = state.visible_transcript_at_viewport(80, 80, 8);
+        state.observe_transcript_viewport(80, 80, 8, total, scroll);
+        let frame = ratatui::layout::Rect::new(0, 0, 80, 8);
+        state
+            .paint_transcript_at(frame, &lines, total, scroll, Some(frame), &[])
+            .iter()
+            .map(|line| line.plain_text())
+            .collect()
+    }
+    let rows = |range: std::ops::RangeInclusive<i64>| {
+        range
+            .map(|seq| msg(seq, Role::Assistant, &format!("ROW-{seq:03}")))
+            .collect::<Vec<_>>()
+    };
+    let mut state = fresh_state("completion-overflow").await;
+    state.attach_page(&page(rows(201..=300), 300, true, false));
+    // Manually following the stream leaves the reader a few rows above the
+    // bottom: detached, but looking at the newest content.
+    state.scroll = 3;
+    let before = paint(&state);
+    assert!(
+        before.iter().any(|line| line.contains("ROW-29")),
+        "{before:?}"
+    );
+
+    // The newest page now spans more rows than the bounded window.
+    state.refresh_completed_page(&page(rows(1..=300), 300, false, false));
+    let after = paint(&state);
+    assert_eq!(after, before, "the reader must not jump into older history");
+    assert!(state.scroll() > 0, "a detached reader is not re-pinned");
+    assert!(state.needs_older(), "evicted older rows remain pageable");
 }
 
 #[tokio::test]

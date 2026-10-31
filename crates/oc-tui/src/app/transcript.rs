@@ -580,7 +580,10 @@ impl TuiState {
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
         self.invalidate_transcript_press();
-        self.window.refresh_completed(page, self.scroll > 0);
+        self.window
+            .refresh_completed(page, self.scroll > 0, |rows: &[HistoryRow]| {
+                anchor.as_ref()?.0.resolve(rows)
+            });
         self.refresh_running_user_shell_output();
         self.invalidate_transcript();
         self.completion_anchor.get_mut().take();

@@ -252,7 +252,7 @@ fn direct_user_shell_separate_pages_and_live_refresh_retire_only_matching_input(
     assert!(window.rows()[0].tool.is_none());
     assert_eq!(window.rows()[1].role, "shell");
     window.reset(&page(vec![input.clone(), ordinary.clone()]));
-    window.refresh_completed(&page(vec![ordinary, result.clone()]), true);
+    window.refresh_completed(&page(vec![ordinary, result.clone()]), true, |_| None);
     assert_eq!(
         window.rows()[0].role,
         "shell_input_delivered",

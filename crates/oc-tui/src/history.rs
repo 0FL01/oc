@@ -159,7 +159,14 @@ impl HistoryWindow {
     /// Replace the overlapping durable tail after completion, retaining loaded
     /// older pages. A disjoint newest page must not fabricate a contiguous gap:
     /// keep the reader's window and let normal newer paging reach the tail.
-    pub(crate) fn refresh_completed(&mut self, page: &HistoryPage, detached: bool) {
+    /// `anchor` resolves a detached reader's painted top row; an overflowing
+    /// window first drops off-screen rows above it, then the newest rows.
+    pub(crate) fn refresh_completed(
+        &mut self,
+        page: &HistoryPage,
+        detached: bool,
+        anchor: impl Fn(&[HistoryRow]) -> Option<usize>,
+    ) {
         self.record_notice_orders(page);
         self.revision = self.revision.wrapping_add(1);
         // Completion attaches the turn to its assistant message instead of the
@@ -198,14 +205,20 @@ impl HistoryWindow {
         let overlaps = refreshed
             .iter()
             .any(|new| self.rows.iter().any(|old| same_component(old, new)));
-        if detached && !overlaps && self.rows.iter().any(|row| row.message_id.is_some()) {
+        if detached
+            && !overlaps
+            && anchor(&refreshed).is_none()
+            && self.rows.iter().any(|row| row.message_id.is_some())
+        {
             self.rows.retain(|row| row.message_id.is_some());
             self.total = page.total;
             self.has_newer = true;
             self.enforce(Evict::Newest);
             return;
         }
-        let older = detached.then(|| {
+        // A reader whose anchor is only on the disjoint newest page follows
+        // it; older resident rows would otherwise sit above a fabricated gap.
+        let older = (detached && overlaps).then(|| {
             self.rows
                 .iter()
                 .filter(|row| {
@@ -236,6 +249,14 @@ impl HistoryWindow {
         }
         self.rows = refreshed;
         self.reconcile_shell_inputs();
+        if detached && let Some(mut top) = anchor(&self.rows) {
+            self.retain_notice_orders();
+            while top > 0 && self.over_caps() {
+                self.evict(Evict::Oldest);
+                self.has_older = true;
+                top -= 1;
+            }
+        }
         if self.enforce(if detached {
             Evict::Newest
         } else {
@@ -1076,6 +1097,37 @@ impl HistoryWindow {
     /// Drop rows from `side` until both caps hold; returns true when any row
     /// was evicted.
     fn enforce(&mut self, side: Evict) -> bool {
+        self.retain_notice_orders();
+        let mut evicted = false;
+        while self.over_caps() {
+            if self.rows.is_empty() {
+                self.notice_orders.pop_first();
+                continue;
+            }
+            self.evict(side);
+            evicted = true;
+        }
+        evicted
+    }
+
+    fn over_caps(&self) -> bool {
+        self.rows.len() > WINDOW_ROWS || self.retained_bytes() > WINDOW_BYTES
+    }
+
+    /// Drop one retained row and the notice orders it alone kept alive.
+    fn evict(&mut self, side: Evict) {
+        match side {
+            Evict::Oldest => {
+                self.rows.remove(0);
+            }
+            Evict::Newest => {
+                self.rows.pop();
+            }
+        }
+        self.retain_notice_orders();
+    }
+
+    fn retain_notice_orders(&mut self) {
         self.notice_orders.retain(|turn, state| {
             if state.order.is_none() {
                 return true;
@@ -1090,37 +1142,6 @@ impl HistoryWindow {
                         .is_some_and(|position| position.belongs_to(turn))
             })
         });
-        let mut evicted = false;
-        while self.rows.len() > WINDOW_ROWS || self.retained_bytes() > WINDOW_BYTES {
-            if self.rows.is_empty() {
-                self.notice_orders.pop_first();
-                continue;
-            }
-            match side {
-                Evict::Oldest => {
-                    self.rows.remove(0);
-                }
-                Evict::Newest => {
-                    self.rows.pop();
-                }
-            }
-            evicted = true;
-            self.notice_orders.retain(|turn, state| {
-                if state.order.is_none() {
-                    return true;
-                }
-                self.rows.iter().any(|row| {
-                    row.message_id
-                        .as_deref()
-                        .is_some_and(|id| Some(id) == state.prompt.as_ref())
-                        || row
-                            .position
-                            .as_ref()
-                            .is_some_and(|position| position.belongs_to(turn))
-                })
-            });
-        }
-        evicted
     }
 }
 
@@ -2753,11 +2774,11 @@ mod tests {
         window.reset(&page("running"));
         let before = cards(&window);
         assert_eq!(before.len(), 2);
-        window.refresh_completed(&page("running"), false);
+        window.refresh_completed(&page("running"), false, |_| None);
         let same = cards(&window);
         assert!(std::sync::Arc::ptr_eq(&before[0], &same[0]));
         assert!(std::sync::Arc::ptr_eq(&before[1], &same[1]));
-        window.refresh_completed(&page("completed"), false);
+        window.refresh_completed(&page("completed"), false, |_| None);
         let after = cards(&window);
         assert!(std::sync::Arc::ptr_eq(&before[0], &after[0]));
         assert!(!std::sync::Arc::ptr_eq(&before[1], &after[1]));

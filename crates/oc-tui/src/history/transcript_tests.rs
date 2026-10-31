@@ -51,7 +51,7 @@ fn local_completion_cannot_become_a_durable_paging_anchor() {
         }
         window.push_synthetic("assistant", "local terminal fallback", None, None);
         window.set_latest_local_owner("turn", Some(0), true);
-        window.refresh_completed(&page(0, 3, 3), true);
+        window.refresh_completed(&page(0, 3, 3), true, |_| None);
         assert!(window.rows().iter().all(|row| {
             !row.position
                 .as_ref()
@@ -117,10 +117,51 @@ fn detached_same_message_disjoint_window_does_not_replace_its_canonical_parts() 
     let mut window = HistoryWindow::default();
     window.reset(&page(0, 240, 600));
     let before = window.rows().to_vec();
-    window.refresh_completed(&page(360, 600, 600), true);
+    window.refresh_completed(&page(360, 600, 600), true, |_| None);
     assert_eq!(window.rows(), before);
     assert!(window.has_newer());
     assert_eq!(window.newer_part_cursor().unwrap().sequence, 239);
+}
+
+#[test]
+fn detached_completion_overflow_evicts_around_the_reader_anchor() {
+    let part = |rows: &[HistoryRow], sequence: usize| {
+        rows.iter().position(|row| {
+            row.position
+                .as_ref()
+                .is_some_and(|p| p.component == HistoryComponent::Part(sequence))
+        })
+    };
+    // A reader on the tail keeps it; only off-screen older rows are dropped.
+    let mut window = HistoryWindow::default();
+    window.reset(&page(0, 3, 3));
+    window.refresh_completed(&page(0, 300, 300), true, |rows| part(rows, 290));
+    assert!((290..300).all(|sequence| part(window.rows(), sequence).is_some()));
+    assert!(window.has_older() && !window.has_newer());
+    assert!(window.rows().len() <= WINDOW_ROWS);
+    // A reader near the start keeps it, and the dropped tail stays pageable.
+    let mut window = HistoryWindow::default();
+    window.reset(&page(0, 3, 3));
+    window.refresh_completed(&page(0, 300, 300), true, |rows| part(rows, 1));
+    assert_eq!(
+        part(window.rows(), 1),
+        Some(0),
+        "only the row above it is dropped"
+    );
+    assert!(window.has_older() && window.has_newer());
+    assert!(window.rows().len() <= WINDOW_ROWS);
+    // A reader anchored only on a disjoint newest page follows that page
+    // without joining the older resident parts across the missing gap.
+    let mut window = HistoryWindow::default();
+    window.reset(&page(0, 240, 600));
+    window.refresh_completed(&page(360, 600, 600), true, |rows| part(rows, 590));
+    assert!(part(window.rows(), 590).is_some());
+    assert!(part(window.rows(), 0).is_none());
+    assert_eq!(
+        window.older_part_cursor().unwrap().sequence,
+        361,
+        "the part evicted for the footer stays pageable"
+    );
 }
 
 #[test]
@@ -143,7 +184,7 @@ fn completion_reanchors_a_detached_active_window_to_its_assistant_message() {
     active.rows[0].turn.as_mut().unwrap().status = "started".into();
     let mut window = HistoryWindow::default();
     window.reset(&active);
-    window.refresh_completed(&page(360, 600, 600), true);
+    window.refresh_completed(&page(360, 600, 600), true, |_| None);
     assert_eq!(window.rows()[0].reasoning.as_ref().unwrap().text, "part-0");
     assert!(
         window
