@@ -792,6 +792,74 @@ mod vis38_review_tests {
     }
 
     #[test]
+    fn compressed_summary_never_outranks_the_plan_lifecycle_marker() {
+        let project = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        let db = Db::open(data.path()).unwrap();
+        let runtime = runtime(&db, project.path(), data.path());
+        runtime.create_session("s").unwrap();
+        let first = db.append_message("s", "user", "plan the fix").unwrap();
+        let last = db
+            .append_message("s", "assistant", "Plan is active; switch to build.")
+            .unwrap();
+        db.append_message("s", "system", crate::plan::LEAVE)
+            .unwrap();
+        db.append_message("s", "user", "implement").unwrap();
+        runtime
+            .run_compress(
+                "s",
+                &args(&first, &last, "Plan is active; switch to build."),
+                &ProtectedSpec::default(),
+            )
+            .unwrap();
+        let context = runtime.active_projection("s").unwrap();
+        let published = runtime.current.read().unwrap().clone();
+        let lane = runtime.primary_lane(&published);
+        let wire = runtime
+            .wire_history(
+                "s",
+                &context.projected,
+                &context.blocks,
+                "m",
+                "test",
+                lane.agent_digest.as_deref(),
+                context.after_seq,
+            )
+            .unwrap();
+        let summary = wire
+            .iter()
+            .find(|item| {
+                serde_json::to_string(item)
+                    .unwrap()
+                    .contains("[compressed ")
+            })
+            .unwrap();
+        assert!(matches!(
+            summary,
+            InputItem::Message {
+                role: InputRole::User,
+                ..
+            }
+        ));
+        let system = wire
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item,
+                    InputItem::Message {
+                        role: InputRole::System | InputRole::Developer,
+                        ..
+                    }
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            system,
+            [&InputItem::message(InputRole::System, crate::plan::LEAVE)]
+        );
+    }
+
+    #[test]
     fn compression_gain_keeps_the_unrelated_checkpoint() {
         use oc_core::compaction::{
             CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,

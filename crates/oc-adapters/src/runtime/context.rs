@@ -2055,11 +2055,14 @@ impl<'a> Runtime<'a> {
                 }
                 continue;
             }
+            let block = blocks.iter().any(|block| &block.id == id);
+            // Summaries are lower-trust model prose (donor DCP sends them as a
+            // synthetic user message); never lift them to system authority.
+            let checkpoint = id.starts_with("session-checkpoint");
             if let Some(mut items) = turns.remove(id) {
                 emitted_notices.extend(bucket_notices.remove(id).unwrap_or_default());
-                let block = blocks.iter().any(|block| &block.id == id);
                 if id == "session-checkpoint" || block {
-                    let mut summary = InputItem::message(InputRole::System, text);
+                    let mut summary = InputItem::message(InputRole::User, text);
                     if tag_ids && block {
                         tag_message_id(&mut summary, id);
                     }
@@ -2081,6 +2084,7 @@ impl<'a> Runtime<'a> {
                 input.extend(items);
             } else if !represented.contains(id) {
                 let role = match role.as_str() {
+                    _ if block || checkpoint => InputRole::User,
                     "system" => InputRole::System,
                     "developer" => InputRole::Developer,
                     "user" => InputRole::User,
@@ -2099,7 +2103,8 @@ impl<'a> Runtime<'a> {
                     text
                 };
                 let mut message = InputItem::message(role, text);
-                if tag_ids && matches!(role, InputRole::User | InputRole::Assistant) {
+                if tag_ids && !checkpoint && matches!(role, InputRole::User | InputRole::Assistant)
+                {
                     tag_message_id(&mut message, id);
                 }
                 input.push(message);
