@@ -111,7 +111,7 @@ async fn mcp09_separate_actual_startup_catalog_execution_deadlines_and_reaping()
 async fn mcp09_numeric_timeout_does_not_bound_startup_and_canaries_stay_redacted() {
     // Canonical object without `startup`: startup keeps its default bound.
     let peer = Peer::new("legacy-delay", json!({"catalog": 40, "execution": 40}));
-    assert_eq!(peer.config.startup_timeout, Some(Duration::from_secs(30)));
+    assert_eq!(peer.config.startup_timeout, Some(Duration::from_secs(60)));
     assert_eq!(peer.config.catalog_timeout, Some(Duration::from_millis(40)));
     assert_eq!(peer.config.timeout, Duration::from_millis(40));
     let began = Instant::now();

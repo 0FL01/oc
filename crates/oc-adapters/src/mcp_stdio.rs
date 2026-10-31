@@ -24,10 +24,6 @@ pub const STDERR_CAP_BYTES: usize = 8 * 1024;
 pub const TERM_GRACE: Duration = Duration::from_millis(500);
 /// Default per-operation timeout.
 pub const STDIO_TIMEOUT: Duration = Duration::from_secs(60);
-/// Bound for tools/list cursor pages.
-pub const MAX_LIST_PAGES: usize = 16;
-/// Max tools accepted per server.
-pub const TOOLS_CAP: usize = 64;
 /// Maximum retained text from one MCP call.
 pub const RESULT_TEXT_BYTES_CAP: usize = 1024 * 1024;
 
@@ -67,9 +63,9 @@ pub enum StdioError {
     /// Tool failure with a fixed, payload-free diagnostic category.
     #[error("tool error: {0}")]
     ToolFailedDetail(crate::mcp_result::FailureDetail),
-    /// tools/list exceeded the tool or page bound; no partial catalog returned.
-    #[error("tool catalog limit exceeded")]
-    CatalogLimited,
+    /// Serialized tools/list metadata exceeded its byte budget.
+    #[error(transparent)]
+    CatalogLimited(#[from] crate::mcp_remote::CatalogLimit),
     /// Tool arguments must be a JSON object.
     #[error("tool arguments must be an object")]
     NonObjectArguments,
@@ -753,7 +749,7 @@ impl StdioClient {
         self.child.stderr_snapshot(&self.config.secrets)
     }
 
-    /// List tools with a bounded cursor loop.
+    /// List the complete catalog under its byte budget, deadline and cancellation.
     pub async fn list_tools(
         &self,
         cancel: &std::sync::atomic::AtomicBool,
@@ -911,25 +907,25 @@ async fn wait_cancelled(cancel: &std::sync::atomic::AtomicBool) {
 async fn bounded_list(peer: &McpPeer) -> Result<Vec<rmcp::model::Tool>, StdioError> {
     let mut tools = Vec::new();
     let mut cursor: Option<String> = None;
-    for page_index in 0..MAX_LIST_PAGES {
+    let mut bytes = 2usize;
+    loop {
         let params = rmcp::model::PaginatedRequestParams::default().with_cursor(cursor);
         let page = peer
             .list_tools(Some(params))
             .await
             .map_err(|_| StdioError::Transport)?;
-        if tools.len().saturating_add(page.tools.len()) > TOOLS_CAP {
-            return Err(StdioError::CatalogLimited);
+        bytes =
+            bytes.saturating_add(crate::mcp_remote::metadata_bytes(&page.tools).saturating_sub(2));
+        if !tools.is_empty() && !page.tools.is_empty() {
+            bytes = bytes.saturating_add(1);
         }
+        crate::mcp_remote::CatalogLimit::check(bytes, crate::mcp_remote::CATALOG_BYTES_CAP)?;
         tools.extend(page.tools);
         cursor = page.next_cursor;
         if cursor.is_none() {
             return Ok(tools);
         }
-        if page_index + 1 == MAX_LIST_PAGES {
-            return Err(StdioError::CatalogLimited);
-        }
     }
-    Err(StdioError::CatalogLimited)
 }
 
 #[cfg(test)]

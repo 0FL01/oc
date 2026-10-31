@@ -169,7 +169,7 @@ impl Scope {
             let _ = ack.send(Err(McpLookupError::UnsafeRetry));
             return;
         }
-        if self.lookups.len() >= MAX_MCP_SERVERS {
+        if self.lookups.len() >= MCP_PENDING_CAP {
             let _ = ack.send(Err(McpLookupError::Unavailable));
             return;
         }
@@ -281,11 +281,19 @@ impl Scope {
         } else if same_connection && let (Some(slot), Ok(data)) = (slot, &result) {
             let old = self.nodes.get_mut(server).expect("lookup scope").catalogs[slot]
                 .replace(data.clone());
-            if self.lookup_catalog_budget().is_err() {
+            if let Err(limit) = self.catalog_budget(None) {
                 self.nodes.get_mut(server).expect("lookup scope").catalogs[slot] = old;
                 result = Err(McpLookupError::CatalogLimit);
-                self.fatal = Some(RuntimeError::McpCatalogLimit);
-                self.begin_stop();
+                let node = self.nodes.get_mut(server).expect("lookup scope");
+                node.row.diagnostic = Some(connection_diagnostic(
+                    server,
+                    &node.source,
+                    &RuntimeError::McpCatalogLimit(limit),
+                ));
+                if let Err(error) = self.publish() {
+                    self.fatal = Some(error);
+                    self.begin_stop();
+                }
             }
         }
         let _ = lookup.ack.send(result.map(|data| McpLookupReply {
@@ -298,33 +306,29 @@ impl Scope {
         self.drain_retiring();
     }
 
-    pub(super) fn lookup_catalog_budget(&self) -> Result<(), McpLookupError> {
-        let mut entries = self.generation.entries.len();
-        let mut bytes = self.generation.entries.iter().fold(0usize, |bytes, entry| {
-            bytes
-                .saturating_add(entry.description.as_ref().map_or(0, String::len))
-                .saturating_add(
-                    serde_json::to_vec(&entry.input_schema).map_or(usize::MAX, |v| v.len()),
-                )
-        });
-        for data in self
-            .nodes
-            .values()
-            .flat_map(|node| node.catalogs.iter().flatten())
-        {
-            entries += data.catalog_entries();
-            bytes = bytes.saturating_add(
-                serde_json::to_vec(data)
-                    .map_err(|_| McpLookupError::InvalidData)?
-                    .len(),
-            );
+    pub(super) fn catalog_budget(
+        &self,
+        replacement: Option<(&str, &[mcp_remote::RegistryEntry])>,
+    ) -> Result<(), mcp_remote::CatalogLimit> {
+        let mut total = 0usize;
+        for (server, node) in &self.nodes {
+            let registry = replacement
+                .filter(|(name, _)| name == server)
+                .map(|(_, registry)| registry)
+                .or_else(|| {
+                    self.generation
+                        .servers
+                        .iter()
+                        .find(|client| &client.server_id == server)
+                        .map(|client| client.registry.as_slice())
+                });
+            let mut bytes = registry.map_or(0, |registry| mcp_remote::metadata_bytes(&registry));
+            for data in node.catalogs.iter().flatten() {
+                bytes = bytes.saturating_add(mcp_remote::metadata_bytes(data));
+            }
+            mcp_remote::CatalogLimit::check(bytes, mcp_remote::CATALOG_BYTES_CAP)?;
+            total = total.saturating_add(bytes);
         }
-        if entries > mcp_remote::GENERATION_TOOLS_CAP
-            || bytes > mcp_remote::GENERATION_CATALOG_BYTES_CAP
-        {
-            Err(McpLookupError::CatalogLimit)
-        } else {
-            Ok(())
-        }
+        mcp_remote::CatalogLimit::check(total, mcp_remote::GENERATION_CATALOG_BYTES_CAP)
     }
 }

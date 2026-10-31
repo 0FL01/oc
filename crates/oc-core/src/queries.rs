@@ -1030,7 +1030,7 @@ pub struct ServiceDiagnostic {
     pub stage: ServiceStage,
     pub code: ServiceCode,
     pub action: ServiceAction,
-    /// Bounded schema-only detail lines (no values/IDs), e.g. a legacy-key report.
+    /// Bounded schema-only or numeric budget facts (no payload values/IDs).
     /// Boxed so the common detail-free diagnostic stays pointer-sized.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub details: Option<Box<Vec<String>>>,
@@ -1497,7 +1497,7 @@ pub struct McpServerSnapshot {
     pub actions: Vec<McpAction>,
 }
 
-/// Bounded by admitted inventory (64); tool/resource payloads never enter UI.
+/// Admitted inventory only; tool/resource payloads never enter UI.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct McpSnapshot {
     pub binding: McpBinding,

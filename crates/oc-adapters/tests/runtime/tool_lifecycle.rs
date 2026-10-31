@@ -1390,52 +1390,6 @@ for line in sys.stdin:
 }
 
 #[tokio::test]
-async fn aud23_server_cap_blocks_spawn_before_first_child() {
-    let (harness, mut generation) = make_harness(allow_all());
-    let marker = harness._project.path().join("cap-spawn.log");
-    for index in 0..(oc_adapters::runtime::MAX_MCP_SERVERS + 1) {
-        generation.mcp.insert(
-            format!("server-{index}"),
-            McpEntry {
-                kind: "local".into(),
-                url: None,
-                enabled: true,
-                oauth: false,
-                headers: BTreeMap::new(),
-                command: vec![
-                    "/bin/sh".into(),
-                    "-c".into(),
-                    format!("printf 'spawned\\n' >> {}", marker.display()),
-                ],
-                timeout: Some(2_000),
-                codemode: Some(false),
-                ..Default::default()
-            },
-        );
-    }
-    let runtime = runtime_of(&harness, generation, Vec::new());
-    runtime.create_session("s").unwrap();
-    let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()], Duration::ZERO);
-    let error = runtime
-        .run_turn(params(
-            "s",
-            "must not attach",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
-        .await
-        .expect_err("server cap must refuse the generation");
-    let text = error.to_string();
-    assert!(
-        text.contains("too many enabled MCP servers"),
-        "actionable cap diagnostic: {text}"
-    );
-    assert!(!marker.exists(), "server cap spawned a child anyway");
-    assert_eq!(harness.db.history_len("s").unwrap(), 0, "turn was accepted");
-}
-
-#[tokio::test]
 async fn aud23_partial_attach_failure_degrades_and_still_reaps_child() {
     let (harness, mut generation) = make_harness(allow_all());
     let script = harness._project.path().join("partial_attach.py");

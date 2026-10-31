@@ -395,10 +395,13 @@ command cannot capture higher-trust credentials. No external runner-auth extract
 configured env values/inherited secrets join redaction, no env dumps. TERM→grace→KILL адресуется только собственной group, а
 не runner. SIGKILL fallback остаётся armed, пока wait не подтвердил reap.
 Закрытие generation ограничено общим бюджетом 10 s; превышение — честный
-`mcp shutdown failed`, а не бесконечное ожидание. Число enabled MCP servers
-ограничено (`MAX_MCP_SERVERS = 8`) до первого spawn; aggregate catalog
-(128 tools / 1 MiB metadata) и per-server 64 tools / 32 KiB schema отвергаются
-целиком, без частичной публикации. Model-visible wire name ограничен 64 bytes:
+`mcp shutdown failed`, а не бесконечное ожидание. Отдельного допуска по числу
+configured/connected servers, tools или страниц tools/list нет. Pagination идёт
+до конца под общей отменой/catalog deadline. Сериализованные метаданные каталогов
+ограничены64 MiB на сервер и256 MiB на Location; это не RSS ceiling. У schema и
+description нет отдельных32 KiB/8 KiB порогов. Превышение byte budget отклоняет
+кандидат целиком с actual/limit, не закрывая исправных соседей; relist сохраняет
+предыдущий полный каталог. Model-visible wire name ограничен64 bytes:
 небезопасные/длинные identity кодируются provider-safe именем с hash-suffix, а
 exact server/tool сохраняется в dispatch map (никакого `split_once("__")`).
 

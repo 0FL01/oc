@@ -473,7 +473,10 @@ pub fn storage_diagnostic(
 
 fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIssue {
     use oc_core::queries::{ServiceAction, ServiceCode, ServiceStage};
-    if matches!(error, RuntimeError::McpAttach { .. }) {
+    if matches!(
+        error,
+        RuntimeError::McpAttach { .. } | RuntimeError::McpCatalogLimit(_)
+    ) {
         return SpawnIssue {
             category: SpawnFailure::Runtime,
             diagnostic: crate::runtime::mcp_diagnostic(source, error),
@@ -482,9 +485,9 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
     let code = match error {
         RuntimeError::McpShutdown => ServiceCode::CleanupFailed,
         RuntimeError::Storage => ServiceCode::StorageUnavailable,
-        RuntimeError::ContextOverflow { .. }
-        | RuntimeError::InputBudget { .. }
-        | RuntimeError::McpCatalogLimit => ServiceCode::CapacityExceeded,
+        RuntimeError::ContextOverflow { .. } | RuntimeError::InputBudget { .. } => {
+            ServiceCode::CapacityExceeded
+        }
         RuntimeError::Cancelled => ServiceCode::Cancelled,
         RuntimeError::ApprovalRequired { .. } => ServiceCode::ApprovalRequired,
         RuntimeError::QuestionRequired => ServiceCode::QuestionRequired,
@@ -519,13 +522,6 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
             // Capacity is request admission, not failed initialization/config.
             // Project the type, never the internal model/warning exception text.
             issue.diagnostic.field = vec!["request".into(), "input".into()];
-            issue.diagnostic.stage = ServiceStage::Admission;
-            issue.diagnostic.action = ServiceAction::ReduceCapacity;
-        }
-        RuntimeError::McpCatalogLimit => {
-            issue.diagnostic.kind = oc_core::queries::ServiceKind::Mcp;
-            issue.diagnostic.service = "native-mcp".into();
-            issue.diagnostic.field = vec!["mcp".into(), "catalog".into()];
             issue.diagnostic.stage = ServiceStage::Admission;
             issue.diagnostic.action = ServiceAction::ReduceCapacity;
         }
@@ -1659,19 +1655,7 @@ async fn start_worker_inner(
             runtime_issue(runtime.location(), &["child_recovery"], &error).diagnostic
         })?;
     if let Err(error) = runtime.start_mcp() {
-        let mut issue = runtime_issue(runtime.location(), &["mcp"], &error);
-        if composition
-            .generation
-            .mcp
-            .values()
-            .filter(|entry| entry.enabled)
-            .count()
-            > crate::runtime::MAX_MCP_SERVERS
-        {
-            issue.diagnostic.code = oc_core::queries::ServiceCode::CapacityExceeded;
-            issue.diagnostic.stage = oc_core::queries::ServiceStage::Admission;
-            issue.diagnostic.action = oc_core::queries::ServiceAction::ReduceCapacity;
-        }
+        let issue = runtime_issue(runtime.location(), &["mcp"], &error);
         let _ = ready.send(Err(issue));
         runtime
             .shutdown_mcp()

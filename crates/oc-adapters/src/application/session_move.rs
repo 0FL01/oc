@@ -171,16 +171,6 @@ pub(crate) async fn prepare_owned(
             &provider,
         )
         .map_err(|_| "move destination provider unavailable")?;
-    if composition
-        .generation
-        .mcp
-        .values()
-        .filter(|entry| entry.enabled)
-        .count()
-        > crate::runtime::MAX_MCP_SERVERS
-    {
-        return Err("move destination MCP capacity exceeded".into());
-    }
     let bytes = format!(
         "{:?}\n{:?}\n{}\n{:?}\n{:?}\n{:?}\n{:?}\n{:?}",
         composition.generation,

@@ -631,32 +631,26 @@ async fn list_paginates_and_maps_registry() {
 }
 
 #[tokio::test]
-async fn catalog_tool_and_page_limits_are_errors_without_partial_success() {
+async fn catalog_accepts_more_than_64_tools_and_16_pages() {
     let cancel = AtomicBool::new(false);
 
     let (url, _) = Fake::start(Mode::Tools65, Duration::ZERO);
     let client = CodexWebClient::connect(&config_for(&url))
         .await
         .expect("connect 65 tools");
-    assert_eq!(
-        client.list_tools(&cancel).await,
-        Err(McpError::CatalogLimited)
-    );
+    assert_eq!(client.list_tools(&cancel).await.unwrap().len(), 65);
     client.close().await.expect("close 65 tools");
 
     let (url, records) = Fake::start(Mode::Pages17, Duration::ZERO);
     let client = CodexWebClient::connect(&config_for(&url))
         .await
         .expect("connect 17 pages");
-    assert_eq!(
-        client.list_tools(&cancel).await,
-        Err(McpError::CatalogLimited)
-    );
+    assert_eq!(client.list_tools(&cancel).await.unwrap().len(), 17);
     let list_requests = records_of(&records)
         .iter()
         .filter(|record| record.body.contains("tools/list"))
         .count();
-    assert_eq!(list_requests, 16, "cursor after page 16 must fail");
+    assert_eq!(list_requests, 17, "all finite pages must be discovered");
     client.close().await.expect("close 17 pages");
 }
 
@@ -679,12 +673,8 @@ async fn invalid_catalogs_are_typed_attach_errors() {
     let client = CodexWebClient::connect(&config_for(&url))
         .await
         .expect("connect oversized catalog");
-    assert_eq!(
-        client.list_tools(&cancel).await,
-        Err(McpError::Catalog(CatalogError::SchemaTooLarge(
-            "oversized".to_string()
-        )))
-    );
+    let tools = client.list_tools(&cancel).await.unwrap();
+    assert!(tools[0].input_schema.to_string().len() > 32 * 1024);
     client.close().await.expect("close oversized catalog");
 }
 
@@ -905,7 +895,7 @@ async fn private_host_refused_without_test_flag() {
 
 #[test]
 fn registry_bounds_and_collisions() {
-    let big = Value::String("x".repeat(64 * 1024));
+    let big = json!({"type":"object", "description":"x".repeat(64 * 1024)});
     let duplicate = map_registry(
         "codex",
         vec![
@@ -918,19 +908,17 @@ fn registry_bounds_and_collisions() {
         duplicate,
         McpError::Catalog(CatalogError::DuplicateTool("a".to_string()))
     );
-    let oversized = map_registry("codex", vec![("big".to_string(), None, big)])
-        .expect_err("oversized schema fails the entire catalog");
-    assert_eq!(
-        oversized,
-        McpError::Catalog(CatalogError::SchemaTooLarge("big".to_string()))
-    );
+    let large = map_registry(
+        "codex",
+        vec![("big".to_string(), Some("d".repeat(16 * 1024)), big)],
+    )
+    .expect("valid large schema and description fit the catalog byte budget");
+    assert!(large[0].input_schema.to_string().len() > 32 * 1024);
+    assert!(large[0].description.as_ref().unwrap().len() > 8 * 1024);
     let too_many = (0..65)
         .map(|index| (format!("tool-{index}"), None, json!({"type": "object"})))
         .collect();
-    assert_eq!(
-        map_registry("codex", too_many),
-        Err(McpError::CatalogLimited)
-    );
+    assert_eq!(map_registry("codex", too_many).unwrap().len(), 65);
     let merged = merge_registries(vec![
         vec![oc_adapters::mcp_remote::RegistryEntry {
             namespaced: "codex__search".to_string(),
@@ -985,7 +973,20 @@ fn registry_bounds_and_collisions() {
                 .collect::<Vec<_>>()
         })
         .collect();
-    assert_eq!(merge_registries(many), Err(McpError::CatalogLimited));
+    assert_eq!(merge_registries(many).unwrap().len(), 192);
+    let oversized = map_registry(
+        "codex",
+        vec![(
+            "large".into(),
+            Some("x".repeat(oc_adapters::mcp_remote::CATALOG_BYTES_CAP)),
+            json!({"type":"object"}),
+        )],
+    );
+    let Err(McpError::CatalogLimited(limit)) = oversized else {
+        panic!("catalog byte budget must be explicit, not partial success")
+    };
+    assert_eq!(limit.limit, 64 * 1024 * 1024);
+    assert!(limit.bytes > limit.limit);
 }
 
 #[tokio::test]

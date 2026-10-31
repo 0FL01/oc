@@ -43,8 +43,8 @@ mod terminals;
 
 /// Max tool-output bytes kept in the turn report.
 pub const REPORT_OUTPUT_CAP: usize = 2_048;
-/// Max enabled MCP servers attached in one application generation.
-pub const MAX_MCP_SERVERS: usize = 8;
+/// Pending MCP control/lookup receipts, independent of server/catalog inventory.
+const MCP_PENDING_CAP: usize = 8;
 /// Generation-wide budget for closing every owned MCP resource.
 pub const MCP_CLOSE_BUDGET: Duration = Duration::from_secs(10);
 /// Max command definition/invocation bytes for one expansion.
@@ -102,8 +102,8 @@ pub enum RuntimeError {
     },
     /// One or more owned MCP resources could not confirm shutdown/reap.
     McpShutdown,
-    /// Combined generation-owned MCP metadata exceeded its independent cap.
-    McpCatalogLimit,
+    /// Candidate MCP metadata exceeds its byte budget; existing peers stay live.
+    McpCatalogLimit(crate::mcp_remote::CatalogLimit),
     /// Provider failure (kind only).
     Provider,
     /// Typed credential/catalog refusal before durable turn/effect acceptance.
@@ -173,7 +173,7 @@ impl std::fmt::Display for RuntimeError {
                 "mcp {server} {stage}: {safe_code} (retryable={retryable})"
             ),
             Self::McpShutdown => write!(f, "mcp shutdown failed"),
-            Self::McpCatalogLimit => write!(f, "mcp generation catalog capacity exceeded"),
+            Self::McpCatalogLimit(limit) => write!(f, "{limit}"),
             Self::Provider => write!(f, "provider error"),
             Self::ProviderUnavailable(diagnostic) => write!(f, "{diagnostic}"),
             Self::Storage => write!(f, "storage error"),

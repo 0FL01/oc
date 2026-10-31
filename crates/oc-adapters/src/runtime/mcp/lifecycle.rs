@@ -361,12 +361,6 @@ impl McpOwner {
         if sender.is_some() {
             return Ok(());
         }
-        let enabled = config.mcp.values().filter(|entry| entry.enabled).count();
-        if enabled > MAX_MCP_SERVERS {
-            return Err(RuntimeError::InvalidArgs(format!(
-                "too many enabled MCP servers: {enabled} exceeds {MAX_MCP_SERVERS}"
-            )));
-        }
         if tokio::runtime::Handle::try_current().is_err() && !config.mcp.is_empty() {
             return Err(RuntimeError::InvalidArgs(
                 "MCP resource runtime unavailable".into(),
@@ -638,7 +632,6 @@ impl Scope {
     }
 
     fn connect(&mut self, server: &str, entry: crate::config::McpEntry) {
-        debug_assert!(self.instances.len() < MAX_MCP_SERVERS);
         let cancel = Arc::new(AtomicBool::new(false));
         let incarnation = Arc::new(());
         let node = self.nodes.get_mut(server).expect("MCP node");
@@ -694,11 +687,11 @@ impl Scope {
                 .collect(),
         )
         .map_err(|error| match error {
-            mcp_remote::McpError::CatalogLimited => RuntimeError::McpCatalogLimit,
+            mcp_remote::McpError::CatalogLimited(limit) => RuntimeError::McpCatalogLimit(limit),
             other => remote_attach_error("generation", other),
         })?;
-        self.lookup_catalog_budget()
-            .map_err(|_| RuntimeError::McpCatalogLimit)?;
+        self.catalog_budget(None)
+            .map_err(RuntimeError::McpCatalogLimit)?;
         let mut publication = self.shared.publication.write().expect("MCP publication");
         publication.status.binding.generation = self.generation.publication;
         publication.status.revision += 1;
@@ -848,7 +841,7 @@ impl Scope {
     }
 
     fn complete(&mut self, completed: Completed) {
-        let completed = match completed {
+        let mut completed = match completed {
             Completed {
                 server,
                 result: Ok(WorkResult::Lookup(lookup)),
@@ -894,6 +887,40 @@ impl Scope {
             self.drain_retiring();
             self.release_requests();
             return;
+        }
+        // Admit a prospective catalog before mutating the published generation.
+        // Rejected new clients close through the existing joined worker path;
+        // rejected relists retain the previous complete registry and its leases.
+        if self.nodes[&server].desired && !self.nodes[&server].replacing && !self.stopping {
+            let registry = match &completed.result {
+                Ok(WorkResult::Connected(client)) => Some(client.registry.as_slice()),
+                Ok(WorkResult::Refreshed(registry)) => Some(registry.as_slice()),
+                _ => None,
+            };
+            if let Some(registry) = registry
+                && let Err(limit) = self.catalog_budget(Some((&server, registry)))
+            {
+                let rejected = std::mem::replace(
+                    &mut completed.result,
+                    Err(RuntimeError::McpCatalogLimit(limit)),
+                );
+                if let Ok(WorkResult::Connected(client)) = rejected {
+                    let client = Arc::into_inner(client.client)
+                        .expect("unpublished MCP client has no captured leases");
+                    self.work.spawn(async move {
+                        Completed {
+                            server,
+                            incarnation: completed.incarnation,
+                            refresh: false,
+                            result: match close_client(client).await {
+                                Ok(()) => Err(RuntimeError::McpCatalogLimit(limit)),
+                                Err(()) => Err(RuntimeError::McpShutdown),
+                            },
+                        }
+                    });
+                    return;
+                }
+            }
         }
         let node = self.nodes.get_mut(&server).expect("MCP completion scope");
         node.cancel = None;
@@ -1029,7 +1056,7 @@ impl Scope {
         if ack.is_closed() {
             return;
         }
-        if self.requests.len() >= MAX_MCP_SERVERS {
+        if self.requests.len() >= MCP_PENDING_CAP {
             let _ = ack.send(Err(RuntimeError::TurnActive));
             return;
         }
@@ -1107,7 +1134,7 @@ impl Scope {
     }
 
     fn retire(&mut self, poisoned: bool, ack: RetireAck) {
-        if self.retirements.len() >= MAX_MCP_SERVERS {
+        if self.retirements.len() >= MCP_PENDING_CAP {
             let _ = ack.send(Err(RuntimeError::TurnActive));
             return;
         }
@@ -1226,9 +1253,6 @@ impl Scope {
                 {
                     return Err("MCP outcome unknown; retry unsafe");
                 }
-                if self.instances.len() >= MAX_MCP_SERVERS {
-                    return Err("too many enabled MCP servers");
-                }
                 let activation = self
                     .activation
                     .as_ref()
@@ -1337,6 +1361,7 @@ pub(in crate::runtime) fn connection_diagnostic(
             ..
         } => (*stage, *safe_code, *retryable),
         RuntimeError::Cancelled => ("initialize", "cancelled", false),
+        RuntimeError::McpCatalogLimit(_) => ("tools-list", "catalog_limit", false),
         _ => ("cleanup", "cleanup_failed", false),
     };
     let code = match code {
@@ -1360,6 +1385,12 @@ pub(in crate::runtime) fn connection_diagnostic(
         _ => ServiceCode::InvalidConfig,
     };
     let mut diagnostic = crate::config::mcp::failure(server, source, "connection", code);
+    if let RuntimeError::McpCatalogLimit(limit) = error {
+        diagnostic.details = Some(Box::new(vec![format!(
+            "catalog metadata: {} bytes; limit: {} bytes",
+            limit.bytes, limit.limit
+        )]));
+    }
     diagnostic.stage = match stage {
         "config" => ServiceStage::Config,
         "DNS" => ServiceStage::Dns,

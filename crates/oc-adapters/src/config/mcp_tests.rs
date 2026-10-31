@@ -120,7 +120,7 @@ fn mcp09_server_names_are_free_and_donor_timeout_defaults_apply() {
             timeout.catalog_ms(None),
             timeout.execution_ms(None)
         ),
-        (30_000, 30_000, 43_200_000)
+        (60_000, 120_000, 43_200_000)
     );
     // Direct `mcp.<id>` entries are unknown keys and never load (T66).
     assert!(
@@ -133,6 +133,28 @@ fn mcp09_server_names_are_free_and_donor_timeout_defaults_apply() {
         )
         .is_err()
     );
+}
+
+#[test]
+fn mcp_inventory_has_no_separate_server_count_limit() {
+    let servers: serde_json::Map<String, serde_json::Value> = (0..65)
+        .map(|index| {
+            (
+                format!("server-{index}"),
+                serde_json::json!({
+                    "type":"local", "command":["unused"], "disabled":true,
+                }),
+            )
+        })
+        .collect();
+    let generation = assemble(
+        &[source(serde_json::json!({"mcp":{"servers":servers}}))],
+        &BTreeMap::new(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(generation.mcp.len(), 65);
+    assert!(generation.mcp.values().all(|entry| !entry.enabled));
 }
 
 #[test]

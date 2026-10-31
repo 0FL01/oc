@@ -25,14 +25,14 @@ required outcome is resolved and affected constraints remain satisfied.
   - Source: согласованный RECON-план и ответ «Какие лимиты будут? они должны быть с запасом».
   - Acceptance: нет отдельных допусков 8 enabled servers, 64 inventory/tools, 16 tools/list pages, 128 aggregate tools; pagination до конца с отменой/deadline. Корректные schema/description не имеют прежних отдельных порогов 32 KiB/8 KiB. Каталог сервера ≤64 MiB, все каталоги Location ≤256 MiB сериализованных метаданных. Превышение — локальная явная ошибка с actual/limit, без закрытия исправных соседей и silent partial catalog.
   - Primary evidence: ближайшие MCP registry/stdio/remote/lifecycle fixtures пересекают старые границы; отдельное превышение byte budget не завершает соседние подключения.
-  - Status: pending
-  - Evidence: RECON на старых собранных fixtures подтвердил намеренный отказ 9 servers, 65 tools, продолжения после16 pages и закрытие всех peers при140 tools; это не verification нового контракта.
+  - Status: verified
+  - Evidence:73 targeted tests MCP/config/lifecycle:72 PASS сразу, оставшийся stale30s-default assertion обновлён под согласованные60s и отдельно PASS. `mcp10_nine_servers_and_180_tools_stay_connected_and_reap_cleanly` PASS; finite17 pages и65 tools на обоих transports PASS; schema64 KiB/description16 KiB и inventory65 PASS. Реальный aggregate fixture6×50 MiB:5 Connected,1 Failed с256 MiB actual/limit, соседи и cleanup сохранены (3.656s). Scoped strict Clippy all-targets oc-adapters и fmt PASS.
 - R2: согласованные транспортные границы и defaults согласованы по цепочке.
   - Source: согласованная таблица границ.
   - Acceptance: одно MCP message/SSE event ≤64 MiB; startup default60000ms, полный catalog default120000ms; существующие настройки могут увеличить оба значения. Execution timeout остаётся существующим настраиваемым. Разрешённый каталог не отвергается более низким случайным transport/IPC/projection cap.
   - Primary evidence: targeted transport/config regressions и проверки прямых consumers.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: defaults60000/120000ms и existing overrides проверены в R1;64 MiB frame/body/SSE qualification остаётся следующей итерацией.
 - R3: полный доступный tool output и активная история не ограничены preview.
   - Source: исходный screenshot/RECON, согласованный план удаления2 KiB/64-part отсечений.
   - Acceptance:2048 байт не предел доступного тела; полный сохранённый output читается страницами64 KiB через существующий owner. Это размер порции, не предел результата. Сохранённый prefix активного хода доступен каноническим paging до completion; live — несохранённый tail. Paging, свёрнутая карточка и вытеснение cache сами по себе не вызывают toast о потере live-вывода. Настоящий coverage gap не маскируется.
@@ -84,20 +84,22 @@ Byte budget каталога — не обещание такого же RSS. Б
 
 ## Current Checkpoint
 
-- Closes: R1–R2.
-- Smallest next action: убрать count admission, заменить MCP catalog/frame budgets согласованными byte budgets и локальной ошибкой; обновить nearest regression fixtures.
-- Expected evidence: прежние 9/65/17/140 fixtures принимаются, byte-limit failure остаётся локальным, transport defaults проверены.
+- Closes: R2.
+- Smallest next action: согласовать64 MiB transport admission для stdio, HTTP JSON и SSE, не потеряв typed errors/cancellation/cleanup.
+- Expected evidence: сообщение >старого1 MiB SSE cap принимается; превышение64 MiB явное и локальное; существующие HTTP status/header/protocol/ownership fixtures сохраняются.
 - Stop or replan if: concurrent mutation/Cargo owner, security boundary или необходимая новая dependency/architecture.
 
 ## Current State
 
 - RECON: при текущем no-prompt запуске space включены7 из15 MCP, все7 Connected (~4s),37 tools,0 Failed;8 Disabled конфигурацией. Исторический отказ на этом конфиге не воспроизведён.
 - Корень toast: tool preview truncation поднимается в aggregate HistoryTurn.truncated; отдельный путь — eviction64 live parts. В исходном чате сохранены ходы263/519/302 частей.
-- Next: R1–R2, затем R3, финальные R4 gates/commit/push/build.
+- Resolved: R1; startup/catalog defaults часть R2.
+- Next: R2 transport, затем R3, финальные R4 gates/commit/push/build.
 
 ## Checkpoint History
 
 -2026-10-31: получен clean-tree gate после `6d2c91375`; контракт и согласованные границы сохранены до runtime edits.
+-2026-10-31: R1 verified;73 targeted MCP/config/lifecycle cases, strict scoped Clippy и fmt PASS. Diff сверён с frozen contract; следующий checkpoint R2 transport. Full offline gate ещё не запускался.
 
 ## Completion
 

@@ -348,7 +348,7 @@ for line in sys.stdin:
 }
 
 #[tokio::test]
-async fn mcp10_async_generation_cap_is_fatal_and_reaps_every_connected_peer() {
+async fn mcp10_nine_servers_and_180_tools_stay_connected_and_reap_cleanly() {
     let (harness, mut generation) = make_harness(allow_all());
     let script = harness._project.path().join("caps.py");
     std::fs::write(&script, r#"import json, os, sys
@@ -363,7 +363,7 @@ for line in sys.stdin:
     else: continue
     print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}),flush=True)
 "#).unwrap();
-    let pids: Vec<_> = (0..7)
+    let pids: Vec<_> = (0..9)
         .map(|n| harness._project.path().join(format!("peer_{n}.pid")))
         .collect();
     for (n, pid) in pids.iter().enumerate() {
@@ -394,42 +394,48 @@ for line in sys.stdin:
         assert!(std::time::Instant::now() < deadline);
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
-    // The fatal publication is observed through the ordinary turn/shutdown
-    // contracts; none of the partially admitted schemas reach a provider.
+    // Both former count limits are crossed through ordinary asynchronous attach.
     while runtime
         .mcp_status()
         .servers
         .iter()
-        .any(|row| row.status != oc_core::queries::McpStatus::Disabled)
+        .any(|row| row.status == oc_core::queries::McpStatus::Pending)
     {
         assert!(
             std::time::Instant::now() < deadline,
-            "fatal cap did not retire all resources"
+            "catalog publication did not settle"
         );
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
+    let snapshot = runtime.mcp_status();
+    assert_eq!(snapshot.servers.len(), 9);
+    assert!(
+        snapshot
+            .servers
+            .iter()
+            .all(|row| row.status == oc_core::queries::McpStatus::Connected)
+    );
+    assert_eq!(
+        snapshot.servers.iter().map(|row| row.tools).sum::<usize>(),
+        180
+    );
     let (base, hits) = Fake::start(
-        vec![sse_delta("forbidden") + &sse_completed()],
+        vec![sse_delta("accepted") + &sse_completed()],
         Duration::ZERO,
     );
-    assert!(matches!(
-        runtime
-            .run_turn(params(
-                "s",
-                "no partial catalog",
-                &harness,
-                provider_of(&base),
-                &NO_CANCEL
-            ))
-            .await,
-        Err(RuntimeError::McpCatalogLimit)
-    ));
-    assert!(
-        runtime.shutdown_mcp().await.is_err(),
-        "fatal cap became clean success"
-    );
-    assert_eq!(*hits.lock().unwrap(), 0);
-    assert!(harness.db.read_history("s").unwrap().is_empty());
+    runtime
+        .run_turn(params(
+            "s",
+            "complete large catalog",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    runtime.shutdown_mcp().await.unwrap();
+    assert_eq!(*hits.lock().unwrap(), 1);
+    assert!(!harness.db.read_history("s").unwrap().is_empty());
     for pid in pids {
         let pid = std::fs::read_to_string(pid)
             .unwrap()

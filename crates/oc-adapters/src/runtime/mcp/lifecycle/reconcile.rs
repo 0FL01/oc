@@ -48,12 +48,6 @@ impl Scope {
         if self.stopping || self.shared.stop.load(Ordering::SeqCst) {
             return Err(RuntimeError::McpShutdown);
         }
-        let enabled = config.mcp.values().filter(|entry| entry.enabled).count();
-        if enabled > MAX_MCP_SERVERS {
-            return Err(RuntimeError::InvalidArgs(format!(
-                "too many enabled MCP servers: {enabled} exceeds {MAX_MCP_SERVERS}"
-            )));
-        }
         let mut protected = mcp_redactions(&config, &self.env);
         for entry in config.mcp.values() {
             protected.extend(crate::config::mcp::entry_credential_values(
@@ -189,11 +183,7 @@ impl Scope {
                 node.replacing = false;
                 changed = true;
             }
-            if !node.desired
-                || node.cancel.is_some()
-                || node.row.status != McpStatus::Pending
-                || self.instances.len() >= MAX_MCP_SERVERS
-            {
+            if !node.desired || node.cancel.is_some() || node.row.status != McpStatus::Pending {
                 continue;
             }
             if entry.kind == "remote"

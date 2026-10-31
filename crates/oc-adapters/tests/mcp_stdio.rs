@@ -9,9 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
 use oc_adapters::mcp_remote::CLIENT_TIMEOUT;
-use oc_adapters::mcp_stdio::{
-    MAX_LIST_PAGES, STDERR_CAP_BYTES, StdioClient, StdioConfig, StdioError, TOOLS_CAP, spawn_child,
-};
+use oc_adapters::mcp_stdio::{STDERR_CAP_BYTES, StdioClient, StdioConfig, StdioError, spawn_child};
 
 const TEST_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -615,44 +613,34 @@ async fn wrapper_descendants_are_group_owned_for_raw_rmcp_failure_and_drop() {
     assert_eq!(unsafe { libc::getpgrp() as u32 }, runner_pgid);
 }
 
-fn write_catalog_server(path: &Path, tools: serde_json::Value, next_cursor: bool) {
-    let result = if next_cursor {
-        serde_json::json!({"tools": tools, "nextCursor": "again"})
-    } else {
-        serde_json::json!({"tools": tools})
-    };
-    let body = r#"#!/bin/sh
-set -u
-while IFS= read -r line; do
-    method=$(printf '%s' "$line" | sed -n 's/.*"method"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-    id=$(printf '%s' "$line" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*\(\("[^"]*"\|-*[0-9][0-9]*\)\).*/\1/p')
-    [ -z "$id" ] && id=null
-    case "$method" in
-        initialize)
-            result='{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"catalog-fixture","version":"test"}}'
-            ;;
-        notifications/initialized)
-            continue
-            ;;
-        tools/list)
-            result='__CATALOG_RESULT__'
-            ;;
-        *)
-            continue
-            ;;
-    esac
-    printf '{"jsonrpc":"2.0","id":%s,"result":%s}\n' "$id" "$result"
-done
+fn write_catalog_server(path: &Path, tools: serde_json::Value, pages: usize) {
+    let body = r#"#!/usr/bin/python3
+import json, sys
+tools = __TOOLS__
+pages = __PAGES__
+for line in sys.stdin:
+    request = json.loads(line)
+    if 'id' not in request: continue
+    if request['method'] == 'initialize':
+        result = {'protocolVersion':'2025-11-25','capabilities':{'tools':{}},'serverInfo':{'name':'catalog-fixture','version':'test'}}
+    elif request['method'] == 'tools/list':
+        page = int(request.get('params',{}).get('cursor','1'))
+        current = tools if pages == 1 else [dict(tools[0], name='tool-' + str(page))]
+        result = {'tools':current}
+        if page < pages: result['nextCursor'] = str(page + 1)
+    else: continue
+    print(json.dumps({'jsonrpc':'2.0','id':request['id'],'result':result}), flush=True)
 "#
-    .replace("__CATALOG_RESULT__", &result.to_string());
+    .replace("__TOOLS__", &tools.to_string())
+    .replace("__PAGES__", &pages.to_string());
     write_executable(path, &body);
 }
 
 #[tokio::test]
-async fn list_tool_and_page_caps_are_visible_catalog_errors() {
+async fn list_accepts_more_than_64_tools_and_16_pages() {
     let temp = tempfile::tempdir().expect("catalog fixture");
     let oversized = temp.path().join("oversized-mcp");
-    let tools = (0..=TOOLS_CAP)
+    let tools = (0..65)
         .map(|index| {
             serde_json::json!({
                 "name": format!("tool-{index}"),
@@ -660,31 +648,26 @@ async fn list_tool_and_page_caps_are_visible_catalog_errors() {
             })
         })
         .collect::<Vec<_>>();
-    write_catalog_server(&oversized, serde_json::Value::Array(tools), false);
+    write_catalog_server(&oversized, serde_json::Value::Array(tools), 1);
     let config = local_config(&oversized, &[], Duration::from_secs(2));
     let client = StdioClient::launch(&config)
         .await
         .expect("oversized launch");
     let cancel = AtomicBool::new(false);
-    assert_eq!(
-        client.list_tools(&cancel).await,
-        Err(StdioError::CatalogLimited)
-    );
+    assert_eq!(client.list_tools(&cancel).await.unwrap().len(), 65);
     client.shutdown().await.expect("oversized shutdown");
 
     let endless = temp.path().join("endless-pages-mcp");
     write_catalog_server(
         &endless,
         serde_json::json!([{"name": "one", "inputSchema": {"type": "object"}}]),
-        true,
+        17,
     );
     let config = local_config(&endless, &[], Duration::from_secs(2));
     let client = StdioClient::launch(&config).await.expect("paged launch");
-    assert_eq!(
-        client.list_tools(&cancel).await,
-        Err(StdioError::CatalogLimited),
-        "a nextCursor after {MAX_LIST_PAGES} pages must not truncate silently"
-    );
+    let tools = client.list_tools(&cancel).await.unwrap();
+    assert_eq!(tools.len(), 17);
+    assert_eq!(tools.last().unwrap().name, "tool-17");
     client.shutdown().await.expect("paged shutdown");
 }
 

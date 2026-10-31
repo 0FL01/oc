@@ -23,10 +23,10 @@ impl McpTimeouts {
         }
     }
     pub fn startup_ms(self) -> u64 {
-        self.startup.unwrap_or(30_000)
+        self.startup.unwrap_or(60_000)
     }
     pub fn catalog_ms(self, legacy: Option<u64>) -> u64 {
-        self.catalog.or(legacy).unwrap_or(30_000)
+        self.catalog.or(legacy).unwrap_or(120_000)
     }
     pub fn execution_ms(self, legacy: Option<u64>) -> u64 {
         self.execution.or(legacy).unwrap_or(43_200_000)
@@ -129,14 +129,6 @@ pub(super) fn merge_document(
                 (normalize(id, &source.path, raw), source.path.clone()),
             );
         }
-    }
-    // Failed/disabled inventory is bounded too. Existing enabled/generation caps
-    // remain fatal at runtime; this is not an optional-service catch-all.
-    if entries.len() > 64 {
-        return Err(ConfigError::Invalid {
-            field: "mcp".into(),
-            reason: "server inventory limit exceeded".into(),
-        });
     }
     Ok(())
 }

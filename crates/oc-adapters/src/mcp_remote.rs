@@ -25,26 +25,64 @@ use thiserror::Error;
 pub const MCP_VERSION: &str = "2025-11-25";
 /// Client timeout per operation.
 pub const CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
-/// Max tools/list pages followed (cursor loop bound).
+/// Prompt/resource lookup serving bounds; tools/list uses byte budgets instead.
 pub const MAX_LIST_PAGES: usize = 16;
-/// Max tools accepted per server.
+/// Maximum entries in a prompt/resource lookup payload, not a tools catalog.
 pub const TOOLS_CAP: usize = 64;
-/// Max input-schema bytes per tool.
+/// Maximum prompt-lookup argument bytes, not an advertised tool schema.
 pub const SCHEMA_BYTES_CAP: usize = 32 * 1024;
+/// Maximum encoded MCP message or SSE event.
+pub const MESSAGE_BYTES_CAP: usize = 64 * 1024 * 1024;
+/// Maximum serialized metadata retained for one server's catalogs.
+pub const CATALOG_BYTES_CAP: usize = 64 * 1024 * 1024;
 /// Maximum retained text from one MCP call.
 pub const RESULT_TEXT_BYTES_CAP: usize = 1024 * 1024;
 /// Provider-compatible function-name ceiling.
 pub const WIRE_NAME_BYTES_CAP: usize = 64;
 /// Maximum retained server/tool identifier bytes.
 pub const ORIGINAL_NAME_BYTES_CAP: usize = 256;
-/// Maximum model-visible description per MCP tool.
+/// Maximum text field in a prompt/resource lookup, not a tool description.
 pub const DESCRIPTION_BYTES_CAP: usize = 8 * 1024;
-/// Maximum MCP tools across one published application generation.
-pub const GENERATION_TOOLS_CAP: usize = 128;
 /// Aggregate schema/description metadata ceiling for one generation.
-pub const GENERATION_CATALOG_BYTES_CAP: usize = 1024 * 1024;
+pub const GENERATION_CATALOG_BYTES_CAP: usize = 256 * 1024 * 1024;
 /// Maximum time spent waiting for explicit client shutdown.
 pub const CLOSE_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// Payload-free capacity facts shared by catalog admission and diagnostics.
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+#[error("MCP catalog metadata {bytes} bytes exceeds {limit} bytes")]
+pub struct CatalogLimit {
+    /// Actual serialized metadata bytes.
+    pub bytes: usize,
+    /// Applicable server or Location byte budget.
+    pub limit: usize,
+}
+
+impl CatalogLimit {
+    pub(crate) fn check(bytes: usize, limit: usize) -> Result<(), Self> {
+        if bytes > limit {
+            Err(Self { bytes, limit })
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// Count encoded metadata without allocating another copy of a large schema.
+pub(crate) fn metadata_bytes(value: &impl serde::Serialize) -> usize {
+    struct Count(usize);
+    impl std::io::Write for Count {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0 = self.0.saturating_add(bytes.len());
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut count = Count(0);
+    serde_json::to_writer(&mut count, value).map_or(usize::MAX, |()| count.0)
+}
 
 /// Why an advertised catalog cannot be attached.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -52,15 +90,9 @@ pub enum CatalogError {
     /// A server advertised the same wire tool name more than once.
     #[error("duplicate tool name: {0}")]
     DuplicateTool(String),
-    /// A server advertised a schema beyond [`SCHEMA_BYTES_CAP`].
-    #[error("tool schema exceeds size limit: {0}")]
-    SchemaTooLarge(String),
     /// Tool/server identity is empty or exceeds the retained-name bound.
     #[error("invalid tool identity")]
     InvalidIdentity,
-    /// A model-visible description exceeds its byte ceiling.
-    #[error("tool description exceeds size limit: {0}")]
-    DescriptionTooLarge(String),
 }
 
 /// Typed remote-MCP errors (no secrets, no payload contents).
@@ -120,9 +152,9 @@ pub enum McpError {
     /// The result used a modality this text-only adapter does not support.
     #[error("unsupported tool result")]
     UnsupportedResult,
-    /// Catalog pagination or tool count exceeded a hard bound.
-    #[error("MCP catalog exceeds limit")]
-    CatalogLimited,
+    /// Serialized catalog metadata exceeded its byte budget; no partial catalog.
+    #[error(transparent)]
+    CatalogLimited(#[from] CatalogLimit),
     /// The catalog is complete but cannot be attached safely.
     #[error("invalid MCP catalog: {0}")]
     Catalog(#[from] CatalogError),
@@ -322,7 +354,7 @@ fn is_native_header(name: &HeaderName) -> bool {
 }
 
 /// One namespaced registry entry mapping an exact server tool.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct RegistryEntry {
     /// Collision-safe model-facing name (`{server}__{tool}`).
     pub namespaced: String,
@@ -336,17 +368,11 @@ pub struct RegistryEntry {
     pub input_schema: serde_json::Value,
 }
 
-/// Map server tools into namespaced registry entries (bounded).
-///
-/// Same-server duplicates, oversized schemas, and excessive tool counts fail
-/// the whole catalog so attach cannot publish a partial registry.
+/// Map complete server catalogs into collision-safe provider identities.
 pub fn map_registry(
     server_id: &str,
     tools: Vec<(String, Option<String>, serde_json::Value)>,
 ) -> Result<Vec<RegistryEntry>, McpError> {
-    if tools.len() > TOOLS_CAP {
-        return Err(McpError::CatalogLimited);
-    }
     let mut entries = Vec::with_capacity(tools.len());
     let mut seen = HashSet::new();
     for (tool, description, schema) in tools {
@@ -357,14 +383,8 @@ pub fn map_registry(
         {
             return Err(CatalogError::InvalidIdentity.into());
         }
-        if description
-            .as_ref()
-            .is_some_and(|description| description.len() > DESCRIPTION_BYTES_CAP)
-        {
-            return Err(CatalogError::DescriptionTooLarge(tool).into());
-        }
         let namespaced = provider_wire_name(server_id, &tool);
-        validate_catalog_tool(&mut seen, &tool, &schema)?;
+        validate_catalog_tool(&mut seen, &tool)?;
         entries.push(RegistryEntry {
             namespaced,
             server: server_id.to_string(),
@@ -373,6 +393,7 @@ pub fn map_registry(
             input_schema: schema,
         });
     }
+    CatalogLimit::check(metadata_bytes(&entries), CATALOG_BYTES_CAP)?;
     Ok(entries)
 }
 
@@ -380,22 +401,14 @@ pub fn map_registry(
 pub fn merge_registries(
     registries: Vec<Vec<RegistryEntry>>,
 ) -> Result<Vec<RegistryEntry>, McpError> {
+    let bytes = registries.iter().fold(0usize, |bytes, registry| {
+        bytes.saturating_add(metadata_bytes(registry))
+    });
+    CatalogLimit::check(bytes, GENERATION_CATALOG_BYTES_CAP)?;
     let mut out = Vec::new();
     let mut taken = std::collections::HashSet::new();
-    let mut metadata_bytes = 0usize;
     for entries in registries {
         for mut entry in entries {
-            if out.len() >= GENERATION_TOOLS_CAP {
-                return Err(McpError::CatalogLimited);
-            }
-            metadata_bytes = metadata_bytes
-                .saturating_add(
-                    serde_json::to_vec(&entry.input_schema).map_or(usize::MAX, |v| v.len()),
-                )
-                .saturating_add(entry.description.as_ref().map_or(0, String::len));
-            if metadata_bytes > GENERATION_CATALOG_BYTES_CAP {
-                return Err(McpError::CatalogLimited);
-            }
             let base = entry.namespaced.clone();
             let mut candidate = base.clone();
             let mut suffix = 2u32;
@@ -883,9 +896,9 @@ fn split_host_port(url: &str) -> Result<(String, u16), McpError> {
     Ok((host, port))
 }
 
-/// Bounded cursor pagination without the unbounded SDK helper.
+/// Complete cursor pagination under the caller's deadline and byte budget.
 trait BoundedList {
-    /// List all tools across at most [`MAX_LIST_PAGES`] pages.
+    /// List all tools without a count or page-count admission limit.
     fn list_all_tools_bounded(
         &self,
     ) -> impl std::future::Future<Output = Result<Vec<rmcp::model::Tool>, McpError>> + Send;
@@ -895,25 +908,24 @@ impl BoundedList for McpPeer {
     async fn list_all_tools_bounded(&self) -> Result<Vec<rmcp::model::Tool>, McpError> {
         let mut tools = Vec::new();
         let mut cursor: Option<String> = None;
-        for page_index in 0..MAX_LIST_PAGES {
+        let mut bytes = 2usize;
+        loop {
             let params = rmcp::model::PaginatedRequestParams::default().with_cursor(cursor);
             let page = self
                 .list_tools(Some(params))
                 .await
                 .map_err(|_| McpError::Transport)?;
-            if tools.len() + page.tools.len() > TOOLS_CAP {
-                return Err(McpError::CatalogLimited);
+            bytes = bytes.saturating_add(metadata_bytes(&page.tools).saturating_sub(2));
+            if !tools.is_empty() && !page.tools.is_empty() {
+                bytes = bytes.saturating_add(1);
             }
+            CatalogLimit::check(bytes, CATALOG_BYTES_CAP)?;
             tools.extend(page.tools);
             cursor = page.next_cursor;
             if cursor.is_none() {
                 return Ok(tools);
             }
-            if page_index + 1 == MAX_LIST_PAGES {
-                return Err(McpError::CatalogLimited);
-            }
         }
-        Err(McpError::CatalogLimited)
     }
 }
 
@@ -931,25 +943,14 @@ pub struct RemoteTool {
 fn validate_remote_catalog(tools: &[RemoteTool]) -> Result<(), McpError> {
     let mut seen = HashSet::new();
     for tool in tools {
-        validate_catalog_tool(&mut seen, &tool.name, &tool.input_schema)?;
+        validate_catalog_tool(&mut seen, &tool.name)?;
     }
     Ok(())
 }
 
-fn validate_catalog_tool(
-    seen: &mut HashSet<String>,
-    tool: &str,
-    schema: &serde_json::Value,
-) -> Result<(), McpError> {
+fn validate_catalog_tool(seen: &mut HashSet<String>, tool: &str) -> Result<(), McpError> {
     if !seen.insert(tool.to_string()) {
         return Err(CatalogError::DuplicateTool(tool.to_string()).into());
-    }
-    if serde_json::to_vec(schema)
-        .map(|bytes| bytes.len())
-        .unwrap_or(usize::MAX)
-        > SCHEMA_BYTES_CAP
-    {
-        return Err(CatalogError::SchemaTooLarge(tool.to_string()).into());
     }
     Ok(())
 }

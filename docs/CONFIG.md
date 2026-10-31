@@ -201,7 +201,7 @@ catalog. Нет periodic /models polling, environment mutation живого пр
 Only canonical OC2 MCP config is admitted (T66): direct `mcp.<name>`
 entries, `enabled` and camelCase OAuth keys are unknown keys and fail closed with the
 `unknown_config_key` report; numeric timeouts are malformed values. Canonical root `mcp.servers` uses `disabled`; timeout is
-`{startup, catalog, execution}` in positive ms with defaults 30,000/30,000/43,200,000.
+`{startup, catalog, execution}` in positive ms with defaults 60,000/120,000/43,200,000.
 Global supplied timeout leaves merge, per-server leaves override; later same-ID server
 replaces the whole entry.
 

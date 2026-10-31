@@ -4,6 +4,7 @@ const RECONCILE_STDIO: &str = r#"
 import json, os, pathlib, sys, time
 label = sys.argv[1]
 count = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+description = 'x' * (int(sys.argv[3]) if len(sys.argv) > 3 else 0)
 listed = False
 with open('starts', 'a') as output: output.write(label + ':' + str(os.getpid()) + '\n')
 for line in sys.stdin:
@@ -19,7 +20,7 @@ for line in sys.stdin:
             pathlib.Path('list-entered').write_text('ready')
             while not pathlib.Path('list-release').exists(): time.sleep(0.002)
         listed = True
-        result = {'tools':[{'name':label if count == 1 else label + '_' + str(index),'inputSchema':{'type':'object'}} for index in range(count)]}
+        result = {'tools':[{'name':label if count == 1 else label + '_' + str(index),'description':description,'inputSchema':{'type':'object'}} for index in range(count)]}
     elif method == 'tools/call' and label == 'waiters':
         print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
         result = {'content':[{'type':'text','text':'LEASED_ISSUED_RESULT'}]}
@@ -115,7 +116,7 @@ async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_runn
     drop(dropped);
     // Closed replies must not exhaust the existing waiter cap while relisting.
     let mut dropped_pending = true;
-    for _ in 0..MAX_MCP_SERVERS {
+    for _ in 0..MCP_PENDING_CAP {
         let mut abandoned = Box::pin(owner.request(&keep_running, false));
         dropped_pending &= futures_util::poll!(abandoned.as_mut()).is_pending();
     }
@@ -622,14 +623,17 @@ async fn hot02_reconcile_reuses_clients_and_coalesces_replacement_until_old_batc
 }
 
 #[tokio::test]
-async fn hot02_reconcile_bounds_connecting_live_and_retiring_across_repeated_edits() {
+async fn hot02_reconcile_waits_for_each_retiring_lease_without_a_server_count_cap() {
     let project = tempfile::tempdir().unwrap();
     let owner = McpOwner::new("source", 1);
     let configured = |prefix: &str| Generation {
-        mcp: (0..MAX_MCP_SERVERS)
+        mcp: (0..9)
             .map(|index| {
                 let name = format!("{prefix}_{index}");
-                (name.clone(), reconcile_entry(project.path(), &name))
+                (
+                    format!("peer_{index}"),
+                    reconcile_entry(project.path(), &name),
+                )
             })
             .collect(),
         ..Default::default()
@@ -642,32 +646,13 @@ async fn hot02_reconcile_bounds_connecting_live_and_retiring_across_repeated_edi
             None,
         )
         .unwrap();
-    let old_names: Vec<_> = (0..MAX_MCP_SERVERS)
-        .map(|index| format!("old_{index}"))
-        .collect();
+    let old_names: Vec<_> = (0..9).map(|index| format!("peer_{index}")).collect();
     connected(
         &owner,
         &old_names.iter().map(String::as_str).collect::<Vec<_>>(),
     )
     .await;
     let held = owner.request_view().unwrap();
-    let before = owner.snapshot();
-    let mut oversized = configured("rejected");
-    oversized.mcp.insert(
-        "one_too_many".into(),
-        reconcile_entry(project.path(), "forbidden"),
-    );
-    assert!(
-        owner
-            .reconcile(oversized, 2, None, false, None)
-            .await
-            .is_err()
-    );
-    assert_eq!(
-        owner.snapshot(),
-        before,
-        "invalid desired inventory retired good clients"
-    );
     for publication in 2..14 {
         owner
             .reconcile(
@@ -680,8 +665,9 @@ async fn hot02_reconcile_bounds_connecting_live_and_retiring_across_repeated_edi
             .await
             .unwrap();
         assert!(owner.request_view().unwrap().servers.is_empty());
-        assert!(
-            owner.snapshot().servers.len() <= MAX_MCP_SERVERS * 2,
+        assert_eq!(
+            owner.snapshot().servers.len(),
+            9,
             "obsolete desired rows accumulated"
         );
         assert_eq!(
@@ -689,21 +675,19 @@ async fn hot02_reconcile_bounds_connecting_live_and_retiring_across_repeated_edi
                 .unwrap()
                 .lines()
                 .count(),
-            MAX_MCP_SERVERS
+            9
         );
     }
     drop(held);
-    let names: Vec<_> = (0..MAX_MCP_SERVERS)
-        .map(|index| format!("edit13_{index}"))
-        .collect();
+    let names: Vec<_> = (0..9).map(|index| format!("peer_{index}")).collect();
     connected(
         &owner,
         &names.iter().map(String::as_str).collect::<Vec<_>>(),
     )
     .await;
     let starts = std::fs::read_to_string(project.path().join("starts")).unwrap();
-    assert_eq!(starts.lines().count(), MAX_MCP_SERVERS * 2);
-    assert_eq!(owner.snapshot().servers.len(), MAX_MCP_SERVERS);
+    assert_eq!(starts.lines().count(), 18);
+    assert_eq!(owner.snapshot().servers.len(), 9);
     assert!(
         starts
             .lines()
@@ -912,12 +896,14 @@ async fn hot02_reconcile_preserves_issued_lookup_and_joins_removed_connection() 
 }
 
 #[tokio::test]
-async fn hot02_prospective_aggregate_catalog_limit_is_fatal_before_exposure() {
+async fn hot02_catalog_byte_limit_rejects_only_the_candidate_and_reaps_cleanly() {
     let project = tempfile::tempdir().unwrap();
     let owner = McpOwner::new("source", 1);
     let entry = |name| {
         let mut entry = reconcile_entry(project.path(), name);
-        entry.command.push("50".into());
+        entry
+            .command
+            .extend(["1".into(), (50 * 1024 * 1024).to_string()]);
         entry
     };
     owner
@@ -927,6 +913,9 @@ async fn hot02_prospective_aggregate_catalog_limit_is_fatal_before_exposure() {
                     ("one".into(), entry("first")),
                     ("two".into(), entry("second")),
                     ("three".into(), entry("third")),
+                    ("four".into(), entry("fourth")),
+                    ("five".into(), entry("fifth")),
+                    ("six".into(), entry("sixth")),
                 ]),
                 ..Default::default()
             },
@@ -935,28 +924,49 @@ async fn hot02_prospective_aggregate_catalog_limit_is_fatal_before_exposure() {
             None,
         )
         .unwrap();
-    let error = tokio::time::timeout(Duration::from_secs(5), owner.wait_failure())
-        .await
-        .unwrap();
-    assert_eq!(error, RuntimeError::McpCatalogLimit);
-    assert!(
-        owner
-            .shared
-            .publication
-            .read()
-            .unwrap()
-            .request
-            .entries
-            .len()
-            <= mcp_remote::GENERATION_TOOLS_CAP
+    tokio::time::timeout(Duration::from_secs(20), async {
+        while owner
+            .snapshot()
+            .servers
+            .iter()
+            .any(|row| row.status == McpStatus::Pending)
+        {
+            assert!(
+                owner.fatal().is_none(),
+                "catalog capacity killed healthy peers"
+            );
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .unwrap();
+    let snapshot = owner.snapshot();
+    assert_eq!(
+        snapshot
+            .servers
+            .iter()
+            .filter(|row| row.status == McpStatus::Connected)
+            .count(),
+        5
     );
-    assert!(matches!(
-        owner.request_view(),
-        Err(RuntimeError::McpCatalogLimit)
-    ));
-    assert_eq!(owner.stop().await, Err(RuntimeError::McpCatalogLimit));
+    let failed: Vec<_> = snapshot
+        .servers
+        .iter()
+        .filter(|row| row.status == McpStatus::Failed)
+        .collect();
+    assert_eq!(failed.len(), 1);
+    let diagnostic = failed[0].diagnostic.as_ref().unwrap();
+    assert_eq!(diagnostic.code, ServiceCode::CatalogLimit);
+    let details = diagnostic.details.as_ref().unwrap().join("\n");
+    assert!(details.contains(&(256 * 1024 * 1024).to_string()));
+    assert!(details.contains("bytes"));
+    let view = owner.request_view().unwrap();
+    assert_eq!(view.entries.len(), 5);
+    assert_eq!(view.servers.len(), 5);
+    drop(view);
+    owner.stop().await.unwrap();
     let starts = std::fs::read_to_string(project.path().join("starts")).unwrap();
-    assert_eq!(starts.lines().count(), 3);
+    assert_eq!(starts.lines().count(), 6);
     for line in starts.lines() {
         let (_, pid) = line.rsplit_once(':').unwrap();
         assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
