@@ -994,6 +994,9 @@ pub struct TuiState {
     pub(crate) skills_cursor: usize,
     /// OC2 steer/queue input still pending for the attached session.
     inbox: Vec<oc_core::queries::InboxItem>,
+    interrupted_commands: Vec<oc_core::queries::InterruptedCommand>,
+    command_recovery_loaded: bool,
+    command_recovery_job: Option<command_recovery::Request>,
     pub(crate) queued_cursor: usize,
     skills_loaded: bool,
     mcp_snapshot: Option<oc_core::queries::McpSnapshot>,
@@ -1229,6 +1232,9 @@ impl TuiState {
             skills: Vec::new(),
             skills_cursor: 0,
             inbox: Vec::new(),
+            interrupted_commands: Vec::new(),
+            command_recovery_loaded: false,
+            command_recovery_job: None,
             queued_cursor: 0,
             skills_loaded: false,
             mcp_snapshot: None,
@@ -1979,6 +1985,7 @@ mod accounts;
 pub(crate) use accounts::AccountSurface;
 mod execute;
 pub use accounts::AuthRequest;
+mod command_recovery;
 mod foreground;
 mod inbox;
 mod input;

@@ -99,12 +99,23 @@ pub(super) fn prepare(
         description: def.description.clone(),
     });
     let selected = if background { parent.clone() } else { selected };
+    let parent_agent = parent.agent_id.as_ref().and_then(|id| c.agents.get(id));
+    let mut shell_parent_rules = c.generation.permission_rules.clone();
+    shell_parent_rules.configure_agent(
+        &c.generation.permissions,
+        &parent_agent
+            .map(|a| a.permissions.clone())
+            .unwrap_or_default(),
+        &permission_rules(c, parent, parent_agent),
+    );
     Ok((
         selected,
         crate::runtime::NativeCommand {
             id: def.id.clone(),
             child,
             selection: None,
+            resolution: None,
+            shell_parent_rules,
         },
     ))
 }

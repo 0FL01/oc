@@ -30,10 +30,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Config command arguments
+## Config command templates
 
 The configured-command argument parsing and substitution in
-`crates/oc-adapters/src/runtime.rs` is adapted from
+`crates/oc-adapters/src/runtime.rs`, and interpolation syntax/order in
+`crates/oc-adapters/src/runtime/command_shell.rs`, are adapted from
 `packages/core/src/config/plugin/command.ts` at upstream tree
 `ed74ec82ce1fe3a36da6c0815a935473ef4bb0fb`. Copyright (c) 2025 opencode;
 the MIT notice above applies.

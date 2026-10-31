@@ -1145,6 +1145,8 @@ pub(crate) struct NativeCommand {
     pub id: String,
     pub child: Option<CommandChild>,
     pub selection: Option<(String, String)>,
+    pub resolution: Option<(String, u64)>,
+    pub shell_parent_rules: crate::permissions::PermissionRules,
 }
 
 pub(crate) struct CommandChild {
@@ -3015,6 +3017,7 @@ fn effective_compress_permission(config: &DcpConfig, policy: &RuntimePolicy<'_>)
 }
 
 pub(crate) mod code_mode;
+pub(crate) mod command_shell;
 mod context;
 mod instructions;
 mod mcp;

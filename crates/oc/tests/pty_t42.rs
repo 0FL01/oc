@@ -2988,6 +2988,13 @@ fn vis44_middle_down_closes_inactive_active_and_last_tabs_without_deleting_histo
     );
     assert_eq!(journal_counts(&fixture), counts);
 
+    // The durable close ACK precedes paint. The next physical hit needs the
+    // reflowed strip, not the previous frame's coordinates for Gamma.
+    let repaint = Instant::now();
+    while render_screen(&pty.snapshot()).rows()[0].contains("VIS44 Alpha") {
+        assert!(repaint.elapsed() < DEADLINE, "closed tab remained painted");
+        std::thread::sleep(POLL);
+    }
     let gamma_column = middle_down(&mut pty, "VIS44 Gamma");
     wait_deck(serde_json::json!([roots[1]]), serde_json::json!(roots[1]));
     pty.send(format!("\x1b[<1;{gamma_column};1m").as_bytes());
@@ -3156,11 +3163,34 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
 fn global_check_command_expands_from_tui() {
     let fixture = Fixture::new();
     let project = fixture.project_a();
+    let selected_shell = project.join("command-shell");
+    std::fs::write(
+        &selected_shell,
+        "#!/bin/sh\nprintf X >> shell.executable\nexec /bin/sh \"$@\"\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(
+        &selected_shell,
+        std::os::unix::fs::PermissionsExt::from_mode(0o700),
+    )
+    .unwrap();
+    let config_path = fixture
+        .root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut config: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
+    config["permissions"] = serde_json::json!([
+        {"action":"edit","resource":"*","effect":"allow"},
+        {"action":"shell","resource":"*","effect":"allow"}
+    ]);
+    config["shell"] = selected_shell.to_str().unwrap().into();
+    std::fs::write(config_path, config.to_string()).unwrap();
     let commands = fixture.root.path().join("home/config/opencode/commands");
     std::fs::create_dir_all(&commands).expect("global commands");
     std::fs::write(
         commands.join("check.md"),
-        "---\ndescription: Check arguments\n---\nCheck [$ARGUMENTS]\n",
+        "---\ndescription: Check arguments\n---\nCheck [$ARGUMENTS] / !`printf S; printf E >&2; exit 7` / !`printf '\\041\\140touch replay.effect\\140'`\n",
     )
     .expect("global command");
 
@@ -3169,11 +3199,11 @@ fn global_check_command_expands_from_tui() {
     pty.send(b"/che");
     wait_screen_row(&pty, " /check  ", DEADLINE);
     pty.send(b"\t");
-    pty.send(b" alpha  'beta gamma'  \r");
+    pty.send(b" alpha  'beta gamma' !`printf Z`  \r");
     let requests = fixture.wait_requests(1);
     assert_eq!(
         last_user_text(&requests[0]).as_deref(),
-        Some("Check [ alpha  'beta gamma'  ]")
+        Some("Check [ alpha  'beta gamma' Z  ] / SE / !`touch replay.effect`")
     );
     wait_idle(&pty);
     let deck: serde_json::Value =
@@ -3184,7 +3214,19 @@ fn global_check_command_expands_from_tui() {
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     assert_eq!(
         db.read_history(&root).unwrap()[0],
-        ("user".into(), "/check  alpha  'beta gamma'  ".into())
+        (
+            "user".into(),
+            "/check  alpha  'beta gamma' !`printf Z`  ".into()
+        )
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("shell.executable")).unwrap(),
+        "XXX"
+    );
+    assert!(!project.join("replay.effect").exists());
+    assert!(
+        db.list_tool_ops(&root).unwrap().is_empty(),
+        "interpolation is not a model tool call"
     );
 }
 

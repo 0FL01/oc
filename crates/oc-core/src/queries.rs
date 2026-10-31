@@ -109,6 +109,27 @@ pub enum InboxAction {
     Remove { id: String },
 }
 
+/// Pre-acceptance command effects, scoped to the captured Location. Restoring
+/// reads input only; neither restore nor dismissal executes the command.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CommandRecoveryAction {
+    List,
+    Read { id: String },
+    Dismiss { id: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct InterruptedCommand {
+    pub id: String,
+    pub state: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CommandRecovery {
+    pub items: Vec<InterruptedCommand>,
+    pub original: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SessionPickerAction {
     Rename(String),

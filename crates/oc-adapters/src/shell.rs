@@ -116,6 +116,7 @@ impl Default for ShellLimits {
 #[derive(Debug, Clone)]
 pub struct Shell {
     root: PathBuf,
+    command_shell: Option<String>,
     pub(crate) native_origin: Option<Arc<crate::runtime::origin::Origin>>,
 }
 
@@ -182,10 +183,64 @@ impl Shell {
         // Canonical root: symlink containment compares real paths.
         Ok(Self {
             native_origin: None,
+            command_shell: None,
             root: project_root
                 .canonicalize()
                 .map_err(|_| ShellError::BadCwd)?,
         })
+    }
+
+    pub(crate) fn for_command(
+        &self,
+        env: &BTreeMap<String, String>,
+        configured: Option<&str>,
+    ) -> Result<Self, ShellError> {
+        let mut env = env.clone();
+        if let Some(configured) = configured {
+            env.insert("SHELL".into(), configured.into());
+        }
+        let argv = command_argv_selected(&env, ":", false, configured.is_none())?;
+        let mut shell = self.clone();
+        shell.command_shell = Some(argv[0].clone());
+        Ok(shell)
+    }
+
+    pub(crate) fn invocation(
+        &self,
+        call: &crate::tools::ToolCall,
+        env: &BTreeMap<String, String>,
+    ) -> Result<crate::tools::shell_call::ShellInvocation, crate::tools::ToolError> {
+        let mut invocation = crate::tools::shell_call::invocation(call, env)?;
+        if call.name == "shell"
+            && let Some(shell) = &self.command_shell
+        {
+            invocation.argv[0] = shell.clone();
+        }
+        Ok(invocation)
+    }
+
+    pub(crate) fn command_executable(&self) -> Option<&str> {
+        self.command_shell.as_deref()
+    }
+
+    pub(crate) fn command_identity(&self) -> Result<Option<String>, ShellError> {
+        use sha2::Digest as _;
+        let Some(path) = &self.command_shell else {
+            return Ok(None);
+        };
+        let metadata = std::fs::metadata(path).map_err(|_| ShellError::AdmissionFailed)?;
+        let mut hash = sha2::Sha256::new();
+        hash.update(path.as_bytes());
+        for value in [
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.ctime() as u64,
+            metadata.ctime_nsec() as u64,
+        ] {
+            hash.update(value.to_le_bytes());
+        }
+        Ok(Some(format!("{:x}", hash.finalize())))
     }
 
     /// Execute `argv` (no shell joining: `argv[0]` is the program).
@@ -257,7 +312,7 @@ impl Shell {
     }
 
     /// The lifecycle owner freezes OS identity before acknowledging launch.
-    /// Failure in that durable callback tears down the group before returning.
+    /// Command interpolation also waits for that durable callback before exec.
     #[allow(clippy::too_many_arguments)]
     fn execute_pinned_started(
         &self,
@@ -271,7 +326,7 @@ impl Shell {
         approved: Option<&PinnedCwd>,
         finish_group: bool,
         capture: Option<&jobs::Capture>,
-        started: impl FnOnce(i32) -> Result<(), ShellError>,
+        started: impl FnOnce(i32) -> Result<(), ShellError> + Send,
     ) -> Result<ShellOutcome, ShellError> {
         validate_argv(argv)?;
         let stdin = stdin.unwrap_or_default();
@@ -297,7 +352,17 @@ impl Shell {
         } else {
             Stdio::piped()
         });
-        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        // Interpolation gets one ordered stream; ordinary tools keep their
+        // separate captures. Both descriptors refer to the same owned pipe.
+        let combined = if self.command_shell.is_some() {
+            let (reader, writer) = std::io::pipe().map_err(|_| ShellError::Reap)?;
+            cmd.stdout(writer.try_clone().map_err(|_| ShellError::Reap)?)
+                .stderr(writer);
+            Some(reader)
+        } else {
+            cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+            None
+        };
         cmd.env_clear();
         for (key, value) in child_env(parent_env) {
             cmd.env(&key, &value);
@@ -322,16 +387,26 @@ impl Shell {
         // New session => process group leader; group kills stay contained.
         // The OS error is kept (kind only, no payload) so a refused exec is
         // diagnosable instead of a bare `Reap`.
-        let child = cmd.spawn().map_err(|error| ShellError::SpawnRefused {
-            reason: format!("exec: {error}"),
-        })?;
+        let (child, started) = if self.command_shell.is_some() {
+            (spawn_admitted_command(&mut cmd, started)?, None)
+        } else {
+            (
+                cmd.spawn().map_err(|error| ShellError::SpawnRefused {
+                    reason: format!("exec: {error}"),
+                })?,
+                Some(started),
+            )
+        };
+        drop(cmd);
         let mut child = OwnedChild {
             process: child,
             grace: limits.kill_grace,
             reaped: false,
         };
         let pid = child.process.id() as i32;
-        started(pid)?;
+        if let Some(started) = started {
+            started(pid)?;
+        }
 
         // stdin runs on its own thread: a child that never reads cannot block
         // the supervisor (the writer is released by pipe close or group kill).
@@ -348,11 +423,15 @@ impl Shell {
         // Concurrent drains: one thread per pipe so interleaved floods can
         // never deadlock a full pipe buffer while we wait below.
         let cap = limits.retain_cap;
-        let out = spawn_drain_live(
-            child.process.stdout.take(),
-            cap,
-            capture.map(|c| (c, jobs::Stream::Stdout)),
-        );
+        let out = if let Some(pipe) = combined {
+            spawn_drain_live(Some(pipe), cap, capture.map(|c| (c, jobs::Stream::Stdout)))
+        } else {
+            spawn_drain_live(
+                child.process.stdout.take(),
+                cap,
+                capture.map(|c| (c, jobs::Stream::Stdout)),
+            )
+        };
         let err = spawn_drain_live(
             child.process.stderr.take(),
             cap,
@@ -491,6 +570,69 @@ impl Shell {
     }
 }
 
+/// `Command::spawn` waits for exec, so a scoped reader admits the child's PID
+/// while pre_exec waits on a pipe. Owner death or admission failure closes the
+/// gate without a permit: no configured executable has run at that point.
+fn spawn_admitted_command(
+    cmd: &mut Command,
+    started: impl FnOnce(i32) -> Result<(), ShellError> + Send,
+) -> Result<std::process::Child, ShellError> {
+    use std::io::Write as _;
+
+    let (mut ready, ready_child) = std::io::pipe().map_err(|_| ShellError::AdmissionFailed)?;
+    let (permit_child, mut permit) = std::io::pipe().map_err(|_| ShellError::AdmissionFailed)?;
+    let fds = (
+        ready.as_raw_fd(),
+        ready_child.as_raw_fd(),
+        permit_child.as_raw_fd(),
+        permit.as_raw_fd(),
+    );
+    // SAFETY: only async-signal-safe syscalls and stack bytes after fork. The
+    // earlier pre_exec has already pinned cwd and made this child group leader.
+    // Close the child's copies of parent ends so owner death produces EOF.
+    #[allow(clippy::multiple_unsafe_ops_per_block)]
+    unsafe {
+        cmd.pre_exec(move || {
+            libc::close(fds.0);
+            libc::close(fds.3);
+            let pid = libc::getpid().to_ne_bytes();
+            if libc::write(fds.1, pid.as_ptr().cast(), pid.len()) != pid.len() as isize {
+                return Err(std::io::Error::last_os_error());
+            }
+            libc::close(fds.1);
+            let mut allowed = 0u8;
+            let read = libc::read(fds.2, (&mut allowed as *mut u8).cast(), 1);
+            libc::close(fds.2);
+            if read != 1 || allowed != 1 {
+                return Err(std::io::Error::from_raw_os_error(libc::ECANCELED));
+            }
+            Ok(())
+        });
+    }
+    std::thread::scope(|scope| {
+        let admission = scope.spawn(move || {
+            let mut pid = [0; 4];
+            ready
+                .read_exact(&mut pid)
+                .map_err(|_| ShellError::AdmissionFailed)?;
+            started(i32::from_ne_bytes(pid))?;
+            permit
+                .write_all(&[1])
+                .map_err(|_| ShellError::AdmissionFailed)
+        });
+        let child = cmd.spawn();
+        // Also unblock the reader when fork or the earlier pre_exec fails.
+        drop(ready_child);
+        drop(permit_child);
+        admission
+            .join()
+            .map_err(|_| ShellError::AdmissionFailed)??;
+        child.map_err(|error| ShellError::SpawnRefused {
+            reason: format!("exec: {error}"),
+        })
+    })
+}
+
 pub(crate) fn exited_without_reap(pid: i32) -> Result<bool, ShellError> {
     // SAFETY: Linux siginfo_t accepts the all-zero empty WNOHANG result.
     let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
@@ -533,6 +675,15 @@ pub(crate) fn command_argv(
     parent: &BTreeMap<String, String>,
     command: &str,
 ) -> Result<Vec<String>, ShellError> {
+    command_argv_selected(parent, command, true, true)
+}
+
+fn command_argv_selected(
+    parent: &BTreeMap<String, String>,
+    command: &str,
+    compatible: bool,
+    fallback: bool,
+) -> Result<Vec<String>, ShellError> {
     let env = child_env(parent);
     let executable = |candidate: &str| -> Option<PathBuf> {
         if candidate.is_empty() || candidate.contains('\0') {
@@ -561,13 +712,13 @@ pub(crate) fn command_argv(
             .file_name()?
             .to_str()?
             .to_ascii_lowercase();
-        (!matches!(name.as_str(), "fish" | "nu"))
+        (!compatible || !matches!(name.as_str(), "fish" | "nu"))
             .then(|| executable(candidate))
             .flatten()
     });
     let shell = selected
-        .or_else(|| executable("bash"))
-        .or_else(|| executable("/bin/sh"))
+        .or_else(|| fallback.then(|| executable("bash")).flatten())
+        .or_else(|| fallback.then(|| executable("/bin/sh")).flatten())
         .ok_or_else(|| ShellError::SpawnRefused {
             reason: "no executable Linux shell".into(),
         })?;
@@ -1047,6 +1198,47 @@ mod tests {
     }
 
     static NO_CANCEL: AtomicBool = AtomicBool::new(false);
+
+    #[test]
+    fn command_shell_waits_for_durable_identity_before_exec() {
+        let (tmp, shell) = setup();
+        let shell = shell.for_command(&parent_env(), None).unwrap();
+        let mut launch = None;
+        let result = shell.execute_pinned_started(
+            &parent_env(),
+            &[
+                shell.command_executable().unwrap().into(),
+                "-c".into(),
+                "printf X > command.effect".into(),
+            ],
+            ".",
+            None,
+            limits(10_000),
+            &NO_CANCEL,
+            None,
+            None,
+            true,
+            None,
+            |child| {
+                launch = Some((
+                    child,
+                    super::jobs::ProcessIdentity::read(child, tmp.path()),
+                    std::fs::read_link(format!("/proc/{child}/exe")),
+                ));
+                Err(ShellError::AdmissionFailed)
+            },
+        );
+        let (pid, identity, executable) = launch.unwrap();
+        assert!(identity.is_some());
+        assert_eq!(
+            executable.unwrap(),
+            std::env::current_exe().unwrap(),
+            "configured shell must not exec before identity is durable"
+        );
+        assert_eq!(result, Err(ShellError::AdmissionFailed));
+        assert!(!shell.root().join("command.effect").exists());
+        assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
+    }
 
     #[test]
     fn tool05_interleaved_output_no_deadlock() {

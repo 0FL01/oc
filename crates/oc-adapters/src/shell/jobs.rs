@@ -459,6 +459,121 @@ pub(crate) struct Jobs {
 }
 
 impl Jobs {
+    /// Command interpolation shares the process supervisor and global slots,
+    /// but has no session FK, background conversion, artifact or user-shell card.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn command_output(
+        &self,
+        shell: Shell,
+        env: BTreeMap<String, String>,
+        argv: Vec<String>,
+        approved: Arc<PinnedCwd>,
+        resolution: String,
+        ordinal: usize,
+        limits: crate::config::ToolOutputLimits,
+        secrets: Vec<String>,
+        parent_cancel: &AtomicBool,
+    ) -> Result<String, crate::runtime::RuntimeError> {
+        use crate::runtime::RuntimeError;
+        let slot = self
+            .reserve()
+            .ok_or_else(|| RuntimeError::InvalidArgs("running shell job limit".into()))?;
+        if secrets.iter().map(String::len).sum::<usize>() > 65536 {
+            return Err(RuntimeError::InvalidArgs(
+                "shell redaction material limit".into(),
+            ));
+        }
+        self.db
+            .command_effect(&resolution, ordinal, "pending", "started", None, None)?;
+        let cancel = Arc::new(AtomicBool::new(false));
+        struct Guard(Arc<AtomicBool>);
+        impl Drop for Guard {
+            fn drop(&mut self) {
+                self.0.store(true, Ordering::Release);
+            }
+        }
+        let guard = Guard(cancel.clone());
+        let db = self.db.shared_handle();
+        let origin_work = shell.native_origin.as_ref().map(|origin| origin.work());
+        let mut task = tokio::task::spawn_blocking(move || {
+            let _slot = slot;
+            let _origin_work = origin_work;
+            let outcome = shell.execute_pinned_started(
+                &env,
+                &argv,
+                ".",
+                None,
+                ShellLimits {
+                    timeout: Duration::from_secs(120),
+                    kill_grace: Duration::from_millis(500),
+                    retain_cap: limits.bytes().min(oc_core::session::MAX_INPUT_BYTES),
+                },
+                &cancel,
+                None,
+                Some(&approved),
+                true,
+                None,
+                |pid| {
+                    let identity =
+                        ProcessIdentity::read(pid, db.root()).ok_or(ShellError::AdmissionFailed)?;
+                    db.command_effect(
+                        &resolution,
+                        ordinal,
+                        "started",
+                        "started",
+                        Some(&identity),
+                        None,
+                    )
+                    .map_err(|_| ShellError::AdmissionFailed)
+                },
+            );
+            let result = match outcome {
+                Ok(out)
+                    if !out.cancelled
+                        && !out.timed_out
+                        && !out.capture_interrupted
+                        && !out.stdout_truncated
+                        && !out.stderr_truncated
+                        && out.signal.is_none() =>
+                {
+                    let text = output::TextStream::new(secrets).admit(&out.stdout, true);
+                    if text.len() > limits.bytes().min(oc_core::session::MAX_INPUT_BYTES)
+                        || text.lines().count() > limits.max_lines
+                    {
+                        Err(RuntimeError::InvalidArgs(
+                            "command shell output limit".into(),
+                        ))
+                    } else {
+                        Ok(text)
+                    }
+                }
+                Ok(out) if out.cancelled => Err(RuntimeError::Cancelled),
+                _ => Err(RuntimeError::InvalidArgs(
+                    "command shell capture incomplete; effects may have occurred".into(),
+                )),
+            };
+            db.command_effect(
+                &resolution,
+                ordinal,
+                "started",
+                if result.is_ok() {
+                    "completed"
+                } else {
+                    "unknown"
+                },
+                None,
+                result.as_ref().ok().map(String::as_str),
+            )?;
+            result
+        });
+        let result = tokio::select! { biased;
+            () = crate::provider::wait_cancel(parent_cancel) => { guard.0.store(true, Ordering::Release); (&mut task).await },
+            result = &mut task => result,
+        }.map_err(|_| RuntimeError::Storage)?;
+        drop(guard);
+        result
+    }
+
     pub(crate) fn new(db: &Db) -> Arc<Self> {
         Arc::new(Self {
             slots: Arc::new(tokio::sync::Semaphore::new(ACTIVE_JOB_CAP)),

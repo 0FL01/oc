@@ -236,7 +236,8 @@ fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
     }
 }
 
-/// Non-executable command (literal expansion only, via `expand_command`).
+/// Inert at configuration load. Authorized invocation expands arguments and
+/// supervised shell expressions before accepting the prepared model input.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandDef {
     /// File id.
@@ -245,9 +246,9 @@ pub struct CommandDef {
     pub description: String,
     /// Literal body.
     pub body: String,
-    /// Optional agent this command delegates to (execution is a later slice).
+    /// Optional agent this command delegates to.
     pub agent: Option<String>,
-    /// Optional pinned model, string or object (execution is a later slice).
+    /// Optional pinned model, string or object.
     pub model: Option<serde_json::Value>,
     /// Explicit subagent flag.
     pub subagent: Option<bool>,

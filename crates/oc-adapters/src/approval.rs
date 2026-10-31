@@ -227,9 +227,14 @@ pub(crate) async fn prepare(
             }
         }
         "shell" | "bash" => {
-            let invocation = crate::tools::shell_call::invocation(call, ctx.parent_env)
+            let invocation = ctx
+                .shell
+                .invocation(call, ctx.parent_env)
                 .map_err(|e| e.to_string())?;
             hash.update(serde_json::to_vec(&invocation.argv).map_err(|_| "invalid shell argv")?);
+            if let Some(identity) = ctx.shell.command_identity().map_err(|e| e.to_string())? {
+                hash.update(identity);
+            }
             let pinned = ctx
                 .shell
                 .pin_cwd(&invocation.argv, &invocation.cwd)
@@ -241,7 +246,10 @@ pub(crate) async fn prepare(
             let path = pinned.path.clone();
             shell_cwd = Some(pinned);
             ApprovalPreview::Shell {
-                command: resources[0].clone(),
+                command: ctx.shell.command_executable().map_or_else(
+                    || resources[0].clone(),
+                    |shell| format!("{shell} -c\n{}", resources[0]),
+                ),
                 cwd: path.display().to_string(),
             }
         }

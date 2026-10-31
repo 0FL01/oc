@@ -128,7 +128,8 @@ pub(crate) struct Owner {
 
 impl Owner {
     pub(crate) fn new(db: Db, env: BTreeMap<String, String>) -> Result<Arc<Self>, SpawnIssue> {
-        db.recover_shell_jobs()
+        db.recover_command_resolutions()
+            .and_then(|_| db.recover_shell_jobs())
             .and_then(|_| db.recover_execute_jobs())
             .and_then(|_| db.recover_child_jobs())
             .and_then(|_| db.recover_interrupted_tools())

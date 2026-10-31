@@ -15,7 +15,7 @@ struct CaptureCause {
     errno: Option<i32>,
 }
 
-struct TextStream {
+pub(super) struct TextStream {
     utf8: Vec<u8>,
     ansi: anstyle_parse::Parser,
     redactor: StreamRedactor,
@@ -28,7 +28,7 @@ struct TextStream {
     carry_releases: u64,
 }
 impl TextStream {
-    fn new(secrets: Vec<String>) -> Self {
+    pub(super) fn new(secrets: Vec<String>) -> Self {
         Self {
             utf8: Vec::with_capacity(4),
             ansi: Default::default(),
@@ -42,7 +42,7 @@ impl TextStream {
             carry_releases: 0,
         }
     }
-    fn admit(&mut self, bytes: &[u8], end: bool) -> String {
+    pub(super) fn admit(&mut self, bytes: &[u8], end: bool) -> String {
         if self.suppress {
             return String::new();
         }

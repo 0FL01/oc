@@ -510,6 +510,7 @@ fn delivered_command_keeps_capture_and_expansion_after_reopen_and_fork() {
             generation: 7,
             digest: Some("captured-catalog".into()),
             original: original.into(),
+            resolution: None,
         }),
     };
     db.inbox_add_rich("s", InboxDelivery::Steer, &payload, None)

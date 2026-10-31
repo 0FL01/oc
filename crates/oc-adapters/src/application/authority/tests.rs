@@ -1572,7 +1572,11 @@ async fn running_inline_commands_preserve_expansion_original_and_agent_model_rou
         let f = RunningInputFixture::new(|c| {
             c["agents"]["reviewer"]=json!({"mode":"subagent","system":"INLINE_REVIEWER"});
             c["providers"]["fixture"]["models"]["override"]=json!({"limit":{"context":100000,"output":2048}});
-            c["commands"]=json!({"review":{"template":"EXPANDED $1","agent":"reviewer","subagent":false,"model":"fixture/override"}});
+            c["commands"]=json!({"review":{"template":"EXPANDED $1 !`printf X >> command.effects; printf READY`","agent":"reviewer","subagent":false,"model":"fixture/override"}});
+            c["permissions"] = json!([
+                {"action":"shell","resource":"*","effect":"allow"},
+                {"action":"subagent","resource":"*","effect":"allow"}
+            ]);
         }).await;
         let (mut first, _) = f.request().await;
         f.run
@@ -1584,7 +1588,11 @@ async fn running_inline_commands_preserve_expansion_original_and_agent_model_rou
         let (mut next, body) = f.request().await;
         assert_eq!(body["model"], "override");
         let input = body["input"].to_string();
-        assert!(input.contains("INLINE_REVIEWER") && input.contains("EXPANDED ARG"));
+        assert!(input.contains("INLINE_REVIEWER") && input.contains("EXPANDED ARG READY"));
+        assert_eq!(
+            std::fs::read_to_string(f.project.join("command.effects")).unwrap(),
+            "X"
+        );
         assert!(!input.contains("EXPANDED EXPANDED"));
         final_answer(&mut next).await;
         f.finish().await;

@@ -81,6 +81,169 @@ impl Fixture {
 }
 
 #[tokio::test]
+async fn command_shell_fresh_ask_denial_and_failed_capture_recover_without_a_session() {
+    use oc_core::queries::CommandRecoveryAction;
+    for permission in ["deny", "ask"] {
+        let fixture = Fixture::new(permission);
+        fs::create_dir(fixture.project.join(".opencode")).unwrap();
+        fs::create_dir(fixture.project.join(".opencode/commands")).unwrap();
+        fs::write(fixture.project.join(".opencode/commands/check.md"),
+            "!`printf X >> command.effect; printf ok` !`while [ ! -f command.effect ]; do sleep 0.01; done; head -c 100000 /dev/zero`").unwrap();
+        let (app, guard) = fixture.spawn().await;
+        app.register_approval_consumer(false).await.unwrap();
+        let session = SessionId("fresh-command-shell".into());
+        let mut receipt = app
+            .request_submit_fresh(session.clone(), "/check".into(), None)
+            .unwrap();
+        if permission == "ask" {
+            let requests = tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    let requests = app.pending_approvals().await.unwrap();
+                    if let Some(result) = receipt.try_result() {
+                        panic!("command rejected before Ask: {result:?}; requests={requests:?}");
+                    }
+                    if requests.len() == 2 {
+                        break requests;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert!(!fixture.project.join("command.effect").exists());
+            assert!(app.list_sessions().await.unwrap().is_empty());
+            assert!(app.prompt_history(None).await.unwrap().is_empty());
+            assert!(receipt.try_result().is_none());
+            for request in requests {
+                assert_eq!(request.action, "bash");
+                assert!(request.binding.operation.starts_with("command:"));
+                app.reply_approval(ApprovalReply {
+                    id: request.id,
+                    binding: request.binding,
+                    decision: ApprovalDecision::Once,
+                })
+                .await
+                .unwrap();
+            }
+        }
+        let error = tokio::time::timeout(Duration::from_secs(5), receipt.wait())
+            .await
+            .unwrap()
+            .unwrap_err();
+        assert_ne!(error, CoreError::TurnNotActive);
+        assert!(app.list_sessions().await.unwrap().is_empty());
+        assert!(app.prompt_history(None).await.unwrap().is_empty());
+        let recovery = app
+            .command_recovery(CommandRecoveryAction::List)
+            .await
+            .unwrap();
+        if permission == "deny" {
+            assert!(!fixture.project.join("command.effect").exists());
+            assert!(recovery.items.is_empty());
+        } else {
+            assert_eq!(
+                fs::read_to_string(fixture.project.join("command.effect")).unwrap(),
+                "X"
+            );
+            assert_eq!(recovery.items.len(), 1);
+            assert_eq!(
+                app.command_recovery(CommandRecoveryAction::Read {
+                    id: recovery.items[0].id.clone()
+                })
+                .await
+                .unwrap()
+                .original
+                .as_deref(),
+                Some("/check")
+            );
+        }
+        fixture.no_provider();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        let (app, guard) = fixture.spawn().await;
+        let recovery = app
+            .command_recovery(CommandRecoveryAction::List)
+            .await
+            .unwrap();
+        if permission == "ask" {
+            assert_eq!(
+                fs::read_to_string(fixture.project.join("command.effect")).unwrap(),
+                "X"
+            );
+            assert_eq!(recovery.items.len(), 1);
+            assert!(
+                app.command_recovery(CommandRecoveryAction::Dismiss {
+                    id: recovery.items[0].id.clone()
+                })
+                .await
+                .unwrap()
+                .items
+                .is_empty()
+            );
+        }
+        fixture.no_provider();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn command_shell_fresh_cancellation_joins_process_and_keeps_visible_unknown() {
+    use oc_core::queries::CommandRecoveryAction;
+    let fixture = Fixture::new("allow");
+    fs::create_dir_all(fixture.project.join(".opencode/commands")).unwrap();
+    fs::write(
+        fixture.project.join(".opencode/commands/check.md"),
+        "!`printf X > command.effect; echo $$ > command.pid; sleep 30; printf Y >> command.effect`",
+    )
+    .unwrap();
+    let (app, guard) = fixture.spawn().await;
+    let session = SessionId("cancel-command-shell".into());
+    let mut receipt = app
+        .request_submit_fresh(session.clone(), "/check".into(), None)
+        .unwrap();
+    let pid: i32 = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let Ok(pid) = fs::read_to_string(fixture.project.join("command.pid"))
+                && let Ok(pid) = pid.trim().parse()
+            {
+                break pid;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
+    app.cancel(session).await.unwrap();
+    assert!(
+        tokio::time::timeout(Duration::from_secs(5), receipt.wait())
+            .await
+            .unwrap()
+            .is_err()
+    );
+    assert!(
+        !PathBuf::from(format!("/proc/{pid}")).exists(),
+        "owned shell must be joined before returning"
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.project.join("command.effect")).unwrap(),
+        "X"
+    );
+    assert!(app.list_sessions().await.unwrap().is_empty());
+    assert_eq!(
+        app.command_recovery(CommandRecoveryAction::List)
+            .await
+            .unwrap()
+            .items
+            .len(),
+        1
+    );
+    fixture.no_provider();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn vis12_user_shell_application_admits_history_before_owned_effect_without_model_turn() {
     for permission in ["allow", "deny", "ask"] {
         let fixture = Fixture::new(permission);

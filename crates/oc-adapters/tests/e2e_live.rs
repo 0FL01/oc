@@ -139,6 +139,7 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            command_shell: None,
             tool_output: Default::default(),
             compaction: Default::default(),
             config_diagnostics: Vec::new(),
@@ -283,6 +284,7 @@ async fn live_workflow_harness() {
         &db,
         "work",
         oc_adapters::config::Generation {
+            command_shell: None,
             tool_output: Default::default(),
             compaction: Default::default(),
             config_diagnostics: Vec::new(),
@@ -405,6 +407,7 @@ async fn live_code_mode_execute_reaches_mcp() {
     let mut permissions: BTreeMap<String, Permission> = BTreeMap::new();
     permissions.insert("execute".into(), Permission::Allow);
     let mut generation = oc_adapters::config::Generation {
+        command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),

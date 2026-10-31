@@ -1382,6 +1382,14 @@ async fn provider_publication_preserves_discarded_fresh_candidate_and_mounted_di
     state.handle_key(KeyAction::Enter).await;
     state.handle_paste("Last request");
     state.handle_key(KeyAction::DeleteOrQuit).await;
+    let InboxMsg::CommandRecovery {
+        action: oc_core::queries::CommandRecoveryAction::List,
+        ack,
+    } = inbox.recv().await.unwrap()
+    else {
+        panic!("Settings command recovery metadata")
+    };
+    ack.send(Ok(Default::default())).unwrap();
     assert!(!state.has_occupied_submission());
     assert_eq!(state.tab_presentation().1, deck.active_tab.unwrap());
     state.handle_key(KeyAction::Commands).await;

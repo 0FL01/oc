@@ -625,8 +625,21 @@ Command body/description, `$ARGUMENTS`/positional expansion and durable original
 input remain. Configured commands substitute `$ARGUMENTS` with the original argument
 string; quoted positionals are grouped and the highest numbered positional receives
 the remaining arguments. Without an argument placeholder, nonempty arguments are
-appended to the body. Shell interpolation is not implemented: ``!`command` `` remains
-literal prompt text, unlike OC2 TS. T45/R3 supersedes subagent/subtask and
+appended to the body. After these replacements, ``!`command` `` inserts bounded,
+normalized/redacted combined stdout/stderr (also when the marker came from an
+argument). Execution uses the config-priority `shell`, Location cwd and captured
+owner environment, with native Shell permission/Ask and parent/Plan ceilings.
+At most two processes run concurrently and at most 256 expressions are admitted;
+ordinary nonzero exit codes preserve output, but timeout, cancellation and incomplete
+or oversized capture fail the invocation. Output is never interpolated again.
+Effects run before submit/enqueue ACK and before fresh-session acceptance. A
+write-ahead journal retains possible effects if the final input cannot be accepted;
+restart never replays them. Settings → Interrupted commands offers explicit restore
+into an empty editor or dismissal, without executing. Resubmitting is a new operation
+and may repeat effects. Up to 32 unresolved records per Location are retained until
+dismissed; a full journal refuses new resolution before effects. This adds the
+`command_resolutions` table in native schema version 21, not provisional sessions.
+T45/R3 supersedes subagent/subtask and
 child-background exclusions with pinned agent/model/route precedence and background
 child admission.
 Reserved collisions, arbitrary recursive/direct tool execution and unsupported

@@ -666,6 +666,8 @@ impl ConversationKeybinds {
 /// Effective immutable generation (T07 subset).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Generation {
+    /// Config-priority shell for command interpolation only.
+    pub command_shell: Option<String>,
     pub tool_output: ToolOutputLimits,
     pub config_diagnostics: Vec<oc_core::queries::ConfigDiagnostic>,
     pub compaction: crate::compaction::CompactionConfig,
@@ -1129,6 +1131,7 @@ fn assemble_with_admission(
     let mut tool_output_source = None;
     let mut config_diagnostics = Vec::new();
     let mut compaction_provenance = BTreeMap::new();
+    let mut command_shell = None;
 
     for source in sources {
         let value =
@@ -1189,6 +1192,11 @@ fn assemble_with_admission(
         if let Some(value) = obj.get("tool_output") {
             tool_output = ToolOutputLimits::parse(value)?;
             tool_output_source = Some(source.path.clone());
+        }
+        if let Some(value) = obj.get("shell") {
+            command_shell = Some(value.as_str().filter(|v| !v.contains('\0')).ok_or_else(|| ConfigError::Invalid {
+                field: "shell".into(), reason: "must be a NUL-free string".into(),
+            })?.to_owned());
         }
         if let Some(value) = obj.get("compaction") {
             let (normalized, mut notes) = compaction.merge_from(&source.path, value);
@@ -1462,6 +1470,7 @@ fn assemble_with_admission(
 
     Ok((
         Generation {
+            command_shell,
             tool_output,
             config_diagnostics,
             compaction,

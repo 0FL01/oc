@@ -126,6 +126,7 @@ rpc! {
     Enqueue { session: SessionId, text: oc_core::prompt::PromptInput, delivery: InboxDelivery, selection: Option<ModelCommit> } -> InboxItem;
     SubmitInbox { session: SessionId, id: String } -> WorkerTurnId;
     Inbox { session: SessionId, action: InboxAction } -> InboxSnapshot;
+    CommandRecovery { action: CommandRecoveryAction } -> CommandRecovery;
     SubmitFresh { session: SessionId, text: oc_core::prompt::PromptInput, selection: Option<FreshSelection> } -> WorkerTurnId;
     Cancel { session: SessionId } -> ();
     List {} -> Vec<SessionId>;

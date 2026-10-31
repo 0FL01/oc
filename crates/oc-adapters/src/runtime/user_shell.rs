@@ -13,7 +13,7 @@ pub(crate) struct UserShellParams<'a> {
     pub cancel: &'a AtomicBool,
 }
 
-pub(crate) struct UserShellCapture(Arc<ExecutionGeneration>, Option<String>);
+pub(crate) struct UserShellCapture(pub(super) Arc<ExecutionGeneration>, Option<String>);
 
 impl Runtime<'_> {
     /// Build a private admission view, without replacing the conversational lane.

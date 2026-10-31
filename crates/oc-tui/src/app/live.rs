@@ -272,6 +272,10 @@ impl ScriptDriver {
                                     .user_shell_admission_session()
                                     .is_some_and(|s| s.0 == r.binding.session)
                                     || state
+                                        .pending
+                                        .as_ref()
+                                        .is_some_and(|p| p.session.0 == r.binding.session)
+                                    || state
                                         .session
                                         .as_ref()
                                         .is_some_and(|s| s.0 == r.binding.session)
@@ -892,6 +896,10 @@ impl TuiState {
     }
 
     fn apply_catalog_inner(&mut self, snapshot: CatalogSnapshot, refresh_composer: bool) {
+        self.command_recovery_loaded = false;
+        if self.chrome.location != snapshot.chrome.location {
+            self.interrupted_commands.clear();
+        }
         self.invalidate_sidebar_pointer();
         let dialog_changed = self.chrome.dialog_shortcuts != snapshot.chrome.dialog_shortcuts;
         let mut previous_issues = self.service_issues();
@@ -1649,6 +1657,7 @@ impl TuiState {
             )
         };
         pending.phase = SubmissionPhase::Failed(note.clone());
+        self.command_recovery_loaded = false;
         self.pending = Some(pending);
         if self.status != TuiStatus::Quit {
             self.status = if self.active_turn.is_some() {
@@ -1670,6 +1679,7 @@ impl TuiState {
 
     // Input/paint callers must not consume a deferred controller action.
     pub(super) fn poll_submission_receipts(&mut self) {
+        self.poll_command_recovery();
         if let Some(intent) = self.poll_submission_inner() {
             self.submission_intent = Some(intent);
         }

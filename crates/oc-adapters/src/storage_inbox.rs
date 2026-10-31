@@ -18,6 +18,8 @@ pub(crate) struct CommandCapture {
     #[serde(default)]
     pub digest: Option<String>,
     pub original: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -50,6 +52,27 @@ fn invalid() -> StorageError {
 }
 
 impl Db {
+    pub(crate) fn command_inbox_capacity(
+        &self,
+        session: &str,
+        payload: &InboxPayload,
+    ) -> Result<(), StorageError> {
+        let raw = serde_json::to_string(payload).map_err(|_| invalid())?;
+        let conn = self.conn.lock().expect("db mutex");
+        let (count,bytes):(i64,i64) = conn.query_row("SELECT count(*),COALESCE(sum(length(CAST(COALESCE(payload,text) AS BLOB))),0) FROM session_inbox WHERE session_id=?1 AND message_id IS NULL", [session], |r| Ok((r.get(0)?,r.get(1)?)))?;
+        // The actor serializes admissions while interpolation is outstanding.
+        // Reserve the worst-case JSON encoding of a full expanded text.
+        if count as usize >= MAX_INBOX_ITEMS
+            || (bytes as usize)
+                .saturating_add(raw.len())
+                .saturating_add(6 * oc_core::session::MAX_INPUT_BYTES + 256)
+                > MAX_PENDING_BYTES
+        {
+            return Err(StorageError::InboxFull);
+        }
+        Ok(())
+    }
+
     pub(super) fn inbox_schema(conn: &Connection) -> Result<(), StorageError> {
         let tx = conn.unchecked_transaction()?;
         let conn = &tx;
@@ -148,6 +171,9 @@ impl Db {
             Self::upsert_pref(&tx, key, value)?;
         }
         let item = Self::inbox_item_in(&tx, session, &id)?.ok_or_else(invalid)?;
+        if let Some(resolution) = payload.command.as_ref().and_then(|c| c.resolution.as_ref()) {
+            Self::accept_command_resolution_in(&tx, resolution, session, &payload.prompt.text)?;
+        }
         let items = Self::inbox_pending_in(&tx, session)?;
         tx.commit()?;
         Ok((item, items))

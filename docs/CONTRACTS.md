@@ -328,11 +328,19 @@ snapshots contain bounded previews/image counts, full PNGs are read individually
 Configured commands expand once under the enqueue generation and command/routing-profile
 digest; stale sources refuse delivery without re-expansion or effects, including
 after restart when numeric generation IDs repeat. Inline/background routing retains
-the ordinary command authority and selection semantics. Direct user Shell uses one
+the ordinary command authority and selection semantics. Shell interpolation finishes
+before submit/enqueue ACK, under captured Location/permissions and supervised processes.
+Each expression has a durable intent before spawn; complete expanded input and journal
+completion commit atomically. Fresh refusal never fabricates a session. Unaccepted
+possible effects remain in a separate Location-scoped recovery journal (schema 21),
+outside model-tool history/forks, with explicit read/restore/dismiss and no replay.
+Losing an ACK is unknown, not permission to resend; an explicit new submission can
+repeat effects. Busy interpolation stays owned through cleanup even if the model
+settles; it never returns retryable `TurnNotActive` after effects. Direct user Shell uses one
 separate admission future under the active root, with normal Ask and supervised jobs;
 receipt cancellation is local, root cancellation includes it. It is not chat input
 or a second model turn. Reopen does not execute pending input without a new explicit
-promotion. The inbox schema is forward-upgraded; private native wire is version 7.
+promotion. The inbox schema is forward-upgraded; private native wire is version 9.
 Not general
 config-reload parity. T50 owns TOOL12, T45/PRM01
 consumes prompt/draft lifecycle, T47 owns VAR01 ordering and T44 separately qualifies

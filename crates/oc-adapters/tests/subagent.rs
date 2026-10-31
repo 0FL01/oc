@@ -302,6 +302,7 @@ fn make_harness_in(
             .collect(),
     };
     let generation = Generation {
+        command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),

@@ -211,6 +211,7 @@ fn make_harness() -> (Harness, Generation) {
         .collect(),
     };
     let generation = Generation {
+        command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
@@ -519,6 +520,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     // One degraded MCP server: visible warning, turn still completes.
     let degraded_started = std::time::Instant::now();
     let bad = Generation {
+        command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),

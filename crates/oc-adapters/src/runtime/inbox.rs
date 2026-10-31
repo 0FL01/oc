@@ -52,6 +52,18 @@ impl<'db> Runtime<'db> {
             .transpose()
             .map_err(crate::application::runtime_error)?;
         let _commit = self.publication_commit.lock().expect("publication commit");
+        if payload.command.as_ref().is_some_and(|c| {
+            c.resolution.is_some()
+                && (c.generation != self.generation_id()
+                    || self
+                        .primary
+                        .as_ref()
+                        .is_some_and(|p| p.source_id.load(Ordering::Acquire) != c.generation))
+        }) {
+            return Err(CoreError::Application(
+                "command source changed before enqueue; effects may have occurred".into(),
+            ));
+        }
         if prepared.is_some()
             && self
                 .primary

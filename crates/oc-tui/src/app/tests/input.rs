@@ -1655,6 +1655,113 @@ async fn workspace_command_keeps_argument_tail_and_mention_on_recall() {
 }
 
 #[tokio::test]
+async fn command_shell_recovery_restores_explicitly_without_consuming_or_submitting() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use oc_core::{
+        core_app::InboxMsg,
+        queries::{CommandRecovery, CommandRecoveryAction, InterruptedCommand},
+    };
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new_home(app);
+    state.chrome.location = Some("/first".into());
+    state.handle_key(KeyAction::Char('x')).await;
+    tokio::task::yield_now().await;
+    assert!(
+        inbox.try_recv().is_err(),
+        "typing must not start recovery reads"
+    );
+    state.input.clear();
+    state.run_command(crate::commands::CommandAction::OpenSettings);
+    state.poll_command_recovery();
+    let items = vec![InterruptedCommand {
+        id: "opaque-resolution".into(),
+        state: "unknown".into(),
+    }];
+    let Some(InboxMsg::CommandRecovery { action, ack }) = inbox.recv().await else {
+        panic!("recovery list")
+    };
+    assert_eq!(action, CommandRecoveryAction::List);
+    ack.send(Ok(CommandRecovery {
+        items: items.clone(),
+        original: None,
+    }))
+    .unwrap();
+    tokio::task::yield_now().await;
+    state.poll_command_recovery();
+    state.select.cursor = state
+        .modal_options()
+        .iter()
+        .position(|o| o.value == "command-recovery:opaque-resolution")
+        .unwrap();
+    let restore = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL))
+        .expect("selected command recovery owns Ctrl+U");
+    assert_eq!(restore, KeyAction::QueuedUndo);
+    state.input = "occupied".into();
+    assert!(
+        state
+            .handle_key(restore.clone())
+            .await
+            .note
+            .unwrap()
+            .contains("Empty the editor")
+    );
+    state.input.clear();
+    state.handle_key(restore).await;
+    let Some(InboxMsg::CommandRecovery { action, ack }) = inbox.recv().await else {
+        panic!("explicit read")
+    };
+    assert_eq!(
+        action,
+        CommandRecoveryAction::Read {
+            id: "opaque-resolution".into()
+        }
+    );
+    ack.send(Ok(CommandRecovery {
+        items: items.clone(),
+        original: Some("/check Ω  ".into()),
+    }))
+    .unwrap();
+    tokio::task::yield_now().await;
+    state.poll_command_recovery();
+    assert_eq!(state.input, "/check Ω  ");
+    assert_eq!(state.attached_session(), None);
+    assert_eq!(
+        state.interrupted_commands, items,
+        "restore is non-consuming"
+    );
+    assert!(inbox.try_recv().is_err(), "restore must not submit");
+    state.panel = TuiPanel::Settings;
+    state.select.cursor = state
+        .modal_options()
+        .iter()
+        .position(|o| o.value == "command-recovery:opaque-resolution")
+        .unwrap();
+    let dismiss = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL))
+        .expect("selected command recovery owns Ctrl+D");
+    assert_eq!(dismiss, KeyAction::DeleteOrQuit);
+    state.handle_key(dismiss).await;
+    let Some(InboxMsg::CommandRecovery { action, ack }) = inbox.recv().await else {
+        panic!("explicit dismiss")
+    };
+    assert_eq!(
+        action,
+        CommandRecoveryAction::Dismiss {
+            id: "opaque-resolution".into()
+        }
+    );
+    ack.send(Ok(CommandRecovery::default())).unwrap();
+    tokio::task::yield_now().await;
+    state.poll_command_recovery();
+    assert!(state.interrupted_commands.is_empty());
+    assert_eq!(
+        state.input, "/check Ω  ",
+        "dismiss does not mutate the draft"
+    );
+}
+
+#[tokio::test]
 async fn accepted_text_only_mention_recalled_in_same_session() {
     let (app, guard) = CoreApp::spawn(MockProvider::echo());
     let session = sid("mention-recall");

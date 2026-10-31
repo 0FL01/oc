@@ -272,8 +272,15 @@ Commands use `.opencode/{command,commands}/<id>.md`, optional description and
 literal prompt text with `$ARGUMENTS`/positional expansion. `$ARGUMENTS` preserves
 the argument string, quoted positionals are grouped, and without placeholders
 nonempty arguments are appended to the body. Agent/model/subagent routing follows
-the admitted command/profile definitions. Shell interpolation is not implemented:
-``!`command` `` remains literal prompt text, unlike OC2 TS. Do not add arbitrary
+the admitted command/profile definitions. After argument replacement, ``!`command` ``
+inserts bounded, normalized/redacted combined stdout/stderr, using config `shell`
+before inherited shell selection, Location cwd and normal native Shell permission.
+Two expressions may run concurrently (256 maximum); nonzero exit preserves output,
+but timeout, cancellation or incomplete/oversized output refuses input. Output is not
+expanded again. Effects precede submit/enqueue ACK; restart never replays them.
+Unaccepted possible effects appear in Settings → Interrupted commands. Restore does
+not submit; explicitly submitting again may repeat effects. Dismiss retained records
+there when the per-Location limit of 32 is reached. Do not add arbitrary
 file/URL/late-env includes or reserved command IDs.
 An `AGENTS.md` is scoped guidance, not a replacement for permission configuration;
 keep its configuration pointer short rather than copying this manual into it.

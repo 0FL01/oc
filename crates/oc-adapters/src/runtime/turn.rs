@@ -1248,24 +1248,6 @@ impl<'a> Runtime<'a> {
             return Ok(permitted);
         }
         let project = crate::approval::project_identity(&self.roots.project)?;
-        let grant_resources =
-            crate::approval::grant_resources(&self.roots.project, &call.name, &resources);
-        let mut saved = true;
-        for (resource, granted) in resources.iter().zip(&grant_resources) {
-            if effect(resource) != Permission::Allow
-                && !self
-                    .db
-                    .permission_grant_matches(
-                        &project,
-                        crate::config::legacy_key(&call.name),
-                        granted,
-                    )
-                    .map_err(|_| "grant storage unavailable")?
-            {
-                saved = false;
-                break;
-            }
-        }
         let prepare = || async {
             if artifact {
                 let path = call.arguments["path"].as_str().expect("artifact path");
@@ -1289,6 +1271,38 @@ impl<'a> Runtime<'a> {
             }
         };
         let (preview, digest, patch_preimage, shell_cwd) = prepare().await?;
+        // Capture approval identity before looking up executable-bound grants;
+        // the recheck below must also cover changes during that lookup.
+        let grant_resources =
+            if let Some(identity) = ctx.shell.command_identity().map_err(|e| e.to_string())? {
+                resources
+                    .iter()
+                    .map(|resource| {
+                        format!(
+                            "{}\0interpolation:{identity}:{resource}",
+                            crate::tools::shell_call::COMMAND_GRANT_PREFIX
+                        )
+                    })
+                    .collect()
+            } else {
+                crate::approval::grant_resources(&self.roots.project, &call.name, &resources)
+            };
+        let mut saved = true;
+        for (resource, granted) in resources.iter().zip(&grant_resources) {
+            if effect(resource) != Permission::Allow
+                && !self
+                    .db
+                    .permission_grant_matches(
+                        &project,
+                        crate::config::legacy_key(&call.name),
+                        granted,
+                    )
+                    .map_err(|_| "grant storage unavailable")?
+            {
+                saved = false;
+                break;
+            }
+        }
         if !saved {
             let events = self
                 .compaction_events
@@ -1943,6 +1957,9 @@ impl<'a> Runtime<'a> {
             });
             turn_log.agent_digest = lane.agent_digest.clone();
             turn_log.input = prompt_input.clone();
+            if let Some((id, _)) = command.and_then(|command| command.resolution.as_ref()) {
+                turn_log.display["command_resolution"] = id.clone().into();
+            }
             if !params.prompt.images.is_empty() {
                 turn_log.display["user_images"] =
                     serde_json::to_value(oc_core::prompt::UserImages {
@@ -1957,65 +1974,82 @@ impl<'a> Runtime<'a> {
                     .map_err(|_| RuntimeError::Storage)?;
             }
         }
-        let accepted_turn = if resuming {
-            crate::storage::AcceptedTurn {
-                user_message: turn_log.user_message.clone().ok_or(RuntimeError::Storage)?,
-                model_switch: None,
+        let accepted_turn = {
+            let _command_commit = command
+                .filter(|c| c.resolution.is_some())
+                .map(|_| self.publication_commit.lock().expect("publication commit"));
+            if let Some((_, generation)) = command.and_then(|c| c.resolution.as_ref())
+                && (published.id != *generation
+                    || self.generation_id() != *generation
+                    || self
+                        .primary
+                        .as_ref()
+                        .is_some_and(|p| p.source_id.load(Ordering::Acquire) != *generation))
+            {
+                return Err(RuntimeError::InvalidArgs(
+                    "command source changed before acceptance; effects may have occurred".into(),
+                ));
             }
-        } else if let Some((ids, _)) = &native_input {
-            if params.cancel.load(Ordering::Acquire) {
-                return Err(RuntimeError::Cancelled);
-            }
-            self.db
-                .accept_parent_notice_batch(
+            if resuming {
+                crate::storage::AcceptedTurn {
+                    user_message: turn_log.user_message.clone().ok_or(RuntimeError::Storage)?,
+                    model_switch: None,
+                }
+            } else if let Some((ids, _)) = &native_input {
+                if params.cancel.load(Ordering::Acquire) {
+                    return Err(RuntimeError::Cancelled);
+                }
+                self.db
+                    .accept_parent_notice_batch(
+                        &params.session,
+                        &self.location,
+                        ids,
+                        &model_ref,
+                        plan_reminder.as_deref(),
+                        &mut turn_log,
+                    )?
+                    .ok_or_else(|| {
+                        RuntimeError::InvalidArgs("native notice is no longer eligible".into())
+                    })?
+            } else if let Some(initial_selection) = fresh_selection {
+                self.db.create_bound_session_and_accept_turn_with_reminder(
                     &params.session,
                     &self.location,
-                    ids,
+                    &turn_id,
+                    &params.prompt,
+                    user_text,
+                    command
+                        .and_then(|command| {
+                            command
+                                .selection
+                                .as_ref()
+                                .map(|(key, value)| (key.as_str(), value.as_str()))
+                        })
+                        .or(initial_selection),
                     &model_ref,
                     plan_reminder.as_deref(),
-                    &mut turn_log,
+                    history_input,
+                    Some(&mut turn_log),
                 )?
-                .ok_or_else(|| {
-                    RuntimeError::InvalidArgs("native notice is no longer eligible".into())
-                })?
-        } else if let Some(initial_selection) = fresh_selection {
-            self.db.create_bound_session_and_accept_turn_with_reminder(
-                &params.session,
-                &self.location,
-                &turn_id,
-                &params.prompt,
-                user_text,
-                command
-                    .and_then(|command| {
+            } else {
+                self.db.accept_inbox_turn(
+                    &turn_id,
+                    &params.session,
+                    &params.prompt,
+                    user_text,
+                    &model_ref,
+                    plan_reminder.as_deref(),
+                    command.and_then(|command| {
                         command
                             .selection
                             .as_ref()
                             .map(|(key, value)| (key.as_str(), value.as_str()))
-                    })
-                    .or(initial_selection),
-                &model_ref,
-                plan_reminder.as_deref(),
-                history_input,
-                Some(&mut turn_log),
-            )?
-        } else {
-            self.db.accept_inbox_turn(
-                &turn_id,
-                &params.session,
-                &params.prompt,
-                user_text,
-                &model_ref,
-                plan_reminder.as_deref(),
-                command.and_then(|command| {
-                    command
-                        .selection
-                        .as_ref()
-                        .map(|(key, value)| (key.as_str(), value.as_str()))
-                }),
-                history_input,
-                Some(&mut turn_log),
-                self.inbox_initial().as_ref(),
-            )?
+                    }),
+                    history_input,
+                    Some(&mut turn_log),
+                    self.inbox_initial().as_ref(),
+                )?
+            }
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());
         if self.inbox_initial().is_some() {

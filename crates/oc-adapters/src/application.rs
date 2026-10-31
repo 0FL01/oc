@@ -37,6 +37,7 @@ mod authentication;
 #[cfg(test)]
 mod authentication_tests;
 pub(crate) mod authority;
+mod command_shell;
 #[path = "application/commands.rs"]
 mod commands;
 #[cfg(test)]
@@ -736,7 +737,8 @@ async fn spawn_stages(
             .await
             .map_err(SpawnIssue::configuration)?;
     }
-    db.recover_shell_jobs()
+    db.recover_command_resolutions()
+        .and_then(|_| db.recover_shell_jobs())
         .and_then(|_| db.recover_execute_jobs())
         .and_then(|_| db.recover_child_jobs())
         .and_then(|_| db.recover_interrupted_tools())
@@ -3187,6 +3189,12 @@ async fn query(
                 .map(|(activity, _)| activity)
                 .map_err(|_| CoreError::SessionNotFound);
             let _ = ack.send(result);
+        }
+        InboxMsg::CommandRecovery { action, ack } => {
+            let _ = ack.send(
+                db.command_recovery(runtime.location(), action)
+                    .map_err(|error| query_storage_error(db, error)),
+            );
         }
         InboxMsg::Enqueue {
             session,
@@ -5712,6 +5720,24 @@ async fn worker(
                     .unwrap_or_default();
                 let title_project = composition.project.clone();
                 let title_env = composition.parent_env.clone();
+                let command_capture = if pending.is_none()
+                    && let Some(command) = &command_route
+                    && !crate::runtime::command_shell::expressions(&prompt).is_empty()
+                {
+                    match runtime.capture_command(
+                        workspace_publication(composition, &turn_selection),
+                        command,
+                    ) {
+                        Ok(capture) => Some(capture),
+                        Err(error) => {
+                            let _ = ack.send(Err(runtime_error(error)));
+                            continue;
+                        }
+                    }
+                } else {
+                    None
+                };
+                let has_command_interpolation = command_capture.is_some();
                 let params = TurnParams {
                     session: session.0.clone(),
                     prompt: oc_core::prompt::PromptInput {
@@ -5728,12 +5754,13 @@ async fn worker(
                     provider: turn_provider.clone(),
                     cancel: &cancel,
                 };
-                let title_prompt = params.prompt.text.clone();
+                // Title input is captured after shell interpolation below.
                 let mut ack = Some(ack);
                 let mut turn = None;
                 let mut shutdown = false;
                 let mut conversation_change = None;
                 let result;
+                let input_accepted = AtomicBool::new(false);
                 {
                     let (boundary_tx, mut boundary_rx) =
                         mpsc::channel::<crate::runtime::inbox::InboxBoundary>(1);
@@ -5746,12 +5773,33 @@ async fn worker(
                     // Keep the execution state machine off the actor's inline
                     // future and worker stacks when independent service jobs wake.
                     let mut operation = Box::pin(async {
+                        let mut params = params;
+                        let mut command_route = command_route;
+                        let _resolution = if let Some(capture) = command_capture {
+                            let (prompt, resolution) = runtime
+                                .resolve_command_shell(
+                                    &session.0,
+                                    params.invocation.as_deref().expect("command invocation"),
+                                    &params.prompt.text,
+                                    capture,
+                                    &cancel,
+                                )
+                                .await?;
+                            params.prompt.text = prompt;
+                            command_route.as_mut().expect("command route").resolution =
+                                Some((resolution.id.clone(), resolution.generation));
+                            Some(resolution)
+                        } else {
+                            None
+                        };
+                        let title_prompt = params.prompt.text.clone();
                         let mut title_warnings = Vec::new();
                         let on_accept = |id: &str,
                                          model_switch: Option<
                             &oc_core::queries::ModelSwitchNotice,
                         >| {
                             let id = WorkerTurnId(id.to_string());
+                            input_accepted.store(true, Ordering::Release);
                             turn = Some(id.clone());
                             // Remembered model/effort follow durable acceptance only.
                             if !remembered_selection.is_empty() {
@@ -6015,8 +6063,10 @@ async fn worker(
                     });
                     let mut model_result = None;
                     let mut side_shell: Option<user_shell::SideAdmission<'_>> = None;
+                    let mut side_command: Option<user_shell::SideAdmission<'_>> = None;
                     result = loop {
-                        if model_result.is_some() && side_shell.is_none() {
+                        if model_result.is_some() && side_shell.is_none() && side_command.is_none()
+                        {
                             break model_result.take().expect("settled model result");
                         }
                         reload_work.start(db, runtime, composition);
@@ -6032,6 +6082,9 @@ async fn worker(
                                 ).await? { receipt.reply(); }
                             }
                             settled = &mut operation, if model_result.is_none() => { model_result = Some(settled); }
+                            _ = async { side_command.as_mut().expect("command admission").as_mut().await }, if side_command.is_some() => {
+                                side_command = None;
+                            }
                             admitted = async { side_shell.as_mut().expect("side admission").as_mut().await }, if side_shell.is_some() => {
                                 side_shell = None;
                                 if admitted {
@@ -6102,6 +6155,10 @@ async fn worker(
                                 Some(message @ InboxMsg::UserShell { .. }) if side_shell.is_none() && conversation_change.is_none() => {
                                     side_shell = user_shell::start_side(db,runtime,composition,effective,&session,&cancel,location_epoch.load(Ordering::SeqCst),message);
                                 }
+                                Some(message @ InboxMsg::Enqueue { .. }) if input_accepted.load(Ordering::Acquire) && side_command.is_none() && conversation_change.is_none() => {
+                                    side_command = command_shell::start_side(db,runtime,composition,effective,&session,&cancel,location_epoch.load(Ordering::SeqCst),message);
+                                }
+                                Some(InboxMsg::Enqueue { ack, .. }) => { let _ = ack.send(Err(CoreError::TurnBusy)); }
                                 Some(InboxMsg::UserShell { ack, .. }) => { let _ = ack.send(Err(CoreError::TurnBusy)); }
                                 Some(command) => query(
                                     db,
@@ -6132,7 +6189,10 @@ async fn worker(
                 }
                 if let Some(ack) = ack {
                     let error = result.err().unwrap_or(RuntimeError::Storage);
-                    let _ = ack.send(Err(runtime_error(error)));
+                    let error = runtime_error(error);
+                    let _ = ack.send(Err(if has_command_interpolation {
+                        app_error(format!("Command input was not accepted: {error}. Effects may have occurred; Settings → Interrupted commands. Nothing resent."))
+                    } else { error }));
                 } else if let Some(turn) = turn {
                     // Provider usage is forwarded only when the provider
                     // reported it; never synthesized.

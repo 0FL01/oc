@@ -217,6 +217,16 @@ impl TuiState {
                         false,
                     ));
                 }
+                options.extend(self.interrupted_commands.iter().map(|command| {
+                    item(
+                        format!("command-recovery:{}", command.id),
+                        format!("Interrupted command — {}", command.state),
+                        "Interrupted commands",
+                        "Effects may have occurred · Ctrl+U restore · Ctrl+D dismiss · no replay"
+                            .into(),
+                        false,
+                    )
+                }));
                 options.extend(self.chrome.plugins.entries.iter().enumerate().map(
                     |(index, plugin)| {
                         item(
@@ -1083,13 +1093,15 @@ impl TuiState {
         }
         let raw = crate::events::binding(event)?;
         let raw = if raw == " " { "space".to_owned() } else { raw };
-        if (self.panel == TuiPanel::QueuedPrompts || self.failed_submission_selected())
+        let recovery_selected =
+            self.failed_submission_selected() || self.selected_command_recovery().is_some();
+        if (self.panel == TuiPanel::QueuedPrompts || recovery_selected)
             && self.leader.is_none()
             && raw == "ctrl+u"
         {
             return Some(KeyAction::QueuedUndo);
         }
-        if self.failed_submission_selected() && self.leader.is_none() && raw == "ctrl+d" {
+        if recovery_selected && self.leader.is_none() && raw == "ctrl+d" {
             return Some(KeyAction::DeleteOrQuit);
         }
         let candidate = if self.leader.is_some() {
@@ -3804,7 +3816,10 @@ impl TuiState {
             }
             CommandAction::OpenConnect => return self.open_accounts(true),
             CommandAction::OpenAccounts => return self.open_accounts(false),
-            CommandAction::OpenSettings => self.panel = TuiPanel::Settings,
+            CommandAction::OpenSettings => {
+                self.command_recovery_loaded = false;
+                self.panel = TuiPanel::Settings;
+            }
             CommandAction::OpenPermissions => self.panel = TuiPanel::Settings,
             CommandAction::UndoConversation | CommandAction::RedoConversation => {
                 unreachable!("returned before modal reset")
@@ -3989,6 +4004,11 @@ impl TuiState {
                 }),
                 ..Default::default()
             };
+        }
+        if matches!(action, KeyAction::DeleteOrQuit | KeyAction::QueuedUndo)
+            && let Some(outcome) = self.recover_command_key(action == KeyAction::QueuedUndo)
+        {
+            return outcome;
         }
         if matches!(action, KeyAction::DeleteOrQuit | KeyAction::QueuedUndo)
             && self.failed_submission_selected()

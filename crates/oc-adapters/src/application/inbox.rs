@@ -21,6 +21,7 @@ pub(super) fn payload(
             generation,
             digest: Some(command_digest(composition)),
             original,
+            resolution: None,
         })
     });
     let prompt = oc_core::prompt::PromptInput {

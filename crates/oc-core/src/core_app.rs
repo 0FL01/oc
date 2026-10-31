@@ -728,6 +728,10 @@ pub enum InboxMsg {
         action: crate::queries::InboxAction,
         ack: oneshot::Sender<Result<crate::queries::InboxSnapshot, CoreError>>,
     },
+    CommandRecovery {
+        action: crate::queries::CommandRecoveryAction,
+        ack: oneshot::Sender<Result<crate::queries::CommandRecovery, CoreError>>,
+    },
     /// Atomically accept the first turn and create its Location-bound root.
     /// A refusal must not create a session; acknowledgement follows durable
     /// acceptance of the root, selection, turn and user message.
@@ -2579,6 +2583,18 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    pub async fn command_recovery(
+        &self,
+        action: crate::queries::CommandRecoveryAction,
+    ) -> Result<crate::queries::CommandRecovery, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CommandRecovery { action, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read/change the durable session/agent selection. Home model choices also
     /// remember the Location/agent draft; no transcript is copied or modified.
     pub async fn session_selection(
@@ -3100,6 +3116,9 @@ fn scripted_unsupported(message: InboxMsg) {
         }
         InboxMsg::McpLookup { ack, .. } => {
             let _ = ack.send(Err(crate::queries::McpLookupError::Unavailable));
+        }
+        InboxMsg::CommandRecovery { ack, .. } => {
+            let _ = ack.send(Ok(crate::queries::CommandRecovery::default()));
         }
         InboxMsg::McpStatus { ack } | InboxMsg::McpControl { ack, .. } => {
             let _ = ack.send(Err(error()));

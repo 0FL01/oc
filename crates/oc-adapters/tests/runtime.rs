@@ -386,6 +386,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         .collect(),
     };
     let generation = Generation {
+        command_shell: None,
         tool_output: Default::default(),
         compaction: Default::default(),
         config_diagnostics: Vec::new(),

@@ -29,6 +29,8 @@ mod activity;
 
 #[path = "storage_children.rs"]
 mod children;
+#[path = "storage_commands.rs"]
+pub(crate) mod commands;
 #[path = "storage_compaction.rs"]
 mod compaction;
 #[path = "storage_conversation.rs"]
@@ -560,7 +562,7 @@ pub(crate) struct CompressionPlanCommit<'a> {
 
 /// Schema of this build (`PRAGMA user_version`). Bump it with any change to
 /// a step of `Db::migrate`; `schema_version_tracks_the_schema` fails until then.
-const SCHEMA_CHAIN_VERSION: i64 = 20;
+const SCHEMA_CHAIN_VERSION: i64 = 21;
 
 /// Settings shared by the writer and pooled reader connections.
 fn configure_connection(conn: &Connection) -> Result<(), StorageError> {
@@ -695,6 +697,7 @@ impl Db {
         Self::custom_provider_schema(conn)?;
         Self::terminals_schema(conn)?;
         Self::inbox_schema(conn)?;
+        Self::command_schema(conn)?;
         Self::activity_schema(conn)?;
         // Same journal, indexed anchor lookup: history paging must not parse
         // every archived turn. Legacy non-JSON results are excluded safely.
@@ -2814,6 +2817,9 @@ impl Db {
             Self::prompt_history_in(conn, Some(text))?;
         }
         if let Some(log) = seed {
+            if let Some(id) = log.display["command_resolution"].as_str() {
+                Self::accept_command_resolution_in(conn, id, session, prompt)?;
+            }
             // Idle selection facts precede this exact accepted input. Resolve
             // them using the same transaction, after the user anchor exists.
             let mut input: Vec<_> = Self::effort_facts_in(conn, session, 0)?
