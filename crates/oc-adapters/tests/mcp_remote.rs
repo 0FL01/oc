@@ -146,6 +146,7 @@ enum Mode {
     Pages17,
     DuplicateTool,
     OversizedSchema,
+    OversizedMessage,
     SlowInitialize,
     SlowCatalog,
     Lookups,
@@ -157,7 +158,7 @@ struct Fake {
     mode: Mode,
     slow: Duration,
     version: CatalogVersion,
-    sse_call: bool,
+    sse_response: bool,
 }
 
 impl Fake {
@@ -165,7 +166,11 @@ impl Fake {
         Self::start_full(mode, slow, false).0
     }
 
-    fn start_full(mode: Mode, slow: Duration, sse_call: bool) -> ((String, Log), CatalogVersion) {
+    fn start_full(
+        mode: Mode,
+        slow: Duration,
+        sse_response: bool,
+    ) -> ((String, Log), CatalogVersion) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind fake");
         let addr = listener.local_addr().expect("addr");
         let fake = Fake {
@@ -173,7 +178,7 @@ impl Fake {
             mode,
             slow,
             version: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            sse_call,
+            sse_response,
         };
         let version = fake.version.clone();
         let records = fake.records.clone();
@@ -287,6 +292,13 @@ impl Fake {
         let id = parsed.get("id").cloned().unwrap_or(Value::Null);
         let reply = |result: Value| {
             let payload = json!({"jsonrpc": "2.0", "id": id, "result": result});
+            if self.sse_response {
+                return (
+                    200,
+                    format!("event: message\ndata: {payload}\n\n").into_bytes(),
+                    Some("text/event-stream"),
+                );
+            }
             (
                 200,
                 serde_json::to_vec(&payload).expect("json"),
@@ -351,14 +363,19 @@ impl Fake {
                         "tools": [tool("duplicate", "first"), tool("duplicate", "second")],
                     }));
                 }
-                if self.mode == Mode::OversizedSchema {
+                if matches!(self.mode, Mode::OversizedSchema | Mode::OversizedMessage) {
+                    let bytes = if self.mode == Mode::OversizedMessage {
+                        oc_adapters::mcp_remote::MESSAGE_BYTES_CAP + 1
+                    } else {
+                        2 * 1024 * 1024
+                    };
                     return reply(json!({
                         "tools": [{
                             "name": "oversized",
                             "description": "too large",
                             "inputSchema": {
                                 "type": "object",
-                                "description": "x".repeat(33 * 1024),
+                                "description": "x".repeat(bytes),
                             },
                         }],
                     }));
@@ -469,13 +486,6 @@ impl Fake {
                     "content": [{"type": "text", "text": format!("result for {query}")}],
                     "isError": false,
                 });
-                if self.sse_call {
-                    let frame = format!(
-                        "event: message\ndata: {}\n\n",
-                        json!({"jsonrpc": "2.0", "id": id, "result": result})
-                    );
-                    return (200, frame.into_bytes(), Some("text/event-stream"));
-                }
                 reply(result)
             }
             _ => {
@@ -628,6 +638,27 @@ async fn list_paginates_and_maps_registry() {
         ["codex__search", "codex__fetch", "codex__summarize"]
     );
     client.close().await.expect("close");
+}
+
+#[tokio::test]
+async fn large_sse_catalog_and_encoded_message_limit_are_not_preview_limits() {
+    let cancel = AtomicBool::new(false);
+    let ((url, _), _) = Fake::start_full(Mode::OversizedSchema, Duration::ZERO, true);
+    let healthy = CodexWebClient::connect(&config_for(&url)).await.unwrap();
+    let tools = healthy.list_tools(&cancel).await.unwrap();
+    assert!(tools[0].input_schema.to_string().len() > 1024 * 1024);
+
+    let (url, _) = Fake::start(Mode::OversizedMessage, Duration::ZERO);
+    let oversized = CodexWebClient::connect(&config_for(&url)).await.unwrap();
+    let error = oversized.list_tools(&cancel).await.unwrap_err();
+    let McpError::MessageLimited { bytes, limit } = error else {
+        panic!("encoded HTTP body budget must have numeric facts: {error:?}")
+    };
+    assert_eq!(limit, 64 * 1024 * 1024);
+    assert!(bytes > limit);
+    oversized.close().await.unwrap();
+    assert_eq!(healthy.list_tools(&cancel).await.unwrap().len(), 1);
+    healthy.close().await.unwrap();
 }
 
 #[tokio::test]

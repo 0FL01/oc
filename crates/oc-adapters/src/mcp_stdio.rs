@@ -66,6 +66,9 @@ pub enum StdioError {
     /// Serialized tools/list metadata exceeded its byte budget.
     #[error(transparent)]
     CatalogLimited(#[from] crate::mcp_remote::CatalogLimit),
+    /// An encoded message exceeded its transport byte budget.
+    #[error("MCP message {bytes} bytes exceeds {limit} bytes")]
+    MessageLimited { bytes: usize, limit: usize },
     /// Tool arguments must be a JSON object.
     #[error("tool arguments must be an object")]
     NonObjectArguments,
@@ -561,6 +564,7 @@ type McpRunning = rmcp::service::RunningService<rmcp::service::RoleClient, Clien
 
 /// Connected stdio client: one child, one handshake, restartable.
 pub struct StdioClient {
+    pub(crate) message_fault: crate::mcp_message::Fault,
     peer: McpPeer,
     running: Option<McpRunning>,
     child: Box<SpawnedChild>,
@@ -626,17 +630,27 @@ impl StdioClient {
         // Keep the Child here: rmcp 3.4 TokioChildProcess::Drop starts an
         // unjoinable kill task. Give the SDK only its protocol pipes instead.
         let mut child = spawn_child(config)?;
+        let message_fault = crate::mcp_message::Fault::default();
         let transport = rmcp::transport::async_rw::AsyncRwTransport::new(
-            child.child.stdout.take().expect("spawn_child stdout pipe"),
-            child.child.stdin.take().expect("spawn_child stdin pipe"),
+            crate::mcp_message::LineIo::new(
+                child.child.stdout.take().expect("spawn_child stdout pipe"),
+                message_fault.clone(),
+            ),
+            crate::mcp_message::LineIo::new(
+                child.child.stdin.take().expect("spawn_child stdin pipe"),
+                message_fault.clone(),
+            ),
         );
         let events = ClientEvents::default();
         let tools_changed = events.tools_changed.clone();
         let handshake = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => Err(StdioError::Cancelled),
+            (bytes, limit) = message_fault.wait() => Err(StdioError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout(config.startup_timeout.unwrap_or(config.timeout), rmcp::service::serve_client(events, transport)) => {
-                result.map_err(|_| StdioError::Deadline).and_then(|result| result.map_err(|_| StdioError::Transport))
+                result.map_err(|_| StdioError::Deadline).and_then(|result| result.map_err(|_| {
+                    message_fault.get().map_or(StdioError::Transport, |(bytes, limit)| StdioError::MessageLimited { bytes, limit })
+                }))
             }
         };
         let running = match handshake {
@@ -657,6 +671,7 @@ impl StdioClient {
             .peer_info()
             .is_some_and(|info| crate::mcp_remote::legacy_version(info.protocol_version.as_str()));
         let client = Self {
+            message_fault,
             peer,
             child: Box::new(child),
             running: Some(running),
@@ -692,16 +707,7 @@ impl StdioClient {
         operation: &oc_core::queries::McpLookupOp,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
-        crate::mcp_lookup::lookup(
-            &self.peer,
-            operation,
-            self.config.catalog_timeout.unwrap_or(self.config.timeout),
-            self.config.timeout,
-            (&self.redactions, &self.identity_secrets),
-            cancel,
-            None,
-        )
-        .await
+        self.lookup_inner(operation, cancel, None).await
     }
     pub(crate) async fn lookup_owned(
         &self,
@@ -709,16 +715,32 @@ impl StdioClient {
         cancel: &std::sync::atomic::AtomicBool,
         dispatched: &std::sync::atomic::AtomicBool,
     ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
-        crate::mcp_lookup::lookup(
+        self.lookup_inner(operation, cancel, Some(dispatched)).await
+    }
+
+    async fn lookup_inner(
+        &self,
+        operation: &oc_core::queries::McpLookupOp,
+        cancel: &std::sync::atomic::AtomicBool,
+        dispatched: Option<&std::sync::atomic::AtomicBool>,
+    ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
+        tokio::select! {
+            result = crate::mcp_lookup::lookup(
             &self.peer,
             operation,
             self.config.catalog_timeout.unwrap_or(self.config.timeout),
             self.config.timeout,
             (&self.redactions, &self.identity_secrets),
             cancel,
-            Some(dispatched),
-        )
-        .await
+            dispatched,
+            ) => result.map_err(|error| {
+                if self.message_fault.get().is_some() && matches!(error, oc_core::queries::McpLookupError::Transport | oc_core::queries::McpLookupError::Deadline) {
+                    return oc_core::queries::McpLookupError::BodyLimit;
+                }
+                error
+            }),
+            _ = self.message_fault.wait() => Err(oc_core::queries::McpLookupError::BodyLimit),
+        }
     }
 
     /// Atomically claim a pending tools/list refresh. A notification that
@@ -757,8 +779,11 @@ impl StdioClient {
         let tools = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => return Err(StdioError::Cancelled),
+            (bytes, limit) = self.message_fault.wait() => return Err(StdioError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout(self.config.catalog_timeout.unwrap_or(self.config.timeout), bounded_list(&self.peer)) => {
-                result.map_err(|_| StdioError::Deadline)??
+                result.map_err(|_| StdioError::Deadline)?.map_err(|error| {
+                    self.message_fault.get().map_or(error, |(bytes, limit)| StdioError::MessageLimited { bytes, limit })
+                })?
             }
         }
         .into_iter()
@@ -811,6 +836,7 @@ impl StdioClient {
         let mut handle = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => return Err(StdioError::Cancelled),
+            (bytes, limit) = self.message_fault.wait() => return Err(StdioError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout_at(deadline, self.peer.send_cancellable_request(
                 request, rmcp::service::PeerRequestOptions::no_options()
             )) => result.map_err(|_| StdioError::Deadline)?.map_err(|_| StdioError::Transport)?,
@@ -818,6 +844,7 @@ impl StdioClient {
         let outcome = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => None,
+            (bytes, limit) = self.message_fault.wait() => return Err(StdioError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout_at(deadline, &mut handle.rx) => Some(result),
         };
         let outcome = match outcome {
@@ -844,7 +871,14 @@ impl StdioClient {
                 return Err(crate::mcp_result::rpc_failure(&error)
                     .map_or(StdioError::Transport, StdioError::ToolFailedDetail));
             }
-            Some(Ok(Err(_))) => return Err(StdioError::Transport),
+            Some(Ok(Err(_))) => {
+                return Err(self
+                    .message_fault
+                    .get()
+                    .map_or(StdioError::Transport, |(bytes, limit)| {
+                        StdioError::MessageLimited { bytes, limit }
+                    }));
+            }
         };
         match outcome {
             rmcp::model::CallToolResponse::Complete(result) => Ok(result),

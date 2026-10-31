@@ -21,6 +21,7 @@ mod endpoint;
 pub mod files;
 mod instructions;
 mod mcp_lookup;
+mod mcp_message;
 pub mod mcp_remote;
 pub mod mcp_result;
 pub mod mcp_stdio;

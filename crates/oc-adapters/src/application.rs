@@ -475,7 +475,9 @@ fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIss
     use oc_core::queries::{ServiceAction, ServiceCode, ServiceStage};
     if matches!(
         error,
-        RuntimeError::McpAttach { .. } | RuntimeError::McpCatalogLimit(_)
+        RuntimeError::McpAttach { .. }
+            | RuntimeError::McpCatalogLimit(_)
+            | RuntimeError::McpMessageLimit { .. }
     ) {
         return SpawnIssue {
             category: SpawnFailure::Runtime,

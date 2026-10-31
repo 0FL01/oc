@@ -1362,6 +1362,7 @@ pub(in crate::runtime) fn connection_diagnostic(
         } => (*stage, *safe_code, *retryable),
         RuntimeError::Cancelled => ("initialize", "cancelled", false),
         RuntimeError::McpCatalogLimit(_) => ("tools-list", "catalog_limit", false),
+        RuntimeError::McpMessageLimit { stage, .. } => (*stage, "message_limit", false),
         _ => ("cleanup", "cleanup_failed", false),
     };
     let code = match code {
@@ -1375,6 +1376,7 @@ pub(in crate::runtime) fn connection_diagnostic(
         "forbidden" => ServiceCode::Forbidden,
         "protocol_mismatch" => ServiceCode::ProtocolMismatch,
         "catalog_limit" => ServiceCode::CatalogLimit,
+        "message_limit" => ServiceCode::CapacityExceeded,
         "invalid_catalog" => ServiceCode::InvalidCatalog,
         "cleanup_failed" => ServiceCode::CleanupFailed,
         "cancelled" => ServiceCode::Cancelled,
@@ -1389,6 +1391,11 @@ pub(in crate::runtime) fn connection_diagnostic(
         diagnostic.details = Some(Box::new(vec![format!(
             "catalog metadata: {} bytes; limit: {} bytes",
             limit.bytes, limit.limit
+        )]));
+    }
+    if let RuntimeError::McpMessageLimit { bytes, limit, .. } = error {
+        diagnostic.details = Some(Box::new(vec![format!(
+            "MCP message: {bytes} bytes observed; limit: {limit} bytes"
         )]));
     }
     diagnostic.stage = match stage {

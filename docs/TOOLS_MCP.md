@@ -353,6 +353,15 @@ and neither an infrastructure error nor an incomplete search authorizes replay.
 
 HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy stateless JSON mode отсутствие session ID или GET event stream не должно порождать reconnect loop. Если SDK optional GET получает 405 — не считать это отказом исправного POST path; соответствие спецификации и поведение SDK проверить. Отправлять нужный `MCP-Protocol-Version` после initialize; no OAuth auto-discovery при oauth:false. Remote service timeout может быть меньше нашего клиентского 60s — сохранять исходный error, не ложно ждать/повторять операцию.
 
+Encoded MCP message и SSE event ограничены64 MiB, независимо от webfetch budget.
+Stdio проверяется до накопления строки SDK и до отправки oversized frame; HTTP JSON
+читается ограниченными chunks, raw SSE event — до parser allocation. Декодирование
+MCP остаётся у rmcp, SSE — у его locked `sse-stream0.2.4`. Превышение сообщает
+observed bytes/limit и не закрывает healthy siblings. Неизвестный effect вызова
+по-прежнему quarantined, а успешный cleanup требует подтверждения владельца.
+Startup/catalog defaults —60000/120000ms с существующими overrides; отдельного
+нового короткого execution deadline нет.
+
 Local `chrome-devtools`: argv точно из admitted config, без shell splitting/rewrite. `enabled:false` (или canonical disabled:true) означает: не launch npx, не probe browser, не требовать Node, не делать install, включая environment/cwd/timeout. При true — stdio JSON-RPC, stdout только protocol, stderr в ограниченный redacted log, process group lifecycle. T46/R6 pending target заменяет прежний минимальный MCP env на inherited product-process environment + configured overlay после command/resource/credential-domain admission; shell отдельно наследует captured owner env. Нужны runtime и уже доступный browser-url; `oc` не запускает Chrome с произвольным профилем пользователя.
 
 `chrome-devtools-mcp@latest` — явная пользовательская команда; её не подменять pinned silently. Core adapter acceptance — pinned fake stdio server. Optional real-browser smoke записывает фактически разрешённую версию/digest в evidence; это не воспроизводимость `@latest` навсегда.

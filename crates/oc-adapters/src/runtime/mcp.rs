@@ -284,6 +284,12 @@ fn remote_mcp_failure(error: McpError, cancel: &AtomicBool) -> (&'static str, St
     }
     let message = match error {
         McpError::ToolFailedDetail(detail) => return ("failed", format!("error: mcp {detail}")),
+        McpError::MessageLimited { bytes, limit } => {
+            return (
+                "failed",
+                format!("error: MCP message {bytes} bytes exceeds {limit} bytes"),
+            );
+        }
         McpError::ToolFailed => "error: mcp tool reported failure",
         McpError::UnsupportedResult | McpError::BadResult => "error: unsupported mcp result",
         McpError::InvalidArguments => "error: invalid mcp arguments",
@@ -298,6 +304,12 @@ fn stdio_mcp_failure(error: StdioError, cancel: &AtomicBool) -> (&'static str, S
     }
     let message = match error {
         StdioError::ToolFailedDetail(detail) => return ("failed", format!("error: mcp {detail}")),
+        StdioError::MessageLimited { bytes, limit } => {
+            return (
+                "failed",
+                format!("error: MCP message {bytes} bytes exceeds {limit} bytes"),
+            );
+        }
         StdioError::ToolFailed => "error: mcp tool reported failure",
         StdioError::UnsupportedModality | StdioError::BadResult => "error: unsupported mcp result",
         StdioError::NonObjectArguments => "error: invalid mcp arguments",
@@ -337,6 +349,13 @@ fn remote_attach_error_at(server: &str, stage: &'static str, error: McpError) ->
         McpError::Transport => (stage, "transport", true),
         McpError::ProtocolMismatch => (stage, "protocol_mismatch", false),
         McpError::CatalogLimited(limit) => return RuntimeError::McpCatalogLimit(limit),
+        McpError::MessageLimited { bytes, limit } => {
+            return RuntimeError::McpMessageLimit {
+                stage,
+                bytes,
+                limit,
+            };
+        }
         McpError::Catalog(_) => (stage, "invalid_catalog", false),
         McpError::ToolFailed | McpError::ToolFailedDetail(_) => (stage, "tool_failed", false),
         McpError::InvalidArguments => (stage, "invalid_arguments", false),
@@ -362,6 +381,13 @@ fn stdio_attach_error_at(server: &str, stage: &'static str, error: StdioError) -
         StdioError::ProtocolMismatch => (stage, "protocol_mismatch", false),
         StdioError::CleanupFailed => ("cleanup", "cleanup_failed", false),
         StdioError::CatalogLimited(limit) => return RuntimeError::McpCatalogLimit(limit),
+        StdioError::MessageLimited { bytes, limit } => {
+            return RuntimeError::McpMessageLimit {
+                stage,
+                bytes,
+                limit,
+            };
+        }
         StdioError::ToolFailed | StdioError::ToolFailedDetail(_) => (stage, "tool_failed", false),
         StdioError::NonObjectArguments => (stage, "invalid_arguments", false),
         StdioError::UnsupportedModality => (stage, "unsupported_result", false),
@@ -440,6 +466,7 @@ impl Runtime<'_> {
                             McpError::Cancelled
                                 | McpError::Deadline
                                 | McpError::Transport
+                                | McpError::MessageLimited { .. }
                                 | McpError::CleanupFailed
                                 | McpError::UnsupportedResult
                                 | McpError::BadResult
@@ -477,6 +504,7 @@ impl Runtime<'_> {
                             StdioError::Cancelled
                                 | StdioError::Deadline
                                 | StdioError::Transport
+                                | StdioError::MessageLimited { .. }
                                 | StdioError::CleanupFailed
                                 | StdioError::UnsupportedModality
                                 | StdioError::BadResult

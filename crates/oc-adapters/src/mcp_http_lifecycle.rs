@@ -1,7 +1,7 @@
 //! Cancellation ownership around rmcp 3.4's HTTP backend. Its startup POST
 //! and initial SSE response await outside the worker cancellation select.
-//! Delegate wire handling to the SDK, but cancel those awaits and observe the
-//! last HTTP owner dropping before reporting a failed/cancelled attach.
+//! Bound raw HTTP/SSE bodies before decoding while keeping the SDK lifecycle.
+//! Observe the last HTTP owner dropping before reporting a failed attach.
 
 use std::collections::HashMap;
 use std::sync::{
@@ -9,6 +9,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+use crate::mcp_message::Fault;
 use futures_util::StreamExt as _;
 use reqwest::header::{HeaderName, HeaderValue};
 use rmcp::model::ClientJsonRpcMessage;
@@ -17,6 +18,9 @@ use rmcp::transport::streamable_http_client::{
     StreamableHttpClient, StreamableHttpError, StreamableHttpPostResponse,
 };
 use tokio::sync::oneshot;
+
+#[path = "mcp_http_body.rs"]
+mod body;
 
 type Error = StreamableHttpError<reqwest::Error>;
 type Headers = HashMap<HeaderName, HeaderValue>;
@@ -27,11 +31,13 @@ pub(super) struct Http(Arc<Owner>);
 struct Owner {
     client: reqwest::Client,
     cancel: Arc<AtomicBool>,
+    fault: Fault,
     // Closed only after every SDK worker/request/stream HTTP owner is dropped.
     _closed: oneshot::Sender<()>,
 }
 
 pub(super) struct Cleanup {
+    pub(super) message_fault: Fault,
     cancel: Arc<AtomicBool>,
     closed: oneshot::Receiver<()>,
 }
@@ -56,14 +62,17 @@ impl Cleanup {
 impl Http {
     pub(super) fn new(client: reqwest::Client) -> (Self, Cleanup) {
         let cancel = Arc::new(AtomicBool::new(false));
+        let message_fault = Fault::default();
         let (closed, receiver) = oneshot::channel();
         (
             Self(Arc::new(Owner {
                 client,
                 cancel: cancel.clone(),
+                fault: message_fault.clone(),
                 _closed: closed,
             })),
             Cleanup {
+                message_fault,
                 cancel,
                 closed: receiver,
             },
@@ -103,7 +112,7 @@ impl StreamableHttpClient for Http {
             session,
             auth,
             headers,
-            crate::webfetch::BODY_CAP_BYTES,
+            super::MESSAGE_BYTES_CAP,
         )
         .await
     }
@@ -117,19 +126,8 @@ impl StreamableHttpClient for Http {
         headers: Headers,
         max: usize,
     ) -> Result<StreamableHttpPostResponse, Error> {
-        let response = self
-            .run(
-                self.0.client.post_message_with_max_sse_event_size(
-                    uri, message, session, auth, headers, max,
-                ),
-            )
-            .await?;
-        Ok(match response {
-            StreamableHttpPostResponse::Sse(stream, session) => {
-                StreamableHttpPostResponse::Sse(self.stream(stream), session)
-            }
-            response => response,
-        })
+        self.run(self.post(uri, message, session, auth, headers, max))
+            .await
     }
 
     async fn delete_session(
@@ -157,7 +155,7 @@ impl StreamableHttpClient for Http {
             last,
             auth,
             headers,
-            crate::webfetch::BODY_CAP_BYTES,
+            super::MESSAGE_BYTES_CAP,
         )
         .await
     }
@@ -171,13 +169,7 @@ impl StreamableHttpClient for Http {
         headers: Headers,
         max: usize,
     ) -> Result<BoxedSseResponse, Error> {
-        let stream = self
-            .run(
-                self.0
-                    .client
-                    .get_stream_with_max_sse_event_size(uri, session, last, auth, headers, max),
-            )
-            .await?;
-        Ok(self.stream(stream))
+        self.run(self.get(uri, session, last, auth, headers, max))
+            .await
     }
 }

@@ -269,6 +269,47 @@ impl Scope {
                 self.begin_stop();
             }
         }
+        if same_connection
+            && matches!(result, Err(McpLookupError::BodyLimit))
+            && let Some((bytes, limit)) = self
+                .generation
+                .servers
+                .iter()
+                .find(|client| client.server_id == server)
+                .and_then(|client| match client.client.as_ref() {
+                    AttachedServer::Remote(client) => client.message_fault.get(),
+                    AttachedServer::Stdio(client) => client.message_fault.get(),
+                })
+        {
+            let node = self.nodes.get_mut(server).expect("lookup scope");
+            if node
+                .row
+                .diagnostic
+                .as_ref()
+                .is_none_or(|diagnostic| diagnostic.code != ServiceCode::UnsafeRetry)
+            {
+                node.row.diagnostic = Some(connection_diagnostic(
+                    server,
+                    &node.source,
+                    &RuntimeError::McpMessageLimit {
+                        stage: if slot.is_some() { "tools-list" } else { "call" },
+                        bytes,
+                        limit,
+                    },
+                ));
+            }
+            node.row
+                .diagnostic
+                .as_mut()
+                .expect("message diagnostic")
+                .details = Some(Box::new(vec![format!(
+                "MCP message: {bytes} bytes observed; limit: {limit} bytes"
+            )]));
+            if let Err(error) = self.publish() {
+                self.fatal = Some(error);
+                self.begin_stop();
+            }
+        }
         if matches!(result, Err(McpLookupError::CleanupFailed)) {
             self.generation.cleanup_error.store(true, Ordering::SeqCst);
             self.fatal = Some(RuntimeError::McpShutdown);

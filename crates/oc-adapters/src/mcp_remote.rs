@@ -155,6 +155,9 @@ pub enum McpError {
     /// Serialized catalog metadata exceeded its byte budget; no partial catalog.
     #[error(transparent)]
     CatalogLimited(#[from] CatalogLimit),
+    /// An encoded message exceeded its transport byte budget.
+    #[error("MCP message {bytes} bytes exceeds {limit} bytes")]
+    MessageLimited { bytes: usize, limit: usize },
     /// The catalog is complete but cannot be attached safely.
     #[error("invalid MCP catalog: {0}")]
     Catalog(#[from] CatalogError),
@@ -497,6 +500,7 @@ mod lifecycle;
 
 /// Connected remote client with explicit strict `codex_web` or generic profile.
 pub struct CodexWebClient {
+    pub(crate) message_fault: crate::mcp_message::Fault,
     peer: McpPeer,
     running: McpRunning,
     timeout: Duration,
@@ -567,13 +571,14 @@ impl CodexWebClient {
             )
             .custom_headers(custom_headers)
             .control_request_timeout(Duration::from_secs(5))
-            .max_sse_event_size(crate::webfetch::BODY_CAP_BYTES)
+            .max_sse_event_size(MESSAGE_BYTES_CAP)
             .reinit_on_expired_session(false)
             .max_concurrent_requests(4);
         if !config.bearer.is_empty() {
             transport_config = transport_config.auth_header(config.bearer.as_str());
         }
         let (http, mut cleanup) = lifecycle::Http::new(http);
+        let message_fault = cleanup.message_fault.clone();
         let transport =
             rmcp::transport::streamable_http_client::StreamableHttpClientTransport::with_client(
                 http,
@@ -584,8 +589,11 @@ impl CodexWebClient {
         let handshake = tokio::select! {
             biased;
             () = crate::provider::wait_cancel(cancel) => Err(McpError::Cancelled),
+            (bytes, limit) = message_fault.wait() => Err(McpError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout_at(startup_deadline, rmcp::service::serve_client(events, transport)) => {
-                result.map_err(|_| McpError::Deadline).and_then(|result| result.map_err(|e| classify_handshake(&e)))
+                result.map_err(|_| McpError::Deadline).and_then(|result| result.map_err(|e| {
+                    message_fault.get().map_or_else(|| classify_handshake(&e), |(bytes, limit)| McpError::MessageLimited { bytes, limit })
+                }))
             }
         };
         let mut running = match handshake {
@@ -622,6 +630,7 @@ impl CodexWebClient {
             crate::mcp_result::instructions(info.instructions.as_deref(), &secrets)
         });
         Ok(Self {
+            message_fault,
             peer,
             running,
             timeout: config.timeout,
@@ -644,16 +653,7 @@ impl CodexWebClient {
         operation: &oc_core::queries::McpLookupOp,
         cancel: &AtomicBool,
     ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
-        crate::mcp_lookup::lookup(
-            &self.peer,
-            operation,
-            self.catalog_timeout,
-            self.timeout,
-            (&self.secrets, &self.secrets),
-            cancel,
-            None,
-        )
-        .await
+        self.lookup_inner(operation, cancel, None).await
     }
     pub(crate) async fn lookup_owned(
         &self,
@@ -661,16 +661,32 @@ impl CodexWebClient {
         cancel: &AtomicBool,
         dispatched: &AtomicBool,
     ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
-        crate::mcp_lookup::lookup(
+        self.lookup_inner(operation, cancel, Some(dispatched)).await
+    }
+
+    async fn lookup_inner(
+        &self,
+        operation: &oc_core::queries::McpLookupOp,
+        cancel: &AtomicBool,
+        dispatched: Option<&AtomicBool>,
+    ) -> Result<oc_core::queries::McpLookupData, oc_core::queries::McpLookupError> {
+        tokio::select! {
+            result = crate::mcp_lookup::lookup(
             &self.peer,
             operation,
             self.catalog_timeout,
             self.timeout,
             (&self.secrets, &self.secrets),
             cancel,
-            Some(dispatched),
-        )
-        .await
+            dispatched,
+            ) => result.map_err(|error| {
+                if self.message_fault.get().is_some() && matches!(error, oc_core::queries::McpLookupError::Transport | oc_core::queries::McpLookupError::Deadline) {
+                    return oc_core::queries::McpLookupError::BodyLimit;
+                }
+                error
+            }),
+            _ = self.message_fault.wait() => Err(oc_core::queries::McpLookupError::BodyLimit),
+        }
     }
 
     /// Atomically claim a pending tools/list refresh. A notification that
@@ -760,6 +776,7 @@ impl CodexWebClient {
         let mut handle = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => return Err(McpError::Cancelled),
+            (bytes, limit) = self.message_fault.wait() => return Err(McpError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout_at(deadline, self.peer.send_cancellable_request(
                 request, rmcp::service::PeerRequestOptions::no_options()
             )) => result.map_err(|_| McpError::Deadline)?.map_err(|_| McpError::Transport)?,
@@ -767,6 +784,7 @@ impl CodexWebClient {
         let outcome = tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => None,
+            (bytes, limit) = self.message_fault.wait() => return Err(McpError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout_at(deadline, &mut handle.rx) => Some(result),
         };
         let outcome = match outcome {
@@ -790,7 +808,14 @@ impl CodexWebClient {
                 return Err(crate::mcp_result::rpc_failure(&error)
                     .map_or(McpError::Transport, McpError::ToolFailedDetail));
             }
-            Some(Ok(Err(_))) => return Err(McpError::Transport),
+            Some(Ok(Err(_))) => {
+                return Err(self
+                    .message_fault
+                    .get()
+                    .map_or(McpError::Transport, |(bytes, limit)| {
+                        McpError::MessageLimited { bytes, limit }
+                    }));
+            }
         };
         match outcome {
             rmcp::model::CallToolResponse::Complete(result) => Ok(result),
@@ -809,9 +834,10 @@ impl CodexWebClient {
         tokio::select! {
             biased;
             _ = wait_cancelled(cancel) => Err(McpError::Cancelled),
+            (bytes, limit) = self.message_fault.wait() => Err(McpError::MessageLimited { bytes, limit }),
             result = tokio::time::timeout(self.catalog_timeout, future) => match result {
                 Err(_) => Err(McpError::Deadline),
-                Ok(Err(error)) => Err(error),
+                Ok(Err(error)) => Err(self.message_fault.get().map_or(error, |(bytes, limit)| McpError::MessageLimited { bytes, limit })),
                 Ok(Ok(value)) => Ok(value),
             },
         }

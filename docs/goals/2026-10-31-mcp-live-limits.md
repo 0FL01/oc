@@ -31,8 +31,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Source: согласованная таблица границ.
   - Acceptance: одно MCP message/SSE event ≤64 MiB; startup default60000ms, полный catalog default120000ms; существующие настройки могут увеличить оба значения. Execution timeout остаётся существующим настраиваемым. Разрешённый каталог не отвергается более низким случайным transport/IPC/projection cap.
   - Primary evidence: targeted transport/config regressions и проверки прямых consumers.
-  - Status: in_progress
-  - Evidence: defaults60000/120000ms и existing overrides проверены в R1;64 MiB frame/body/SSE qualification остаётся следующей итерацией.
+  - Status: verified
+  - Evidence:70 targeted transport/lifecycle tests PASS (4.999s);64 MiB admission stdio RX/TX, HTTP JSON и raw SSE. SSE catalog2 MiB принимается. Oversized HTTP message даёт typed observed/limit; lifecycle fixture:5 Connected,1 aggregate CatalogLimit и1 encoded-message CapacityExceeded,7 children reaped (4.860s). Cancellation/status/header/protocol/lookup/unknown-effect/cleanup fixtures PASS. Strict scoped Clippy all-targets oc-adapters PASS (40.79s), fmt PASS. Defaults/overrides проверены в R1. IPC uses64 KiB fragments, not a64 KiB logical-message cap; MCP schemas stay behind existing Code Mode budgeted summary/search unless configured direct.
 - R3: полный доступный tool output и активная история не ограничены preview.
   - Source: исходный screenshot/RECON, согласованный план удаления2 KiB/64-part отсечений.
   - Acceptance:2048 байт не предел доступного тела; полный сохранённый output читается страницами64 KiB через существующий owner. Это размер порции, не предел результата. Сохранённый prefix активного хода доступен каноническим paging до completion; live — несохранённый tail. Paging, свёрнутая карточка и вытеснение cache сами по себе не вызывают toast о потере live-вывода. Настоящий coverage gap не маскируется.
@@ -69,7 +69,7 @@ Byte budget каталога — не обещание такого же RSS. Б
 - Один mutation/Cargo owner; `CARGO_BUILD_JOBS=4`, tests/nextest threads4. Чужой concurrent diff не переписывать.
 - Сохранять schema/protocol validation, routing identities, permissions/trust, redaction, captured request/full-batch authority, cancellation, cleanup и no unknown-effect replay.
 - Native owner пользователя не перезапускать; отключённые боевые MCP не включать. Только no-prompt metadata startup, без commands/tool calls или paid generations.
-- Без новых dependencies/services/stores/migrations/frameworks; переиспользовать существующие output/history paging, registry и lifecycle.
+- Без новых packages/versions/services/stores/migrations/frameworks; переиспользовать существующие output/history paging, registry и lifecycle. Исключение R2: разрешён прямой импорт уже locked `sse-stream0.2.4` без новых пакетов/загрузок.
 
 ### Non-goals
 
@@ -81,26 +81,32 @@ Byte budget каталога — не обещание такого же RSS. Б
 - MCP owners: `config/mcp.rs`, `mcp_stdio.rs`, `mcp_remote.rs`, `mcp_http_lifecycle.rs`, `mcp_lookup.rs`, `runtime/mcp*`, их прямые consumers и ближайшие tests.
 - Output/live owners: core tool-output/query DTOs, adapters tools/output/storage/tool-output reads, TUI history/live/transcript и binary repair/paging consumers; только необходимые изменения текущего пути.
 - Документация меняется при изменении её контракта; конфигурации/DB пользователя и TypeScript oracle read-only.
+- R2: `oc-adapters/Cargo.toml` и его dependency list в `Cargo.lock` могут прямо подключить уже используемый rmcp парсер `sse-stream0.2.4`; версии/пакеты lockfile не меняются.
+
+## Material Decisions
+
+-2026-10-31: после вопроса о recommended reuse уже locked parser пользователь указал «Продолжить». Применяется предложенное узкое исключение: direct dependency-edge к `sse-stream0.2.4`. rmcp3.4 не даёт публичного bounded JSON-body/SSE-parser API; собственный SSE parser не добавляется.
 
 ## Current Checkpoint
 
-- Closes: R2.
-- Smallest next action: согласовать64 MiB transport admission для stdio, HTTP JSON и SSE, не потеряв typed errors/cancellation/cleanup.
-- Expected evidence: сообщение >старого1 MiB SSE cap принимается; превышение64 MiB явное и локальное; существующие HTTP status/header/protocol/ownership fixtures сохраняются.
+- Closes: R3.
+- Smallest next action: поднять существующий owner-read полного output до64 KiB pages и раскрытие Cards на этот путь; затем canonical active-prefix/live-tail handoff.
+- Expected evidence: сохранённый output >64 KiB доступен до конца, paging UTF-8/session fences сохранены;64/240 active parts не вызывают ложный toast, реальные gaps не скрываются.
 - Stop or replan if: concurrent mutation/Cargo owner, security boundary или необходимая новая dependency/architecture.
 
 ## Current State
 
 - RECON: при текущем no-prompt запуске space включены7 из15 MCP, все7 Connected (~4s),37 tools,0 Failed;8 Disabled конфигурацией. Исторический отказ на этом конфиге не воспроизведён.
 - Корень toast: tool preview truncation поднимается в aggregate HistoryTurn.truncated; отдельный путь — eviction64 live parts. В исходном чате сохранены ходы263/519/302 частей.
-- Resolved: R1; startup/catalog defaults часть R2.
-- Next: R2 transport, затем R3, финальные R4 gates/commit/push/build.
+- Resolved: R1, R2.
+- Next: R3 output/live/history, финальные R4 gates/commit/push/build.
 
 ## Checkpoint History
 
 -2026-10-31: получен clean-tree gate после `6d2c91375`; контракт и согласованные границы сохранены до runtime edits.
 -2026-10-31: R1 verified;73 targeted MCP/config/lifecycle cases, strict scoped Clippy и fmt PASS. Diff сверён с frozen contract; следующий checkpoint R2 transport. Full offline gate ещё не запускался.
+-2026-10-31: R2 verified;70 targeted transport/lifecycle cases, strict scoped Clippy и fmt PASS. Direct dependency-edge переиспользует уже locked parser без новых versions/packages. Diff сверён с frozen contract; full offline gate и live activation ещё не выполнялись.
 
 ## Completion
 
-- Final status: active; runtime implementation и current-source qualification ещё не выполнены.
+- Final status: active; R1/R2 проверены, R3/R4 ещё не завершены.

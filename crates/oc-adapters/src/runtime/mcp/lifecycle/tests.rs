@@ -901,9 +901,12 @@ async fn hot02_catalog_byte_limit_rejects_only_the_candidate_and_reaps_cleanly()
     let owner = McpOwner::new("source", 1);
     let entry = |name| {
         let mut entry = reconcile_entry(project.path(), name);
-        entry
-            .command
-            .extend(["1".into(), (50 * 1024 * 1024).to_string()]);
+        let bytes = if name == "oversized_message" {
+            mcp_remote::MESSAGE_BYTES_CAP + 1
+        } else {
+            50 * 1024 * 1024
+        };
+        entry.command.extend(["1".into(), bytes.to_string()]);
         entry
     };
     owner
@@ -916,6 +919,7 @@ async fn hot02_catalog_byte_limit_rejects_only_the_candidate_and_reaps_cleanly()
                     ("four".into(), entry("fourth")),
                     ("five".into(), entry("fifth")),
                     ("six".into(), entry("sixth")),
+                    ("oversized".into(), entry("oversized_message")),
                 ]),
                 ..Default::default()
             },
@@ -954,19 +958,42 @@ async fn hot02_catalog_byte_limit_rejects_only_the_candidate_and_reaps_cleanly()
         .iter()
         .filter(|row| row.status == McpStatus::Failed)
         .collect();
-    assert_eq!(failed.len(), 1);
-    let diagnostic = failed[0].diagnostic.as_ref().unwrap();
+    assert_eq!(failed.len(), 2);
+    let diagnostic = failed
+        .iter()
+        .find_map(|row| {
+            row.diagnostic
+                .as_ref()
+                .filter(|diagnostic| diagnostic.code == ServiceCode::CatalogLimit)
+        })
+        .unwrap();
     assert_eq!(diagnostic.code, ServiceCode::CatalogLimit);
     let details = diagnostic.details.as_ref().unwrap().join("\n");
     assert!(details.contains(&(256 * 1024 * 1024).to_string()));
     assert!(details.contains("bytes"));
+    let message = failed
+        .iter()
+        .find_map(|row| {
+            row.diagnostic
+                .as_ref()
+                .filter(|diagnostic| diagnostic.code == ServiceCode::CapacityExceeded)
+        })
+        .unwrap();
+    assert_eq!(
+        message.details.as_ref().unwrap().as_ref(),
+        &[format!(
+            "MCP message: {} bytes observed; limit: {} bytes",
+            mcp_remote::MESSAGE_BYTES_CAP + 1,
+            mcp_remote::MESSAGE_BYTES_CAP,
+        )]
+    );
     let view = owner.request_view().unwrap();
     assert_eq!(view.entries.len(), 5);
     assert_eq!(view.servers.len(), 5);
     drop(view);
     owner.stop().await.unwrap();
     let starts = std::fs::read_to_string(project.path().join("starts")).unwrap();
-    assert_eq!(starts.lines().count(), 6);
+    assert_eq!(starts.lines().count(), 7);
     for line in starts.lines() {
         let (_, pid) = line.rsplit_once(':').unwrap();
         assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());

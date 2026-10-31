@@ -104,6 +104,12 @@ pub enum RuntimeError {
     McpShutdown,
     /// Candidate MCP metadata exceeds its byte budget; existing peers stay live.
     McpCatalogLimit(crate::mcp_remote::CatalogLimit),
+    /// Oversized encoded MCP input/output, without any remote payload text.
+    McpMessageLimit {
+        stage: &'static str,
+        bytes: usize,
+        limit: usize,
+    },
     /// Provider failure (kind only).
     Provider,
     /// Typed credential/catalog refusal before durable turn/effect acceptance.
@@ -174,6 +180,11 @@ impl std::fmt::Display for RuntimeError {
             ),
             Self::McpShutdown => write!(f, "mcp shutdown failed"),
             Self::McpCatalogLimit(limit) => write!(f, "{limit}"),
+            Self::McpMessageLimit {
+                stage,
+                bytes,
+                limit,
+            } => write!(f, "MCP {stage} message {bytes} bytes exceeds {limit} bytes"),
             Self::Provider => write!(f, "provider error"),
             Self::ProviderUnavailable(diagnostic) => write!(f, "{diagnostic}"),
             Self::Storage => write!(f, "storage error"),
