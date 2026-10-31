@@ -467,7 +467,7 @@ mod tests {
             Some(CommandAction::DcpCompress { .. })
         ));
         view.handle_paste("/compact");
-        let revision = view.compaction_request_revision();
+        let revision = view.begin_compaction_admission();
         let history_owner = tokio::spawn(async move {
             let Some(InboxMsg::PromptHistory { append, ack }) =
                 tokio::time::timeout(Duration::from_secs(3), inbox.recv())

@@ -808,8 +808,14 @@ impl TuiState {
     }
 
     /// Palette admission preserves the composer, including a literal `/compact` draft.
-    pub fn compaction_request_revision(&self) -> Option<u64> {
+    pub fn begin_compaction_admission(&mut self) -> Option<u64> {
+        self.compaction_admission_pending = true;
         (self.panel != TuiPanel::Commands).then_some(self.input_revision)
+    }
+
+    pub fn compaction_rejected(&mut self, error: &CoreError) {
+        self.compaction_admission_pending = false;
+        self.push_transient_note(&format!("compaction: {error}"), NoteVariant::Error);
     }
 
     pub fn compaction_admitted(
@@ -824,6 +830,7 @@ impl TuiState {
         {
             return;
         }
+        self.compaction_admission_pending = false;
         if Some(self.input_revision) == revision
             && dispatch(self.input.trim()) == Some(CommandAction::CompactSession)
         {

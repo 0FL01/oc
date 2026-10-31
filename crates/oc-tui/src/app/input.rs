@@ -3415,12 +3415,7 @@ impl TuiState {
                     // Pending submission cancellation retains its existing
                     // safety semantics. Once a turn is accepted, the focused
                     // prompt follows the original's two-Esc interrupt guard.
-                    if self.active_turn.is_some()
-                        || self
-                            .compactions
-                            .iter()
-                            .any(|snapshot| crate::compaction::active(snapshot))
-                    {
+                    if self.active_turn.is_some() || self.is_compacting() {
                         let now = Instant::now();
                         if self.interrupt_armed_until.is_none_or(|until| now >= until) {
                             self.interrupt_armed_until = now.checked_add(Duration::from_secs(5));
@@ -3457,10 +3452,7 @@ impl TuiState {
                         intent: Some(PanelIntent::CancelSession {
                             session,
                             turn,
-                            cancel_compaction: self
-                                .compactions
-                                .iter()
-                                .any(|snapshot| crate::compaction::active(snapshot)),
+                            cancel_compaction: self.is_compacting(),
                         }),
                         ..Default::default()
                     }
@@ -3673,6 +3665,9 @@ impl TuiState {
                 }
                 return outcome;
             }
+        }
+        if self.is_compacting() {
+            return self.enqueue_input(oc_core::queries::InboxDelivery::Queue);
         }
         // OC2 steer: input sent while the agent works joins the running turn.
         if self.active_turn.is_some() {

@@ -3600,7 +3600,7 @@ async fn apply_owned_intent(
             }
             let session = state.attached_session().cloned().ok_or("no session yet")?;
             let owner = app.clone();
-            let revision = state.compaction_request_revision();
+            let revision = state.begin_compaction_admission();
             loop_state.compaction_origin = read_jobs::Route::capture(state);
             loop_state.compaction_job = Some(oc_core::wake::spawn(async move {
                 owner
@@ -4853,9 +4853,7 @@ async fn finish_compaction_admission(state: &mut TuiState, deck: &mut LoopState)
                     view.compaction_admitted(snapshot, revision);
                 }
             }
-            Err(error) => {
-                view.push_transient_note(&format!("compaction: {error}"), NoteVariant::Error)
-            }
+            Err(error) => view.compaction_rejected(&error),
         }
     }
     deck.sync_tabs(state);

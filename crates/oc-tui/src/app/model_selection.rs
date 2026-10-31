@@ -103,6 +103,7 @@ impl TuiState {
             self.provisional_session = previous.provisional_session.take();
             self.pending = previous.pending.take();
             self.submission_intent = previous.submission_intent.take();
+            self.compaction_admission_pending = previous.compaction_admission_pending;
             self.refused_submission = previous.refused_submission.take();
             self.agent_draft_revision = previous.agent_draft_revision;
             if self.active_turn.is_none() && self.has_pending_submission() {

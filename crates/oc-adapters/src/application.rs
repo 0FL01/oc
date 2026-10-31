@@ -4673,6 +4673,7 @@ async fn worker(
         });
     }
     let mut primary_started = false;
+    let mut drain_compaction_queue = false;
     'worker: loop {
         if let Some(source) = authority.as_mut() {
             source.publish(runtime, composition, effective, location_epoch)?;
@@ -4688,20 +4689,21 @@ async fn worker(
         })? {
             return Ok(WorkerOutcome::Move(Box::new(prepared)));
         }
-        if let Some(primary) = primary.as_ref()
-            && primary_started
+        if primary_started
             && pending_inputs.is_empty()
             && runtime.pending_compaction().is_none()
             && !runtime.has_pending_session_move()
         {
-            // Startup may have been withdrawn, requeued or refused before
-            // acceptance. Advance past it without dropping later steers or
-            // falling back to Queue, even when no turn was accepted.
-            if steer_continuation
-                && !primary.cancel.load(Ordering::Acquire)
+            // Compaction has no turn-local inbox driver. Drain its admitted
+            // Queue items before retiring; interrupted continuations otherwise
+            // advance through steers only, even if startup was not accepted.
+            if (steer_continuation || drain_compaction_queue)
+                && primary
+                    .as_ref()
+                    .is_none_or(|primary| !primary.cancel.load(Ordering::Acquire))
                 && let Some(session) = sessions.get(runtime.location())
                 && let Some(pending) = db
-                    .inbox_next(session, false)
+                    .inbox_next(session, drain_compaction_queue)
                     .map_err(|error| storage_diagnostic(db.root(), &error))?
             {
                 pending_inputs.push_back(InboxMsg::SubmitInbox {
@@ -4711,7 +4713,9 @@ async fn worker(
                 });
                 continue;
             }
-            return Ok(WorkerOutcome::Stop);
+            if primary.is_some() {
+                return Ok(WorkerOutcome::Stop);
+            }
         }
         if authority.is_none() && primary.is_none() {
             runtime
@@ -4765,9 +4769,18 @@ async fn worker(
                 &provider,
             );
             tokio::pin!(operation);
+            let cancel = primary
+                .as_ref()
+                .map(|primary| primary.cancel.clone())
+                .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
             let mut shutdown = false;
             let mut deferred = None;
+            let mut completed = false;
+            let mut side_command: Option<user_shell::SideAdmission<'_>> = None;
             loop {
+                if completed && side_command.is_none() {
+                    break;
+                }
                 reload_work.start(db, runtime, composition);
                 tokio::select! {
                     ready = reload_work.wait(), if !shutdown => {
@@ -4776,7 +4789,7 @@ async fn worker(
                             location_epoch, provider_work, events, Some((&session, &selected)),
                         ).await? { receipt.reply(); }
                     }
-                    result = &mut operation => {
+                    result = &mut operation, if !completed => {
                         if let Err(error) = result {
                             // Delivery publishes a Failed lifecycle on recoverable
                             // publication errors and releases ownership. Keep the
@@ -4786,22 +4799,42 @@ async fn worker(
                                 .first().is_some_and(|snapshot| snapshot.state == oc_core::compaction::CompactionState::Failed);
                             if !failed { return Err(runtime_issue(runtime.location(), &["compaction"], &error).diagnostic); }
                         }
-                        break;
+                        completed = true;
                     },
+                    admitted = async { side_command.as_mut().expect("command admission").as_mut().await }, if side_command.is_some() => {
+                        side_command = None;
+                        if admitted {
+                            drain_compaction_queue = true;
+                            drain_queue.store(true, Ordering::Release);
+                        }
+                    }
                     command = inbox.recv(), if !shutdown => match command {
-                        None | Some(InboxMsg::Shutdown) => { shutdown=true; runtime.cancel_all_compactions(); }
-                        Some(command @ InboxMsg::ChangeConversation { .. }) => {
+                        None | Some(InboxMsg::Shutdown) => {
+                            shutdown=true;
+                            cancel.store(true, Ordering::Release);
+                            runtime.cancel_pending_approvals();
                             runtime.cancel_all_compactions();
+                        }
+                        Some(command @ InboxMsg::ChangeConversation { .. }) => {
+                            cancel.store(true, Ordering::Release);
+                            runtime.cancel_pending_approvals();
+                            runtime.cancel_all_compactions();
+                            drain_compaction_queue = false;
                             if deferred.is_none() { deferred=Some(command); }
                             else if let InboxMsg::ChangeConversation { ack,.. } = command { let _=ack.send(Err(CoreError::TurnBusy)); }
                         }
                         Some(command @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. })) if pending_inputs.len()<MAX_QUEUE_ITEMS => pending_inputs.push_back(command),
+                        Some(message @ InboxMsg::Enqueue { .. }) if side_command.is_none() && deferred.is_none() => {
+                            side_command = command_shell::start_side(db,runtime,composition,effective,&SessionId(session.clone()),&cancel,location_epoch.load(Ordering::SeqCst),message);
+                        }
+                        Some(InboxMsg::Enqueue { ack, .. }) => { let _ = ack.send(Err(CoreError::TurnBusy)); }
                         Some(InboxMsg::ReloadLocation { ack }) => reload_work.request(ack),
                         Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,terminals,authentication,command).await,
                     }
                 }
             }
             if let Some(command) = deferred {
+                drain_compaction_queue = false;
                 query(
                     db,
                     runtime,
@@ -6194,6 +6227,7 @@ async fn worker(
                         app_error(format!("Command input was not accepted: {error}. Effects may have occurred; Settings → Interrupted commands. Nothing resent."))
                     } else { error }));
                 } else if let Some(turn) = turn {
+                    drain_compaction_queue = false;
                     // Provider usage is forwarded only when the provider
                     // reported it; never synthesized.
                     if let Ok(report) = &result

@@ -807,6 +807,7 @@ pub struct TuiState {
     status: TuiStatus,
     scanner_frame: usize,
     compactions: Vec<crate::compaction::SnapshotView>,
+    compaction_admission_pending: bool,
     compaction_at: Option<Instant>,
     compaction_frame: usize,
     compaction_turn_messages: std::collections::BTreeMap<String, String>,
@@ -1099,6 +1100,7 @@ impl TuiState {
             status: TuiStatus::Idle,
             scanner_frame: 0,
             compactions: Vec::new(),
+            compaction_admission_pending: false,
             compaction_at: None,
             compaction_frame: 0,
             compaction_turn_messages: Default::default(),
@@ -1380,6 +1382,7 @@ impl TuiState {
         *self.tab_view.get_mut() = TabView::default();
         self.clear_mouse_position();
         self.compactions.clear();
+        self.compaction_admission_pending = false;
         self.compaction_turn_messages.clear();
         self.compaction_at = None;
         self.compaction_frame = 0;
@@ -1771,7 +1774,15 @@ impl TuiState {
         self.active_turn.as_ref()
     }
 
-    /// True while a submission awaits acceptance or a turn streams.
+    fn is_compacting(&self) -> bool {
+        self.compaction_admission_pending
+            || self
+                .compactions
+                .iter()
+                .any(|snapshot| crate::compaction::active(snapshot))
+    }
+
+    /// True while an input, turn, Shell or compaction is in flight.
     pub fn is_busy(&self) -> bool {
         self.active_turn.is_some()
             || self
@@ -1779,10 +1790,7 @@ impl TuiState {
                 .as_ref()
                 .is_some_and(PendingSubmission::outstanding)
             || self.user_shell_pending()
-            || self
-                .compactions
-                .iter()
-                .any(|snapshot| crate::compaction::active(snapshot))
+            || self.is_compacting()
     }
 
     /// Status note, if any (intent errors and hints; never chat history).

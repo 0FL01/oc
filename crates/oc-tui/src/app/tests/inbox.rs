@@ -134,6 +134,77 @@ async fn enter_while_busy_steers_into_the_running_turn() {
 }
 
 #[tokio::test]
+async fn enter_during_compaction_queues_without_starting_a_turn() {
+    use oc_core::compaction::{
+        CompactionAnchor, CompactionReason, CompactionSnapshot, CompactionState,
+    };
+
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, sid("compacting"));
+    state.apply_catalog(snapshot());
+    let revision = state.begin_compaction_admission();
+    type_text(&mut state, "after compact").await;
+    let (outcome, admitted) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        admit(&mut inbox, Ok(()))
+    );
+    state.poll_submission();
+    assert!(outcome.note.is_none());
+    assert_eq!(admitted, ("after compact".into(), InboxDelivery::Queue));
+    assert!(state.active_turn().is_none());
+    assert!(!state.has_occupied_submission());
+    assert!(state.input().is_empty());
+    assert!(
+        state
+            .transcript_rows()
+            .iter()
+            .any(|row| { row.role == "queued" && row.text == "1 queued · after compact" })
+    );
+
+    let mut compact = CompactionSnapshot {
+        model: None,
+        profile: None,
+        anchor: CompactionAnchor::default(),
+        id: "compact".into(),
+        session: "compacting".into(),
+        reason: CompactionReason::Manual,
+        state: CompactionState::Queued,
+        summary: String::new(),
+        usage: None,
+        provider_native: false,
+        error: None,
+    };
+    state.compaction_admitted(compact.clone(), revision);
+    compact.state = CompactionState::Running;
+    state.apply_compaction(compact.clone());
+    type_text(&mut state, "then another").await;
+    let (_, admitted) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        admit(&mut inbox, Ok(()))
+    );
+    state.poll_submission();
+    assert_eq!(admitted, ("then another".into(), InboxDelivery::Queue));
+    assert_eq!(state.inbox_items().len(), 2);
+    assert!(state.active_turn().is_none());
+    assert!(!state.has_occupied_submission());
+
+    compact.state = CompactionState::Completed;
+    state.apply_compaction(compact);
+    state.apply_inbox(&sid("compacting"), Vec::new());
+    assert!(!state.is_busy());
+    type_text(&mut state, "next ordinary prompt").await;
+    state.handle_key(KeyAction::Enter).await;
+    let InboxMsg::Submit { text, ack, .. } = inbox.try_recv().unwrap() else {
+        panic!("ordinary submission after compaction")
+    };
+    assert_eq!(text.text, "next ordinary prompt");
+    ack.send(Ok(WorkerTurnId("next".into()))).unwrap();
+    state.poll_submission();
+    assert!(!state.has_occupied_submission());
+    assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
 async fn interrupted_steer_stays_a_neutral_user_row_not_a_resumable_queue() {
     let (mut state, mut inbox) = running("parked").await;
     type_text(&mut state, "edited prompt").await;

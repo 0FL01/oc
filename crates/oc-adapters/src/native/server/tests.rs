@@ -39,6 +39,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
     std::fs::write(project.join("opencode.json"), json!({
         "model":"fixture/local", "compaction":{"auto":false,"keep":{"tokens":0}},
         "agents":{"title":{"disabled":true},"helper":{"mode":"subagent","model":"fixture/child"}},
+        "commands":{"after":{"template":"EXPANDED $1 !`touch command-started; n=0; while [ ! -f release-command ] && [ $n -lt 500 ]; do n=$((n+1)); sleep .01; done; [ -f release-command ] || exit 124; printf x >> command-effect; printf CAPTURED`"}},
         "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"apiKey":"fixture-only","baseURL":format!("http://{}/v1",provider.local_addr().unwrap())},"models":{
             "local":{"limit":{"context":100000,"output":2048}},"child":{"limit":{"context":100000,"output":2048}}
         }}},
@@ -90,7 +91,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
                     } else if request["tools"].as_array().unwrap().is_empty() {
                         posted.send(("summary".to_owned(), request)).await.unwrap();
                         summary_release.notified().await;
-                        json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"## Objective\nContinue the task; background shell and child results are pending."}]}])
+                        json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"## Objective\nCOMPACTED_CONTEXT Continue the task; background shell and child results are pending."}]}])
                     } else {
                         let index = parents.fetch_add(1, Ordering::AcqRel);
                         posted.send((format!("parent-{index}"), request)).await.unwrap();
@@ -279,6 +280,99 @@ async fn incident_native_compact_with_shell_and_child_completions() {
             assert!(seen.iter().filter(|(kind, _)| kind.starts_with("parent-")).any(|(_, request)| request["input"].to_string().contains(marker)), "result was never delivered: {marker}");
         }
         eprintln!("incident manual compact: shell completed during summary, child after summary; both assigned; one shell effect and one child request");
+
+        stage = "idle compact before queued input";
+        send_client(&mut client, &budget, Client::Request {
+            id: 22, location_epoch: 0, expected: None,
+            request: Box::new(Request::CompactSession { session: session.clone() }),
+        }).await;
+        let (id, reply) = next_reply(&mut client, &budget).await;
+        assert_eq!(id, 22);
+        let idle = serde_json::from_value::<Result<CompactionSnapshot, CoreError>>(reply?).unwrap()?;
+        let (kind, _) = requests.recv().await.unwrap();
+        assert_eq!(kind, "summary");
+
+        stage = "durable queue acknowledgement during summary";
+        send_client(&mut client, &budget, Client::Request {
+            id: 23, location_epoch: 0, expected: None,
+            request: Box::new(Request::Enqueue {
+                session: session.clone(), text: "AFTER_COMPACT_PROMPT".into(),
+                delivery: oc_core::queries::InboxDelivery::Queue, selection: None,
+            }),
+        }).await;
+        let (id, reply) = next_reply(&mut client, &budget).await;
+        assert_eq!(id, 23);
+        let item = serde_json::from_value::<Result<oc_core::queries::InboxItem, CoreError>>(reply?).unwrap()?;
+        assert_eq!(owner.db.inbox_pending(&session.0).unwrap(), [item]);
+        assert!(requests.try_recv().is_err(), "queued input must wait for compaction");
+
+        stage = "command admission held across summary completion";
+        send_client(&mut client, &budget, Client::Request {
+            id: 24, location_epoch: 0, expected: None,
+            request: Box::new(Request::Enqueue {
+                session: session.clone(), text: "/after ARG".into(),
+                delivery: oc_core::queries::InboxDelivery::Queue, selection: None,
+            }),
+        }).await;
+        while !project.join("command-started").exists() {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        summary_release.notify_one();
+        loop {
+            let event = match events.recv().await.unwrap() { CoreEvent::Projection { event, .. } => *event, event => event };
+            if matches!(event, CoreEvent::Compaction(snapshot) if snapshot.id == idle.id && snapshot.state == CompactionState::Completed) {
+                break;
+            }
+        }
+        assert_eq!(owner.db.inbox_pending(&session.0).unwrap().len(), 1);
+        std::fs::write(project.join("release-command"), "").unwrap();
+        let (id, reply) = next_reply(&mut client, &budget).await;
+        assert_eq!(id, 24);
+        let command = serde_json::from_value::<Result<oc_core::queries::InboxItem, CoreError>>(reply?).unwrap()?;
+        assert_eq!(command.text, "/after ARG");
+
+        stage = "post-compaction queue drain";
+        let mut completed = 0;
+        while completed < 2 {
+            let event = match events.recv().await.unwrap() { CoreEvent::Projection { event, .. } => *event, event => event };
+            match event {
+                CoreEvent::TurnFinished { session: finished, .. } if finished == session => completed += 1,
+                CoreEvent::TurnFailed { error, .. } => panic!("queued turn failed: {error}"),
+                _ => {}
+            }
+        }
+        owner.next_root().await.unwrap();
+        assert!(owner.db.inbox_pending(&session.0).unwrap().is_empty());
+        for expected in ["AFTER_COMPACT_PROMPT", "EXPANDED ARG CAPTURED"] {
+            let (kind, body) = requests.recv().await.unwrap();
+            assert!(kind.starts_with("parent-"));
+            let input = body["input"].to_string();
+            assert!(input.contains("COMPACTED_CONTEXT") && input.contains(expected), "{expected}: {input}");
+        }
+        let history = owner.db.read_history(&session.0).unwrap();
+        for text in ["AFTER_COMPACT_PROMPT", "/after ARG"] {
+            assert_eq!(history.iter().filter(|(role, value)| role == "user" && value == text).count(), 1);
+        }
+        assert_eq!(std::fs::read(project.join("command-effect")).unwrap(), b"x");
+
+        stage = "next ordinary submission on the same connection";
+        send_client(&mut client, &budget, Client::Request {
+            id: 25, location_epoch: 0, expected: None,
+            request: Box::new(Request::Submit {
+                session: session.clone(), text: "STILL_USABLE".into(), selection: None,
+            }),
+        }).await;
+        let (id, reply) = next_reply(&mut client, &budget).await;
+        assert_eq!(id, 25);
+        let next = serde_json::from_value::<Result<oc_core::core_app::WorkerTurnId, CoreError>>(reply?).unwrap()?;
+        let (_, body) = requests.recv().await.unwrap();
+        assert!(body["input"].to_string().contains("STILL_USABLE"));
+        loop {
+            let event = match events.recv().await.unwrap() { CoreEvent::Projection { event, .. } => *event, event => event };
+            if matches!(event, CoreEvent::TurnFinished { turn, .. } if turn == next) { break; }
+        }
+        owner.next_root().await.unwrap();
+        assert!(requests.try_recv().is_err(), "no replay or extra provider request");
         active
     }).await;
     if outcome.is_err() {
@@ -309,6 +403,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
     child_release.notify_one();
     summary_release.notify_one();
     std::fs::write(project.join("release-shell"), "").unwrap();
+    std::fs::write(project.join("release-command"), "").unwrap();
     drop(client);
     assert!(connection.await.unwrap().is_none());
     owner.shutdown().await.unwrap();
@@ -318,7 +413,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
         outcome
             .expect("native compact lifecycle finishes within 20 seconds")
             .is_ok(),
-        "native /compact must queue on the active root, not return TurnBusy"
+        "native /compact and its queued input must complete without a busy refusal"
     );
 }
 

@@ -32,6 +32,7 @@
 ## Проверки и debug
 
 - Developer loop: правка → relevant regression tests → scoped Clippy → review diff. Цель прогретого цикла — секунды/десятки секунд.
+- Build/test/Clippy — 4 потока: `CARGO_BUILD_JOBS=4`; для `cargo test` — `-- --test-threads=4`, для nextest — `NEXTEST_TEST_THREADS=4`. Cargo-команды не запускать параллельно.
 - После падения запускай только упавший/затронутый срез, не весь suite. Full offline gate `bash scripts/test.sh` — один раз перед интеграционной приёмкой, не на каждой итерации.
 - Ускоряй fixtures и их выполнение, не отключая tests/lints/guards и не меняя baseline, assertions, deadlines или нагрузку ради зелёного. Тест >30s или прогретый gate >10min требует диагностики; единственное согласованное исключение описано в TEST_PLAN.
 - Live-dev: `cargo build -p oc2 --bin oc2 --locked --release`; binary из проверок подходит. Сообщи путь `target/release/oc2`.

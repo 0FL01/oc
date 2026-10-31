@@ -27,9 +27,6 @@ pub(super) fn start_side<'a>(
         if &session != root {
             return Err(CoreError::TurnBusy);
         }
-        if !runtime.inbox_running(&session.0) {
-            return Err(CoreError::TurnNotActive);
-        }
         inbox_session(db, runtime, &session)?;
         let payload = inbox::payload(composition, runtime.generation_id(), text)?;
         let current = selection::for_turn(db, composition, effective, &session.0)?;
@@ -131,9 +128,10 @@ pub(super) fn start_side<'a>(
             Ok(item)
         }
         .await;
+        let accepted = result.is_ok();
         let _ = ack.send(result.map_err(|error| if has_command_interpolation {
             app_error(format!("Command input was not accepted: {error}. Effects may have occurred; Settings → Interrupted commands. Nothing resent."))
         } else { error }));
-        false
+        accepted
     }))
 }
