@@ -1744,12 +1744,10 @@ async fn v05_review_chip_trim_keeps_visible_and_submitted_draft_in_sync() {
     use oc_core::core_app::InboxMsg;
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("chip-trim"));
-    let outcome = state.handle_paste("a\nb\nc\n");
-    assert!(
-        outcome
-            .note
-            .as_deref()
-            .is_some_and(|n| n.contains("trimmed"))
+    let outcome = state.handle_paste("a\r\nb\r\nc\r\n");
+    assert_eq!(
+        outcome.note, None,
+        "OC2 trims and normalizes pasted text silently"
     );
     assert_eq!(state.input(), "a\nb\nc");
     assert_eq!(state.prompt_layout(80).0[0].text, "[Pasted ~3 lines] ");
@@ -2021,7 +2019,7 @@ async fn v05_review_trimmed_chip_edit_during_pending_keeps_receipt_immutable() {
     use oc_core::core_app::InboxMsg;
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app, sid("trimmed-pending"));
-    assert!(state.handle_paste("a\nb\nc\n").note.is_some());
+    assert_eq!(state.handle_paste("a\nb\nc\n").note, None);
     state.handle_key(KeyAction::Enter).await;
     let Some(InboxMsg::Submit { text, ack, .. }) = inbox.recv().await else {
         panic!("submission")

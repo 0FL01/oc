@@ -2677,21 +2677,11 @@ impl TuiState {
             self.slash_selected = 0;
             self.mention_selected = 0;
         }
+        // Like OC2, control filtering, CRLF normalization and chip trimming stay silent.
         let mut notes = Vec::new();
         if exceeded || clean.len() > paste.inserted + paste.trimmed {
             notes.push(format!(
                 "paste truncated: {dropped} bytes dropped at the {MAX_INPUT_BYTES} byte input limit"
-            ));
-        } else if text.len() > clean.len() {
-            notes.push(format!(
-                "paste filtered: {} control/newline-normalization bytes",
-                text.len() - clean.len()
-            ));
-        }
-        if paste.trimmed > 0 {
-            notes.push(format!(
-                "paste chip trimmed: {} surrounding whitespace bytes removed",
-                paste.trimmed
             ));
         }
         if paste.inserted > 0

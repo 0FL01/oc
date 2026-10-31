@@ -1457,14 +1457,14 @@ fn v05_review_raw_chip_trim_matches_visible_draft_and_wire() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(fixture.clone(), "v05-chip-trim", None);
     pty.wait_visible(READY, DEADLINE);
-    pty.send(b"\x1b[200~a\nb\nc\n\x1b[201~");
+    pty.send(b"\x1b[200~a\r\nb\r\nc\r\n\x1b[201~");
     wait_screen_row(&pty, "[Pasted ~3 lines]", DEADLINE);
     assert!(
-        render_screen(&pty.snapshot())
+        !render_screen(&pty.snapshot())
             .rows()
             .iter()
-            .any(|r| r.contains("paste chip trimmed")),
-        "trimming hidden terminal paste whitespace must be observable"
+            .any(|r| r.contains("paste chip trimmed") || r.contains("paste filtered")),
+        "OC2 trims and normalizes terminal paste silently"
     );
     pty.send(b"Z\r\r");
     let requests = fixture.wait_requests(1);
