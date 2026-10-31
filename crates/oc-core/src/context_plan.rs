@@ -242,6 +242,19 @@ pub struct ProtectedSpec {
     pub file_globs: Vec<String>,
     /// Stable message IDs retained verbatim by runtime turn protection.
     pub protected_message_ids: std::collections::BTreeSet<String>,
+    /// Runtime-authored durable notices stored as user-role history. They are
+    /// not user input, so user-message protection skips them (upstream skips
+    /// ignored user messages; OC2 keeps them as synthetic session messages).
+    pub notice_message_ids: std::collections::BTreeSet<String>,
+}
+
+impl ProtectedSpec {
+    /// True for user input kept verbatim by `protect_user_messages`.
+    pub fn protects_user_message(&self, message: &Message) -> bool {
+        self.protect_user_messages
+            && matches!(message.role, crate::session::Role::User)
+            && !self.notice_message_ids.contains(&message.id.0)
+    }
 }
 
 /// True when a message carries protected content under `spec`.
@@ -249,7 +262,7 @@ pub fn message_protected(spec: &ProtectedSpec, message: &Message) -> bool {
     if spec.protected_message_ids.contains(&message.id.0) {
         return true;
     }
-    if spec.protect_user_messages && matches!(message.role, crate::session::Role::User) {
+    if spec.protects_user_message(message) {
         return true;
     }
     if spec.protect_tags && extract_protect_tags(&message.text).next().is_some() {

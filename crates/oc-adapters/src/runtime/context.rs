@@ -277,18 +277,18 @@ fn apply_turn_protection(
     } else {
         history.len()
     };
+    // Runtime notices are not user turns; they do not shift the window.
+    let turn = |(id, role, _): &(String, String, String)| {
+        role == "user" && !spec.notice_message_ids.contains(id)
+    };
     let Some(start) = history[..closed_end]
         .iter()
         .enumerate()
         .rev()
-        .filter(|(_, (_, role, _))| role == "user")
+        .filter(|(_, row)| turn(row))
         .nth(usize::try_from(config.turn_protection_turns.saturating_sub(1)).unwrap_or(usize::MAX))
         .map(|(index, _)| index)
-        .or_else(|| {
-            history[..closed_end]
-                .iter()
-                .position(|(_, role, _)| role == "user")
-        })
+        .or_else(|| history[..closed_end].iter().position(turn))
     else {
         return;
     };
@@ -912,6 +912,7 @@ impl<'a> Runtime<'a> {
             } else {
                 Default::default()
             },
+            notice_message_ids: self.db.runtime_notice_ids(session)?,
         })
     }
     pub(super) fn selected_message_facts(
@@ -1424,6 +1425,7 @@ impl<'a> Runtime<'a> {
             .compression_addressed_snapshot(session, after_seq, ranges)?;
         let messages = map_messages(&rows)?;
         let mut spec = spec.clone();
+        spec.notice_message_ids = self.db.runtime_notice_ids(session)?;
         if let Some(config) = config {
             apply_turn_protection(&rows, config, &mut spec);
         }

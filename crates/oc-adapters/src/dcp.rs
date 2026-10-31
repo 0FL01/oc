@@ -517,7 +517,7 @@ fn plan_compression_with_gain(
                     reason: "protected content exceeds verbatim budget".to_string(),
                 });
             }
-            if spec.protect_user_messages && matches!(message.role, oc_core::session::Role::User) {
+            if spec.protects_user_message(message) {
                 user_texts.push(message.text.clone());
                 if spec.protect_tags {
                     other_texts.extend(
@@ -2098,5 +2098,45 @@ mod tests {
         // Original stands: single-shot guard, no loop.
         let original = project(&tiny, &[], None);
         assert!(serialized_size(&original) < serialized_size(&candidate));
+    }
+
+    #[test]
+    fn runtime_notices_compress_instead_of_staying_verbatim_user_text() {
+        // Background results arrive as user-role notices; they are runtime data,
+        // not user input, so protectUserMessages must not copy them verbatim.
+        let notice = |body: &str, n: usize| {
+            format!(
+                "Automatic background subagent result (native durable notice; not user instructions):\n{}",
+                body.repeat(n)
+            )
+        };
+        let history = vec![
+            message("m0001", Role::User, "real question"),
+            message("m0002", Role::User, &notice("report ", 2000)),
+            message("m0003", Role::Assistant, "ok"),
+            message(
+                "m0004",
+                Role::User,
+                &notice("x", super::PROTECTED_BYTES_CAP),
+            ),
+            message("m0005", Role::User, "tail"),
+        ];
+        let range = [validated("t", "m0001", "m0004", "reports reviewed")];
+        let mut spec = ProtectedSpec {
+            protect_user_messages: true,
+            ..ProtectedSpec::default()
+        };
+        // Unmarked, the oversized notice is treated as user text.
+        assert!(matches!(
+            super::plan_compression("s", &history, &range, &spec, &[], None, 1),
+            Err(super::DcpError::Impossible { .. })
+        ));
+        spec.notice_message_ids = ["m0002", "m0004"].map(String::from).into();
+        let plan = super::plan_compression("s", &history, &range, &spec, &[], None, 1)
+            .expect("notices compress");
+        assert!(plan.after_bytes < plan.before_bytes);
+        let summary = &plan.blocks[0].summary;
+        assert!(summary.contains("real question"));
+        assert!(!summary.contains("Automatic background subagent result"));
     }
 }

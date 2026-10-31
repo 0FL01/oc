@@ -712,6 +712,33 @@ fn actual_concurrent_conversion_and_terminal_share_the_existing_transaction_owne
     );
 }
 
+#[test]
+fn delivered_notice_is_not_a_protected_user_turn() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    admitted(&db);
+    let user = db
+        .append_message("parent", "user", "real question")
+        .unwrap();
+    db.append_message("parent", "assistant", "answer").unwrap();
+    db.finish_child_job("launch", ChildState::Completed, "report")
+        .unwrap();
+    let notice = db.deliver_child_notices().unwrap().remove(0);
+    let notice_id = notice.job.message_id.clone().unwrap();
+    db.append_message("parent", "assistant", "after notice")
+        .unwrap();
+    // Only the job link marks a notice; identical typed text stays user input.
+    let spoof = db
+        .append_message("parent", "user", &child_notice_text(&db, &notice))
+        .unwrap();
+    db.append_message("parent", "assistant", "ok").unwrap();
+    assert_eq!(db.runtime_notice_ids("parent").unwrap(), [notice_id].into());
+    assert_eq!(
+        db.recent_completed_user_ids("parent", 8).unwrap(),
+        vec![spoof, user]
+    );
+}
+
 fn admitted(db: &Db) -> ChildJob {
     admitted_input(db, "{\"background\":true}")
 }

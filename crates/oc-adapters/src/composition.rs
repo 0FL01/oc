@@ -915,6 +915,7 @@ async fn load_stages(
         protect_tags: dcp_config.protect_tags,
         file_globs: dcp_config.protected_file_patterns.clone(),
         protected_message_ids: BTreeSet::new(),
+        notice_message_ids: BTreeSet::new(),
     };
     let LocalSettings {
         selected,

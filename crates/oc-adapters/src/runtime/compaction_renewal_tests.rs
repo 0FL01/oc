@@ -34,7 +34,7 @@ fn native_report_fixture(db: &Db) -> (String, String) {
     db.finish_child_job(
         "launch",
         oc_core::queries::ChildState::Completed,
-        "FULL_REPORT",
+        "<protect>FULL_REPORT</protect>",
     )
     .unwrap();
     let notice = db
@@ -56,9 +56,22 @@ fn protected_checkpoint_report_is_assigned_only_when_emitted_and_never_duplicate
         let (_, notice) = native_report_fixture(&db);
         let runtime = runtime(&db, project.path(), Generation::default());
         runtime.update_execution(|view| view.dcp_config.protect_user_messages = true);
+        let users_only = runtime.current.read().unwrap().dcp_config.clone();
+        runtime.update_execution(|view| view.dcp_config.protect_tags = true);
         let captured = runtime.current.read().unwrap().dcp_config.clone();
-        runtime.update_execution(|view| view.dcp_config.protect_user_messages = false);
+        runtime.update_execution(|view| {
+            view.dcp_config.protect_user_messages = false;
+            view.dcp_config.protect_tags = false;
+        });
         let before = runtime.active_projection("s").unwrap();
+        // A runtime notice is not user input: only its own <protect> keeps it.
+        assert!(
+            !runtime
+                .selected_message_facts("s", &before.projected, &before.blocks, &users_only)
+                .unwrap()
+                .iter()
+                .any(|fact| fact["protected_message"]["id"] == notice)
+        );
         let facts = runtime
             .selected_message_facts("s", &before.projected, &before.blocks, &captured)
             .unwrap();

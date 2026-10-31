@@ -8,6 +8,11 @@ pub(super) const SNAPSHOT_CAP: usize = 16 * 1024;
 pub const SUMMARY_PAGE_CAP: usize = 8192;
 const INVALID_HOT: &str = "hot IS NOT NULL AND CASE WHEN json_valid(hot) THEN COALESCE(json_extract(hot,'$.version')!=1,1) OR COALESCE(json_type(hot,'$.active') NOT IN ('true','false'),1) OR COALESCE(json_type(hot,'$.standalone') NOT IN ('true','false'),1) ELSE 1 END";
 
+/// Runtime-authored durable notices delivered as user-role history (background
+/// subagent/shell/execute results). They are not user input; the job row's
+/// `message_id` is the structural marker, never the notice text.
+const RUNTIME_NOTICE_IDS: &str = "SELECT message_id FROM child_jobs WHERE parent_id=?1 AND message_id IS NOT NULL UNION SELECT message_id FROM shell_jobs WHERE session_id=?1 AND message_id IS NOT NULL UNION SELECT message_id FROM execute_jobs WHERE session_id=?1 AND message_id IS NOT NULL";
+
 pub(super) fn decode(raw: Option<String>) -> Option<DcpRunSnapshot> {
     raw.filter(|raw| raw.len() <= SNAPSHOT_CAP)
         .and_then(|raw| serde_json::from_str(&raw).ok())
@@ -151,7 +156,17 @@ impl Db {
             return Err(StorageError::CompressionConflict);
         }
         let conn = self.conn.lock().expect("db mutex");
-        Ok(conn.prepare("SELECT m.id FROM conversation_messages m WHERE m.session_id=?1 AND m.role='user' AND (EXISTS(SELECT 1 FROM turn_acceptances a JOIN conversation_turns t ON t.id=a.turn_id WHERE a.user_message=m.id AND t.status='completed') OR EXISTS(SELECT 1 FROM conversation_messages z WHERE z.session_id=m.session_id AND z.role='assistant' AND z.seq>m.seq AND z.seq<COALESCE((SELECT MIN(seq) FROM conversation_messages n WHERE n.session_id=m.session_id AND n.role='user' AND n.seq>m.seq),9223372036854775807))) ORDER BY m.seq DESC LIMIT ?2")?.query_map(params![session,count as i64],|r|r.get(0))?.collect::<Result<Vec<_>,_>>()?)
+        Ok(conn.prepare(&format!("SELECT m.id FROM conversation_messages m WHERE m.session_id=?1 AND m.role='user' AND m.id NOT IN ({RUNTIME_NOTICE_IDS}) AND (EXISTS(SELECT 1 FROM turn_acceptances a JOIN conversation_turns t ON t.id=a.turn_id WHERE a.user_message=m.id AND t.status='completed') OR EXISTS(SELECT 1 FROM conversation_messages z WHERE z.session_id=m.session_id AND z.role='assistant' AND z.seq>m.seq AND z.seq<COALESCE((SELECT MIN(seq) FROM conversation_messages n WHERE n.session_id=m.session_id AND n.role='user' AND n.seq>m.seq AND n.id NOT IN ({RUNTIME_NOTICE_IDS})),9223372036854775807))) ORDER BY m.seq DESC LIMIT ?2"))?.query_map(params![session,count as i64],|r|r.get(0))?.collect::<Result<Vec<_>,_>>()?)
+    }
+    pub(crate) fn runtime_notice_ids(
+        &self,
+        session: &str,
+    ) -> Result<std::collections::BTreeSet<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Ok(conn
+            .prepare_cached(RUNTIME_NOTICE_IDS)?
+            .query_map([session], |r| r.get(0))?
+            .collect::<Result<_, _>>()?)
     }
     /// Before a policy drops selected payload, capture only the causal identities
     /// of the admitted active wire. No call arguments, media or RAW pages transfer.
