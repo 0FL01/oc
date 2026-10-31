@@ -29,3 +29,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Config command arguments
+
+The configured-command argument parsing and substitution in
+`crates/oc-adapters/src/runtime.rs` is adapted from
+`packages/core/src/config/plugin/command.ts` at upstream tree
+`ed74ec82ce1fe3a36da6c0815a935473ef4bb0fb`. Copyright (c) 2025 opencode;
+the MIT notice above applies.

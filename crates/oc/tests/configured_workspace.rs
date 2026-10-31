@@ -378,7 +378,7 @@ fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
         "```\n",
         "all=<value$2 second>\n",
         "one=<value$2>\n",
-        "two=<second>\n"
+        "two=<second>"
     );
     assert!(
         expected_command.contains("all=<value$2 second>")

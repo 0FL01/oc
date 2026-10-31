@@ -872,6 +872,98 @@ pub fn expand_command(body: &str, args: &[String]) -> Result<String, RuntimeErro
     Ok(out)
 }
 
+/// Expand an admitted config command using OC2's argument ordering and quoting.
+pub(crate) fn expand_configured_command(body: &str, input: &str) -> Result<String, RuntimeError> {
+    use std::sync::LazyLock;
+
+    static ARGS: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(concat!(
+            r#"(?i:\[image[\x09-\x0d \u{00a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]+[0-9]+\])"#,
+            r#"|"[^"]*"|'[^']*'|[^\x09-\x0d \u{00a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}"']+"#,
+        ))
+        .expect("command arguments pattern")
+    });
+    static POSITIONAL: LazyLock<regex::Regex> =
+        LazyLock::new(|| regex::Regex::new(r"\$[0-9]+").expect("command positional pattern"));
+
+    fn push(out: &mut String, text: &str) -> Result<(), RuntimeError> {
+        if text.len() > COMMAND_BYTES_CAP.saturating_sub(out.len()) {
+            return Err(RuntimeError::InvalidArgs(
+                "expanded command too large".into(),
+            ));
+        }
+        out.push_str(text);
+        Ok(())
+    }
+
+    fn whitespace(c: char) -> bool {
+        matches!(c, '\u{0009}'..='\u{000d}' | ' ' | '\u{00a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}')
+    }
+
+    if body.len() > COMMAND_BYTES_CAP || input.len() > COMMAND_BYTES_CAP {
+        return Err(RuntimeError::InvalidArgs("command input too large".into()));
+    }
+    let args: Vec<&str> = ARGS
+        .find_iter(input)
+        .map(|part| {
+            let arg = part.as_str();
+            let arg = arg
+                .strip_prefix('"')
+                .or_else(|| arg.strip_prefix('\''))
+                .unwrap_or(arg);
+            arg.strip_suffix('"')
+                .or_else(|| arg.strip_suffix('\''))
+                .unwrap_or(arg)
+        })
+        .collect();
+    let position = |part: &str| part[1..].parse::<usize>().unwrap_or(usize::MAX);
+    let last = POSITIONAL
+        .find_iter(body)
+        .map(|part| position(part.as_str()))
+        .max();
+    let mut expanded = String::new();
+    let mut end = 0;
+    for part in POSITIONAL.find_iter(body) {
+        push(&mut expanded, &body[end..part.start()])?;
+        let index = position(part.as_str());
+        if index == 0 && last == Some(0) {
+            if let Some(arg) = args.last() {
+                push(&mut expanded, arg)?;
+            }
+        } else if index == 0 {
+            push(&mut expanded, "undefined")?;
+        } else if index <= args.len() {
+            if Some(index) == last {
+                for (offset, arg) in args[index - 1..].iter().enumerate() {
+                    if offset > 0 {
+                        push(&mut expanded, " ")?;
+                    }
+                    push(&mut expanded, arg)?;
+                }
+            } else {
+                push(&mut expanded, args[index - 1])?;
+            }
+        }
+        end = part.end();
+    }
+    push(&mut expanded, &body[end..])?;
+
+    let mut out = String::new();
+    let mut end = 0;
+    for (start, _) in expanded.match_indices("$ARGUMENTS") {
+        push(&mut out, &expanded[end..start])?;
+        push(&mut out, input)?;
+        end = start + "$ARGUMENTS".len();
+    }
+    push(&mut out, &expanded[end..])?;
+    if last.is_none() && !body.contains("$ARGUMENTS") && !input.trim_matches(whitespace).is_empty()
+    {
+        push(&mut out, "\n\n")?;
+        push(&mut out, input)?;
+    }
+    Ok(out.trim_matches(whitespace).to_owned())
+}
+
 /// Terminal turn status persisted to storage.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TurnStatus {

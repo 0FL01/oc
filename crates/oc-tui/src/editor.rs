@@ -492,10 +492,9 @@ impl Editor {
     }
 
     /// Capture only the markers inside the text submitted by the owner.
-    pub fn submitted_mentions(&self, draft: &str) -> Vec<(usize, usize)> {
-        let trimmed = draft.trim();
-        let start = trimmed.as_ptr() as usize - draft.as_ptr() as usize;
-        let end = start + trimmed.len();
+    pub(crate) fn submitted_mentions(&self, draft: &str, submitted: &str) -> Vec<(usize, usize)> {
+        let start = draft.len() - draft.trim_start().len();
+        let end = start + submitted.len();
         self.mentions
             .iter()
             .filter(|&&(a, b)| a >= start && b <= end)
@@ -1329,7 +1328,7 @@ mod tests {
         let mut editor = Editor::default();
         let mut text = "  @file.rs  ".to_string();
         editor.mark_file_mention(2, 10, &text);
-        let marks = editor.submitted_mentions(&text);
+        let marks = editor.submitted_mentions(&text, text.trim());
         assert_eq!(marks, vec![(0, 8)]);
         editor.accepted_mentions("@file.rs", marks);
         text.clear();

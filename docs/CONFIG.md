@@ -622,9 +622,13 @@ profile files are introduced. Executable examples change only when implementatio
 this approval does not prove runtime support or change progress statuses.
 
 Command body/description, `$ARGUMENTS`/positional expansion and durable original/expanded
-input remain. T45/R3 supersedes subagent/subtask and child-background exclusions with
-pinned agent/model/route precedence and background child admission; supported shell
-interpolation follows the pinned contract, never runs in the loader or again on replay.
+input remain. Configured commands substitute `$ARGUMENTS` with the original argument
+string; quoted positionals are grouped and the highest numbered positional receives
+the remaining arguments. Without an argument placeholder, nonempty arguments are
+appended to the body. Shell interpolation is not implemented: ``!`command` `` remains
+literal prompt text, unlike OC2 TS. T45/R3 supersedes subagent/subtask and
+child-background exclusions with pinned agent/model/route precedence and background
+child admission.
 Reserved collisions, arbitrary recursive/direct tool execution and unsupported
 file/URL/late-env includes remain explicit failures. Omitted context_message_ids
 preserves OC2 delegation; the optional model-tool field attaches exact quoted parent

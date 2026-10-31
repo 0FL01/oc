@@ -1627,6 +1627,34 @@ async fn aud33_paste_is_never_silently_cut_below_the_input_budget() {
 }
 
 #[tokio::test]
+async fn workspace_command_keeps_argument_tail_and_mention_on_recall() {
+    let (app, guard) = CoreApp::spawn(MockProvider::echo());
+    let session = sid("command-mention-recall");
+    app.create_session(session.clone()).await.unwrap();
+    let mut state = TuiState::new(app.clone(), session);
+    let mut catalog = snapshot();
+    catalog.commands.push("check".into());
+    state.apply_catalog(catalog);
+    state.handle_paste("  /check  @файл.rs  ");
+    let start = state.input.find('@').unwrap();
+    let end = start + "@файл.rs".len();
+    state.editor.mark_file_mention(start, end, &state.input);
+    state.handle_key(KeyAction::Enter).await;
+    await_submission(&mut state).await;
+    assert_eq!(state.window.rows()[0].text, "/check  @файл.rs  ");
+    assert!(state.recall_history(true).await.unwrap());
+    settle_history(&mut state).await;
+    assert_eq!(state.input, "/check  @файл.rs  ");
+    let submitted = state.input.find('@').unwrap();
+    assert_eq!(
+        state.editor.submitted_mentions(&state.input, &state.input),
+        vec![(submitted, submitted + "@файл.rs".len())]
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn accepted_text_only_mention_recalled_in_same_session() {
     let (app, guard) = CoreApp::spawn(MockProvider::echo());
     let session = sid("mention-recall");

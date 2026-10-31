@@ -3153,6 +3153,42 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
 }
 
 #[test]
+fn global_check_command_expands_from_tui() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let commands = fixture.root.path().join("home/config/opencode/commands");
+    std::fs::create_dir_all(&commands).expect("global commands");
+    std::fs::write(
+        commands.join("check.md"),
+        "---\ndescription: Check arguments\n---\nCheck [$ARGUMENTS]\n",
+    )
+    .expect("global command");
+
+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], None);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    pty.send(b"/che");
+    wait_screen_row(&pty, " /check  ", DEADLINE);
+    pty.send(b"\t");
+    pty.send(b" alpha  'beta gamma'  \r");
+    let requests = fixture.wait_requests(1);
+    assert_eq!(
+        last_user_text(&requests[0]).as_deref(),
+        Some("Check [ alpha  'beta gamma'  ]")
+    );
+    wait_idle(&pty);
+    let deck: serde_json::Value =
+        serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+    let root = deck["active"].as_str().expect("accepted root").to_owned();
+    quit(&mut pty);
+
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    assert_eq!(
+        db.read_history(&root).unwrap()[0],
+        ("user".into(), "/check  alpha  'beta gamma'  ".into())
+    );
+}
+
+#[test]
 fn bare_home_review_completion_submits_pinned_prompt_and_keeps_invocation_on_same_tab() {
     let fixture = Fixture::new();
     let project = fixture.project_a();

@@ -397,13 +397,49 @@ mod review_tests {
         assert_eq!(
             resolve_submission(&composition, "/review   one  two ".into()).unwrap(),
             (
-                "local one; all: one two".into(),
+                "local one two; all:   one  two".into(),
                 Some("/review   one  two ".into())
             )
         );
         assert_eq!(
             resolve_submission(&composition, "/something else".into()).unwrap(),
             ("/something else".into(), None)
+        );
+    }
+
+    #[test]
+    fn command_template_matches_oc2_argument_expansion() {
+        use crate::runtime::{COMMAND_BYTES_CAP, expand_configured_command};
+
+        for (template, input, expected) in [
+            ("Check project", "topic", "Check project\n\ntopic"),
+            ("all=<$ARGUMENTS>", " a  'b c' ", "all=< a  'b c' >"),
+            (
+                "$1 / $2",
+                "'alpha beta' gamma delta",
+                "alpha beta / gamma delta",
+            ),
+            ("$1", "one two", "one two"),
+            ("$2", "one", ""),
+            ("$10", "1 2 3 4 5 6 7 8 9 ten more", "ten more"),
+            ("$1 / $2", "[Image 1] other", "[Image 1] / other"),
+            (
+                "$1 / $ARGUMENTS",
+                "'$ARGUMENTS'",
+                "'$ARGUMENTS' / '$ARGUMENTS'",
+            ),
+            ("$ARGUMENTS / $ARGUMENTS", "$& $$", "$& $$ / $& $$"),
+            (" $0 ", "first last", "last"),
+        ] {
+            assert_eq!(
+                expand_configured_command(template, input).unwrap(),
+                expected,
+                "template {template:?}, input {input:?}"
+            );
+        }
+        assert!(
+            expand_configured_command("$ARGUMENTS$ARGUMENTS", &"x".repeat(COMMAND_BYTES_CAP))
+                .is_err()
         );
     }
 

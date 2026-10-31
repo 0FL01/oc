@@ -269,10 +269,12 @@ Only metadata enters automatic context; explicit `skill` loading still obeys
 per-ID Allow/Ask/Deny and ordinary user output limits.
 
 Commands use `.opencode/{command,commands}/<id>.md`, optional description and
-literal prompt text with `$ARGUMENTS`/positional expansion. Agent/model/subagent
-routing follows the admitted command/profile definitions. Supported shell
-interpolation runs only during authorized invocation, never config loading or
-replay. Do not add arbitrary file/URL/late-env includes or reserved command IDs.
+literal prompt text with `$ARGUMENTS`/positional expansion. `$ARGUMENTS` preserves
+the argument string, quoted positionals are grouped, and without placeholders
+nonempty arguments are appended to the body. Agent/model/subagent routing follows
+the admitted command/profile definitions. Shell interpolation is not implemented:
+``!`command` `` remains literal prompt text, unlike OC2 TS. Do not add arbitrary
+file/URL/late-env includes or reserved command IDs.
 An `AGENTS.md` is scoped guidance, not a replacement for permission configuration;
 keep its configuration pointer short rather than copying this manual into it.
 

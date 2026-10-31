@@ -6314,16 +6314,16 @@ fn resolve_submission(
     let Some(template) = composition.commands.get(id) else {
         return Ok((text, None));
     };
-    let remainder = command[split..].trim();
     if id == "review" && composition.builtin_review {
+        let remainder = command[split..].trim();
         let expanded = crate::runtime::expand_command(template, &[remainder.to_string()])?;
         return Ok((expanded, Some(text)));
     }
-    let args = remainder
-        .split_whitespace()
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-    let expanded = crate::runtime::expand_command(template, &args)?;
+    let remainder = command[split..]
+        .chars()
+        .next()
+        .map_or("", |separator| &command[split + separator.len_utf8()..]);
+    let expanded = crate::runtime::expand_configured_command(template, remainder)?;
     Ok((expanded, Some(text)))
 }
 

@@ -1451,7 +1451,17 @@ impl TuiState {
                 .find(|entry| entry.id == agent)
                 .map(|entry| entry.color_index)
         });
-        let prompt = self.editor.prompt(&self.input).trimmed();
+        let mut prompt = self.editor.prompt(&self.input).trimmed();
+        if matches!(
+            purpose,
+            SubmissionPurpose::Turn | SubmissionPurpose::Inbox(_)
+        ) && self.is_workspace_command(self.input.trim_start())
+        {
+            prompt
+                .text
+                .push_str(&self.input[self.input.trim_end().len()..]);
+        }
+        let mentions = self.editor.submitted_mentions(&self.input, &prompt.text);
         PendingSubmission {
             selection: self.captured_model_commit(),
             request_id: self.request_id.wrapping_add(1),
@@ -1461,7 +1471,7 @@ impl TuiState {
             draft: crate::ComposerDraft::default(),
             source: prompt.text.as_str().into(),
             prompt,
-            mentions: self.editor.submitted_mentions(&self.input),
+            mentions,
             phase: SubmissionPhase::Failed(String::new()),
             purpose,
             promote: matches!(purpose, SubmissionPurpose::Empty)
