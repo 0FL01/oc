@@ -1,6 +1,7 @@
 //! History projection, viewport/selection hit tests and transcript copy.
 
 use super::*;
+use crossterm::event::KeyModifiers;
 
 pub(super) struct ChildNoticePress {
     target: crate::messages::CapturedChildTarget,
@@ -1235,7 +1236,14 @@ impl TuiState {
             .is_some_and(|selected| !selected.collapsed())
     }
 
+    #[cfg(test)]
     pub(super) fn selection_text(&self) -> Result<Option<String>, &'static str> {
+        self.selection_copy(false)
+    }
+
+    /// Plain rendered text, or whole raw Markdown source lines for rows drawn
+    /// from assistant text (`markdown_copy`).
+    fn selection_copy(&self, markdown: bool) -> Result<Option<String>, &'static str> {
         let Some((anchor, focus, widths)) = self.selection.borrow().as_ref().and_then(|selected| {
             (!selected.collapsed()).then(|| {
                 (
@@ -1250,24 +1258,58 @@ impl TuiState {
         let Some((rows, start, (from, to))) = self.selection_lines(widths, &anchor, &focus)? else {
             return Ok(None);
         };
-        crate::styled::copy_text(
-            MAX_SELECTION_BYTES,
-            rows.iter().enumerate().map(|(index, line)| {
-                let row = start + index;
-                let begin = if row == from.0 { from.1 } else { 0 };
-                let finish = if row == to.0 {
-                    to.1
-                } else {
-                    line.plain_text().len()
-                };
-                (line, begin, finish)
-            }),
-        )
+        let selected = rows.iter().enumerate().map(|(index, line)| {
+            let row = start + index;
+            let begin = if row == from.0 { from.1 } else { 0 };
+            let finish = if row == to.0 {
+                to.1
+            } else {
+                line.plain_text().len()
+            };
+            (line, begin, finish)
+        });
+        if markdown {
+            crate::markdown_copy::copy_markdown(MAX_SELECTION_BYTES, selected)
+        } else {
+            crate::styled::copy_text(MAX_SELECTION_BYTES, selected)
+        }
     }
 
-    pub(super) fn request_selection_copy(&mut self) {
+    /// The native `selection.copy.markdown` binding; empty disables it.
+    pub(super) fn copy_markdown_binding(&self) -> &str {
+        self.chrome
+            .copy_markdown_shortcut
+            .as_deref()
+            .unwrap_or("ctrl+x z")
+    }
+
+    /// The native `terminal.copy_markdown_modifier` (Alt unless configured).
+    fn markdown_modifier(&self) -> Option<KeyModifiers> {
+        match self
+            .chrome
+            .markdown_copy_modifier
+            .unwrap_or(oc_core::queries::MarkdownCopyModifier::Alt)
+        {
+            oc_core::queries::MarkdownCopyModifier::Alt => Some(KeyModifiers::ALT),
+            oc_core::queries::MarkdownCopyModifier::Ctrl => Some(KeyModifiers::CONTROL),
+            oc_core::queries::MarkdownCopyModifier::None => None,
+        }
+    }
+
+    /// A transcript press may start a selection plain or with exactly the
+    /// Markdown modifier; other modified presses keep their own meaning.
+    fn selection_press(&self, modifiers: KeyModifiers) -> bool {
+        modifiers.is_empty() || self.markdown_modifier() == Some(modifiers)
+    }
+
+    fn markdown_release(&self, modifiers: KeyModifiers) -> bool {
+        self.markdown_modifier()
+            .is_some_and(|markdown| modifiers.contains(markdown))
+    }
+
+    pub(super) fn request_selection_copy(&mut self, markdown: bool) {
         self.pending_copy = None;
-        match self.selection_text() {
+        match self.selection_copy(markdown) {
             Ok(Some(text)) => self.pending_copy = Some(text),
             Ok(None) => {}
             Err(error) => self.push_transient_note(error, NoteVariant::Error),
@@ -1276,7 +1318,7 @@ impl TuiState {
 
     pub(super) fn handle_transcript_selection(&mut self, event: MouseEvent, area: Rect) {
         let relevant = matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
-            && event.modifiers.is_empty()
+            && self.selection_press(event.modifiers)
             || matches!(event.kind, MouseEventKind::Down(MouseButton::Right))
                 && self.clipboard_mode == ClipboardMode::Manual
             || self.selection_gesture
@@ -1309,7 +1351,7 @@ impl TuiState {
                     }
                     self.update_selection_autoscroll(current, event.row, Instant::now());
                 }
-                MouseEventKind::Up(_) => self.finish_transcript_drag(),
+                MouseEventKind::Up(_) => self.finish_transcript_drag(event.modifiers),
                 _ => {}
             }
             return;
@@ -1327,9 +1369,9 @@ impl TuiState {
             {
                 self.selection_gesture = false;
                 self.click = None;
-                self.request_selection_copy();
+                self.request_selection_copy(self.markdown_release(event.modifiers));
             }
-            MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+            MouseEventKind::Down(MouseButton::Left) if self.selection_press(event.modifiers) => {
                 let Some((row, byte)) =
                     self.transcript_cell(&painted, area, event.column, event.row, false)
                 else {
@@ -1446,7 +1488,7 @@ impl TuiState {
                         selected.focus = point;
                     }
                 }
-                self.finish_transcript_drag();
+                self.finish_transcript_drag(event.modifiers);
             }
             MouseEventKind::Down(_) => {
                 self.selection_gesture = false;
@@ -1456,7 +1498,8 @@ impl TuiState {
         }
     }
 
-    fn finish_transcript_drag(&mut self) {
+    /// The release modifiers choose plain or raw Markdown copy.
+    fn finish_transcript_drag(&mut self, modifiers: KeyModifiers) {
         self.selection_gesture = false;
         self.selection_autoscroll = None;
         let dragged = self
@@ -1465,7 +1508,7 @@ impl TuiState {
             .as_mut()
             .is_some_and(|selected| std::mem::replace(&mut selected.dragging, false));
         if dragged && self.clipboard_mode == ClipboardMode::Select {
-            self.request_selection_copy();
+            self.request_selection_copy(self.markdown_release(modifiers));
         }
     }
 

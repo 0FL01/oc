@@ -324,6 +324,25 @@ automatically. Ordinary SSH/bracketed text paste does not transfer binary images
 The literal `[Image N]` marker carries a separate attachment; recalled text-only
 Up/Down history does not reattach images. Shell/slash commands refuse attachments.
 
+Copying transcript text as raw Markdown is a native extension (no upstream key).
+Releasing a mouse selection while the configured modifier is held copies the
+whole raw source lines of the selected assistant text; a partially selected
+fenced code block keeps its original fence lines, other rows (user messages,
+tools, headers) copy as plain text. In manual copy mode the modifier applies to
+the right-click. Runtime `opencode.json(c)` sets it beside `terminal.copy`:
+
+```jsonc
+{ "terminal": { "copy_markdown_modifier": "alt" } }
+```
+
+Values are `alt` (default), `ctrl` and `none` (mouse gesture off). iTerm2 uses
+Option to bypass mouse reporting, macOS Terminal/Ghostty use Option-drag for
+block selection, and some Linux window managers grab Alt-drag; there, select
+normally and press `keybinds["selection.copy.markdown"]` in `cli.jsonc`
+(default `"<leader>z"`, active only while a transcript selection exists; a
+string remaps it, `false` disables it). Table excerpts contain only the selected
+source rows, so a body-only excerpt is not a standalone table.
+
 ## Before finishing
 
 Review the exact authorized diff and actual post-reload behavior. Report the

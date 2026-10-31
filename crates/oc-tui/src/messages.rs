@@ -2157,6 +2157,11 @@ fn visit_assistant_indexed(
                 let mut lines = cache
                     .borrow_mut()
                     .render((seq, index, 0), preview, theme, width);
+                if let Some(row) = row {
+                    attach_markdown_source(&mut lines, &row.text, |range| {
+                        Some(range.start.min(end)..range.end.min(end))
+                    });
+                }
                 lines.push(Line::styled("   … [Live Markdown preview limited; full response available in history after completion]", Style::default().fg(theme.text_muted())));
                 lines
             });
@@ -2179,6 +2184,11 @@ fn visit_assistant_indexed(
                             source.push_str(open);
                             source.push('\n');
                         }
+                        // Synthetic page input maps back to the original part:
+                        // the repeated header/fence prefix has no source, and a
+                        // renumbered list marker shifts its own first line.
+                        let prefix = source.len();
+                        let mut marker = None;
                         let chunk = &text[page.start..page.end];
                         if let Some(segment) = &page.table_segment {
                             source.push_str(&segment.prefix);
@@ -2202,6 +2212,7 @@ fn visit_assistant_indexed(
                                 source.push_str(&number.to_string());
                                 let marker_len =
                                     chunk.lines().next().unwrap_or("").len() - rest.len();
+                                marker = Some((number.to_string().len() + 1, marker_len));
                                 source.push(chunk.as_bytes()[marker_len - 1] as char);
                                 source.push_str(&chunk[marker_len..]);
                             } else {
@@ -2276,6 +2287,25 @@ fn visit_assistant_indexed(
                                 lines.pop();
                             }
                         }
+                        if let Some(row) = row {
+                            let segment = page.table_segment.is_some();
+                            attach_markdown_source(&mut lines, &row.text, |range| {
+                                if segment {
+                                    return Some(page.start..page.end);
+                                }
+                                let original = |at: usize| {
+                                    let at = at.checked_sub(prefix)?;
+                                    let at = match marker {
+                                        Some((synthetic, _)) if at < synthetic => 0,
+                                        Some((synthetic, original)) => at - synthetic + original,
+                                        None => at,
+                                    };
+                                    Some((page.start + at).min(page.end))
+                                };
+                                let end = original(range.end)?;
+                                Some(original(range.start).unwrap_or(page.start)..end)
+                            });
+                        }
                         cache
                             .borrow_mut()
                             .update_page_height(geometry, number, lines.len());
@@ -2298,6 +2328,25 @@ fn visit_assistant_indexed(
         emit(2, true, &mut || {
             vec![Line::plain(""), sanitize_line(footer.clone())]
         });
+    }
+}
+
+/// Bind renderer-relative Markdown ranges to the assistant part that owns them;
+/// a row whose range cannot be mapped keeps no raw provenance.
+fn attach_markdown_source(
+    lines: &mut [Line],
+    source: &crate::history::SourceText,
+    map: impl Fn(std::ops::Range<usize>) -> Option<std::ops::Range<usize>>,
+) {
+    for line in lines {
+        let origin = line
+            .markdown()
+            .and_then(|origin| map(origin.range.clone()))
+            .map(|range| styled::MarkdownOrigin {
+                range,
+                source: Some(source.clone()),
+            });
+        *line = std::mem::take(line).with_markdown(origin);
     }
 }
 
@@ -5115,7 +5164,11 @@ fn markdown_block_with_spacing(
     {
         let mut spans = vec![pad.clone()];
         spans.extend(line.spans().iter().cloned());
-        out.push(Line::new(spans).with_copy(line.copy()));
+        out.push(
+            Line::new(spans)
+                .with_copy(line.copy())
+                .with_markdown(line.markdown().cloned()),
+        );
     }
     out
 }
@@ -5261,9 +5314,42 @@ fn wrap_markdown_line(line: Line, width: usize, limit: usize, list_item: bool) -
 #[derive(Default)]
 struct TableDraft {
     rows: Vec<Vec<Line>>,
+    /// Source bytes of each retained row, parallel to `rows`.
+    ranges: Vec<std::ops::Range<usize>>,
     row: Vec<Line>,
     header: bool,
     omitted: bool,
+}
+
+/// Rows appended since the last mark share `origin`: the source line range
+/// that produced them, or none for generated gaps, borders and labels.
+fn mark_rows(
+    origins: &mut Vec<Option<std::ops::Range<usize>>>,
+    rows: usize,
+    origin: Option<std::ops::Range<usize>>,
+) {
+    if rows > origins.len() {
+        origins.resize(rows, origin);
+    }
+}
+
+fn widen(origin: &mut Option<std::ops::Range<usize>>, range: std::ops::Range<usize>) {
+    *origin = Some(origin.take().map_or(range.clone(), |current| {
+        current.start.min(range.start)..current.end.max(range.end)
+    }));
+}
+
+/// Source byte ranges of the physical lines of a code block body.
+fn code_body_lines(text: &str, body: std::ops::Range<usize>) -> Vec<std::ops::Range<usize>> {
+    let mut offset = body.start;
+    text[body]
+        .split_inclusive('\n')
+        .map(|line| {
+            let start = offset;
+            offset += line.len();
+            start..start + line.trim_end_matches(['\n', '\r']).len()
+        })
+        .collect()
 }
 
 fn markdown_at_width(text: &str, theme: &Theme, width: usize) -> Vec<Line> {
@@ -5298,8 +5384,12 @@ fn markdown_at_width_with_spacing(
     let mut spans = Vec::new();
     let mut stack = Vec::new();
     let mut lists: Vec<Option<u64>> = Vec::new();
-    let mut code: Option<(String, String, usize)> = None;
+    let mut code: Option<(String, String, usize, usize)> = None;
     let mut table: Option<TableDraft> = None;
+    // Raw Markdown provenance, parallel to `out`; `origin` accumulates the
+    // physical source line of the pending inline spans.
+    let mut origins: Vec<Option<std::ops::Range<usize>>> = Vec::new();
+    let mut origin: Option<std::ops::Range<usize>> = None;
     let mut previous_end = 0;
     let mut depth = 0usize;
     let mut truncated = false;
@@ -5328,11 +5418,15 @@ fn markdown_at_width_with_spacing(
             }
             after_heading = false;
         }
+        mark_rows(&mut origins, out.len(), None);
         match event {
             Event::Start(tag) => {
                 depth += 1;
                 match &tag {
-                    Tag::Table(_) => table = Some(TableDraft::default()),
+                    Tag::Table(_) => {
+                        origin = None;
+                        table = Some(TableDraft::default());
+                    }
                     Tag::TableHead => {
                         if let Some(t) = &mut table {
                             t.header = true;
@@ -5345,16 +5439,24 @@ fn markdown_at_width_with_spacing(
                     }
                     Tag::TableCell => spans.clear(),
                     Tag::CodeBlock(kind) => {
-                        let lang = match kind {
-                            CodeBlockKind::Fenced(info) => {
-                                info.split_whitespace().next().unwrap_or("").to_string()
-                            }
-                            CodeBlockKind::Indented => String::new(),
+                        let (lang, body_start) = match kind {
+                            CodeBlockKind::Fenced(info) => (
+                                info.split_whitespace().next().unwrap_or("").to_string(),
+                                text[range.start..range.end]
+                                    .find('\n')
+                                    .map_or(range.end, |at| range.start + at + 1),
+                            ),
+                            CodeBlockKind::Indented => (
+                                String::new(),
+                                text[..range.start].rfind('\n').map_or(0, |at| at + 1),
+                            ),
                         };
-                        code = Some((lang, String::new(), range.start));
+                        origin = None;
+                        code = Some((lang, String::new(), range.start, body_start));
                     }
                     Tag::List(start) => lists.push(*start),
                     Tag::Item => {
+                        widen(&mut origin, range.start..range.start);
                         let ordered = lists.last_mut().and_then(Option::as_mut);
                         let (marker, token) = match ordered {
                             Some(n) => {
@@ -5379,6 +5481,7 @@ fn markdown_at_width_with_spacing(
                         ));
                     }
                     Tag::Heading { level, .. } => {
+                        widen(&mut origin, range.start..range.start);
                         stack.push(MarkdownToken::Heading);
                         // The shared donor syntax style applies heading
                         // attributes to ordinary messages as well as compaction.
@@ -5407,6 +5510,7 @@ fn markdown_at_width_with_spacing(
                             if !t.row.is_empty() {
                                 if t.rows.len() < row_limit {
                                     t.rows.push(std::mem::take(&mut t.row));
+                                    t.ranges.push(range.clone());
                                 } else {
                                     t.omitted = true;
                                     t.row.clear();
@@ -5421,19 +5525,27 @@ fn markdown_at_width_with_spacing(
                         if let Some(mut t) = table.take() {
                             if !t.row.is_empty() {
                                 t.rows.push(t.row);
+                                t.ranges.push(range.clone());
                             }
-                            out.extend(
-                                render_table(&t.rows, theme, width, columns)
+                            let mut table_rows = Vec::new();
+                            for (line, row) in
+                                render_table(&t.rows, theme, width, columns, &mut table_rows)
                                     .into_iter()
-                                    .take((row_limit + 1).saturating_sub(out.len())),
-                            );
+                                    .zip(table_rows)
+                                    .take((row_limit + 1).saturating_sub(out.len()))
+                            {
+                                out.push(line);
+                                origins.push(t.ranges.get(row).cloned());
+                            }
+                            origin = None;
                             if t.omitted {
                                 out.push(Line::plain("… [Markdown table preview limited]"));
                             }
                         }
                     }
                     TagEnd::CodeBlock => {
-                        if let Some((lang, body, start)) = code.take() {
+                        if let Some((lang, body, start, body_start)) = code.take() {
+                            let sources = code_body_lines(text, body_start..range.end);
                             // Only the structural closing newline is removed;
                             // blank lines immediately above the fence are data.
                             let body = body.strip_suffix('\n').unwrap_or(&body);
@@ -5460,7 +5572,7 @@ fn markdown_at_width_with_spacing(
                                         code_page_lines(&lang, &body, theme, context, region)
                                     },
                                 );
-                                for highlighted in highlighted {
+                                for (number, highlighted) in highlighted.into_iter().enumerate() {
                                     if out.len() >= row_limit {
                                         truncated = true;
                                         break;
@@ -5472,6 +5584,14 @@ fn markdown_at_width_with_spacing(
                                         width,
                                         (row_limit + 1).saturating_sub(out.len()),
                                     ));
+                                    // Highlighting labels past the body have no source line.
+                                    mark_rows(
+                                        &mut origins,
+                                        out.len(),
+                                        (number < body.len())
+                                            .then(|| sources.get(number).cloned())
+                                            .flatten(),
+                                    );
                                 }
                             }
                         }
@@ -5488,6 +5608,7 @@ fn markdown_at_width_with_spacing(
                                 !lists.is_empty(),
                             ));
                         }
+                        mark_rows(&mut origins, out.len(), origin.take());
                         if matches!(end, TagEnd::Heading(_)) {
                             stack.pop();
                             after_heading = compaction_style && depth == 1;
@@ -5521,9 +5642,12 @@ fn markdown_at_width_with_spacing(
                 }
             }
             Event::Text(value) => {
-                if let Some((_, body, _)) = &mut code {
+                if let Some((_, body, _, _)) = &mut code {
                     body.push_str(&value);
                 } else {
+                    if table.is_none() {
+                        widen(&mut origin, range);
+                    }
                     let token = if table.as_ref().is_some_and(|t| t.header) {
                         MarkdownToken::Heading
                     } else {
@@ -5538,12 +5662,17 @@ fn markdown_at_width_with_spacing(
                     spans.push(Span::styled(safe_text(&value), style));
                 }
             }
-            Event::Code(value) => spans.push(Span::styled(
-                safe_text(&value),
-                Style::default()
-                    .fg(theme.markdown(MarkdownToken::Code))
-                    .add_modifier(heading_font),
-            )),
+            Event::Code(value) => {
+                if table.is_none() {
+                    widen(&mut origin, range);
+                }
+                spans.push(Span::styled(
+                    safe_text(&value),
+                    Style::default()
+                        .fg(theme.markdown(MarkdownToken::Code))
+                        .add_modifier(heading_font),
+                ))
+            }
             Event::SoftBreak | Event::HardBreak => {
                 if !spans.is_empty() {
                     out.extend(wrap_markdown_line(
@@ -5553,23 +5682,34 @@ fn markdown_at_width_with_spacing(
                         !lists.is_empty(),
                     ));
                 }
+                mark_rows(&mut origins, out.len(), origin.take());
             }
-            Event::Rule => out.push(Line::styled(
-                "───",
-                Style::default().fg(theme.markdown(MarkdownToken::HorizontalRule)),
-            )),
-            Event::Html(value) | Event::InlineHtml(value) => spans.push(Span::styled(
-                safe_text(&value),
-                Style::default().fg(theme.markdown(MarkdownToken::Text)),
-            )),
+            Event::Rule => {
+                out.push(Line::styled(
+                    "───",
+                    Style::default().fg(theme.markdown(MarkdownToken::HorizontalRule)),
+                ));
+                mark_rows(&mut origins, out.len(), Some(range));
+            }
+            Event::Html(value) | Event::InlineHtml(value) => {
+                if table.is_none() {
+                    widen(&mut origin, range);
+                }
+                spans.push(Span::styled(
+                    safe_text(&value),
+                    Style::default().fg(theme.markdown(MarkdownToken::Text)),
+                ))
+            }
             _ => {}
         }
     }
     if out.len() > row_limit {
         truncated = true;
     }
+    mark_rows(&mut origins, out.len(), None);
     if truncated {
         out.truncate(row_limit - 1);
+        origins.truncate(row_limit - 1);
         out.push(Line::styled(
             "… [Markdown preview limited]",
             Style::default().fg(theme.text_muted()),
@@ -5588,7 +5728,18 @@ fn markdown_at_width_with_spacing(
     if out.is_empty() {
         out.push(Line::plain(""));
     }
-    out
+    out.into_iter()
+        .enumerate()
+        .map(
+            |(index, line)| match origins.get(index).cloned().flatten() {
+                Some(range) => line.with_markdown(Some(styled::MarkdownOrigin {
+                    range,
+                    source: None,
+                })),
+                None => line,
+            },
+        )
+        .collect()
 }
 
 /// Grid style + one-cell horizontal padding from upstream TextPart's
@@ -5598,12 +5749,14 @@ fn render_table(
     theme: &Theme,
     available: usize,
     columns: Option<&[usize]>,
+    owners: &mut Vec<usize>,
 ) -> Vec<Line> {
     let count = rows.iter().map(Vec::len).max().unwrap_or(0);
     if count == 0 {
         return Vec::new();
     }
     if available < count * 4 + 1 {
+        owners.push(0);
         return vec![Line::plain("…")];
     }
     // OpenTUI's grid uses neutral #888 borders and #fff padding under the
@@ -5642,7 +5795,10 @@ fn render_table(
         parts.push(Span::styled(right, border));
         Line::new(parts)
     };
+    // Borders belong to the adjacent row, so a copied excerpt never starts or
+    // ends on generated grid art.
     let mut out = vec![separator("┌", "┬", "┐")];
+    owners.push(0);
     for (index, row) in rows.iter().enumerate().take(MAX_MARKDOWN_ROWS) {
         if out.len() >= MAX_MARKDOWN_ROWS {
             break;
@@ -5707,12 +5863,15 @@ fn render_table(
                 parts.push(Span::styled("│", border));
             }
             out.push(Line::new(parts));
+            owners.push(index);
         }
         if index + 1 < rows.len() && out.len() < MAX_MARKDOWN_ROWS {
             out.push(separator("├", "┼", "┤"));
+            owners.push(index + 1);
         }
     }
     out.push(separator("└", "┴", "┘"));
+    owners.push(rows.len() - 1);
     out
 }
 

@@ -325,6 +325,7 @@ pub(crate) struct ConversationKeybinds {
     dialog: oc_core::queries::DialogShortcuts,
     prompt_history: [String; 2],
     prompt_paste: String,
+    copy_markdown: String,
 }
 
 impl Default for ConversationKeybinds {
@@ -351,6 +352,7 @@ impl Default for ConversationKeybinds {
             composer: Default::default(),
             prompt_history: ["up".into(), "down".into()],
             prompt_paste: "ctrl+v".into(),
+            copy_markdown: "<leader>z".into(),
         }
     }
 }
@@ -393,6 +395,7 @@ impl ConversationKeybinds {
             (&["session.child.first"][..], &mut self.child_first),
             (&["session.background"][..], &mut self.background),
             (&["prompt.paste"][..], &mut self.prompt_paste),
+            (&["selection.copy.markdown"][..], &mut self.copy_markdown),
         ] {
             for name in names {
                 if let Some(value) = bindings.get(*name) {
@@ -502,6 +505,7 @@ impl ConversationKeybinds {
             dialog: Default::default(),
             prompt_history: Default::default(),
             prompt_paste: String::new(),
+            copy_markdown: String::new(),
         }
         .resolve();
         oc_core::queries::PermissionShortcuts {
@@ -638,6 +642,16 @@ impl ConversationKeybinds {
         }
     }
 
+    pub(crate) fn copy_markdown_shortcut(&self) -> String {
+        Self {
+            leader: self.leader.clone(),
+            undo: self.copy_markdown.clone(),
+            ..Self::default()
+        }
+        .resolve()
+        .undo
+    }
+
     pub(crate) fn prompt_paste_shortcut(&self) -> String {
         Self {
             leader: self.leader.clone(),
@@ -657,6 +671,8 @@ pub struct Generation {
     pub compaction: crate::compaction::CompactionConfig,
     /// Explicit animation preference from the ordered config sources.
     pub animations: Option<bool>,
+    /// Native `terminal.copy_markdown_modifier` from the ordered config sources.
+    pub markdown_copy_modifier: Option<oc_core::queries::MarkdownCopyModifier>,
     /// Providers by id in sorted order.
     pub providers: BTreeMap<String, ProviderEntry>,
     /// Public Go read-view admission from effective enabled/disabled filters.
@@ -1103,6 +1119,8 @@ fn assemble_with_admission(
     let mut permission_rules = crate::permissions::PermissionRules::configuration();
     let mut terminal_copy_source = None;
     let mut terminal_copy = None;
+    let mut markdown_copy_source = None;
+    let mut markdown_copy_modifier = None;
     let mut animations_source = None;
     let mut animations = None;
     let mut compaction = crate::compaction::CompactionConfig::default();
@@ -1156,6 +1174,10 @@ fn assemble_with_admission(
         if let Some(mode) = terminal_copy_value(obj)? {
             terminal_copy_source = Some(source.path.clone());
             terminal_copy = Some(mode);
+        }
+        if let Some(modifier) = markdown_copy_modifier_value(obj)? {
+            markdown_copy_source = Some(source.path.clone());
+            markdown_copy_modifier = Some(modifier);
         }
         if let Some(value) = obj.get("animations") {
             animations = Some(value.as_bool().ok_or_else(|| ConfigError::Invalid {
@@ -1422,6 +1444,9 @@ fn assemble_with_admission(
     if let Some(path) = terminal_copy_source {
         provenance.insert("terminal.copy".to_string(), path);
     }
+    if let Some(path) = markdown_copy_source {
+        provenance.insert("terminal.copy_markdown_modifier".to_string(), path);
+    }
     if let Some(path) = animations_source {
         provenance.insert("animations".to_string(), path);
     }
@@ -1441,6 +1466,7 @@ fn assemble_with_admission(
             config_diagnostics,
             compaction,
             animations,
+            markdown_copy_modifier,
             providers: out_providers,
             public_go_enabled: false,
             public_openai_enabled: false,
@@ -1474,6 +1500,28 @@ fn terminal_copy_value(
         _ => Err(ConfigError::Invalid {
             field: "terminal.copy".to_string(),
             reason: "must be select or manual".to_string(),
+        }),
+    }
+}
+
+fn markdown_copy_modifier_value(
+    obj: &serde_json::Map<String, serde_json::Value>,
+) -> Result<Option<oc_core::queries::MarkdownCopyModifier>, ConfigError> {
+    use oc_core::queries::MarkdownCopyModifier;
+    let Some(value) = obj
+        .get("terminal")
+        .and_then(serde_json::Value::as_object)
+        .and_then(|terminal| terminal.get("copy_markdown_modifier"))
+    else {
+        return Ok(None);
+    };
+    match value.as_str() {
+        Some("alt") => Ok(Some(MarkdownCopyModifier::Alt)),
+        Some("ctrl") => Ok(Some(MarkdownCopyModifier::Ctrl)),
+        Some("none") => Ok(Some(MarkdownCopyModifier::None)),
+        _ => Err(ConfigError::Invalid {
+            field: "terminal.copy_markdown_modifier".to_string(),
+            reason: "must be alt, ctrl or none".to_string(),
         }),
     }
 }
@@ -2361,6 +2409,89 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn markdown_copy_config_modifier_and_binding_are_validated_with_provenance() {
+        use oc_core::queries::MarkdownCopyModifier;
+        let source = |path: &str, text: &str| super::Source {
+            path: path.into(),
+            text: text.into(),
+            trusted: true,
+        };
+        let assembled = |sources: &[super::Source]| {
+            super::assemble_with_reader(sources, &Default::default(), None, &|_, _| {
+                unreachable!("fixture has no file substitutions")
+            })
+        };
+        let global = source(
+            "global/opencode.json",
+            r#"{"terminal":{"copy":"manual","copy_markdown_modifier":"ctrl"}}"#,
+        );
+        let local = source(
+            "project/opencode.jsonc",
+            r#"{"terminal":{"copy_markdown_modifier":"none"}}"#,
+        );
+        let (generation, mode) = assembled(&[global.clone(), local]).unwrap();
+        assert_eq!(mode, Some(oc_core::queries::TerminalCopyMode::Manual));
+        assert_eq!(
+            generation.markdown_copy_modifier,
+            Some(MarkdownCopyModifier::None)
+        );
+        assert_eq!(
+            generation.provenance["terminal.copy_markdown_modifier"],
+            "project/opencode.jsonc"
+        );
+        let (generation, _) = assembled(&[global]).unwrap();
+        assert_eq!(
+            generation.markdown_copy_modifier,
+            Some(MarkdownCopyModifier::Ctrl)
+        );
+        let (generation, _) = assembled(&[source("empty", "{}")]).unwrap();
+        assert_eq!(generation.markdown_copy_modifier, None);
+        for invalid in ["null", "true", r#""ALT""#, r#""shift""#] {
+            let error = super::assemble(
+                &[source(
+                    "invalid",
+                    &format!("{{\"terminal\":{{\"copy_markdown_modifier\":{invalid}}}}}"),
+                )],
+                &Default::default(),
+                None,
+            )
+            .unwrap_err();
+            assert_eq!(
+                error,
+                super::ConfigError::Invalid {
+                    field: "terminal.copy_markdown_modifier".into(),
+                    reason: "must be alt, ctrl or none".into()
+                }
+            );
+        }
+
+        let mut bindings = super::ConversationKeybinds::default();
+        assert_eq!(bindings.copy_markdown_shortcut(), "ctrl+x z");
+        bindings
+            .merge(&serde_json::json!({"keybinds": {
+                "leader": "ctrl+g", "selection.copy.markdown": "<leader>m,alt+m"
+            }}))
+            .unwrap();
+        assert_eq!(bindings.copy_markdown_shortcut(), "ctrl+g m,alt+m");
+        bindings
+            .merge(&serde_json::json!({"keybinds": {"selection.copy.markdown": false}}))
+            .unwrap();
+        assert_eq!(bindings.copy_markdown_shortcut(), "");
+        assert!(
+            super::admission::scan_cli(&serde_json::json!({
+                "keybinds": {"selection.copy.markdown": "<leader>z"}
+            }))
+            .is_empty()
+        );
+        assert!(
+            super::admission::scan_document(&serde_json::json!({
+                "terminal": {"copy": "select", "copy_markdown_modifier": "alt"}
+            }))
+            .is_empty()
+        );
     }
 
     #[test]

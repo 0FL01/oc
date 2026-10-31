@@ -390,6 +390,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         animations: None,
+        markdown_copy_modifier: None,
         providers: BTreeMap::new(),
         public_go_enabled: false,
         public_openai_enabled: false,

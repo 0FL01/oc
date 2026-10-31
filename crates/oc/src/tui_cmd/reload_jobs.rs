@@ -42,6 +42,8 @@ pub(super) fn start(
     let mut targets = Vec::new();
     for view in read_jobs::views_mut(state, deck) {
         view.chrome.session_tps = snapshot.catalog.chrome.session_tps;
+        view.chrome.markdown_copy_modifier = snapshot.catalog.chrome.markdown_copy_modifier;
+        view.chrome.copy_markdown_shortcut = snapshot.catalog.chrome.copy_markdown_shortcut.clone();
         view.refresh_clipboard_mode(snapshot.catalog.chrome.terminal_copy);
         targets.push(Target {
             identity: view.view_identity(),

@@ -4737,7 +4737,7 @@ async fn vis27_oversized_selection_reports_error_without_clipboard_request() {
         Err("Selection exceeds clipboard size limit")
     );
     state.pending_copy = Some("previous request".into());
-    state.request_selection_copy();
+    state.request_selection_copy(false);
     assert_eq!(state.take_copy_request(), None);
     assert_eq!(state.note_variant(), Some(NoteVariant::Error));
     assert_eq!(state.note(), Some("Selection exceeds clipboard size limit"));
@@ -5056,4 +5056,283 @@ async fn transcript_drag_at_edge_autoscrolls_and_follows_the_pointer() {
         "{revealed} {copied:?}"
     );
     assert!(copied.ends_with("line 60"), "{copied}");
+}
+
+fn markdown_mouse(
+    kind: crossterm::event::MouseEventKind,
+    (x, y): (u16, u16),
+    modifiers: crossterm::event::KeyModifiers,
+) -> crossterm::event::MouseEvent {
+    crossterm::event::MouseEvent {
+        modifiers,
+        ..selection_mouse(kind, x, y)
+    }
+}
+
+const MARKDOWN_SOURCE: &str =
+    "Intro **bold** and `code`.\n\n```sh\nmake\nmake test\n```\n\n- item *one*\n- item two\n";
+
+/// A completed assistant row after a user prompt, painted in the viewport.
+async fn markdown_selection_state(name: &str) -> (TuiState, Rect) {
+    markdown_source_state(name, MARKDOWN_SOURCE).await
+}
+
+async fn markdown_source_state(name: &str, source: &str) -> (TuiState, Rect) {
+    let mut state = fresh_state(name).await;
+    let frame = Rect::new(0, 0, 100, 28);
+    state.set_clipboard_mode(super::ClipboardMode::Select);
+    for (seq, role, text) in [(1, "user", "please explain"), (2, "assistant", source)] {
+        state.window.push_row(crate::history::HistoryRow {
+            position: None,
+            message_id: Some(std::sync::Arc::new(oc_core::session::MessageId(format!(
+                "markdown-{seq}"
+            )))),
+            seq,
+            role: role.into(),
+            text: text.into(),
+            agent: None,
+            agent_color_index: None,
+            pending_delivery: None,
+            chips: vec![],
+            reasoning: None,
+            child_notice: None,
+            shell_notice: None,
+            meta: None,
+            tool: None,
+        });
+    }
+    state.invalidate_transcript();
+    let rect = crate::shell::transcript_area(&state, frame);
+    state.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+    state.finish_transcript_projection().await;
+    (state, frame)
+}
+
+/// Drag from the start of `from` to the end of `to` with per-event modifiers.
+fn markdown_drag(
+    state: &mut TuiState,
+    frame: Rect,
+    (from, to): (&str, &str),
+    (press, release): (
+        crossterm::event::KeyModifiers,
+        crossterm::event::KeyModifiers,
+    ),
+) -> Option<String> {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    let end = paint_selection_fixture(state, frame, to);
+    let end = (end.0 + to.len() as u16, end.1);
+    let start = paint_selection_fixture(state, frame, from);
+    state.handle_mouse(
+        markdown_mouse(MouseEventKind::Down(MouseButton::Left), start, press),
+        frame,
+    );
+    state.handle_mouse(
+        markdown_mouse(MouseEventKind::Drag(MouseButton::Left), end, press),
+        frame,
+    );
+    state.handle_mouse(
+        markdown_mouse(MouseEventKind::Up(MouseButton::Left), end, release),
+        frame,
+    );
+    state.take_copy_request()
+}
+
+#[tokio::test]
+async fn markdown_selection_alt_release_copies_whole_raw_source_lines() {
+    use crossterm::event::KeyModifiers;
+    let (mut state, frame) = markdown_selection_state("markdown-alt-release").await;
+    let plain = markdown_drag(
+        &mut state,
+        frame,
+        ("bold", "make test"),
+        (KeyModifiers::NONE, KeyModifiers::NONE),
+    )
+    .expect("plain copy");
+    assert!(plain.starts_with("bold and code."), "{plain:?}");
+    assert!(!plain.contains("**") && !plain.contains("```"), "{plain:?}");
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("bold", "make test"),
+            (KeyModifiers::ALT, KeyModifiers::ALT),
+        )
+        .as_deref(),
+        Some("Intro **bold** and `code`.\n\n```sh\nmake\nmake test\n```")
+    );
+    // Starting inside the code block keeps its original opening fence.
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("make test", "one"),
+            (KeyModifiers::NONE, KeyModifiers::ALT),
+        )
+        .as_deref(),
+        Some("```sh\nmake test\n```\n\n- item *one*")
+    );
+    // Only the release decides: Alt held on the press alone copies plain text.
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("item", "two"),
+            (KeyModifiers::ALT, KeyModifiers::NONE),
+        )
+        .as_deref(),
+        Some("item one\n- item two")
+    );
+}
+
+#[tokio::test]
+async fn markdown_selection_joins_plain_parts_and_honors_configured_modifier() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEventKind};
+    let (mut state, frame) = markdown_selection_state("markdown-mixed").await;
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("please", "bold"),
+            (KeyModifiers::NONE, KeyModifiers::ALT),
+        )
+        .as_deref(),
+        Some("please explain\n\nIntro **bold** and `code`.")
+    );
+    state.chrome.markdown_copy_modifier = Some(oc_core::queries::MarkdownCopyModifier::Ctrl);
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("bold", "code"),
+            (KeyModifiers::NONE, KeyModifiers::ALT),
+        )
+        .as_deref(),
+        Some("bold and code")
+    );
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("bold", "code"),
+            (KeyModifiers::CONTROL, KeyModifiers::CONTROL),
+        )
+        .as_deref(),
+        Some("Intro **bold** and `code`.")
+    );
+    state.chrome.markdown_copy_modifier = Some(oc_core::queries::MarkdownCopyModifier::None);
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("bold", "code"),
+            (KeyModifiers::NONE, KeyModifiers::ALT),
+        )
+        .as_deref(),
+        Some("bold and code")
+    );
+    // A press with a modifier that is not configured never starts a selection.
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("bold", "code"),
+            (KeyModifiers::ALT, KeyModifiers::ALT),
+        ),
+        None
+    );
+
+    // Manual mode: the right-click modifier chooses the copy form.
+    state.chrome.markdown_copy_modifier = None;
+    state.set_clipboard_mode(super::ClipboardMode::Manual);
+    markdown_drag(
+        &mut state,
+        frame,
+        ("bold", "code"),
+        (KeyModifiers::NONE, KeyModifiers::NONE),
+    );
+    let at = paint_selection_fixture(&mut state, frame, "bold");
+    for (modifiers, expected) in [
+        (KeyModifiers::NONE, "bold and code"),
+        (KeyModifiers::ALT, "Intro **bold** and `code`."),
+    ] {
+        state.handle_mouse(
+            markdown_mouse(MouseEventKind::Down(MouseButton::Right), at, modifiers),
+            frame,
+        );
+        assert_eq!(state.take_copy_request().as_deref(), Some(expected));
+    }
+}
+
+#[tokio::test]
+async fn markdown_selection_keyboard_command_copies_current_selection() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let key = |value, modifiers| KeyEvent::new(KeyCode::Char(value), modifiers);
+    let (mut state, frame) = markdown_selection_state("markdown-keyboard").await;
+    // Without a selection the chord stays free for everything else.
+    assert_ne!(
+        state.terminal_key(key('z', KeyModifiers::NONE)),
+        Some(KeyAction::CopySelectionMarkdown)
+    );
+    assert_eq!(
+        markdown_drag(
+            &mut state,
+            frame,
+            ("item", "two"),
+            (KeyModifiers::NONE, KeyModifiers::NONE),
+        )
+        .as_deref(),
+        Some("item one\n- item two")
+    );
+    let leader = state.terminal_key(key('x', KeyModifiers::CONTROL)).unwrap();
+    assert_eq!(leader, KeyAction::Leader);
+    state.handle_key(leader).await;
+    let action = state.terminal_key(key('z', KeyModifiers::NONE)).unwrap();
+    assert_eq!(action, KeyAction::CopySelectionMarkdown);
+    state.handle_key(action).await;
+    assert_eq!(
+        state.take_copy_request().as_deref(),
+        Some("- item *one*\n- item two")
+    );
+
+    // A remapped binding replaces the default; an empty one disables it.
+    state.chrome.copy_markdown_shortcut = Some("alt+m".into());
+    assert_eq!(
+        state.terminal_key(key('m', KeyModifiers::ALT)),
+        Some(KeyAction::CopySelectionMarkdown)
+    );
+    state.chrome.copy_markdown_shortcut = Some(String::new());
+    assert_ne!(
+        state.terminal_key(key('m', KeyModifiers::ALT)),
+        Some(KeyAction::CopySelectionMarkdown)
+    );
+}
+
+#[tokio::test]
+async fn markdown_selection_maps_synthetic_pages_tables_and_live_text() {
+    use crossterm::event::KeyModifiers;
+    let alt = (KeyModifiers::NONE, KeyModifiers::ALT);
+    // A blank line inside the fence splits it into pages; the continuation is
+    // rendered behind a synthetic opener that must never be copied as data.
+    let source = "Lead\n\n```rust\nfn one() {}\n\nfn two() {}\n```\n\n| a | b |\n|---|---|\n| x1 | y1 |\n| x2 | y2 |\n";
+    let (mut state, frame) = markdown_source_state("markdown-pages", source).await;
+    assert_eq!(
+        markdown_drag(&mut state, frame, ("fn two", "fn two"), alt).as_deref(),
+        Some("```rust\nfn two() {}\n```")
+    );
+    assert_eq!(
+        markdown_drag(&mut state, frame, ("x2", "y2"), alt).as_deref(),
+        Some("| x2 | y2 |")
+    );
+    assert_eq!(
+        markdown_drag(&mut state, frame, ("fn two", "x1"), alt).as_deref(),
+        Some("```rust\nfn two() {}\n```\n\n| a | b |\n|---|---|\n| x1 | y1 |")
+    );
+
+    let mut state = fresh_state("markdown-live").await;
+    state.set_clipboard_mode(super::ClipboardMode::Select);
+    state.live_text = "Streaming **bold**\n\n```sh\nmake".into();
+    assert_eq!(
+        markdown_drag(&mut state, frame, ("bold", "make"), alt).as_deref(),
+        Some("Streaming **bold**\n\n```sh\nmake")
+    );
 }

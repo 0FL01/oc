@@ -776,6 +776,39 @@ impl TuiState {
             && !self.composer_open()
             && !self.prompt_shell_mode()
             && !self.terminal_focused()
+            && self.has_transcript_selection()
+            && self.clipboard_mode != ClipboardMode::Disabled
+            && event.kind == KeyEventKind::Press
+            && let Some(raw) = crate::events::binding(event)
+        {
+            // Native `selection.copy.markdown`: only while a transcript
+            // selection exists, so the chord stays free otherwise.
+            let raw = crate::events::dialog_binding(&raw);
+            let candidate = if self.leader_pending() {
+                format!("{} {raw}", self.leader_key)
+            } else {
+                raw
+            };
+            let binding = self.copy_markdown_binding().to_owned();
+            if binding
+                .split(',')
+                .any(|key| crate::events::dialog_binding(key.trim()) == candidate)
+            {
+                self.leader = None;
+                return Some(KeyAction::CopySelectionMarkdown);
+            }
+            if binding.split(',').any(|key| {
+                crate::events::dialog_binding(key.trim()).starts_with(&format!("{candidate} "))
+            }) {
+                self.leader_key = candidate;
+                return Some(KeyAction::Leader);
+            }
+        }
+        if !self.select_key_owner()
+            && self.panel == TuiPanel::None
+            && !self.composer_open()
+            && !self.prompt_shell_mode()
+            && !self.terminal_focused()
             && self.slash_options().is_none()
             && self.mention_request().is_none()
             && self.foreground_available()
@@ -2834,6 +2867,13 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if action == KeyAction::CopySelectionMarkdown {
+            self.leader = None;
+            if self.clipboard_mode != ClipboardMode::Disabled {
+                self.request_selection_copy(true);
+            }
+            return KeyOutcome::default();
+        }
         self.poll_prompt_history();
         self.cancel_text_selection();
         self.cancel_sidebar_press();
@@ -3433,6 +3473,7 @@ impl TuiState {
             KeyAction::Shells
             | KeyAction::ShellBackground
             | KeyAction::BackgroundSession
+            | KeyAction::CopySelectionMarkdown
             | KeyAction::Children
             | KeyAction::ComposerNoop
             | KeyAction::Paste => KeyOutcome::default(),

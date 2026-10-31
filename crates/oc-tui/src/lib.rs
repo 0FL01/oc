@@ -22,6 +22,7 @@ mod execute_view;
 mod fuzzy;
 pub mod history;
 pub mod layout;
+mod markdown_copy;
 pub mod messages;
 mod patch_view;
 pub mod picker;

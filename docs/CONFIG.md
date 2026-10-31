@@ -179,7 +179,10 @@ root recreation и readiness; no dotenv discovery/новых ancestor config roo
 
 CLI target сохраняет native G/Location/.opencode JSON→JSONC precedence/runtime fallbacks,
 затем captured client `OPENCODE_CLI_CONFIG_CONTENT` overlay last. Добавляются actual CLI
-consumers animations/terminal.copy. Supported theme — compiled opencode, dark/light/
+consumers animations/terminal.copy. Native extensions без upstream-ключа: runtime
+`terminal.copy_markdown_modifier` (`alt` default, `ctrl`, `none`) и CLI
+`keybinds["selection.copy.markdown"]` (`<leader>z`) копируют transcript selection как
+целые raw-строки исходника assistant text. Supported theme — compiled opencode, dark/light/
 system (known terminal mode, deterministic dark fallback при unknown), без external
 palette documents. Donor binding shapes поддерживаются для implemented actions с
 реальной заявленной event/fallthrough semantics; unsupported options diagnostic, не

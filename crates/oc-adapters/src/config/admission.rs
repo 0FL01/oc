@@ -354,6 +354,8 @@ const KEYBINDS: &[&str] = &[
     "prompt.submit",
     "provider.connect",
     "queued_prompt.delete",
+    // Native extension: copy the transcript selection as raw Markdown.
+    "selection.copy.markdown",
     "server.pair",
     "service.restart",
     "session.aside",

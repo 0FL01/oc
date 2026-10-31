@@ -26,6 +26,8 @@ pub enum KeyAction {
     Rename,
     UndoConversation,
     RedoConversation,
+    /// Native `selection.copy.markdown`: copy the transcript selection as raw Markdown.
+    CopySelectionMarkdown,
     /// Modal page navigation.
     PageUp,
     /// Modal page navigation.

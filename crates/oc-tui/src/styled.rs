@@ -132,6 +132,17 @@ pub struct Line {
     style: Style,
     source_range: Option<std::ops::Range<usize>>,
     copy: RowCopy,
+    markdown: Option<Box<MarkdownOrigin>>,
+}
+
+/// Raw Markdown provenance of a rendered row: the bytes of the physical source
+/// line(s) it was drawn from. The renderer records ranges relative to its own
+/// input; only assistant text attaches its owning source, so other Markdown
+/// (reasoning, compaction, tool output) never claims a raw excerpt.
+#[derive(Clone, Debug)]
+pub(crate) struct MarkdownOrigin {
+    pub(crate) range: std::ops::Range<usize>,
+    pub(crate) source: Option<crate::history::SourceText>,
 }
 
 /// How a painted row joins a copied selection.
@@ -216,7 +227,17 @@ impl Line {
             style: Style::default(),
             source_range: None,
             copy: RowCopy::Auto,
+            markdown: None,
         }
+    }
+
+    pub(crate) fn markdown(&self) -> Option<&MarkdownOrigin> {
+        self.markdown.as_deref()
+    }
+
+    pub(crate) fn with_markdown(mut self, origin: Option<MarkdownOrigin>) -> Self {
+        self.markdown = origin.map(Box::new);
+        self
     }
 
     pub fn copy(&self) -> RowCopy {
@@ -323,6 +344,7 @@ impl Line {
         }
         let mut line = Self::new(coalesce(&spans)).with_style(self.style);
         line.copy = self.copy;
+        line.markdown = self.markdown.clone();
         line
     }
 
@@ -571,7 +593,11 @@ pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -
 pub(crate) fn visit_source_space_line(line: &Line, width: usize, mut emit: impl FnMut(Line)) {
     let mut copy = line.copy;
     visit_wrapped_line(line, width, usize::MAX, true, true, |cells| {
-        emit(source_line(cells).with_copy(copy));
+        emit(
+            source_line(cells)
+                .with_copy(copy)
+                .with_markdown(line.markdown().cloned()),
+        );
         copy = RowCopy::Wrap;
     });
 }
@@ -677,7 +703,12 @@ fn wrap_line_with_space_mode(
             } else {
                 RowCopy::Auto
             };
-            out.push(source_line(cells).with_copy(copy));
+            // Every visual row of a logical line keeps its source provenance.
+            out.push(
+                source_line(cells)
+                    .with_copy(copy)
+                    .with_markdown(line.markdown().cloned()),
+            );
         },
     );
     out

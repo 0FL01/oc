@@ -879,6 +879,8 @@ pub struct TuiChrome {
     pub sessions_all_projects: bool,
     /// Explicit terminal.copy selection; absence uses the UI's platform default.
     pub terminal_copy: Option<TerminalCopyMode>,
+    /// Native terminal.copy_markdown_modifier; absence uses Alt.
+    pub markdown_copy_modifier: Option<MarkdownCopyModifier>,
     /// Explicit config.animations; absence enables interface animations.
     pub animations: Option<bool>,
     /// Explicit admitted CLI session.tps; absence uses the pinned default true.
@@ -901,6 +903,8 @@ pub struct TuiChrome {
     pub child_first_shortcut: Option<String>,
     /// Effective foreground-session handoff; None keeps the pinned Ctrl+B default.
     pub background_shortcut: Option<String>,
+    /// Effective native `selection.copy.markdown`; None keeps `ctrl+x z`, empty disables it.
+    pub copy_markdown_shortcut: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -1575,6 +1579,16 @@ pub enum TerminalCopyMode {
     Select,
     /// Copy an existing selection on right mouse-down.
     Manual,
+}
+
+/// Native mouse modifier that copies a transcript selection as raw Markdown
+/// source instead of rendered text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum MarkdownCopyModifier {
+    Alt,
+    Ctrl,
+    /// Only the keyboard command copies Markdown.
+    None,
 }
 
 /// Selected session tab indicator presentation (upstream `tabs.indicators`).

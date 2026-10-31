@@ -1602,6 +1602,7 @@ async fn load_stages(
         plugins,
         location: Some(project.to_string_lossy().into_owned()),
         terminal_copy,
+        markdown_copy_modifier: generation.markdown_copy_modifier,
         animations: generation.animations,
         ..Default::default()
     };
@@ -1736,6 +1737,7 @@ async fn load_stages(
     tui_chrome.dialog_shortcuts = conversation_keybinds.dialog_shortcuts();
     tui_chrome.prompt_history_shortcuts = conversation_keybinds.prompt_history_shortcuts();
     tui_chrome.prompt_paste_shortcut = Some(conversation_keybinds.prompt_paste_shortcut());
+    tui_chrome.copy_markdown_shortcut = Some(conversation_keybinds.copy_markdown_shortcut());
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     watch_inputs.borrow().validate()?;
     Ok(Composition {

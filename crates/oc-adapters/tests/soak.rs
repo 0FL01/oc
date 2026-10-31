@@ -219,6 +219,7 @@ fn make_harness() -> (Harness, Generation) {
         public_openai_enabled: false,
         mcp: BTreeMap::new(),
         animations: None,
+        markdown_copy_modifier: None,
         permissions: allow_all(),
         permission_rules: Default::default(),
         provenance: BTreeMap::new(),
@@ -543,6 +544,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         .into_iter()
         .collect(),
         animations: None,
+        markdown_copy_modifier: None,
         permissions: allow_all(),
         permission_rules: Default::default(),
         provenance: BTreeMap::new(),
