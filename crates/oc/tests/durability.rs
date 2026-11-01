@@ -215,10 +215,17 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     let wire: Value =
         serde_json::from_str(wire_log.as_deref().expect("durable wire intent")).expect("wire JSON");
     assert_eq!(wire["input"][0], user_message(FIRST_PROMPT));
-    assert_eq!(wire["input"].as_array().expect("items").len(), 2);
-    assert_eq!(wire["input"][1]["type"], "function_call");
-    assert_eq!(wire["input"][1]["call_id"], CALL);
-    assert_eq!(wire["input"][1]["arguments"], arguments.to_string());
+    assert_eq!(wire["input"].as_array().expect("items").len(), 3);
+    assert_eq!(wire["input"][1]["role"], "system");
+    assert!(
+        wire["input"][1]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("Today's date: ")
+    );
+    assert_eq!(wire["input"][2]["type"], "function_call");
+    assert_eq!(wire["input"][2]["call_id"], CALL);
+    assert_eq!(wire["input"][2]["arguments"], arguments.to_string());
     assert!(wire.get("assistant_message").is_none());
     assert_eq!(
         db.session_meta(SESSION).expect("session metadata").title,

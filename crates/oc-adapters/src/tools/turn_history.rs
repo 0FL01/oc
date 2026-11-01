@@ -186,9 +186,11 @@ impl TurnLog {
 
     /// Select original closed facts only; terminal task/checkpoint text is not
     /// an irreducible current task. Selected copies keep issuing provenance.
+    /// A separately retained item does not pin its unprotected protocol group.
     pub(crate) fn selected_closed_groups(
         &self,
         keep: impl Fn(&[crate::provider::InputItem]) -> bool,
+        keep_item: Option<&crate::provider::InputItem>,
     ) -> Result<Self, String> {
         let mut selected = TurnLog::new(&self.turn_id, &self.model, &self.provider);
         selected.protocol = self.protocol;
@@ -204,13 +206,14 @@ impl TurnLog {
             } else {
                 1
             };
-            selected.select_groups(&previous, start, previous.input.len(), &keep);
+            selected.select_groups(&previous, start, previous.input.len(), &keep, keep_item);
         }
         selected.select_groups(
             self,
-            usize::from(self.raw_prefix.is_none()),
+            usize::from(self.raw_prefix.is_none() && self.input.first() != keep_item),
             self.input.len(),
             &keep,
+            keep_item,
         );
         Ok(selected)
     }
@@ -257,6 +260,7 @@ impl TurnLog {
         summary: &str,
         counts: [usize; 7],
         keep_group: impl Fn(&[crate::provider::InputItem]) -> bool,
+        keep_item: Option<&crate::provider::InputItem>,
     ) -> Result<serde_json::Value, String> {
         let previous = self.working.as_ref().map(TurnLog::from_json).transpose()?;
         let source = previous.as_ref().unwrap_or(self);
@@ -314,13 +318,20 @@ impl TurnLog {
             } else {
                 1
             };
-            working.select_groups(&previous, start, previous.input.len(), &keep_group);
+            working.select_groups(
+                &previous,
+                start,
+                previous.input.len(),
+                &keep_group,
+                keep_item,
+            );
         }
         working.select_groups(
             self,
             usize::from(self.raw_prefix.is_none()),
             counts[0],
             &keep_group,
+            keep_item,
         );
         Ok(working.to_json())
     }
@@ -361,15 +372,16 @@ impl TurnLog {
             } else {
                 1
             };
-            working.select_groups(&previous, start, previous.input.len(), &keep_group);
+            working.select_groups(&previous, start, previous.input.len(), &keep_group, None);
         }
         working.select_groups(
             self,
             usize::from(self.raw_prefix.is_none()),
             response_start,
             &keep_group,
+            None,
         );
-        working.select_groups(self, response_start, counts[0], &keep_response);
+        working.select_groups(self, response_start, counts[0], &keep_response, None);
         Ok(working.to_json())
     }
 
@@ -547,6 +559,7 @@ impl TurnLog {
         start: usize,
         end: usize,
         keep_group: &impl Fn(&[crate::provider::InputItem]) -> bool,
+        keep_item: Option<&crate::provider::InputItem>,
     ) {
         let base = source.original_input_index(0);
         let mut starts = source
@@ -572,6 +585,12 @@ impl TurnLog {
         for range in starts.windows(2) {
             if keep_group(&source.input[range[0]..range[1]]) {
                 self.select_original_items(source, range[0], range[1]);
+            } else if let Some(item) = keep_item {
+                for index in range[0]..range[1] {
+                    if &source.input[index] == item {
+                        self.select_original_items(source, index, index + 1);
+                    }
+                }
             }
         }
     }
@@ -817,6 +836,37 @@ mod native_tests {
     use crate::provider::{InputItem, InputRole};
 
     #[test]
+    fn selection_keeps_one_date_without_pinning_its_unprotected_group() {
+        let mut log = TurnLog::new("turn", "model", "fixture");
+        let date = InputItem::message(InputRole::System, "Today's date: 2026-11-01 (Sunday)");
+        log.input = vec![
+            InputItem::message(InputRole::User, "task"),
+            date.clone(),
+            InputItem::message(InputRole::Assistant, "discarded content"),
+        ];
+        let selected = log.selected_closed_groups(|_| false, Some(&date)).unwrap();
+        assert_eq!(selected.input, std::slice::from_ref(&date));
+        assert_eq!(selected.input_origins, [Some(1)]);
+        let reselected = selected
+            .selected_closed_groups(|_| false, Some(&date))
+            .unwrap();
+        assert_eq!(reselected.input, std::slice::from_ref(&date));
+        assert_eq!(reselected.input_origins, [Some(1)]);
+        let protected = log.selected_closed_groups(|_| true, Some(&date)).unwrap();
+        assert_eq!(protected.input, log.input[1..]);
+
+        let working = TurnLog::from_json(
+            &log.current_working_checkpoint("summary", log.closed_counts(), |_| false, Some(&date))
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(working.input.len(), 3);
+        assert_eq!(working.input[0], log.input[0]);
+        assert_eq!(working.input[2], date);
+        assert_eq!(working.input_origins[2], Some(1));
+    }
+
+    #[test]
     fn native_input_keeps_original_coordinates_without_claiming_a_working_summary() {
         let mut log = TurnLog::new("native", "model", "fixture");
         let mut native =
@@ -830,7 +880,7 @@ mod native_tests {
         ];
         assert_eq!(log.represented_native_notices(), ["m1", "m2"]);
         let working = TurnLog::from_json(
-            &log.current_working_checkpoint("summary", log.closed_counts(), |_| true)
+            &log.current_working_checkpoint("summary", log.closed_counts(), |_| true, None)
                 .unwrap(),
         )
         .unwrap();
@@ -856,7 +906,7 @@ mod native_tests {
         .unwrap();
         assert!(renewal.represented_native_notices().is_empty());
         assert!(
-            log.selected_closed_groups(|_| true)
+            log.selected_closed_groups(|_| true, None)
                 .unwrap()
                 .represented_native_notices()
                 .is_empty()

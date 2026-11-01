@@ -135,6 +135,603 @@ async fn respond(socket: &mut tokio::net::TcpStream, body: &str) {
     socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
 }
 
+#[tokio::test]
+async fn local_date_change_is_persisted_after_prompt_and_not_repeated() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let accepted = db
+        .accept_turn(
+            "yesterday",
+            "s",
+            "earlier prompt",
+            "earlier prompt",
+            &ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+        )
+        .unwrap();
+    let mut old = TurnLog::new("yesterday", "m", "fixture");
+    old.user_message = Some(accepted.user_message);
+    old.input = vec![
+        InputItem::message(InputRole::User, "earlier prompt"),
+        InputItem::message(InputRole::System, "Today's date: 2000-01-01 (Saturday)"),
+        InputItem::message(InputRole::Assistant, "earlier answer"),
+    ];
+    db.commit_turn(
+        "yesterday",
+        "completed",
+        Some(&old.to_json().to_string()),
+        Some("earlier answer"),
+    )
+    .unwrap();
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let peer = tokio::spawn(async move {
+        let mut requests = Vec::new();
+        for _ in 0..2 {
+            let (mut socket, request) = read_request(&listener).await;
+            requests.push(request);
+            respond(&mut socket, &sse("done")).await;
+        }
+        requests
+    });
+    let catalog = catalog();
+    let cancel = AtomicBool::new(false);
+    let owner = runtime(&db, project.path(), Generation::default());
+    let report = owner
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "continue today".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &cancel,
+        })
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let saved = TurnLog::from_json(
+        &serde_json::from_str(&db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        saved.input[0],
+        InputItem::message(InputRole::User, "continue today")
+    );
+    let InputItem::Message {
+        role: InputRole::System,
+        content,
+    } = &saved.input[1]
+    else {
+        panic!("date notice must follow the prompt in the durable turn");
+    };
+    let crate::provider::InputContent::InputText { text: update } = &content[0] else {
+        panic!("date notice must be text");
+    };
+    assert!(update.starts_with("Today's date is now: "));
+    let update = update.clone();
+    owner.shutdown_mcp().await.unwrap();
+    drop(owner);
+    drop(db);
+
+    let db = Db::open(data.path()).unwrap();
+    let runtime = runtime(&db, project.path(), Generation::default());
+    let report = runtime
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "same day".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider,
+            cancel: &cancel,
+        })
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let saved = TurnLog::from_json(
+        &serde_json::from_str(&db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        saved.input[0],
+        InputItem::message(InputRole::User, "same day")
+    );
+    assert!(!saved.input.iter().any(|item| matches!(
+        item,
+        InputItem::Message {
+            role: InputRole::System,
+            ..
+        }
+    )));
+    runtime.shutdown_mcp().await.unwrap();
+    let requests = peer.await.unwrap();
+    for (index, (request, prompt)) in requests
+        .iter()
+        .zip(["continue today", "same day"])
+        .enumerate()
+    {
+        let input = request["input"].as_array().unwrap();
+        let position = |text: &str| {
+            input
+                .iter()
+                .position(|item| item["content"][0]["text"].as_str() == Some(text))
+                .unwrap()
+        };
+        let old = position("Today's date: 2000-01-01 (Saturday)");
+        let changed = position(&update);
+        let prompt = position(prompt);
+        assert_eq!(input[old]["role"], "developer");
+        assert_eq!(input[changed]["role"], "developer");
+        assert!(old < changed);
+        if index == 0 {
+            assert_eq!(changed, prompt + 1);
+        } else {
+            assert!(changed < prompt);
+        }
+        assert_eq!(
+            input
+                .iter()
+                .filter(|item| item["content"][0]["text"] == update)
+                .count(),
+            1
+        );
+    }
+}
+
+#[tokio::test]
+async fn automatic_compaction_retains_latest_typed_date_for_the_first_request() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let accepted = db
+        .accept_turn(
+            "earlier",
+            "s",
+            "earlier",
+            "earlier",
+            &ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+        )
+        .unwrap();
+    let mut old = TurnLog::new("earlier", "m", "fixture");
+    old.user_message = Some(accepted.user_message);
+    old.input = vec![
+        InputItem::message(InputRole::User, "earlier"),
+        InputItem::message(InputRole::System, "Today's date: 2000-01-01 (Saturday)"),
+        InputItem::message(InputRole::Assistant, "old answer"),
+    ];
+    db.commit_turn(
+        "earlier",
+        "completed",
+        Some(&old.to_json().to_string()),
+        Some("old answer"),
+    )
+    .unwrap();
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let peer = tokio::spawn(async move {
+        let (mut socket, first) = read_request(&listener).await;
+        respond(&mut socket, &sse("first answer")).await;
+        let mut requests = vec![first];
+        for _ in 0..2 {
+            let (mut socket, summary) = read_request(&listener).await;
+            assert_eq!(summary["tools"], serde_json::json!([]));
+            respond(&mut socket, &sse("## Objective\nContinue work.")).await;
+            let (mut socket, primary) = read_request(&listener).await;
+            requests.push(primary);
+            respond(&mut socket, &sse("continued")).await;
+        }
+        requests
+    });
+    let catalog = catalog();
+    let cancel = AtomicBool::new(false);
+    let first_runtime = runtime(&db, project.path(), Generation::default());
+    let report = first_runtime
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "OLD_DATE_HOT_CANARY ".repeat(500).into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &cancel,
+        })
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let first_raw = db.turn_result(&report.turn_id).unwrap();
+    let first =
+        TurnLog::from_json(&serde_json::from_str(first_raw.1.as_ref().unwrap()).unwrap()).unwrap();
+    let date = first.input[1].clone();
+    assert!(matches!(
+        &date,
+        InputItem::Message {
+            role: InputRole::System,
+            ..
+        }
+    ));
+    let today = super::environment::date_value(&date).unwrap();
+    assert_eq!(
+        today,
+        super::environment::local_date(std::time::SystemTime::now()).unwrap(),
+        "same-day test precondition"
+    );
+    first_runtime.shutdown_mcp().await.unwrap();
+    drop(first_runtime);
+
+    let mut generation = Generation::default();
+    generation.compaction.keep_tokens = 0;
+    generation.compaction.buffer = Some(499_999);
+    let runtime = runtime(&db, project.path(), generation);
+    for prompt in ["continue same day", "continue after another checkpoint"] {
+        let report = runtime
+            .run_turn(TurnParams {
+                session: "s".into(),
+                prompt: prompt.into(),
+                invocation: None,
+                catalog: &catalog,
+                model_id: "m".into(),
+                variant: None,
+                max_output: 1000,
+                provider: provider.clone(),
+                cancel: &cancel,
+            })
+            .await
+            .unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        let saved = TurnLog::from_json(
+            &serde_json::from_str(&db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap(),
+        )
+        .unwrap();
+        assert!(
+            !saved
+                .input
+                .iter()
+                .any(|item| super::environment::date_value(item).is_some())
+        );
+        let active = runtime.active_projection("s").unwrap();
+        let binding = provider.provenance("fixture", "m").unwrap();
+        let history = runtime
+            .wire_history_bound(
+                "s",
+                &active.projected,
+                &active.blocks,
+                "m",
+                "fixture",
+                None,
+                active.after_seq,
+                Some(&binding),
+            )
+            .unwrap();
+        assert_eq!(
+            history.iter().filter(|item| **item == date).count(),
+            1,
+            "the original typed date is selected exactly once"
+        );
+        assert!(
+            !serde_json::to_string(&history)
+                .unwrap()
+                .contains("OLD_DATE_HOT_CANARY")
+        );
+    }
+    assert_eq!(db.turn_result(&first.turn_id).unwrap(), first_raw);
+    let compactions = db.compaction_history("s").unwrap();
+    assert_eq!(compactions.len(), 2);
+    assert!(compactions.iter().all(|snapshot| {
+        snapshot.reason == CompactionReason::Automatic
+            && snapshot.state == CompactionState::Completed
+    }));
+    assert!(db.session_checkpoint("s").unwrap().is_some());
+    runtime.shutdown_mcp().await.unwrap();
+
+    let requests = peer.await.unwrap();
+    let InputItem::Message { content, .. } = &date else {
+        unreachable!()
+    };
+    let crate::provider::InputContent::InputText { text } = &content[0] else {
+        unreachable!()
+    };
+    for (request, prompt) in requests
+        .iter()
+        .skip(1)
+        .zip(["continue same day", "continue after another checkpoint"])
+    {
+        let input = request["input"].as_array().unwrap();
+        let date_items = input
+            .iter()
+            .enumerate()
+            .filter(|(_, item)| item["content"][0]["text"] == *text)
+            .collect::<Vec<_>>();
+        assert_eq!(date_items.len(), 1);
+        assert_eq!(date_items[0].1["role"], "developer");
+        let user = input
+            .iter()
+            .position(|item| item["content"][0]["text"] == prompt)
+            .unwrap();
+        assert!(date_items[0].0 < user);
+        assert!(request["input"].to_string().contains("Continue work."));
+        assert!(!request["input"].to_string().contains("OLD_DATE_HOT_CANARY"));
+        assert!(!request["input"].to_string().contains("2000-01-01"));
+    }
+}
+
+#[tokio::test]
+async fn automatic_compaction_keeps_date_before_clipped_source_floor() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let prior = db
+        .accept_turn(
+            "prior",
+            "s",
+            "prior task",
+            "prior task",
+            &ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+        )
+        .unwrap();
+    let old_date = InputItem::message(InputRole::System, "Today's date: 2000-01-01 (Saturday)");
+    let mut old = TurnLog::new("prior", "m", "fixture");
+    old.user_message = Some(prior.user_message.clone());
+    old.input = vec![
+        InputItem::message(InputRole::User, "prior task"),
+        old_date.clone(),
+    ];
+    db.commit_turn(
+        "prior",
+        "completed",
+        Some(&old.to_json().to_string()),
+        Some("old answer"),
+    )
+    .unwrap();
+    let prior_checkpoint = CompactionSnapshot {
+        id: "prior-checkpoint".into(),
+        session: "s".into(),
+        reason: CompactionReason::Manual,
+        state: CompactionState::Completed,
+        summary: "prior summary".into(),
+        model: None,
+        profile: None,
+        anchor: Default::default(),
+        usage: None,
+        provider_native: false,
+        error: None,
+    };
+    db.save_compaction(&prior_checkpoint).unwrap();
+    let old_selection = old
+        .selected_closed_groups(|_| false, Some(&old_date))
+        .unwrap()
+        .to_json();
+    db.commit_checkpoint_selected(
+        &prior_checkpoint,
+        &prior.user_message,
+        None,
+        &BTreeMap::new(),
+        &[old_selection],
+        None,
+    )
+    .unwrap();
+    let after = db.session_checkpoint("s").unwrap().unwrap().0;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&listener);
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = read_request(&listener).await;
+        respond(&mut socket, &sse("dated answer")).await;
+        let (mut socket, summary) = read_request(&listener).await;
+        assert_eq!(summary["tools"], serde_json::json!([]));
+        respond(&mut socket, &sse("## Objective\nContinue work.")).await;
+        let (mut socket, primary) = read_request(&listener).await;
+        respond(&mut socket, &sse("done")).await;
+        primary
+    });
+    let catalog = catalog();
+    let first_runtime = runtime(&db, project.path(), Generation::default());
+    let first = tokio::time::timeout(
+        Duration::from_secs(20),
+        first_runtime.run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "date update".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &AtomicBool::new(false),
+        }),
+    )
+    .await
+    .expect("date update turn timed out")
+    .unwrap();
+    assert_eq!(first.status, TurnStatus::Completed);
+    let first = TurnLog::from_json(
+        &serde_json::from_str(&db.turn_result(&first.turn_id).unwrap().1.unwrap()).unwrap(),
+    )
+    .unwrap();
+    let date = first.input[1].clone();
+    let today = super::environment::local_date(std::time::SystemTime::now()).unwrap();
+    assert_eq!(super::environment::date_value(&date), Some(today.as_str()));
+    first_runtime.shutdown_mcp().await.unwrap();
+    drop(first_runtime);
+
+    let bulky_text = format!("CLIPPED_DATE_CANARY {}", "x".repeat(2_400_000));
+    let accepted = db
+        .accept_turn(
+            "bulky",
+            "s",
+            &bulky_text,
+            &bulky_text,
+            &ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+        )
+        .unwrap();
+    let mut bulky = TurnLog::new("bulky", "m", "fixture");
+    bulky.user_message = Some(accepted.user_message);
+    bulky.input = vec![InputItem::message(InputRole::User, &bulky_text)];
+    // A real journal stores opaque continuation in both input and `opaque`.
+    // The bounded wire projection excludes the latter, while the source-floor
+    // estimator counts the complete journal. Each item remains individually small.
+    let payload = "x".repeat(900_000);
+    for index in 0..19 {
+        let item = serde_json::json!({"type":"reasoning","id":format!("r{index}"),"summary":[],"encrypted_content":payload});
+        bulky.input.push(InputItem::ProviderOutput(item.clone()));
+        bulky.opaque.push(item);
+    }
+    db.commit_turn(
+        "bulky",
+        "completed",
+        Some(&bulky.to_json().to_string()),
+        Some("bulky answer"),
+    )
+    .unwrap();
+    drop(bulky);
+    let tail = seed(&db, "tail", "tail");
+    let cutoff = db.message_seq("s", &tail).unwrap().unwrap();
+    let floor = db
+        .compaction_content_floor("s", after, cutoff, ACTIVE_CONTEXT_BYTES_CAP)
+        .unwrap();
+    assert!(
+        floor > after,
+        "the original date must fall before the source floor"
+    );
+
+    let mut generation = Generation::default();
+    generation.compaction.keep_tokens = 0;
+    generation.compaction.buffer = Some(499_999);
+    let runtime = runtime(&db, project.path(), generation);
+    let binding = provider.provenance("fixture", "m").unwrap();
+    let full = runtime.active_projection("s").unwrap();
+    let history = runtime
+        .wire_history_bound(
+            "s",
+            &full.projected,
+            &full.blocks,
+            "m",
+            "fixture",
+            None,
+            full.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert_eq!(history.iter().filter(|item| **item == date).count(), 1);
+    assert!(serialized_size(&history).unwrap() < ACTIVE_CONTEXT_BYTES_CAP as u64);
+    let suffix = runtime
+        .active_projection_selected("s", floor, cutoff, true, ACTIVE_CONTEXT_BYTES_CAP, true)
+        .unwrap();
+    let clipped = runtime
+        .wire_history_bound(
+            "s",
+            &suffix.projected,
+            &suffix.blocks,
+            "m",
+            "fixture",
+            None,
+            suffix.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert!(!clipped.contains(&date));
+    assert!(
+        clipped.contains(&old_date),
+        "the suffix still contains the stale checkpoint date"
+    );
+    let report = tokio::time::timeout(
+        Duration::from_secs(20),
+        runtime.run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "continue after clipping".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &AtomicBool::new(false),
+        }),
+    )
+    .await
+    .expect("clipping turn timed out")
+    .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let saved = TurnLog::from_json(
+        &serde_json::from_str(&db.turn_result(&report.turn_id).unwrap().1.unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert!(
+        !saved
+            .input
+            .iter()
+            .any(|item| super::environment::date_value(item).is_some())
+    );
+    let checkpoint = db.compaction_history("s").unwrap();
+    assert_eq!(checkpoint.len(), 2);
+    assert_eq!(checkpoint[0].reason, CompactionReason::Automatic);
+    assert_eq!(checkpoint[0].state, CompactionState::Completed);
+    let active = runtime.active_projection("s").unwrap();
+    let hot = runtime
+        .wire_history_bound(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "m",
+            "fixture",
+            None,
+            active.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert_eq!(hot.iter().filter(|item| **item == date).count(), 1);
+    assert!(!hot.contains(&old_date));
+    assert!(
+        !serde_json::to_string(&hot)
+            .unwrap()
+            .contains("CLIPPED_DATE_CANARY")
+    );
+    let primary = peer.await.unwrap();
+    let input = primary["input"].as_array().unwrap();
+    let expected = format!("Today's date is now: {today}");
+    let dates = input
+        .iter()
+        .enumerate()
+        .filter(|(_, item)| item["content"][0]["text"] == expected)
+        .collect::<Vec<_>>();
+    assert_eq!(dates.len(), 1);
+    assert_eq!(dates[0].1["role"], "developer");
+    let prompt = input
+        .iter()
+        .position(|item| item["content"][0]["text"] == "continue after clipping")
+        .unwrap();
+    assert!(dates[0].0 < prompt);
+    assert!(!primary["input"].to_string().contains("CLIPPED_DATE_CANARY"));
+    runtime.shutdown_mcp().await.unwrap();
+}
+
 #[test]
 fn usage_accounting_prices_unmeasured_opaque_and_binds_typed_sources() {
     use crate::instructions::{Fact, Origin, Source};

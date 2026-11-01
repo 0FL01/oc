@@ -160,10 +160,10 @@ fn go04_receipt_origins_and_hot_selection_preserve_binding_not_current_choice() 
             .unwrap()
             .contains("opaque-2")
     );
-    let selected = log.selected_closed_groups(|_| true).unwrap();
+    let selected = log.selected_closed_groups(|_| true, None).unwrap();
     assert_eq!(selected.binding, log.binding);
     let working = log
-        .current_working_checkpoint("summary", log.closed_counts(), |_| true)
+        .current_working_checkpoint("summary", log.closed_counts(), |_| true, None)
         .unwrap();
     let hot = TurnLog::from_json(&working).unwrap();
     assert_eq!(hot.binding, log.binding);

@@ -1659,6 +1659,13 @@ async fn aud21_model_compress_forgets_closed_tool_graph_without_replay() {
     assert_eq!(history.len(), 2);
     let raw_turn = harness.db.turn_result(&seeded.turn_id).unwrap();
     assert!(raw_turn.1.as_deref().unwrap().contains(&journal));
+    let raw_value: serde_json::Value =
+        serde_json::from_str(raw_turn.1.as_deref().unwrap()).unwrap();
+    assert_eq!(raw_value["input"][1]["role"], "system");
+    let date = raw_value["input"][1]["content"][0]["text"]
+        .as_str()
+        .unwrap();
+    assert!(date.starts_with("Today's date: "));
 
     let mut compress = sse_tool_call(
         "compress-graph",
@@ -1745,6 +1752,7 @@ async fn aud21_model_compress_forgets_closed_tool_graph_without_replay() {
             .iter()
             .map(|(_, _, text)| estimate(text))
             .sum::<u64>()
+            + estimate(date)
             + estimate(
                 function_call(&requests[0], "graph-effect").unwrap()["arguments"]
                     .as_str()

@@ -27,7 +27,59 @@ fn prm01_host_data_is_bounded_literal_and_optional() {
     // SAFETY: a synthetic owned FIFO, not a host resource.
     assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
     assert!(data(&fifo, 9).is_none());
-    assert_eq!(utc_date(UNIX_EPOCH).unwrap(), "1970-01-01");
+}
+
+#[test]
+fn local_date_uses_process_timezone() {
+    const CHILD: &str = "OC_LOCAL_DATE_TEST_CHILD";
+    if std::env::var_os(CHILD).is_some() {
+        assert_eq!(
+            local_date(UNIX_EPOCH + std::time::Duration::from_secs(22 * 60 * 60)),
+            Some("1970-01-02 (Friday)".into())
+        );
+        return;
+    }
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "runtime::environment::tests::local_date_uses_process_timezone",
+            "--exact",
+            "--test-threads=1",
+        ])
+        .env(CHILD, "1")
+        .env("TZ", "XYZ-3")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "child failed: {} {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+}
+
+#[test]
+fn date_notice_is_chronological_deduplicated_and_system_owned() {
+    let old = "2000-01-01 (Saturday)";
+    let today = "2000-01-02 (Sunday)";
+    let initial = InputItem::message(InputRole::System, format!("Today's date: {old}"));
+    let changed = InputItem::message(InputRole::System, format!("Today's date is now: {today}"));
+    assert_eq!(date_notice(&[], old), Some(initial.clone()));
+    assert_eq!(date_notice(std::slice::from_ref(&initial), old), None);
+    assert_eq!(
+        date_notice(std::slice::from_ref(&initial), today),
+        Some(changed.clone())
+    );
+    let spoof = InputItem::message(InputRole::User, format!("Today's date: {today}"));
+    assert_eq!(
+        date_notice(std::slice::from_ref(&spoof), old),
+        Some(initial.clone())
+    );
+    assert_eq!(
+        date_notice(&[initial.clone(), spoof], today),
+        Some(changed.clone())
+    );
+    assert_eq!(date_notice(&[initial, changed], today), None);
 }
 
 #[test]

@@ -1664,10 +1664,17 @@ async fn canonical_tool_cards_keep_output_order_and_durable_read_pairing_after_r
                 ("assistant".into(), report.text.clone())
             ]
         );
+        assert_eq!(stored["input"][1]["role"], "system");
+        assert!(
+            stored["input"][1]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .starts_with("Today's date: ")
+        );
         for (offset, item) in output.iter().enumerate() {
-            assert_eq!(stored["input"][offset + 1], *item);
+            assert_eq!(stored["input"][offset + 2], *item);
         }
-        let paired = &stored["input"][output.len() + 1];
+        let paired = &stored["input"][output.len() + 2];
         assert_eq!(paired["type"], "function_call_output");
         assert_eq!(paired["call_id"], "ordered");
         assert!(
@@ -1777,21 +1784,28 @@ async fn unidentifiable_calls_append_only_at_intent_and_duplicate_call_ids_fail_
     let stored: serde_json::Value = serde_json::from_str(&raw.unwrap()).unwrap();
     let parts = stored["display_parts"].as_array().unwrap();
     assert_eq!(parts.len(), 2);
-    assert_eq!(parts[0]["message"], 2);
+    assert_eq!(parts[0]["message"], 3);
     assert_eq!(
         parts[1]["tool"],
         harness.db.list_tool_ops("unidentified-tool").unwrap()[0].op
     );
-    assert_eq!(stored["input"][1], call);
-    assert_eq!(stored["input"][2], message);
-    assert_eq!(stored["input"][3]["call_id"], "read-one");
+    assert_eq!(stored["input"][1]["role"], "system");
+    assert!(
+        stored["input"][1]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("Today's date: ")
+    );
+    assert_eq!(stored["input"][2], call);
+    assert_eq!(stored["input"][3], message);
+    assert_eq!(stored["input"][4]["call_id"], "read-one");
 
     runtime.create_session("duplicate-tool").unwrap();
     let duplicate = serde_json::json!({"type":"function_call", "id":"fc_second",
         "call_id":"read-one", "name":"read", "arguments":"{\"path\":\"fixture.txt\"}"});
     let (base, hits) = Fake::start(
         vec![sse_completed_output(vec![
-            stored["input"][1].clone(),
+            stored["input"][2].clone(),
             duplicate,
         ])],
         Duration::ZERO,

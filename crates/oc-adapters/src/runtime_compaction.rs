@@ -673,43 +673,55 @@ impl Runtime<'_> {
                 if let Some((log, counts, notice_seq)) = current.as_mut() {
                     let config = &published.dcp_config;
                     let live_calls = self.db.live_background_call_ids(&log.turn_id)?;
+                    let mut closed = (**log).clone();
+                    closed.input.truncate(counts[0]);
+                    let date = closed
+                        .input_for("", "")
+                        .into_iter()
+                        .rev()
+                        .find(|item| super::environment::date_value(item).is_some());
                     let working = log
-                        .current_working_checkpoint(&snapshot.summary, *counts, |group| {
-                            group.iter().any(|item| {
-                                if let InputItem::ProviderOutput(v) = item
-                                    && v["type"] == "function_call"
-                                {
-                                    let name = v["name"].as_str().unwrap_or_default();
-                                    live_calls
-                                        .iter()
-                                        .any(|id| v["call_id"].as_str() == Some(id.as_str()))
-                                        || crate::dcp_auto::tool_is_protected(
-                                            &config.protected_tools,
-                                            name,
-                                        )
-                                        || crate::dcp_auto::tool_is_protected(
-                                            &config.dedup_protected_tools,
-                                            name,
-                                        )
-                                        || crate::dcp_auto::tool_is_protected(
-                                            &config.purge_protected_tools,
-                                            name,
-                                        )
-                                        || super::context::dcp_call_has_protected_path(
-                                            name,
-                                            v["arguments"].as_str().unwrap_or_default(),
-                                            config,
-                                        )
-                                } else if config.protect_tags {
-                                    let text = serde_json::to_string(item).unwrap_or_default();
-                                    oc_core::context_plan::extract_protect_tags(&text)
-                                        .next()
-                                        .is_some()
-                                } else {
-                                    false
-                                }
-                            })
-                        })
+                        .current_working_checkpoint(
+                            &snapshot.summary,
+                            *counts,
+                            |group| {
+                                group.iter().any(|item| {
+                                    if let InputItem::ProviderOutput(v) = item
+                                        && v["type"] == "function_call"
+                                    {
+                                        let name = v["name"].as_str().unwrap_or_default();
+                                        live_calls
+                                            .iter()
+                                            .any(|id| v["call_id"].as_str() == Some(id.as_str()))
+                                            || crate::dcp_auto::tool_is_protected(
+                                                &config.protected_tools,
+                                                name,
+                                            )
+                                            || crate::dcp_auto::tool_is_protected(
+                                                &config.dedup_protected_tools,
+                                                name,
+                                            )
+                                            || crate::dcp_auto::tool_is_protected(
+                                                &config.purge_protected_tools,
+                                                name,
+                                            )
+                                            || super::context::dcp_call_has_protected_path(
+                                                name,
+                                                v["arguments"].as_str().unwrap_or_default(),
+                                                config,
+                                            )
+                                    } else if config.protect_tags {
+                                        let text = serde_json::to_string(item).unwrap_or_default();
+                                        oc_core::context_plan::extract_protect_tags(&text)
+                                            .next()
+                                            .is_some()
+                                    } else {
+                                        false
+                                    }
+                                })
+                            },
+                            date.as_ref(),
+                        )
                         .map_err(|_| RuntimeError::Storage)?;
                     let (segment, hot) = log
                         .prepare_closed_segment(*counts, working, *notice_seq)
@@ -810,6 +822,53 @@ impl Runtime<'_> {
             let _ = events.send(CoreEvent::Compaction(snapshot.clone()));
         }
     }
+
+    /// The source floor can omit a still-active journal even though its wire
+    /// projection was admitted. Read only the bounded HOT projection, not the
+    /// raw archive, and carry its latest typed date as one original item.
+    fn clipped_date_selection(
+        &self,
+        session: &str,
+        after: i64,
+        cutoff: i64,
+        checkpoint: bool,
+    ) -> Result<Option<(InputItem, serde_json::Value)>, RuntimeError> {
+        let context = self.active_projection_range(
+            session,
+            after,
+            cutoff,
+            checkpoint,
+            ACTIVE_CONTEXT_BYTES_CAP,
+        )?;
+        let logs = self.projected_wire_logs(session, after, &context.projected, &context.blocks)?;
+        let move_epoch = self.db.session_move_epoch(session)?;
+        for raw in logs.iter().rev() {
+            let value = serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
+            let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
+            if log.user_message.is_none()
+                || (move_epoch != 0
+                    && (log.display["move_epoch"].as_i64() != Some(move_epoch)
+                        || log.display["location"].as_str() != Some(self.location.as_str())))
+            {
+                continue;
+            }
+            if let Some(date) = log
+                .input_for("", "")
+                .into_iter()
+                .rev()
+                .find(|item| super::environment::date_value(item).is_some())
+            {
+                let selected = log
+                    .selected_closed_groups(|_| false, Some(&date))
+                    .map_err(|_| RuntimeError::Storage)?;
+                if !selected.input.is_empty() {
+                    return Ok(Some((date, selected.to_json())));
+                }
+            }
+        }
+        Ok(None)
+    }
+
     #[allow(clippy::too_many_arguments)]
     async fn summarize_session(
         &self,
@@ -932,6 +991,15 @@ impl Runtime<'_> {
                 source_budget,
                 retain_selection,
             )?;
+            // Even with DCP protections disabled, a prior checkpoint may own
+            // the sole typed date notice. Inspect its bounded selection before
+            // reselecting facts rather than replacing it with summary prose.
+            if !retain_selection
+                && let Some(row) = context.projected.first_mut()
+                && row.0 == "session-checkpoint-summary"
+            {
+                row.0 = "session-checkpoint".into();
+            }
             if retain_selection {
                 self.renew_compaction_selection(session, &mut context, dcp)?;
             }
@@ -956,7 +1024,25 @@ impl Runtime<'_> {
             )?;
             let logs =
                 self.projected_wire_logs(session, context.after_seq, prior, &context.blocks)?;
-            retained_selection = self.select_history_facts(&logs, &published.dcp_config)?;
+            let date = history
+                .iter()
+                .rev()
+                .find(|item| super::environment::date_value(item).is_some());
+            let clipped_date = if floor > after && snapshot.reason == CompactionReason::Automatic {
+                self.clipped_date_selection(session, after, cutoff, true)?
+                    .filter(|(item, _)| Some(item) != date)
+            } else {
+                None
+            };
+            retained_selection = self.select_history_facts(
+                session,
+                &logs,
+                &published.dcp_config,
+                if clipped_date.is_some() { None } else { date },
+            )?;
+            if let Some((_, selected)) = clipped_date {
+                retained_selection.insert(0, selected);
+            }
             retained_selection.extend(self.selected_message_facts(
                 session,
                 prior,
@@ -1043,6 +1129,12 @@ impl Runtime<'_> {
                 source_budget,
                 retain_selection,
             )?;
+            if !retain_selection
+                && let Some(row) = context.projected.first_mut()
+                && row.0 == "session-checkpoint-summary"
+            {
+                row.0 = "session-checkpoint".into();
+            }
             if retain_selection {
                 self.renew_compaction_selection(session, &mut context, dcp)?;
             }
@@ -1075,10 +1167,22 @@ impl Runtime<'_> {
                 false,
                 dcp,
             )?;
+            let date = history
+                .iter()
+                .rev()
+                .find(|item| super::environment::date_value(item).is_some());
+            let clipped_date = if floor > after && snapshot.reason == CompactionReason::Automatic {
+                self.clipped_date_selection(session, after, cutoff, !recover_native)?
+                    .filter(|(item, _)| Some(item) != date)
+            } else {
+                None
+            };
+            let selected_date = if clipped_date.is_some() { None } else { date };
             let offset_history = if recover_native {
                 let source_logs =
                     self.projected_wire_logs(session, context.after_seq, &prefix, &context.blocks)?;
-                retained_selection = self.select_history_facts(&source_logs, dcp)?;
+                retained_selection =
+                    self.select_history_facts(session, &source_logs, dcp, selected_date)?;
                 let after = self
                     .db
                     .session_checkpoint(session)?
@@ -1099,9 +1203,13 @@ impl Runtime<'_> {
             } else {
                 let source_logs =
                     self.projected_wire_logs(session, context.after_seq, &prefix, &context.blocks)?;
-                retained_selection = self.select_history_facts(&source_logs, dcp)?;
+                retained_selection =
+                    self.select_history_facts(session, &source_logs, dcp, selected_date)?;
                 history.clone()
             };
+            if let Some((_, selected)) = clipped_date {
+                retained_selection.insert(0, selected);
+            }
             retained_selection.extend(self.selected_message_facts(
                 session,
                 &prefix,

@@ -4,6 +4,41 @@
 
 pub fn check_context_ids(request: &mut serde_json::Value) {
     check_execution_context(request);
+    // Validate chronological date notices before comparing legacy conversation-only wire.
+    request["input"].as_array_mut().unwrap().retain(|item| {
+        if item["role"] != "developer" {
+            return true;
+        }
+        let Some(date) = item["content"][0]["text"].as_str().and_then(|text| {
+            text.strip_prefix("Today's date: ")
+                .or_else(|| text.strip_prefix("Today's date is now: "))
+        }) else {
+            return true;
+        };
+        assert_eq!(item["type"], "message");
+        assert_eq!(item["content"][0]["type"], "input_text");
+        let (ymd, weekday) = date.split_once(" (").expect("date and weekday");
+        let bytes = ymd.as_bytes();
+        assert_eq!(bytes.len(), 10);
+        assert!(bytes.iter().enumerate().all(|(i, b)| {
+            if i == 4 || i == 7 {
+                *b == b'-'
+            } else {
+                b.is_ascii_digit()
+            }
+        }));
+        assert!(matches!(
+            weekday,
+            "Sunday)"
+                | "Monday)"
+                | "Tuesday)"
+                | "Wednesday)"
+                | "Thursday)"
+                | "Friday)"
+                | "Saturday)"
+        ));
+        false
+    });
     const PREFIX: &str = "Stable text-message IDs in order (context selection only): ";
     let input = request["input"].as_array_mut().expect("request input");
     let positions = input
@@ -99,7 +134,7 @@ fn check_execution_context(request: &mut serde_json::Value) {
             assert!(std::path::Path::new(facts[field].as_str().unwrap()).is_absolute());
         }
         assert!(facts["effectiveUid"].is_u64() && facts["effectiveGid"].is_u64());
-        assert_eq!(facts["dateUtc"].as_str().unwrap().len(), 10);
+        assert!(facts.get("dateUtc").is_none());
     }
     let bases = input
         .iter()

@@ -628,10 +628,10 @@ fn hot01_profile_history_keeps_closed_pairs_and_each_request_origin() {
             .count(),
         2
     );
-    let selected = log.selected_closed_groups(|_| true).unwrap();
+    let selected = log.selected_closed_groups(|_| true, None).unwrap();
     assert_projection(&selected.input_for_bound("m", "fixture", Some(&binding), Some(&profile)));
     let hot = TurnLog::from_json(
-        &log.current_working_checkpoint("LATEST_HOT", log.closed_counts(), |_| true)
+        &log.current_working_checkpoint("LATEST_HOT", log.closed_counts(), |_| true, None)
             .unwrap(),
     )
     .unwrap();

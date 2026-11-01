@@ -137,7 +137,7 @@ fn git_repository(directory: &Path) -> Option<bool> {
     ancestors.next().is_none().then_some(false)
 }
 
-fn utc_date(time: SystemTime) -> Option<String> {
+pub(super) fn local_date(time: SystemTime) -> Option<String> {
     let seconds: libc::time_t = time
         .duration_since(UNIX_EPOCH)
         .ok()?
@@ -145,19 +145,54 @@ fn utc_date(time: SystemTime) -> Option<String> {
         .try_into()
         .ok()?;
     let mut result = std::mem::MaybeUninit::<libc::tm>::uninit();
-    // SAFETY: both pointers refer to correctly sized live allocations; gmtime_r
-    // initializes tm on success and has no timezone/environment dependency.
-    if unsafe { libc::gmtime_r(&seconds, result.as_mut_ptr()) }.is_null() {
+    // SAFETY: both pointers refer to correctly sized live allocations; localtime_r
+    // initializes tm on success, using the process timezone configuration.
+    if unsafe { libc::localtime_r(&seconds, result.as_mut_ptr()) }.is_null() {
         return None;
     }
-    // SAFETY: gmtime_r succeeded.
+    // SAFETY: localtime_r succeeded.
     let tm = unsafe { result.assume_init() };
+    let weekday = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ]
+    .get(usize::try_from(tm.tm_wday).ok()?)?;
     Some(format!(
-        "{:04}-{:02}-{:02}",
+        "{:04}-{:02}-{:02} ({weekday})",
         tm.tm_year + 1900,
         tm.tm_mon + 1,
         tm.tm_mday
     ))
+}
+
+pub(super) fn date_value(item: &InputItem) -> Option<&str> {
+    let InputItem::Message {
+        role: InputRole::System,
+        content,
+    } = item
+    else {
+        return None;
+    };
+    let Some(crate::provider::InputContent::InputText { text }) = content.first() else {
+        return None;
+    };
+    text.strip_prefix("Today's date: ")
+        .or_else(|| text.strip_prefix("Today's date is now: "))
+}
+
+pub(super) fn date_notice(history: &[InputItem], today: &str) -> Option<InputItem> {
+    let latest = history.iter().rev().find_map(date_value);
+    let text = match latest {
+        None => format!("Today's date: {today}"),
+        Some(date) if date == today => return None,
+        Some(_) => format!("Today's date is now: {today}"),
+    };
+    Some(InputItem::message(InputRole::System, text))
 }
 
 fn collect(
@@ -174,9 +209,6 @@ fn collect(
     string("workingDirectory", &directory.to_string_lossy());
     string("workspaceRoot", &workspace.to_string_lossy());
     string("processArchitecture", std::env::consts::ARCH);
-    if let Some(date) = utc_date(SystemTime::now()) {
-        string("dateUtc", &date);
-    }
     // This is the same selector the canonical tool uses, not a claim about $SHELL.
     let path_bounded = env
         .get("PATH")
@@ -265,7 +297,7 @@ fn render(facts: &BTreeMap<String, serde_json::Value>) -> String {
         }
     }
     format!(
-        "Execution metadata only; permissions are determined by tool admission. UTC date baseline.\n{OPEN}\n{escaped}\n{CLOSE}"
+        "Execution metadata only; permissions are determined by tool admission.\n{OPEN}\n{escaped}\n{CLOSE}"
     )
 }
 

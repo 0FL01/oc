@@ -1684,11 +1684,11 @@ async fn two_reasoning_output_items_keep_public_parts_and_opaque_continuation_se
     let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
     assert_eq!(stored["display_parts"][0]["reasoning"], "Inspecting");
     assert_eq!(
-        stored["display_parts"][1]["message"], 2,
+        stored["display_parts"][1]["message"], 3,
         "text slot matched by item id without an output index"
     );
     assert_eq!(stored["display_parts"][2]["reasoning"], "Verifying");
-    assert_eq!(stored["display_parts"][3]["message"], 4);
+    assert_eq!(stored["display_parts"][3]["message"], 5);
     assert_eq!(stored["display_parts"].as_array().unwrap().len(), 4);
     assert!(
         report.streamed_ms >= 20,
@@ -1702,10 +1702,17 @@ async fn two_reasoning_output_items_keep_public_parts_and_opaque_continuation_se
     }
     assert!(!stored["display_parts"].to_string().contains("encrypted-"));
     assert!(!stored["display_parts"].to_string().contains("pending_text"));
-    assert_eq!(stored["input"][2]["content"][0]["text"], "between");
-    assert_eq!(stored["input"][4]["content"][0]["text"], "final");
-    assert_eq!(stored["input"][1]["encrypted_content"], "encrypted-first");
-    assert_eq!(stored["input"][3]["encrypted_content"], "encrypted-second");
+    assert_eq!(stored["input"][1]["role"], "system");
+    assert!(
+        stored["input"][1]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("Today's date: ")
+    );
+    assert_eq!(stored["input"][3]["content"][0]["text"], "between");
+    assert_eq!(stored["input"][5]["content"][0]["text"], "final");
+    assert_eq!(stored["input"][2]["encrypted_content"], "encrypted-first");
+    assert_eq!(stored["input"][4]["encrypted_content"], "encrypted-second");
     let next = runtime
         .run_turn(params(
             "reasoning-items",
@@ -1877,10 +1884,10 @@ async fn successful_generation_without_reasoning_item_done_leaves_open_part_unti
     assert!(parts[0]["duration_ms"].as_u64().is_some());
     assert_eq!(parts[1]["reasoning"], "Second");
     assert!(parts[1].get("duration_ms").is_none());
-    assert_eq!(parts[2]["message"], 2);
+    assert_eq!(parts[2]["message"], 3);
     assert_eq!(parts.len(), 3);
     assert_eq!(
-        stored["input"][1], first,
+        stored["input"][2], first,
         "only completed opaque item is replayable"
     );
     assert!(
@@ -1971,7 +1978,7 @@ async fn completed_message_without_delta_or_item_events_stays_between_reasoning_
     let stored: serde_json::Value = serde_json::from_str(&stored.unwrap()).unwrap();
     assert_eq!(stored["display_parts"].as_array().unwrap().len(), 3);
     assert_eq!(stored["display_parts"][0]["reasoning"], "First");
-    assert_eq!(stored["display_parts"][1]["message"], 2);
+    assert_eq!(stored["display_parts"][1]["message"], 3);
     assert_eq!(stored["display_parts"][2]["reasoning"], "Second");
     assert!(!stored["display_parts"].to_string().contains("private-"));
 }

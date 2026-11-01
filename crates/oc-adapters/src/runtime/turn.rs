@@ -1799,7 +1799,14 @@ impl<'a> Runtime<'a> {
                 Some(&lane.request_profile()),
             )
         } else {
-            vec![new_prompt.expect("new turn prompt prepared before admission")]
+            let mut input = vec![new_prompt.expect("new turn prompt prepared before admission")];
+            if !lane.manual_compression
+                && let Some(today) = super::environment::local_date(std::time::SystemTime::now())
+                && let Some(notice) = super::environment::date_notice(&history, &today)
+            {
+                input.push(notice);
+            }
+            input
         };
         let plan_reminder = crate::plan::missing(
             &history,

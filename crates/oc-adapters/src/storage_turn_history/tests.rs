@@ -87,6 +87,7 @@ fn working(log: &TurnLog) -> serde_json::Value {
         "## Work State\nknown committed effect",
         log.closed_counts(),
         |_| false,
+        None,
     )
     .unwrap()
 }
@@ -893,7 +894,12 @@ fn rich_second_segment_keeps_original_receipt_and_bounded_selected_model_project
         .unwrap();
     db.checkpoint_turn("t", &hot.to_json().to_string()).unwrap();
     let selected = hot
-        .current_working_checkpoint("## Work State\nmedia fact", hot.closed_counts(), |_| true)
+        .current_working_checkpoint(
+            "## Work State\nmedia fact",
+            hot.closed_counts(),
+            |_| true,
+            None,
+        )
         .unwrap();
     let (second, selected_hot) = hot
         .prepare_closed_segment(hot.closed_counts(), selected, 5)
@@ -1109,7 +1115,12 @@ fn latest_windows_do_not_stop_execution_and_each_part_keeps_its_actual_span() {
             .unwrap();
         db.checkpoint_turn("t", &hot.to_json().to_string()).unwrap();
         let selected = hot
-            .current_working_checkpoint("## Work State\nknown", hot.closed_counts(), |_| false)
+            .current_working_checkpoint(
+                "## Work State\nknown",
+                hot.closed_counts(),
+                |_| false,
+                None,
+            )
             .unwrap();
         let (segment, replacement) = hot
             .prepare_closed_segment(hot.closed_counts(), selected, 5)

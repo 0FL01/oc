@@ -445,7 +445,7 @@ fn normalized(body: &str) -> String {
             assert!(std::path::Path::new(facts[field].as_str().unwrap()).is_absolute());
             facts[field] = "<owned-fixture-root>".into();
         }
-        facts["dateUtc"] = "<request-date>".into();
+        assert!(facts.get("dateUtc").is_none());
         item["content"][0]["text"] =
             format!("{prefix}<oc-execution-environment>\n{facts}\n</oc-execution-environment>")
                 .into();

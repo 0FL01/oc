@@ -249,7 +249,7 @@ This is a future implementation contract, not evidence that the channel exists t
 
 ## Prompt assembly
 
-Один runtime assembler строит provider input из typed lanes: compiled runtime/tool/security contract → selected session-agent body/base prompt (primary или child) → environment/date → ordered AGENTS/skill metadata/permitted MCP fragments → DCP fixed/nudge fragments → history projection → current user input. Каждая fixed lane имеет provenance/digest/byte accounting и stable delimiter. Expanded command и delegation/context pack остаются user input; loaded skill остаётся ordinary tool result, никогда system text. DCP не сжимает fixed config lanes и не добавляет их повторную копию на каждом turn.
+Один runtime assembler строит provider input из typed lanes: compiled runtime/tool/security contract → selected session-agent body/base prompt (primary или child) → environment → ordered AGENTS/skill metadata/permitted MCP fragments → DCP fixed/nudge fragments → history projection → current user input. Локальная дата при первом обычном turn и при изменении следует за user input как chronological system notice; совпавшая последняя дата не дублируется. Каждая fixed lane имеет provenance/digest/byte accounting и stable delimiter. Expanded command и delegation/context pack остаются user input; loaded skill остаётся ordinary tool result, никогда system text. DCP не сжимает fixed config lanes и не добавляет их повторную копию на каждом turn.
 
 Approved T45/R6–R10 target: selected nonempty agent.system replaces the base harness
 prompt; environment/date, applicable AGENTS, skill metadata and permitted MCP/DCP

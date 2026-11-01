@@ -76,7 +76,7 @@ oc2 (crates/oc)          binary, bootstrap, event loop, headless
 
 ## Prompt и native tools
 
-- Один runtime assembler: agent system/base → compiled bounded host/workspace/date → ordered AGENTS/skill metadata → permitted MCP/DCP guidance → history → user/tool results. Custom system не убирает environment; schemas — отдельное request field, config/TUI финальный prompt не собирают.
+- Один runtime assembler: agent system/base → compiled bounded host/workspace → ordered AGENTS/skill metadata → permitted MCP/DCP guidance → history → user/tool results. При новом обычном turn локальная дата добавляется после user input как chronological system notice при первом появлении или изменении, без дубля для той же даты. Custom system не убирает environment/date; schemas — отдельное request field, config/TUI финальный prompt не собирают.
 - Linux facts собираются native без shell/privilege escalation, отражают реальный executor, не `$SHELL`. Deterministic escaped fields, unknown optional facts без startup failure; immutable request snapshot, без env/proc dumps и накопления duplicates.
 - Initial instruction baseline durable; successful nested reads/updates/removals — chronological origin/revision messages, не RAW rewrite. Reconcile после compact/Revert/reopen внутри admitted source bounds.
 - Новые вложенные инструкции после успешного `read` сохраняют bounded typed Loaded-path receipt вместе с instruction facts и tool outcome. TUI показывает отдельный `◈ Instructions: N files`, по умолчанию свёрнутый; click раскрывает только пути, повторный скрывает их. Это локальный disclosure, не повторное чтение файлов или изменение prompt.

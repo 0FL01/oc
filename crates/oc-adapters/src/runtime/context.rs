@@ -858,7 +858,9 @@ impl<'a> Runtime<'a> {
                     .iter()
                     .map(serde_json::Value::to_string)
                     .collect::<Vec<_>>();
-                hot["logs"] = self.select_history_facts(&logs, config)?.into();
+                hot["logs"] = self
+                    .select_history_facts(session, &logs, config, None)?
+                    .into();
                 let facts = hot["protected"].as_array().ok_or(RuntimeError::Storage)?;
                 let mut selected = Vec::new();
                 let mut summary = crate::dcp::authored_summary(&block.summary).to_string();
@@ -998,18 +1000,44 @@ impl<'a> Runtime<'a> {
     }
     pub(super) fn select_history_facts(
         &self,
+        session: &str,
         logs: &[impl AsRef<str>],
         config: &DcpConfig,
+        date: Option<&InputItem>,
     ) -> Result<Vec<serde_json::Value>, RuntimeError> {
+        // Only a notice present in the materialized, location-filtered history
+        // can be retained. Find its last source journal so older dates are not
+        // pinned and the selected item keeps its original coordinates.
+        let mut date_log = None;
+        if let Some(date) = date {
+            let move_epoch = self.db.session_move_epoch(session)?;
+            for (index, raw) in logs.iter().enumerate().rev() {
+                let value: serde_json::Value =
+                    serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
+                let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
+                if log.user_message.is_some()
+                    && (move_epoch == 0
+                        || (log.display["move_epoch"].as_i64() == Some(move_epoch)
+                            && log.display["location"].as_str() == Some(self.location.as_str())))
+                    && log.input_for("", "").contains(date)
+                {
+                    date_log = Some(index);
+                    break;
+                }
+            }
+        }
         let mut result = Vec::new();
         let mut bytes = 0usize;
-        for raw in logs {
+        for (index, raw) in logs.iter().enumerate() {
             let value: serde_json::Value =
                 serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
             let live = self.db.live_background_call_ids(&log.turn_id)?;
             let selected = log
-                .selected_closed_groups(|group| dcp_group_protected(group, &live, config))
+                .selected_closed_groups(
+                    |group| dcp_group_protected(group, &live, config),
+                    (date_log == Some(index)).then_some(date).flatten(),
+                )
                 .map_err(|_| RuntimeError::Storage)?;
             if !selected.input.is_empty() {
                 let value = selected.to_json();
@@ -1570,7 +1598,9 @@ impl<'a> Runtime<'a> {
                 }
             }
             if let Some(hot) = &mut block.hot {
-                hot["logs"] = self.select_history_facts(&covered, config)?.into();
+                hot["logs"] = self
+                    .select_history_facts(session, &covered, config, None)?
+                    .into();
             }
         }
         candidate.extend(plan.blocks.iter().cloned());
