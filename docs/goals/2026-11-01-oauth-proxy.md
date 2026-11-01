@@ -1,6 +1,6 @@
 # Goal: OAuth Codex через HTTP(S)-прокси
 
-Status: active
+Status: complete
 Source: запрос пользователя «OAuth-клиент oc2 отключает прокси через .no_proxy()… реализовать поддержку прокси для OAuth HTTP», утверждённый план (2026-11-01), «Реализовать и коммит пуш».
 Last updated: 2026-11-01
 
@@ -32,8 +32,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Status: verified
   - Evidence: оба документа описывают только OAuth HTTP, env precedence/NO_PROXY, схемы/Basic, TLS и environment первого native owner с необходимостью штатного restart; generation HTTP/WS явно исключены.
 - R5: Commit + push в `origin/master` только своих файлов.
-  - Status: in_progress
-  - Evidence: origin/master read-only проверен; осталось закоммитить только свои paths и push, затем записать фактическое completion evidence.
+  - Status: verified
+  - Evidence: implementation commit `80097e1d6d0a35c046de665702d1fc5d12126cfc` (`fix(auth): honor environment proxies for OpenAI OAuth`), `git push origin master` успешен; `git ls-remote origin refs/heads/master` подтвердил этот SHA. Закоммичены только восемь согласованных paths; foreign diff остался вне commit.
 
 ### Constraints
 - C1: TLS hostname/cert verification, фиксированные paths, no redirects, no reqwest retries, deadlines, body limits сохраняются.
@@ -51,7 +51,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 
 ## Current Checkpoint
 - Closes: R5
-- Smallest next action: актуальное Review-Sol по итогам проверок, commit/push своих файлов, затем doc-only completion commit/push с фактическим SHA реализации.
+- Smallest next action: нет дальнейшей реализации; сохранить эту doc-only completion запись в origin/master.
 
 ## Verification
 Все тестовые команды выполнены последовательно с `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode`; один Cargo owner, 4 build/test threads.
@@ -66,13 +66,15 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Live OAuth/visual qualification и restart пользовательского owner не выполнялись; schema/migrations не менялись.
 
 ## Current State
-- R1–R4 verified; R5 awaiting commit/push.
+- R1–R5 verified; реализация закоммичена и запушена.
 - Ограничение: полный offline gate остаётся красным вне изменённого OAuth пути; отдельные успешные повторы не заменяют его PASS. Логи проверок — `.local/tmp/oauth-proxy-*.log` (ignored).
 - Foreign tracked diff побайтно сохранён; новые foreign paths не тронуты. Cargo.lock: только две dependency entries, без version bumps.
 
 ## Checkpoint History
 - 2026-11-01: план утверждён; два Review-Sol плана без блокеров (уточнена формулировка про metadata: гарантируется только link-local deny).
-- 2026-11-01: R1–R4 реализованы и проверены; source Review-Sol без дефектов, финальная verification-оценка запрошена после scoped checks, одного full-gate запуска и release build. Смежные gate failures не расширяют OAuth scope.
+- 2026-11-01: R1–R4 реализованы и проверены; актуальный Review-Sol без доказанных дефектов/блокеров в OAuth scope, scoped verification подтверждён, full gate явно FAIL. Смежные gate failures не расширяют OAuth scope.
+- 2026-11-01: R5 verified — implementation commit `80097e1d6d0a35c046de665702d1fc5d12126cfc` успешно запушен в origin/master. Closure check: все R verified, затронутые инварианты сохранены, diff в envelope; чужие изменения не коммитились. Completion bookkeeping не меняет runtime/tests и отдельного review не требует.
 
 ## Completion
-- Final status: active; commit/push evidence pending. OAuth primary evidence PASS; full offline gate не PASS.
+- Resolved outcomes: R1–R5 verified; команды/ограничения приведены выше.
+- Final status: complete для замороженного OAuth scope. OAuth primary evidence PASS; full offline gate не PASS, live/visual и whole-product READY не заявляются.
