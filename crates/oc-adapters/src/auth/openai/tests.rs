@@ -88,6 +88,347 @@ async fn dispatched(count: &AtomicUsize) {
     .unwrap();
 }
 
+// Synthetic P-256 CA/server credentials, generated locally with Python cryptography.
+// Valid 2020–2120, test-only; the CA private key is not retained. Never trusted by
+// a production client. The server SANs cover the issuer and the local HTTPS proxy.
+const PROXY_CA: &str = "-----BEGIN CERTIFICATE-----
+MIIBazCCARGgAwIBAgIBATAKBggqhkjOPQQDAjAqMSgwJgYDVQQDDB9vYzIgb2Zm
+bGluZSBPQXV0aCBwcm94eSB0ZXN0IENBMCAXDTIwMDEwMTAwMDAwMFoYDzIxMjAw
+MTAxMDAwMDAwWjAqMSgwJgYDVQQDDB9vYzIgb2ZmbGluZSBPQXV0aCBwcm94eSB0
+ZXN0IENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHYlINAxp83TrbBbkWF3Z
+46wtW7u+I2ZZEhsXOM0xsqKPm25oRvCvXZhnlRHZOxfv9cbzOgwhoyh06gtuNeHy
+CqMmMCQwEgYDVR0TAQH/BAgwBgEB/wIBADAOBgNVHQ8BAf8EBAMCAYYwCgYIKoZI
+zj0EAwIDSAAwRQIgEVH7oH6Frz7hIalUjgTu5+PIr1a9Riq5cS/HSs/XF44CIQCz
+MvKXeLYLSSpbT6jcYl5bgE9jvUaGS90HeUjD5VNKFg==
+-----END CERTIFICATE-----";
+const PROXY_CERT: &str = "-----BEGIN CERTIFICATE-----
+MIIBgTCCASegAwIBAgIBAjAKBggqhkjOPQQDAjAqMSgwJgYDVQQDDB9vYzIgb2Zm
+bGluZSBPQXV0aCBwcm94eSB0ZXN0IENBMCAXDTIwMDEwMTAwMDAwMFoYDzIxMjAw
+MTAxMDAwMDAwWjAaMRgwFgYDVQQDDA9hdXRoLm9wZW5haS5jb20wWTATBgcqhkjO
+PQIBBggqhkjOPQMBBwNCAATHsTrzY1iqffnsRcopHYxAnvhU0tK/36pEjTyVe+xL
+tew7LNoGzhMeXxWdf0Lvl3quCSSoWYTOSVw/MB9fDLN5o0wwSjAMBgNVHRMBAf8E
+AjAAMCUGA1UdEQQeMByCD2F1dGgub3BlbmFpLmNvbYIJbG9jYWxob3N0MBMGA1Ud
+JQQMMAoGCCsGAQUFBwMBMAoGCCqGSM49BAMCA0gAMEUCIQCENg4cB+kMSJQHmZPl
+d8kvBrEDfVpyDkXdwdXTSPfpbgIgdfavcWCu1MTx11X006LwhmyKzmlv0AgQls8u
+qf5IbDw=
+-----END CERTIFICATE-----";
+const PROXY_KEY: &str = "-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgkh+flaXZf3eei0KG
+ICHIDjmKGmJ/JWlIueqkEHQL4zahRANCAATHsTrzY1iqffnsRcopHYxAnvhU0tK/
+36pEjTyVe+xLtew7LNoGzhMeXxWdf0Lvl3quCSSoWYTOSVw/MB9fDLN5
+-----END PRIVATE KEY-----";
+
+async fn proxy_http(socket: &mut (impl tokio::io::AsyncRead + Unpin)) -> String {
+    let mut bytes = Vec::new();
+    loop {
+        // Do not consume TLS ClientHello bytes following the CONNECT headers.
+        bytes.push(socket.read_u8().await.unwrap());
+        assert!(bytes.len() <= 8192);
+        if bytes.ends_with(b"\r\n\r\n") {
+            let headers = String::from_utf8(bytes.clone()).unwrap();
+            if let Some(size) = headers.lines().find_map(|line| {
+                line.to_ascii_lowercase()
+                    .strip_prefix("content-length:")
+                    .map(|n| n.trim().parse::<usize>().unwrap())
+            }) {
+                assert!(size <= 8192);
+                let end = bytes.len();
+                bytes.resize(end + size, 0);
+                socket.read_exact(&mut bytes[end..]).await.unwrap();
+            }
+            return String::from_utf8(bytes).unwrap();
+        }
+    }
+}
+
+async fn serve_connect(
+    mut socket: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+    acceptor: &tokio_rustls::TlsAcceptor,
+    path: &str,
+) {
+    let connect = proxy_http(&mut socket).await;
+    assert!(connect.starts_with("CONNECT auth.openai.com:443 HTTP/1.1\r\n"));
+    assert_eq!(
+        connect.lines().find_map(|line| line
+            .split_once(':')
+            .filter(|(name, _)| name.eq_ignore_ascii_case("proxy-authorization"))
+            .map(|(_, value)| value.trim())),
+        Some(
+            format!(
+                "Basic {}",
+                base64::engine::general_purpose::STANDARD.encode("user@proxy:p:ss")
+            )
+            .as_str()
+        )
+    );
+    socket
+        .write_all(b"HTTP/1.1 200 Connection established\r\n\r\n")
+        .await
+        .unwrap();
+    let mut tls = acceptor.accept(socket).await.unwrap();
+    assert_eq!(tls.get_ref().1.server_name(), Some("auth.openai.com"));
+    let request = proxy_http(&mut tls).await;
+    assert!(request.starts_with(&format!("POST {path} HTTP/1.1\r\n")));
+    assert!(
+        !request
+            .to_ascii_lowercase()
+            .contains("proxy-authorization:")
+    );
+    if path == "/oauth/token" {
+        assert!(request.contains("grant_type="));
+        assert!(request.contains(CLIENT_ID));
+    }
+    let body = serde_json::json!({"id_token":jwt(serde_json::json!({})), "access_token":"PROXY_ACCESS", "refresh_token":"PROXY_REFRESH", "expires_in":3600}).to_string();
+    tls.write_all(
+        format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .as_bytes(),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn oauth_proxy_env_connect_and_preflight() {
+    const CHILD: &str = "OC_OAUTH_PROXY_TEST_CHILD";
+    const NAME: &str = "auth::openai::tests::oauth_proxy_env_connect_and_preflight";
+    if let Ok(case) = std::env::var(CHILD) {
+        let mut auth = OpenAiAuth::new().unwrap();
+        assert_eq!(auth.issuer, ISSUER);
+        auth.test_root = Some(reqwest::Certificate::from_pem(PROXY_CA.as_bytes()).unwrap());
+        match case.as_str() {
+            "http" | "https" => {
+                for code in ["browser-code", "device-code"] {
+                    assert_eq!(
+                        auth.tokens(&[
+                            ("grant_type", "authorization_code"),
+                            ("client_id", CLIENT_ID),
+                            ("code", code)
+                        ])
+                        .await
+                        .unwrap()
+                        .access_token,
+                        "PROXY_ACCESS"
+                    );
+                }
+                for path in [
+                    "/api/accounts/deviceauth/usercode",
+                    "/api/accounts/deviceauth/token",
+                ] {
+                    let mut request = auth.post(path).await.unwrap();
+                    request.builder = request
+                        .builder
+                        .json(&serde_json::json!({"client_id":CLIENT_ID}));
+                    assert!(request.send().await.unwrap().status().is_success());
+                }
+                let root = tempfile::tempdir().unwrap();
+                let db = Db::open(root.path()).unwrap();
+                db.add_credential(scope().namespace(), "oauth", oauth(Some(BROWSER), 1300))
+                    .unwrap();
+                assert_eq!(
+                    auth.resolve_at(&db, AuthPolicy::OAuth, None, || None, || 1000)
+                        .await
+                        .unwrap()
+                        .key
+                        .as_deref(),
+                    Some("PROXY_ACCESS")
+                );
+                assert!(
+                    !db.credential_snapshot(scope().namespace())
+                        .unwrap()
+                        .unwrap()
+                        .refresh_pending
+                );
+            }
+            "all-upper" | "all-lower" => {
+                assert_eq!(
+                    oauth_proxy().unwrap().unwrap().as_str(),
+                    "http://127.0.0.1:12345/"
+                );
+            }
+            "no-upper" | "no-lower" => assert!(oauth_proxy().unwrap().is_none()),
+            "invalid" | "scheme" | "link-local" => {
+                assert!(matches!(
+                    auth.post("/oauth/token").await,
+                    Err(AuthError::Authority)
+                ));
+                let root = tempfile::tempdir().unwrap();
+                let db = Db::open(root.path()).unwrap();
+                db.add_credential(scope().namespace(), "oauth", oauth(Some(BROWSER), 1300))
+                    .unwrap();
+                let captured = auth
+                    .resolve_at(&db, AuthPolicy::OAuth, None, || None, || 600)
+                    .await
+                    .unwrap()
+                    .oauth_capture
+                    .unwrap();
+                assert!(matches!(
+                    auth.resolve_at(&db, AuthPolicy::OAuth, None, || None, || 1000)
+                        .await,
+                    Err(AuthError::Authority)
+                ));
+                assert!(
+                    !db.credential_snapshot(scope().namespace())
+                        .unwrap()
+                        .unwrap()
+                        .refresh_pending
+                );
+                assert!(matches!(
+                    auth.renew_captured(&db, &captured, 1000).await,
+                    Err(RenewalError::Fatal(AuthError::Authority))
+                ));
+                assert!(
+                    !db.credential_snapshot(scope().namespace())
+                        .unwrap()
+                        .unwrap()
+                        .refresh_pending
+                );
+            }
+            _ => panic!("unknown child case"),
+        }
+        return;
+    }
+    use tokio_rustls::rustls::{
+        ServerConfig,
+        pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
+    };
+    let tls = ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(
+            vec![CertificateDer::from_pem_slice(PROXY_CERT.as_bytes()).unwrap()],
+            PrivateKeyDer::from_pem_slice(PROXY_KEY.as_bytes()).unwrap(),
+        )
+        .unwrap();
+    let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(tls));
+    // Every environment is installed before spawning a separate process. No
+    // process-global environment mutation races the multithreaded test suite.
+    for case in [
+        "http",
+        "https",
+        "all-upper",
+        "all-lower",
+        "no-upper",
+        "no-lower",
+        "invalid",
+        "scheme",
+        "link-local",
+    ] {
+        let mut command = tokio::process::Command::new(std::env::current_exe().unwrap());
+        command
+            .args([NAME, "--exact", "--test-threads=1"])
+            .env(CHILD, case)
+            .kill_on_drop(true);
+        for name in [
+            "HTTPS_PROXY",
+            "https_proxy",
+            "ALL_PROXY",
+            "all_proxy",
+            "NO_PROXY",
+            "no_proxy",
+        ] {
+            command.env_remove(name);
+        }
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let proxy = format!(
+            "{}://user%40proxy:p%3Ass@{}:{}",
+            if case == "https" { "https" } else { "http" },
+            if case == "https" {
+                "localhost"
+            } else {
+                "127.0.0.1"
+            },
+            listener.local_addr().unwrap().port()
+        );
+        match case {
+            "http" => {
+                command
+                    .env("HTTPS_PROXY", &proxy)
+                    .env("https_proxy", "bad:")
+                    .env("ALL_PROXY", "bad:");
+            }
+            "https" => {
+                command
+                    .env("HTTPS_PROXY", "")
+                    .env("https_proxy", &proxy)
+                    .env("ALL_PROXY", "bad:");
+            }
+            "all-upper" => {
+                command
+                    .env("HTTPS_PROXY", "")
+                    .env("ALL_PROXY", "http://127.0.0.1:12345")
+                    .env("all_proxy", "bad:");
+            }
+            "all-lower" => {
+                command
+                    .env("all_proxy", "http://127.0.0.1:12345")
+                    .env("NO_PROXY", "")
+                    .env("no_proxy", "*");
+            }
+            "no-upper" => {
+                command
+                    .env("HTTPS_PROXY", "bad:")
+                    .env("NO_PROXY", ".openai.com")
+                    .env("no_proxy", "not-openai.com");
+            }
+            "no-lower" => {
+                command.env("HTTPS_PROXY", "bad:").env("no_proxy", "*");
+            }
+            "invalid" => {
+                command.env("HTTPS_PROXY", "http://[");
+            }
+            "scheme" => {
+                command.env("HTTPS_PROXY", "socks5://127.0.0.1:12345");
+            }
+            "link-local" => {
+                command.env("HTTPS_PROXY", "http://user:pass@169.254.169.254");
+            }
+            _ => unreachable!(),
+        }
+        let child = command.output();
+        let proxy = async {
+            if matches!(case, "http" | "https") {
+                for path in [
+                    "/oauth/token",
+                    "/oauth/token",
+                    "/api/accounts/deviceauth/usercode",
+                    "/api/accounts/deviceauth/token",
+                    "/oauth/token",
+                ] {
+                    let (socket, _) = listener.accept().await.unwrap();
+                    if case == "https" {
+                        let socket = acceptor.accept(socket).await.unwrap();
+                        assert_eq!(socket.get_ref().1.server_name(), Some("localhost"));
+                        serve_connect(socket, &acceptor, path).await;
+                    } else {
+                        serve_connect(socket, &acceptor, path).await;
+                    }
+                }
+            }
+        };
+        let (output, ()) = tokio::time::timeout(Duration::from_secs(10), async {
+            tokio::join!(child, proxy)
+        })
+        .await
+        .unwrap();
+        let output = output.unwrap();
+        assert!(
+            output.status.success(),
+            "{case}: {} {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+        assert!(
+            tokio::time::timeout(Duration::from_millis(10), listener.accept())
+                .await
+                .is_err(),
+            "unexpected proxy connection in {case}"
+        );
+    }
+}
+
 #[test]
 fn auth03_token_schema_claim_priority_defaults_and_redaction() {
     let material = Tokens { id_token: jwt(serde_json::json!({"chatgpt_account_id":"id-direct", "https://api.openai.com/auth":{"chatgpt_account_id":"id-nested"}, "organizations":[{"id":"id-org"}]})), access_token: jwt(serde_json::json!({"chatgpt_account_id":"access-direct"})), refresh_token: "REFRESH_CANARY".into(), expires_in: None }.material(BROWSER, 1000).unwrap();

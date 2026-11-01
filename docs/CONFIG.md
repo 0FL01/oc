@@ -795,6 +795,16 @@ local callback but requires the user to confirm its URL/code elsewhere; it is no
 unattended sign-in. API-key CLI input is an interactive password form; headless
 generation uses admitted OPENAI_API_KEY/config/stored account, no key/token argv.
 
+OAuth HTTP (browser code exchange, device login и refresh) использует первый непустой
+`HTTPS_PROXY`, `https_proxy`, `ALL_PROXY`, `all_proxy`. Поддерживаются только URL
+`http://` и `https://`, включая URL-encoded Basic credentials; некорректный URL или
+другая схема отклоняются без direct fallback. `NO_PROXY` (иначе `no_proxy`) исключает
+совпадающие hosts/domains, IP/CIDR и `*` из proxy routing. TLS-проверка сертификата и
+hostname `auth.openai.com` сохраняется, в том числе внутри CONNECT; HTTPS-прокси
+также проходит TLS-проверку. Применяется environment первого native owner: после
+изменения proxy env нужен его штатный перезапуск, новый клиент env не заменяет.
+Это не proxy-поддержка generation HTTP/WebSocket; SOCKS/PAC/custom CA не добавлены.
+
 Stored active OpenAI Key/OAuth → own OPENAI_API_KEY → own configured Key, after
 provider-owned endpoint admission. OAuth binds the Codex subscription endpoint;
 Key binds ordinary OpenAI. Token method/account/refresh metadata belongs in existing

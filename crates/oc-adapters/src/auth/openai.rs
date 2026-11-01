@@ -325,6 +325,94 @@ pub struct OpenAiAuth {
     #[cfg(test)]
     pub(super) client: reqwest::Client,
     pub(super) issuer: String,
+    #[cfg(test)]
+    test_root: Option<reqwest::Certificate>,
+}
+
+pub(super) struct PreparedPost {
+    pub(super) builder: reqwest::RequestBuilder,
+    peer: OAuthPeer,
+}
+
+enum OAuthPeer {
+    Direct { public: bool },
+    Proxy(Vec<std::net::SocketAddr>),
+}
+
+impl PreparedPost {
+    pub(super) async fn send(self) -> Result<reqwest::Response, AuthError> {
+        let response = self.builder.send().await.map_err(|_| AuthError::Remote)?;
+        Self::check_peer(&self.peer, &response)?;
+        Ok(response)
+    }
+
+    fn check_peer(peer: &OAuthPeer, response: &reqwest::Response) -> Result<(), AuthError> {
+        let allowed = match peer {
+            OAuthPeer::Proxy(addresses) => response
+                .remote_addr()
+                .is_some_and(|p| addresses.contains(&p)),
+            OAuthPeer::Direct { public } => {
+                #[cfg(all(feature = "auth-fixture", not(test)))]
+                if !public {
+                    return if response
+                        .remote_addr()
+                        .is_some_and(|p| p.ip() == std::net::Ipv4Addr::LOCALHOST)
+                    {
+                        Ok(())
+                    } else {
+                        Err(AuthError::Authority)
+                    };
+                }
+                !public
+                    || response
+                        .remote_addr()
+                        .is_none_or(|p| crate::endpoint::peer_allowed(None, p.ip(), false))
+            }
+        };
+        if allowed {
+            Ok(())
+        } else {
+            Err(AuthError::Authority)
+        }
+    }
+}
+
+fn oauth_proxy() -> Result<Option<reqwest::Url>, AuthError> {
+    use hyper_util::client::proxy::matcher::Matcher;
+    let destination = ISSUER.parse().map_err(|_| AuthError::Authority)?;
+    let no = std::env::var("NO_PROXY")
+        .or_else(|_| std::env::var("no_proxy"))
+        .unwrap_or_default();
+    // Test NO_PROXY with a known-valid route: Matcher also returns None for
+    // malformed proxies, which must never become an accidental direct fallback.
+    if Matcher::builder()
+        .https(ISSUER)
+        .no(no)
+        .build()
+        .intercept(&destination)
+        .is_none()
+    {
+        return Ok(None);
+    }
+    let Some(value) = ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"]
+        .iter()
+        .find_map(|name| std::env::var_os(name).filter(|v| !v.is_empty()))
+    else {
+        return Ok(None);
+    };
+    let value = value.into_string().map_err(|_| AuthError::Authority)?;
+    let proxy = reqwest::Url::parse(&value).map_err(|_| AuthError::Authority)?;
+    if !matches!(proxy.scheme(), "http" | "https")
+        || proxy.host_str().is_none()
+        || Matcher::builder()
+            .https(proxy.as_str())
+            .build()
+            .intercept(&destination)
+            .is_none()
+    {
+        return Err(AuthError::Authority);
+    }
+    Ok(Some(proxy))
 }
 
 impl OpenAiAuth {
@@ -494,6 +582,8 @@ impl OpenAiAuth {
         Ok(Self {
             #[cfg(test)]
             client,
+            #[cfg(test)]
+            test_root: None,
             #[cfg(all(feature = "auth-fixture", not(test)))]
             issuer: super::fixture::origin()?,
             #[cfg(any(not(feature = "auth-fixture"), test))]
@@ -501,7 +591,7 @@ impl OpenAiAuth {
         })
     }
 
-    pub(super) async fn post(&self, path: &str) -> Result<reqwest::RequestBuilder, AuthError> {
+    pub(super) async fn post(&self, path: &str) -> Result<PreparedPost, AuthError> {
         if !matches!(
             path,
             "/oauth/token" | "/api/accounts/deviceauth/usercode" | "/api/accounts/deviceauth/token"
@@ -511,7 +601,10 @@ impl OpenAiAuth {
         let url = format!("{}{path}", self.issuer);
         if self.issuer != ISSUER {
             #[cfg(test)]
-            return Ok(self.client.post(url));
+            return Ok(PreparedPost {
+                builder: self.client.post(url),
+                peer: OAuthPeer::Direct { public: false },
+            });
             #[cfg(all(not(test), not(feature = "auth-fixture")))]
             return Err(AuthError::Authority);
             #[cfg(all(not(test), feature = "auth-fixture"))]
@@ -519,15 +612,29 @@ impl OpenAiAuth {
                 return Err(AuthError::Authority);
             }
         }
+        let proxy = if self.issuer == ISSUER {
+            oauth_proxy()?
+        } else {
+            None
+        };
+        let mut endpoint = proxy
+            .clone()
+            .unwrap_or(reqwest::Url::parse(&self.issuer).map_err(|_| AuthError::Authority)?);
+        endpoint
+            .set_username("")
+            .map_err(|_| AuthError::Authority)?;
+        endpoint
+            .set_password(None)
+            .map_err(|_| AuthError::Authority)?;
         let binding = crate::endpoint::EndpointBinding::admit(
-            &self.issuer,
-            cfg!(feature = "auth-fixture") && self.issuer != ISSUER,
+            endpoint.as_str(),
+            proxy.is_some() || (cfg!(feature = "auth-fixture") && self.issuer != ISSUER),
             "native OpenAI authorization",
         )
         .map_err(|_| AuthError::Authority)?;
         let (host, addresses) = tokio::time::timeout(
             Duration::from_secs(10),
-            crate::endpoint::resolve(&url, Some(&binding), false),
+            crate::endpoint::resolve(endpoint.as_str(), Some(&binding), false),
         )
         .await
         .map_err(|_| AuthError::Remote)?
@@ -535,36 +642,31 @@ impl OpenAiAuth {
             crate::provider::ProviderError::Transport => AuthError::Remote,
             _ => AuthError::Authority,
         })?;
-        let client = reqwest::Client::builder()
+        let mut client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never())
             .no_proxy()
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
             .user_agent(format!("opencode/{}", env!("CARGO_PKG_VERSION")))
-            .resolve_to_addrs(&host, &addresses)
-            .build()
-            .map_err(|_| AuthError::Remote)?;
-        Ok(client.post(url))
-    }
-
-    pub(super) fn check_peer(&self, response: &reqwest::Response) -> Result<(), AuthError> {
-        #[cfg(all(feature = "auth-fixture", not(test)))]
-        if self.issuer != super::fixture::origin()?
-            || response
-                .remote_addr()
-                .is_none_or(|p| p.ip() != std::net::Ipv4Addr::LOCALHOST)
-        {
-            return Err(AuthError::Authority);
+            .resolve_to_addrs(&host, &addresses);
+        let peer = if let Some(proxy) = proxy {
+            client = client.proxy(reqwest::Proxy::https(proxy).map_err(|_| AuthError::Authority)?);
+            OAuthPeer::Proxy(addresses)
+        } else {
+            OAuthPeer::Direct {
+                public: self.issuer == ISSUER,
+            }
+        };
+        #[cfg(test)]
+        if let Some(root) = &self.test_root {
+            client = client.tls_certs_only([root.clone()]);
         }
-        if self.issuer == ISSUER
-            && response
-                .remote_addr()
-                .is_some_and(|p| !crate::endpoint::peer_allowed(None, p.ip(), false))
-        {
-            return Err(AuthError::Authority);
-        }
-        Ok(())
+        let client = client.build().map_err(|_| AuthError::Remote)?;
+        Ok(PreparedPost {
+            builder: client.post(url),
+            peer,
+        })
     }
 
     pub(super) async fn tokens(&self, fields: &[(&str, &str)]) -> Result<Tokens, AuthError> {
@@ -574,23 +676,21 @@ impl OpenAiAuth {
 
     async fn send_tokens(
         &self,
-        request: reqwest::RequestBuilder,
+        mut request: PreparedPost,
         fields: &[(&str, &str)],
     ) -> Result<Tokens, AuthError> {
         // Use the existing URL form serializer; reqwest's optional `form` feature
         // is not enabled. This URL is only a bounded body encoder, never dialled.
         let mut form = reqwest::Url::parse(&self.issuer).map_err(|_| AuthError::Authority)?;
         form.query_pairs_mut().extend_pairs(fields.iter().copied());
-        let response = request
+        request.builder = request
+            .builder
             .header(
                 reqwest::header::CONTENT_TYPE,
                 "application/x-www-form-urlencoded",
             )
-            .body(form.query().unwrap_or_default().to_owned())
-            .send()
-            .await
-            .map_err(|_| AuthError::Remote)?;
-        self.check_peer(&response)?;
+            .body(form.query().unwrap_or_default().to_owned());
+        let response = request.send().await?;
         if !response.status().is_success() {
             return Err(AuthError::Remote);
         }
@@ -712,15 +812,19 @@ impl OpenAiAuth {
         }
         if expiry <= now().saturating_add(300) {
             let refresh = refresh.as_deref().ok_or(AuthError::Reauthenticate)?;
+            let request = self.post("/oauth/token").await?;
             if !db.begin_credential_refresh(&current)? {
                 return Err(AuthError::StaleCredential);
             }
             let mut next = self
-                .tokens(&[
-                    ("grant_type", "refresh_token"),
-                    ("refresh_token", refresh),
-                    ("client_id", CLIENT_ID),
-                ])
+                .send_tokens(
+                    request,
+                    &[
+                        ("grant_type", "refresh_token"),
+                        ("refresh_token", refresh),
+                        ("client_id", CLIENT_ID),
+                    ],
+                )
                 .await?
                 .material(method, now())?;
             if let CredentialMaterial::OAuth {
