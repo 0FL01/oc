@@ -285,6 +285,10 @@ T40 evidence remains factual.
   readable extent and capture state. Hot result holds preview/ref/counts/guidance, not
   full text repeated across SQLite/TurnLog/resident history. Stream UI/model reads;
   keep legacy SQLite APIs compatible, no whole-artifact `read_blob`/second archive.
+- Cards reads the existing owner continuation in 64 KiB UTF-8 pages, including the
+  shell-first and legacy SQLite paths. `next_offset` continues to the end of the
+  stored result; 2048-byte presentation facts remain a local preview, not its
+  accessibility limit. Paging checks session/operation ownership before reading.
 - Shell drains tee admitted text before old1 MiB-per-stream discard and keep bounded
   recent/tail RAM. Foreground/background/live viewer/final notice/same-process Ctrl+B
   share one capture identity/final flush. Slow/failing disk, quota/cap or endless flood

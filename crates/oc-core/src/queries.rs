@@ -683,6 +683,11 @@ pub struct ToolOutputPage {
     pub next_offset: Option<i64>,
 }
 
+impl ToolOutputPage {
+    /// Full stored-output page, not a preview or a maximum result size.
+    pub const MAX_BYTES: usize = 64 * 1024;
+}
+
 /// One selectable model with its bounded variant list and limits.
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ModelEntry {

@@ -4628,7 +4628,12 @@ async fn handle_worker_event_at(
         }
         CoreEvent::TurnPresentation {
             turn, projection, ..
-        } => state.apply_presentation(&turn, &projection),
+        } => {
+            state.apply_presentation(&turn, &projection);
+            if !replay && state.active_turn() == Some(&turn) {
+                _loop_state.reads.request(state, true);
+            }
+        }
         CoreEvent::RetryScheduled {
             turn, span, retry, ..
         } => state.apply_retry(&turn, &span, &retry),

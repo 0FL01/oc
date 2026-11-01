@@ -12,7 +12,7 @@ const TEXT_BYTES: usize = 256 * 1024;
 // Retain a canonical whole-part page alongside its bounded live deltas. Larger
 // single parts are still read through canonical history when attaching.
 const TURN_BYTES: usize = 2 * crate::storage::TRANSCRIPT_PAGE_BYTES;
-const PARTS: usize = 256; // 64 rendered parts plus start/end and pending tool metadata.
+const PARTS: usize = 256; // Disposable transport tail, not the pageable history.
 
 #[derive(Clone)]
 pub(crate) struct Publication {
@@ -27,6 +27,10 @@ struct Turn {
     location: String,
     view: LiveTurnSnapshot,
     bytes: usize,
+    hint_loss: bool,
+    // Pending snapshots are bounded by the provider-round presentation protocol;
+    // Linked/Clear prove recovery without retaining discarded argument bodies.
+    lost_pending: Vec<oc_core::tool_stream::ToolStreamIdentity>,
 }
 #[derive(Default)]
 struct State {
@@ -129,6 +133,8 @@ impl Live {
                     Turn {
                         location: location.into(),
                         bytes: bytes(&event),
+                        hint_loss: false,
+                        lost_pending: Vec::new(),
                         view: LiveTurnSnapshot {
                             session: session.clone(),
                             turn: turn.clone(),
@@ -157,10 +163,37 @@ impl Live {
             } else if let Some(active) = state
                 .turns
                 .get_mut(&session.0)
-                .filter(|active| active.view.turn == *turn)
+                .filter(|active| active.view.turn == *turn
+                    && !matches!(&event, CoreEvent::TurnPresentation { projection, .. }
+                        if active.view.events.iter().any(|previous| matches!(previous,
+                            CoreEvent::TurnPresentation { projection: old, .. } if old.revision > projection.revision))))
             {
+                use oc_core::tool_stream::ToolStreamEvent;
+                let checkpoint = matches!(&event, CoreEvent::TurnPresentation { projection, .. }
+                    if projection.window.is_some() && !projection.legacy_text_only);
+                if checkpoint {
+                    active.hint_loss = false;
+                }
+                if let CoreEvent::ToolArgumentStream { event, .. } = &event {
+                    match event {
+                        ToolStreamEvent::Pending { identity, .. }
+                        | ToolStreamEvent::Linked { identity, .. } => active.lost_pending.retain(|lost| lost != identity),
+                        ToolStreamEvent::Clear { round } => active.lost_pending.retain(|lost| lost.round != *round),
+                    }
+                }
                 active.view.events.retain(|previous| {
-                    if same_slot(previous, &event) {
+                    let covered = checkpoint && !matches!(previous,
+                        CoreEvent::TurnStarted { .. } | CoreEvent::TurnUsage { .. }
+                        | CoreEvent::TurnContextUsage { .. }
+                        | CoreEvent::ToolArgumentStream { event: ToolStreamEvent::Pending { .. }, .. });
+                    let settled = match (&event, previous) {
+                        (CoreEvent::ToolArgumentStream { event: ToolStreamEvent::Linked { identity, .. }, .. },
+                         CoreEvent::ToolArgumentStream { event: ToolStreamEvent::Pending { identity: old, .. }, .. }) => identity == old,
+                        (CoreEvent::ToolArgumentStream { event: ToolStreamEvent::Clear { round }, .. },
+                         CoreEvent::ToolArgumentStream { event: ToolStreamEvent::Pending { identity, .. } | ToolStreamEvent::Linked { identity, .. }, .. }) => *round == identity.round,
+                        _ => false,
+                    };
+                    if covered || settled || same_slot(previous, &event) {
                         active.bytes = active.bytes.saturating_sub(bytes(previous));
                         false
                     } else {
@@ -179,7 +212,7 @@ impl Live {
                         let part = prefix(delta, TEXT_BYTES.saturating_sub(text.len()));
                         text.push_str(part);
                         active.bytes += part.len();
-                        active.view.truncated |= part.len() != delta.len();
+                        active.hint_loss |= part.len() != delta.len();
                         false
                     }
                     _ => true,
@@ -191,7 +224,7 @@ impl Live {
                         && delta.len() > TEXT_BYTES
                     {
                         delta.truncate(prefix(delta, TEXT_BYTES).len());
-                        active.view.truncated = true;
+                        active.hint_loss = true;
                     }
                     active.bytes += bytes(&part);
                     active.view.events.push(part);
@@ -199,11 +232,27 @@ impl Live {
                 while active.view.events.len() > 1
                     && (active.bytes > TURN_BYTES || active.view.events.len() > PARTS)
                 {
-                    active.bytes = active
-                        .bytes
-                        .saturating_sub(bytes(&active.view.events.remove(1)));
-                    active.view.truncated = true;
+                    // Keep the replay baseline ahead of the disposable tail.
+                    let index = active.view.events.iter().enumerate().skip(1)
+                        .find(|(_, event)| !matches!(event, CoreEvent::TurnPresentation { .. }
+                            | CoreEvent::TurnUsage { .. } | CoreEvent::TurnContextUsage { .. }))
+                        .map_or(1, |(index, _)| index);
+                    let removed = active.view.events.remove(index);
+                    active.bytes = active.bytes.saturating_sub(bytes(&removed));
+                    match removed {
+                        CoreEvent::ToolArgumentStream { event: ToolStreamEvent::Pending { identity, .. }, .. } => {
+                            if !active.lost_pending.contains(&identity) {
+                                active.lost_pending.push(identity);
+                            }
+                        }
+                        CoreEvent::TextDelta { .. } | CoreEvent::ReasoningDelta { .. }
+                        | CoreEvent::ReasoningItemEnded { .. } | CoreEvent::TurnPresentation { .. } => active.hint_loss = true,
+                        _ => {}
+                    }
                 }
+                active.view.truncated = active.hint_loss || !active.lost_pending.is_empty()
+                    || active.view.events.iter().any(|event| matches!(event,
+                        CoreEvent::TurnPresentation { projection, .. } if projection.omitted_parts != 0));
             }
         }
         let publication = Publication {

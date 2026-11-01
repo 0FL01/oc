@@ -1815,7 +1815,7 @@ impl Db {
     }
 
     /// Owner-facing continuation: reject an operation from any other session
-    /// before reading its result. One page is limited like the cards preview.
+    /// before reading its result. Full-output pages are independent of previews.
     pub fn read_session_tool_output(
         &self,
         session: &str,
@@ -1835,12 +1835,18 @@ impl Db {
         }
         drop(conn);
         if let Some(resource) = self.output_for_history(op)? {
-            return self
-                .open_tool_output(session, &resource.path)?
-                .byte_page(offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES));
+            return self.open_tool_output(session, &resource.path)?.byte_page(
+                offset,
+                limit.clamp(4, oc_core::queries::ToolOutputPage::MAX_BYTES),
+            );
         }
         let conn = self.conn.lock().expect("db mutex");
-        Self::read_tool_op_output_on(&conn, op, offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES))
+        Self::read_tool_op_output_on(
+            &conn,
+            op,
+            offset,
+            limit.clamp(4, oc_core::queries::ToolOutputPage::MAX_BYTES),
+        )
     }
 
     /// Recorded tool-operation rowid bounds `(min, max)`; `None` when empty.

@@ -1165,7 +1165,7 @@ fn aud22_binary_rejects_conflicting_authorization_duplicates_before_network() {
 }
 
 #[test]
-fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
+fn aud24_binary_admits_65_tools_as_a_complete_provider_catalog() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let names = (0..65)
         .map(|index| format!("tool_{index}"))
@@ -1186,24 +1186,14 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
     let mut process = PtyProcess::spawn(&fixture, "aud24-catalog-limit");
     process.wait_visible(READY);
     process.send_line("/mcps");
-    lifecycle::wait_row(&process, "oversized", "Failed");
+    lifecycle::wait_row(&process, "oversized", "Connected");
     lifecycle::close_mcps(&mut process);
-    // The oversized server degrades: no partial catalog reaches the model, and
-    // the run still answers with a visible status and safe details.
     assert!(
         process.child.try_wait().unwrap().is_none(),
-        "degraded catalog aborted the application"
+        "catalog aborted the application"
     );
-    inspect_mcp_code(&mut process, "oversized", "catalog_limit");
     process.send_line("exercise configured MCP");
     process.wait_screen("answer:exercise configured MCP", TIMEOUT);
-    inspect_mcp_code(&mut process, "oversized", "catalog_limit");
-    let diagnostic = String::from_utf8_lossy(&process.output.lock().unwrap()).to_ascii_lowercase();
-    assert!(
-        diagnostic.contains(&diagnostic_name("oversized")[..20])
-            && diagnostic.contains("tools-list: catalog_limit"),
-        "visible catalog diagnostic: {diagnostic}"
-    );
     std::thread::sleep(Duration::from_millis(300));
     process.send_line("/quit");
     assert!(process.wait_exit().success());
@@ -1212,13 +1202,19 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
         .into_iter()
         .filter(|request| !title::is_title(request))
         .collect::<Vec<_>>();
-    assert_eq!(turns.len(), 1, "degraded catalog still answered the turn");
+    assert_eq!(turns.len(), 1, "complete catalog answered the turn");
     for request in &turns {
-        assert!(
-            function_tool_names(request)
+        let actual = function_tool_names(request)
+            .into_iter()
+            .filter(|name| name.starts_with("oversized__"))
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(
+            actual,
+            names
                 .iter()
-                .all(|name| !name.starts_with("oversized__")),
-            "partial catalog reached model"
+                .map(|name| format!("oversized__{name}"))
+                .collect::<std::collections::BTreeSet<_>>(),
+            "the complete catalog must reach the provider"
         );
     }
     assert_eq!(

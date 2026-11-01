@@ -90,6 +90,22 @@ pub struct HistoryPosition {
 }
 
 impl HistoryPosition {
+    pub(crate) fn checkpoint(turn: &str, sequence: usize, end: usize) -> Self {
+        Self {
+            turn: turn.into(),
+            component: HistoryComponent::Part(sequence),
+            before: sequence,
+            after: sequence,
+            total: end,
+        }
+    }
+
+    pub(crate) fn follows_part(&self, turn: &str, sequence: usize) -> bool {
+        self.turn == turn
+            && matches!(self.component, HistoryComponent::Part(_))
+            && sequence < self.before
+    }
+
     pub(crate) fn local(turn: &str, sequence: Option<usize>, terminal: bool) -> Self {
         Self {
             turn: turn.into(),

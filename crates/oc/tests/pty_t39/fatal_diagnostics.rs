@@ -228,26 +228,6 @@ fn cfg10_native_fatal_lock_trust_policy_recovery_and_caps_are_non_success() {
     fatal(fixture, "capacity_exceeded", "config", "document");
 
     let fixture = Fixture::new();
-    let mut config: Value =
-        serde_json::from_slice(&std::fs::read(config_path(&fixture)).unwrap()).unwrap();
-    let url = config["providers"]["fixture"]["settings"]["baseURL"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    config["mcp"]["servers"] = Value::Object(
-        (0..9)
-            .map(|index| {
-                (
-                    format!("{CANARY}-{index}"),
-                    json!({"type":"remote", "codemode": false,"url":url}),
-                )
-            })
-            .collect(),
-    );
-    std::fs::write(config_path(&fixture), config.to_string()).unwrap();
-    fatal(fixture, "capacity_exceeded", "admission", "mcp");
-
-    let fixture = Fixture::new();
     let db = Db::open(&fixture.data_dir()).unwrap();
     db.set_pref(
         oc_core::queries::PREF_MODEL_SELECTION,

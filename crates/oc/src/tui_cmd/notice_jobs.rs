@@ -186,9 +186,13 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
             if read.route.matches(view) {
                 match result {
                     Ok(prepared) => {
+                        let had_newer = view.needs_newer();
                         for item in prepared {
                             apply(view, item);
                         }
+                        // An exact notice can expose missing durable rows. Repair
+                        // that tail; do not mistake it for deliberate detachment.
+                        read.repair |= !had_newer && view.needs_newer();
                     }
                     Err(error) => {
                         view.push_note(&format!("Notice history refresh failed: {error}"));

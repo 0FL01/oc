@@ -989,7 +989,12 @@ impl Reader {
             return Err(invalid());
         }
         self.file.seek(SeekFrom::Start(offset as u64))?;
-        let mut bytes = vec![0; limit.clamp(4, 65536).min((total - offset as u64) as usize)];
+        let mut bytes = vec![
+            0;
+            limit
+                .clamp(4, oc_core::queries::ToolOutputPage::MAX_BYTES)
+                .min((total - offset as u64) as usize)
+        ];
         self.file.read_exact(&mut bytes)?;
         if bytes.first().is_some_and(|b| b & 0xc0 == 0x80) {
             return Err(invalid());

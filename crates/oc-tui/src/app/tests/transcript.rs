@@ -2304,7 +2304,7 @@ async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
     );
 
     state.active_turn = Some(WorkerTurnId("reasoning-live".into()));
-    state.live_reasoning = "open".into();
+    state.live_reasoning = "x".repeat(WINDOW_BYTES).into();
     state.freeze_reasoning();
     let first = state
         .transcript_rows()
@@ -2319,11 +2319,6 @@ async fn reasoning_addresses_survive_paging_and_live_eviction_then_reset() {
     state.live_reasoning = "retained".into();
     state.freeze_reasoning();
     let retained = ReasoningIdentity::Live(state.reasoning_epoch, 1);
-    for i in 0..LIVE_PARTS_MAX - 1 {
-        state
-            .live_parts
-            .push(super::LivePart::Text(format!("segment {i}").into()));
-    }
     state.enforce_parts();
     assert_eq!(state.live_part_offset, 1);
     assert_eq!(
@@ -3300,6 +3295,158 @@ async fn checkpointed_active_prefix_and_live_parts_are_painted_once() {
             .filter(|row| row.text == "new stream suffix")
             .count(),
         1
+    );
+}
+
+#[tokio::test]
+async fn long_active_checkpoint_is_pageable_without_losing_tail_or_view_state() {
+    use crate::history::HistoryComponent;
+    use oc_core::queries::{HistoryPartWindow, HistoryTurn, PartState, ToolOpView, TranscriptPart};
+    let mut state = fresh_state("long-active-prefix").await;
+    let turn = WorkerTurnId("long-turn".into());
+    let projection = |start, end| HistoryTurn {
+        id: turn.0.clone(),
+        status: "started".into(),
+        revision: 1,
+        agent: Some("build".into()),
+        model_label: "fixture".into(),
+        window: Some(HistoryPartWindow {
+            start,
+            end,
+            total: 300.max(end),
+        }),
+        parts: (start..end)
+            .map(|sequence| match sequence {
+                72 | 73 => TranscriptPart::Reasoning {
+                    text: "repeated thought".into(),
+                    duration_ms: Some(10),
+                },
+                70 => TranscriptPart::Tool(ToolOpView {
+                    op: "read-preview".into(),
+                    name: "read".into(),
+                    state: "completed".into(),
+                    input: Some(r#"{"path":"note.txt"}"#.into()),
+                    output: Some("x".repeat(2048)),
+                    output_bytes: 3000,
+                    output_truncated: true,
+                    rowid: 1,
+                    child_job: None,
+                    output_presentation: None,
+                    question: None,
+                    dcp_topic: None,
+                    dcp: None,
+                    patch_effects: None,
+                }),
+                _ => TranscriptPart::Text(format!("part-{sequence}")),
+            })
+            .collect(),
+        part_states: (start..end)
+            .map(|sequence| PartState {
+                sequence,
+                truncated: sequence == 70,
+                ..Default::default()
+            })
+            .collect(),
+        truncated: start <= 70 && end > 70,
+        ..Default::default()
+    };
+    let accepted = msg(1, Role::User, "request");
+    state.attach_page(&page(vec![accepted.clone()], 1, false, false));
+    state.begin_linked_turn(turn.clone());
+    state.restore_prompt("private draft".into());
+    let current = projection(60, 300);
+    state.apply_presentation(&turn, &current);
+    assert_eq!(state.live_parts.len(), 240);
+    assert!(!state.live_preview_truncated && state.note().is_none());
+    state
+        .reasoning_expanded
+        .insert(crate::messages::ReasoningIdentity::Live(
+            state.reasoning_epoch,
+            72,
+        ));
+    state.apply_delta(&turn, "uncommitted suffix");
+    state.scroll = 40;
+    let _ = crate::views::render_test(&state, 120, 40);
+    state.finish_transcript_projection().await;
+    let _ = crate::views::render_test(&state, 120, 40);
+    let anchor = state.projection_work.borrow().painted_top.clone().unwrap();
+    let mut latest = accepted.clone();
+    latest.turn = Some(current);
+    let latest = page(vec![latest], 1, false, false);
+    state.refresh_completed_page(&latest);
+    let rows = state.transcript_rows();
+    assert!(
+        anchor.part.resolve(&rows).is_some(),
+        "checkpoint identity survives canonical handoff"
+    );
+    assert!(
+        state.live_parts.is_empty(),
+        "installed immutable prefix leaves the live tail"
+    );
+    assert_eq!(state.live_text, "uncommitted suffix");
+    assert_eq!(
+        state.reasoning_expanded,
+        std::collections::BTreeSet::from([crate::messages::ReasoningIdentity::Durable(1, 72)])
+    );
+    assert!(state.window.older_part_cursor().is_some());
+    let mut older = accepted;
+    older.turn = Some(projection(0, 60));
+    state.prepend_page(&page(vec![older], 1, false, true));
+    assert!(
+        state
+            .transcript_rows()
+            .iter()
+            .any(|row| row.text == "part-0")
+    );
+    assert!(state.needs_newer());
+    let mut newer = latest.clone();
+    let mut checkpoint = projection(360, 600);
+    checkpoint.revision = 2;
+    state.apply_presentation(&turn, &checkpoint);
+    state.apply_delta(&turn, "newer uncommitted suffix");
+    newer.rows[0].turn = Some(checkpoint);
+    assert!(
+        state
+            .transcript_rows()
+            .iter()
+            .all(|row| !row.position.as_ref().is_some_and(|position| {
+                matches!(position.component, HistoryComponent::Part(sequence) if sequence >= 360)
+            })),
+        "a detached page is not joined across unloaded parts"
+    );
+    assert!(
+        !state
+            .transcript_rows()
+            .iter()
+            .any(|row| row.text == "newer uncommitted suffix")
+    );
+    assert_eq!(state.live_text, "newer uncommitted suffix");
+    state.scroll = 0;
+    state.refresh_completed_page(&newer);
+    let rows = state.transcript_rows();
+    let sequences: Vec<_> = rows
+        .iter()
+        .filter_map(|row| match row.position.as_ref()?.component {
+            HistoryComponent::Part(sequence) => Some(sequence),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        sequences.windows(2).all(|pair| pair[0] < pair[1]),
+        "canonical parts stay ordered and unique"
+    );
+    assert_eq!(
+        rows.iter()
+            .filter(|row| row.text == "newer uncommitted suffix")
+            .count(),
+        1
+    );
+    assert_eq!(state.input(), "private draft");
+    assert!(!state.live_preview_truncated && state.note().is_none());
+    assert_eq!(
+        state.active_turn(),
+        Some(&turn),
+        "paging is available before completion"
     );
 }
 

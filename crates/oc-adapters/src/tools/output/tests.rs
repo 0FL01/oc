@@ -610,7 +610,8 @@ fn tool21_prepared_envelope_retains_controls_no_metadata_bypass() {
         },
         secrets: vec![],
     };
-    let result=context.prepare_envelope(serde_json::json!({"status":"failed","exit":17,"truncated":true,"stdout":"x".repeat(3000),"stderr":"failure"}).to_string(),true,None);
+    let stdout = "🙂x".repeat(20_000);
+    let result=context.prepare_envelope(serde_json::json!({"status":"failed","exit":17,"truncated":true,"stdout":stdout,"stderr":"failure"}).to_string(),true,None);
     let value: serde_json::Value = serde_json::from_str(&result.text).unwrap();
     assert_eq!(value["status"], "failed");
     assert_eq!(value["exit"], 17);
@@ -624,8 +625,20 @@ fn tool21_prepared_envelope_retains_controls_no_metadata_bypass() {
     let resource = db.output_for_operation("op").unwrap().unwrap();
     assert_eq!(resource.state, CaptureState::ProducerLimited);
     assert!(result.text.len() < SERVED_CAP);
-    let text = db.read_session_tool_output("s", "op", 0, 100).unwrap().0;
-    assert!(text.starts_with('x'));
-    let text = db.read_session_tool_output("s", "op", 3000, 100).unwrap().0;
-    assert!(text.contains("failure"));
+    let first = db
+        .read_session_tool_output("s", "op", 0, 64 * 1024)
+        .unwrap();
+    assert_eq!(first.0, stdout[..65_535]);
+    assert_eq!(first.2, Some(65_535));
+    assert_eq!(
+        db.shell_output("s", "op", 0, 64 * 1024).unwrap(),
+        Some(first.clone())
+    );
+    let last = db
+        .read_session_tool_output("s", "op", first.2.unwrap() as usize, 64 * 1024)
+        .unwrap();
+    assert_eq!(last.2, None);
+    let full = first.0 + &last.0;
+    assert_eq!(full.len() as i64, first.1);
+    assert!(full.starts_with(&stdout) && full.contains("failure"));
 }

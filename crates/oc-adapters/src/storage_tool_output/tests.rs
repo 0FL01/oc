@@ -1,6 +1,22 @@
 use super::*;
 
 #[test]
+fn sqlite_full_output_page_is_not_the_card_preview() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("s").unwrap();
+    db.record_tool_intent("op", "s", None, "read", "{}")
+        .unwrap();
+    let body = "🙂x".repeat(1500);
+    db.record_tool_outcome("op", "completed", Some(&body))
+        .unwrap();
+    let page = db
+        .read_session_tool_output("s", "op", 0, 64 * 1024)
+        .unwrap();
+    assert_eq!(page, (body.clone(), body.len() as i64, None));
+}
+
+#[test]
 fn execute_facts_fit_the_actual_escaped_operation_envelope_without_changing_raw() {
     use oc_core::tool_output::*;
     let raw = "\u{0}".repeat(PREVIEW_BYTES);

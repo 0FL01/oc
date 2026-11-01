@@ -17,7 +17,7 @@ pub(super) struct ChildNoticePress {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum CompletionPart {
     Durable {
-        message: std::sync::Arc<oc_core::session::MessageId>,
+        message: Option<std::sync::Arc<oc_core::session::MessageId>>,
         position: Option<crate::history::HistoryPosition>,
         ordinal: usize,
     },
@@ -35,9 +35,21 @@ pub(super) enum CompletionPart {
 impl CompletionPart {
     pub(super) fn capture(rows: &[HistoryRow], index: usize, open: bool) -> Self {
         let row = &rows[index];
+        if let Some(position) = &row.position
+            && matches!(
+                position.component,
+                crate::history::HistoryComponent::Part(_)
+            )
+        {
+            return Self::Durable {
+                message: row.message_id.clone(),
+                position: Some(position.clone()),
+                ordinal: 0,
+            };
+        }
         if let Some(message) = &row.message_id {
             Self::Durable {
-                message: message.clone(),
+                message: Some(message.clone()),
                 position: row.position.clone(),
                 ordinal: rows[..index]
                     .iter()
@@ -115,7 +127,8 @@ impl CompletionPart {
             } => rows.iter().position(|row| {
                 row.position.as_ref().is_some_and(|new| {
                     new.same_turn_component(position)
-                        || (row.message_id.as_ref() == Some(message)
+                        || (message.is_some()
+                            && row.message_id == *message
                             && new.component == position.component)
                 })
             }),
@@ -124,7 +137,7 @@ impl CompletionPart {
             } => rows
                 .iter()
                 .enumerate()
-                .filter(|(_, row)| row.message_id.as_ref() == Some(message))
+                .filter(|(_, row)| message.is_some() && row.message_id == *message)
                 .nth(*ordinal)
                 .map(|(index, _)| index),
             Self::Live {
@@ -584,6 +597,7 @@ impl TuiState {
             .refresh_completed(page, self.scroll > 0, |rows: &[HistoryRow]| {
                 anchor.as_ref()?.0.resolve(rows)
             });
+        self.retire_checkpoint_parts();
         self.refresh_running_user_shell_output();
         self.invalidate_transcript();
         self.completion_anchor.get_mut().take();
@@ -2299,7 +2313,7 @@ impl TuiState {
                         .position(|(sequence, _)| *sequence == Some(*source))
                 }) {
                     cards[index].1 = card;
-                } else {
+                } else if !self.window.has_newer() {
                     cards.push((None, card));
                 }
             }
@@ -2385,7 +2399,17 @@ impl TuiState {
             // A history read can overtake queued hints. Its canonical identities
             // win until the ordered checkpoint arrives; never compare payloads
             // to guess which repeated text a hint belongs to.
-            if canonical_ahead {
+            if canonical_ahead || self.window.has_newer() && canonical.is_none() {
+                continue;
+            }
+            if let (Some(source), Some(turn)) = (source, &self.active_turn)
+                && self
+                    .window
+                    .rows()
+                    .first()
+                    .and_then(|row| row.position.as_ref())
+                    .is_some_and(|position| position.follows_part(&turn.0, source))
+            {
                 continue;
             }
             let mut row = part.to_row(
@@ -2418,12 +2442,26 @@ impl TuiState {
                 rows[index] = row;
                 live_sources[index] = source.or(Some(slot));
             } else {
-                rows.push(row);
-                live_sources.push(source.or(Some(slot)));
+                let index = if let (Some(source), Some(turn)) = (source, &self.active_turn) {
+                    row.position = Some(crate::history::HistoryPosition::checkpoint(
+                        &turn.0,
+                        source,
+                        self.live_checkpoint_end.unwrap_or(source + 1),
+                    ));
+                    rows.iter().position(|row| row.position.as_ref().is_some_and(|position| {
+                        position.belongs_to(&turn.0)
+                            && matches!(position.component, crate::history::HistoryComponent::Part(sequence) if sequence > source)
+                    })).unwrap_or(rows.len())
+                } else {
+                    rows.len()
+                };
+                rows.insert(index, row);
+                live_sources.insert(index, source.or(Some(slot)));
             }
         }
-        let live =
-            !canonical_ahead && (!self.live_text.is_empty() || !self.live_reasoning.is_empty());
+        let live = !canonical_ahead
+            && !self.window.has_newer()
+            && (!self.live_text.is_empty() || !self.live_reasoning.is_empty());
         if live {
             rows.push(HistoryRow {
                 position: None,

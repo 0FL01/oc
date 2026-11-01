@@ -855,7 +855,7 @@ async fn vis46_details_survive_source_loss_only_in_the_owning_view() {
     // Actual resident-part eviction, not a history fetch or a pinned old window.
     state
         .live_parts
-        .extend((0..LIVE_PARTS_MAX).map(|_| LivePart::Text("later".into())));
+        .push(LivePart::Text("x".repeat(WINDOW_BYTES).into()));
     state.enforce_parts();
     assert!(state.execute_card("execute-ui-op").is_none());
     let mut refreshed = fresh_state("execute-ui").await;

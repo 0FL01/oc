@@ -427,7 +427,7 @@ async fn scenario(
         let mut visible = String::new();
         for _ in 0..100 {
             let detail = app
-                .tool_output_page(sessions[0].clone(), op.clone(), offset, 240)
+                .tool_output_page(sessions[0].clone(), op.clone(), offset, 64 * 1024)
                 .await
                 .unwrap();
             let next = detail.next_offset;

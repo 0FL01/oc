@@ -441,7 +441,7 @@ async fn mcp11_core_child_foreign_disabled_and_exact_resource_rights_do_not_broa
 }
 
 #[tokio::test]
-async fn mcp11_core_combined_generation_metadata_cap_is_fatal_and_all_clients_reaped() {
+async fn mcp11_core_combined_tool_and_lookup_catalogs_have_no_entry_count_cap() {
     let f = Fixture::new();
     let first = f.project.join("first.events");
     let second = f.project.join("second.events");
@@ -471,33 +471,31 @@ async fn mcp11_core_combined_generation_metadata_cap_is_fatal_and_all_clients_re
         .catalog_entries(),
         64
     );
-    assert_eq!(
-        tokio::time::timeout(
-            Duration::from_secs(5),
-            app.mcp_lookup(query(
-                &snapshot,
-                "second",
-                "cap-root",
-                McpLookupOp::ListPrompts
-            ))
-        )
+    let second_catalog = tokio::time::timeout(
+        Duration::from_secs(5),
+        app.mcp_lookup(query(
+            &snapshot,
+            "second",
+            "cap-root",
+            McpLookupOp::ListPrompts,
+        )),
+    )
+    .await
+    .expect("complete lookup reply")
+    .unwrap();
+    assert_eq!(second_catalog.data.catalog_entries(), 64);
+    let snapshot = app.mcp_status().await.unwrap();
+    assert!(
+        snapshot
+            .servers
+            .iter()
+            .all(|server| server.status == McpStatus::Connected)
+    );
+    app.shutdown().await.unwrap();
+    tokio::time::timeout(Duration::from_secs(12), guard.join())
         .await
-        .expect("fatal cap lookup reply"),
-        Err(McpLookupError::CatalogLimit)
-    );
-    let failure = tokio::time::timeout(Duration::from_secs(12), guard.join_diagnostic())
-        .await
-        .expect("fatal owner cleanup/join")
-        .expect_err("generation cap must terminate non-success");
-    assert_eq!(
-        failure.code,
-        oc_core::queries::ServiceCode::CapacityExceeded
-    );
-    assert_eq!(failure.stage, oc_core::queries::ServiceStage::Admission);
-    assert_eq!(
-        failure.action,
-        oc_core::queries::ServiceAction::ReduceCapacity
-    );
+        .expect("owner cleanup/join")
+        .unwrap();
     gone(pid(&first));
     gone(pid(&second));
     assert_eq!(count(&first, "closed"), 1);

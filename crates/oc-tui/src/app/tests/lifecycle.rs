@@ -1419,13 +1419,13 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
     );
 }
 
-/// Live parts stay bounded when a hostile stream floods tool events.
+/// Ordinary long turns are not clipped; genuine uncommitted byte loss stays honest.
 #[tokio::test]
 async fn live_parts_stay_bounded_under_tool_flood() {
     let mut state = fresh_state("s-tools-flood").await;
     state.active_turn = Some(WorkerTurnId("t-flood".to_string()));
     state.status = TuiStatus::Streaming;
-    for index in 0..(LIVE_PARTS_MAX + 20) {
+    for index in 0..84 {
         state.apply_tool_started(
             &WorkerTurnId("t-flood".to_string()),
             &format!("op-{index}"),
@@ -1442,7 +1442,20 @@ async fn live_parts_stay_bounded_under_tool_flood() {
             false,
         );
     }
-    assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
+    assert_eq!(state.live_parts.len(), 84);
+    assert!(!state.live_preview_truncated && state.note().is_none());
+    state
+        .live_parts
+        .push(LivePart::Text("x".repeat(WINDOW_BYTES).into()));
+    state.enforce_parts();
+    assert!(
+        state
+            .live_parts
+            .iter()
+            .map(LivePart::retained_bytes)
+            .sum::<usize>()
+            <= WINDOW_BYTES
+    );
     assert!(state.live_preview_truncated);
     assert_eq!(
         state.note(),
@@ -2440,7 +2453,7 @@ async fn pending_delegation_cleanup_and_checkpoint_keep_the_actual_owner() {
             "evicted" => {
                 state
                     .live_parts
-                    .extend((0..super::LIVE_PARTS_MAX).map(|_| LivePart::Text("tail".into())));
+                    .push(LivePart::Text("x".repeat(WINDOW_BYTES).into()));
                 state.enforce_parts();
             }
             _ => unreachable!(),
@@ -2895,7 +2908,15 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
         );
     }
     assert_eq!(state.pending_tool_seen.len(), PENDING_TOOL_MAX);
-    assert!(state.live_parts.len() <= super::LIVE_PARTS_MAX);
+    assert_eq!(
+        state
+            .live_parts
+            .iter()
+            .filter(|part| matches!(part,
+        LivePart::Tool { card, .. } if card.state == "argument_stream"))
+            .count(),
+        PENDING_TOOL_MAX
+    );
     // GenericTool's streaming row is the inline spinner and bare tool name.
     state.viewport();
     state.finish_transcript_projection().await;
@@ -2912,11 +2933,9 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
             .any(|line| line.contains('┃') || line.contains('界'))
     );
     // Evicted identity snapshots cannot resurrect a second live card.
-    for i in 0..super::LIVE_PARTS_MAX {
-        state
-            .live_parts
-            .push(super::LivePart::Text(format!("tail-{i}").into()));
-    }
+    state
+        .live_parts
+        .push(LivePart::Text("x".repeat(WINDOW_BYTES).into()));
     state.enforce_parts();
     let count = state.live_parts.len();
     state.apply_tool_argument_stream(

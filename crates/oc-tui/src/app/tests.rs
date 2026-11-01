@@ -1,10 +1,9 @@
 //! Shared bounded fixtures for the input, transcript, tab and lifecycle suites.
 
 use super::{
-    ClipboardMode, HOME_EXAMPLES, KeyOutcome, LIVE_PARTS_MAX, LivePart, MAX_INPUT_BYTES,
-    MAX_SELECTION_BYTES, MAX_SESSION_TITLE_BYTES, NoteVariant, PanelIntent, PumpOutcome,
-    ScriptDriver, SelectionPoint, TabPresentation, Theme, TuiPanel, TuiState, TuiStatus,
-    VIEWPORT_LINES,
+    ClipboardMode, HOME_EXAMPLES, KeyOutcome, LivePart, MAX_INPUT_BYTES, MAX_SELECTION_BYTES,
+    MAX_SESSION_TITLE_BYTES, NoteVariant, PanelIntent, PumpOutcome, ScriptDriver, SelectionPoint,
+    TabPresentation, Theme, TuiPanel, TuiState, TuiStatus, VIEWPORT_LINES,
 };
 use crate::events::KeyAction;
 use crate::history::{WINDOW_BYTES, WINDOW_ROWS};

@@ -44,9 +44,6 @@ pub const VIEWPORT_LINES: usize = 20;
 pub const MAX_INPUT_BYTES: usize = oc_core::session::MAX_INPUT_BYTES;
 /// Max card rows retained by the Cards panel.
 pub const CARDS_MAX: usize = 160;
-/// Max live turn parts kept before the oldest is evicted (defensive: the
-/// runtime caps rounds, so a real turn stays far below this).
-pub const LIVE_PARTS_MAX: usize = 64;
 /// Maximum rows fetched for one inline mention (owner traversal is separately bounded).
 pub const MENTION_LIMIT: usize = 10;
 /// Never send a clipboard payload larger than a bounded visible transcript.
@@ -532,14 +529,14 @@ pub(crate) struct CardOutput {
 }
 
 impl LivePart {
-    /// Bounded bytes retained by this part (the transient in-flight input is
-    /// excluded: it is dropped as soon as the outcome arrives).
+    /// Include slot storage so small or empty parts remain byte-bounded too.
     fn retained_bytes(&self) -> usize {
-        match self {
-            LivePart::Vacant => 0,
-            LivePart::Text(text) | LivePart::Reasoning { text, .. } => text.len(),
-            LivePart::Tool { card, input, .. } => card.retained_bytes() + input.len(),
-        }
+        std::mem::size_of::<Self>()
+            + match self {
+                LivePart::Vacant => 0,
+                LivePart::Text(text) | LivePart::Reasoning { text, .. } => text.len(),
+                LivePart::Tool { card, input, .. } => card.retained_bytes() + input.len(),
+            }
     }
 
     /// Render this part as a transcript row.

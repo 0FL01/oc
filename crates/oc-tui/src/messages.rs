@@ -55,9 +55,9 @@ const MAX_INDEXED_MARKDOWN_ROWS: usize = 8192;
 pub(crate) const MAX_CACHED_BYTES: usize = 512 * 1024;
 pub(crate) const MAX_INDEX_BYTES: usize = 2 * 1024 * 1024;
 pub(crate) const LIVE_MARKDOWN_BYTES: usize = 16 * 1024;
-// One indexed frame can include every history row, every retained live part,
-// and the still-open live row. A smaller LRU thrashes during the count pass.
-const MAX_REASONING_HEIGHTS: usize = crate::history::WINDOW_ROWS + crate::app::LIVE_PARTS_MAX + 1;
+// Layout memoization is independent of transcript availability.
+const LIVE_CACHE_ROWS: usize = 64;
+const MAX_REASONING_HEIGHTS: usize = crate::history::WINDOW_ROWS + LIVE_CACHE_ROWS + 1;
 
 #[cfg(test)]
 thread_local! {
@@ -234,7 +234,7 @@ struct ToolHeight {
 }
 
 /// Rendered tool bodies retained across projections (bounded by count/bytes).
-const MAX_TOOL_ROWS: usize = 4 * crate::history::WINDOW_ROWS + crate::app::LIVE_PARTS_MAX;
+const MAX_TOOL_ROWS: usize = 4 * crate::history::WINDOW_ROWS + LIVE_CACHE_ROWS;
 const MAX_TOOL_ROW_BYTES: usize = 8 * 1024 * 1024;
 
 /// Per-session completed-part cache, bounded independently of history. The

@@ -96,12 +96,17 @@ async fn prepare(
         )),
         Request::Output(op, offset) => {
             let page = if let Some(page) = app
-                .shell_output(route.session.clone(), op.clone(), offset, 240)
+                .shell_output(
+                    route.session.clone(),
+                    op.clone(),
+                    offset,
+                    ToolOutputPage::MAX_BYTES,
+                )
                 .await?
             {
                 page
             } else {
-                app.tool_output_page(route.session, op.clone(), offset, 240)
+                app.tool_output_page(route.session, op.clone(), offset, ToolOutputPage::MAX_BYTES)
                     .await?
             };
             Ok(Prepared::Output(op, offset, page))

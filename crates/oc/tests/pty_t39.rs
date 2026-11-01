@@ -2149,10 +2149,27 @@ fn measure_s07(archive: usize) -> S07Run {
     wait_screen_row(&pty, "bash completed", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "operation s07-large-output", DEADLINE);
+    wait_screen_row(&pty, "bytes 0–65536", DEADLINE);
+    // Next-page admission requires contiguous painted coverage. End deliberately
+    // cannot skip unseen rows; traverse the larger page through real paints.
+    let began = Instant::now();
+    while !render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("enter next page"))
+    {
+        assert!(
+            began.elapsed() < DEADLINE,
+            "full result page did not scroll"
+        );
+        let from = pty.snapshot().len();
+        pty.send(b"\x1b[6~");
+        pty.wait_visible_after(from, "\\n", DEADLINE);
+    }
     wait_screen_row(&pty, "enter next page", DEADLINE);
     sample();
     pty.send(b"\r");
-    wait_screen_row(&pty, "bytes", DEADLINE);
+    wait_screen_row(&pty, "bytes 65536–131072", DEADLINE);
     sample();
     pty.send(b"\x1b");
     wait_screen_row(&pty, "cards | newest first", DEADLINE);

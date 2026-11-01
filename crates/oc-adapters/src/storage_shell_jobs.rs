@@ -714,7 +714,10 @@ impl Db {
         if let Some(resource) = self.output_for_operation(operation)? {
             return self
                 .open_tool_output(session, &resource.path)?
-                .byte_page(offset, limit.clamp(4, TOOL_OP_PREVIEW_BYTES))
+                .byte_page(
+                    offset,
+                    limit.clamp(4, oc_core::queries::ToolOutputPage::MAX_BYTES),
+                )
                 .map(Some);
         }
         let conn = self.conn.lock().expect("db mutex");
@@ -733,7 +736,7 @@ impl Db {
         }
         let end = text.floor_char_boundary(
             offset
-                .saturating_add(limit.clamp(4, TOOL_OP_PREVIEW_BYTES))
+                .saturating_add(limit.clamp(4, oc_core::queries::ToolOutputPage::MAX_BYTES))
                 .min(text.len()),
         );
         Ok(Some((

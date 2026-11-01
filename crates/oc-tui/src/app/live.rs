@@ -2169,7 +2169,7 @@ impl TuiState {
             }
         }
         self.invalidate_transcript();
-        self.limit_live_preview(projection.truncated);
+        self.limit_live_preview(projection.omitted_parts != 0);
         self.live_agent_color_index = projection.agent_color_index;
         if projection.status != "started" {
             self.live_terminal_status = Some(projection.status.clone());
@@ -2251,7 +2251,73 @@ impl TuiState {
             })
             .collect();
         self.reasoning_expanded.extend(remapped);
+        self.retire_checkpoint_parts();
         self.enforce_parts();
+    }
+
+    /// Retire only installed immutable parts. A stale/detached read must not
+    /// replace a newer live card, and running cards still own progress updates.
+    pub(super) fn retire_checkpoint_parts(&mut self) {
+        let Some(turn) = &self.active_turn else {
+            return;
+        };
+        for index in 0..self.live_parts.len() {
+            let slot = self.live_part_offset + index;
+            let Some(&source) = self.live_part_sources.get(&slot) else {
+                continue;
+            };
+            let part = &self.live_parts[index];
+            if matches!(part, LivePart::Tool { card, delegation, .. }
+                if !(card.state == "completed" || crate::tools::is_error_state(&card.state))
+                    || crate::tools::tool_spinner_animated(card) || delegation.is_some())
+            {
+                continue;
+            }
+            let row = self.window.rows().iter().find(|row| {
+                row.position.as_ref().is_some_and(|position| {
+                    position.belongs_to(&turn.0)
+                        && position.component == crate::history::HistoryComponent::Part(source)
+                })
+            });
+            let covered = self
+                .window
+                .rows()
+                .first()
+                .and_then(|row| row.position.as_ref())
+                .is_some_and(|position| position.follows_part(&turn.0, source))
+                || row.is_some_and(|row| match part {
+                    LivePart::Text(text) => row.text == *text,
+                    LivePart::Reasoning { text, duration_ms } => {
+                        row.reasoning.as_ref().is_some_and(|reasoning| {
+                            reasoning.text == *text && reasoning.duration_ms == *duration_ms
+                        })
+                    }
+                    LivePart::Tool { card, .. } => row.tool.as_ref() == Some(card),
+                    LivePart::Vacant => true,
+                });
+            if !covered {
+                continue;
+            }
+            if self
+                .reasoning_expanded
+                .remove(&crate::messages::ReasoningIdentity::Live(
+                    self.reasoning_epoch,
+                    slot,
+                ))
+                && let Some(identity) = row.and_then(|row| row.reasoning.as_ref()?.identity)
+            {
+                self.reasoning_expanded.insert(identity);
+            }
+            self.live_parts[index] = LivePart::Vacant;
+            self.live_part_sources.remove(&slot);
+        }
+        let prefix = self
+            .live_parts
+            .iter()
+            .take_while(|part| matches!(part, LivePart::Vacant))
+            .count();
+        self.live_parts.drain(..prefix);
+        self.live_part_offset += prefix;
     }
 
     /// Apply one completed generation's measured context to its active owner.
@@ -3183,23 +3249,25 @@ impl TuiState {
         self.refresh_running_user_shell_output();
     }
 
-    /// Evict oldest live parts while the count or byte cap is exceeded; the
-    /// parts are transient (a reload restores committed history).
+    /// Bound the transient tail by bytes; checkpointed eviction is pageable,
+    /// not missing output. Never impose a count limit on a long active turn.
     pub(super) fn enforce_parts(&mut self) {
         let _ = self.execute_capture();
         self.invalidate_transcript();
-        while self.live_parts.len() > LIVE_PARTS_MAX
-            || self
-                .live_parts
-                .iter()
-                .map(LivePart::retained_bytes)
-                .sum::<usize>()
-                > WINDOW_BYTES
+        while self
+            .live_parts
+            .iter()
+            .map(LivePart::retained_bytes)
+            .sum::<usize>()
+            > WINDOW_BYTES
         {
-            self.live_parts.remove(0);
-            self.live_part_sources.remove(&self.live_part_offset);
+            let part = self.live_parts.remove(0);
+            let committed = self
+                .live_part_sources
+                .remove(&self.live_part_offset)
+                .is_some();
             self.live_part_offset += 1;
-            self.limit_live_preview(true);
+            self.limit_live_preview(!committed && !matches!(part, LivePart::Vacant));
         }
         self.prune_reasoning();
     }
