@@ -1,6 +1,6 @@
 # Goal: MCP budgets и полный доступный live-вывод
 
-Status: active
+Status: completed
 Source: пользовательский RECON чата «RECON и план исправления команд-макросов /check с аргументами», проверка `/home/stfu/ai/work-table/space`, согласованный план и границы; указание «делай копию плана в цель и после итеративно реализовать и коммит пуш билд».
 Last updated: 2026-11-01
 
@@ -43,8 +43,10 @@ required outcome is resolved and affected constraints remain satisfied.
   - Source: «итеративно реализовать и коммит пуш билд».
   - Acceptance: targeted regressions/scoped Clippy, один full offline gate перед интеграционной приёмкой, обычные commits/push текущей ветки в проверенный origin, `target/release/oc2`; ограничения live/visual qualification названы явно.
   - Primary evidence: команды/исходы, Git commit/upstream, release artifact; bounded no-prompt startup в space без изменения конфигурации.
-  - Status: in_progress
-  - Evidence: единственный `CARGO_BUILD_JOBS=4 NEXTEST_TEST_THREADS=4 time bash scripts/test.sh`: fmt/strict workspace all-target Clippy PASS (45.89s), test build1m27s; nextest2567/2572 PASS,25 skipped. Все5 failures закрыты только узкими прогонами:8/9 PASS, затем последний S07 PASS6.440s. После исправлений scoped strict Clippy и оставшиеся rustdoc/debug build/help/version PASS. Это offline qualification по полному прогону + адресным corrections, не повторный весь-green suite. Push/release ещё не выполнялись.
+  - Status: verified
+  - Evidence: единственный `CARGO_BUILD_JOBS=4 NEXTEST_TEST_THREADS=4 time bash scripts/test.sh`: fmt/strict workspace all-target Clippy PASS (45.89s), test build1m27s; nextest2567/2572 PASS,25 skipped. Все5 failures закрыты только узкими прогонами:8/9 PASS, затем последний S07 PASS6.440s. После исправлений scoped strict Clippy и оставшиеся rustdoc/debug build/help/version PASS. Это offline qualification по полному прогону + адресным corrections, не повторный весь-green suite.
+  - Delivery: runtime commits `90d766932`, `4710191ab`, `09bc49df6` отправлены в origin/master. Release build PASS6m43s; после отдельного коммита другого агента `9888e7bc6` сохранено clean tree, `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` подтвердил актуальность за0.21s. Artifact `target/release/oc2`, `oc2 0.2.0`, SHA256 `cc160d89a786c778e3edcad3deeb202593fd578933a7ba3f082b8ecee7c64864`; source `9888e7bc64d563a8192450eb80e3bafd5b7889a2`.
+  - Startup smoke: тот же release из `/home/stfu/ai/work-table/space`, реальные HOME/XDG/PATH, отдельный private data-root. Typed MCP status:7 Connected,8 Disabled,37 tools за4.009s; turns/tool_operations/generation_dispatched0. Lease release acknowledged, client exit0, alternate screen enter/leave и termios restoration PASS; тестовый owner завершился естественно. Existing owner registration/image не изменились. Это metadata-only smoke, не full E2E06/visual qualification.
 
 ### Числовые границы
 
@@ -89,19 +91,21 @@ Byte budget каталога — не обещание такого же RSS. Б
 
 ## Current Checkpoint
 
-- Closes: R3.
-- Smallest next action: commit R3 и обычный push проверенного master в origin, затем release build и bounded fresh-profile metadata startup из space. Весь gate повторно не запускать; пользовательский owner не перезапускать.
-- Expected evidence: сохранённый output >64 KiB доступен до конца, paging UTF-8/session fences сохранены;64/240 active parts не вызывают ложный toast, реальные gaps не скрываются.
+- Closes: R4; все Required Outcomes выполнены.
+- Smallest next action: нет; работа завершена, без нового запроса runtime и проверки не возобновлять.
+- Evidence: R1–R3 regressions и scoped checks PASS; source/release/startup smoke перечислены в R4. Весь gate повторно не запускать; пользовательский owner не перезапускать.
 - Stop or replan if: concurrent mutation/Cargo owner, security boundary или необходимая новая dependency/architecture.
 
 ## Current State
 
 - RECON: при текущем no-prompt запуске space включены7 из15 MCP, все7 Connected (~4s),37 tools,0 Failed;8 Disabled конфигурацией. Исторический отказ на этом конфиге не воспроизведён.
 - Корень toast: tool preview truncation поднимается в aggregate HistoryTurn.truncated; отдельный путь — eviction64 live parts. В исходном чате сохранены ходы263/519/302 частей.
-- Resolved: R1, R2.
-- R3 runtime/test diff принадлежит этой задаче; исходный HEAD `4710191ab`. Все5 failures единственного full offline gate закрыты адресно, остальные стадии PASS; release/push ещё не выполнены.
+- Resolved: R1, R2, R3, R4.
+- R3 закоммичен и отправлен как `09bc49df6`; все5 failures единственного full offline gate закрыты адресно, остальные стадии PASS. Более поздний diff другого агента не трогался: очередь приостановлена до его коммита `9888e7bc6`, затем продолжена по указанию пользователя «допиливай».
 -2026-11-01 metadata baseline текущего owner в space:7 Connected,8 Disabled,37 tools,0 Failed за4.258s; prompts/tools0, lease release closing:false, owner не перезапускался. Это не квалификация нового backend ELF.
-- Next: R3 commit, затем R4 push/build/startup.
+- Current-source fresh-data MCP smoke PASS:7 Connected,8 Disabled,37 tools,0 generation/tools, client exit0 и штатный shutdown. Private test store: `/home/stfu/.cache/opencode-tmp/mcp-live-smoke-v2zjyptu/data`; raw data не входят в Git.
+- Qualification limits: existing-store baseline снят со старого owner, не с нового backend ELF. Профиль real-existing на новом backend, отдельная полная E2E06 qualification и paired visual qualification не объявляются PASS. Схема БД текущим diff не менялась; пользовательский owner не перезапускался, новый ELF активен только в завершённом fresh-data smoke.
+- Next: нет; не продолжать соседний backlog.
 - Hang diagnosis: obsolete cfg10 expectation «9 MCP → fatal» больше неверно; его MCP запросы попадали в fake Responses endpoint, ломали peer и запускали корректный unlimited network retry. Headless `.output()` ждал1871s. Отменён только проверенный isolated fixture client65977, его owner65980 завершился штатно; пользовательский owner27462 не затронут. Удалена только неверная count-fatal секция, остальные lock/trust/policy/recovery/document-cap assertions сохранены; cfg10 PASS8.507s. Ещё два count-negative tests переведены в positive complete-catalog/cleanup проверки; Cards135000-byte fixture проходит страницу64 KiB через существующий PageDown с подтверждением реальных paints (End не обходит contiguous-coverage guard), без изменения данных/метрик/deadlines.
 
 ## Checkpoint History
@@ -109,7 +113,8 @@ Byte budget каталога — не обещание такого же RSS. Б
 -2026-10-31: получен clean-tree gate после `6d2c91375`; контракт и согласованные границы сохранены до runtime edits.
 -2026-10-31: R1 verified;73 targeted MCP/config/lifecycle cases, strict scoped Clippy и fmt PASS. Diff сверён с frozen contract; следующий checkpoint R2 transport. Full offline gate ещё не запускался.
 -2026-10-31: R2 verified;70 targeted transport/lifecycle cases, strict scoped Clippy и fmt PASS. Direct dependency-edge переиспользует уже locked parser без новых versions/packages. Diff сверён с frozen contract; full offline gate и live activation ещё не выполнялись.
+-2026-11-01: R3 `09bc49df6` pushed; release и current-source fresh-data metadata startup PASS. R4 verified с явно ограниченной live/visual qualification; чужой коммит `9888e7bc6` сохранён.
 
 ## Completion
 
-- Final status: active; R1/R2 проверены, R3/R4 ещё не завершены.
+- Final status: completed. R1–R4 verified; source/tests/docs committed and pushed, release artifact и bounded startup smoke проверены. Это не whole-product READY и не автоматическое обновление работающего owner.

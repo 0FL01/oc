@@ -20,12 +20,15 @@ Scope текущей работы задаёт пользователь; workflo
 
 ## Незавершённые outcomes
 
-### MCP budgets и доступность live-вывода — в работе
+### MCP budgets и доступность live-вывода — реализовано
 
 Согласованный после RECON и тестов контракт, числовые границы и итерации:
 [MCP/live limits](docs/goals/2026-10-31-mcp-live-limits.md).
 Без искусственных допусков по числу серверов/инструментов/страниц tools/list;
 полный сохранённый output и история активного хода доступны без отсечений 2 KiB/64 части.
+Runtime/tests отправлены в origin, release собран; fresh-data metadata startup в space:
+7 Connected, 8 Disabled, 37 tools, 0 generations/tools, штатный shutdown и terminal restoration.
+Полная E2E06/paired visual qualification не заявлена; работающий owner не перезапускался.
 
 ### Хранилище под нагрузкой — завершено offline
 
