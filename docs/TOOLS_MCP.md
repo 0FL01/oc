@@ -255,10 +255,10 @@ Tool output в историческом T40 срезе: UI-строка опер
 Confirmed mutation diffs (`apply_patch` / `edit` / `write`) are streamed from the
 committed before/after images into the same registered tool-output artifact before
 the independent `PatchEffects` preview caps. The result carries the recorded path
-and capture state. The TUI marks a truncated preview in its first displayed file
-header when space permits instead of a separate summary; it hides a Complete
-capture's reference while retaining existing non-Complete and truncated
-Complete-without-reference warnings.
+and capture state. In the shared confirmed-diff view, file headers show only the
+operation label and recorded path, without a generated preview-truncation badge.
+The TUI hides a Complete capture's reference while retaining existing non-Complete
+and truncated Complete-without-reference warnings.
 These warnings remain subject to the existing confirmed-effects and Write paths.
 A recorded reference does not guarantee current readability. Partial failure captures
 only committed changes, including the actual destination after a move. Small status

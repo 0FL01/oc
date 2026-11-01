@@ -318,27 +318,11 @@ pub(crate) fn render(
         let path = file.destination.as_ref().unwrap_or(&file.path);
         // U18 BlockTool's row has separate label/path children and gap={1}
         // (session/index.tsx:2836-2856); the gap is a canvas cell.
-        let mut header = vec![Span::styled(label, muted)];
-        let mut trailing_marker = None;
-        if file_index == 0 && effects.truncated {
-            let heading_width =
-                3 + UnicodeWidthStr::width(label) + 1 + UnicodeWidthStr::width(path.as_str());
-            let marker = if unbounded || heading_width + " [preview truncated]".len() <= width {
-                " [preview truncated]"
-            } else {
-                " [preview…]"
-            };
-            if unbounded || heading_width + UnicodeWidthStr::width(marker) <= width {
-                header.push(Span::styled(marker, muted));
-            } else {
-                trailing_marker = Some(marker);
-            }
-        }
-        header.extend([Span::styled(" ", padding), Span::styled(path, muted)]);
-        if let Some(marker) = trailing_marker {
-            header.push(Span::styled(marker, muted));
-        }
-        out.push(frame(header));
+        out.push(frame(vec![
+            Span::styled(label, muted),
+            Span::styled(" ", padding),
+            Span::styled(path, muted),
+        ]));
         // U18 ApplyPatch paints the actual destination in the header only.
         // The source remains in the effect DTO, not a second transcript row.
         if file.operation == PatchOperation::Delete {
@@ -1308,12 +1292,12 @@ pub(crate) mod tests {
             "# Deleted deleted.txt",
             "-1 line",
             "@@ -99,2 +100,2 @@",
-            "[preview truncated]",
             "lossy byte preview",
             "… [truncated]",
         ] {
             assert!(shown.contains(needle), "missing {needle}: {shown}");
         }
+        assert!(!shown.contains("[preview truncated]") && !shown.contains("[preview…]"));
         assert!(!shown.contains("[diff preview truncated;"));
         assert!(
             !shown.contains("hunk preview truncated") && !shown.contains("file preview truncated")
@@ -1322,8 +1306,8 @@ pub(crate) mod tests {
         assert_eq!(effects.total_files, 5);
         assert_eq!(effects.files[2].path, "source.rs");
         let mut literal_effects = effects.clone();
-        literal_effects.files[0].hunks[0].lines[2].text =
-            "[diff preview truncated; literal code]".into();
+        let literal_text = "[diff preview truncated; literal code] [preview truncated] [preview…]";
+        literal_effects.files[0].hunks[0].lines[2].text = literal_text.into();
         let mut literal = row(Some(literal_effects), "failed");
         let error = "Recorded capture: Complete; literal error";
         literal.output_presentation = Some(Box::new(oc_core::tool_output::Presentation::new(
@@ -1336,7 +1320,7 @@ pub(crate) mod tests {
             Theme::dark(),
             120,
         ));
-        assert!(shown.contains("[diff preview truncated; literal code]"));
+        assert!(shown.lines().any(|line| line.contains(literal_text)));
         assert!(shown.contains(error) && shown.contains("# Patch failed"));
         for state in ["unknown", "denied", "cancelled"] {
             let card = card_from_row(&row(Some(PatchEffects::default()), state));
@@ -1371,10 +1355,10 @@ pub(crate) mod tests {
             admitted_lines: 1,
             retained_lines: 1,
         });
-        for (name, state) in [
-            ("edit", "completed"),
-            ("apply_patch", "completed"),
-            ("write", "failed"),
+        for (name, state, header) in [
+            ("edit", "completed", "← Edit a.txt"),
+            ("apply_patch", "completed", "← Patched a.txt"),
+            ("write", "failed", "# Wrote a.txt"),
         ] {
             let mut operation = row(Some(effects.clone()), state);
             operation.name = name.into();
@@ -1391,10 +1375,11 @@ pub(crate) mod tests {
             assert_eq!(card, replay_card);
             assert_eq!(card.patch_effects.as_ref(), Some(&effects));
             assert_eq!(card.output_presentation.as_deref(), Some(&facts));
-            let narrow = text(&crate::tools::tool_block(&card, Theme::dark(), 30));
-            assert!(narrow.contains("[preview…]") && narrow.contains("a.txt"));
-            let narrower = text(&crate::tools::tool_block(&card, Theme::dark(), 18));
-            assert!(narrower.contains("a.txt"));
+            for width in [18, 30, 0] {
+                let shown = text(&crate::tools::tool_block(&card, Theme::dark(), width));
+                assert!(shown.contains(header));
+                assert!(!shown.contains("[preview truncated]") && !shown.contains("[preview…]"));
+            }
             for width in [120, 121] {
                 let shown = text(&crate::tools::tool_block(&card, Theme::dark(), width));
                 assert_eq!(
@@ -1405,7 +1390,8 @@ pub(crate) mod tests {
                         width
                     ))
                 );
-                assert_eq!(shown.matches("[preview truncated]").count(), 1);
+                assert!(shown.contains(header));
+                assert!(!shown.contains("[preview truncated]") && !shown.contains("[preview…]"));
                 assert!(
                     !shown.contains("[diff preview truncated;")
                         && !shown.contains("hunk preview truncated")

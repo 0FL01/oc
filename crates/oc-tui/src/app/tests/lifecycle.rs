@@ -1302,7 +1302,8 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
         .map(crate::styled::Line::plain_text)
         .collect::<Vec<_>>()
         .join("\n");
-    assert!(live.contains("← Patched [preview truncated] a.txt"));
+    assert!(live.contains("← Patched a.txt"));
+    assert!(!live.contains("[preview truncated]") && !live.contains("[preview…]"));
     assert!(live.contains("old") && live.contains("let value = 42;"));
     assert!(!live.contains("[diff preview truncated;"));
     assert!(!live.contains("Recorded capture: Complete;"));
@@ -1353,9 +1354,14 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
     state.apply_finished(&turn, "", 0);
     state.attach_page(&page);
     let original = state.transcript_lines(80, 120);
-    assert!(original.iter().any(|l| {
-        l.plain_text()
-            .contains("← Patched [preview truncated] a.txt")
+    assert!(
+        original
+            .iter()
+            .any(|l| l.plain_text().contains("← Patched a.txt"))
+    );
+    assert!(original.iter().all(|line| {
+        let text = line.plain_text();
+        !text.contains("[preview truncated]") && !text.contains("[preview…]")
     }));
     state.set_session(sid("other-patch-session"));
     assert!(!state.transcript_rows().iter().any(|r| r.tool.is_some()));
