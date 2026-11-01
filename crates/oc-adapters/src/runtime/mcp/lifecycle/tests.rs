@@ -1322,4 +1322,21 @@ fn configured_display_label_keeps_unicode_and_long_names_but_not_sensitive_chann
         &["protected".into()]
     ));
     assert!(safe_display_label("ordinary", &[String::new()]));
+
+    let entry = crate::config::McpEntry {
+        kind: "local".into(),
+        command: vec!["ssh-mcp".into()],
+        environment: BTreeMap::from([("EXPLICIT".into(), "configured-protected".into())]),
+        ..Default::default()
+    };
+    let env = BTreeMap::from([
+        ("SHLVL".into(), "1".into()),
+        ("XDG_VTNR".into(), "2".into()),
+        ("MCP_TOKEN".into(), "3".into()),
+    ]);
+    let protected = crate::config::mcp::entry_credential_values(&entry, &env);
+    assert!(safe_display_label("ssh-n-de1", &protected));
+    assert!(safe_display_label("ssh-n-de2", &protected));
+    assert!(!safe_display_label("ssh-n-de3", &protected));
+    assert!(!safe_display_label("configured-protected", &protected));
 }

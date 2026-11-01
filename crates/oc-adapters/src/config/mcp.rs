@@ -389,8 +389,9 @@ pub(crate) fn entry_credential_values(
         protected_value(value, &mut values);
     }
     if entry.kind == "local" {
-        let (environment, secrets) = crate::mcp_stdio::effective_environment(entry, env);
-        for value in environment.values().chain(secrets.iter()) {
+        // Ordinary inherited settings (e.g. SHLVL) must not mask configured names.
+        let (_, secrets) = crate::mcp_stdio::effective_environment(entry, env);
+        for value in &secrets {
             protected_value(value, &mut values);
         }
     }
