@@ -300,9 +300,8 @@ async fn vis12_user_shell_application_admits_history_before_owned_effect_without
             assert_eq!(app.prompt_history(None).await.unwrap(), [command]);
             // The shell creates the file before its write completes.
             tokio::time::timeout(Duration::from_secs(5), async {
-                while fs::read_to_string(fixture.project.join("user-shell.effect"))
-                    .is_ok_and(|text| text != "effect")
-                    || !fixture.project.join("user-shell.effect").exists()
+                while !fs::read_to_string(fixture.project.join("user-shell.effect"))
+                    .is_ok_and(|text| text == "effect")
                 {
                     tokio::time::sleep(Duration::from_millis(5)).await;
                 }

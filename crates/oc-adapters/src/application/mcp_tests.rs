@@ -186,7 +186,7 @@ async fn mcp08_initial_labels_observe_effective_inherited_stdio_protection() {
     let mut fixture = Fixture::new();
     fixture
         .env
-        .insert("BENIGN_ALIAS".into(), "inherited-secret".into());
+        .insert("MCP_TOKEN".into(), "inherited-secret".into());
     let healthy = fixture.project.join("healthy.json");
     let sibling = fixture.project.join("sibling.json");
     fixture.config(json!({"servers":{

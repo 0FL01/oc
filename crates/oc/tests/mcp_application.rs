@@ -24,6 +24,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use oc_core::{
+    core_app::{CoreApp, CoreEvent, WorkerGuard},
+    session::CoreError,
+};
 use serde_json::{Value, json};
 
 const BIN: &str = env!("CARGO_BIN_EXE_oc2");
@@ -1786,6 +1790,29 @@ impl PtyProcess {
         }
     }
 
+    fn wait_failed_mcp_tool(&self, tool: &str, deadline: Instant) {
+        let unknown = format!("{tool} · outcome unknown");
+        loop {
+            let screen = self.screen();
+            if screen.iter().any(|row| row.contains(&unknown))
+                && screen.iter().any(|row| {
+                    row.contains("Build · MCP application fixture")
+                        && row.trim_end().ends_with("failed")
+                })
+                && !screen.iter().any(|row| {
+                    row.contains("esc interrupt") || row.contains("esc again to interrupt")
+                })
+            {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "MCP failure not presented on an idle TUI: {screen:?}"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+
     fn wait_home_selection(&self, location: &Path) {
         let name = location.file_name().unwrap().to_string_lossy();
         let deadline = Instant::now() + TIMEOUT;
@@ -1815,6 +1842,12 @@ impl PtyProcess {
     fn raw(&mut self, bytes: &[u8]) {
         self.master.write_all(bytes).expect("raw PTY input");
         self.master.flush().expect("raw PTY flush");
+    }
+
+    fn interrupt(&mut self) {
+        self.raw(b"\x1b");
+        self.wait_screen("esc again to interrupt", IO_TIMEOUT);
+        self.raw(b"\x1b");
     }
 
     fn resize(&self, cols: u16, rows: u16) {
@@ -1952,6 +1985,37 @@ impl PtyProcess {
             assert!(
                 Instant::now() < deadline,
                 "pending shutdown exceeded deadline"
+            );
+            std::thread::sleep(POLL);
+        }
+    }
+
+    fn inspect_failed_submission_code(&mut self, code: &str) {
+        // Service feedback can supersede the submit toast. Last request retains
+        // the actual refusal and explicitly presents it again without a retry.
+        let deadline = Instant::now() + TIMEOUT;
+        let remaining = || deadline.saturating_duration_since(Instant::now());
+        self.raw(b"\x10");
+        self.wait_screen("Commands", remaining());
+        self.raw(b"Settings\r");
+        self.wait_screen("Settings", remaining());
+        self.raw(b"Last request");
+        self.wait_screen("Last request", remaining());
+        self.raw(b"\r");
+        self.wait_screen(code, remaining());
+        // Settings first clears its search on Esc, then dismisses on the next.
+        self.raw(b"\x1b");
+        self.wait_screen("Permissions", remaining());
+        self.raw(b"\x1b");
+        while self
+            .screen()
+            .iter()
+            .any(|row| row.trim_start().starts_with("Settings") && row.trim_end().ends_with("esc"))
+        {
+            assert!(
+                Instant::now() < deadline,
+                "Settings did not close: {:?}",
+                self.screen()
             );
             std::thread::sleep(POLL);
         }
@@ -2366,8 +2430,36 @@ done
 }
 
 fn expand_control_probe_error(tui: &mut PtyProcess) {
-    tui.wait_screen("✗ probe_fail", TIMEOUT);
-    let rows = tui.screen();
+    // A completed footer can precede the canonical/live handoff: the old
+    // scrolled tool row and a duplicate answer can still be painted together.
+    // Take click coordinates only from the complete, coherent transcript.
+    let deadline = Instant::now() + TIMEOUT;
+    let rows = loop {
+        let rows = tui.screen();
+        if rows
+            .iter()
+            .any(|row| row.contains("S04 harmless control probe"))
+            && rows
+                .iter()
+                .any(|row| row.contains("probe_ping [note=CSI�[2J"))
+            && rows.iter().any(|row| row.contains("✗ probe_fail"))
+            && rows
+                .iter()
+                .filter(|row| row.contains("Next line intact"))
+                .count()
+                == 1
+            && rows
+                .iter()
+                .any(|row| row.contains("Build · MCP application fixture · "))
+        {
+            break rows;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "control probe transcript has not settled: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    };
     assert!(
         !rows
             .iter()
@@ -2506,6 +2598,47 @@ fn wait_initial_mcp(tui: &mut PtyProcess, server: &str) {
     tui.send_line("/mcps");
     lifecycle::wait_row(tui, server, "Connected");
     lifecycle::close_mcps(tui);
+}
+
+// Canonical history refresh can replace a synthetic turn error before it is
+// painted. Retain the actual owner's typed failure, not a transient UI sentence.
+struct McpFailureObserver {
+    app: CoreApp,
+    guard: WorkerGuard,
+    events: tokio::sync::broadcast::Receiver<CoreEvent>,
+}
+
+impl McpFailureObserver {
+    async fn attach(fixture: &Fixture) -> Self {
+        let (app, guard, _) = oc_adapters::native::attach(
+            &fixture.home.join("data/oc"),
+            Some(&fixture.project),
+            oc_adapters::native::Lease::Run,
+        )
+        .await
+        .unwrap();
+        let events = app.subscribe();
+        Self { app, guard, events }
+    }
+
+    async fn failure(mut self, deadline: Instant) -> CoreError {
+        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
+            let error = loop {
+                let event = match self.events.recv().await.unwrap() {
+                    CoreEvent::Projection { event, .. } => *event,
+                    event => event,
+                };
+                if let CoreEvent::TurnFailed { error, .. } = event {
+                    break error;
+                }
+            };
+            self.app.shutdown().await.unwrap();
+            self.guard.join().await.unwrap();
+            error
+        })
+        .await
+        .unwrap()
+    }
 }
 
 /// Inspect one actual typed inventory entry without turning it into dialogue.
@@ -3247,8 +3380,8 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     assert_eq!(turns, 0);
 }
 
-#[test]
-fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
     let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
     let mcp = FakeMcp::stalled_call();
     let fixture = Fixture::new();
@@ -3261,6 +3394,7 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-remote");
     wait_initial_mcp(&mut tui, "stall");
+    let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("remote side effect");
     let deadline = Instant::now() + TIMEOUT;
     while !mcp.records().iter().any(|r| r.rpc_method == "tools/call") {
@@ -3279,7 +3413,7 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
             .iter()
             .any(|r| r.rpc_method == "notifications/cancelled")
     );
-    tui.raw(b"\x1b"); // real PTY key, not a direct cancel helper
+    tui.interrupt(); // real PTY keys, not a direct runtime cancel
     while !mcp
         .records()
         .iter()
@@ -3319,7 +3453,12 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
         assert!(Instant::now() < deadline, "outcome not durable unknown");
         std::thread::sleep(POLL);
     }
-    tui.wait_screen("MCP outcome unknown", IO_TIMEOUT);
+    let failure_deadline = Instant::now() + IO_TIMEOUT;
+    assert_eq!(
+        observer.failure(failure_deadline).await,
+        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+    );
+    tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     while !mcp.call_socket_closed.load(Ordering::Relaxed) {
         assert!(
             Instant::now() < deadline,
@@ -3350,8 +3489,8 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
     assert_eq!(responses.requests().len(), first_provider_requests);
 }
 
-#[test]
-fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
     let mcp = FakeMcp::stalled_call(); // keeps the first side effect running after cancellation
     let fixture = Fixture::new();
@@ -3388,6 +3527,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
 
     let mut tui = PtyProcess::spawn(&fixture, "v07b-switch-a");
     wait_initial_mcp(&mut tui, "stall");
+    let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("first remote side effect");
     let deadline = Instant::now() + TIMEOUT;
     while mcp
@@ -3400,8 +3540,13 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
         assert!(Instant::now() < deadline, "first remote call not sent");
         std::thread::sleep(POLL);
     }
-    tui.raw(b"\x1b"); // real Esc through the PTY
-    tui.wait_screen("MCP outcome unknown", TIMEOUT);
+    tui.interrupt(); // real Esc confirmation through the PTY
+    let failure_deadline = Instant::now() + TIMEOUT;
+    assert_eq!(
+        observer.failure(failure_deadline).await,
+        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+    );
+    tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     assert!(
         mcp.records()
             .iter()
@@ -3414,7 +3559,11 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
             .unwrap(),
         "unknown"
     );
-    let first_provider_requests = responses.requests().len();
+    let first_provider_requests = responses
+        .requests()
+        .iter()
+        .filter(|body| !title::is_title(body))
+        .count();
 
     tui.send_line(&format!("/location {}", b.display()));
     // New service failure feedback may supersede the generic switch toast;
@@ -3427,28 +3576,8 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
             .unwrap(),
         1
     );
-    let from = tui.send_line("explicit retry in B");
-    let deadline = Instant::now() + TIMEOUT;
-    while mcp
-        .records()
-        .iter()
-        .filter(|r| r.rpc_method == "tools/call")
-        .count()
-        == 1
-    {
-        let bytes = tui.output.lock().unwrap().clone();
-        if bytes.len() >= from && contains(&normalize(&bytes[from..]), b"unsafe_retry") {
-            break;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "B retry not resolved: provider={}, turns={}",
-            responses.requests().len(),
-            db.query_row("SELECT count(*) FROM turns", [], |r| r.get::<_, i64>(0))
-                .unwrap()
-        );
-        std::thread::sleep(POLL);
-    }
+    tui.send_line("explicit retry in B");
+    tui.inspect_failed_submission_code("unsafe_retry");
     assert_eq!(
         mcp.records()
             .iter()
@@ -3457,9 +3586,12 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
         1,
         "Location B sent a second call while A's remote effect is still active"
     );
-    tui.wait_visible_after(from, "unsafe_retry");
     assert_eq!(
-        responses.requests().len(),
+        responses
+            .requests()
+            .iter()
+            .filter(|body| !title::is_title(body))
+            .count(),
         first_provider_requests,
         "retry reached provider in B"
     );
@@ -3548,8 +3680,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     }
     std::thread::sleep(Duration::from_millis(750)); // allow final UI handoff before switching
     tui.send_line(&format!("/location {}", b.display()));
-    // Toast may wrap the absolute path; the active footer retains its suffix.
-    tui.wait_screen("project-b", TIMEOUT);
+    tui.wait_home_selection(&b);
     let local_pid: libc::pid_t = fs::read_to_string(&local_log)
         .unwrap()
         .lines()
@@ -3579,8 +3710,8 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
         .filter(|body| !title::is_title(body))
         .count();
     std::thread::sleep(Duration::from_millis(750));
-    let from = tui.send_line("retry again in B");
-    tui.wait_visible_after(from, "unsafe_retry");
+    tui.send_line("retry again in B");
+    tui.inspect_failed_submission_code("unsafe_retry");
     assert_eq!(
         responses
             .requests()
@@ -3624,8 +3755,8 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     );
 }
 
-#[test]
-fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
     let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
     let mcp = FakeMcp::stalled_call_with_cancel_failure(true);
     let fixture = Fixture::new();
@@ -3638,14 +3769,42 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-cancel-failure");
     wait_initial_mcp(&mut tui, "stall");
+    let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("rejected cancel");
     let deadline = Instant::now() + TIMEOUT;
     while !mcp.records().iter().any(|r| r.rpc_method == "tools/call") {
         assert!(Instant::now() < deadline, "call not sent");
         std::thread::sleep(POLL);
     }
-    tui.raw(b"\x1b");
-    tui.wait_screen("cleanup_failed", TIMEOUT);
+    tui.interrupt();
+    while !mcp
+        .records()
+        .iter()
+        .any(|r| r.rpc_method == "notifications/cancelled")
+    {
+        assert!(Instant::now() < deadline, "cancellation not sent");
+        std::thread::sleep(POLL);
+    }
+    let records = mcp.records();
+    let call = records
+        .iter()
+        .find(|r| r.rpc_method == "tools/call")
+        .unwrap();
+    let cancelled = records
+        .iter()
+        .find(|r| r.rpc_method == "notifications/cancelled")
+        .unwrap();
+    assert_eq!(
+        cancelled.arguments.as_ref().unwrap()["requestId"],
+        call.request_id.clone().unwrap()
+    );
+    let error = observer.failure(deadline).await;
+    assert!(
+        matches!(&error, CoreError::Diagnostic(diagnostic)
+            if diagnostic.code == oc_core::queries::ServiceCode::CleanupFailed),
+        "expected typed cleanup failure, got {error:?}"
+    );
+    tui.wait_failed_mcp_tool("stall_ping", deadline);
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     assert_eq!(
         db.query_row("SELECT state FROM tool_operations", [], |r| r
@@ -3653,8 +3812,12 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
             .unwrap(),
         "unknown"
     );
+    tui.send_line("/mcps");
+    lifecycle::wait_row(&tui, "stall", "Failed");
+    lifecycle::close_mcps(&mut tui);
+    let first_requests = responses.requests().len();
     tui.send_line("explicit retry");
-    tui.wait_screen("cleanup_failed", TIMEOUT);
+    tui.wait_screen("unsafe_retry", TIMEOUT);
     assert_eq!(
         mcp.records()
             .iter()
@@ -3667,7 +3830,6 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
         !output.contains("PRIVATE_CANCEL_FAILURE"),
         "server body leaked into terminal"
     );
-    let first_requests = responses.requests().len();
     assert!(
         !tui.clear_draft_then_exit(Instant::now() + TIMEOUT)
             .success(),
@@ -3676,17 +3838,17 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
     assert_eq!(responses.requests().len(), first_requests);
 }
 
-#[test]
-fn v07b_remote_unsupported_after_effect_is_unknown_and_quarantined() {
-    v07b_remote_unverified_result("v07b_unsupported");
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_remote_unsupported_after_effect_is_unknown_and_quarantined() {
+    v07b_remote_unverified_result("v07b_unsupported").await;
 }
 
-#[test]
-fn v07b_remote_malformed_after_effect_is_unknown_and_quarantined() {
-    v07b_remote_unverified_result("v07b_bad_result");
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_remote_malformed_after_effect_is_unknown_and_quarantined() {
+    v07b_remote_unverified_result("v07b_bad_result").await;
 }
 
-fn v07b_remote_unverified_result(tool: &str) {
+async fn v07b_remote_unverified_result(tool: &str) {
     let responses = FakeResponses::start(ResponsesScript::ToolNamed(format!("effects__{tool}")));
     let mcp = FakeMcp::start("effects", "", &[tool]);
     let fixture = Fixture::new();
@@ -3699,6 +3861,7 @@ fn v07b_remote_unverified_result(tool: &str) {
     );
     let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-remote-{tool}"));
     wait_initial_mcp(&mut tui, "effects");
+    let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("perform side effect");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     let deadline = Instant::now() + TIMEOUT;
@@ -3734,7 +3897,12 @@ fn v07b_remote_unverified_result(tool: &str) {
         );
         std::thread::sleep(POLL);
     }
-    tui.wait_screen("MCP outcome unknown", TIMEOUT);
+    let failure_deadline = Instant::now() + TIMEOUT;
+    assert_eq!(
+        observer.failure(failure_deadline).await,
+        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+    );
+    tui.wait_failed_mcp_tool(&format!("effects_{tool}"), failure_deadline);
     let first_requests = responses
         .requests()
         .iter()
@@ -3855,8 +4023,8 @@ fn v07b_remote_definitive_is_error_remains_failed_and_reusable() {
     assert!(tui.wait_exit().success());
 }
 
-#[test]
-fn v07b_stdio_inflight_raw_esc_reaps_before_explicit_retry() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_stdio_inflight_raw_esc_reaps_before_explicit_retry() {
     let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
     let fixture = Fixture::new();
     let server = fixture.home.join("v07b-stdio");
@@ -3894,6 +4062,7 @@ for line in sys.stdin:
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-stdio");
     wait_initial_mcp(&mut tui, "stall");
+    let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("local side effect");
     let deadline = Instant::now() + TIMEOUT;
     while !fs::read_to_string(&log)
@@ -3912,7 +4081,7 @@ for line in sys.stdin:
         .unwrap()
         .parse()
         .unwrap();
-    tui.raw(b"\x1b");
+    tui.interrupt();
     // SAFETY: signal zero only probes the recorded fixture-owned child PID.
     while unsafe { libc::kill(first, 0) } == 0 {
         assert!(Instant::now() < deadline, "stdio child not reaped");
@@ -3946,10 +4115,12 @@ for line in sys.stdin:
         assert!(Instant::now() < deadline, "turn failed status not durable");
         std::thread::sleep(POLL);
     }
-    tui.wait_screen("MCP outcome unknown", IO_TIMEOUT);
-    // The tool card can render before the terminal TurnFailed event. Retry
-    // only after the TUI has released ownership of the failed turn.
-    tui.wait_screen("(error: application: MCP outcome unknown", IO_TIMEOUT);
+    let failure_deadline = Instant::now() + IO_TIMEOUT;
+    assert_eq!(
+        observer.failure(failure_deadline).await,
+        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+    );
+    tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     fs::write(fixture.home.join("release"), "now safe").unwrap();
     wait_initial_mcp(&mut tui, "stall");
     tui.send_line("explicit retry");
@@ -3991,14 +4162,14 @@ for line in sys.stdin:
     }
 }
 
-#[test]
-fn v07b_stdio_unsupported_after_effect_reaps_before_explicit_retry() {
-    v07b_stdio_unverified_result("unsupported");
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_stdio_unsupported_after_effect_reaps_before_explicit_retry() {
+    v07b_stdio_unverified_result("unsupported").await;
 }
 
-#[test]
-fn v07b_stdio_malformed_after_effect_reaps_before_explicit_retry() {
-    v07b_stdio_unverified_result("bad_result");
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn v07b_stdio_malformed_after_effect_reaps_before_explicit_retry() {
+    v07b_stdio_unverified_result("bad_result").await;
 }
 
 #[test]
@@ -4084,7 +4255,7 @@ fn v07b_stdio_definitive_is_error_remains_failed_and_reusable() {
     assert!(tui.wait_exit().success());
 }
 
-fn v07b_stdio_unverified_result(mode: &str) {
+async fn v07b_stdio_unverified_result(mode: &str) {
     let responses = FakeResponses::start(ResponsesScript::ToolEveryTurn);
     let fixture = Fixture::new();
     let server = fixture.home.join("v07b-result-stdio");
@@ -4132,6 +4303,7 @@ for line in sys.stdin:
     // R7 no longer promises first-prompt catalog readiness. This scenario
     // observes an MCP after-effect outcome, not an unrelated builtin probe.
     wait_initial_mcp(&mut tui, "stall");
+    let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("perform local effect");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
     let deadline = Instant::now() + TIMEOUT;
@@ -4156,8 +4328,12 @@ for line in sys.stdin:
         );
         std::thread::sleep(POLL);
     }
-    tui.wait_screen("MCP outcome unknown", TIMEOUT);
-    tui.wait_screen("(error: application: MCP outcome unknown", TIMEOUT);
+    let failure_deadline = Instant::now() + TIMEOUT;
+    assert_eq!(
+        observer.failure(failure_deadline).await,
+        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+    );
+    tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     let lifecycle = fs::read_to_string(&log).unwrap();
     let first: libc::pid_t = lifecycle
         .lines()
