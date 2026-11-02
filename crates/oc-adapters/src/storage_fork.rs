@@ -60,7 +60,7 @@ impl Db {
     ) -> Result<ForkSessionSnapshot, CoreError> {
         self.fork_session_admitted(
             source,
-            before,
+            Some(before),
             location,
             provider,
             &HashSet::from([provider.to_string()]),
@@ -71,7 +71,7 @@ impl Db {
     pub(crate) fn fork_session_admitted(
         &self,
         source: &str,
-        before: &str,
+        before: Option<&str>,
         location: &str,
         provider: &str,
         providers: &HashSet<String>,
@@ -87,7 +87,7 @@ impl Db {
     fn fork_transaction(
         &self,
         source: &str,
-        before: &str,
+        before: Option<&str>,
         location: &str,
         _provider: &str, // selection keys are provider-free; kept for callers
         providers: &HashSet<String>,
@@ -99,32 +99,50 @@ impl Db {
         if !valid {
             return Err(refuse("source is not a root in this Location").into());
         }
-        let boundary: Option<(i64, String, String)> = tx.prepare_cached("SELECT seq,role,text FROM conversation_messages WHERE session_id=?1 AND id=?2 AND length(CAST(text AS BLOB))<=?3")?.query_row(params![source,before,oc_core::session::MAX_INPUT_BYTES as i64],
+        let (cutoff, prompt, images, terminal_context) = if let Some(before) = before {
+            let boundary: Option<(i64, String, String)> = tx.prepare_cached("SELECT seq,role,text FROM conversation_messages WHERE session_id=?1 AND id=?2 AND length(CAST(text AS BLOB))<=?3")?.query_row(params![source,before,oc_core::session::MAX_INPUT_BYTES as i64],
             |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
-        let Some((mut cutoff, role, prompt)) = boundary else {
-            return Err(refuse("invalid boundary").into());
-        };
-        if role != "user"
-            || Self::native_notice_data_in(&tx, source, before)?
-            || Self::inbox_message_in(&tx, source, before)?
-        {
-            return Err(refuse("boundary is not a user message").into());
-        }
-        let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
-        // The adjacent selection notices belong to the selected prompt, not
-        // its preceding turn. A profile change can also change the model.
-        // One lookup: the earliest switch row after the nearest earlier
-        // non-switch row (or the session start).
-        let first_switch: Option<i64> = tx
-            .prepare_cached(
-                "SELECT MIN(seq) FROM conversation_messages WHERE session_id=?1 AND seq<?2
+            let Some((mut cutoff, role, prompt)) = boundary else {
+                return Err(refuse("invalid boundary").into());
+            };
+            if role != "user"
+                || Self::native_notice_data_in(&tx, source, before)?
+                || Self::inbox_message_in(&tx, source, before)?
+            {
+                return Err(refuse("boundary is not a user message").into());
+            }
+            let restored_prompt = Self::user_prompt_in(&tx, source, before, prompt.clone())?;
+            // The adjacent selection notices belong to the selected prompt, not
+            // its preceding turn. A profile change can also change the model.
+            // One lookup: the earliest switch row after the nearest earlier
+            // non-switch row (or the session start).
+            let first_switch: Option<i64> = tx
+                .prepare_cached(
+                    "SELECT MIN(seq) FROM conversation_messages WHERE session_id=?1 AND seq<?2
              AND seq>COALESCE((SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1
                AND seq<?2 AND role NOT IN ('model_switch','agent_switch')), -9223372036854775808)",
-            )?
-            .query_row(params![source, cutoff], |r| r.get(0))?;
-        if let Some(seq) = first_switch {
-            cutoff = seq;
-        }
+                )?
+                .query_row(params![source, cutoff], |r| r.get(0))?;
+            if let Some(seq) = first_switch {
+                cutoff = seq;
+            }
+            let terminal_context: Option<String> = tx.prepare_cached("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND a.user_message=?2 AND p.active=1")?.query_row(params![source,before],|r|r.get(0)).optional()?;
+            (cutoff, prompt, restored_prompt.images, terminal_context)
+        } else {
+            let max: Option<i64> = tx
+                .prepare_cached("SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1")?
+                .query_row([source], |r| r.get(0))?;
+            let max = max.ok_or_else(|| refuse("empty session"))?;
+            let cutoff = max
+                .checked_add(1)
+                .ok_or_else(|| refuse("invalid history cutoff"))?;
+            (
+                cutoff,
+                String::new(),
+                Vec::new(),
+                Some(Self::save_context(&tx, source)?),
+            )
+        };
         let stored =
             match Self::get_pref_bounded_in(&tx, &tab_deck_key(location), MAX_TAB_DECK_BYTES)? {
                 BoundedPref::Missing => parse_stored_deck(None)?,
@@ -158,7 +176,12 @@ impl Db {
         }
         let unanchored_tool: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND (o.turn_id IS NULL OR NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1)))")?.query_row([source],|r|r.get(0))?;
         if unanchored_tool {
-            let standalone = context::standalone_prefix_operations(&tx, source, before, cutoff)?;
+            let standalone = context::standalone_prefix_operations(
+                &tx,
+                source,
+                terminal_context.as_deref(),
+                cutoff,
+            )?;
             let standalone = serde_json::to_string(&standalone)
                 .map_err(|_| refuse("invalid historical DCP operations"))?;
             let unrelated: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM conversation_tools o WHERE o.session_id=?1 AND ((o.turn_id IS NULL AND o.id NOT IN (SELECT value FROM json_each(?2))) OR (o.turn_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM conversation_turns t WHERE t.id=o.turn_id AND t.session_id=?1))))")?.query_row(params![source,standalone],|r|r.get(0))?;
@@ -491,7 +514,7 @@ impl Db {
         context::copy(
             &tx,
             source,
-            before,
+            terminal_context.as_deref(),
             &root,
             &ids,
             &turn_ids,
@@ -526,7 +549,7 @@ impl Db {
         )?;
         tx.commit()?;
         Ok(ForkSessionSnapshot {
-            images: restored_prompt.images,
+            images,
             session: SessionId(root),
             prompt,
         })
@@ -948,6 +971,138 @@ mod tests {
                 .unwrap()
         })
         .collect()
+    }
+
+    #[test]
+    fn full_fork_copies_visible_tip_not_reverted_tail_or_pending_inbox() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_bound_session("source", "/project").unwrap();
+        let model = oc_core::queries::ModelRef {
+            provider: "fixture".into(),
+            id: "m".into(),
+            variant: None,
+        };
+        complete(&db, "source", "first", &model);
+        complete(&db, "source", "hidden", &model);
+        db.change_conversation("source", oc_core::queries::ConversationAction::Undo)
+            .unwrap();
+        for delivery in [
+            oc_core::queries::InboxDelivery::Queue,
+            oc_core::queries::InboxDelivery::Steer,
+        ] {
+            db.inbox_add("source", delivery, "not delivered").unwrap();
+        }
+        let original = db.read_history_full("source").unwrap();
+        let visible = db.conversation_history_full("source").unwrap();
+        let fork = db
+            .fork_session_admitted(
+                "source",
+                None,
+                "/project",
+                "fixture",
+                &HashSet::from(["fixture".into()]),
+                "{}",
+            )
+            .unwrap();
+        assert!(fork.prompt.is_empty() && fork.images.is_empty());
+        let copied = db.read_history_full(&fork.session.0).unwrap();
+        assert_eq!(
+            copied.iter().map(|r| (&r.1, &r.2)).collect::<Vec<_>>(),
+            visible.iter().map(|r| (&r.1, &r.2)).collect::<Vec<_>>()
+        );
+        assert_eq!(copied.len(), 2);
+        assert_eq!(copied.last().unwrap().1, "assistant");
+        assert!(db.inbox_pending(&fork.session.0).unwrap().is_empty());
+        assert_eq!(db.inbox_pending("source").unwrap().len(), 2);
+        assert_eq!(db.read_history_full("source").unwrap(), original);
+        let payload: String = db
+            .conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT payload FROM events WHERE session_id=?1 AND kind='session_forked'",
+                [&fork.session.0],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&payload).unwrap(),
+            serde_json::json!({"source":"source","before":null})
+        );
+    }
+
+    #[test]
+    fn full_fork_refuses_empty_unsettled_unknown_and_unproven_tools_atomically() {
+        let tmp = tempfile::tempdir().unwrap();
+        let db = Db::open(tmp.path()).unwrap();
+        db.create_bound_session("source", "/project").unwrap();
+        let fork = || {
+            db.fork_session_admitted(
+                "source",
+                None,
+                "/project",
+                "fixture",
+                &HashSet::from(["fixture".into()]),
+                "{}",
+            )
+        };
+        let baseline = counts(&db);
+        assert!(fork().unwrap_err().to_string().contains("empty session"));
+        assert_eq!(counts(&db), baseline);
+        let model = oc_core::queries::ModelRef {
+            provider: "fixture".into(),
+            id: "m".into(),
+            variant: None,
+        };
+        db.accept_turn("running", "source", "prompt", "prompt", &model)
+            .unwrap();
+        let baseline = counts(&db);
+        assert!(fork().unwrap_err().to_string().contains("unsettled"));
+        assert_eq!(counts(&db), baseline);
+        db.recover_interrupted_tools().unwrap();
+        let baseline = counts(&db);
+        assert!(fork().is_err());
+        assert_eq!(counts(&db), baseline);
+        db.create_bound_session("unproven", "/project").unwrap();
+        let user = db
+            .accept_turn("settled", "unproven", "prompt", "prompt", &model)
+            .unwrap()
+            .user_message;
+        let mut log = TurnLog::new("settled", "m", "fixture");
+        log.user_message = Some(user);
+        db.record_turn_tool_intent(
+            "unknown-tool",
+            "unproven",
+            "settled",
+            "bash",
+            "{}",
+            &log.to_json().to_string(),
+        )
+        .unwrap();
+        db.commit_turn(
+            "settled",
+            "completed",
+            Some(&log.to_json().to_string()),
+            Some("answer"),
+        )
+        .unwrap();
+        let baseline = counts(&db);
+        assert!(
+            db.fork_session_admitted(
+                "unproven",
+                None,
+                "/project",
+                "fixture",
+                &HashSet::from(["fixture".into()]),
+                "{}"
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("unresolved tool outcome")
+        );
+        assert_eq!(counts(&db), baseline);
+        assert!(db.tab_adoptions("/project").unwrap().is_empty());
     }
 
     #[test]

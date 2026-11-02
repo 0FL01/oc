@@ -1007,6 +1007,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Commands => "Commands",
         TuiPanel::Settings => "Settings",
         TuiPanel::MessageActions { .. } => "Message Actions",
+        TuiPanel::Fork { .. } => "Fork session",
         TuiPanel::PendingSteer { .. } => "Pending steer",
         TuiPanel::Model => "Select model",
         TuiPanel::Variant => "Select variant",
@@ -1021,6 +1022,20 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Dcp => "DCP context",
     };
     let size = size_for(state.panel());
+    if matches!(state.panel(), TuiPanel::Fork { pending: true }) {
+        let theme = Theme::dark();
+        let area = DialogFrame::rect(frame.area(), size, 7);
+        DialogFrame::paint(frame, area, theme);
+        frame.render_widget(
+            Paragraph::new("Fork session").style(Style::default().fg(theme.text())),
+            Rect::new(area.x + 4, area.y + 1, area.width.saturating_sub(8), 1),
+        );
+        frame.render_widget(
+            Paragraph::new("Forking session…").style(Style::default().fg(theme.text())),
+            Rect::new(area.x + 4, area.y + 3, area.width.saturating_sub(8), 1),
+        );
+        return;
+    }
     let sessions_title = state.sessions_title();
     let title = if state.panel() == &TuiPanel::Sessions {
         &sessions_title
@@ -1628,7 +1643,9 @@ fn render_mcp_detail(frame: &mut Frame<'_>, state: &TuiState) {
 pub fn size_for(panel: &TuiPanel) -> DialogSize {
     match panel {
         TuiPanel::Cards => DialogSize::Xlarge,
-        TuiPanel::Sessions | TuiPanel::Dcp | TuiPanel::Help(_) => DialogSize::Large,
+        TuiPanel::Sessions | TuiPanel::Fork { .. } | TuiPanel::Dcp | TuiPanel::Help(_) => {
+            DialogSize::Large
+        }
         _ => DialogSize::Medium,
     }
 }

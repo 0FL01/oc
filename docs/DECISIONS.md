@@ -302,6 +302,11 @@ message/command preparation and blank Enter commit agent then model (OC2
 fresh request; the prepared request and tool batch keep their captured profile.
 Rename, fork (settled prefix), `/reload`, Location switch and tab close no longer wait
 for an accepted turn; closing a tab or switching Location never cancels the root.
+Before-message fork may copy a settled prefix beside an active source. `/fork`
+also offers Full session: it copies through the last visible message (including
+the completed answer), with an empty composer, and refuses immediately if the
+copied graph is unsettled or contains an unproven tool outcome. Reverted tails
+and undelivered input are not copied; the source and its draft remain untouched.
 Deleting a running session interrupts it, waits for idle, then deletes; undo keeps
 its interrupt-first path. Unresolved submission/model receipts still block
 departure. Manual DCP compress and title regeneration stay idle-only.

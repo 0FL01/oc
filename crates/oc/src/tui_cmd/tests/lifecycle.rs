@@ -487,6 +487,70 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
 }
 
 #[tokio::test]
+async fn quit_settles_current_and_parked_prompt_history_before_release_without_replay() {
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut parked = TuiState::new(app.clone(), SessionId::new("parked").unwrap());
+    parked.restore_prompt("/settings".into());
+    parked.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::PromptHistory {
+        ack: parked_ack, ..
+    }) = inbox.recv().await
+    else {
+        panic!("parked append")
+    };
+    let mut state = TuiState::new(app.clone(), SessionId::new("current").unwrap());
+    state.restore_prompt("/quit".into());
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::PromptHistory {
+        ack: current_ack, ..
+    }) = inbox.recv().await
+    else {
+        panic!("quit append")
+    };
+    let mut deck = LoopState {
+        tabs: vec![None, Some(parked)],
+        tab_cards_before: vec![None, None],
+        active_tab: Some(0),
+        ..Default::default()
+    };
+    let mut exit = Box::pin(reconcile_exit(&app, &mut state, &mut deck));
+    tokio::select! { biased; result = &mut exit => panic!("append is not acknowledged: {result:?}"), _ = tokio::task::yield_now() => {} }
+    current_ack.send(Ok(vec!["/quit".into()])).unwrap();
+    tokio::select! { biased; result = &mut exit => panic!("parked append is not acknowledged: {result:?}"), _ = tokio::task::yield_now() => {} }
+    parked_ack.send(Ok(vec!["/settings".into()])).unwrap();
+    exit.await.unwrap();
+    assert!(
+        inbox.try_recv().is_err(),
+        "settling receipts cannot replay an append"
+    );
+}
+
+#[tokio::test]
+async fn quit_prompt_history_with_unresponsive_or_disconnected_owner_is_bounded() {
+    let (app, mut inbox, _) = CoreApp::channel(2);
+    let mut state = TuiState::new_home(app.clone());
+    state.restore_prompt("/quit".into());
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::PromptHistory { ack, .. }) = inbox.recv().await else {
+        panic!("held append")
+    };
+    let mut deck = LoopState::default();
+    let error = tokio::time::timeout(
+        Duration::from_secs(2),
+        reconcile_exit(&app, &mut state, &mut deck),
+    )
+    .await
+    .expect("local exit stays bounded")
+    .unwrap_err();
+    assert!(error.contains("history unconfirmed"));
+    assert_eq!(state.status(), &TuiStatus::Quit);
+    assert!(inbox.try_recv().is_err());
+    drop(ack);
+    drop(inbox);
+    reconcile_exit(&app, &mut state, &mut deck).await.unwrap();
+}
+
+#[tokio::test]
 async fn quit_with_pending_existing_tab_does_not_wait_for_receipt_or_save() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let root = SessionId::new("durable").unwrap();
@@ -1748,24 +1812,36 @@ async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_sou
     let fork = SessionId::new("fork-owner-root").unwrap();
     let mut state = TuiState::new(app.clone(), source.clone());
     state.restore_prompt("unfinished source draft".into());
+    state.attach_page(&HistoryPage {
+        rows: vec![oc_core::queries::HistoryMessage {
+            id: MessageId("selected-user".into()),
+            seq: 1,
+            role: oc_core::session::Role::User,
+            text: "selected public prompt".into(),
+            images: Vec::new(),
+            turn: None,
+            model_switch: None,
+            agent_switch: None,
+            user_shell: None,
+            child: None,
+            shell_notice: None,
+        }],
+        ..Default::default()
+    });
     let mut deck = LoopState {
         tabs: vec![None],
         tab_cards_before: vec![Some(7)],
         active_tab: Some(0),
         cards_before: Some(7),
-        save_disabled: true,
         ..Default::default()
     };
-    apply_intent(
-        &app,
-        &mut state,
-        &mut deck,
-        PanelIntent::ForkMessage {
-            message: MessageId("selected-user".into()),
-        },
-    )
-    .await
-    .unwrap();
+    state.handle_key(KeyAction::Commands).await;
+    state.handle_paste("Fork session");
+    let outcome = state.handle_key(KeyAction::Enter).await;
+    apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+    state.handle_paste("selected public prompt");
+    let outcome = state.handle_key(KeyAction::Enter).await;
+    apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
     assert_eq!(state.attached_session(), Some(&source));
     let Some(InboxMsg::ForkSession {
         source: received,
@@ -1776,7 +1852,7 @@ async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_sou
         panic!("real fork")
     };
     assert_eq!(received, source);
-    assert_eq!(message.0, "selected-user");
+    assert_eq!(message.unwrap().0, "selected-user");
     ack.send(Ok(ForkSessionSnapshot {
         images: Vec::new(),
         session: fork.clone(),
@@ -1803,6 +1879,9 @@ async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_sou
     finish_conversation(&app, &mut state, &mut deck).await;
     assert_eq!(state.attached_session(), Some(&fork));
     assert_eq!(state.input(), "selected public prompt");
+    assert_eq!(state.note(), Some("Forked session"));
+    assert_eq!(state.note_variant(), Some(NoteVariant::Success));
+    assert_eq!(deck.tabs[0].as_ref().unwrap().panel(), &TuiPanel::None);
     assert_eq!(state.session_title.as_deref(), Some("Fork title"));
     assert_eq!(
         deck.tabs[0].as_ref().unwrap().input(),
@@ -1812,8 +1891,174 @@ async fn fork_owner_result_adopts_real_root_with_unsent_prompt_and_preserved_sou
     assert_eq!(deck.snapshot(&state).sessions, vec![source, fork]);
     assert!(
         inbox.try_recv().is_err(),
-        "unsent prompt and disabled deck safeguard"
+        "unsent prompt and local deck do not call the owner"
     );
+}
+
+#[tokio::test]
+async fn full_fork_picker_pending_escape_and_late_ack_preserve_navigation_and_source_draft() {
+    use oc_core::queries::{ForkSessionSnapshot, HistoryPage};
+    for navigate in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let source = SessionId::new("source").unwrap();
+        let other = SessionId::new("other").unwrap();
+        let fork = SessionId::new("full-fork").unwrap();
+        let mut state = TuiState::new(app.clone(), source.clone());
+        state.restore_prompt("source draft".into());
+        let mut deck = LoopState {
+            tabs: vec![None, Some(TuiState::new(app.clone(), other.clone()))],
+            tab_cards_before: vec![None, None],
+            active_tab: Some(0),
+            ..Default::default()
+        };
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("Fork session");
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+        assert_eq!(state.panel(), &TuiPanel::Fork { pending: true });
+        assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+        let Some(InboxMsg::ForkSession {
+            source: received,
+            before,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("one full fork")
+        };
+        assert_eq!(received, source);
+        assert!(before.is_none());
+        assert!(inbox.try_recv().is_err());
+        if navigate {
+            deck.activate(&mut state, 1).unwrap();
+            for intent in [
+                PanelIntent::ForkFullSession,
+                PanelIntent::ChangeConversation {
+                    action: oc_core::queries::ConversationAction::Undo,
+                },
+            ] {
+                assert_eq!(
+                    apply_intent(&app, &mut state, &mut deck, intent).await,
+                    Err("conversation operation pending".into()),
+                    "a second tab cannot overwrite the accepted fork slot"
+                );
+            }
+            assert!(
+                inbox.try_recv().is_err(),
+                "only the held first fork was admitted"
+            );
+        } else {
+            state.handle_key(KeyAction::Cancel).await;
+            assert_eq!(state.panel(), &TuiPanel::None);
+        }
+        ack.send(Ok(ForkSessionSnapshot {
+            session: fork.clone(),
+            prompt: String::new(),
+            images: Vec::new(),
+        }))
+        .unwrap();
+        let worker = tokio::spawn(async move {
+            let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
+                panic!("history")
+            };
+            ack.send(Ok(HistoryPage::default())).unwrap();
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("selection")
+            };
+            ack.send(Ok(catalog())).unwrap();
+            empty_compactions(&mut inbox).await;
+            inbox
+        });
+        settle_conversation(&app, &mut state, &mut deck).await;
+        let mut inbox = worker.await.unwrap();
+        let next = if navigate {
+            assert_eq!(
+                state.attached_session(),
+                Some(&other),
+                "late ack cannot hijack current view"
+            );
+            deck.tabs[2].as_ref().unwrap()
+        } else {
+            assert_eq!(state.attached_session(), Some(&fork));
+            &state
+        };
+        assert_eq!(next.attached_session(), Some(&fork));
+        assert!(next.input().is_empty());
+        assert_eq!(next.note(), Some("Forked session"));
+        assert_eq!(next.note_variant(), Some(NoteVariant::Success));
+        let origin = deck.tabs[0].as_ref().unwrap();
+        assert_eq!(origin.input(), "source draft");
+        assert_eq!(origin.panel(), &TuiPanel::None);
+        assert!(inbox.try_recv().is_err());
+    }
+}
+
+#[tokio::test]
+async fn fork_picker_closes_on_async_and_keyboard_or_mouse_admission_errors() {
+    for mouse in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app.clone(), SessionId::new("source").unwrap());
+        let mut deck = LoopState {
+            tabs: (0..MAX_TABS)
+                .map(|index| {
+                    (index != 0).then(|| {
+                        TuiState::new(
+                            app.clone(),
+                            SessionId::new(format!("parked-{index}")).unwrap(),
+                        )
+                    })
+                })
+                .collect(),
+            tab_cards_before: vec![None; MAX_TABS],
+            active_tab: Some(0),
+            ..Default::default()
+        };
+        state.handle_key(KeyAction::Commands).await;
+        state.handle_paste("Fork session");
+        state.handle_key(KeyAction::Enter).await;
+        let outcome = state.handle_key(KeyAction::Enter).await;
+        if mouse {
+            apply_mouse_outcome(
+                &app,
+                &mut state,
+                &mut deck,
+                outcome,
+                ratatui::layout::Rect::new(0, 0, 120, 40),
+                crossterm::event::MouseEvent {
+                    kind: MouseEventKind::Up(crossterm::event::MouseButton::Left),
+                    column: 10,
+                    row: 10,
+                    modifiers: KeyModifiers::NONE,
+                },
+            )
+            .await;
+        } else {
+            apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+        }
+        assert_eq!(state.panel(), &TuiPanel::None);
+        assert!(state.note().unwrap().contains("tab limit"));
+        assert!(inbox.try_recv().is_err());
+    }
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId::new("source").unwrap());
+    let mut deck = LoopState::default();
+    state.handle_key(KeyAction::Commands).await;
+    state.handle_paste("Fork session");
+    state.handle_key(KeyAction::Enter).await;
+    let outcome = state.handle_key(KeyAction::Enter).await;
+    apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
+    let Some(InboxMsg::ForkSession { ack, .. }) = inbox.recv().await else {
+        panic!("full fork")
+    };
+    ack.send(Err(CoreError::Application(
+        "fork refused: empty session".into(),
+    )))
+    .unwrap();
+    settle_conversation(&app, &mut state, &mut deck).await;
+    assert_eq!(state.panel(), &TuiPanel::None);
+    assert_eq!(state.note_variant(), Some(NoteVariant::Error));
+    assert!(state.note().unwrap().contains("empty session"));
 }
 
 #[tokio::test]

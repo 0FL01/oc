@@ -54,6 +54,8 @@ pub enum CommandAction {
     OpenAgents,
     /// Open the session list.
     OpenSessions,
+    /// Fork the current session, wholly or before a loaded user message.
+    OpenFork,
     /// Open the skill catalog.
     OpenSkills,
     OpenMcps,
@@ -198,6 +200,14 @@ pub fn direct(event: crossterm::event::KeyEvent) -> Option<CommandAction> {
 pub const COMMANDS_BINDING: &str = "ctrl+p";
 
 pub const REGISTRY: &[CommandSpec] = &[
+    CommandSpec {
+        id: "session.fork",
+        title: "Fork session",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["fork"],
+        action: CommandAction::OpenFork,
+    },
     CommandSpec {
         id: "terminal.create",
         title: "New terminal",

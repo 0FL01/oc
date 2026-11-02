@@ -3433,7 +3433,7 @@ async fn query(
                     .collect();
                 db.fork_session_admitted(
                     &source.0,
-                    &before.0,
+                    before.as_ref().map(|m| m.0.as_str()),
                     runtime.location(),
                     &composition.catalog.provider,
                     &providers,

@@ -3,6 +3,90 @@ use crate::storage::compaction::dcp_lifecycle_fixture as fixture;
 use oc_core::queries::ConversationAction::{Redo, Undo};
 
 #[test]
+fn full_fork_after_revert_and_compact_reopens_with_current_terminal_context() {
+    use oc_core::{compaction::*, queries::ConversationAction::Revert, session::MessageId};
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    db.create_bound_session("source", "/project").unwrap();
+    db.apply_dcp_schema().unwrap();
+    let first = fixture::complete(&db, "source", "first", true);
+    let boundary = fixture::complete(&db, "source", "hidden", false);
+    db.change_conversation(
+        "source",
+        Revert {
+            message: MessageId(boundary),
+        },
+    )
+    .unwrap();
+    let run = fixture::standalone(
+        &db,
+        "source",
+        &first,
+        &first,
+        "current compressed projection",
+        Some("manual"),
+    );
+    let end = db
+        .conversation_history_full("source")
+        .unwrap()
+        .last()
+        .unwrap()
+        .0
+        .clone();
+    let snapshot = CompactionSnapshot {
+        model: None,
+        profile: None,
+        anchor: CompactionAnchor::default(),
+        id: "compact-after-revert".into(),
+        session: "source".into(),
+        reason: CompactionReason::Manual,
+        state: CompactionState::Completed,
+        summary: "CURRENT CHECKPOINT AFTER REVERT".into(),
+        usage: None,
+        provider_native: false,
+        error: None,
+    };
+    db.save_compaction(&snapshot).unwrap();
+    db.commit_checkpoint(&snapshot, &end, None, &Default::default())
+        .unwrap();
+    let fork = db
+        .fork_session_admitted(
+            "source",
+            None,
+            "/project",
+            "fixture",
+            &HashSet::from(["fixture".into()]),
+            "{}",
+        )
+        .unwrap()
+        .session
+        .0;
+    drop(db);
+    let db = Db::open(tmp.path()).unwrap();
+    assert_eq!(db.conversation_history_full(&fork).unwrap().len(), 2);
+    assert_eq!(
+        db.session_checkpoint(&fork).unwrap().unwrap().1,
+        snapshot.summary
+    );
+    assert_eq!(
+        db.load_compression_blocks(&fork).unwrap()[0].summary,
+        "current compressed projection"
+    );
+    let imported = db
+        .list_tool_ops(&fork)
+        .unwrap()
+        .into_iter()
+        .filter_map(|op| op.dcp)
+        .collect::<Vec<_>>();
+    assert_eq!(imported.len(), 1);
+    assert_ne!(imported[0].operation_id, run.operation_id);
+    assert_eq!(
+        db.session_checkpoint("source").unwrap().unwrap().1,
+        snapshot.summary
+    );
+}
+
+#[test]
 fn prov09_fork_and_reopen_preserve_canonical_done_reasoning_and_binding() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();

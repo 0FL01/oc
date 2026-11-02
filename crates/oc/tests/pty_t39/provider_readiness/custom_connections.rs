@@ -229,7 +229,10 @@ fn conn04_saved_failed_catalog_retry_and_key_change_join_old_get_then_empty_is_c
     wait_screen_row(&pty, "● default", DEADLINE);
     pty.send(b"\r"); // Add account is the first row.
     wait_dialog_title(&pty, "Connect CONN04 LAN service");
+    wait_screen_row(&pty, "API key", DEADLINE);
+    wait_screen_row(&pty, "enter submit", DEADLINE);
     paste(&mut pty, NEW_KEY);
+    wait_screen_row(&pty, "••••", DEADLINE);
     *fixture.expected_auth.lock().unwrap() = NEW_KEY.into();
     pty.send(b"\r");
     wait_screen_row(&pty, SCOPED_MODEL_DIALOG, DEADLINE);

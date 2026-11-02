@@ -480,6 +480,7 @@ impl Files {
         } else {
             self.open_read_scope(parent, libc::O_RDONLY | libc::O_DIRECTORY)?
         };
+        let mut incomplete = None;
         let (root, base, mut paths) = if meta.is_dir() {
             let root = parent_fd;
             let mut paths = Vec::new();
@@ -498,11 +499,19 @@ impl Files {
                 if error == FileToolError::Cancelled {
                     return Err(error);
                 }
-                return Ok(GrepResult {
-                    hits: Vec::new(),
-                    incomplete: Some(error),
-                    unsearched_files: 0,
-                });
+                if matches!(&error, FileToolError::BudgetExhausted(facts) if facts.budget == "entries" && facts.phase == "discovery")
+                {
+                    // The bounded walk already admitted these candidates. Scan
+                    // them under the remaining byte/time caps, without claiming
+                    // complete coverage or discarding useful earlier matches.
+                    incomplete = Some(error);
+                } else {
+                    return Ok(GrepResult {
+                        hits: Vec::new(),
+                        incomplete: Some(error),
+                        unsearched_files: 0,
+                    });
+                }
             }
             (root, scope, paths)
         } else if meta.is_file() && allowed(&scope) {
@@ -522,7 +531,6 @@ impl Files {
         budget.check()?;
         let mut hits = Vec::new();
         let mut skipped = 0;
-        let mut incomplete = None;
         let mut unsearched_files = 0;
         for path in paths {
             let bytes = match budget

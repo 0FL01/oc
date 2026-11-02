@@ -637,6 +637,30 @@ impl TuiState {
         // The semantic anchor resolves against the new cached part positions.
     }
 
+    /// Preview a loaded message without changing composer or conversation state.
+    pub(super) fn jump_to_message(&mut self, id: &str) {
+        let Some(message) = self.window.rows().iter().find_map(|row| {
+            row.message_id
+                .as_ref()
+                .filter(|message| message.0 == id)
+                .cloned()
+        }) else {
+            return;
+        };
+        self.wheel_motion = None;
+        self.invalidate_transcript_press();
+        self.scroll = self.scroll.max(1);
+        *self.completion_anchor.get_mut() = Some(CompletionAnchor {
+            message,
+            part: 0,
+            component: None,
+            row: 0,
+            requested_scroll: self.scroll,
+            pending: true,
+        });
+        self.invalidate_transcript();
+    }
+
     /// Add an older page at the front of the window.
     pub fn prepend_page(&mut self, page: &HistoryPage) {
         self.invalidate_transcript();

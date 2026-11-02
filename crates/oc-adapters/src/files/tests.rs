@@ -219,6 +219,43 @@ fn incomplete_search_retains_verified_hits_and_binary_reads_charge_only_inspecte
 }
 
 #[test]
+fn grep_retains_discovered_matches_when_later_directory_exhausts_entry_cap() {
+    let (_tmp, files) = fixture();
+    fs::write(files.root.join("a.txt"), "NEEDLE").unwrap();
+    let late = files.root.join("z");
+    fs::create_dir(&late).unwrap();
+    for index in 0..WALK_FILES_CAP {
+        fs::write(late.join(format!("{index:05}.txt")), "").unwrap();
+    }
+    let result = files
+        .grep_search(
+            &GrepOptions {
+                pattern: "NEEDLE",
+                path: ".",
+                include: None,
+                literal: true,
+                case_sensitive: true,
+                offset: 0,
+                limit: 100,
+            },
+            |_| true,
+            None,
+        )
+        .unwrap();
+    assert_eq!(
+        result
+            .hits
+            .iter()
+            .map(|hit| hit.path.as_str())
+            .collect::<Vec<_>>(),
+        ["a.txt"]
+    );
+    assert!(
+        matches!(result.incomplete, Some(FileToolError::BudgetExhausted(facts)) if facts.budget == "entries" && facts.scanned_entries == WALK_FILES_CAP as u64 && facts.bytes <= GREP_SCAN_BYTES_CAP)
+    );
+}
+
+#[test]
 fn repository_root_query_retains_actual_preview_locations_with_native_caps() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()

@@ -1186,6 +1186,44 @@ async fn sidebar_palette_uses_effective_width_home_and_child() {
 }
 
 #[tokio::test]
+async fn fork_command_matches_rename_availability_and_palette_exclusion() {
+    use crate::commands::{CommandAction, dispatch, spec};
+    assert_eq!(dispatch("/fork"), Some(CommandAction::OpenFork));
+    let command = spec(&CommandAction::OpenFork);
+    assert_eq!(
+        (command.id, command.title, command.group),
+        ("session.fork", "Fork session", "Session")
+    );
+    assert!(command.shortcuts.is_empty());
+    let mut state = fresh_state("fork-gate").await;
+    assert!(
+        state
+            .command_unavailable(&CommandAction::OpenFork)
+            .is_none()
+    );
+    for home in [false, true] {
+        if home {
+            state.home = true;
+        } else {
+            state.parent_id = Some("parent".into());
+        }
+        assert_eq!(
+            state.command_unavailable(&CommandAction::OpenFork),
+            state.command_unavailable(&CommandAction::RenameSession { title: None })
+        );
+        state.panel = TuiPanel::Commands;
+        assert!(
+            !state
+                .modal_options()
+                .iter()
+                .any(|option| option.value == "session.fork")
+        );
+        assert!(state.run_command(CommandAction::OpenFork).note.is_some());
+        state.parent_id = None;
+    }
+}
+
+#[tokio::test]
 async fn rename_shortcut_edits_graphemes_and_waits_for_owner_ack() {
     use crate::commands::CommandAction;
     let mut state = fresh_state("rename-shortcut").await;

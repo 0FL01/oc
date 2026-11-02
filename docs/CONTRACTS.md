@@ -347,7 +347,7 @@ settles; it never returns retryable `TurnNotActive` after effects. Direct user S
 separate admission future under the active root, with normal Ask and supervised jobs;
 receipt cancellation is local, root cancellation includes it. It is not chat input
 or a second model turn. Reopen does not execute pending input without a new explicit
-promotion. The inbox schema is forward-upgraded; private native wire is version 9.
+promotion. The inbox schema is forward-upgraded; private native wire is version 10.
 Not general
 config-reload parity. T50 owns TOOL12, T45/PRM01
 consumes prompt/draft lifecycle, T47 owns VAR01 ordering and T44 separately qualifies

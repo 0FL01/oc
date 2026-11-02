@@ -111,6 +111,9 @@ pub enum TuiPanel {
         message: oc_core::session::MessageId,
         seq: i64,
     },
+    Fork {
+        pending: bool,
+    },
     PendingSteer {
         id: String,
         accepted: bool,
@@ -234,6 +237,7 @@ pub enum PanelIntent {
     ForkMessage {
         message: oc_core::session::MessageId,
     },
+    ForkFullSession,
     CopyMessage {
         message: oc_core::session::MessageId,
         seq: i64,
@@ -834,6 +838,7 @@ pub struct TuiState {
     tool_spinner_clocks_attached: bool,
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
+    fork_selected: Option<String>,
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
     /// Rendering an overlapping approval must retire the hidden modal's press.
     mouse_down: Cell<Option<crate::dialog::DialogHit>>,
@@ -1126,6 +1131,7 @@ impl TuiState {
             tool_spinner_clocks_attached: true,
             panel: TuiPanel::None,
             select: Default::default(),
+            fork_selected: None,
             mouse_down: Cell::new(None),
             tab_down: None,
             home_mcp_down: None,

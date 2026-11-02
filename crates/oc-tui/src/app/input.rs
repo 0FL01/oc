@@ -55,6 +55,37 @@ impl TuiState {
                 destructive: false,
             };
         let options = match &self.panel {
+            TuiPanel::Fork { pending: true } => Vec::new(),
+            TuiPanel::Fork { pending: false } => {
+                let mut options = vec![item(
+                    "full".into(),
+                    "Full session".into(),
+                    "",
+                    String::new(),
+                    false,
+                )];
+                let mut seen = std::collections::HashSet::new();
+                for row in self
+                    .window
+                    .rows()
+                    .iter()
+                    .rev()
+                    .filter(|row| row.role == "user")
+                {
+                    if let Some(id) = &row.message_id
+                        && seen.insert(id.clone())
+                    {
+                        options.push(item(
+                            format!("message:{}", id.0),
+                            row.text.replace('\n', " "),
+                            "",
+                            String::new(),
+                            false,
+                        ));
+                    }
+                }
+                options
+            }
             TuiPanel::PendingSteer { .. } => {
                 if self.pending_steer_status().is_some() {
                     Vec::new()
@@ -127,8 +158,10 @@ impl TuiState {
                                     self.picker.as_ref().is_some_and(|p| p.has_variants()),
                                 )
                                 && (c.action != CommandAction::CloseTab || !self.tabs.is_empty())
-                                && (!matches!(c.action, CommandAction::RenameSession { .. })
-                                    || self.command_unavailable(&c.action).is_none())
+                                && (!matches!(
+                                    c.action,
+                                    CommandAction::RenameSession { .. } | CommandAction::OpenFork
+                                ) || self.command_unavailable(&c.action).is_none())
                         })
                         .map(|c| {
                             item(
@@ -432,6 +465,7 @@ impl TuiState {
                     | CommandAction::UndoConversation
                     | CommandAction::RedoConversation
                     | CommandAction::RenameSession { .. }
+                    | CommandAction::OpenFork
                     | CommandAction::SwitchLocation { .. }
                     | CommandAction::ReloadConfiguration
                     | CommandAction::CompactSession
@@ -477,7 +511,10 @@ impl TuiState {
                 return Some("no tab to close");
             }
         }
-        if matches!(action, CommandAction::RenameSession { .. }) {
+        if matches!(
+            action,
+            CommandAction::RenameSession { .. } | CommandAction::OpenFork
+        ) {
             if self.home || self.session.is_none() {
                 return Some("no session yet");
             }
@@ -1066,6 +1103,7 @@ impl TuiState {
                 | TuiPanel::QueuedPrompts
                 | TuiPanel::Mcps
                 | TuiPanel::MessageActions { .. }
+                | TuiPanel::Fork { .. }
                 | TuiPanel::PendingSteer { .. }
         ) && self.mcp_detail.is_none()
     }
@@ -1331,6 +1369,14 @@ impl TuiState {
             return;
         };
         match self.panel {
+            TuiPanel::Fork { pending: false } => {
+                if self.fork_selected.as_deref() != Some(option.value.as_str()) {
+                    self.fork_selected = Some(option.value.clone());
+                    if let Some(id) = option.value.strip_prefix("message:") {
+                        self.jump_to_message(id);
+                    }
+                }
+            }
             TuiPanel::Model => {
                 if let Some(p) = &mut self.picker {
                     p.focus_id(&option.value);
@@ -3943,6 +3989,11 @@ impl TuiState {
                 outcome.intent = Some(PanelIntent::LoadSessions);
                 outcome.consumed_input = self.sessions_loaded;
             }
+            CommandAction::OpenFork => {
+                self.panel = TuiPanel::Fork { pending: false };
+                self.fork_selected = None;
+                outcome.consumed_input = true;
+            }
             CommandAction::OpenSkills => {
                 self.panel = TuiPanel::Skills;
                 open_snapshot(&mut outcome, self.skills_loaded, PanelIntent::LoadSkills);
@@ -4231,6 +4282,7 @@ impl TuiState {
                         | TuiPanel::QueuedPrompts
                         | TuiPanel::Mcps
                         | TuiPanel::MessageActions { .. }
+                        | TuiPanel::Fork { .. }
                         | TuiPanel::PendingSteer { .. }
                 ) =>
             {
@@ -4462,6 +4514,34 @@ impl TuiState {
         let mut outcome = KeyOutcome::default();
         match self.panel.clone() {
             TuiPanel::Execute => {}
+            TuiPanel::Fork { pending: true } => {}
+            TuiPanel::Fork { pending: false } => {
+                let options = self.modal_options();
+                match options
+                    .get(self.select.cursor)
+                    .map(|option| option.value.as_str())
+                {
+                    Some("full") => outcome.intent = Some(PanelIntent::ForkFullSession),
+                    Some(value) => {
+                        let row = value.strip_prefix("message:").and_then(|id| {
+                            self.window.rows().iter().find(|row| {
+                                row.role == "user"
+                                    && row.message_id.as_ref().is_some_and(|m| m.0 == id)
+                            })
+                        });
+                        if let Some(message) =
+                            row.and_then(|row| row.message_id.as_deref()).cloned()
+                        {
+                            outcome.intent = Some(PanelIntent::ForkMessage { message });
+                        }
+                    }
+                    None => {}
+                }
+                if outcome.intent.is_some() {
+                    self.panel = TuiPanel::Fork { pending: true };
+                    self.select.clear_paint();
+                }
+            }
             TuiPanel::PendingSteer { id, .. } => {
                 let options = self.modal_options();
                 let action = match options.get(self.select.cursor).map(|o| o.value.as_str()) {

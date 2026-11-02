@@ -51,6 +51,13 @@ async fn fork_owner_refuses_foreign_provider_without_request_or_durable_root() {
     ]);
     let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
     let original = app.read_history(SessionId("source".into())).await.unwrap();
+    assert!(
+        app.fork_full_session(SessionId("source".into()))
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("provider")
+    );
     let error = app
         .fork_session(SessionId("source".into()), boundary)
         .await
@@ -158,6 +165,15 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_runs_beside_
         ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
     ]);
     let (app, guard, _) = spawn_with_env(&project, &data, env.clone()).await.unwrap();
+    let full = app.fork_full_session(source.clone()).await.unwrap();
+    assert!(full.prompt.is_empty() && full.images.is_empty());
+    let page = app
+        .history_page(full.session.clone(), None, None, 100)
+        .await
+        .unwrap();
+    assert_eq!(page.parent_id, None);
+    assert_eq!(page.rows.last().unwrap().text, "future answer");
+    app.delete_session(full.session).await.unwrap();
     let fork = app
         .fork_session(source.clone(), boundary.clone())
         .await

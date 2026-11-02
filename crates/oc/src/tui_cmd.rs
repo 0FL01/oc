@@ -1292,6 +1292,15 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
                 images: snapshot.images,
             });
             let refreshed = apply_conversation_refresh(app, &mut next, refresh, false).await;
+            if refreshed {
+                next.push_transient_note("Forked session", NoteVariant::Success);
+            }
+            if let Some(view) = read_jobs::views_mut(state, deck)
+                .find(|view| origin.as_ref().is_some_and(|(route, _)| route.owns(view)))
+                && matches!(view.panel(), TuiPanel::Fork { .. })
+            {
+                view.close_panel();
+            }
             if origin
                 .as_ref()
                 .is_some_and(|(_, navigation)| *navigation != deck.navigation_revision)
@@ -1338,6 +1347,9 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
             if let Some(view) = read_jobs::views_mut(state, deck)
                 .find(|view| origin.as_ref().is_some_and(|(route, _)| route.owns(view)))
             {
+                if matches!(view.panel(), TuiPanel::Fork { .. }) {
+                    view.close_panel();
+                }
                 view.push_transient_note(&error, NoteVariant::Error);
             }
         }
@@ -2402,6 +2414,23 @@ async fn reconcile_exit(
             .await
             .map_err(|error| format!("quit cancellation: {error}"))?;
     }
+    // Native lease release uses the priority lane and can overtake a queued
+    // history append. Never replay receipts or trap local exit behind them.
+    // An unconfirmed auxiliary append must not skip the required deck save.
+    let history_result = tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            let seen = oc_core::wake::generation();
+            for view in read_jobs::views_mut(state, deck) {
+                view.poll_prompt_history();
+            }
+            if !read_jobs::views(state, deck).any(TuiState::has_pending_prompt_history) {
+                break;
+            }
+            let _ = tokio::time::timeout(COMPLETION_FALLBACK, oc_core::wake::changed(seen)).await;
+        }
+    })
+    .await
+    .map_err(|_| "quit prompt history unconfirmed; outcome unknown; not replayed".to_string());
     if app.shares_workspace() {
         if read_jobs::views(state, deck).any(|view| {
             view.attached_session().is_none()
@@ -2419,7 +2448,7 @@ async fn reconcile_exit(
             {
                 Err("quit tab selection unavailable while fresh admission awaits acknowledgement; release viewer lease".into())
             } else {
-                Ok(())
+                history_result
             };
         }
         // Quit may arrive in the same input batch as New/activation, before the
@@ -2443,7 +2472,7 @@ async fn reconcile_exit(
                             .into(),
                     )
                 } else {
-                    Ok(())
+                    history_result
                 };
             }
             sync_home(app, state, deck).await;
@@ -2478,7 +2507,7 @@ async fn reconcile_exit(
                 .await
                 .is_ok();
         }
-        return Ok(());
+        return history_result;
     }
     // `handle_key` can consume an acceptance just before setting Quit, after
     // the frame's final poll_and_sync. Only a newly attached Home needs a
@@ -2496,7 +2525,7 @@ async fn reconcile_exit(
             .await
             .map_err(|error| format!("quit tab deck: {error}"))?;
     }
-    Ok(())
+    history_result
 }
 
 fn at_tty() -> bool {
@@ -3205,6 +3234,10 @@ async fn apply_mouse_outcome(
         intent,
         PanelIntent::ActivateTab { .. } | PanelIntent::MoveTab { .. } | PanelIntent::NewSession
     );
+    let fork = matches!(
+        intent,
+        PanelIntent::ForkMessage { .. } | PanelIntent::ForkFullSession
+    );
     match apply_intent_with_origin(app, state, loop_state, intent, false, pointer.is_some()).await {
         Ok(()) => {
             loop_state.sync_tabs(state);
@@ -3225,6 +3258,9 @@ async fn apply_mouse_outcome(
             }
         }
         Err(message) => {
+            if fork && matches!(state.panel(), TuiPanel::Fork { .. }) {
+                state.close_panel();
+            }
             state.apply_intent_error(message);
             loop_state.sync_tabs(state);
         }
@@ -3252,6 +3288,10 @@ async fn apply_outcome(
         }
         _ => None,
     };
+    let fork = matches!(
+        intent,
+        PanelIntent::ForkMessage { .. } | PanelIntent::ForkFullSession
+    );
     let keyboard_close_pointer = (matches!(intent, PanelIntent::CloseTab { .. })
         && *state.panel() == TuiPanel::None)
         .then(|| state.mouse_position())
@@ -3268,14 +3308,20 @@ async fn apply_outcome(
                 state.restore_tab_hover_at(pointer);
             }
         }
-        Err(message) => match rename {
-            Some(true) => state
-                .rename_session_direct_rejected(format!("session rename unavailable: {message}")),
-            Some(false) => {
-                state.rename_session_rejected(format!("session rename unavailable: {message}"))
+        Err(message) => {
+            if fork && matches!(state.panel(), TuiPanel::Fork { .. }) {
+                state.close_panel();
             }
-            None => state.apply_intent_error(message),
-        },
+            match rename {
+                Some(true) => state.rename_session_direct_rejected(format!(
+                    "session rename unavailable: {message}"
+                )),
+                Some(false) => {
+                    state.rename_session_rejected(format!("session rename unavailable: {message}"))
+                }
+                None => state.apply_intent_error(message),
+            }
+        }
     }
     loop_state.sync_tabs(state);
 }
@@ -3358,6 +3404,7 @@ async fn apply_owned_intent(
             | PanelIntent::CompactSession
             | PanelIntent::ChangeConversation { .. }
             | PanelIntent::ForkMessage { .. }
+            | PanelIntent::ForkFullSession
             | PanelIntent::RenameSession { .. }
             | PanelIntent::RenameSessionDirect { .. }
             | PanelIntent::RegenerateTitle
@@ -3369,6 +3416,16 @@ async fn apply_owned_intent(
             | PanelIntent::Terminal { .. }
             | PanelIntent::SetSidebarMcpOpen { .. }
     );
+    if loop_state.conversation_job.is_some()
+        && matches!(
+            intent,
+            PanelIntent::ChangeConversation { .. }
+                | PanelIntent::ForkMessage { .. }
+                | PanelIntent::ForkFullSession
+        )
+    {
+        return Err("conversation operation pending".into());
+    }
     if source_mutation && !terminal_control {
         if state
             .tab_route_session()
@@ -3423,6 +3480,7 @@ async fn apply_owned_intent(
                 | PanelIntent::ReloadConfiguration
                 | PanelIntent::ChangeConversation { .. }
                 | PanelIntent::ForkMessage { .. }
+                | PanelIntent::ForkFullSession
         )
     {
         return Err("child session: read-only history; saved tabs are unchanged".into());
@@ -3631,7 +3689,7 @@ async fn apply_owned_intent(
                 Ok(ConversationResult::Changed(snapshot, refresh))
             }));
         }
-        PanelIntent::ForkMessage { message } => {
+        PanelIntent::ForkMessage { .. } | PanelIntent::ForkFullSession => {
             if loop_state.conversation_recovery.is_some() || loop_state.recovery_job.is_some() {
                 return Err("conversation refresh pending".into());
             }
@@ -3643,10 +3701,14 @@ async fn apply_owned_intent(
             loop_state.conversation_origin = read_jobs::Route::capture(state)
                 .map(|route| (route, loop_state.navigation_revision));
             loop_state.conversation_job = Some(oc_core::wake::spawn(async move {
-                let snapshot = owner
-                    .fork_session(session, message)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let snapshot = match intent {
+                    PanelIntent::ForkMessage { message } => {
+                        owner.fork_session(session, message).await
+                    }
+                    PanelIntent::ForkFullSession => owner.fork_full_session(session).await,
+                    _ => unreachable!("fork intent"),
+                }
+                .map_err(|e| e.to_string())?;
                 let refresh = conversation_refresh(owner, snapshot.session.clone())
                     .await
                     .map_err(|_| "conversation refresh interrupted".to_string())?;

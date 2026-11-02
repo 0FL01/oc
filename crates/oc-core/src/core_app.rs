@@ -642,10 +642,10 @@ pub enum InboxMsg {
         action: crate::queries::ConversationAction,
         ack: oneshot::Sender<Result<crate::queries::ConversationSnapshot, CoreError>>,
     },
-    /// Copy settled history strictly before this exact user message.
+    /// Copy settled history, optionally strictly before an exact user message.
     ForkSession {
         source: SessionId,
-        before: MessageId,
+        before: Option<MessageId>,
         ack: oneshot::Sender<Result<crate::queries::ForkSessionSnapshot, CoreError>>,
     },
     /// Create or open a session according to the owner's storage contract.
@@ -1414,7 +1414,23 @@ impl CoreApp {
         self.inbox
             .send(InboxMsg::ForkSession {
                 source,
-                before,
+                before: Some(before),
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+    /// Copy all visible settled history into a root with an empty draft.
+    pub async fn fork_full_session(
+        &self,
+        source: SessionId,
+    ) -> Result<crate::queries::ForkSessionSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ForkSession {
+                source,
+                before: None,
                 ack,
             })
             .await

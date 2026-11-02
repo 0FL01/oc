@@ -3,6 +3,42 @@
 use super::*;
 
 #[test]
+fn fork_full_session_keeps_last_answer_in_new_root_without_provider_request() {
+    let fixture = Fixture::new();
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "fork-source", None, 120, 40);
+    pty.wait_visible(READY, DEADLINE);
+    submit(&mut pty, "fork retained last answer");
+    wait_screen_row(&pty, "echo: fork retained last answer", DEADLINE);
+    wait_idle(&pty);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    let requests_before = fixture.requests.lock().unwrap().len();
+    pty.send(b"/fork\r");
+    wait_screen_row(&pty, "Fork session", DEADLINE);
+    wait_screen_row(&pty, "Full session", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "Forked session", DEADLINE);
+    wait_screen_row(&pty, "echo: fork retained last answer", DEADLINE);
+    pty.send(b"/quit\r");
+    assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
+    assert_eq!(
+        fixture.requests.lock().unwrap().len(),
+        requests_before,
+        "fork makes no generation or title request"
+    );
+    assert_eq!(fixture.wait_requests(1).len(), 1);
+    let db = oc_adapters::storage::Db::open(pty.data_dir()).unwrap();
+    let roots = db.list_sessions().unwrap();
+    assert_eq!(roots.len(), 2);
+    let fork = roots
+        .iter()
+        .find(|id| id.as_str() != "fork-source")
+        .unwrap();
+    let history = db.read_history(fork).unwrap();
+    assert_eq!(history, db.read_history("fork-source").unwrap());
+    assert_eq!(history.last().unwrap().1, "echo: fork retained last answer");
+}
+
+#[test]
 fn undo_replacement_hides_marker_while_response_is_held() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn_sized(fixture.clone(), "undo-branch", None, 120, 40);
@@ -2465,13 +2501,29 @@ fn messages_sent_while_busy_steer_the_turn_and_queue_after_it() {
     fixture.wait_requests(1);
     // OC2: Enter while the agent works steers; ctrl+x Enter queues.
     pty.send(b"steer this in\r");
-    wait_screen_row(&pty, "┃  steer this in", DEADLINE);
-    let rows = render_screen(&pty.snapshot()).rows();
-    let y = rows
-        .iter()
-        .position(|row| row.contains("┃  steer this in"))
-        .unwrap();
+    let start = Instant::now();
+    let (rows, y) = loop {
+        let screen = render_screen(&pty.snapshot());
+        let rows = screen.rows();
+        if let Some(y) = rows.iter().position(|row| row.contains("┃  steer this in"))
+            && y < screen.cursor.0
+        {
+            break (rows, y);
+        }
+        // The composer paints the same text before Enter is processed. Only
+        // the submitted row above its caret is a transcript click target.
+        assert!(
+            start.elapsed() < DEADLINE,
+            "submitted steer row missing: {rows:?}"
+        );
+        std::thread::sleep(POLL);
+    };
     let x = rows[y].chars().position(|c| c == '┃').unwrap() + 4;
+    // A late catalog ACK can invalidate the projection without changing its
+    // text. Observe a fresh hover paint before capturing the guarded press.
+    let offset = pty.snapshot().len();
+    pty.send(format!("\x1b[<35;{};{}M", x + 1, y + 1).as_bytes());
+    pty.wait_visible_after(offset, "steer this in", DEADLINE);
     mouse_click(&mut pty, x as u16 + 1, y as u16 + 1);
     wait_screen_row(&pty, "Pending steer", DEADLINE);
     pty.send(b"\x1b");

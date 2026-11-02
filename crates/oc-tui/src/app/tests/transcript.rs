@@ -4317,6 +4317,78 @@ async fn message_press_receipt_rejects_other_release_repaint_and_history_replace
 }
 
 #[tokio::test]
+async fn fork_picker_filters_by_value_previews_each_message_and_waits_without_submitting() {
+    use crate::commands::CommandAction;
+    let mut state = fresh_state("fork-picker").await;
+    let messages = (1..=16)
+        .map(|seq| {
+            msg(
+                seq,
+                if seq % 2 == 1 {
+                    Role::User
+                } else {
+                    Role::Assistant
+                },
+                &format!("prompt-{seq}\nsecond line"),
+            )
+        })
+        .collect();
+    state.attach_page(&page(messages, 16, false, false));
+    state.restore_prompt("unfinished draft".into());
+    state.run_command(CommandAction::OpenFork);
+    assert!(matches!(
+        crate::dialog::size_for(state.panel()),
+        crate::dialog::DialogSize::Large
+    ));
+    let options = state.modal_options();
+    assert_eq!(options[0].title, "Full session");
+    assert_eq!(options[1].value, "message:fixture-15");
+    assert_eq!(options[1].title, "prompt-15 second line");
+    assert_eq!(options.len(), 9);
+    assert_eq!(state.scroll, 0, "Full has no preview");
+    state.handle_key(KeyAction::End).await;
+    let (lines, _) = state.visible_transcript(70, 70, 6);
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.plain_text().contains("prompt-1"))
+    );
+    let revision = state.transcript_revision;
+    state.handle_key(KeyAction::Up).await;
+    assert!(
+        state.transcript_revision > revision,
+        "each new anchor invalidates the cached projection"
+    );
+    let (lines, _) = state.visible_transcript(70, 70, 6);
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.plain_text().contains("prompt-3"))
+    );
+    state.handle_paste("prompt-7");
+    assert_eq!(state.modal_options()[0].value, "message:fixture-7");
+    assert_eq!(
+        state.handle_key(KeyAction::Enter).await.intent,
+        Some(PanelIntent::ForkMessage {
+            message: msg(7, Role::User, "").id
+        })
+    );
+    assert_eq!(state.panel(), &TuiPanel::Fork { pending: true });
+    let screen = crate::views::render_test(&state, 120, 40).join("\n");
+    assert!(screen.contains("Forking session…"));
+    assert!(!screen.contains("Full session"));
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    state.handle_key(KeyAction::Cancel).await;
+    assert_eq!(state.panel(), &TuiPanel::None);
+    assert_eq!(state.input(), "unfinished draft");
+    state.run_command(CommandAction::OpenFork);
+    assert_eq!(
+        state.handle_key(KeyAction::Enter).await.intent,
+        Some(PanelIntent::ForkFullSession)
+    );
+}
+
+#[tokio::test]
 async fn message_actions_focus_intents_clipboard_result_and_escape() {
     use oc_core::session::MessageId;
     let mut state = fresh_state("message-actions").await;

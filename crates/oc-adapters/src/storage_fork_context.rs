@@ -32,7 +32,7 @@ fn mapped(map: &HashMap<String, String>, value: &serde_json::Value) -> Result<St
 pub(super) fn standalone_prefix_operations(
     conn: &Connection,
     source: &str,
-    before: &str,
+    terminal_context: Option<&str>,
     cutoff: i64,
 ) -> Result<HashSet<String>, ForkError> {
     let mut digests = HashSet::new();
@@ -50,8 +50,7 @@ pub(super) fn standalone_prefix_operations(
         digests.insert(pre);
         digests.extend(post);
     }
-    let boundary: Option<String> = conn.prepare_cached("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND a.user_message=?2 AND p.active=1")?.query_row(params![source,before],|r|r.get(0)).optional()?;
-    digests.extend(boundary);
+    digests.extend(terminal_context.map(String::from));
     let mut allowed = HashSet::new();
     for digest in digests {
         Db::load_context_restore(conn, source, &digest)?;
@@ -456,7 +455,7 @@ impl Import<'_> {
 pub(super) fn copy(
     conn: &Connection,
     source: &str,
-    before: &str,
+    terminal_context: Option<&str>,
     root: &str,
     messages: &HashMap<String, String>,
     turns: &HashMap<String, String>,
@@ -469,7 +468,6 @@ pub(super) fn copy(
         .query_map([source],|r|Ok((r.get::<_,String>(0)?,r.get::<_,i64>(1)?,r.get::<_,String>(2)?,r.get::<_,Option<i64>>(3)?,r.get::<_,Option<String>>(4)?)))?
         .filter_map(|row| match row { Ok(p) if turns.contains_key(&p.0) => Some(Ok(p)), Ok(_) => None, Err(e) => Some(Err(e)) })
         .collect::<Result<Vec<_>,_>>()?;
-    let boundary: Option<String> = conn.prepare_cached("SELECT p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE a.session_id=?1 AND a.user_message=?2 AND p.active=1")?.query_row(params![source,before],|r|r.get(0)).optional()?;
     let mut digests = HashSet::new();
     for p in &points {
         digests.insert(p.2.clone());
@@ -477,9 +475,7 @@ pub(super) fn copy(
             digests.insert(post.clone());
         }
     }
-    if let Some(digest) = &boundary {
-        digests.insert(digest.clone());
-    }
+    digests.extend(terminal_context.map(String::from));
     if digests.is_empty() {
         // An actual legacy prefix has no version to import. Its rows remain
         // archival and actions report unavailable rather than inventing points.
@@ -525,10 +521,9 @@ pub(super) fn copy(
         conn.execute("INSERT INTO conversation_points(turn_id,session_id,pre_seq,pre_context,post_seq,post_context) VALUES (?1,?2,?3,?4,?5,?6)",params![turns[&old],root,rebase_seq(pre),pre_context,post.map(rebase_seq),post_context])?;
         last_post = post_context;
     }
-    // Prefer the exact admission cut. A legacy boundary has no such version;
-    // the latest genuine copied post is still causal, never today's source DCP.
-    let initial = boundary
-        .as_deref()
+    // Prefer the exact terminal cut (admission for Before, current for Full).
+    // A legacy boundary falls back to the latest genuine copied post.
+    let initial = terminal_context
         .map(|c| import.context(c))
         .transpose()?
         .or(last_post);

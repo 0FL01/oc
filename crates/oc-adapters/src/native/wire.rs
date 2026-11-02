@@ -113,7 +113,7 @@ rpc! {
     CancelCompaction { session: SessionId } -> ();
     CompactionHistory { session: SessionId } -> Vec<oc_core::compaction::CompactionSnapshot>;
     ChangeConversation { session: SessionId, action: ConversationAction } -> ConversationSnapshot;
-    ForkSession { source: SessionId, before: MessageId } -> ForkSessionSnapshot;
+    ForkSession { source: SessionId, before: Option<MessageId> } -> ForkSessionSnapshot;
     Create { id: SessionId } -> ();
     RenameSession { session: SessionId, title: String } -> ();
     DeleteSession { session: SessionId } -> TabDeckSnapshot;
