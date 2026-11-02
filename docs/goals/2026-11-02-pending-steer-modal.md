@@ -1,6 +1,6 @@
 # Goal: Pending steer modal in Rust TUI
 
-Status: active
+Status: complete
 Source: user request (handover + approved plan v2, `.local/tmp/pending-steer-plan-v2.md`), user instruction "Реализовать и коммит пуш"
 Last updated: 2026-11-02
 
@@ -41,8 +41,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Source: user "коммит пуш".
   - Acceptance: `git log origin/master` contains the commit; foreign files untouched.
   - Primary evidence: `git status`, `git log -1 origin/master`
-  - Status: in_progress
-  - Evidence: reviewed/tested implementation ready for explicit-path commit and normal push; foreign diff remains untouched.
+  - Status: verified
+  - Evidence: implementation commit `660a17d95` (`feat(tui): pending steer modal`) pushed normally to verified origin/master; only the original foreign changes remain in the worktree.
 
 ### Constraints
 - C1: No wire/protocol change (private wire stays version 9); no new `InboxAction` variant.
@@ -58,15 +58,12 @@ General inbox event/ACK/snapshot ordering; gap repair for all retained roots; in
 - Forbidden: wire bump, new deps, migrations, general refactors.
 
 ## Current Checkpoint
-- Closes: R5
-- Smallest next action: commit the reviewed implementation and this contract, push to origin/master, then record delivery evidence.
-- Expected evidence: origin/master contains the implementation commit; only foreign changes remain.
-- Stop or replan if: normal push is rejected or foreign changes would be affected.
+- Closed: R1-R5. No further implementation checkpoint.
 
 ## Current State
-- Resolved: R1-R4; current actual diff Review-Sol PASS after fixing its PTY-fixture title-wait finding.
+- Resolved: R1-R5; current actual diff Review-Sol PASS after fixing its PTY-fixture title-wait finding; implementation pushed as `660a17d95`.
 - Last relevant evidence: targeted tests, strict scoped Clippy and diff check PASS. Full offline gate ran once: 2582/2585 passed, 3 failed, 25 skipped (244.904s); it is not a PASS. Changed PTY case now passes nextest 1/1 (0.921s); untouched auth_tui passes isolated 1/1. Untouched repository-root search test still fails its discovery entry cap (10001 > 10000); no search/limit/baseline changes made. Unexecuted gate tail completed separately: doctests (0 cases), debug build/help/version PASS. Logs: `.local/tmp/pending-steer-*.log`.
-- Next: normal commit/push; no adjacent search/auth work and no whole-product READY claim.
+- Next: none. No adjacent search/auth work and no whole-product READY claim.
 
 ## Material Decisions
 - 2026-11-02: plan v2 approved; no wire change; close-on-dispatch; initial acceptance shows neutral "No longer pending".
@@ -74,5 +71,10 @@ General inbox event/ACK/snapshot ordering; gap repair for all retained roots; in
 
 ## Checkpoint History
 - 2026-11-02: R1-R4 implemented and targeted tests PASS (TUI 14, guards 7, storage 12, binary 135, PTY 1). Strict scoped/workspace Clippy PASS. Full gate non-PASS recorded above. Sol confirmed latest correction PASS; only delivery remains.
+- 2026-11-02: R5 verified: `660a17d95` committed and pushed to origin/master; foreign files excluded. Closure comparison confirms all required outcomes and affected constraints, with full-gate limitation retained explicitly.
 
 ## Completion
+- Resolved outcomes: R1-R5 verified.
+- Commands and artifacts: targeted tests and strict Clippy as above, one full-gate invocation (non-PASS), isolated affected/failing checks, manual doctest/build/help/version tail; `target/debug/oc2`. Test commands used external TMPDIR, CARGO_BUILD_JOBS=4 and test threads=4; nextest threads=4. Review-Sol final actual-diff PASS.
+- Constraint and diff-scope check: no wire/dependency/schema/InboxAction change; no replay/Cancel/composer restoration. Explicit-path staging excluded docs/TEST_PLAN.md, scripts/test.sh, progress/ and scripts/test_test_runner.py. No live/user-owner operation.
+- Final status: complete for this frozen objective; not full offline/whole-product READY. The untouched repository-root search entry-cap failure remains reproducible, and the original full-gate result is not relabeled as PASS.
