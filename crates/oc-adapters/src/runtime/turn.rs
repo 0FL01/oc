@@ -4462,7 +4462,13 @@ impl<'a> Runtime<'a> {
                 .subagents
                 .as_ref()
                 .filter(|_| agent.color.is_none())
-                .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
+                .and_then(|catalog| {
+                    catalog
+                        .agents
+                        .values()
+                        .filter(|agent| !agent.hidden)
+                        .position(|entry| entry.id == agent.id)
+                }),
             fixed_input: {
                 let mut input = lane_fixed_input(
                     Some(&agent.prompt),

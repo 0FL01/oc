@@ -26,8 +26,13 @@ fn connect_go(pty: &mut PtySession) {
 }
 
 fn close(pty: &mut PtySession) {
+    wait_screen_row(pty, ACCOUNTS_SEARCH, DEADLINE);
     pty.send(b"\x1b");
     dismissed(pty, ACCOUNTS_SEARCH);
+    exit(pty);
+}
+
+fn exit(pty: &mut PtySession) {
     pty.send(b"/exit\r");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success() && pty.restored());
@@ -110,7 +115,8 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     restarted.send(b"\x04");
     // Removing the final credential closes with a success toast.
     wait_screen_row(&restarted, "Disconnected OpenCode Go", DEADLINE);
-    close(&mut restarted);
+    dismissed(&restarted, ACCOUNTS_SEARCH);
+    exit(&mut restarted);
     let db = Db::open(&fixture.data_dir()).unwrap();
     assert!(
         db.credential_accounts(scope.namespace())
@@ -159,6 +165,7 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     dismissed(&pty, SCOPED_MODEL_DIALOG);
     pty.send(b"/accounts\r");
     wait_dialog_title(&pty, "fixture");
+    wait_screen_row(&pty, ACCOUNTS_SEARCH, DEADLINE);
     // The connect ACK changed only Go credentials, not the current connection/model.
     pty.send(b"\x1b");
     dismissed(&pty, ACCOUNTS_SEARCH);
@@ -275,6 +282,7 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     pty.send(b"\r");
     pty.send(b"/accounts\r");
     wait_dialog_title(&pty, "OpenCode Go");
+    wait_screen_row(&pty, ACCOUNTS_SEARCH, DEADLINE);
     pty.send(b"\x1b");
     dismissed(&pty, ACCOUNTS_SEARCH);
     assert!(fixture.requests.lock().unwrap().is_empty());

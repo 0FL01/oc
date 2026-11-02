@@ -192,3 +192,28 @@ async fn r6_explicit_profile_color_reaches_tui_chrome_and_skips_slot_pin() {
     assert_eq!(catalog.agents["general"].color.as_deref(), Some("#9d7cd8"));
     assert_eq!(catalog.agents["explore"].color.as_deref(), Some("#7fd88f"));
 }
+
+#[tokio::test]
+async fn r6_hidden_profiles_do_not_occupy_categorical_color_slots() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut config = config();
+    config["agents"] = serde_json::json!({"review":{}});
+    std::fs::write(temp.path().join("opencode.json"), config.to_string()).unwrap();
+    let c = composition::load_with_env(temp.path(), BTreeMap::new())
+        .await
+        .unwrap();
+    let mut selected = Effective::from_composition(&c);
+    selected.set_agent(&c, "review").unwrap();
+    let snapshot = selected.snapshot(&c, 1);
+    assert!(!snapshot.agents.iter().any(|agent| agent.id == "title"));
+    let review = snapshot
+        .agents
+        .iter()
+        .find(|agent| agent.id == "review")
+        .unwrap();
+    assert_eq!(review.color_index, 4);
+    assert_eq!(
+        workspace_publication(&c, &selected).agent_color_index,
+        Some(4)
+    );
+}

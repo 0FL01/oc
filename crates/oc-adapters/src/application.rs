@@ -1247,6 +1247,7 @@ impl Effective {
                     .filter(|id| Some(id.as_str()) != composition.default_agent.as_deref()),
             )
             .filter_map(|id| composition.agents.get(id))
+            .filter(|agent| !agent.hidden)
             .enumerate()
             .filter(|(_, agent)| agent.primary_visible())
             .map(|(color_index, agent)| {
@@ -2513,7 +2514,13 @@ fn workspace_publication(
             .agent_id
             .as_ref()
             .filter(|_| agent.is_none_or(|agent| agent.color.is_none()))
-            .and_then(|id| composition.agents.values().position(|a| &a.id == id)),
+            .and_then(|id| {
+                composition
+                    .agents
+                    .values()
+                    .filter(|agent| !agent.hidden)
+                    .position(|agent| &agent.id == id)
+            }),
         agent_permissions: agent
             .map(|agent| agent.permissions.clone())
             .unwrap_or_default(),
@@ -5154,10 +5161,17 @@ async fn worker(
                         .unwrap_or_default();
                     let budget = crate::models::budget(&selection, 256, fallback);
                     let input = vec![
-                        crate::provider::InputItem::message(crate::provider::InputRole::Developer,
-                            agent.map(|a| a.body.as_str()).unwrap_or("Generate a short session title from the user's request. Output only the title, in at most 100 characters.")),
+                        crate::provider::InputItem::message(
+                            crate::provider::InputRole::Developer,
+                            agent
+                                .map(|a| a.body.as_str())
+                                .unwrap_or(crate::defs::TITLE_PROMPT),
+                        ),
                         runtime.environment_input(),
-                        crate::provider::InputItem::message(crate::provider::InputRole::User, &text),
+                        crate::provider::InputItem::message(
+                            crate::provider::InputRole::User,
+                            &text,
+                        ),
                     ];
                     let tools: [crate::provider::ToolDef; 0] = [];
                     let tokens = crate::runtime::estimate_tokens(
@@ -5730,7 +5744,7 @@ async fn worker(
                 let accepted_catalog = composition.catalog.clone();
                 let title_instructions = title_agent
                     .map(|agent| agent.body.clone())
-                    .unwrap_or_else(|| "Generate a short session title from the user's request. Output only the title, in at most 100 characters.".into());
+                    .unwrap_or_else(|| crate::defs::TITLE_PROMPT.into());
                 let title_fallback = composition
                     .generation
                     .providers

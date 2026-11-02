@@ -3534,7 +3534,23 @@ async fn tab_cycles_catalog_agents_without_a_picker_or_draft_changes() {
         None
     );
 
+    catalog.agent_id = Some("title".into());
+    state.apply_catalog(catalog.clone());
+    assert_eq!(
+        state.handle_key(KeyAction::Tab).await.intent,
+        Some(PanelIntent::SelectAgent {
+            id: "z-default".into()
+        })
+    );
     catalog.agents.truncate(1);
+    state.apply_catalog(catalog.clone());
+    assert_eq!(
+        state.handle_key(KeyAction::Tab).await.intent,
+        Some(PanelIntent::SelectAgent {
+            id: "z-default".into()
+        })
+    );
+    catalog.agent_id = Some("z-default".into());
     state.apply_catalog(catalog.clone());
     assert_eq!(state.handle_key(KeyAction::Tab).await.intent, None);
     catalog.agents.clear();

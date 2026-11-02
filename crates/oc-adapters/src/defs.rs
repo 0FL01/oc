@@ -50,6 +50,8 @@ pub const MAX_INSTRUCTIONS_FILE: usize = 64 * 1024;
 /// Max total instructions bytes.
 pub const MAX_INSTRUCTIONS_TOTAL: usize = 256 * 1024;
 
+pub(crate) const TITLE_PROMPT: &str = "Generate a short session title from the user's request. Output only the title, in at most 100 characters.";
+
 /// One admitted `.opencode` source directory in low→high precedence order.
 #[derive(Debug, Clone)]
 pub struct DefRoot {
@@ -167,7 +169,7 @@ pub(crate) fn builtin_build() -> AgentDef {
 /// One registration path; the ordinary supplied-field merge applies afterward.
 /// Explicit colors mirror the upstream visible order
 /// (build → blue, general → purple, explore → green, plan → orange).
-pub(crate) fn builtin_agents() -> [AgentDef; 4] {
+pub(crate) fn builtin_agents() -> [AgentDef; 5] {
     let build = builtin_build();
     let mut plan = build.clone();
     plan.id = "plan".into();
@@ -196,7 +198,13 @@ Guidelines:
 Complete the user's search request efficiently and report your findings clearly.".into();
     explore.permission_rules = crate::permissions::PermissionRules::explore_defaults();
     explore.color = Some("#7fd88f".into());
-    let mut agents = [build, plan, general, explore];
+    let mut title = build.clone();
+    title.id = "title".into();
+    title.description = String::new();
+    title.body = TITLE_PROMPT.into();
+    title.hidden = true;
+    title.color = None;
+    let mut agents = [build, plan, general, explore, title];
     for agent in &mut agents {
         agent.permission_rules.extend(profile_ceiling(&agent.id));
     }

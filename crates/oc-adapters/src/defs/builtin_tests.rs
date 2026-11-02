@@ -11,7 +11,12 @@ fn seeded() -> LoadedDefs {
 #[test]
 fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     let mut defs = seeded();
-    assert_eq!(defs.agents.len(), 4);
+    assert_eq!(defs.agents.len(), 5);
+    let title = &defs.agents["title"];
+    assert!(title.hidden);
+    assert!(title.primary_capable());
+    assert!(!title.primary_visible());
+    assert_eq!(title.body, TITLE_PROMPT);
     for id in ["build", "plan"] {
         assert!(defs.agents[id].primary_capable());
         assert!(!defs.agents[id].subagent_capable());
@@ -51,7 +56,8 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
         &mut defs,
         &serde_json::json!({"agents":{
             "explore":{"model":{"providerID":"fixture","modelID":"own","variant":"careful"},"hidden":true,"permissions":[{"action": "custom_*", "resource": "*", "effect": "ask"}]},
-            "new":{"description":"new profile"}
+            "new":{"description":"new profile"},
+            "title":{"model":"fixture/own#low"}
         }}),
         "global",
     );
@@ -77,6 +83,13 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     assert!(!defs.agents["new"].subagent_capable());
     assert!(defs.agents["build"].subagent_capable());
     assert_eq!(defs.agents["build"].body, "own Build system");
+    let title = &defs.agents["title"];
+    assert!(title.hidden);
+    assert!(title.primary_capable());
+    assert!(!title.primary_visible());
+    assert_eq!(title.body, TITLE_PROMPT);
+    assert_eq!(title.model.as_deref(), Some("fixture/own"));
+    assert_eq!(title.variant.as_deref(), Some("low"));
     assert_ne!(changed, agent_digest(explore));
     let authority = BTreeMap::from([("*".into(), Permission::Allow)]);
     assert_eq!(
@@ -87,10 +100,11 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     );
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agents":{"explore":{"disabled":true}}}),
+        &serde_json::json!({"agents":{"explore":{"disabled":true},"title":{"disabled":true}}}),
         "project",
     );
     assert!(!defs.agents.contains_key("explore"));
+    assert!(!defs.agents.contains_key("title"));
 }
 
 #[test]

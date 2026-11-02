@@ -3591,17 +3591,24 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
-        if self.agents.len() <= 1 {
+        if self.agents.is_empty() {
             return KeyOutcome::default();
         }
-        let Some(index) = self
+        let index = self
             .agents
             .iter()
-            .position(|agent| Some(agent.id.as_str()) == self.composer_agent())
-        else {
+            .position(|agent| Some(agent.id.as_str()) == self.composer_agent());
+        if index.is_none()
+            && self.chrome.selection.as_ref().is_some_and(|issue| {
+                issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
+            })
+        {
             return KeyOutcome::default();
-        };
-        let next = &self.agents[(index + 1) % self.agents.len()];
+        }
+        if self.agents.len() == 1 && index.is_some() {
+            return KeyOutcome::default();
+        }
+        let next = &self.agents[index.map_or(0, |index| (index + 1) % self.agents.len())];
         KeyOutcome {
             intent: Some(PanelIntent::SelectAgent {
                 id: next.id.clone(),

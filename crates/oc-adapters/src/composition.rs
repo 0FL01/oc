@@ -1075,7 +1075,10 @@ async fn load_stages(
 
     // Title is now selected automatically. An explicitly malformed profile
     // cannot be mistaken for absence and replaced with the built-in policy.
-    if !loaded_defs.agents.contains_key("title")
+    if loaded_defs
+        .agents
+        .get("title")
+        .is_none_or(|agent| agent.origin == "builtin")
         && let Some(diagnostic) = loaded_defs.diagnostics.iter().find(|diagnostic| {
             diagnostic.field == "agent.title"
                 || Path::new(&diagnostic.path)
@@ -3127,7 +3130,9 @@ mod tests {
         let ids: Vec<&str> = loaded.agents.keys().map(String::as_str).collect();
         assert_eq!(
             ids,
-            ["boss", "build", "explore", "general", "helper", "plan"]
+            [
+                "boss", "build", "explore", "general", "helper", "plan", "title"
+            ]
         );
         assert_eq!(loaded.default_agent.as_deref(), Some("build"));
         assert!(!loaded.agents["build"].subagent_capable());
