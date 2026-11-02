@@ -1,6 +1,6 @@
 # Goal: `/fork` command (Full session + Before message), parity with OC2 TS
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-02 — approved plan «/fork для native OC2» (plan v3 below); «Реализовать и коммит пуш, так же починить тесты все если будут падать, за одно баги исправить если они есть при тестах».
 Last updated: 2026-11-02
 
@@ -38,8 +38,8 @@ TS reference (read-only): `.local/opencode/packages/tui/src/routes/session/dialo
 - R5: Delivery
   - Acceptance: offline gate `bash scripts/test.sh` green (failing tests fixed; real bugs found by tests fixed at owner), scoped Clippy clean, commit(s) pushed to `origin/master`.
   - Primary evidence: gate output, `git log origin/master`.
-  - Status: in_progress
-  - Evidence: current fork and R5-delta Review-Sol PASS; full gate fmt/Clippy passed, nextest 2588 passed/5 failed/25 skipped. All five failed cases subsequently passed in failed-only runs; search 8/8, quit 9/9, strict scoped Clippy and remaining doctest/debug CLI gates passed. Release build PASS (cold 14m06s). Commit/push remain; no claim of one clean full-gate run.
+  - Status: verified
+  - Evidence: current fork and R5-delta Review-Sol PASS; full gate fmt/Clippy passed, nextest 2588 passed/5 failed/25 skipped. All five failed cases subsequently passed in failed-only runs; search 8/8, quit 9/9, strict scoped Clippy and remaining doctest/debug CLI gates passed. Release build PASS (cold 14m06s); implementation `23c720cf9` pushed to `origin/master`. No claim of one clean full-gate run.
 
 ### Constraints
 - C1: AGENTS.md (4 build jobs, sequential Cargo, no cargo clean, no CARGO_TARGET_DIR override, TMPDIR outside worktree `/home/opencode/.cache/opencode-tmp/opencode`, do not touch/restart user's owner).
@@ -80,15 +80,15 @@ Keep green: `message_actions_focus_intents_clipboard_result_and_escape`, `fork_o
 
 ## Current Checkpoint
 - Closes: R1–R5
-- Smallest next action: explicit task-only commit/push, then record verified delivery.
+- Smallest next action: none; frozen outcomes resolved, completion is terminal.
 - Expected evidence: all gate cases pass with no weakened assertions/deadlines/caps, current delta review and release build; origin/master contains delivery commit.
 - Stop or replan if: Full requires schema migration or changes Before semantics.
 
 ## Current State
-- Resolved: R1–R4 implemented and targeted checks passed; scoped all-target Clippy clean; current Review-Sol PASS after singleton-slot guard fix (session ses_e6459377fffec6dpNNqFHDehhs).
+- Resolved: R1–R5 implemented, checked, independently reviewed and pushed; current Review-Sol PASS for fork and gate-fix delta (session ses_e6459377fffec6dpNNqFHDehhs).
 - Last relevant evidence: fork slices storage 19+1/application 2/TUI 3/executor 4/PTY39 1/PTY42 9 passed. Gate-fix search 8/8, quit 9/9, failed PTY cases PASS; strict scoped Clippy, doctests (0 examples), debug build/help/version and release build PASS. Review-Sol current fork and R5-delta PASS (tracked diff SHA-256 `01f32147151d4a97bd5a49689e37c273eb524b04f669a3b1173b9b8a196f3e0f`).
 - Blocker: none; orchestrator confirmed foreign diff was reverted externally and must not be restored or committed. `progress/` stays untracked.
-- Next: final diff check, explicit task-only commit and ordinary push origin/master, then completion record.
+- Next: none. Resource thread-count instability (10/9 once, subsequent unchanged PASS) remains a disclosed verification limit, not a weakened assertion or proven fixed cause. Wire v10 requires a compatible native owner; user's v9 owner was not restarted.
 
 ## Material Decisions
 - 2026-11-02: Full = optional `before` on existing RPC (not new variant), wire v10.
@@ -109,9 +109,10 @@ Keep green: `message_actions_focus_intents_clipboard_result_and_escape`, `fork_o
 - 2026-11-02: full offline gate ran once: fmt/Clippy passed; nextest 2588/2593 passed, five failures (search entry budget, PTY resource sample, quit prompt history, pending-steer click, custom-provider key-change). Failed-only rerun confirmed search/history/steer failures; resource sample and key-change passed. Independent read-only cause diagnosis started; no baseline/guard weakening.
 - 2026-11-02: gate fixes passed search 8/8 (retained bounded candidates), quit 9/9 (all-view receipt settlement, 1s bound, no replay or skipped deck save), and failed PTY cases. Temporary mouse diagnostics proved late catalog projection generation changed between Down/Up; real hover-paint ACK fixes test synchronization without touching press guards. Key-form/masked-input readiness fixed rekey race. Resource sample passed unchanged; exact thread-identity cause remains unproven. Diagnostics removed. Doctests/debug CLI and strict scoped Clippy passed; delta review/release/delivery next.
 - 2026-11-02: same Review-Sol approved actual R5 delta without further findings; release build passed. Final scope check: 26 tracked task files plus this goal, no migration/dependency/TS change, no foreign-file changes or included artifacts. Delivery next.
+- 2026-11-02: implementation `23c720cf9` committed and ordinary push `f38ffe8d6..23c720cf9 master -> master` succeeded. Closure checked against R1–R5/C1–C4; goal completed with the explicitly qualified gate evidence above.
 
 ## Completion
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1–R5 verified; implementation commit `23c720cf9` delivered to `origin/master`.
+- Commands and artifacts: frozen targeted checks passed; full offline gate ran once (2588 passed/5 failed/25 opt-in skipped), all failed cases subsequently passed in failed-only slices; search 8/8 and quit 9/9, strict scoped Clippy, doctests (0 examples), debug build/help/version and `CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` passed. Binary `target/release/oc2`; task logs `.local/tmp/fork-*.log`. Independent current Review-Sol PASS.
+- Constraint and diff-scope check: no migrations/dependencies/TS changes or foreign files committed; no native owner restart; no baseline/assertion/deadline/cap weakening. `progress/` remains untracked. No live/visual or whole-product READY claim; resource thread-count flakiness remains unproven.
+- Final status: complete.
