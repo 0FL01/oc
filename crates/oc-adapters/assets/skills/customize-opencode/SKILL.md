@@ -46,9 +46,9 @@ Source trust and credential/endpoint ownership are checked before publication.
 | Domain | Native input and purpose |
 | --- | --- |
 | Runtime | `opencode.json` / `opencode.jsonc`: provider/model selection, MCP, permission rules, agent/command definitions, instructions and DCP inputs. |
-| CLI preferences | `cli.json` / `cli.jsonc`, independently read through the same admitted-root reader, JSON before JSONC and later roots winning supplied preferences. These are not runtime-provider fields. Start with `G/cli.jsonc` for user-wide preferences; an admitted Location/`.opencode` CLI file may override them natively. |
+| CLI preferences | `cli.json` / `cli.jsonc`, watched and automatically applied through the same admitted-root reader, JSON before JSONC and later roots winning supplied preferences (keybinds/chrome/session permissions; `--auto` takes priority). These are not runtime-provider fields. Start with `G/cli.jsonc` for user-wide preferences; an admitted Location/`.opencode` CLI file may override them natively. |
 | Definitions | Built-ins → inline `G` → Markdown `G` → inline Location → inline Location `.opencode` → Markdown Location `.opencode`. Markdown roots are `G` and Location `.opencode`, not a separate `G/.opencode` or bare Location directory. Singular directories load before plural at the same source. |
-| Instructions | `AGENTS.md` and admitted configured instructions: guidance, **not** a config override or a permission grant. Native canonical Location/source boundaries still apply. |
+| Instructions | `AGENTS.md`: guidance, **not** a config override or a permission grant. Config `instructions` lists and `.claude`/`.agents` roots are not loaded. Native canonical Location/source boundaries still apply. |
 | DCP | Inline `dcp`, then optional `dcp.json`, then `dcp.jsonc` within the existing global → Location → `.opencode` layers. No automatic config file creation. |
 | Native profile | `oc-rs.toml` reference/examples are Proposed, not an application-input/support guarantee. Use only consumer-qualified controls; parser acceptance and `examples/oc-rs.toml` are not a shipped-feature inventory. |
 
@@ -68,7 +68,12 @@ complete generation, not a mixture of old clients and new policy.
    external MCP dependency. Prefer the existing admitted entries and exact IDs.
 3. Make the smallest authorized edit. Keep secrets as references. Check the diff
    for unintended permission, endpoint, argv, default-agent or selection changes.
-4. Apply `/reload` to the intended Location. Native clients share one UID/data-root
+4. Watched runtime config, definitions, DCP and `cli.json(c)` sources apply
+   automatically to the intended Location. `/reload` explicitly forces provider
+   rediscovery and MCP reconnect, including unchanged failed MCP entries.
+   Theme/`tui.json` and the scope of an already-open session picker are not hot-reloaded;
+   children retain their launch-time security ceiling. Compiled plugin code needs
+   a new binary. Native clients share one UID/data-root
    owner and its frozen startup environment. A new ELF or startup environment is
    used only after all of that owner's clients finish normally; closing one idle
    screen does not restart it while other clients or jobs remain.

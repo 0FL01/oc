@@ -49,6 +49,8 @@ impl WatchInputs {
                 for name in [
                     "opencode.json",
                     "opencode.jsonc",
+                    "cli.json",
+                    "cli.jsonc",
                     "dcp.json",
                     "dcp.jsonc",
                     "AGENTS.md",
@@ -77,7 +79,14 @@ impl WatchInputs {
     }
 
     fn root(&mut self, root: &Path, definitions: bool) {
-        for name in ["opencode.json", "opencode.jsonc", "dcp.json", "dcp.jsonc"] {
+        for name in [
+            "opencode.json",
+            "opencode.jsonc",
+            "dcp.json",
+            "dcp.jsonc",
+            "cli.json",
+            "cli.jsonc",
+        ] {
             self.file(&root.join(name));
         }
         if definitions {

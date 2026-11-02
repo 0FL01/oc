@@ -1307,6 +1307,11 @@ impl Effective {
                 chrome
                     .service_diagnostics
                     .extend(issue.as_ref().map(|s| s.diagnostic.clone()));
+                if let Some(issue) = &composition.reload_issue
+                    && !chrome.service_diagnostics.contains(issue)
+                {
+                    chrome.service_diagnostics.push(issue.clone());
+                }
                 chrome
             },
             auto_accept: if composition.approval_consumer_mode.load(Ordering::SeqCst) == 2 {
@@ -3102,6 +3107,8 @@ fn tab_deck_reply(db: &Db, location: &str) -> Result<oc_core::queries::TabDeckSn
 /// History, child-job and tab-deck reads need only the database (its pooled
 /// readers) and captured Location facts: they run on the blocking pool beside
 /// this Location's sequential worker instead of queueing behind its commands.
+/// Release the read's Db lease before ACK: the caller may now close/reopen the
+/// owner, and a completed read must not keep the data-root lock alive.
 fn off_queue(
     db: &Db,
     runtime: &Runtime<'_>,
@@ -3121,10 +3128,12 @@ fn off_queue(
             let (db, location) = (db.shared_handle(), runtime.location().to_owned());
             let catalog = composition.catalog.clone();
             tokio::task::spawn_blocking(move || {
-                let _ = ack.send(history_page(
+                let result = history_page(
                     &db, &location, &catalog, session, message, before_seq, after_seq, limit,
                     window,
-                ));
+                );
+                drop(db);
+                let _ = ack.send(result);
             });
             None
         }
@@ -3134,6 +3143,7 @@ fn off_queue(
                 let result = db
                     .child_tool_jobs(&session.0)
                     .map_err(|error| query_storage_error(&db, error));
+                drop(db);
                 let _ = ack.send(result);
             });
             None
@@ -3141,7 +3151,9 @@ fn off_queue(
         InboxMsg::TabDeck { ack } => {
             let (db, location) = (db.shared_handle(), runtime.location().to_owned());
             tokio::task::spawn_blocking(move || {
-                let _ = ack.send(tab_deck_reply(&db, &location));
+                let result = tab_deck_reply(&db, &location);
+                drop(db);
+                let _ = ack.send(result);
             });
             None
         }
@@ -4671,7 +4683,7 @@ async fn worker(
         if let Some(source) = authority.as_mut() {
             source.publish(runtime, composition, effective, location_epoch)?;
         }
-        reload_work.start(db, runtime, composition);
+        reload_work.start(db, runtime, composition, events);
         if let Some(prepared) = runtime.ready_session_move().await.map_err(|error| {
             runtime_issue(
                 runtime.location(),
@@ -4774,7 +4786,7 @@ async fn worker(
                 if completed && side_command.is_none() {
                     break;
                 }
-                reload_work.start(db, runtime, composition);
+                reload_work.start(db, runtime, composition, events);
                 tokio::select! {
                     ready = reload_work.wait(), if !shutdown => {
                         if let Some(ready) = ready? && let Some(receipt) = reload_work.finish(
@@ -6102,7 +6114,7 @@ async fn worker(
                         {
                             break model_result.take().expect("settled model result");
                         }
-                        reload_work.start(db, runtime, composition);
+                        reload_work.start(db, runtime, composition, events);
                         tokio::select! {
                             Some(boundary) = boundary_rx.recv(), if !shutdown => {
                                 let prepared = inbox::prepare(db,runtime,composition,effective,&boundary.session,boundary.pending);

@@ -79,8 +79,16 @@ mod review_tests {
         assert_eq!(app.catalog().await.unwrap(), switched.catalog);
         // Invalid reload retains the complete previous immutable owner snapshot.
         std::fs::write(b.join("cli.jsonc"), r#"{"keybinds":{"session.redo":12}}"#).unwrap();
-        assert!(app.reload_location().await.is_err());
-        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+        let Err(CoreError::LocationSwitch {
+            diagnostic: Some(issue),
+            ..
+        }) = app.reload_location().await
+        else {
+            panic!("typed keybinding refusal");
+        };
+        let mut failed = app.catalog().await.unwrap();
+        assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+        assert_eq!(failed, switched.catalog);
         std::fs::write(
             b.join("cli.jsonc"),
             r#"{"keybinds":{"leader":"none","session.redo":"<leader>r,alt+y"}}"#,
@@ -147,7 +155,17 @@ mod review_tests {
         .unwrap();
         let error = app.reload_location().await.unwrap_err();
         assert!(!error.to_string().contains("DO_NOT_LEAK"));
-        assert_eq!(app.catalog().await.unwrap(), original);
+        let CoreError::LocationSwitch {
+            diagnostic: Some(issue),
+            ..
+        } = error
+        else {
+            panic!("typed output refusal");
+        };
+        let mut failed = app.catalog().await.unwrap();
+        assert!(!format!("{failed:?}").contains("DO_NOT_LEAK"));
+        assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+        assert_eq!(failed, original);
         std::fs::write(project.join("opencode.jsonc"), r#"{"tool_output":{}}"#).unwrap();
         let reloaded = app.reload_location().await.unwrap();
         assert!(reloaded.generation > original.chrome.selection_generation);
@@ -246,7 +264,16 @@ mod review_tests {
                 ..
             }
         ));
-        assert_eq!(app.catalog().await.unwrap(), switched.catalog);
+        let CoreError::LocationSwitch {
+            diagnostic: Some(issue),
+            ..
+        } = failure
+        else {
+            panic!("typed animation refusal");
+        };
+        let mut failed = app.catalog().await.unwrap();
+        assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+        assert_eq!(failed, switched.catalog);
 
         std::fs::write(
             b.join("opencode.jsonc"),
@@ -892,6 +919,7 @@ mod reload_tests {
         ]);
         std::fs::write(&path, source.to_string()).unwrap();
         let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let mut events = app.subscribe();
         let initial = app.catalog().await.unwrap();
         for label in ["WATCH_GENERATION_TWO", "WATCH_RECOVERED_THREE"] {
             source["agents"] = serde_json::json!({"build":{"description":label,"system":label}});
@@ -914,18 +942,34 @@ mod reload_tests {
             .await
             .unwrap();
             assert!(snapshot.chrome.selection_generation > initial.chrome.selection_generation);
+            assert!(snapshot.chrome.service_diagnostics.is_empty());
             assert!(app.list_sessions().await.unwrap().is_empty());
+            while events.try_recv().is_ok() {}
             std::fs::write(&path, "{broken").unwrap();
             tokio::time::sleep(Duration::from_millis(250)).await;
+            let mut failed = app.catalog().await.unwrap();
+            let issue = failed
+                .chrome
+                .service_diagnostics
+                .pop()
+                .expect("reload issue");
+            assert_eq!(issue.kind, oc_core::queries::ServiceKind::Configuration);
+            assert!(
+                std::iter::from_fn(|| events.try_recv().ok())
+                    .any(|e| matches!(e, CoreEvent::ProviderChanged))
+            );
             assert_eq!(
-                app.catalog().await.unwrap(),
-                snapshot,
+                failed, snapshot,
                 "malformed automatic replacement changed last-good"
             );
         }
         std::fs::write(&path, source.to_string()).unwrap();
         tokio::time::sleep(Duration::from_millis(250)).await;
         let before = app.catalog().await.unwrap();
+        assert!(
+            before.chrome.service_diagnostics.is_empty(),
+            "recovery clears issue"
+        );
         for n in 0..10 {
             std::fs::write(project.join("unrelated-output"), n.to_string()).unwrap();
             let _ = std::fs::read(&path).unwrap();
@@ -935,6 +979,263 @@ mod reload_tests {
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
         assert!(Db::open(&data).unwrap().list_sessions().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn hot02_cli_and_mcp_edits_publish_with_unchanged_ready_or_failed_provider() {
+        use oc_core::queries::{McpStatus, ProviderStatus};
+        for failed in [false, true] {
+            let root = tempfile::tempdir().unwrap();
+            let project = root.path().join("project");
+            let data = root.path().join("data");
+            std::fs::create_dir(&project).unwrap();
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let base = format!("http://{}/v1", listener.local_addr().unwrap());
+            let count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let peer_count = count.clone();
+            let peer = tokio::spawn(async move {
+                loop {
+                    let (mut stream, _) = listener.accept().await.unwrap();
+                    let mut buf = [0; 8192];
+                    let n = stream.read(&mut buf).await.unwrap();
+                    assert!(buf[..n].starts_with(b"GET /v1/models "));
+                    peer_count.fetch_add(1, Ordering::SeqCst);
+                    let (status, body) = if failed {
+                        ("401 Unauthorized", "{}")
+                    } else {
+                        ("200 OK", r#"{"object":"list","data":[{"id":"exact"}]}"#)
+                    };
+                    stream.write_all(format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+                }
+            });
+            let mut source: serde_json::Value =
+                serde_json::from_str(&config("exact", &base, false)).unwrap();
+            source["providers"]["fixture"] = serde_json::json!({"models":{"other":{}},"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"}});
+            source["experimental"]["policies"] = serde_json::json!([
+                {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+                {"action":"provider.use","resource":"openai","effect":"deny"}
+            ]);
+            let path = project.join("opencode.jsonc");
+            std::fs::write(&path, source.to_string()).unwrap();
+            let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+            tokio::time::timeout(Duration::from_secs(3), async {
+                while app
+                    .catalog()
+                    .await
+                    .unwrap()
+                    .chrome
+                    .provider
+                    .unwrap()
+                    .catalog_status
+                    == ProviderStatus::Pending
+                {
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            let before = app.catalog().await.unwrap();
+            let report = project.join("mcp-counts");
+            source["mcp"] = serde_json::json!({"servers":{"added":{"type":"local","command":[
+                "/usr/bin/python3","-u",concat!(env!("CARGO_MANIFEST_DIR"),"/../../fixtures/mcp10-lifecycle.py"),report.to_str().unwrap(),"peer-added","-","-",project.to_str().unwrap()
+            ]}}});
+            std::fs::write(&path, source.to_string()).unwrap();
+            let connected = tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    if app
+                        .mcp_status()
+                        .await
+                        .unwrap()
+                        .servers
+                        .iter()
+                        .any(|s| s.name == "added" && s.status == McpStatus::Connected)
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await;
+            assert!(
+                connected.is_ok(),
+                "failed={failed}: MCP {:?}; catalog {:?}",
+                app.mcp_status().await.unwrap(),
+                app.catalog().await.unwrap()
+            );
+            let mcp = std::fs::read(&report).unwrap();
+            let mcp: serde_json::Value = serde_json::from_slice(&mcp).unwrap();
+            std::fs::write(
+                project.join("cli.jsonc"),
+                r#"{"keybinds":{"leader":"ctrl+g"},"session":{"permissions":"autoaccept"}}"#,
+            )
+            .unwrap();
+            let after = tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    let catalog = app.catalog().await.unwrap();
+                    if catalog.chrome.permissions_auto {
+                        break catalog;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_ne!(
+                after.chrome.conversation_shortcuts.leader,
+                before.chrome.conversation_shortcuts.leader
+            );
+            assert_eq!(
+                after.chrome.provider.as_ref().unwrap().catalog_status,
+                if failed {
+                    ProviderStatus::Failed
+                } else {
+                    ProviderStatus::Ready
+                }
+            );
+            assert!(after.chrome.selection_generation > before.chrome.selection_generation);
+            assert_eq!(count.load(Ordering::SeqCst), 1);
+            let now: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&report).unwrap()).unwrap();
+            assert_eq!(now["pid"], mcp["pid"]);
+            assert_eq!(now["initialize"], 1);
+            if failed {
+                let generation = after.chrome.selection_generation;
+                assert!(matches!(
+                    app.reload_location().await,
+                    Err(CoreError::ProviderUnavailable(_))
+                ));
+                assert_eq!(
+                    app.catalog().await.unwrap().chrome.selection_generation,
+                    generation
+                );
+                assert_eq!(count.load(Ordering::SeqCst), 2);
+                // Selecting failing B still keeps A. The coordinator test covers
+                // the carried-state case without the selected-only loopback flag.
+                source["model"] = "fixture/other".into();
+                std::fs::write(&path, source.to_string()).unwrap();
+                tokio::time::timeout(Duration::from_secs(3), async {
+                    while app.catalog().await.unwrap().provider != "fixture" {
+                        tokio::time::sleep(Duration::from_millis(5)).await;
+                    }
+                })
+                .await
+                .unwrap();
+                let selected_a = app.catalog().await.unwrap();
+                source["model"] = "ludka2/exact".into();
+                std::fs::write(&path, source.to_string()).unwrap();
+                tokio::time::timeout(Duration::from_secs(3), async {
+                    while app
+                        .catalog()
+                        .await
+                        .unwrap()
+                        .chrome
+                        .service_diagnostics
+                        .is_empty()
+                    {
+                        tokio::time::sleep(Duration::from_millis(5)).await;
+                    }
+                })
+                .await
+                .unwrap();
+                let mut rejected = app.catalog().await.unwrap();
+                assert_eq!(
+                    rejected.chrome.service_diagnostics.pop().unwrap().kind,
+                    oc_core::queries::ServiceKind::Provider
+                );
+                assert_eq!(rejected, selected_a);
+            }
+            app.shutdown().await.unwrap();
+            guard.join().await.unwrap();
+            peer.abort();
+            let _ = peer.await;
+        }
+    }
+
+    #[tokio::test]
+    async fn hot02_pending_provider_cli_edit_publishes_failed_candidate_and_retires_old_get() {
+        use oc_core::queries::ProviderStatus;
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir(&project).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let (entered, received) = oneshot::channel();
+        let (release, held) = oneshot::channel();
+        let peer = tokio::spawn(async move {
+            let (mut first, _) = listener.accept().await.unwrap();
+            let mut buf = [0; 8192];
+            assert!(first.read(&mut buf).await.unwrap() > 0);
+            entered.send(()).unwrap();
+            let (mut second, _) = listener.accept().await.unwrap();
+            assert!(second.read(&mut buf).await.unwrap() > 0);
+            second.write_all(b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}").await.unwrap();
+            held.await.unwrap();
+            // This old successful outcome must not replace the candidate's Failed.
+            let body = r#"{"object":"list","data":[{"id":"exact"}]}"#;
+            let _ = first
+                .write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    )
+                    .as_bytes(),
+                )
+                .await;
+        });
+        let mut source: serde_json::Value =
+            serde_json::from_str(&config("exact", &base, false)).unwrap();
+        source["experimental"]["policies"] = serde_json::json!([
+            {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+            {"action":"provider.use","resource":"openai","effect":"deny"}
+        ]);
+        std::fs::write(project.join("opencode.jsonc"), source.to_string()).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        received.await.unwrap();
+        let marker = project.join("pending-mcp-started");
+        source["mcp"] = serde_json::json!({"servers":{"pending":{"type":"local","command":["/bin/sh","-c",format!("printf started > '{}'", marker.display())]}}});
+        std::fs::write(project.join("opencode.jsonc"), source.to_string()).unwrap();
+        std::fs::write(
+            project.join("cli.jsonc"),
+            r#"{"session":{"permissions":"autoaccept"}}"#,
+        )
+        .unwrap();
+        tokio::time::timeout(Duration::from_secs(3), async {
+            loop {
+                let catalog = app.catalog().await.unwrap();
+                if catalog.chrome.permissions_auto {
+                    assert_eq!(
+                        catalog.chrome.provider.unwrap().catalog_status,
+                        ProviderStatus::Failed
+                    );
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !marker.exists() {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+        release.send(()).unwrap();
+        peer.await.unwrap();
+        assert_eq!(
+            app.catalog()
+                .await
+                .unwrap()
+                .chrome
+                .provider
+                .unwrap()
+                .catalog_status,
+            ProviderStatus::Failed
+        );
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 
     #[tokio::test]
@@ -1019,7 +1320,7 @@ mod reload_tests {
             tokio::pin!(quiet);
             tokio::time::timeout(Duration::from_secs(3), async {
                 loop {
-                    coordinator.start(&db, &runtime, &composition);
+                    coordinator.start(&db, &runtime, &mut composition, &events);
                     tokio::select! {
                         ready = coordinator.wait() => {
                             if let Some(ready) = ready.unwrap() && let Some(receipt) = coordinator.finish(
@@ -1113,7 +1414,8 @@ mod reload_tests {
         .unwrap();
 
         let rejected = app.reload_location().await;
-        let after = app.catalog().await.unwrap();
+        let mut after = app.catalog().await.unwrap();
+        assert!(after.chrome.service_diagnostics.pop().is_some());
         let after_skills = app.skills().await.unwrap();
         changed.as_object_mut().unwrap().remove("mcp");
         std::fs::write(
@@ -1923,11 +2225,16 @@ mod reload_tests {
         );
 
         std::fs::write(&path, "{broken").unwrap();
-        assert!(matches!(
-            app.reload_location().await,
-            Err(CoreError::LocationSwitch { .. })
-        ));
-        assert_eq!(app.catalog().await.unwrap(), reloaded.catalog);
+        let Err(CoreError::LocationSwitch {
+            diagnostic: Some(issue),
+            ..
+        }) = app.reload_location().await
+        else {
+            panic!("typed malformed reload cause");
+        };
+        let mut failed = app.catalog().await.unwrap();
+        assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+        assert_eq!(failed, reloaded.catalog);
         assert_eq!(
             app.file_suggestions("".into(), 1).await.unwrap().generation,
             reloaded.generation
@@ -2001,7 +2308,9 @@ mod reload_tests {
         ] {
             assert!(details.iter().any(|line| line == expected), "{details:?}");
         }
-        assert_eq!(app.catalog().await.unwrap(), before, "last-good retained");
+        let mut failed = app.catalog().await.unwrap();
+        assert_eq!(failed.chrome.service_diagnostics.pop(), Some(diagnostic));
+        assert_eq!(failed, before, "last-good retained apart from reload issue");
         std::fs::write(&path, &canonical).unwrap();
         assert!(app.reload_location().await.is_ok());
         app.shutdown().await.unwrap();

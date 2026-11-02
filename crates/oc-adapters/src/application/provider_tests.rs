@@ -331,14 +331,17 @@ async fn ui07_missing_selected_credential_keeps_local_owner_and_refuses_before_a
     config["providers"]["fixture"]["settings"]["headers"]["x-ui07"] =
         format!("{CANARY}\r\nnot-a-header").into();
     std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
-    assert!(matches!(
-        app.reload_location().await,
-        Err(CoreError::LocationSwitch {
-            category: LocationSwitchFailure::Configuration,
-            ..
-        })
-    ));
-    assert_eq!(app.catalog().await.unwrap(), reloaded.catalog);
+    let Err(CoreError::LocationSwitch {
+        category: LocationSwitchFailure::Configuration,
+        diagnostic: Some(issue),
+        ..
+    }) = app.reload_location().await
+    else {
+        panic!("typed transport refusal");
+    };
+    let mut failed = app.catalog().await.unwrap();
+    assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+    assert_eq!(failed, reloaded.catalog);
     assert_eq!(
         app.file_suggestions("".into(), 1).await.unwrap().generation,
         reloaded.generation

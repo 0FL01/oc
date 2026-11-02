@@ -68,6 +68,7 @@ full-frame pixel PASS и не возобновляет остальные TUI qu
 
 ### Hot reload и client settings — отложено
 
+[Автоматический hot reload TS parity](docs/goals/2026-11-02-hot-reload-ts-parity.md) — текущий узкий контракт MCP/config/CLI/TUI; не возобновляет остальные qualifications старого scope.
 [Контракт](docs/goals/2026-10-14-hot-reload-shared-service.md): R1/R2 реализованы частично, composed HOT01/HOT02 ещё не qualified; R4 settings и R5 final qualification pending, HOT04 NOT_RUN.
 Старый R3/HOT03 descoped. Позднейший shared native owner не возвращает его и не квалифицирует оставшийся settings surface.
 Issued request/approval/full batch сохраняют captured authority; fresh preparation — отдельная граница adoption. [Метод проверки](docs/TEST_PLAN.md#hot-reload).

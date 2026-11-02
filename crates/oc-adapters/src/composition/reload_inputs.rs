@@ -26,6 +26,8 @@ pub(crate) struct ReloadInputs {
     dcp: dcp_auto::DcpConfig,
     dcp_prompt_notes: Vec<ServiceDiagnostic>,
     protected: oc_core::context_plan::ProtectedSpec,
+    tui_chrome: oc_core::queries::TuiChrome,
+    permission_mode_source: PathBuf,
 }
 
 #[derive(PartialEq)]
@@ -197,6 +199,8 @@ impl Composition {
                 .cloned()
                 .collect(),
             protected: self.dcp_protected.clone(),
+            tui_chrome: self.tui_chrome.clone(),
+            permission_mode_source: self.permission_mode_source.clone(),
         })
     }
 }

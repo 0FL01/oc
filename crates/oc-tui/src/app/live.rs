@@ -903,6 +903,26 @@ impl TuiState {
     }
 
     fn apply_catalog_inner(&mut self, snapshot: CatalogSnapshot, refresh_composer: bool) {
+        // Never roll an adopted source back when independent reads finish late.
+        if self.chrome.location == snapshot.chrome.location
+            && self.chrome.selection_generation > snapshot.chrome.selection_generation
+        {
+            return;
+        }
+        let source_changed = self.chrome.location != snapshot.chrome.location
+            || self.chrome.selection_generation != snapshot.chrome.selection_generation;
+        if source_changed {
+            if let Some(draft) = self.agent_draft.take()
+                && self.agent_restage.is_none()
+                && let Some(id) = draft.agent_id
+            {
+                self.agent_restage = Some((id, self.agent_draft_revision));
+            }
+            self.skills_loaded = false;
+            self.skills.clear();
+            self.skills_refetch = self.panel == TuiPanel::Skills;
+            self.dcp.invalidate_availability();
+        }
         self.command_recovery_loaded = false;
         if self.chrome.location != snapshot.chrome.location {
             self.interrupted_commands.clear();
@@ -1062,10 +1082,42 @@ impl TuiState {
         // Supersede older preparation without guessing the new profile. The
         // controller keeps sending disabled until this owned preview resolves.
         self.agent_draft_revision = self.agent_draft_revision.wrapping_add(1);
+        self.agent_restage = None;
+    }
+
+    pub fn retain_agent_preview(&mut self, id: String) {
+        self.agent_restage = Some((id, self.agent_draft_revision));
+    }
+
+    pub fn agent_restage(&self) -> Option<(String, u64)> {
+        self.agent_restage.clone()
+    }
+
+    pub fn clear_agent_restage(&mut self) {
+        self.agent_restage = None;
+    }
+
+    pub fn take_skills_refetch(&mut self) -> bool {
+        std::mem::take(&mut self.skills_refetch)
     }
 
     pub fn agent_selection_revision(&self) -> u64 {
         self.agent_draft_revision
+    }
+
+    /// Source generations belong to one native owner incarnation. Preserve the
+    /// logical composer choice, never a preview/binding from the retired owner.
+    pub fn reattach_catalog(&mut self) {
+        let staged = self.staged_agent();
+        self.resume_retained_view();
+        self.agent_draft = None;
+        self.agent_draft_revision = self.agent_draft_revision.wrapping_add(1);
+        self.agent_restage = staged.map(|id| (id, self.agent_draft_revision));
+        self.chrome.selection_generation = 0;
+        self.skills_loaded = false;
+        self.skills.clear();
+        self.skills_refetch = self.panel == TuiPanel::Skills;
+        self.dcp.invalidate_availability();
     }
 
     pub fn agent_picker_identity(&self) -> Option<(&str, usize)> {
@@ -1082,6 +1134,7 @@ impl TuiState {
         }
         self.picker = Some(self.composer_picker(&snapshot));
         self.agent_draft_revision = self.agent_draft_revision.wrapping_add(1);
+        self.agent_restage = None;
         self.agent_draft = (self.active_agent.as_deref() != snapshot.agent_id.as_deref()
             || self.has_pending_submission())
         .then_some(snapshot);
@@ -1090,11 +1143,16 @@ impl TuiState {
         Ok(())
     }
 
-    /// The staged next-send agent, if it differs from the session's own.
+    /// Latest next-send intent, including a Preview still being resolved.
     pub fn staged_agent(&self) -> Option<String> {
-        self.agent_draft
+        self.agent_restage
             .as_ref()
-            .and_then(|draft| draft.agent_id.clone())
+            .map(|(id, _)| id.clone())
+            .or_else(|| {
+                self.agent_draft
+                    .as_ref()
+                    .and_then(|draft| draft.agent_id.clone())
+            })
     }
 
     /// Next-send agent: the staged draft, otherwise the session's own.

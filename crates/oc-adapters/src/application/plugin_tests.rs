@@ -153,13 +153,29 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
     config["plugins"] = json!(["@tarquinen/opencode-dcp"]);
     config["permissions"] = json!([{"action":"read","resource":"*","effect":"not-a-policy"}]);
     std::fs::write(&source, config.to_string()).unwrap();
-    assert!(app.reload_location().await.is_err());
-    assert_eq!(app.catalog().await.unwrap(), failed_request.catalog);
+    let Err(CoreError::LocationSwitch {
+        diagnostic: Some(issue),
+        ..
+    }) = app.reload_location().await
+    else {
+        panic!("typed policy refusal");
+    };
+    let mut failed = app.catalog().await.unwrap();
+    assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+    assert_eq!(failed, failed_request.catalog);
     config.as_object_mut().unwrap().remove("permissions");
     config["keybinds"] = json!({"session.undo":12});
     std::fs::write(&source, config.to_string()).unwrap();
-    assert!(app.reload_location().await.is_err());
-    assert_eq!(app.catalog().await.unwrap(), failed_request.catalog);
+    let Err(CoreError::LocationSwitch {
+        diagnostic: Some(issue),
+        ..
+    }) = app.reload_location().await
+    else {
+        panic!("typed keybinding refusal");
+    };
+    let mut failed = app.catalog().await.unwrap();
+    assert_eq!(failed.chrome.service_diagnostics.pop(), Some(issue));
+    assert_eq!(failed, failed_request.catalog);
     config.as_object_mut().unwrap().remove("keybinds");
     std::fs::write(&source, config.to_string()).unwrap();
     let healthy = app.reload_location().await.unwrap();

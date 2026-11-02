@@ -15,9 +15,12 @@ pub(super) struct Job {
 struct Prepared {
     catalogs: Vec<((u64, u64), CatalogSnapshot, Option<CatalogSnapshot>)>,
     mcp: oc_core::queries::McpSnapshot,
-    permission: Option<bool>,
 }
 impl Job {
+    pub(super) async fn retire(self) {
+        self.task.abort();
+        let _ = self.task.await;
+    }
     pub(super) fn ready(&self) -> bool {
         self.task.is_finished()
     }
@@ -54,9 +57,13 @@ pub(super) fn start(
     }
     let mounted = state.view_identity();
     targets.sort_by_key(|target| (target.session.is_none(), target.identity == mounted));
-    let permission = (snapshot.catalog.auto_accept
-        != oc_core::queries::AutoAcceptState::Unsupported)
-        .then_some(deck.cli_auto || snapshot.catalog.chrome.permissions_auto);
+    deck.controls.adopt_permissions(
+        app,
+        deck.location.as_deref(),
+        deck.cli_auto,
+        deck.permission_auto,
+        &snapshot.catalog,
+    );
     let location = snapshot.location;
     let captured = location.clone();
     let owner = app.clone();
@@ -64,12 +71,6 @@ pub(super) fn start(
         location,
         draft,
         task: oc_core::wake::spawn(async move {
-            if let Some(auto) = permission {
-                owner
-                    .register_approval_consumer(auto)
-                    .await
-                    .map_err(|e| e.to_string())?;
-            }
             let mut catalogs = Vec::new();
             for target in targets {
                 let catalog = if let Some(session) = &target.session {
@@ -130,11 +131,7 @@ pub(super) fn start(
                     "Configuration reload incomplete; MCP Location changed during refresh".into(),
                 );
             }
-            Ok(Prepared {
-                catalogs,
-                mcp,
-                permission,
-            })
+            Ok(Prepared { catalogs, mcp })
         }),
     });
     Ok(())
@@ -171,7 +168,6 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                     }
                 }
             }
-            deck.permission_auto = prepared.permission.or(deck.permission_auto);
             apply_mcp_to_views(state, deck, prepared.mcp);
             if draft.as_deref() == Some(state.input()) {
                 state.accept_intent();

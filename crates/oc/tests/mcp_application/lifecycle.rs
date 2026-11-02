@@ -4,6 +4,69 @@
 
 use super::*;
 
+#[test]
+fn lifecycle_hot_reload_startup_grace_includes_mcp_in_immediate_continuation() {
+    let fixture = Fixture::new();
+    let release = Arc::new(AtomicBool::new(false));
+    let marker = fixture.project.join("builtin-completed");
+    let responses = FakeResponses::start(ResponsesScript::HeldBuiltin {
+        release: release.clone(),
+        marker: marker.clone(),
+    });
+    fixture.write_config(
+        &responses,
+        json!({}),
+        json!([{"action":"shell","resource":"*","effect":"allow"}]),
+    );
+    let path = fixture.home.join("config/opencode/opencode.json");
+    let mut source: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let watched = path.with_extension("jsonc");
+    fs::rename(&path, &watched).unwrap();
+    let mut tui = PtyProcess::spawn(&fixture, "startup-grace-continuation");
+    tui.wait_visible(READY);
+    tui.send_line("hot reload continuation");
+    let deadline = Instant::now() + TIMEOUT;
+    while !responses.requests().iter().any(|r| !title::is_title(r)) {
+        assert!(Instant::now() < deadline);
+        std::thread::sleep(POLL);
+    }
+    let initialize = fixture.project.join("release-initialize");
+    source["mcp"] = json!({"servers":{"added":lifecycle_entry(&fixture,"added",true,initialize.to_str().unwrap(),"-")}});
+    fs::write(&watched, source.to_string()).unwrap();
+    wait_counter(&fixture, "added", "initialize", 1);
+    let started = Instant::now();
+    release.store(true, Ordering::SeqCst);
+    while !marker.exists() {
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "builtin did not reach continuation"
+        );
+        std::thread::sleep(POLL);
+    }
+    // The builtin is complete; continuation preparation remains behind initialize.
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(
+        responses
+            .requests()
+            .iter()
+            .filter(|r| !title::is_title(r))
+            .count(),
+        1
+    );
+    fs::write(&initialize, "release").unwrap();
+    tui.wait_screen("startup grace complete", TIMEOUT);
+    let requests: Vec<_> = responses
+        .requests()
+        .into_iter()
+        .filter(|r| !title::is_title(r))
+        .collect();
+    assert_eq!(requests.len(), 2, "no fallback rounds or /reload");
+    assert!(!function_tool_names(&requests[0]).contains(&"added__ping".into()));
+    assert!(function_tool_names(&requests[1]).contains(&"added__ping".into()));
+    tui.send_line("/quit");
+    assert!(tui.wait_exit().success());
+}
+
 fn lifecycle_entry(
     fixture: &Fixture,
     label: &str,

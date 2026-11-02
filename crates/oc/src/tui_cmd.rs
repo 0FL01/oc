@@ -312,6 +312,18 @@ type CompactionAdmission = tokio::task::JoinHandle<
     Result<(oc_core::compaction::CompactionSnapshot, Option<u64>), CoreError>,
 >;
 
+fn after_catalog_adopt(
+    app: &CoreApp,
+    view: &mut TuiState,
+    catalogs: &mut catalog_jobs::Jobs,
+    resources: &mut resource_jobs::Jobs,
+) {
+    catalogs.restage(app, view);
+    if view.take_skills_refetch() {
+        let _ = resources.request(app, view, resource_jobs::Request::Skills);
+    }
+}
+
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
@@ -867,7 +879,10 @@ impl LoopState {
         }
         let showing_child = self.child_parent.is_some();
         state.set_root_navigation(self.root_navigation_allowed(state));
-        if !showing_child && let Some(auto) = self.permission_auto {
+        if !showing_child
+            && state.auto_accept != oc_core::queries::AutoAcceptState::Unsupported
+            && let Some(auto) = self.permission_auto
+        {
             state.auto_accept = if auto {
                 oc_core::queries::AutoAcceptState::Enabled
             } else {
@@ -4343,6 +4358,17 @@ fn report_owner(state: &mut TuiState, deck: &mut LoopState, note: &str, variant:
 /// The same handle now serves a fresh attachment: its consumer registrations
 /// and live cursor are new, so redo the startup reads without resending input.
 async fn reattached(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
+    deck.controls.reattached().await;
+    deck.catalogs.reattached();
+    if let Some(job) = deck.workspace_job.take() {
+        job.retire().await;
+    }
+    if let Some(job) = deck.reload_verify.take() {
+        job.retire().await;
+    }
+    for view in read_jobs::views_mut(state, deck) {
+        view.reattach_catalog();
+    }
     // A re-elected owner restarts live revisions; the old cursor would hide them.
     deck.projection_revision = 0;
     deck.deferred_events.clear();
@@ -4350,14 +4376,15 @@ async fn reattached(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
     deck.shared_refresh = true;
     let restored = async {
         let catalog = app.catalog().await.map_err(|error| error.to_string())?;
-        app.register_approval_consumer(deck.cli_auto || catalog.chrome.permissions_auto)
+        let auto = deck.cli_auto || catalog.chrome.permissions_auto;
+        app.register_approval_consumer(auto)
             .await
             .map_err(|error| error.to_string())?;
         app.register_question_consumer()
             .await
             .map_err(|error| error.to_string())?;
         deck.permission_auto =
-            Some(catalog.auto_accept == oc_core::queries::AutoAcceptState::Enabled);
+            (catalog.auto_accept != oc_core::queries::AutoAcceptState::Unsupported).then_some(auto);
         refresh_approvals(app, state).await
     }
     .await;
@@ -4373,6 +4400,7 @@ async fn reattached(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) {
         }
     }
     deck.reads.request(state, true);
+    refresh_provider_views(app, state, deck).await;
 }
 
 #[cfg(test)]

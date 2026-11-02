@@ -292,6 +292,10 @@ pub(super) struct Job {
     job: tokio::task::JoinHandle<Result<Prepared, String>>,
 }
 impl Job {
+    pub(super) async fn retire(self) {
+        self.job.abort();
+        let _ = self.job.await;
+    }
     pub(super) fn ready(&self) -> bool {
         self.job.is_finished()
     }
@@ -614,6 +618,7 @@ async fn adopt(
         || state.has_occupied_submission()
         || deck.owns_receipt(state);
     let mut local = Vec::new();
+    let permission_catalog = home_catalog.clone();
     let mut home = deck.home.take();
     for (index, view) in deck
         .tabs
@@ -695,6 +700,7 @@ async fn adopt(
             {
                 let generation = view.chrome.selection_generation;
                 view.apply_catalog_refresh(catalog);
+                after_catalog_adopt(app, &mut view, &mut deck.catalogs, &mut deck.resources);
                 if generation != view.chrome.selection_generation
                     && view.picker_provider_filter().is_some()
                 {
@@ -782,6 +788,15 @@ async fn adopt(
     deck.selection_blocked = false;
     deck.save_disabled = save_disabled;
     deck.location = Some(snapshot.deck.location);
+    if let Some(catalog) = permission_catalog {
+        deck.controls.adopt_permissions(
+            app,
+            deck.location.as_deref(),
+            deck.cli_auto,
+            deck.permission_auto,
+            &catalog,
+        );
+    }
     // Never race a read's older token over an in-flight CAS acknowledgement.
     if deck.deck_job.is_none() {
         deck.revision = snapshot.deck.revision;
@@ -794,6 +809,115 @@ async fn adopt(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn hot_reload_shared_adoption_restages_agent_before_late_provider_receipt() {
+        use oc_core::core_app::InboxMsg;
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let id = SessionId("restage-shared".into());
+        let mut state = TuiState::new(app.clone(), id.clone());
+        let mut catalog = CatalogSnapshot {
+            chrome: Default::default(),
+            auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
+            provider: "fixture".into(),
+            models: Vec::new(),
+            model_id: String::new(),
+            variant: None,
+            agents: Vec::new(),
+            agent_id: Some("build".into()),
+            commands: Vec::new(),
+            command_descriptions: Default::default(),
+        };
+        catalog.chrome.location = Some("/fixture".into());
+        catalog.chrome.selection_generation = 1;
+        state.apply_catalog(catalog.clone());
+        let mut preview = catalog.clone();
+        preview.agent_id = Some("plan".into());
+        state.apply_agent_preview(preview.clone()).unwrap();
+        let mut deck = LoopState {
+            location: catalog.chrome.location.clone(),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        deck.catalogs
+            .request(&app, &mut state, catalog_jobs::Request::Provider);
+        let InboxMsg::SessionSelection { ack: provider, .. } = inbox.recv().await.unwrap() else {
+            panic!("provider read");
+        };
+        let request = Request {
+            selected: Some(id.clone()),
+            navigation: deck.navigation_revision,
+            location: deck.location.clone(),
+            deck_revision: deck.revision.clone(),
+            targets: Vec::new(),
+            roots: vec![(id.clone(), state.view_identity())],
+            gap: false,
+            read_only: false,
+            pending: Default::default(),
+            provisional: Default::default(),
+        };
+        catalog.chrome.selection_generation = 2;
+        adopt(
+            &app,
+            &mut state,
+            &mut deck,
+            request,
+            WorkspaceSnapshot {
+                revision: 2,
+                deck: TabDeckSnapshot {
+                    location: "/fixture".into(),
+                    sessions: vec![id.clone()],
+                    active: Some(id.clone()),
+                    ..Default::default()
+                },
+                turns: Vec::new(),
+                inbox: Vec::new(),
+                activity: Vec::new(),
+                selected_root: Some(id.clone()),
+            },
+            vec![Root {
+                id,
+                title: false,
+                catalog: Some(catalog.clone()),
+                projection: None,
+            }],
+            None,
+            false,
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(state.chrome.selection_generation, 2);
+        assert_eq!(state.staged_agent().as_deref(), Some("plan"));
+        provider.send(Ok(catalog)).unwrap();
+        let message = tokio::time::timeout(Duration::from_secs(1), async {
+            loop {
+                catalog_jobs::sync(&app, &mut state, &mut deck).await;
+                if let Ok(message) = inbox.try_recv() {
+                    break message;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        let InboxMsg::SessionSelection { action, ack, .. } = message else {
+            panic!("restage read");
+        };
+        assert_eq!(action, SelectionAction::Preview("plan".into()));
+        preview.chrome.selection_generation = 2;
+        ack.send(Ok(preview)).unwrap();
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while deck.catalogs.pending() {
+                catalog_jobs::sync(&app, &mut state, &mut deck).await;
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(state.staged_agent().as_deref(), Some("plan"));
+        assert!(state.agent_restage().is_none());
+    }
 
     #[tokio::test]
     async fn failed_workspace_read_keeps_malformed_deck_contract_and_newer_save_refusal() {

@@ -227,7 +227,7 @@ pub(super) async fn run(
         );
         tokio::pin!(operation);
         loop {
-            reload_work.start(db, runtime, composition);
+            reload_work.start(db, runtime, composition, events);
             tokio::select! {
                 ready = reload_work.wait(), if !shutdown => {
                     if let Some(ready) = ready? && let Some(receipt) = reload_work.finish(

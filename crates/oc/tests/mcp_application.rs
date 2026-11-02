@@ -617,6 +617,10 @@ impl Drop for FakeMcp {
 
 #[derive(Clone)]
 enum ResponsesScript {
+    HeldBuiltin {
+        release: Arc<AtomicBool>,
+        marker: PathBuf,
+    },
     TextByPrompt,
     HeldPrompts {
         prompts: Vec<String>,
@@ -724,6 +728,24 @@ impl FakeResponses {
                         .any(|name| !names.iter().any(|available| available == name));
                 match &script {
                     _ if title::respond(&mut socket, &request.body) => {}
+                    ResponsesScript::HeldBuiltin { release, marker } if main_index == 0 => {
+                        while !release.load(Ordering::SeqCst) && !stopping.load(Ordering::SeqCst) {
+                            std::thread::sleep(POLL);
+                        }
+                        if !stopping.load(Ordering::SeqCst) {
+                            respond_tools(
+                                &mut socket,
+                                &[(
+                                    "startup-builtin".into(),
+                                    "startup-builtin".into(),
+                                    json!({"__wireName":"shell","arguments":{"command":format!("printf ready > '{}'", marker.display())}}),
+                                )],
+                            );
+                        }
+                    }
+                    ResponsesScript::HeldBuiltin { .. } => {
+                        respond_text(&mut socket, "startup grace complete")
+                    }
                     ResponsesScript::ToolNamedOnce(_)
                         if request.body["input"].as_array().is_some_and(|items| {
                             items.iter().any(|i| {

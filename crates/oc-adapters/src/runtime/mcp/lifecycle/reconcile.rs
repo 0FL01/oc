@@ -279,6 +279,7 @@ pub(super) fn configured_node(
             .unwrap_or_else(|| "native config".into()),
         desired: entry.enabled && entry.failure.is_none(),
         cancel: None,
+        connect_started: None,
         closing: false,
         replacing: false,
         catalogs: [None, None, None],

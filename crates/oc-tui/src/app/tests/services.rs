@@ -39,6 +39,40 @@ fn mcp(status: McpStatus, diagnostic: Option<ServiceDiagnostic>, revision: u64) 
 }
 
 #[tokio::test]
+async fn reload_failed_provider_switch_has_settings_details_without_readiness_duplicate() {
+    let mut state = fresh_state("reload-provider-issue").await;
+    let mut catalog = snapshot();
+    catalog.chrome.provider = Some(oc_core::queries::ProviderReadiness {
+        service: "provider-current".into(),
+        model: "model-current".into(),
+        status: oc_core::queries::ProviderStatus::Ready,
+        catalog_status: oc_core::queries::ProviderStatus::Ready,
+        diagnostic: None,
+    });
+    let issue = diagnostic(ServiceKind::Provider);
+    catalog.chrome.service_diagnostics.push(issue.clone());
+    state.apply_catalog(catalog.clone());
+    state.panel = TuiPanel::Settings;
+    let options = state.modal_options();
+    state.select.cursor = options
+        .iter()
+        .position(|o| o.value == "diagnostic:0")
+        .unwrap();
+    assert_eq!(
+        state.handle_panel_key(KeyAction::Enter).note,
+        Some(issue.to_string())
+    );
+    catalog.chrome.provider.as_mut().unwrap().diagnostic = Some(issue);
+    state.apply_catalog(catalog);
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .all(|o| !o.value.starts_with("diagnostic:"))
+    );
+}
+
+#[tokio::test]
 async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_survive() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use oc_core::core_app::InboxMsg;

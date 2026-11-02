@@ -40,6 +40,7 @@ pub struct Composition {
     pub(crate) local_inputs: Option<std::sync::Arc<reload_inputs::ReloadInputs>>,
     /// Finite loader observations; not filesystem read or trust capabilities.
     pub(crate) watch_inputs: watch_inputs::WatchInputs,
+    pub(crate) reload_issue: Option<ServiceDiagnostic>,
     /// Consumer state projected by the application owner, independent of selection.
     pub(crate) approval_consumer_mode: std::sync::atomic::AtomicU8,
     pub(crate) question_consumer: AtomicBool,
@@ -115,6 +116,7 @@ impl Composition {
         Ok(Self {
             local_inputs: self.local_inputs.clone(),
             watch_inputs: self.watch_inputs.clone(),
+            reload_issue: None,
             approval_consumer_mode: std::sync::atomic::AtomicU8::new(0),
             question_consumer: AtomicBool::new(false),
             permission_preference: AtomicBool::new(
@@ -1745,6 +1747,7 @@ async fn load_stages(
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     watch_inputs.borrow().validate()?;
     Ok(Composition {
+        reload_issue: None,
         local_inputs: None,
         watch_inputs: watch_inputs.into_inner(),
         provider_views: BTreeMap::new(),

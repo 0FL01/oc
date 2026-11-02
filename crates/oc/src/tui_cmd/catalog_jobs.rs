@@ -17,6 +17,7 @@ pub(super) enum Request {
         home: Option<ModelCommit>,
     },
     Provider,
+    Restage(String),
     Custom(oc_core::queries::SelectionBinding),
 }
 impl Request {
@@ -24,7 +25,8 @@ impl Request {
         matches!(self, Self::Preference { .. } | Self::Custom(_)) || self.preparing()
     }
     fn preparing(&self) -> bool {
-        matches!(self, Self::Selection { action, .. } if !matches!(action, SelectionAction::Current))
+        matches!(self, Self::Restage(_))
+            || matches!(self, Self::Selection { action, .. } if !matches!(action, SelectionAction::Current))
     }
 }
 #[derive(Clone, PartialEq, Eq)]
@@ -71,6 +73,7 @@ struct Prepared {
     fallback: Option<ComposerModelDraft>,
 }
 struct Read {
+    invalidated: bool,
     fence: Fence,
     effect: bool,
     preparing: bool,
@@ -84,6 +87,13 @@ pub(super) struct Jobs {
     reads: HashMap<u64, Read>,
 }
 impl Jobs {
+    pub(super) fn reattached(&mut self) {
+        for read in self.reads.values_mut() {
+            read.invalidated = true;
+            read.next = None;
+            read.refresh = true;
+        }
+    }
     pub(super) fn pending(&self) -> bool {
         !self.reads.is_empty()
     }
@@ -100,13 +110,14 @@ impl Jobs {
         })
     }
     pub(super) fn preparing(&self, view: &TuiState) -> bool {
-        self.reads.get(&view.view_identity().0).is_some_and(|read| {
-            read.preparing
-                || read
-                    .next
-                    .as_ref()
-                    .is_some_and(|(_, request)| request.preparing())
-        })
+        view.agent_restage().is_some()
+            || self.reads.get(&view.view_identity().0).is_some_and(|read| {
+                read.preparing
+                    || read
+                        .next
+                        .as_ref()
+                        .is_some_and(|(_, request)| request.preparing())
+            })
     }
     pub(super) fn request(&mut self, app: &CoreApp, view: &mut TuiState, request: Request) {
         let key = view.view_identity().0;
@@ -125,14 +136,28 @@ impl Jobs {
                 }
                 return;
             }
-            if request.preparing() {
+            if matches!(request, Request::Selection { .. }) && request.preparing() {
                 view.begin_agent_selection();
+                if let Request::Selection {
+                    action: SelectionAction::Preview(id),
+                    ..
+                } = &request
+                {
+                    view.retain_agent_preview(id.clone());
+                }
             }
             read.next = Some((fence(view), request));
             return;
         }
-        if request.preparing() {
+        if matches!(request, Request::Selection { .. }) && request.preparing() {
             view.begin_agent_selection();
+            if let Request::Selection {
+                action: SelectionAction::Preview(id),
+                ..
+            } = &request
+            {
+                view.retain_agent_preview(id.clone());
+            }
         }
         self.launch(app, view, request, fence(view));
     }
@@ -150,6 +175,7 @@ impl Jobs {
         self.reads.insert(
             key,
             Read {
+                invalidated: false,
                 fence,
                 effect,
                 preparing,
@@ -161,6 +187,21 @@ impl Jobs {
                 }),
             },
         );
+    }
+
+    pub(super) fn restage(&mut self, app: &CoreApp, view: &mut TuiState) {
+        let Some((id, revision)) = view.agent_restage() else {
+            return;
+        };
+        if let Some(read) = self.reads.get(&view.view_identity().0)
+            && ((read.preparing && read.fence.owns(view) && read.fence.agent == revision)
+                || read.next.as_ref().is_some_and(|(captured, request)| {
+                    request.preparing() && captured.owns(view) && captured.agent == revision
+                }))
+        {
+            return;
+        }
+        self.request(app, view, Request::Restage(id));
     }
 }
 async fn selection(
@@ -193,6 +234,11 @@ async fn prepare(
         fallback: None,
     };
     match request {
+        Request::Restage(id) => {
+            prepared.catalog =
+                Some(selection(app, &fence, home, SelectionAction::Preview(id)).await?);
+            prepared.preview = true;
+        }
         Request::Selection {
             action,
             preview,
@@ -274,6 +320,11 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
         .map(|(key, _)| *key)
         .collect();
     let mut jobs = std::mem::take(&mut deck.catalogs);
+    let mut resources = std::mem::take(&mut deck.resources);
+    let mut controls = std::mem::take(&mut deck.controls);
+    let location = deck.location.clone();
+    let cli_auto = deck.cli_auto;
+    let permission_auto = deck.permission_auto;
     let mut changed = false;
     for key in keys {
         let read = jobs.reads.remove(&key).expect("finished catalog read");
@@ -281,7 +332,8 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
         if let Some(view) =
             read_jobs::views_mut(state, deck).find(|view| view.view_identity().0 == key)
         {
-            if read.effect
+            if !read.invalidated
+                && read.effect
                 && read.fence.owns(view)
                 && fence(view) != read.fence
                 && let Err(error) = &result
@@ -289,13 +341,14 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                 view.push_note(&format!("model preference: {error}"));
                 changed = true;
             }
-            let applicable = if read.preparing {
-                read.fence.owns(view) && read.fence.agent == view.agent_selection_revision()
-            } else if read.preference {
-                read.fence.owns(view)
-            } else {
-                fence(view) == read.fence
-            };
+            let applicable = !read.invalidated
+                && if read.preparing {
+                    read.fence.owns(view) && read.fence.agent == view.agent_selection_revision()
+                } else if read.preference {
+                    read.fence.owns(view)
+                } else {
+                    fence(view) == read.fence
+                };
             if applicable {
                 match result {
                     Ok(prepared) => {
@@ -318,6 +371,18 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                                     success = false;
                                 }
                             } else {
+                                if view.parent_id.is_none()
+                                    && catalog.chrome.selection_generation
+                                        >= view.chrome.selection_generation
+                                {
+                                    controls.adopt_permissions(
+                                        app,
+                                        location.as_deref(),
+                                        cli_auto,
+                                        permission_auto,
+                                        &catalog,
+                                    );
+                                }
                                 view.apply_catalog_refresh(catalog);
                             }
                         }
@@ -334,7 +399,14 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                             view.close_panel();
                         }
                     }
-                    Err(error) => view.push_note(&error.to_string()),
+                    Err(error) => {
+                        if read.preparing
+                            && matches!(&error, CoreError::Diagnostic(d) if d.code == oc_core::queries::ServiceCode::AgentUnavailable)
+                        {
+                            view.clear_agent_restage();
+                        }
+                        view.push_note(&error.to_string());
+                    }
                 }
                 changed = true;
             }
@@ -343,7 +415,7 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                     jobs.request(app, view, next);
                 } else if captured.owns(view) {
                     jobs.launch(app, view, next, captured);
-                } else {
+                } else if !matches!(next, Request::Restage(_)) {
                     view.push_note(
                         "model preference not persisted; original source changed before dispatch",
                     );
@@ -357,8 +429,13 @@ pub(super) async fn sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopSta
                     jobs.request(app, view, Request::Provider);
                 }
             }
+            if !applicable || !read.preparing {
+                after_catalog_adopt(app, view, &mut jobs, &mut resources);
+            }
         }
     }
     deck.catalogs = jobs;
+    deck.resources = resources;
+    deck.controls = controls;
     changed
 }

@@ -997,6 +997,7 @@ pub struct TuiState {
     /// the session's committed one; committed right before the next send.
     agent_draft: Option<CatalogSnapshot>,
     agent_draft_revision: u64,
+    agent_restage: Option<(String, u64)>,
     /// Agents cursor.
     pub(crate) agents_cursor: usize,
     /// Session ids for the Sessions panel.
@@ -1017,6 +1018,7 @@ pub struct TuiState {
     command_recovery_job: Option<command_recovery::Request>,
     pub(crate) queued_cursor: usize,
     skills_loaded: bool,
+    skills_refetch: bool,
     mcp_snapshot: Option<oc_core::queries::McpSnapshot>,
     mcp_detail: Option<mcp::McpDetail>,
     mcp_focused: Option<String>,
@@ -1243,6 +1245,7 @@ impl TuiState {
             active_agent: None,
             agent_draft: None,
             agent_draft_revision: 0,
+            agent_restage: None,
             agents_cursor: 0,
             sessions: Vec::new(),
             session_entries: Vec::new(),
@@ -1257,6 +1260,7 @@ impl TuiState {
             command_recovery_job: None,
             queued_cursor: 0,
             skills_loaded: false,
+            skills_refetch: false,
             mcp_snapshot: None,
             mcp_detail: None,
             mcp_focused: None,
@@ -1368,6 +1372,7 @@ impl TuiState {
         self.agents.clear();
         self.active_agent = None;
         self.agent_draft = None;
+        self.agent_restage = None;
         self.agents_cursor = 0;
         self.sessions.clear();
         self.sessions_cursor = 0;
@@ -1375,6 +1380,7 @@ impl TuiState {
         self.skills.clear();
         self.skills_cursor = 0;
         self.skills_loaded = false;
+        self.skills_refetch = false;
         self.commands.clear();
         self.command_descriptions.clear();
         self.cards.clear();

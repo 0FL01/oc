@@ -23,7 +23,14 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
     env.insert("CAPTURED".into(), "SYNTHETIC_CAPTURED_VALUE".into());
     let bare = load_local_with_env(&project, env.clone()).await.unwrap();
     for root in [&global, &project, &project.join(".opencode")] {
-        for name in ["opencode.json", "opencode.jsonc", "dcp.json", "dcp.jsonc"] {
+        for name in [
+            "opencode.json",
+            "opencode.jsonc",
+            "dcp.json",
+            "dcp.jsonc",
+            "cli.json",
+            "cli.jsonc",
+        ] {
             assert!(has(&bare.watch_inputs, root.join(name), InputKind::File));
         }
     }
@@ -104,6 +111,7 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
     let inputs = &loaded.watch_inputs;
     for file in [
         shared.join("config.json"),
+        project.join("cli.json"),
         shared.join("selected-key"),
         shared.join("other-key"),
         shared.join("later-key"),
@@ -126,7 +134,6 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
         project.join("NEVER_FOLLOW"),
         project.join(".env"),
         shared.join(".env"),
-        project.join("cli.json"),
     ] {
         assert!(!has(inputs, &never, InputKind::File));
     }

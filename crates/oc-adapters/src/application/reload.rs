@@ -31,6 +31,7 @@ pub(super) struct Candidate {
     epoch: u64,
     force: bool,
     noop: bool,
+    retained_selected: bool,
 }
 
 fn configuration(failure: composition::LoadFailure) -> CoreError {
@@ -130,6 +131,7 @@ pub(super) async fn build(
             epoch,
             force,
             noop,
+            retained_selected: false,
         });
     }
     next.attach_custom_connections(db).map_err(configuration)?;
@@ -140,6 +142,7 @@ pub(super) async fn build(
     } else {
         next.retain_catalog_reuse(&base.catalogs)
     };
+    let retained_selected = retained.contains(&next.catalog.provider);
     if force
         || [crate::models_dev::PROVIDER, crate::models_dev::OPENAI]
             .iter()
@@ -165,6 +168,7 @@ pub(super) async fn build(
         epoch,
         force,
         noop,
+        retained_selected,
     })
 }
 
@@ -187,7 +191,11 @@ pub(super) async fn publish(
         return Err(superseded());
     }
     let Candidate {
-        next, force, noop, ..
+        next,
+        force,
+        noop,
+        retained_selected,
+        ..
     } = candidate;
     let next = *next;
     if noop {
@@ -201,7 +209,9 @@ pub(super) async fn publish(
             notices: composition.startup_notices.clone(),
         });
     }
-    if next.provider_state.catalog_status == oc_core::queries::ProviderStatus::Failed {
+    if next.provider_state.catalog_status == oc_core::queries::ProviderStatus::Failed
+        && !(retained_selected && next.catalog.provider == composition.catalog.provider)
+    {
         let diagnostic = next
             .provider_state
             .for_model(&next.model_id, false)

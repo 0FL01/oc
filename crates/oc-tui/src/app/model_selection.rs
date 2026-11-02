@@ -100,6 +100,7 @@ impl TuiState {
         let same_route =
             self.chrome.location == previous.chrome.location && self.session == previous.session;
         if same_route {
+            self.agent_restage = previous.agent_restage.take();
             self.provisional_session = previous.provisional_session.take();
             self.pending = previous.pending.take();
             self.submission_intent = previous.submission_intent.take();
@@ -192,10 +193,16 @@ impl TuiState {
         // first so its per-agent model drafts below match the same binding.
         if let Some(draft) = previous.agent_draft.take()
             && self.agent_draft.is_none()
+            && self.agent_restage.is_none()
             && self.session == previous.session
             && self.active_agent.as_deref() != draft.agent_id.as_deref()
         {
-            let _ = self.apply_agent_preview(draft);
+            let id = draft.agent_id.clone();
+            if self.apply_agent_preview(draft).is_err()
+                && let Some(id) = id
+            {
+                self.agent_restage = Some((id, previous.agent_draft_revision));
+            }
         }
         if same_route {
             // Reconstructing a local preview is not a new user selection. Keep

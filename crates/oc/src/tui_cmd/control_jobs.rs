@@ -25,12 +25,26 @@ struct Prepared {
     ancestry: HashMap<SessionId, Vec<SessionId>>,
     parents: HashMap<SessionId, Option<SessionId>>,
 }
+#[derive(Clone, PartialEq, Eq)]
+struct PermissionTarget {
+    identity: Option<u64>,
+    location: String,
+    generation: u64,
+    auto: bool,
+    preference: Option<bool>,
+}
+struct Permission {
+    target: PermissionTarget,
+    job: tokio::task::JoinHandle<Result<(), CoreError>>,
+}
 
 /// A session's parent is fixed at creation; bound the memo, not its validity.
 const MAX_PARENT_MEMO: usize = 1024;
 
 #[derive(Default)]
 pub(super) struct Controls {
+    permission: Option<Permission>,
+    permission_latest: Option<PermissionTarget>,
     dirty: bool,
     job: Option<tokio::task::JoinHandle<Result<Prepared, CoreError>>>,
     effects: HashMap<u64, Mutation>,
@@ -41,7 +55,6 @@ pub(super) struct Controls {
 enum Reply {
     Approval,
     Question(Box<oc_core::question::QuestionReply>),
-    Permission(bool),
 }
 struct Mutation {
     fence: Fence,
@@ -50,18 +63,93 @@ struct Mutation {
 }
 
 impl Controls {
+    pub(super) async fn reattached(&mut self) {
+        if let Some(permission) = self.permission.take() {
+            permission.job.abort();
+            let _ = permission.job.await;
+        }
+        self.permission_latest = None;
+    }
     pub(super) fn request(&mut self) {
         self.dirty = true;
     }
     pub(super) fn owns(&self, view: &TuiState) -> bool {
         self.effects.contains_key(&view.view_identity().0)
+            || self
+                .permission
+                .as_ref()
+                .is_some_and(|p| p.target.identity == Some(view.view_identity().0))
     }
     pub(super) fn pending(&self) -> bool {
-        !self.effects.is_empty() || self.job.is_some() || self.dirty
+        !self.effects.is_empty() || self.job.is_some() || self.dirty || self.permission.is_some()
     }
     pub(super) fn ready(&self) -> bool {
         self.effects.values().any(|effect| effect.job.is_finished())
             || self.job.as_ref().is_some_and(|job| job.is_finished())
+            || self
+                .permission
+                .as_ref()
+                .is_some_and(|p| p.job.is_finished())
+    }
+
+    pub(super) fn adopt_permissions(
+        &mut self,
+        app: &CoreApp,
+        location: Option<&str>,
+        cli: bool,
+        confirmed: Option<bool>,
+        catalog: &CatalogSnapshot,
+    ) {
+        let Some(location) = location else {
+            return;
+        };
+        if catalog.chrome.location.as_deref() != Some(location)
+            || catalog.auto_accept == oc_core::queries::AutoAcceptState::Unsupported
+        {
+            return;
+        }
+        let target = PermissionTarget {
+            identity: None,
+            location: location.to_owned(),
+            generation: catalog.chrome.selection_generation,
+            auto: cli || catalog.chrome.permissions_auto,
+            preference: None,
+        };
+        // A canonical read from before a user's setting must not undo it while
+        // persistence/watch publication catches up.
+        if self.permission_latest.as_ref().is_some_and(|latest| {
+            latest.location == target.location
+                && (latest.generation > target.generation
+                    || latest.generation == target.generation && latest.preference.is_some())
+        }) {
+            return;
+        }
+        if self.permission.is_none() && confirmed == Some(target.auto) {
+            self.permission_latest = Some(target);
+            return;
+        }
+        self.permission_request(app, target, cli);
+    }
+
+    fn permission_request(&mut self, app: &CoreApp, target: PermissionTarget, cli: bool) {
+        self.permission_latest = Some(target.clone());
+        if self.permission.is_some() {
+            return;
+        }
+        let owner = app.clone();
+        let captured = target.clone();
+        self.permission = Some(Permission {
+            target,
+            job: oc_core::wake::spawn(async move {
+                if let Some(preference) = captured.preference {
+                    owner
+                        .set_permission_mode_with_cli_auto(preference, cli)
+                        .await
+                } else {
+                    owner.register_approval_consumer(captured.auto).await
+                }
+            }),
+        });
     }
     pub(super) fn reply(
         &mut self,
@@ -70,6 +158,25 @@ impl Controls {
         intent: PanelIntent,
         cli: bool,
     ) -> Result<(), String> {
+        if let PanelIntent::SetPermissionMode { auto_once } = intent {
+            let location = view
+                .chrome
+                .location
+                .clone()
+                .ok_or("permission Location unavailable")?;
+            self.permission_request(
+                app,
+                PermissionTarget {
+                    identity: Some(view.view_identity().0),
+                    location,
+                    generation: view.chrome.selection_generation,
+                    auto: auto_once || cli,
+                    preference: Some(auto_once),
+                },
+                cli,
+            );
+            return Ok(());
+        }
         let fence = fence(view);
         let key = fence.identity.0;
         if self.effects.contains_key(&key) || self.effects.len() >= MAX_TABS + 17 {
@@ -98,15 +205,6 @@ impl Controls {
                     }),
                 )
             }
-            PanelIntent::SetPermissionMode { auto_once } => (
-                Reply::Permission(auto_once),
-                oc_core::wake::spawn(async move {
-                    owner
-                        .set_permission_mode_with_cli_auto(auto_once, cli)
-                        .await
-                        .map_err(|error| error.to_string())
-                }),
-            ),
             _ => unreachable!("control reply lane"),
         };
         self.effects.insert(key, Mutation { fence, reply, job });
@@ -115,6 +213,54 @@ impl Controls {
 
     async fn sync(&mut self, app: &CoreApp, state: &mut TuiState, deck: &mut LoopState) -> bool {
         let mut changed = false;
+        if self
+            .permission
+            .as_ref()
+            .is_some_and(|p| p.job.is_finished())
+        {
+            let permission = self.permission.take().expect("finished permission ACK");
+            let result = permission.job.await.unwrap_or(Err(CoreError::Shutdown));
+            if let Some(next) = self.permission_latest.clone().filter(|latest| {
+                latest.location != permission.target.location
+                    || latest.auto != permission.target.auto
+                    || latest.preference.is_some()
+                        && latest.preference != permission.target.preference
+            }) {
+                self.permission_request(app, next, deck.cli_auto);
+            } else if deck.location.as_deref() == Some(permission.target.location.as_str()) {
+                match result {
+                    Ok(()) => {
+                        deck.permission_auto = Some(permission.target.auto);
+                        let preference = self
+                            .permission_latest
+                            .as_ref()
+                            .and_then(|latest| latest.preference);
+                        for view in read_jobs::views_mut(state, deck) {
+                            if view.chrome.location.as_deref()
+                                != Some(permission.target.location.as_str())
+                                || view.parent_id.is_some()
+                            {
+                                continue;
+                            }
+                            if let Some(preference) = preference {
+                                view.chrome.permissions_auto = preference;
+                            }
+                            if view.auto_accept != oc_core::queries::AutoAcceptState::Unsupported {
+                                view.auto_accept = if permission.target.auto {
+                                    oc_core::queries::AutoAcceptState::Enabled
+                                } else {
+                                    oc_core::queries::AutoAcceptState::Disabled
+                                };
+                            }
+                            view.permission_mode_applied();
+                        }
+                    }
+                    Err(error) => state.push_note(&format!("Permission mode unchanged: {error}")),
+                }
+            }
+            self.request();
+            changed = true;
+        }
         let finished: Vec<_> = self
             .effects
             .iter()
@@ -127,29 +273,7 @@ impl Controls {
                 .job
                 .await
                 .unwrap_or_else(|_| Err("control outcome unknown".into()));
-            if let Reply::Permission(auto) = effect.reply {
-                if result.is_ok()
-                    && state.chrome.location == effect.fence.location
-                    && state.chrome.selection_generation == effect.fence.generation
-                {
-                    let effective = auto || deck.cli_auto;
-                    deck.permission_auto = Some(effective);
-                    for view in read_jobs::views_mut(state, deck) {
-                        view.chrome.permissions_auto = auto;
-                        view.auto_accept = if effective {
-                            oc_core::queries::AutoAcceptState::Enabled
-                        } else {
-                            oc_core::queries::AutoAcceptState::Disabled
-                        };
-                        view.permission_mode_applied();
-                    }
-                } else if let Err(error) = &result
-                    && let Some(view) =
-                        read_jobs::views_mut(state, deck).find(|view| view.view_identity().0 == key)
-                {
-                    view.push_note(&format!("Permission mode unchanged: {error}"));
-                }
-            } else if let Some(view) = read_jobs::views_mut(state, deck).find(|view| {
+            if let Some(view) = read_jobs::views_mut(state, deck).find(|view| {
                 view.view_identity().0 == key
                     && view.chrome.location == effect.fence.location
                     && tab_route_session(view) == effect.fence.session.as_ref()
@@ -163,7 +287,6 @@ impl Controls {
                             view.approvals.error = Some(error.to_string());
                         }
                     }
-                    Reply::Permission(_) => unreachable!(),
                 }
             }
             self.request();

@@ -237,7 +237,9 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
         crate::config::mcp::safe_source_id(&policy.to_string_lossy())
     );
     Fixture::safe(&diagnostic);
-    assert_eq!(app.catalog().await.unwrap(), complete);
+    let mut failed = app.catalog().await.unwrap();
+    assert_eq!(failed.chrome.service_diagnostics.pop(), Some(diagnostic));
+    assert_eq!(failed, complete);
     assert_eq!(
         app.file_suggestions("".into(), 1).await.unwrap().generation,
         suggestions.generation

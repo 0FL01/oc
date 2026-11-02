@@ -8,6 +8,7 @@ use tokio::time::Instant;
 type Waiter = oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>;
 
 pub(in crate::application) enum Ready {
+    Rewatch,
     Build {
         result: Result<Candidate, CoreError>,
         force: bool,
@@ -53,7 +54,35 @@ pub(in crate::application) struct Coordinator {
     rearm: bool,
     due: Option<Instant>,
     waiters: Vec<Waiter>,
-    failure: Option<CoreError>,
+}
+
+fn reload_issue(error: &CoreError) -> oc_core::queries::ServiceDiagnostic {
+    match error {
+        CoreError::LocationSwitch {
+            diagnostic: Some(d),
+            ..
+        }
+        | CoreError::ProviderUnavailable(d)
+        | CoreError::Diagnostic(d) => d.clone(),
+        _ => crate::config::diagnostic::failure(
+            "native source reload",
+            &["reload"],
+            oc_core::queries::ServiceStage::Admission,
+            oc_core::queries::ServiceCode::SourceUnavailable,
+            oc_core::queries::ServiceAction::ReviewConfiguration,
+        ),
+    }
+}
+
+fn set_issue(
+    composition: &mut Composition,
+    issue: Option<oc_core::queries::ServiceDiagnostic>,
+    events: &broadcast::Sender<CoreEvent>,
+) {
+    if composition.reload_issue != issue {
+        composition.reload_issue = issue;
+        let _ = events.send(CoreEvent::ProviderChanged);
+    }
 }
 
 impl Coordinator {
@@ -101,11 +130,21 @@ impl Coordinator {
         &mut self,
         db: &Db,
         runtime: &Runtime<'_>,
-        composition: &Composition,
+        composition: &mut Composition,
+        events: &broadcast::Sender<CoreEvent>,
     ) {
         if self.build.is_some() || !self.pending || self.due.is_some_and(|due| due > Instant::now())
         {
             return;
+        }
+        if self.watch.is_none() && self.location.is_some() {
+            match composition::SourceWatch::start(&composition.watch_inputs) {
+                Ok(watch) => self.watch = Some(watch),
+                Err(diagnostic) => {
+                    self.restart_failed(composition, events, diagnostic);
+                    return;
+                }
+            }
         }
         let Some(watch) = &self.watch else {
             return;
@@ -155,7 +194,7 @@ impl Coordinator {
         };
         tokio::select! {
             change = watch.changed() => {
-                if change.failed { return Err(crate::config::diagnostic::failure("native source observer", &["watch"], oc_core::queries::ServiceStage::Admission, oc_core::queries::ServiceCode::SourceUnavailable, oc_core::queries::ServiceAction::ReviewConfiguration)); }
+                if change.failed { return Ok(Some(Ready::Rewatch)); }
                 self.pending = true;
                 self.rearm |= change.rearm;
                 // An automatic event cannot weaken an accumulated explicit force.
@@ -187,6 +226,37 @@ impl Coordinator {
         active: Option<(&str, &Effective)>,
     ) -> Result<Option<Receipt>, oc_core::queries::ServiceDiagnostic> {
         let ready = match ready {
+            Ready::Rewatch => {
+                if let Some(build) = self.build.take() {
+                    build.task.abort();
+                    if let Err(error) = build.task.await
+                        && !error.is_cancelled()
+                    {
+                        return Err(crate::config::diagnostic::failure(
+                            "native source build",
+                            &["join"],
+                            oc_core::queries::ServiceStage::Admission,
+                            oc_core::queries::ServiceCode::SourceUnavailable,
+                            oc_core::queries::ServiceAction::ReviewConfiguration,
+                        ));
+                    }
+                    self.waiters.extend(build.waiters);
+                    self.force |= build.force;
+                }
+                if let Some(watch) = self.watch.take() {
+                    let _ = watch.shutdown().await;
+                }
+                match composition::SourceWatch::start(&composition.watch_inputs) {
+                    Ok(watch) => {
+                        self.watch = Some(watch);
+                        self.pending = true;
+                        self.due = Some(Instant::now());
+                        self.rearm = false;
+                    }
+                    Err(diagnostic) => self.restart_failed(composition, events, diagnostic),
+                }
+                return Ok(None);
+            }
             Ready::Follow(snapshot) => {
                 let next = snapshot.composition.primary_snapshot().map_err(|_| {
                     runtime_issue(
@@ -259,7 +329,7 @@ impl Coordinator {
             self.waiters.extend(waiters);
             return Ok(None);
         }
-        let result = match result {
+        let mut result = match result {
             Ok(candidate) => {
                 let observation = self.watch.as_ref().expect("live observation").observation();
                 // Keep candidate publication state out of each caller's active
@@ -285,12 +355,37 @@ impl Coordinator {
         if settle_interactions && result.is_ok() {
             runtime.reload_pending_interactions();
         }
-        self.failure = result.as_ref().err().cloned();
+        match &result {
+            Ok(_) => set_issue(composition, None, events),
+            Err(error) if error != &superseded() => {
+                set_issue(composition, Some(reload_issue(error)), events);
+            }
+            Err(_) => {}
+        }
+        if let Ok(snapshot) = &mut result {
+            snapshot.catalog = effective.snapshot(composition, snapshot.generation);
+        }
         Ok(Some(Receipt {
             result,
             waiters,
             explicit: force,
         }))
+    }
+
+    fn restart_failed(
+        &mut self,
+        composition: &mut Composition,
+        events: &broadcast::Sender<CoreEvent>,
+        diagnostic: oc_core::queries::ServiceDiagnostic,
+    ) {
+        for waiter in self.waiters.drain(..) {
+            let _ = waiter.send(Err(CoreError::Diagnostic(diagnostic.clone())));
+        }
+        self.pending = false;
+        self.force = false;
+        self.due = None;
+        self.rearm = false;
+        set_issue(composition, Some(diagnostic), events);
     }
 
     pub(in crate::application) async fn shutdown(

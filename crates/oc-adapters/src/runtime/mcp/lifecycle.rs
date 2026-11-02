@@ -8,6 +8,9 @@ use oc_core::queries::{
 };
 use tokio::sync::{Notify, mpsc, oneshot};
 use tokio::task::{JoinHandle, JoinSet};
+use tokio::time::Instant;
+
+const STARTUP_GRACE: Duration = Duration::from_secs(2);
 
 mod lookups;
 mod reconcile;
@@ -90,6 +93,7 @@ enum Command {
     Request {
         ack: RequestAck,
         operation: bool,
+        requested_at: Instant,
     },
     Retire {
         poisoned: bool,
@@ -112,10 +116,25 @@ struct Node {
     source: String,
     desired: bool,
     cancel: Option<Arc<AtomicBool>>,
+    connect_started: Option<Instant>,
     closing: bool,
     replacing: bool,
     catalogs: [Option<oc_core::queries::McpLookupData>; 3],
     catalog_pending: [bool; 3],
+}
+
+impl Node {
+    fn startup_deadline(&self, requested_at: Instant, now: Instant) -> Option<Instant> {
+        self.connect_started
+            .filter(|start| {
+                self.desired
+                    && self.row.configured_enabled
+                    && self.row.status == McpStatus::Pending
+                    && *start <= requested_at
+                    && now < *start + STARTUP_GRACE
+            })
+            .map(|start| start + STARTUP_GRACE)
+    }
 }
 
 enum WorkResult {
@@ -146,7 +165,7 @@ struct Scope {
     /// Every connecting/live/retiring physical incarnation occupies one slot
     /// until its connect failure or successful close has actually been joined.
     instances: Vec<(String, Arc<()>)>,
-    requests: Vec<(RequestAck, bool)>,
+    requests: Vec<(RequestAck, bool, Instant)>,
     retirements: Vec<Retirement>,
     lookups: Vec<LookupActive>,
     fatal: Option<RuntimeError>,
@@ -551,7 +570,11 @@ impl McpOwner {
         // its reply, never the lifetime of another turn's admitted clients.
         let (ack, mut reply) = oneshot::channel();
         sender
-            .send(Command::Request { ack, operation })
+            .send(Command::Request {
+                ack,
+                operation,
+                requested_at: Instant::now(),
+            })
             .await
             .map_err(|_| RuntimeError::McpShutdown)?;
         loop {
@@ -637,6 +660,7 @@ impl Scope {
         let node = self.nodes.get_mut(server).expect("MCP node");
         node.incarnation = incarnation.clone();
         node.cancel = Some(cancel.clone());
+        node.connect_started = Some(Instant::now());
         node.replacing = false;
         self.instances.push((server.into(), incarnation.clone()));
         let server = server.to_string();
@@ -761,6 +785,7 @@ impl Scope {
         }
         let node = self.nodes.get_mut(server).expect("MCP node");
         node.desired = false;
+        node.connect_started = None;
         node.row.pending_action = Some(McpAction::Disconnect);
         node.row.status = McpStatus::Pending;
         if let Some(cancel) = &node.cancel {
@@ -826,7 +851,7 @@ impl Scope {
         for server in names {
             self.stop_server(&server);
         }
-        for (ack, _) in self.requests.drain(..) {
+        for (ack, _, _) in self.requests.drain(..) {
             let _ = ack.send(Err(RuntimeError::Cancelled));
         }
         // Empty inventory has no service state to retire. In particular a
@@ -885,10 +910,16 @@ impl Scope {
                 _ => {}
             }
             self.drain_retiring();
-            self.release_requests();
+            self.release_requests(Instant::now());
             return;
         }
         // Admit a prospective catalog before mutating the published generation.
+        if !completed.refresh {
+            self.nodes
+                .get_mut(&server)
+                .expect("MCP completion scope")
+                .connect_started = None;
+        }
         // Rejected new clients close through the existing joined worker path;
         // rejected relists retain the previous complete registry and its leases.
         if self.nodes[&server].desired && !self.nodes[&server].replacing && !self.stopping {
@@ -945,7 +976,7 @@ impl Scope {
                 self.fatal = Some(RuntimeError::McpShutdown);
                 self.begin_stop();
             }
-            self.release_requests();
+            self.release_requests(Instant::now());
             self.drain_retiring();
             return;
         }
@@ -1051,8 +1082,8 @@ impl Scope {
         self.drain_retiring();
     }
 
-    fn request(&mut self, ack: RequestAck, operation: bool) {
-        self.requests.retain(|(reply, _)| !reply.is_closed());
+    fn request(&mut self, ack: RequestAck, operation: bool, requested_at: Instant) {
+        self.requests.retain(|(reply, _, _)| !reply.is_closed());
         if ack.is_closed() {
             return;
         }
@@ -1112,11 +1143,11 @@ impl Scope {
                 }
             });
         }
-        self.requests.push((ack, operation));
-        self.release_requests();
+        self.requests.push((ack, operation, requested_at));
+        self.release_requests(Instant::now());
     }
 
-    fn release_requests(&mut self) {
+    fn release_requests(&mut self, now: Instant) {
         if self.nodes.values().any(|node| {
             node.cancel.is_some() && node.row.status == McpStatus::Connected
                 || node.suspended && node.desired
@@ -1124,13 +1155,26 @@ impl Scope {
             return;
         }
         let publication = self.shared.publication.read().expect("MCP publication");
-        for (ack, _) in self.requests.drain(..) {
+        let mut pending = Vec::new();
+        for (ack, operation, requested_at) in self.requests.drain(..) {
+            if ack.is_closed() {
+                continue;
+            }
+            if self
+                .nodes
+                .values()
+                .any(|node| node.startup_deadline(requested_at, now).is_some())
+            {
+                pending.push((ack, operation, requested_at));
+                continue;
+            }
             let result = self
                 .fatal
                 .clone()
                 .map_or_else(|| Ok(publication.request.clone()), Err);
             let _ = ack.send(result);
         }
+        self.requests = pending;
     }
 
     fn retire(&mut self, poisoned: bool, ack: RetireAck) {
@@ -1147,7 +1191,7 @@ impl Scope {
                 || self
                     .requests
                     .iter()
-                    .any(|(reply, operation)| !operation && !reply.is_closed())
+                    .any(|(reply, operation, _)| !operation && !reply.is_closed())
                 || !self.lookups.is_empty())
         {
             let _ = ack.send(Ok(()));
@@ -1196,6 +1240,7 @@ impl Scope {
         if wait {
             self.retirements.push((incarnations, ack));
             self.release_retirements();
+            self.release_requests(Instant::now());
         } else {
             let _ = ack.send(Ok(()));
         }
@@ -1302,10 +1347,25 @@ impl Scope {
             }
             self.pump_replacements();
             self.release_retirements();
+            // One cutoff for release and timer admission avoids losing a grace
+            // expiry between two clock samples (including scheduler preemption).
+            let now = Instant::now();
+            self.release_requests(now);
             if self.stopping && self.work.is_empty() && self.retiring.is_empty() {
                 break;
             }
+            let startup_deadline = self
+                .requests
+                .iter()
+                .filter(|(ack, _, _)| !ack.is_closed())
+                .flat_map(|(_, _, requested_at)| {
+                    self.nodes
+                        .values()
+                        .filter_map(|node| node.startup_deadline(*requested_at, now))
+                })
+                .min();
             tokio::select! {
+                () = async { tokio::time::sleep_until(startup_deadline.expect("guarded startup deadline")).await }, if startup_deadline.is_some() => {},
                 _ = self.shared.wake.notified() => { self.drain_retiring(); },
                 result = self.work.join_next(), if !self.work.is_empty() => {
                     match result {
@@ -1313,7 +1373,7 @@ impl Scope {
                         Some(Err(_)) => { self.fatal = Some(RuntimeError::McpShutdown); self.begin_stop(); },
                         None => {},
                     }
-                    self.release_requests();
+                    self.release_requests(Instant::now());
                     self.release_retirements();
                 },
                 command = controls.recv(), if !self.stopping => match command {
@@ -1322,7 +1382,7 @@ impl Scope {
                         let _ = ack.send(result);
                     },
                     Some(Command::Control { control, ack }) => self.control(control, ack),
-                    Some(Command::Request { ack, operation }) => self.request(ack, operation),
+                    Some(Command::Request { ack, operation, requested_at }) => self.request(ack, operation, requested_at),
                     Some(Command::Retire { poisoned, ack }) => self.retire(poisoned, ack),
                     Some(Command::Lookup { query, cancel, ack }) => self.lookup(query, cancel, ack),
                     None => self.begin_stop(),

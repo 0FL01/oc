@@ -79,12 +79,11 @@ Rust admission tests проверяют настоящий `examples/opencode.js
 
 ## Hot reload
 
-Оставшийся [scope](goals/2026-10-14-hot-reload-shared-service.md) проверяется composed owner/runtime/MCP и actual-binary сценариями, не helper-only watcher test.
+Поддерживаемый [scope и divergences](goals/2026-11-02-hot-reload-ts-parity.md) проверяются composed owner/runtime/MCP и actual-binary сценариями, не helper-only watcher test.
 
 - Атомарная validation/publication, last-good при fatal candidate, immutable issued request/full batch/approval и fresh-request adoption той же задачи; RAW/HOT/no replay сохраняются.
-- Один debounced watch/manual coordinator и persistent MCP owner: unchanged reuse, changed retirement по issued leases, fencing late completion, sticky quarantine и подтверждённый cleanup без generation-owned chains.
-- Client settings: theme/binding subset, palette propagation, captured inline client env и отсутствие draft/selection/live-state reset или provider/MCP rebuild.
-- HOT01/HOT02/HOT04 ещё не квалифицированы целиком; HOT03 descoped и не возвращается shared owner. Отложенная работа не стартует автоматически.
+- Watched config/definitions и `cli.json(c)` применяются автоматически; `/reload` форсирует discovery/reconnect. Settled unchanged provider и MCP переиспользуются; при startup Pending допустим один дополнительный bounded discovery cycle с существующими retries. MCP fresh-request grace — до 2s от старта уже начатой попытки; ошибки reload видны, observer восстанавливается.
+- Client settings: keybinds/chrome/permissions, staged agent re-preview, Skills/DCP invalidation; без reset draft/selection/live-state. Theme/`tui.json`, изменение открытого session picker scope и child security ceiling не входят; offline evidence не означает full live/visual qualification.
 
 ## E2E06 — real-user startup
 

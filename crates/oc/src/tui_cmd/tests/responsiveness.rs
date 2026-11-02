@@ -1,6 +1,60 @@
 use super::*;
 
 #[tokio::test]
+async fn hot_reload_dcp_refusal_is_re_admitted_at_owner_after_source_change() {
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let session = SessionId("reload-dcp".into());
+    let mut state = TuiState::new(app.clone(), session.clone());
+    let mut source = catalog();
+    source.chrome.selection_generation = 1;
+    state.apply_catalog(source.clone());
+    let mut cached = oc_core::queries::DcpSnapshot::default();
+    cached.availability.manual_refusal = Some(oc_core::dcp_view::DcpUnavailable::CompressOff);
+    state.apply_dcp_snapshot(cached);
+    let mut deck = LoopState::default();
+    assert!(
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::Compress {
+                focus: String::new()
+            }
+        )
+        .await
+        .is_err()
+    );
+    assert!(inbox.try_recv().is_err());
+    // compress.enabled is owner policy, not display chrome: only the source
+    // generation changes in the catalog received by this client.
+    source.chrome.selection_generation = 2;
+    state.apply_catalog_refresh(source);
+    after_catalog_adopt(&app, &mut state, &mut deck.catalogs, &mut deck.resources);
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::Compress {
+            focus: "fresh policy".into(),
+        },
+    )
+    .await
+    .unwrap();
+    let InboxMsg::Compress {
+        session: target,
+        focus,
+        ack,
+    } = inbox.recv().await.unwrap()
+    else {
+        panic!("owner compression admission");
+    };
+    assert_eq!(target, session);
+    assert_eq!(focus, "fresh policy");
+    ack.send(Err(CoreError::TurnBusy)).unwrap();
+    state.poll_submission();
+}
+
+#[tokio::test]
 async fn held_mcp_status_does_not_block_control_or_allow_duplicate_effects() {
     use oc_core::queries::{McpAction, McpBinding, McpControl, McpSnapshot};
     let (app, mut inbox, _) = CoreApp::channel(4);

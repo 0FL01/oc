@@ -69,7 +69,20 @@ async fn dcp12_commands_unregistered_completion_palette_dispatch_and_restored() 
     assert!(panel.intent.is_none());
     assert_eq!(panel.note.as_deref(), Some("compression disabled"));
     assert_eq!(state.status(), &TuiStatus::Idle);
+    let mut changed_source = super::snapshot();
+    changed_source.chrome.selection_generation += 1;
+    state.apply_catalog(changed_source);
+    assert!(
+        state
+            .run_command(CommandAction::DcpCompress {
+                focus: String::new()
+            })
+            .intent
+            .is_some(),
+        "source change must re-admit at owner even without display chrome/profile changes"
+    );
     let mut changed_profile = super::snapshot();
+    changed_profile.chrome.selection_generation += 1;
     changed_profile.agent_id = Some("replacement-profile".into());
     state.apply_catalog(changed_profile);
     assert_eq!(

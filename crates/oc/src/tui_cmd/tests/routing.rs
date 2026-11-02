@@ -2241,6 +2241,312 @@ async fn home_model_pick_outlives_a_restart_over_the_configured_model() {
 }
 
 #[tokio::test]
+async fn hot_reload_permissions_are_attachment_scoped_serial_and_latest_wins() {
+    let (app, mut inbox, _) = CoreApp::channel(16);
+    let (registrations, mut received) = tokio::sync::mpsc::unbounded_channel();
+    let peer = tokio::spawn(async move {
+        while let Some(message) = inbox.recv().await {
+            match message {
+                InboxMsg::RegisterApprovalConsumer {
+                    auto_once,
+                    preference,
+                    ack,
+                    ..
+                } => {
+                    registrations.send((auto_once, preference, ack)).unwrap();
+                }
+                InboxMsg::PendingApprovals { ack } => {
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                InboxMsg::PendingQuestions { ack } => {
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                _ => panic!("unexpected permission consumer query"),
+            }
+        }
+    });
+    let mut state = TuiState::new_home(app.clone());
+    let mut source = catalog();
+    source.chrome.location = Some("/fixture".into());
+    source.auto_accept = AutoAcceptState::Disabled;
+    state.apply_catalog(source.clone());
+    let mut deck = LoopState {
+        location: source.chrome.location.clone(),
+        permission_auto: Some(false),
+        ..Default::default()
+    };
+    source.chrome.selection_generation = 2;
+    source.chrome.permissions_auto = true;
+    deck.controls.adopt_permissions(
+        &app,
+        deck.location.as_deref(),
+        false,
+        deck.permission_auto,
+        &source,
+    );
+    let (auto, preference, old_ack) = received.recv().await.unwrap();
+    assert!(auto);
+    assert_eq!(preference, None, "watch does not persist a preference");
+    source.chrome.selection_generation = 3;
+    source.chrome.permissions_auto = false;
+    deck.controls.adopt_permissions(
+        &app,
+        deck.location.as_deref(),
+        false,
+        deck.permission_auto,
+        &source,
+    );
+    assert!(
+        received.try_recv().is_err(),
+        "registrations must be serialized, not just ACK-fenced"
+    );
+    old_ack.send(Ok(())).unwrap();
+    let (auto, preference, ack) = tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            control_jobs::sync(&app, &mut state, &mut deck).await;
+            if let Ok(registration) = received.try_recv() {
+                break registration;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!auto);
+    assert_eq!(preference, None);
+    assert_eq!(
+        deck.permission_auto,
+        Some(false),
+        "late auto ACK did not change projection"
+    );
+    ack.send(Ok(())).unwrap();
+    settle_controls(&app, &mut state, &mut deck).await;
+    assert_eq!(state.auto_accept, AutoAcceptState::Disabled);
+    for (generation, cli, preference, effective) in [
+        (4, false, true, true),
+        (5, false, false, false),
+        (6, true, false, true),
+    ] {
+        deck.cli_auto = cli;
+        source.chrome.selection_generation = generation;
+        source.chrome.permissions_auto = preference;
+        deck.controls.adopt_permissions(
+            &app,
+            deck.location.as_deref(),
+            cli,
+            deck.permission_auto,
+            &source,
+        );
+        let (auto, saved, ack) = received.recv().await.unwrap();
+        assert_eq!(auto, effective);
+        assert_eq!(saved, None);
+        ack.send(Ok(())).unwrap();
+        settle_controls(&app, &mut state, &mut deck).await;
+        assert_eq!(deck.permission_auto, Some(effective));
+    }
+    source.auto_accept = AutoAcceptState::Unsupported;
+    source.chrome.permissions_auto = true;
+    deck.controls
+        .adopt_permissions(&app, deck.location.as_deref(), false, Some(false), &source);
+    source.auto_accept = AutoAcceptState::Enabled;
+    source.chrome.location = Some("/foreign".into());
+    deck.controls
+        .adopt_permissions(&app, deck.location.as_deref(), false, Some(false), &source);
+    tokio::task::yield_now().await;
+    assert!(received.try_recv().is_err());
+    peer.abort();
+    let _ = peer.await;
+}
+
+#[tokio::test]
+async fn hot_reload_agent_preview_tracks_latest_source_and_user_revision() {
+    for shared_first in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app.clone(), SessionId("restage".into()));
+        let mut source = catalog();
+        source.chrome.location = Some("/fixture".into());
+        source.chrome.selection_generation = 1;
+        source.agent_id = Some("build".into());
+        source.models.push(oc_core::queries::ModelEntry {
+            id: source.model_id.clone(),
+            ..Default::default()
+        });
+        state.apply_catalog(source.clone());
+        let mut preview = source.clone();
+        preview.agent_id = Some("plan".into());
+        state.apply_agent_preview(preview.clone()).unwrap();
+        let mut deck = LoopState::default();
+        deck.catalogs
+            .request(&app, &mut state, catalog_jobs::Request::Provider);
+        let InboxMsg::SessionSelection { ack: provider, .. } = inbox.recv().await.unwrap() else {
+            panic!("provider read");
+        };
+        source.chrome.selection_generation = 2;
+        if shared_first {
+            state.apply_catalog_refresh(source.clone());
+            after_catalog_adopt(&app, &mut state, &mut deck.catalogs, &mut deck.resources);
+        }
+        provider.send(Ok(source.clone())).unwrap();
+        let g2 = tokio::time::timeout(Duration::from_secs(1), async {
+            loop {
+                catalog_jobs::sync(&app, &mut state, &mut deck).await;
+                if let Ok(message) = inbox.try_recv() {
+                    break message;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        let InboxMsg::SessionSelection {
+            action, ack: g2, ..
+        } = g2
+        else {
+            panic!("restaged preview");
+        };
+        assert_eq!(action, SelectionAction::Preview("plan".into()));
+        // Shared adoption advances again while G2 Preview is still held.
+        source.chrome.selection_generation = 3;
+        state.apply_catalog_refresh(source.clone());
+        after_catalog_adopt(&app, &mut state, &mut deck.catalogs, &mut deck.resources);
+        preview.chrome.selection_generation = 2;
+        g2.send(Ok(preview.clone())).unwrap();
+        let g3 = tokio::time::timeout(Duration::from_secs(1), async {
+            loop {
+                catalog_jobs::sync(&app, &mut state, &mut deck).await;
+                if let Ok(message) = inbox.try_recv() {
+                    break message;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        let InboxMsg::SessionSelection { action, ack, .. } = g3 else {
+            panic!("latest preview");
+        };
+        assert_eq!(action, SelectionAction::Preview("plan".into()));
+        preview.chrome.selection_generation = 3;
+        ack.send(Ok(preview.clone())).unwrap();
+        settle_catalog(&app, &mut state, &mut deck).await;
+        assert_eq!(state.staged_agent().as_deref(), Some("plan"));
+        assert_eq!(state.captured_model_commit().unwrap().binding.generation, 3);
+        // A removed agent is the one failure that drops the logical intent.
+        source.chrome.selection_generation = 4;
+        state.apply_catalog_refresh(source.clone());
+        after_catalog_adopt(&app, &mut state, &mut deck.catalogs, &mut deck.resources);
+        let InboxMsg::SessionSelection { ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("removed preview");
+        };
+        let issue = oc_core::queries::ServiceDiagnostic {
+            kind: oc_core::queries::ServiceKind::Selection,
+            service: "agent".into(),
+            source: "fixture".into(),
+            field: vec!["agent".into()],
+            stage: oc_core::queries::ServiceStage::Admission,
+            code: oc_core::queries::ServiceCode::AgentUnavailable,
+            action: oc_core::queries::ServiceAction::ReviewConfiguration,
+            details: None,
+        };
+        ack.send(Err(CoreError::Diagnostic(issue))).unwrap();
+        settle_catalog(&app, &mut state, &mut deck).await;
+        assert_eq!(state.staged_agent(), None);
+        preview.chrome.selection_generation = 4;
+        state.apply_agent_preview(preview.clone()).unwrap();
+        source.chrome.selection_generation = 5;
+        state.apply_catalog_refresh(source.clone());
+        after_catalog_adopt(&app, &mut state, &mut deck.catalogs, &mut deck.resources);
+        let InboxMsg::SessionSelection { ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("held preview");
+        };
+        // A later user selection invalidates an otherwise current restage ACK.
+        state.begin_agent_selection();
+        preview.chrome.selection_generation = 5;
+        preview.agent_id = Some("build".into());
+        state.apply_agent_preview(preview).unwrap();
+        let mut old = source.clone();
+        old.agent_id = Some("plan".into());
+        ack.send(Ok(old)).unwrap();
+        settle_catalog(&app, &mut state, &mut deck).await;
+        assert_eq!(state.staged_agent(), None);
+        assert_eq!(state.composer_agent(), Some("build"));
+        assert!(inbox.try_recv().is_err());
+    }
+}
+
+#[tokio::test]
+async fn hot_reload_skills_fences_old_read_and_refetches_open_panel() {
+    for (open, complete_before) in [(false, false), (false, true), (true, false)] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new_home(app.clone());
+        let mut source = catalog();
+        source.chrome.selection_generation = 1;
+        state.apply_catalog(source.clone());
+        let mut deck = LoopState::default();
+        deck.resources
+            .request(&app, &state, resource_jobs::Request::Skills)
+            .unwrap();
+        let InboxMsg::Skills { ack } = inbox.recv().await.unwrap() else {
+            panic!("old skills");
+        };
+        let old = oc_core::queries::SkillCard {
+            id: "old".into(),
+            name: "old".into(),
+            description: "G1".into(),
+        };
+        if complete_before {
+            ack.send(Ok(vec![old.clone()])).unwrap();
+            settle_resources(&mut state, &mut deck).await;
+        } else {
+            ack.send(Ok(vec![old])).unwrap();
+        }
+        if open {
+            state.handle_paste("/skills");
+            state.handle_key(KeyAction::Enter).await;
+        }
+        source.chrome.selection_generation = 2;
+        state.apply_catalog_refresh(source);
+        after_catalog_adopt(&app, &mut state, &mut deck.catalogs, &mut deck.resources);
+        if !open {
+            state.handle_paste("/skills");
+            state.handle_key(KeyAction::Enter).await;
+            deck.resources
+                .request(&app, &state, resource_jobs::Request::Skills)
+                .unwrap();
+        }
+        let fresh = tokio::time::timeout(Duration::from_secs(1), async {
+            loop {
+                resource_jobs::sync(&mut state, &mut deck).await;
+                if let Ok(message) = inbox.try_recv() {
+                    match message {
+                        InboxMsg::PromptHistory { ack, .. } => {
+                            ack.send(Ok(Vec::new())).unwrap();
+                        }
+                        message => break message,
+                    }
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        let InboxMsg::Skills { ack } = fresh else {
+            panic!("current skills");
+        };
+        ack.send(Ok(vec![oc_core::queries::SkillCard {
+            id: "new".into(),
+            name: "new".into(),
+            description: "G2".into(),
+        }]))
+        .unwrap();
+        settle_resources(&mut state, &mut deck).await;
+        let options = state.modal_options();
+        assert!(options.iter().any(|o| o.title.contains("new")));
+        assert!(options.iter().all(|o| !o.title.contains("old")));
+    }
+}
+
+#[tokio::test]
 async fn selecting_agent_without_a_model_inherits_the_captured_composer_choice() {
     use oc_core::queries::{AgentEntry, ModelEntry, VariantEntry};
 
@@ -4860,6 +5166,19 @@ async fn reattached_owner_reregisters_consumers_and_restarts_the_live_cursor() {
             while let Some(message) = inbox.recv().await {
                 match message {
                     InboxMsg::Catalog { ack } => ack.send(Ok(catalog())).unwrap(),
+                    InboxMsg::SessionSelection { ack, .. } => ack.send(Ok(catalog())).unwrap(),
+                    InboxMsg::McpStatus { ack } => {
+                        ack.send(Ok(oc_core::queries::McpSnapshot {
+                            binding: oc_core::queries::McpBinding {
+                                location: "/fixture".into(),
+                                generation: 1,
+                                instance: 1,
+                            },
+                            revision: 1,
+                            servers: Vec::new(),
+                        }))
+                        .unwrap();
+                    }
                     InboxMsg::RegisterApprovalConsumer { auto_once, ack, .. } => {
                         registered
                             .lock()
@@ -4896,6 +5215,132 @@ async fn reattached_owner_reregisters_consumers_and_restarts_the_live_cursor() {
         deck.tabs.iter().flatten().next().unwrap().note(),
         Some(OWNER_RESTORED)
     );
+}
+
+#[tokio::test]
+async fn hot_reload_owner_reattach_rebases_source_and_permissions_without_losing_agent() {
+    let (app, mut inbox, _) = CoreApp::channel(16);
+    let mut source = catalog();
+    source.chrome.location = Some("/fixture".into());
+    source.chrome.selection_generation = 10;
+    source.chrome.permissions_auto = true;
+    source.auto_accept = AutoAcceptState::Enabled;
+    source.agent_id = Some("build".into());
+    for id in ["build", "plan", "custom"] {
+        source.agents.push(oc_core::queries::AgentEntry {
+            id: id.into(),
+            description: id.into(),
+            color_index: 0,
+            model: None,
+            variant: None,
+        });
+    }
+    source.models.push(oc_core::queries::ModelEntry {
+        id: source.model_id.clone(),
+        ..Default::default()
+    });
+    let mut state = TuiState::new(app.clone(), SessionId("reattach-generation".into()));
+    state.apply_catalog(source.clone());
+    let mut preview = source.clone();
+    preview.agent_id = Some("plan".into());
+    state.apply_agent_preview(preview).unwrap();
+    let mut deck = LoopState {
+        location: source.chrome.location.clone(),
+        permission_auto: Some(true),
+        ..Default::default()
+    };
+    deck.controls.adopt_permissions(
+        &app,
+        deck.location.as_deref(),
+        false,
+        deck.permission_auto,
+        &source,
+    );
+    deck.catalogs.request(
+        &app,
+        &mut state,
+        catalog_jobs::Request::Selection {
+            action: SelectionAction::Preview("custom".into()),
+            preview: true,
+            fallback: None,
+        },
+    );
+    let InboxMsg::SessionSelection { ack: old, .. } = inbox.recv().await.unwrap() else {
+        panic!("old catalog receipt");
+    };
+    let mut retired = source.clone();
+    retired.agent_id = Some("custom".into());
+    source.chrome.selection_generation = 1;
+    source.chrome.conversation_shortcuts.leader = "ctrl+g".into();
+    let current = std::sync::Arc::new(std::sync::Mutex::new(source));
+    let registered = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let owner = tokio::spawn({
+        let current = current.clone();
+        let registered = registered.clone();
+        async move {
+            while let Some(message) = inbox.recv().await {
+                match message {
+                    InboxMsg::Catalog { ack } => {
+                        ack.send(Ok(current.lock().unwrap().clone())).unwrap();
+                    }
+                    InboxMsg::SessionSelection { action, ack, .. } => {
+                        let mut catalog = current.lock().unwrap().clone();
+                        if let SelectionAction::Preview(id) = action {
+                            catalog.agent_id = Some(id);
+                        }
+                        ack.send(Ok(catalog)).unwrap();
+                    }
+                    InboxMsg::RegisterApprovalConsumer { auto_once, ack, .. } => {
+                        registered.lock().unwrap().push(auto_once);
+                        ack.send(Ok(())).unwrap();
+                    }
+                    InboxMsg::RegisterQuestionConsumer { ack } => {
+                        ack.send(Ok(())).unwrap();
+                    }
+                    InboxMsg::PendingApprovals { ack } => {
+                        ack.send(Ok(Vec::new())).unwrap();
+                    }
+                    InboxMsg::PendingQuestions { ack } => {
+                        ack.send(Ok(Vec::new())).unwrap();
+                    }
+                    InboxMsg::McpStatus { ack } => {
+                        ack.send(Ok(oc_core::queries::McpSnapshot {
+                            binding: oc_core::queries::McpBinding {
+                                location: "/fixture".into(),
+                                generation: 1,
+                                instance: 2,
+                            },
+                            revision: 1,
+                            servers: Vec::new(),
+                        }))
+                        .unwrap();
+                    }
+                    _ => panic!("unexpected reattachment query"),
+                }
+            }
+        }
+    });
+    reattached(&app, &mut state, &mut deck).await;
+    old.send(Ok(retired)).unwrap();
+    settle_catalog(&app, &mut state, &mut deck).await;
+    assert_eq!(state.chrome.selection_generation, 1);
+    assert_eq!(state.chrome.conversation_shortcuts.leader, "ctrl+g");
+    assert_eq!(state.staged_agent().as_deref(), Some("custom"));
+    assert_eq!(state.captured_model_commit().unwrap().binding.generation, 1);
+    {
+        let mut catalog = current.lock().unwrap();
+        catalog.chrome.selection_generation = 2;
+        catalog.chrome.permissions_auto = false;
+    }
+    deck.catalogs
+        .request(&app, &mut state, catalog_jobs::Request::Provider);
+    settle_catalog(&app, &mut state, &mut deck).await;
+    settle_controls(&app, &mut state, &mut deck).await;
+    assert_eq!(state.chrome.selection_generation, 2);
+    assert_eq!(deck.permission_auto, Some(false));
+    assert_eq!(*registered.lock().unwrap(), [true, false]);
+    owner.abort();
+    let _ = owner.await;
 }
 
 #[tokio::test]

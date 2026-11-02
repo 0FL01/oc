@@ -25,7 +25,7 @@ fn hot02_source_watch_filters_shapes_and_marks_overflow_without_paths() {
     inputs.insert(Path::new("/aliases/kit"), InputKind::SkillDirectory);
     for (path, directory, expected) in [
         ("/known/opencode.json", false, true),
-        ("/known/cli.json", false, false),
+        ("/known/tui.json", false, false),
         ("/known/.env", false, false),
         ("/known/oc.sqlite-wal", false, false),
         ("/known/agents/deep/a.md", false, true),
@@ -92,10 +92,30 @@ async fn hot02_source_watch_observes_writes_atomic_rename_and_joins_without_acce
     assert!(!ready.failed);
     for _ in 0..10 {
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "{}");
-        std::fs::write(root.path().join("cli.json"), "CLIENT_ONLY_CANARY").unwrap();
+        std::fs::write(root.path().join("tui.json"), "CLIENT_ONLY_CANARY").unwrap();
         std::fs::write(root.path().join("oc.sqlite-wal"), "unrelated").unwrap();
     }
     quiet(&watch).await;
+    // Both CLI spellings are admitted known names, including absent files.
+    let mut cli_inputs = inputs.clone();
+    for name in ["cli.json", "cli.jsonc"] {
+        cli_inputs.insert(&root.path().join(name), InputKind::File);
+    }
+    watch
+        .observation()
+        .reconcile(&cli_inputs, false)
+        .await
+        .unwrap();
+    changed(&watch).await;
+    for name in ["cli.json", "cli.jsonc"] {
+        let cli = root.path().join(name);
+        std::fs::write(&cli, "{}").unwrap();
+        assert!(!changed(&watch).await.failed);
+        let temporary = root.path().join("cli-tmp");
+        std::fs::write(&temporary, "{}").unwrap();
+        std::fs::rename(&temporary, &cli).unwrap();
+        assert!(!changed(&watch).await.failed);
+    }
     std::fs::write(&file, "{\"theme\":\"native-source\"}").unwrap();
     let write = changed(&watch).await;
     assert!(watch.observation().epoch() > ready_epoch);

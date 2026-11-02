@@ -124,6 +124,10 @@ impl Observation {
 }
 
 impl SourceWatch {
+    #[cfg(test)]
+    pub(crate) fn abort(&self) {
+        self.task.as_ref().expect("owned watch task").abort();
+    }
     pub(crate) fn observation(&self) -> Observation {
         Observation {
             commands: self.commands.clone(),

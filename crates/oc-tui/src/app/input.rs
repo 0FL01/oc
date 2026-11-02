@@ -309,13 +309,19 @@ impl TuiState {
                         .enumerate()
                         .filter_map(|(index, diagnostic)| {
                             use oc_core::queries::ServiceKind;
-                            matches!(
+                            (matches!(
                                 diagnostic.kind,
                                 ServiceKind::Configuration
                                     | ServiceKind::Definition
                                     | ServiceKind::Storage
                                     | ServiceKind::Runtime
-                            )
+                            ) || (diagnostic.kind == ServiceKind::Provider
+                                && self
+                                    .chrome
+                                    .provider
+                                    .as_ref()
+                                    .and_then(|p| p.diagnostic.as_ref())
+                                    != Some(diagnostic)))
                             .then(|| {
                                 item(
                                     format!("diagnostic:{index}"),
@@ -1634,6 +1640,11 @@ impl TuiState {
     /// A successful owner reload invalidates Location-generation UI snapshots
     /// even when the canonical path and prompt text did not change.
     pub fn refresh_configuration(&mut self, catalog: CatalogSnapshot) {
+        if self.chrome.location == catalog.chrome.location
+            && self.chrome.selection_generation > catalog.chrome.selection_generation
+        {
+            return;
+        }
         self.close_panel();
         if self.chrome.location == catalog.chrome.location {
             self.resume_retained_view();
@@ -1648,6 +1659,9 @@ impl TuiState {
         self.skills_loaded = false;
         self.dcp = DcpPanelState::default();
         self.apply_catalog(catalog);
+        // Explicit reload owns its separate preview/refetch sequence.
+        self.agent_restage = None;
+        self.skills_refetch = false;
     }
 
     /// No storage or filesystem access: the binary asks the owner after the

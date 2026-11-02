@@ -71,6 +71,114 @@ async fn connected(owner: &McpOwner, names: &[&str]) {
 }
 
 #[tokio::test]
+async fn startup_grace_releases_on_connected_disable_remove_and_cancel() {
+    for outcome in ["connected", "disabled", "removed", "cancelled"] {
+        let project = tempfile::tempdir().unwrap();
+        let owner = McpOwner::new("startup-grace", 1);
+        let mut config = Generation {
+            mcp: BTreeMap::from([(
+                "peer".into(),
+                reconcile_entry(project.path(), "initializing"),
+            )]),
+            ..Default::default()
+        };
+        owner
+            .start(config.clone(), project.path().into(), BTreeMap::new(), None)
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !project.path().join("initialize-entered").exists() {
+                tokio::time::sleep(Duration::from_millis(2)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let cancel = AtomicBool::new(false);
+        let mut request = Box::pin(owner.request(&cancel, false));
+        assert!(futures_util::poll!(request.as_mut()).is_pending());
+        // A reconcile ACK fences the enqueued request without releasing its gate.
+        owner
+            .reconcile(config.clone(), 1, None, false, None)
+            .await
+            .unwrap();
+        assert!(futures_util::poll!(request.as_mut()).is_pending());
+        match outcome {
+            "connected" => {
+                std::fs::write(project.path().join("initialize-release"), "ready").unwrap()
+            }
+            "disabled" | "removed" => {
+                if outcome == "disabled" {
+                    config.mcp.get_mut("peer").unwrap().enabled = false;
+                } else {
+                    config.mcp.clear();
+                }
+                owner.reconcile(config, 2, None, false, None).await.unwrap();
+            }
+            _ => cancel.store(true, Ordering::Release),
+        }
+        let result = tokio::time::timeout(Duration::from_millis(500), request)
+            .await
+            .unwrap();
+        if outcome == "cancelled" {
+            assert!(matches!(result, Err(RuntimeError::Cancelled)));
+        } else {
+            let view = result.unwrap();
+            assert_eq!(view.entries.len(), usize::from(outcome == "connected"));
+        }
+        owner.stop().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn startup_grace_is_per_attempt_and_later_attempt_does_not_extend_a_waiter() {
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let owner = McpOwner::new("staggered-startup", 1);
+    let mut config = Generation {
+        mcp: BTreeMap::from([(
+            "first".into(),
+            reconcile_entry(first.path(), "initializing"),
+        )]),
+        ..Default::default()
+    };
+    let started = Instant::now();
+    owner
+        .start(config.clone(), first.path().into(), BTreeMap::new(), None)
+        .unwrap();
+    let cancel = AtomicBool::new(false);
+    let mut early = Box::pin(owner.request(&cancel, false));
+    assert!(futures_util::poll!(early.as_mut()).is_pending());
+    owner
+        .reconcile(config.clone(), 1, None, false, None)
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    config.mcp.insert(
+        "second".into(),
+        reconcile_entry(second.path(), "initializing"),
+    );
+    owner.reconcile(config, 2, None, false, None).await.unwrap();
+    let mut later = Box::pin(owner.request(&cancel, false));
+    assert!(futures_util::poll!(later.as_mut()).is_pending());
+    let view = tokio::time::timeout(Duration::from_secs(2), early)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(view.entries.is_empty());
+    assert!(started.elapsed() >= STARTUP_GRACE);
+    assert!(started.elapsed() < STARTUP_GRACE + Duration::from_millis(400));
+    assert!(futures_util::poll!(later.as_mut()).is_pending());
+    let view = tokio::time::timeout(Duration::from_secs(1), later)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(view.entries.is_empty());
+    assert!(started.elapsed() >= STARTUP_GRACE + Duration::from_millis(500));
+    // With both grace periods expired a new waiter is released, not a timer loop.
+    owner.request(&cancel, false).await.unwrap();
+    owner.stop().await.unwrap();
+}
+
+#[tokio::test]
 async fn srv04_cancelled_and_dropped_catalog_waiters_leave_the_shared_owner_running() {
     let project = tempfile::tempdir().unwrap();
     let owner = Arc::new(McpOwner::new("shared-location", 1));
@@ -1010,6 +1118,7 @@ fn pending_scope(owner: &McpOwner) -> Scope {
         nodes: BTreeMap::from([(
             "peer".into(),
             Node {
+                connect_started: None,
                 incarnation: Arc::new(()),
                 row: McpServerSnapshot {
                     id: "mcp-peer".into(),

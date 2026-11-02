@@ -154,6 +154,17 @@ async fn hot02_local_inputs_keep_original_models_and_resolved_dependencies_not_r
         .unwrap();
     assert!(admitted == fresh.reload_inputs().unwrap());
     assert!(!fresh.catalog.models.contains_key("remote"));
+    std::fs::write(
+        project.join("cli.jsonc"),
+        r#"{"keybinds":{"leader":"ctrl+g"},"session":{"permissions":"autoaccept"}}"#,
+    )
+    .unwrap();
+    let cli = crate::composition::load_reload_local_with_env(&project, env.clone())
+        .await
+        .unwrap();
+    assert!(admitted != cli.reload_inputs().unwrap());
+    assert!(cli.same_provider_inputs(&fresh.catalog_reuse(), "fixture"));
+    std::fs::remove_file(project.join("cli.jsonc")).unwrap();
 
     // Formatting/comments are not source identity, and unrelated files stay inert.
     std::fs::write(
