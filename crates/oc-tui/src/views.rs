@@ -33,6 +33,7 @@ pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
             TuiPanel::Commands
                 | TuiPanel::Settings
                 | TuiPanel::MessageActions { .. }
+                | TuiPanel::PendingSteer { .. }
                 | TuiPanel::Model
                 | TuiPanel::Variant
                 | TuiPanel::Agents
@@ -181,7 +182,8 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
         TuiPanel::Settings
         | TuiPanel::Commands
         | TuiPanel::Mcps
-        | TuiPanel::MessageActions { .. } => state
+        | TuiPanel::MessageActions { .. }
+        | TuiPanel::PendingSteer { .. } => state
             .modal_options()
             .iter()
             .map(|o| o.title.clone())

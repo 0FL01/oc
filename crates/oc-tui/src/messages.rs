@@ -3138,10 +3138,11 @@ pub(crate) fn visible_transcript_expanded(
 
 /// A row identity produced while visiting the actual visible, wrapped user
 /// block. The ordinal distinguishes synthetic rows (which share i64::MAX);
-/// Owner actions must use `message_id`; sequence/ordinal only identify presentation.
+/// Owner actions use `message_id` or `inbox_id`; sequence/ordinal only identify presentation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UserMessageTarget {
     pub message_id: Option<std::sync::Arc<oc_core::session::MessageId>>,
+    pub inbox_id: Option<String>,
     pub seq: i64,
     pub ordinal: usize,
     pub reverted: bool,
@@ -4041,6 +4042,7 @@ fn visible_transcript_indexed(
                 if local.start + offset >= usize::from(index > 0) {
                     *slot = Some(UserMessageTarget {
                         message_id: row.message_id.clone(),
+                        inbox_id: row.inbox_id.clone(),
                         seq: row.seq,
                         ordinal: index,
                         reverted: false,
@@ -4155,6 +4157,7 @@ fn visible_transcript_indexed(
                         for slot in user_targets.iter_mut().take(visible.len()).skip(first) {
                             *slot = Some(UserMessageTarget {
                                 message_id: row.message_id.clone(),
+                                inbox_id: row.inbox_id.clone(),
                                 seq: row.seq,
                                 ordinal: index,
                                 reverted: row.role == "reverted",

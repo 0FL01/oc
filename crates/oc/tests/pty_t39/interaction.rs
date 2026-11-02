@@ -2457,13 +2457,25 @@ fn sessions_selected_rename_and_confirmed_delete_reach_real_owner_without_provid
 #[test]
 fn messages_sent_while_busy_steer_the_turn_and_queue_after_it() {
     let fixture = Fixture::new();
+    // Keep ancillary title publication out of this pending-row click scenario.
+    fixture.hold_title.store(true, Ordering::Relaxed);
     let mut pty = PtySession::spawn(fixture.clone(), "busy-inbox", None);
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "vis28 held stream");
     fixture.wait_requests(1);
     // OC2: Enter while the agent works steers; ctrl+x Enter queues.
     pty.send(b"steer this in\r");
-    wait_screen_row(&pty, "steer this in", DEADLINE);
+    wait_screen_row(&pty, "┃  steer this in", DEADLINE);
+    let rows = render_screen(&pty.snapshot()).rows();
+    let y = rows
+        .iter()
+        .position(|row| row.contains("┃  steer this in"))
+        .unwrap();
+    let x = rows[y].chars().position(|c| c == '┃').unwrap() + 4;
+    mouse_click(&mut pty, x as u16 + 1, y as u16 + 1);
+    wait_screen_row(&pty, "Pending steer", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Pending steer");
     pty.send(b"run me after");
     wait_screen_row(&pty, "run me after", DEADLINE);
     pty.send(b"\x18\r");

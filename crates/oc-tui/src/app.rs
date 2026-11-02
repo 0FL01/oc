@@ -10,6 +10,7 @@
 //! Shared fixtures live in `app/tests.rs`; scenarios are grouped by input,
 //! transcript and turn lifecycle there. Private tab tests live under tabs.
 
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -110,6 +111,10 @@ pub enum TuiPanel {
         message: oc_core::session::MessageId,
         seq: i64,
     },
+    PendingSteer {
+        id: String,
+        accepted: bool,
+    },
     /// Genuine native command registry.
     Commands,
     /// No panel (chat view).
@@ -138,6 +143,12 @@ pub enum TuiPanel {
     Cards,
     /// OC2 queued prompts of the running session.
     QueuedPrompts,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+enum UserPress {
+    Message(oc_core::session::MessageId),
+    Steer(String),
 }
 
 /// Work the panel asked the binary to apply through the application API.
@@ -556,6 +567,7 @@ impl LivePart {
                 agent,
                 agent_color_index: None,
                 pending_delivery: None,
+                inbox_id: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -572,6 +584,7 @@ impl LivePart {
                 agent,
                 agent_color_index: None,
                 pending_delivery: None,
+                inbox_id: None,
                 chips: Vec::new(),
                 reasoning: Some(ReasoningBlock {
                     text: text.clone(),
@@ -596,6 +609,7 @@ impl LivePart {
                 agent,
                 agent_color_index: None,
                 pending_delivery: None,
+                inbox_id: None,
                 chips: Vec::new(),
                 reasoning: None,
                 meta: None,
@@ -773,7 +787,7 @@ pub struct TuiState {
     painted_prompt: std::cell::RefCell<Option<PaintedPrompt>>,
     prompt_width: std::cell::Cell<Option<usize>>,
     paint_generation: std::cell::Cell<u64>,
-    message_down: Option<(oc_core::session::MessageId, u64, Rect)>,
+    message_down: Option<(UserPress, u64, Rect)>,
     clipboard_mode: ClipboardMode,
     /// Owner availability, when known. Fresh/reopened views let the owner decide.
     conversation_available: Option<(bool, bool)>,
@@ -821,7 +835,8 @@ pub struct TuiState {
     panel: TuiPanel,
     pub(crate) select: crate::dialog::SelectList,
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
-    mouse_down: Option<crate::dialog::DialogHit>,
+    /// Rendering an overlapping approval must retire the hidden modal's press.
+    mouse_down: Cell<Option<crate::dialog::DialogHit>>,
     tab_down: Option<TabPress>,
     home_mcp_down: Option<(Rect, Rect)>,
     tab_view: std::cell::RefCell<TabView>,
@@ -1111,7 +1126,7 @@ impl TuiState {
             tool_spinner_clocks_attached: true,
             panel: TuiPanel::None,
             select: Default::default(),
-            mouse_down: None,
+            mouse_down: Cell::new(None),
             tab_down: None,
             home_mcp_down: None,
             tab_view: Default::default(),

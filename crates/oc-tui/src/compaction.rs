@@ -122,6 +122,7 @@ fn row_with_body(
         agent: Some(label),
         agent_color_index: None,
         pending_delivery: None,
+        inbox_id: None,
         chips: vec![],
         reasoning: None,
         meta: None,

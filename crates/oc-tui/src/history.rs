@@ -35,6 +35,8 @@ pub struct HistoryRow {
     pub position: Option<HistoryPosition>,
     /// Storage-owned identity shared by derived rows; absent for live/synthetic rows.
     pub message_id: Option<std::sync::Arc<oc_core::session::MessageId>>,
+    /// Exact owner identity of a pending steer; absent on other rows.
+    pub inbox_id: Option<String>,
     /// Message sequence (ordering key for paging); `i64::MAX` for synthetic
     /// rows that are not committed yet.
     pub seq: i64,
@@ -597,6 +599,7 @@ impl HistoryWindow {
             agent,
             agent_color_index,
             pending_delivery: None,
+            inbox_id: None,
             chips: Vec::new(),
             reasoning: None,
             meta: None,
@@ -709,6 +712,7 @@ impl HistoryWindow {
             agent: None,
             agent_color_index: None,
             pending_delivery: None,
+            inbox_id: None,
             chips: Vec::new(),
             reasoning: None,
             meta: None,
@@ -1096,6 +1100,7 @@ impl HistoryWindow {
                     agent: None,
                     agent_color_index: None,
                     pending_delivery: None,
+                    inbox_id: None,
                     chips: Vec::new(),
                     reasoning: None,
                     meta: None,
@@ -1215,6 +1220,7 @@ fn row_from_page(
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
         pending_delivery: None,
+        inbox_id: None,
         chips: clipboard_chips(row.images.len()),
         reasoning: None,
         meta: None,
@@ -1395,6 +1401,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         agent: turn.agent.clone(),
         agent_color_index: turn.agent_color_index,
         pending_delivery: None,
+        inbox_id: None,
         chips: Vec::new(),
         reasoning: None,
         meta: None,

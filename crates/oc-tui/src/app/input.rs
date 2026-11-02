@@ -55,6 +55,21 @@ impl TuiState {
                 destructive: false,
             };
         let options = match &self.panel {
+            TuiPanel::PendingSteer { .. } => {
+                if self.pending_steer_status().is_some() {
+                    Vec::new()
+                } else {
+                    [("queue", "Move to queue"), ("delete", "Delete")]
+                        .into_iter()
+                        .map(|(value, title)| SelectOption {
+                            value: value.into(),
+                            title: title.into(),
+                            destructive: value == "delete",
+                            ..Default::default()
+                        })
+                        .collect()
+                }
+            }
             TuiPanel::MessageActions { .. } => [
                 ("revert", "Revert", "undo messages and restore prompt"),
                 ("jump", "Jump to", "view message in session"),
@@ -695,6 +710,7 @@ impl TuiState {
         }
         if self.approvals.active().is_some() {
             self.cancel_execute_pointer();
+            self.cancel_pending_steer_pointer();
             return self
                 .approvals
                 .terminal_key(event, &self.chrome.permission_shortcuts);
@@ -1050,6 +1066,7 @@ impl TuiState {
                 | TuiPanel::QueuedPrompts
                 | TuiPanel::Mcps
                 | TuiPanel::MessageActions { .. }
+                | TuiPanel::PendingSteer { .. }
         ) && self.mcp_detail.is_none()
     }
 
@@ -1276,7 +1293,7 @@ impl TuiState {
         self.close_hold = None;
         self.last_mouse = None;
         // A press belongs to the dialog where it began, not the replacement.
-        self.mouse_down = None;
+        self.mouse_down.set(None);
         self.select.reset();
         self.toast_down = false;
         self.select.cursor = self
@@ -1290,6 +1307,9 @@ impl TuiState {
     }
 
     fn changed_modal_query(&mut self) {
+        if matches!(self.panel, TuiPanel::PendingSteer { .. }) {
+            self.mouse_down.set(None);
+        }
         self.mcp_action_down = None;
         self.session_delete_confirm = None;
         self.select.changed_query();
@@ -1796,7 +1816,7 @@ impl TuiState {
         self.execute_detail = None;
         self.mcp_focused = None;
         self.mcp_action_down = None;
-        self.mouse_down = None;
+        self.mouse_down.set(None);
         self.tab_down = None;
         if was_open {
             self.tab_view.get_mut().reset_hover();
@@ -1814,6 +1834,7 @@ impl TuiState {
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         if self.approvals.active().is_some() {
             self.cancel_execute_pointer();
+            self.cancel_pending_steer_pointer();
         }
         if let Some(outcome) = self.release_child_navigation(event, area) {
             return outcome;
@@ -2185,8 +2206,13 @@ impl TuiState {
                         .map(|boundary| (boundary, self.paint_generation.get(), area));
                     self.message_down = self
                         .painted_user_message_target_at(area, event.column, event.row)
-                        .and_then(|target| target.message_id)
-                        .map(|id| ((*id).clone(), self.paint_generation.get(), area));
+                        .and_then(|target| {
+                            target
+                                .message_id
+                                .map(|id| UserPress::Message((*id).clone()))
+                                .or_else(|| target.inbox_id.map(UserPress::Steer))
+                        })
+                        .map(|id| (id, self.paint_generation.get(), area));
                     self.tab_down = self.tab_hit(area, event.column, event.row);
                     self.start_tab_drag(area);
                     self.exploration_down = self
@@ -2230,14 +2256,24 @@ impl TuiState {
                         && let Some(target) =
                             self.user_message_target_at(area, event.column, event.row)
                         && !target.reverted
-                        && let Some(message) = target.message_id
+                        && let Some(press) = target
+                            .message_id
+                            .as_ref()
+                            .map(|id| UserPress::Message((**id).clone()))
+                            .or_else(|| target.inbox_id.clone().map(UserPress::Steer))
                         && message_pressed
-                            == Some(((*message).clone(), self.paint_generation.get(), area))
+                            == Some((press.clone(), self.paint_generation.get(), area))
                     {
                         self.select.reset();
-                        self.panel = TuiPanel::MessageActions {
-                            message: (*message).clone(),
-                            seq: target.seq,
+                        self.panel = match press {
+                            UserPress::Message(message) => TuiPanel::MessageActions {
+                                message,
+                                seq: target.seq,
+                            },
+                            UserPress::Steer(id) => TuiPanel::PendingSteer {
+                                id,
+                                accepted: false,
+                            },
                         };
                         return KeyOutcome::default();
                     }
@@ -2398,7 +2434,7 @@ impl TuiState {
                 DialogHit::Surface
             };
             match event.kind {
-                MouseEventKind::Down(MouseButton::Left) => self.mouse_down = Some(hit),
+                MouseEventKind::Down(MouseButton::Left) => self.mouse_down.set(Some(hit)),
                 MouseEventKind::Up(MouseButton::Left) => {
                     let pressed = self.mouse_down.take();
                     if self.rename_pending.is_none()
@@ -2427,11 +2463,11 @@ impl TuiState {
                     }
                 }
                 MouseEventKind::Down(MouseButton::Left) => {
-                    self.mouse_down = Some(if inside {
+                    self.mouse_down.set(Some(if inside {
                         DialogHit::Surface
                     } else {
                         DialogHit::Backdrop
-                    });
+                    }));
                 }
                 MouseEventKind::Up(MouseButton::Left) => {
                     let hit = if inside {
@@ -2507,6 +2543,20 @@ impl TuiState {
         let action = (self.panel == TuiPanel::Mcps).then(|| self.mcp_footer_action());
         let options = self.modal_options();
         let size = crate::dialog::size_for(&self.panel);
+        if matches!(self.panel, TuiPanel::PendingSteer { .. }) {
+            if self.approvals.active().is_some()
+                || !self.select.painted_matches(area, size, &options)
+            {
+                self.mouse_down.set(None);
+                return KeyOutcome::default();
+            }
+            if matches!(
+                event.kind,
+                MouseEventKind::Drag(_) | MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+            ) {
+                self.mouse_down.set(None);
+            }
+        }
         let action_rect = action
             .as_ref()
             .map(|action| self.select.footer_action_rect(area, size, &options, action));
@@ -2519,7 +2569,7 @@ impl TuiState {
         };
         match event.kind {
             MouseEventKind::Down(MouseButton::Left) => {
-                self.mouse_down = Some(hit);
+                self.mouse_down.set(Some(hit));
                 self.mcp_action_down = (hit == DialogHit::FooterAction
                     && event.modifiers.is_empty())
                 .then(|| Some((area, action_rect?, self.mcp_control()?)))
@@ -2912,6 +2962,7 @@ impl TuiState {
                 && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
         {
             self.cancel_execute_pointer();
+            self.cancel_pending_steer_pointer();
             return self.approvals.key(action);
         }
         if self.panel == TuiPanel::None
@@ -3792,7 +3843,7 @@ impl TuiState {
         }
         self.clear_accounts();
         self.select.reset();
-        self.mouse_down = None;
+        self.mouse_down.set(None);
         self.tab_down = None;
         self.home_mcp_down = None;
         self.tab_view.get_mut().reset_hover();
@@ -3948,6 +3999,7 @@ impl TuiState {
             return self.accounts_key(action);
         }
         if self.approvals.active().is_some() {
+            self.cancel_pending_steer_pointer();
             return self.approvals.key(action);
         }
         if self.panel == TuiPanel::None && self.questions.active().is_some() {
@@ -4179,6 +4231,7 @@ impl TuiState {
                         | TuiPanel::QueuedPrompts
                         | TuiPanel::Mcps
                         | TuiPanel::MessageActions { .. }
+                        | TuiPanel::PendingSteer { .. }
                 ) =>
             {
                 self.select.clear_action_focus();
@@ -4395,6 +4448,9 @@ impl TuiState {
             TuiPanel::QueuedPrompts => {
                 self.queued_cursor = clamp_cursor(self.queued_cursor, delta, self.queued().count());
             }
+            TuiPanel::PendingSteer { .. } => {
+                self.select.move_by(delta, self.modal_options().len());
+            }
             TuiPanel::Cards => {
                 self.cards_cursor = clamp_cursor(self.cards_cursor, delta, self.cards.len());
             }
@@ -4406,6 +4462,22 @@ impl TuiState {
         let mut outcome = KeyOutcome::default();
         match self.panel.clone() {
             TuiPanel::Execute => {}
+            TuiPanel::PendingSteer { id, .. } => {
+                let options = self.modal_options();
+                let action = match options.get(self.select.cursor).map(|o| o.value.as_str()) {
+                    Some("queue") => oc_core::queries::InboxAction::Deliver {
+                        id,
+                        delivery: oc_core::queries::InboxDelivery::Queue,
+                    },
+                    Some("delete") => oc_core::queries::InboxAction::Remove { id },
+                    _ => return outcome,
+                };
+                self.close_panel();
+                outcome.intent = Some(PanelIntent::Inbox {
+                    action,
+                    restore: false,
+                });
+            }
             TuiPanel::MessageActions { message, seq } => {
                 if !self
                     .window

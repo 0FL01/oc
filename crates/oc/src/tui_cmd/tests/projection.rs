@@ -1,6 +1,106 @@
 use super::*;
 use oc_core::queries::{LiveTurnSnapshot, TabDeckSnapshot, WorkspaceSnapshot};
 
+#[tokio::test]
+async fn inbox_delivered_marks_the_exact_active_or_parked_pending_steer_modal() {
+    use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+    use oc_core::queries::{InboxDelivered, InboxDelivery, InboxItem};
+    let (app, _inbox, _) = CoreApp::channel(8);
+    let root = SessionId("active".into());
+    let mut state = TuiState::new(app.clone(), root.clone());
+    let mut deck = LoopState {
+        tabs: vec![
+            None,
+            Some(TuiState::new(app.clone(), SessionId("parked".into()))),
+        ],
+        active_tab: Some(0),
+        ..Default::default()
+    };
+    for view in std::iter::once(&mut state).chain(deck.tabs.iter_mut().filter_map(Option::as_mut)) {
+        let item = InboxItem {
+            id: "pending-id".into(),
+            delivery: InboxDelivery::Steer,
+            text: "pending routing input".into(),
+            images: 0,
+            error: None,
+        };
+        view.apply_inbox(&view.attached_session().unwrap().clone(), vec![item]);
+        let rows = oc_tui::views::render_test(view, 120, 40);
+        let y = rows
+            .iter()
+            .position(|row| row.contains("pending routing input"))
+            .unwrap() as u16;
+        let x = rows[y as usize].chars().position(|c| c == '┃').unwrap() as u16 + 4;
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            view.handle_mouse(
+                MouseEvent {
+                    kind,
+                    column: x,
+                    row: y,
+                    modifiers: KeyModifiers::NONE,
+                },
+                ratatui::layout::Rect::new(0, 0, 120, 40),
+            );
+        }
+        assert_eq!(
+            view.panel(),
+            &TuiPanel::PendingSteer {
+                id: "pending-id".into(),
+                accepted: false
+            }
+        );
+    }
+    for owner in [SessionId("parked".into()), root.clone()] {
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut deck,
+            &root,
+            CoreEvent::InboxChanged {
+                session: owner.clone(),
+                items: Vec::new(),
+                delivered: vec![InboxDelivered {
+                    item: InboxItem {
+                        id: "pending-id".into(),
+                        delivery: InboxDelivery::Steer,
+                        text: "pending routing input".into(),
+                        images: 0,
+                        error: None,
+                    },
+                    message: oc_core::session::MessageId("delivered-message".into()),
+                }],
+            },
+        )
+        .await
+        .unwrap();
+        let view = if owner == root {
+            &state
+        } else {
+            deck.tabs[1].as_ref().unwrap()
+        };
+        assert_eq!(
+            view.panel(),
+            &TuiPanel::PendingSteer {
+                id: "pending-id".into(),
+                accepted: true
+            }
+        );
+        assert!(view.inbox_items().is_empty());
+        if owner != root {
+            assert_eq!(
+                state.panel(),
+                &TuiPanel::PendingSteer {
+                    id: "pending-id".into(),
+                    accepted: false
+                }
+            );
+        }
+    }
+}
+
 #[test]
 fn parked_projection_close_retains_and_polls_the_owned_join_before_removal() {
     tokio::runtime::Builder::new_current_thread()

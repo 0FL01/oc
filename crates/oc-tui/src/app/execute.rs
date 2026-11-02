@@ -207,7 +207,7 @@ impl TuiState {
                 captured: RefCell::new(captured),
                 pressed: Cell::new(None),
             });
-            self.mouse_down = None;
+            self.mouse_down.set(None);
         }
     }
 
@@ -216,7 +216,7 @@ impl TuiState {
             if let Some(detail) = self.execute_detail.take() {
                 self.panel = detail.previous;
             }
-            self.mouse_down = None;
+            self.mouse_down.set(None);
             return KeyOutcome::default();
         }
         let layout = crate::execute_view::layout(self, self.detail_area());

@@ -18,7 +18,7 @@ use crate::{
     theme::Theme,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DialogSize {
     Medium,
     Large,
@@ -129,6 +129,16 @@ pub struct SelectList {
     action_focused: bool,
     session_categories: Cell<bool>,
     cache: RefCell<Option<FilterCache>>,
+    painted: RefCell<Option<PaintedSelect>>,
+}
+
+#[derive(PartialEq, Eq)]
+struct PaintedSelect {
+    area: Rect,
+    size: DialogSize,
+    query: String,
+    offset: usize,
+    values: Vec<Option<String>>,
 }
 
 /// Hit regions are computed from the same row map and rectangle as painting.
@@ -175,6 +185,36 @@ struct FilterCache {
 }
 
 impl SelectList {
+    pub(crate) fn clear_paint(&self) {
+        self.painted.borrow_mut().take();
+    }
+
+    fn fingerprint(&self, area: Rect, size: DialogSize, options: &[SelectOption]) -> PaintedSelect {
+        let geo = self.geometry(area, size, options, self.footer_rows.get());
+        PaintedSelect {
+            area,
+            size,
+            query: self.query.clone(),
+            offset: geo.offset,
+            values: geo
+                .rows
+                .iter()
+                .skip(geo.offset)
+                .take(geo.list_height)
+                .map(|row| row.map(|i| options[i].value.clone()))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn painted_matches(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+    ) -> bool {
+        self.painted.borrow().as_ref() == Some(&self.fingerprint(area, size, options))
+    }
+
     pub fn reset(&mut self) {
         *self = Self::default();
         self.follow_cursor.set(true);
@@ -506,6 +546,7 @@ impl SelectList {
         let area = geo.rect;
         DialogFrame::paint(frame, area, theme);
         if area.width < 12 || area.height < 5 {
+            self.clear_paint();
             return;
         }
         let text = slot(theme, "text.base");
@@ -568,6 +609,9 @@ impl SelectList {
         let height = geo.list_height;
         let offset = geo.offset;
         self.offset.set(offset);
+        if title == "Pending steer" {
+            *self.painted.borrow_mut() = Some(self.fingerprint(frame.area(), size, options));
+        }
         if rows.is_empty() {
             line(
                 frame,
@@ -928,6 +972,11 @@ impl SelectList {
 }
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    if matches!(state.panel(), TuiPanel::PendingSteer { .. }) && state.approvals.active().is_some()
+    {
+        state.cancel_pending_steer_pointer();
+        return;
+    }
     if state.panel() == &TuiPanel::Execute {
         if state.approvals.active().is_none() {
             crate::execute_view::render(frame, state);
@@ -958,6 +1007,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Commands => "Commands",
         TuiPanel::Settings => "Settings",
         TuiPanel::MessageActions { .. } => "Message Actions",
+        TuiPanel::PendingSteer { .. } => "Pending steer",
         TuiPanel::Model => "Select model",
         TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",
@@ -998,6 +1048,8 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         &state.modal_options(),
         if model_status.is_some() {
             model_status.as_deref()
+        } else if matches!(state.panel(), TuiPanel::PendingSteer { .. }) {
+            state.pending_steer_status()
         } else if state.panel() == &TuiPanel::Mcps {
             Some(state.mcp_footer())
         } else if state.panel() == &TuiPanel::Settings {

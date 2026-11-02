@@ -1,6 +1,324 @@
 use super::*;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEventKind};
 use oc_core::core_app::InboxMsg;
 use oc_core::queries::{InboxAction, InboxDelivery, InboxItem, InboxSnapshot};
+
+const FRAME: Rect = Rect::new(0, 0, 120, 40);
+
+fn steer(id: &str) -> InboxItem {
+    InboxItem {
+        id: id.into(),
+        delivery: InboxDelivery::Steer,
+        text: "identical pending input".into(),
+        images: 0,
+        error: None,
+    }
+}
+
+fn open_steer(state: &mut TuiState, id: &str) {
+    crate::views::render_test(state, FRAME.width, FRAME.height);
+    let rect = crate::shell::transcript_area(state, FRAME);
+    let (_, _, _, targets) =
+        state.visible_transcript_at_viewport_with_targets(rect.width, FRAME.width, rect.height);
+    let y = rect.y
+        + targets
+            .iter()
+            .position(|target| {
+                target
+                    .as_ref()
+                    .is_some_and(|t| t.inbox_id.as_deref() == Some(id))
+            })
+            .unwrap() as u16;
+    for kind in [
+        MouseEventKind::Down(MouseButton::Left),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        assert!(
+            state
+                .handle_mouse(selection_mouse(kind, rect.x + 4, y), FRAME)
+                .intent
+                .is_none()
+        );
+    }
+    assert_eq!(
+        state.panel(),
+        &TuiPanel::PendingSteer {
+            id: id.into(),
+            accepted: false
+        }
+    );
+}
+
+fn option_point(state: &TuiState) -> (u16, u16) {
+    let options = state.modal_options();
+    for y in 0..FRAME.height {
+        for x in 0..FRAME.width {
+            if state.select.hit(
+                FRAME,
+                crate::dialog::size_for(state.panel()),
+                &options,
+                x,
+                y,
+            ) == crate::dialog::DialogHit::Option(0)
+            {
+                return (x, y);
+            }
+        }
+    }
+    panic!("first option");
+}
+
+fn modal_mouse(state: &mut TuiState, kind: MouseEventKind, point: (u16, u16)) -> KeyOutcome {
+    state.handle_mouse(selection_mouse(kind, point.0, point.1), FRAME)
+}
+
+fn inbox_intent(action: InboxAction) -> Option<PanelIntent> {
+    Some(PanelIntent::Inbox {
+        action,
+        restore: false,
+    })
+}
+
+#[tokio::test]
+async fn pending_steer_click_uses_exact_id_and_actions_preserve_draft() {
+    let (mut state, mut owner) = running("pending-modal").await;
+    state.apply_inbox(&sid("pending-modal"), vec![steer("one"), steer("two")]);
+    state.restore_prompt("unsent Ω draft".into());
+    state.editor.move_to(7, false);
+    let draft = (
+        state.editor.prompt(state.input()),
+        state.editor.cursor,
+        state.editor.anchor,
+    );
+    open_steer(&mut state, "two");
+    let shown = crate::views::render_test(&state, FRAME.width, FRAME.height).join("\n");
+    for text in ["Pending steer", "Search", "Move to queue", "Delete"] {
+        assert!(shown.contains(text), "{shown}");
+    }
+    assert_eq!(
+        state.handle_panel_key(KeyAction::Enter).intent,
+        inbox_intent(InboxAction::Deliver {
+            id: "two".into(),
+            delivery: InboxDelivery::Queue
+        })
+    );
+    assert_eq!(state.panel(), &TuiPanel::None);
+    assert_eq!(
+        (
+            state.editor.prompt(state.input()),
+            state.editor.cursor,
+            state.editor.anchor
+        ),
+        draft
+    );
+    // A raw terminal Down belongs to SelectList, not composer/history navigation.
+    state.click = None;
+    open_steer(&mut state, "two");
+    for code in [KeyCode::Down, KeyCode::Up, KeyCode::Down] {
+        let action = state
+            .terminal_key(KeyEvent::new(code, KeyModifiers::NONE))
+            .unwrap();
+        assert!(state.handle_key(action).await.intent.is_none());
+    }
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE))
+        .unwrap();
+    assert_eq!(
+        state.handle_key(action).await.intent,
+        inbox_intent(InboxAction::Remove { id: "two".into() })
+    );
+    assert_eq!(
+        (
+            state.editor.prompt(state.input()),
+            state.editor.cursor,
+            state.editor.anchor
+        ),
+        draft
+    );
+    assert!(
+        owner.try_recv().is_err(),
+        "no Cancel or composer submission"
+    );
+}
+
+#[tokio::test]
+async fn pending_steer_search_and_mouse_require_current_paint_and_undragged_press() {
+    let (mut state, _) = running("pending-search").await;
+    state.apply_inbox(&sid("pending-search"), vec![steer("two")]);
+    open_steer(&mut state, "two");
+    crate::views::render_test(&state, FRAME.width, FRAME.height);
+    let point = option_point(&state);
+    // Search remaps the same physical first row from Move to Delete before paint.
+    for c in "del".chars() {
+        state.handle_panel_key(KeyAction::Char(c));
+    }
+    modal_mouse(&mut state, MouseEventKind::Down(MouseButton::Left), point);
+    assert!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point)
+            .intent
+            .is_none()
+    );
+    crate::views::render_test(&state, FRAME.width, FRAME.height);
+    modal_mouse(&mut state, MouseEventKind::Down(MouseButton::Left), point);
+    modal_mouse(&mut state, MouseEventKind::Drag(MouseButton::Left), point);
+    assert!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point)
+            .intent
+            .is_none()
+    );
+    modal_mouse(&mut state, MouseEventKind::Down(MouseButton::Left), point);
+    assert_eq!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point).intent,
+        inbox_intent(InboxAction::Remove { id: "two".into() })
+    );
+
+    state.panel = TuiPanel::PendingSteer {
+        id: "two".into(),
+        accepted: false,
+    };
+    crate::views::render_test(&state, FRAME.width, FRAME.height);
+    modal_mouse(&mut state, MouseEventKind::Down(MouseButton::Left), point);
+    for c in "del".chars() {
+        state.handle_panel_key(KeyAction::Char(c));
+    }
+    crate::views::render_test(&state, FRAME.width, FRAME.height);
+    assert!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point)
+            .intent
+            .is_none()
+    );
+    assert_eq!(
+        state.handle_panel_key(KeyAction::Enter).intent,
+        inbox_intent(InboxAction::Remove { id: "two".into() })
+    );
+    state.panel = TuiPanel::PendingSteer {
+        id: "two".into(),
+        accepted: false,
+    };
+    for c in "zzz".chars() {
+        state.handle_panel_key(KeyAction::Char(c));
+    }
+    assert!(state.modal_options().is_empty());
+    assert!(state.handle_panel_key(KeyAction::Enter).intent.is_none());
+    assert!(state.handle_panel_key(KeyAction::Cancel).intent.is_none());
+    assert_eq!(state.panel(), &TuiPanel::None);
+}
+
+#[tokio::test]
+async fn pending_steer_delivery_is_exact_sticky_and_never_dismisses_the_modal() {
+    let (mut state, _) = running("pending-accepted").await;
+    let session = sid("pending-accepted");
+    state.apply_inbox(&session, vec![steer("two")]);
+    open_steer(&mut state, "two");
+    crate::views::render_test(&state, FRAME.width, FRAME.height);
+    let point = option_point(&state);
+    modal_mouse(&mut state, MouseEventKind::Down(MouseButton::Left), point);
+    state.inbox_delivered(&sid("other"), ["two"]);
+    state.inbox_delivered(&session, ["one"]);
+    assert_eq!(state.modal_options().len(), 2);
+    state.apply_inbox(&session, Vec::new());
+    assert!(
+        crate::views::render_test(&state, FRAME.width, FRAME.height)
+            .join("\n")
+            .contains("No longer pending")
+    );
+    assert!(state.handle_panel_key(KeyAction::Enter).intent.is_none());
+    state.inbox_delivered(&session, ["two"]);
+    state.apply_inbox(&session, vec![steer("two")]);
+    let shown = crate::views::render_test(&state, FRAME.width, FRAME.height).join("\n");
+    assert!(shown.contains("Accepted by the agent"), "{shown}");
+    assert!(!shown.contains("Move to queue") && !shown.contains("Delete"));
+    assert!(state.modal_options().is_empty());
+    assert!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point)
+            .intent
+            .is_none()
+    );
+    assert!(state.handle_panel_key(KeyAction::Enter).intent.is_none());
+    assert_eq!(
+        state.panel(),
+        &TuiPanel::PendingSteer {
+            id: "two".into(),
+            accepted: true
+        }
+    );
+    assert!(state.handle_panel_key(KeyAction::Cancel).intent.is_none());
+    assert!(state.active_turn().is_some());
+}
+
+#[tokio::test]
+async fn pending_steer_defers_to_visible_approval_without_closing() {
+    use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
+    let (mut state, _) = running("pending-approval").await;
+    state.apply_inbox(&sid("pending-approval"), vec![steer("two")]);
+    open_steer(&mut state, "two");
+    crate::views::render_test(&state, FRAME.width, FRAME.height);
+    let point = option_point(&state);
+    modal_mouse(&mut state, MouseEventKind::Down(MouseButton::Left), point);
+    state.approvals.reconcile(vec![(
+        ApprovalRequest {
+            id: 7,
+            binding: ApprovalBinding {
+                session: "pending-approval".into(),
+                turn: "running".into(),
+                call: "call".into(),
+                operation: "op".into(),
+                input_digest: "digest".into(),
+                location: "location".into(),
+                generation: 1,
+                agent: None,
+                agent_digest: None,
+            },
+            project: "project".into(),
+            action: "fixture.tool".into(),
+            resources: vec!["*".into()],
+            save_patterns: vec![],
+            preview: ApprovalPreview::Tool,
+        },
+        false,
+    )]);
+    let shown = crate::views::render_test(&state, FRAME.width, FRAME.height).join("\n");
+    assert!(
+        shown.contains("Tool: fixture.tool") && !shown.contains("Pending steer"),
+        "{shown}"
+    );
+    assert!(!state.select.painted_matches(
+        FRAME,
+        crate::dialog::size_for(state.panel()),
+        &state.modal_options()
+    ));
+    assert_eq!(
+        state.mouse_down.get(),
+        None,
+        "hidden paint retires the old press even if another client resolves approval"
+    );
+    for code in [KeyCode::Esc, KeyCode::Enter] {
+        let action = state
+            .terminal_key(KeyEvent::new(code, KeyModifiers::NONE))
+            .unwrap();
+        assert!(matches!(
+            state.handle_key(action).await.intent,
+            Some(PanelIntent::ReplyApproval(_))
+        ));
+        assert!(matches!(state.panel(), TuiPanel::PendingSteer { .. }));
+    }
+    assert!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point)
+            .intent
+            .is_none()
+    );
+    state.approvals.reconcile(vec![]);
+    assert!(
+        crate::views::render_test(&state, FRAME.width, FRAME.height)
+            .join("\n")
+            .contains("Pending steer")
+    );
+    assert!(
+        modal_mouse(&mut state, MouseEventKind::Up(MouseButton::Left), point)
+            .intent
+            .is_none()
+    );
+}
 
 /// A session view whose first turn the owner accepted and is still running.
 async fn running(name: &str) -> (TuiState, tokio::sync::mpsc::Receiver<InboxMsg>) {

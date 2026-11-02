@@ -5,6 +5,13 @@ use super::*;
 use oc_core::queries::{InboxAction, InboxDelivery, InboxItem};
 
 impl TuiState {
+    pub(crate) fn cancel_pending_steer_pointer(&self) {
+        if matches!(self.panel, TuiPanel::PendingSteer { .. }) {
+            self.mouse_down.set(None);
+            self.select.clear_paint();
+        }
+    }
+
     pub(super) fn failed_submission_selected(&self) -> bool {
         self.panel == TuiPanel::Settings
             && self.failed_submission_note().is_some()
@@ -69,6 +76,39 @@ impl TuiState {
 
     pub fn inbox_items(&self) -> &[InboxItem] {
         &self.inbox
+    }
+
+    /// Exact durable in-turn acceptance, routed to the owning session view.
+    pub fn inbox_delivered<'a>(
+        &mut self,
+        session: &SessionId,
+        ids: impl IntoIterator<Item = &'a str>,
+    ) {
+        if self.session.as_ref() == Some(session)
+            && let TuiPanel::PendingSteer { id, accepted } = &mut self.panel
+            && !*accepted
+            && ids.into_iter().any(|delivered| delivered == id)
+        {
+            *accepted = true;
+            self.invalidate_transcript();
+        }
+    }
+
+    pub(crate) fn pending_steer_status(&self) -> Option<&'static str> {
+        let TuiPanel::PendingSteer { id, accepted } = &self.panel else {
+            return None;
+        };
+        if *accepted {
+            Some("Accepted by the agent")
+        } else if self
+            .inbox
+            .iter()
+            .any(|item| item.id == *id && item.delivery == InboxDelivery::Steer)
+        {
+            None
+        } else {
+            Some("No longer pending")
+        }
     }
 
     pub(super) fn queued(&self) -> impl Iterator<Item = &InboxItem> {
@@ -232,12 +272,13 @@ impl TuiState {
 
     /// Pending steers use neutral user rows; only queued prompts join the dock.
     pub(super) fn inbox_rows(&self) -> Vec<HistoryRow> {
-        let row = |role: &str, text: String, delivery| HistoryRow {
+        let row = |role: &str, text: String, delivery, inbox_id| HistoryRow {
             position: None,
             message_id: None,
             seq: i64::MAX,
             role: role.into(),
             pending_delivery: Some(delivery),
+            inbox_id,
             text: text.into(),
             agent: None,
             agent_color_index: None,
@@ -260,6 +301,7 @@ impl TuiState {
                         None => item.text.clone(),
                     },
                     InboxDelivery::Steer,
+                    Some(item.id.clone()),
                 )
             })
             .collect::<Vec<_>>();
@@ -273,6 +315,7 @@ impl TuiState {
                     first.text.replace(['\n', '\r'], " ")
                 ),
                 InboxDelivery::Queue,
+                None,
             ));
         }
         rows

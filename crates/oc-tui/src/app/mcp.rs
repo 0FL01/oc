@@ -472,7 +472,7 @@ impl TuiState {
                 copy_pending: false,
                 pressed: None,
             });
-            self.mouse_down = None;
+            self.mouse_down.set(None);
         }
         KeyOutcome::default()
     }
@@ -520,7 +520,7 @@ impl TuiState {
         match action {
             KeyAction::Cancel | KeyAction::Interrupt => {
                 self.mcp_detail = None;
-                self.mouse_down = None;
+                self.mouse_down.set(None);
             }
             KeyAction::Char('c') => {
                 if let Some(server) = self.mcp_detail_server() {

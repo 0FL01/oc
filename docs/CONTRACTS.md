@@ -323,6 +323,13 @@ continuing only undelivered steers under the live Origin with a fresh stop token
 queued prompts stay parked until explicit promotion or a new accepted input restores
 normal draining. Origin cancellation, shutdown, deletion and undo do not resume them.
 Pending steers remain neutral user rows; only Queue items use the `N queued` dock.
+Clicking a pending steer opens `Pending steer` (Search, Move to queue, Delete),
+acting on its exact inbox ID without restoring the composer or interrupting work.
+The modal stays open if the item disappears: exact in-turn delivery shows
+`Accepted by the agent`; otherwise `No longer pending`. Both disable its actions.
+An active approval hides and owns input over this modal until resolved.
+Moving an already queued failed item to Queue preserves its refusal; explicit
+promotion to Steer still clears the error for retry.
 Refusal retains original input with a visible error;
 snapshots contain bounded previews/image counts, full PNGs are read individually.
 Configured commands expand once under the enqueue generation and command/routing-profile

@@ -493,6 +493,7 @@ mod tests {
             agent: Some("build".into()),
             agent_color_index: Some(1),
             pending_delivery: None,
+            inbox_id: None,
             chips: vec![],
             reasoning: None,
             child_notice: None,

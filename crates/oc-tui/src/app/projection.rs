@@ -910,6 +910,7 @@ mod tests {
             agent: None,
             agent_color_index: None,
             pending_delivery: None,
+            inbox_id: None,
             chips: vec![],
             reasoning: None,
             child_notice: None,

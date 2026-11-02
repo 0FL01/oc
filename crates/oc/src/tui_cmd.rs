@@ -4548,6 +4548,7 @@ async fn handle_worker_event_at(
             delivered,
         } => {
             state.apply_inbox(&session, items.clone());
+            state.inbox_delivered(&session, delivered.iter().map(|d| d.item.id.as_str()));
             // A steer joined the running turn: correlate the live prompt, then
             // show its durable user row placed by the turn's notice order.
             if !replay && !delivered.is_empty() {

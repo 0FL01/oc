@@ -84,6 +84,40 @@ fn pending_items_keep_order_change_delivery_and_withdraw() {
 }
 
 #[test]
+fn stale_queue_delivery_preserves_failure_until_explicit_steer_retry() {
+    let (_tmp, db) = db();
+    let item = db
+        .inbox_add("s", InboxDelivery::Queue, "failed command")
+        .unwrap();
+    db.inbox_fail("s", &item, &CoreError::Application("refused".into()))
+        .unwrap();
+    let failed = db.inbox_pending("s").unwrap();
+    assert!(failed[0].error.is_some());
+    assert!(
+        db.inbox_set_delivery("s", &item.id, InboxDelivery::Queue)
+            .unwrap()
+    );
+    assert_eq!(db.inbox_pending("s").unwrap(), failed);
+    assert!(db.inbox_next("s", true).unwrap().is_none());
+    assert!(
+        db.inbox_set_delivery("s", &item.id, InboxDelivery::Steer)
+            .unwrap()
+    );
+    let retry = db.inbox_next("s", false).unwrap().unwrap();
+    assert_eq!(
+        retry.item,
+        InboxItem {
+            delivery: InboxDelivery::Steer,
+            ..item
+        }
+    );
+    assert_eq!(
+        retry.payload.original(),
+        PromptInput::from("failed command")
+    );
+}
+
+#[test]
 fn bounded_per_session() {
     let (_tmp, db) = db();
     for index in 0..MAX_INBOX_ITEMS {

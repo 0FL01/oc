@@ -263,7 +263,7 @@ impl Db {
         delivery: InboxDelivery,
     ) -> Result<bool, StorageError> {
         Ok(self.conn.lock().expect("db mutex").execute(
-            "UPDATE session_inbox SET delivery=?3,error=NULL
+            "UPDATE session_inbox SET error=CASE WHEN delivery='queue' AND ?3='queue' THEN error ELSE NULL END, delivery=?3
             WHERE session_id=?1 AND id=?2 AND message_id IS NULL",
             params![session, id, delivery.as_str()],
         )? == 1)
