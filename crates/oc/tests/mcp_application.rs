@@ -548,8 +548,8 @@ impl FakeMcp {
                                 "content": [{
                                     "type": "image",
                                     // Image is now supported by the native
-                                    // bridge; retain this unknown-effect case
-                                    // with an actually malformed payload.
+                                    // bridge; malformed base64 is an ordinary
+                                    // failed result, not an unknown effect.
                                     "data": "not-base64!",
                                     "mimeType": "image/png",
                                 }],
@@ -1444,17 +1444,13 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
 
     let mut process = fixture.spawn_run("aud24-result-semantics");
     let status = process.wait();
-    assert!(
-        !status.success(),
-        "unsupported post-effect result claimed success"
-    );
-    assert!(process.diagnostics().contains("MCP outcome unknown"));
-    assert!(!process.output().contains("server-declared failure"));
+    assert!(status.success(), "{}", process.diagnostics());
+    assert!(!process.diagnostics().contains("MCP outcome unknown"));
     let requests = responses.requests();
     assert_eq!(
         requests.iter().filter(|r| !title::is_title(r)).count(),
-        1,
-        "unknown outcome was sent back to provider"
+        2,
+        "ordinary failed results must reach the next provider request"
     );
     assert!(requests.iter().filter(|r| title::is_title(r)).count() <= 1);
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
@@ -1469,7 +1465,8 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
     let (declared_state, declared) = &results[0];
     let (unsupported_state, unsupported) = &results[1];
     assert_eq!(declared_state, "failed");
-    assert_eq!(unsupported_state, "unknown");
+    assert_eq!(unsupported_state, "failed");
+    assert!(declared.contains("server-declared failure"));
     assert!(
         declared.starts_with("error:"),
         "isError was reported as success: {declared:?}"
@@ -1494,7 +1491,7 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
         .unwrap();
     // SAFETY: signal zero only probes the child PID owned by this fixture.
     let alive = unsafe { libc::kill(pid, 0) };
-    assert_ne!(alive, 0, "poisoned stdio child survived exit");
+    assert_ne!(alive, 0, "owned stdio child survived exit");
 }
 
 fn function_tool_names(request: &Value) -> Vec<String> {
@@ -2372,7 +2369,8 @@ done
     assert_safe_vt(&baseline, &tui.output.lock().unwrap(), sentinel);
     let rows = tui.screen();
     assert!(
-        rows.iter().any(|row| row.contains("tool output: CSI[2J")),
+        rows.iter()
+            .any(|row| row.contains("tool output: CSI\\u{1B}[2J")),
         "{rows:?}"
     );
     tui.raw(b"\x1b");
@@ -2389,11 +2387,11 @@ done
     assert_eq!(main.len(), 2, "one tool roundtrip (title is ancillary)");
     assert!(function_tool_names(main[0]).contains(&"probe__ping".to_string()));
     assert!(function_tool_names(main[0]).contains(&"probe__fail".to_string()));
-    // The pre-existing MCP projection removes controls from successful
-    // results before storage/provider continuation; it is not a TUI fix.
-    let projected: String = sentinel.chars().filter(|ch| !ch.is_control()).collect();
-    assert!(function_output(main[1], "s04-call").contains(&projected));
-    assert!(function_output(main[1], "s04-error-call").contains("mcp tool reported failure"));
+    // MCP projection is verbatim; only the TUI presentation makes controls inert.
+    assert!(function_output(main[1], "s04-call").contains(sentinel));
+    assert!(
+        function_output(main[1], "s04-error-call").contains(&format!("tool error: {sentinel}"))
+    );
     assert_eq!(fs::read_to_string(&log).unwrap().lines().count(), 2);
     let db = rusqlite::Connection::open(&db_path).unwrap();
     let (state, input, output): (String, String, String) = db
@@ -2409,7 +2407,7 @@ done
         sentinel
     );
     assert!(
-        output.contains(&projected),
+        output.contains(sentinel),
         "MCP projection lost ordinary tool text"
     );
     let durable: String = db
@@ -2482,11 +2480,10 @@ fn expand_control_probe_error(tui: &mut PtyProcess) {
         );
         std::thread::sleep(POLL);
     };
-    assert!(
-        !rows
-            .iter()
-            .any(|row| row.contains("error: mcp tool reported failure")),
-        "Generic failures start collapsed: {rows:?}"
+    assert_eq!(
+        rows.iter().filter(|row| row.trim() == "END").count(),
+        1,
+        "tool failure starts collapsed; only model text has an END row: {rows:?}"
     );
     let (y, row) = rows
         .iter()
@@ -2497,7 +2494,23 @@ fn expand_control_probe_error(tui: &mut PtyProcess) {
     let x = ratatui::text::Line::from(prefix).width() + 2;
     let y = y + 1;
     tui.raw(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());
-    tui.wait_screen("error: mcp tool reported failure", TIMEOUT);
+    // Raw tool streams use strip-ANSI/CR-overwrite presentation. The final CR
+    // leaves only END; provider/history assertions retain every original byte.
+    let deadline = Instant::now() + TIMEOUT;
+    while tui
+        .screen()
+        .iter()
+        .filter(|row| row.trim() == "END")
+        .count()
+        != 2
+    {
+        assert!(
+            Instant::now() < deadline,
+            "expanded error body missing: {:?}",
+            tui.screen()
+        );
+        std::thread::sleep(POLL);
+    }
 }
 
 fn open_success_card(tui: &mut PtyProcess) {
@@ -2507,7 +2520,7 @@ fn open_success_card(tui: &mut PtyProcess) {
     // result retains its original text behind the card detail panel.
     tui.raw(b"\x1b[B");
     tui.raw(b"\r");
-    tui.wait_screen("tool output: CSI[2J", TIMEOUT);
+    tui.wait_screen("tool output: CSI\\u{1B}[2J", TIMEOUT);
 }
 
 fn assert_safe_vt(before: &[u8], after: &[u8], sentinel: &str) {
@@ -3866,8 +3879,21 @@ async fn v07b_remote_unsupported_after_effect_is_unknown_and_quarantined() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn v07b_remote_malformed_after_effect_is_unknown_and_quarantined() {
-    v07b_remote_unverified_result("v07b_bad_result").await;
+async fn v07b_remote_malformed_after_effect_is_failed() {
+    let tool = "v07b_bad_result";
+    let responses = FakeResponses::start(ResponsesScript::ToolNamed(format!("effects__{tool}")));
+    let mcp = FakeMcp::start("effects", "", &[tool]);
+    let fixture = Fixture::new();
+    fixture.write_config(&responses, json!({"servers":{"effects":{"type":"remote","codemode":false,"url":mcp.url,"oauth":false,"timeout":{"catalog":3000,"execution":3000}}}}), json!([{"action":format!("effects__{tool}"),"resource":"*","effect":"allow"}]));
+    let mut process = fixture.spawn_run("remote-bad-result");
+    assert!(process.wait().success(), "{}", process.diagnostics());
+    let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+    assert_eq!(
+        db.query_row("SELECT state FROM tool_operations LIMIT 1", [], |r| r
+            .get::<_, String>(0))
+            .unwrap(),
+        "failed"
+    );
 }
 
 async fn v07b_remote_unverified_result(tool: &str) {
@@ -4190,8 +4216,18 @@ async fn v07b_stdio_unsupported_after_effect_reaps_before_explicit_retry() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn v07b_stdio_malformed_after_effect_reaps_before_explicit_retry() {
+async fn v07b_stdio_malformed_after_effect_is_failed_and_reuses_server() {
     v07b_stdio_unverified_result("bad_result").await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn mcp_large_text_spills_and_reuses_one_stdio_server() {
+    v07b_stdio_unverified_result("big").await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn mcp_execution_timeout_ignores_late_response_and_reuses_one_stdio_server() {
+    v07b_stdio_unverified_result("deadline").await;
 }
 
 #[test]
@@ -4273,6 +4309,19 @@ fn v07b_stdio_definitive_is_error_remains_failed_and_reusable() {
         .unwrap(),
         0
     );
+    assert!(
+        responses
+            .requests()
+            .iter()
+            .any(
+                |r| r["input"].as_array().is_some_and(|items| items.iter().any(
+                    |item| item["type"] == "function_call_output"
+                        && item["output"]
+                            .as_str()
+                            .is_some_and(|text| text.contains("server-declared failure"))
+                ))
+            )
+    );
     tui.raw(b"\x03");
     assert!(tui.wait_exit().success());
 }
@@ -4306,9 +4355,15 @@ for line in sys.stdin:
         # Video remains unsupported in the native MCP 2025 path; valid image,
         # audio and blob must no longer serve as unknown-effect fixtures.
         elif mode == 'unsupported': result = {{'content':[{{'type':'text','text':'PRIVATE_RESULT_BODY'}},{{'type':'video','data':'aGVsbG8=','mimeType':'video/mp4'}}]}}
-        else: result = {{'content':[]}}
+        elif mode == 'big': result = {{'content':[{{'type':'text','text':'1 true responses-key test-key\n' + 'x'*1500000 + 'TAIL_SENTINEL'}}], '_meta':{{}}}}
+        elif mode == 'deadline':
+            time.sleep(0.3)
+            result = {{'content':[{{'type':'text','text':'late response'}}]}}
+        else: result = {{'content':[{{'type':'image','mimeType':'image/png','data':'invalid-base64!'}}]}}
     else: continue
     print(json.dumps({{'jsonrpc':'2.0','id':request['id'],'result':result}}), flush=True)
+    if method == 'tools/call' and mode == 'deadline':
+        with open(log, 'a') as f: f.write('late sent\n')
 "#,
             log = log.to_string_lossy(),
             release = release.to_string_lossy()
@@ -4317,7 +4372,7 @@ for line in sys.stdin:
     fixture.write_config(
         &responses,
         json!({"servers": {"stall": {
-            "type":"local", "codemode": false, "command":[server], "timeout":{"catalog": 3000, "execution": 3000}
+            "type":"local", "codemode": false, "command":[server], "environment":{"USER":"opencode","SHLVL":"1","FLAG":"true"}, "timeout":{"catalog": 3000, "execution": if mode == "deadline" {100} else {3000}}
         }}}),
         json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
@@ -4325,6 +4380,102 @@ for line in sys.stdin:
     // R7 no longer promises first-prompt catalog readiness. This scenario
     // observes an MCP after-effect outcome, not an unrelated builtin probe.
     wait_initial_mcp(&mut tui, "stall");
+    if mode != "unsupported" {
+        tui.send_line("perform local effect");
+        let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
+        let deadline = Instant::now() + TIMEOUT;
+        while db
+            .query_row(
+                "SELECT count(*) FROM turns WHERE status='completed'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .unwrap()
+            != 1
+        {
+            assert!(
+                Instant::now() < deadline,
+                "ordinary MCP result did not complete turn"
+            );
+            std::thread::sleep(POLL);
+        }
+        let (state, output): (String, String) = db
+            .query_row(
+                "SELECT state,output FROM tool_operations LIMIT 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(state, if mode == "big" { "completed" } else { "failed" });
+        if mode == "big" {
+            assert!(output.contains("1 true responses-key test-key"));
+            assert!(output.contains("read(path="));
+            assert!(!output.contains("[redacted]"));
+            let path: String = db
+                .query_row(
+                    "SELECT json_extract(descriptor,'$.path') FROM tool_output_resources LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            let artifact = fs::read_to_string(fixture.home.join("data/oc").join(path)).unwrap();
+            assert!(artifact.starts_with("1 true responses-key test-key\n"));
+            assert!(artifact.contains("TAIL_SENTINEL"));
+        } else if mode == "deadline" {
+            assert!(output.contains("timed out"));
+            let deadline = Instant::now() + TIMEOUT;
+            while !fs::read_to_string(&log).unwrap().contains("late sent") {
+                assert!(Instant::now() < deadline, "late reply not observed");
+                std::thread::sleep(POLL);
+            }
+        }
+        fs::write(&release, "next call").unwrap();
+        std::thread::sleep(Duration::from_millis(750));
+        tui.send_line("next ping");
+        let deadline = Instant::now() + TIMEOUT;
+        while db
+            .query_row(
+                "SELECT count(*) FROM turns WHERE status='completed'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .unwrap()
+            != 2
+        {
+            assert!(Instant::now() < deadline, "same MCP server was not reused");
+            std::thread::sleep(POLL);
+        }
+        assert_eq!(
+            db.query_row(
+                "SELECT output FROM tool_operations ORDER BY rowid DESC LIMIT 1",
+                [],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap(),
+            "pong"
+        );
+        assert_eq!(
+            db.query_row(
+                "SELECT count(*) FROM tool_operations WHERE state='unknown'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+            0
+        );
+        let lifecycle = fs::read_to_string(&log).unwrap();
+        assert_eq!(
+            lifecycle
+                .lines()
+                .filter(|l| l.starts_with("spawn "))
+                .count(),
+            1
+        );
+        assert_eq!(lifecycle.lines().filter(|l| *l == "effect").count(), 2);
+        tui.raw(b"\x03");
+        assert!(tui.wait_exit().success());
+        return;
+    }
     let observer = McpFailureObserver::attach(&fixture).await;
     tui.send_line("perform local effect");
     let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();

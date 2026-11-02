@@ -36,7 +36,7 @@ pub const MESSAGE_BYTES_CAP: usize = 64 * 1024 * 1024;
 /// Maximum serialized metadata retained for one server's catalogs.
 pub const CATALOG_BYTES_CAP: usize = 64 * 1024 * 1024;
 /// Maximum retained text from one MCP call.
-pub const RESULT_TEXT_BYTES_CAP: usize = 1024 * 1024;
+pub const RESULT_TEXT_BYTES_CAP: usize = 16 * 1024 * 1024;
 /// Provider-compatible function-name ceiling.
 pub const WIRE_NAME_BYTES_CAP: usize = 64;
 /// Maximum retained server/tool identifier bytes.
@@ -95,7 +95,7 @@ pub enum CatalogError {
     InvalidIdentity,
 }
 
-/// Typed remote-MCP errors (no secrets, no payload contents).
+/// Typed remote-MCP errors; tool-declared failures retain their text.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum McpError {
     /// Misconfiguration (bad URL, missing bearer, OAuth requested).
@@ -138,11 +138,11 @@ pub enum McpError {
     #[error("cancelled")]
     Cancelled,
     /// Tool reported `isError`.
-    #[error("tool error")]
-    ToolFailed,
-    /// Tool failure with a fixed, payload-free diagnostic category.
-    #[error("tool error: {0}")]
-    ToolFailedDetail(crate::mcp_result::FailureDetail),
+    #[error("tool error: {1}")]
+    ToolFailed(Option<crate::mcp_result::FailureDetail>, String),
+    /// Valid result exceeds its aggregate byte budget.
+    #[error("MCP result {bytes} bytes exceeds {limit} bytes")]
+    TooLarge { bytes: usize, limit: usize },
     /// Tool arguments were not a JSON object.
     #[error("invalid tool arguments")]
     InvalidArguments,
@@ -507,7 +507,6 @@ pub struct CodexWebClient {
     catalog_timeout: Duration,
     tools_changed: Arc<AtomicBool>,
     cleanup: lifecycle::Cleanup,
-    secrets: Vec<String>,
     instructions: Option<String>,
 }
 
@@ -529,15 +528,6 @@ impl CodexWebClient {
         config: &CodexWebConfig,
         codex_web: bool,
         cancel: &AtomicBool,
-    ) -> Result<Self, McpError> {
-        Self::connect_redacted(config, codex_web, cancel, &[]).await
-    }
-
-    pub(crate) async fn connect_redacted(
-        config: &CodexWebConfig,
-        codex_web: bool,
-        cancel: &AtomicBool,
-        redactions: &[String],
     ) -> Result<Self, McpError> {
         config.validate_profile(codex_web)?;
         let startup_deadline =
@@ -617,18 +607,9 @@ impl CodexWebClient {
             return Err(McpError::ProtocolMismatch);
         }
         let peer = running.peer().clone();
-        let mut secrets = vec![config.url.clone(), config.bearer.clone()];
-        secrets.extend_from_slice(redactions);
-        secrets.extend(
-            config
-                .custom_headers
-                .values()
-                .filter_map(|v| v.to_str().ok())
-                .map(str::to_string),
-        );
-        let instructions = peer.peer_info().and_then(|info| {
-            crate::mcp_result::instructions(info.instructions.as_deref(), &secrets)
-        });
+        let instructions = peer
+            .peer_info()
+            .and_then(|info| crate::mcp_result::instructions(info.instructions.as_deref()));
         Ok(Self {
             message_fault,
             peer,
@@ -637,12 +618,11 @@ impl CodexWebClient {
             catalog_timeout: config.catalog_timeout.unwrap_or(config.timeout),
             tools_changed,
             cleanup,
-            secrets,
             instructions,
         })
     }
 
-    /// Bounded, configured-value-redacted server guidance from initialize.
+    /// Bounded server guidance from initialize.
     pub fn instructions(&self) -> Option<&str> {
         self.instructions.as_deref()
     }
@@ -676,7 +656,6 @@ impl CodexWebClient {
             operation,
             self.catalog_timeout,
             self.timeout,
-            (&self.secrets, &self.secrets),
             cancel,
             dispatched,
             ) => result.map_err(|error| {
@@ -745,7 +724,7 @@ impl CodexWebClient {
         cancel: &AtomicBool,
     ) -> Result<String, McpError> {
         let result = self.tool_result(tool, arguments, cancel).await?;
-        crate::mcp_result::project(result, &self.secrets).map_err(result_error)
+        crate::mcp_result::project(result).map_err(result_error)
     }
 
     pub(crate) async fn call_tool_rich(
@@ -755,7 +734,7 @@ impl CodexWebClient {
         cancel: &AtomicBool,
     ) -> Result<crate::mcp_result::McpToolOutput, McpError> {
         let result = self.tool_result(tool, arguments, cancel).await?;
-        crate::mcp_result::project_rich(result, &self.secrets, &self.secrets).map_err(result_error)
+        crate::mcp_result::project_rich(result).map_err(result_error)
     }
 
     async fn tool_result(
@@ -803,10 +782,17 @@ impl CodexWebClient {
             Some(Ok(Ok(Ok(rmcp::model::ServerResult::CallToolResult(result))))) => {
                 rmcp::model::CallToolResponse::Complete(result)
             }
+            // The SDK's untagged fallback retained an undecodable wire result;
+            // recognized unsupported response variants remain ordinary failures.
+            Some(Ok(Ok(Ok(rmcp::model::ServerResult::CustomResult(_))))) => {
+                return Err(McpError::Transport);
+            }
             Some(Ok(Ok(Ok(_)))) => return Err(McpError::UnsupportedResult),
             Some(Ok(Ok(Err(error)))) => {
                 return Err(crate::mcp_result::rpc_failure(&error)
-                    .map_or(McpError::Transport, McpError::ToolFailedDetail));
+                    .map_or(McpError::Transport, |detail| {
+                        McpError::ToolFailed(Some(detail), String::new())
+                    }));
             }
             Some(Ok(Err(_))) => {
                 return Err(self
@@ -846,8 +832,10 @@ impl CodexWebClient {
 
 fn result_error(error: crate::mcp_result::ResultError) -> McpError {
     match error {
-        crate::mcp_result::ResultError::Failed(Some(detail)) => McpError::ToolFailedDetail(detail),
-        crate::mcp_result::ResultError::Failed(None) => McpError::ToolFailed,
+        crate::mcp_result::ResultError::Failed(detail, text) => McpError::ToolFailed(detail, text),
+        crate::mcp_result::ResultError::TooLarge { bytes, limit } => {
+            McpError::TooLarge { bytes, limit }
+        }
         crate::mcp_result::ResultError::Unsupported => McpError::UnsupportedResult,
         crate::mcp_result::ResultError::BadResult => McpError::BadResult,
     }

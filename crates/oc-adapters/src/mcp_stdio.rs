@@ -25,12 +25,12 @@ pub const TERM_GRACE: Duration = Duration::from_millis(500);
 /// Default per-operation timeout.
 pub const STDIO_TIMEOUT: Duration = Duration::from_secs(60);
 /// Maximum retained text from one MCP call.
-pub const RESULT_TEXT_BYTES_CAP: usize = 1024 * 1024;
+pub use crate::mcp_remote::RESULT_TEXT_BYTES_CAP;
 
 const SERVICE_CLOSE_TIMEOUT: Duration = Duration::from_secs(2);
 const STDERR_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
 
-/// Typed stdio errors (no secrets, no child output contents).
+/// Typed stdio errors; tool-declared failures retain their text.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum StdioError {
     /// Misconfiguration (bad argv/env, OAuth/Code Mode, failed admission).
@@ -58,11 +58,11 @@ pub enum StdioError {
     #[error("cancelled")]
     Cancelled,
     /// Tool reported `isError`.
-    #[error("tool error")]
-    ToolFailed,
-    /// Tool failure with a fixed, payload-free diagnostic category.
-    #[error("tool error: {0}")]
-    ToolFailedDetail(crate::mcp_result::FailureDetail),
+    #[error("tool error: {1}")]
+    ToolFailed(Option<crate::mcp_result::FailureDetail>, String),
+    /// Valid result exceeds its aggregate byte budget.
+    #[error("MCP result {bytes} bytes exceeds {limit} bytes")]
+    TooLarge { bytes: usize, limit: usize },
     /// Serialized tools/list metadata exceeded its byte budget.
     #[error(transparent)]
     CatalogLimited(#[from] crate::mcp_remote::CatalogLimit),
@@ -572,9 +572,6 @@ pub struct StdioClient {
     generation: u64,
     tools_changed: Arc<std::sync::atomic::AtomicBool>,
     instructions: Option<String>,
-    redactions: Vec<String>,
-    /// Protected config/environment values, without ordinary argv words.
-    identity_secrets: Vec<String>,
 }
 
 impl StdioClient {
@@ -615,12 +612,6 @@ impl StdioClient {
         generation: u64,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<Self, StdioError> {
-        let identity_secrets = config
-            .secrets
-            .iter()
-            .cloned()
-            .chain(config.extra_env.iter().map(|(_, value)| value.clone()))
-            .collect();
         let mut retained = config.clone();
         retained
             .secrets
@@ -661,12 +652,9 @@ impl StdioClient {
             }
         };
         let peer = running.peer().clone();
-        let mut redactions = config.secrets.clone();
-        redactions.extend(config.extra_env.iter().map(|(_, value)| value.clone()));
-        redactions.extend(config.argv.iter().cloned());
-        let instructions = peer.peer_info().and_then(|info| {
-            crate::mcp_result::instructions(info.instructions.as_deref(), &redactions)
-        });
+        let instructions = peer
+            .peer_info()
+            .and_then(|info| crate::mcp_result::instructions(info.instructions.as_deref()));
         let legacy = peer
             .peer_info()
             .is_some_and(|info| crate::mcp_remote::legacy_version(info.protocol_version.as_str()));
@@ -679,8 +667,6 @@ impl StdioClient {
             generation,
             tools_changed,
             instructions,
-            redactions,
-            identity_secrets,
         };
         if !legacy {
             client
@@ -696,7 +682,7 @@ impl StdioClient {
         Ok(client)
     }
 
-    /// Bounded, configured-value-redacted server guidance from initialize.
+    /// Bounded server guidance from initialize.
     pub fn instructions(&self) -> Option<&str> {
         self.instructions.as_deref()
     }
@@ -730,7 +716,6 @@ impl StdioClient {
             operation,
             self.config.catalog_timeout.unwrap_or(self.config.timeout),
             self.config.timeout,
-            (&self.redactions, &self.identity_secrets),
             cancel,
             dispatched,
             ) => result.map_err(|error| {
@@ -804,7 +789,7 @@ impl StdioClient {
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<String, StdioError> {
         let result = self.tool_result(tool, arguments, cancel).await?;
-        crate::mcp_result::project(result, &self.redactions).map_err(result_error)
+        crate::mcp_result::project(result).map_err(result_error)
     }
 
     pub(crate) async fn call_tool_rich(
@@ -814,8 +799,7 @@ impl StdioClient {
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<crate::mcp_result::McpToolOutput, StdioError> {
         let result = self.tool_result(tool, arguments, cancel).await?;
-        crate::mcp_result::project_rich(result, &self.redactions, &self.identity_secrets)
-            .map_err(result_error)
+        crate::mcp_result::project_rich(result).map_err(result_error)
     }
 
     async fn tool_result(
@@ -866,10 +850,17 @@ impl StdioClient {
             Some(Ok(Ok(Ok(rmcp::model::ServerResult::CallToolResult(result))))) => {
                 rmcp::model::CallToolResponse::Complete(result)
             }
+            // The SDK's untagged fallback retained an undecodable wire result;
+            // unlike a recognized unsupported response, this is transport loss.
+            Some(Ok(Ok(Ok(rmcp::model::ServerResult::CustomResult(_))))) => {
+                return Err(StdioError::Transport);
+            }
             Some(Ok(Ok(Ok(_)))) => return Err(StdioError::UnsupportedModality),
             Some(Ok(Ok(Err(error)))) => {
                 return Err(crate::mcp_result::rpc_failure(&error)
-                    .map_or(StdioError::Transport, StdioError::ToolFailedDetail));
+                    .map_or(StdioError::Transport, |detail| {
+                        StdioError::ToolFailed(Some(detail), String::new())
+                    }));
             }
             Some(Ok(Err(_))) => {
                 return Err(self
@@ -923,10 +914,12 @@ impl StdioClient {
 
 fn result_error(error: crate::mcp_result::ResultError) -> StdioError {
     match error {
-        crate::mcp_result::ResultError::Failed(Some(detail)) => {
-            StdioError::ToolFailedDetail(detail)
+        crate::mcp_result::ResultError::Failed(detail, text) => {
+            StdioError::ToolFailed(detail, text)
         }
-        crate::mcp_result::ResultError::Failed(None) => StdioError::ToolFailed,
+        crate::mcp_result::ResultError::TooLarge { bytes, limit } => {
+            StdioError::TooLarge { bytes, limit }
+        }
         crate::mcp_result::ResultError::Unsupported => StdioError::UnsupportedModality,
         crate::mcp_result::ResultError::BadResult => StdioError::BadResult,
     }

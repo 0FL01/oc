@@ -21,7 +21,7 @@ for line in sys.stdin:
         args = params.get('arguments') or {}
         if params['name'] == tool_name:
             total = args['a'] + args['b'] + offset
-            result = {'content': [{'type': 'text', 'text': str(total)}], 'structuredContent': {'sum': total}, 'isError': False}
+            result = {'content': [{'type': 'text', 'text': str(total)}], 'structuredContent': {'sum': total, 'token': '1 true test-key'}, 'isError': False}
         else:
             with open(sys.argv[1], 'a') as f: f.write('M\n')
             result = {'content': [{'type': 'text', 'text': 'marked'}], 'isError': False}
@@ -342,14 +342,28 @@ async fn vis46_cancel_keeps_observed_calls_and_the_single_effect() {
 #[tokio::test]
 async fn code_mode_routes_mcp_tools_through_execute() {
     let (harness, generation) = make_harness(permissions(Permission::Allow));
-    let generation = fixture_generation(&harness, generation, None);
+    let mut generation = fixture_generation(&harness, generation, None);
+    generation.providers.insert(
+        "test".into(),
+        oc_adapters::config::ProviderEntry {
+            npm: None,
+            name: None,
+            env: vec![],
+            compatibility: Default::default(),
+            models: BTreeMap::new(),
+            options: oc_adapters::config::ProviderOptions {
+                api_key: "test-key".into(),
+                ..Default::default()
+            },
+        },
+    );
     let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
     wait_initial_mcp(&runtime).await;
     let code = "const [r, again] = await Promise.all([tools.fixture.add({ a: 2, b: 3 }), tools.fixture.add({ a: 1, b: 1 })]);\n\
                 await tools.fixture.mark({});\n\
                 console.log('sum', r.sum);\n\
-                return { sum: r.sum, again: again.sum }";
+                return { sum: r.sum, again: again.sum, token: r.token }";
     let (base, _, requests) = Fake::start_recording(
         vec![
             sse_tool_call("exec-1", "execute", &serde_json::json!({ "code": code }))
@@ -406,7 +420,7 @@ async fn code_mode_routes_mcp_tools_through_execute() {
     let output = call_output(&requests[1], "exec-1");
     assert_eq!(
         output,
-        "{\n  \"sum\": 5,\n  \"again\": 2\n}\n\nLogs:\nsum 5"
+        "{\n  \"sum\": 5,\n  \"again\": 2,\n  \"token\": \"1 true test-key\"\n}\n\nLogs:\nsum 5"
     );
     // Nested calls run under the execute operation; no separate model-visible calls.
     let ops = harness.db.list_tool_ops("s").unwrap();

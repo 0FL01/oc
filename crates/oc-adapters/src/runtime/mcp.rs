@@ -251,27 +251,24 @@ pub(super) fn mcp_redactions(
         .collect();
     for provider in config.providers.values() {
         secrets.extend(provider.options.redaction_material.iter().cloned());
-        secrets.extend([
-            provider.options.api_key.clone(),
-            provider.options.base_url.clone(),
-        ]);
+        secrets.push(provider.options.api_key.clone());
         secrets.extend(provider.options.headers.values().cloned());
         for request in provider.options.request_bindings.values() {
-            secrets.extend([request.api_key.clone(), request.base_url.clone()]);
+            secrets.push(request.api_key.clone());
             secrets.extend(request.headers.values().cloned());
         }
     }
     for entry in config.mcp.values() {
-        secrets.extend(entry.environment.values().cloned());
-        secrets.extend(entry.blocked_inherited_values.iter().cloned());
-        secrets.extend(entry.url.iter().cloned());
-        secrets.extend(entry.headers.values().cloned());
-        secrets.extend(
-            entry
-                .headers
-                .values()
-                .filter_map(|v| v.split_once(' ').map(|(_, token)| token.to_string())),
-        );
+        for (name, value) in &entry.headers {
+            if crate::mcp_stdio::is_credential_name(name)
+                || value.to_ascii_lowercase().starts_with("bearer ")
+            {
+                secrets.push(value.clone());
+                if let Some((_, token)) = value.split_once(' ') {
+                    secrets.push(token.to_owned());
+                }
+            }
+        }
     }
     let mut seen = std::collections::HashSet::new();
     secrets.retain(|value| !value.is_empty() && seen.insert(value.clone()));
@@ -283,14 +280,20 @@ fn remote_mcp_failure(error: McpError, cancel: &AtomicBool) -> (&'static str, St
         return ("cancelled", "error: cancelled".into());
     }
     let message = match error {
-        McpError::ToolFailedDetail(detail) => return ("failed", format!("error: mcp {detail}")),
+        McpError::ToolFailed(detail, text) => return ("failed", tool_failure(detail, text)),
+        McpError::TooLarge { bytes, limit } => {
+            return (
+                "failed",
+                format!("error: MCP result {bytes} bytes exceeds {limit} bytes"),
+            );
+        }
         McpError::MessageLimited { bytes, limit } => {
             return (
                 "failed",
                 format!("error: MCP message {bytes} bytes exceeds {limit} bytes"),
             );
         }
-        McpError::ToolFailed => "error: mcp tool reported failure",
+        McpError::Deadline => "error: mcp request timed out",
         McpError::UnsupportedResult | McpError::BadResult => "error: unsupported mcp result",
         McpError::InvalidArguments => "error: invalid mcp arguments",
         _ => "error: mcp transport failure",
@@ -303,19 +306,35 @@ fn stdio_mcp_failure(error: StdioError, cancel: &AtomicBool) -> (&'static str, S
         return ("cancelled", "error: cancelled".into());
     }
     let message = match error {
-        StdioError::ToolFailedDetail(detail) => return ("failed", format!("error: mcp {detail}")),
+        StdioError::ToolFailed(detail, text) => return ("failed", tool_failure(detail, text)),
+        StdioError::TooLarge { bytes, limit } => {
+            return (
+                "failed",
+                format!("error: MCP result {bytes} bytes exceeds {limit} bytes"),
+            );
+        }
         StdioError::MessageLimited { bytes, limit } => {
             return (
                 "failed",
                 format!("error: MCP message {bytes} bytes exceeds {limit} bytes"),
             );
         }
-        StdioError::ToolFailed => "error: mcp tool reported failure",
+        StdioError::Deadline => "error: mcp request timed out",
         StdioError::UnsupportedModality | StdioError::BadResult => "error: unsupported mcp result",
         StdioError::NonObjectArguments => "error: invalid mcp arguments",
         _ => "error: mcp transport failure",
     };
     ("failed", message.into())
+}
+
+fn tool_failure(detail: Option<crate::mcp_result::FailureDetail>, text: String) -> String {
+    if !text.is_empty() {
+        format!("error: {text}")
+    } else if let Some(detail) = detail {
+        format!("error: mcp {detail}")
+    } else {
+        "error: mcp tool reported failure".into()
+    }
 }
 
 fn remote_attach_error(server: &str, error: McpError) -> RuntimeError {
@@ -357,7 +376,8 @@ fn remote_attach_error_at(server: &str, stage: &'static str, error: McpError) ->
             };
         }
         McpError::Catalog(_) => (stage, "invalid_catalog", false),
-        McpError::ToolFailed | McpError::ToolFailedDetail(_) => (stage, "tool_failed", false),
+        McpError::ToolFailed(..) => (stage, "tool_failed", false),
+        McpError::TooLarge { .. } => (stage, "too_large", false),
         McpError::InvalidArguments => (stage, "invalid_arguments", false),
         McpError::BadResult => (stage, "bad_result", false),
         McpError::UnsupportedResult => (stage, "unsupported_result", false),
@@ -388,7 +408,8 @@ fn stdio_attach_error_at(server: &str, stage: &'static str, error: StdioError) -
                 limit,
             };
         }
-        StdioError::ToolFailed | StdioError::ToolFailedDetail(_) => (stage, "tool_failed", false),
+        StdioError::ToolFailed(..) => (stage, "tool_failed", false),
+        StdioError::TooLarge { .. } => (stage, "too_large", false),
         StdioError::NonObjectArguments => (stage, "invalid_arguments", false),
         StdioError::UnsupportedModality => (stage, "unsupported_result", false),
         StdioError::BadResult => (stage, "bad_result", false),
@@ -464,12 +485,9 @@ impl Runtime<'_> {
                         if matches!(
                             error,
                             McpError::Cancelled
-                                | McpError::Deadline
                                 | McpError::Transport
                                 | McpError::MessageLimited { .. }
                                 | McpError::CleanupFailed
-                                | McpError::UnsupportedResult
-                                | McpError::BadResult
                         ) || cancel.load(Ordering::Relaxed)
                         {
                             attached.poisoned.store(true, Ordering::SeqCst);
@@ -502,12 +520,9 @@ impl Runtime<'_> {
                         if matches!(
                             error,
                             StdioError::Cancelled
-                                | StdioError::Deadline
                                 | StdioError::Transport
                                 | StdioError::MessageLimited { .. }
                                 | StdioError::CleanupFailed
-                                | StdioError::UnsupportedModality
-                                | StdioError::BadResult
                         ) || cancel.load(Ordering::Relaxed)
                         {
                             attached.poisoned.store(true, Ordering::SeqCst);

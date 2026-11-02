@@ -38,9 +38,6 @@ pub(crate) async fn lookup(
     op: &McpLookupOp,
     catalog: Duration,
     execution: Duration,
-    // Body redaction includes argv; exact identities use protected config/env
-    // values, not ordinary command arguments.
-    (secrets, identity_secrets): (&[String], &[String]),
     cancel: &AtomicBool,
     dispatched: Option<&AtomicBool>,
 ) -> Result<McpLookupData, McpLookupError> {
@@ -48,16 +45,6 @@ pub(crate) async fn lookup(
         return Err(McpLookupError::Cancelled);
     }
     validate_operation(op)?;
-    // Caller identities are echoed in typed replies too; protecting only
-    // server-supplied names/URIs would still publish known protected values.
-    if !op.is_catalog() {
-        safe_identity(op.target(), identity_secrets)?;
-        if let McpLookupOp::GetPrompt { arguments, .. } = op {
-            for key in arguments.keys() {
-                safe_identity(key, identity_secrets)?;
-            }
-        }
-    }
     let available = peer
         .peer_info()
         .map(|info| match op {
@@ -106,39 +93,37 @@ pub(crate) async fn lookup(
         let value = bounded_value(&result)?;
         let data = match (op, result) {
             (McpLookupOp::GetPrompt { name, arguments }, ServerResult::GetPromptResult(_)) => {
-                let mut messages: Vec<McpPromptMessage> =
+                let messages: Vec<McpPromptMessage> =
                     serde_json::from_value(value["messages"].clone())
                         .map_err(|_| McpLookupError::UnsupportedResult)?;
                 if messages.len() > TOOLS_CAP {
                     return Err(McpLookupError::BodyLimit);
                 }
-                for message in &mut messages {
-                    redact_content(&mut message.content, (secrets, identity_secrets))?;
+                for message in &messages {
+                    validate_content(&message.content)?;
                 }
                 McpLookupData::Prompt {
                     name: name.clone(),
                     arguments: arguments
                         .iter()
-                        .map(|(key, value)| {
-                            (key.clone(), crate::mcp_result::redact(value, secrets))
-                        })
+                        .map(|(key, value)| (key.clone(), value.clone()))
                         .collect(),
                     description: value
                         .get("description")
                         .and_then(|v| v.as_str())
-                        .map(|v| crate::mcp_result::redact(v, secrets)),
+                        .map(str::to_owned),
                     messages,
                 }
             }
             (McpLookupOp::ReadResource { uri }, ServerResult::ReadResourceResult(_)) => {
-                let mut contents: Vec<McpResourceContents> =
+                let contents: Vec<McpResourceContents> =
                     serde_json::from_value(value["contents"].clone())
                         .map_err(|_| McpLookupError::UnsupportedResult)?;
                 if contents.len() > TOOLS_CAP {
                     return Err(McpLookupError::BodyLimit);
                 }
-                for part in &mut contents {
-                    redact_resource(part, (secrets, identity_secrets))?;
+                for part in &contents {
+                    validate_resource(part)?;
                 }
                 McpLookupData::Resource {
                     uri: uri.clone(),
@@ -201,23 +186,21 @@ pub(crate) async fn lookup(
             McpLookupOp::ListPrompts => {
                 let page: Vec<McpPromptInfo> = serde_json::from_value(value["prompts"].clone())
                     .map_err(|_| McpLookupError::InvalidData)?;
-                for mut prompt in page {
+                for prompt in page {
                     if !identity(&prompt.name)
                         || prompt.arguments.len() > TOOLS_CAP
                         || !identities.insert(prompt.name.clone())
                     {
                         return Err(McpLookupError::InvalidData);
                     }
-                    safe_identity(&prompt.name, identity_secrets)?;
-                    redact_metadata(&mut prompt.title, secrets)?;
-                    redact_metadata(&mut prompt.description, secrets)?;
+                    validate_metadata(&prompt.title)?;
+                    validate_metadata(&prompt.description)?;
                     let mut args = HashSet::new();
-                    for arg in &mut prompt.arguments {
+                    for arg in &prompt.arguments {
                         if !identity(&arg.name) || !args.insert(arg.name.clone()) {
                             return Err(McpLookupError::InvalidData);
                         }
-                        safe_identity(&arg.name, identity_secrets)?;
-                        redact_metadata(&mut arg.description, secrets)?;
+                        validate_metadata(&arg.description)?;
                     }
                     prompts.push(prompt);
                 }
@@ -225,20 +208,15 @@ pub(crate) async fn lookup(
             McpLookupOp::ListResources => {
                 let page: Vec<McpResourceInfo> = serde_json::from_value(value["resources"].clone())
                     .map_err(|_| McpLookupError::InvalidData)?;
-                for mut resource in page {
+                for resource in page {
                     if !identity(&resource.name)
                         || !uri_identity(&resource.uri)
                         || !identities.insert(format!("{:?}", (&resource.name, &resource.uri)))
                     {
                         return Err(McpLookupError::InvalidData);
                     }
-                    safe_identity(&resource.name, identity_secrets)?;
-                    safe_identity(&resource.uri, identity_secrets)?;
-                    if let Some(mime) = &resource.mime_type {
-                        safe_identity(mime, identity_secrets)?;
-                    }
-                    redact_metadata(&mut resource.title, secrets)?;
-                    redact_metadata(&mut resource.description, secrets)?;
+                    validate_metadata(&resource.title)?;
+                    validate_metadata(&resource.description)?;
                     resources.push(resource);
                 }
             }
@@ -246,7 +224,7 @@ pub(crate) async fn lookup(
                 let page: Vec<McpResourceTemplate> =
                     serde_json::from_value(value["resourceTemplates"].clone())
                         .map_err(|_| McpLookupError::InvalidData)?;
-                for mut template in page {
+                for template in page {
                     if !identity(&template.name)
                         || !uri_identity(&template.uri_template)
                         || !identities
@@ -254,13 +232,8 @@ pub(crate) async fn lookup(
                     {
                         return Err(McpLookupError::InvalidData);
                     }
-                    safe_identity(&template.name, identity_secrets)?;
-                    safe_identity(&template.uri_template, identity_secrets)?;
-                    if let Some(mime) = &template.mime_type {
-                        safe_identity(mime, identity_secrets)?;
-                    }
-                    redact_metadata(&mut template.title, secrets)?;
-                    redact_metadata(&mut template.description, secrets)?;
+                    validate_metadata(&template.title)?;
+                    validate_metadata(&template.description)?;
                     templates.push(template);
                 }
             }
@@ -322,98 +295,55 @@ fn identity(value: &str) -> bool {
 fn uri_identity(value: &str) -> bool {
     !value.is_empty() && value.len() <= DESCRIPTION_BYTES_CAP && !value.contains('\0')
 }
-fn safe_identity(value: &str, secrets: &[String]) -> Result<(), McpLookupError> {
-    if secrets
-        .iter()
-        .any(|secret| !secret.is_empty() && value.contains(secret))
+fn validate_metadata(value: &Option<String>) -> Result<(), McpLookupError> {
+    if let Some(text) = value
+        && text.len() > DESCRIPTION_BYTES_CAP
     {
-        Err(McpLookupError::SensitiveIdentity)
-    } else {
-        Ok(())
-    }
-}
-fn redact_metadata(value: &mut Option<String>, secrets: &[String]) -> Result<(), McpLookupError> {
-    if let Some(text) = value {
-        if text.len() > DESCRIPTION_BYTES_CAP {
-            return Err(McpLookupError::CatalogLimit);
-        }
-        *text = crate::mcp_result::redact(text, secrets);
+        return Err(McpLookupError::CatalogLimit);
     }
     Ok(())
 }
-fn validate_blob(data: &str, secrets: &[String]) -> Result<(), McpLookupError> {
-    let decoded = base64::engine::general_purpose::STANDARD
+fn validate_blob(data: &str) -> Result<(), McpLookupError> {
+    base64::engine::general_purpose::STANDARD
         .decode(data)
         .map_err(|_| McpLookupError::InvalidData)?;
-    if secrets.iter().any(|secret| {
-        !secret.is_empty()
-            && decoded
-                .windows(secret.len())
-                .any(|part| part == secret.as_bytes())
-    }) {
-        return Err(McpLookupError::SensitiveBinary);
-    }
     Ok(())
 }
-fn redact_resource(
-    part: &mut McpResourceContents,
-    (secrets, identity_secrets): (&[String], &[String]),
-) -> Result<(), McpLookupError> {
-    let (uri, mime) = match part {
-        McpResourceContents::Text { uri, mime_type, .. }
-        | McpResourceContents::Blob { uri, mime_type, .. } => (uri, mime_type),
-    };
-    safe_identity(uri, identity_secrets)?;
-    if let Some(mime) = mime {
-        safe_identity(mime, identity_secrets)?;
-    }
+fn validate_resource(part: &McpResourceContents) -> Result<(), McpLookupError> {
     match part {
-        McpResourceContents::Text { uri, text, .. } => {
+        McpResourceContents::Text { uri, .. } => {
             if !uri_identity(uri) {
                 return Err(McpLookupError::InvalidData);
             }
-            *text = crate::mcp_result::redact(text, secrets);
         }
         McpResourceContents::Blob { uri, blob, .. } => {
             if !uri_identity(uri) {
                 return Err(McpLookupError::InvalidData);
             }
-            validate_blob(blob, secrets)?;
+            validate_blob(blob)?;
         }
     }
     Ok(())
 }
-fn redact_content(
-    content: &mut McpPromptContent,
-    (secrets, identity_secrets): (&[String], &[String]),
-) -> Result<(), McpLookupError> {
+fn validate_content(content: &McpPromptContent) -> Result<(), McpLookupError> {
     match content {
-        McpPromptContent::Text { text } => *text = crate::mcp_result::redact(text, secrets),
-        McpPromptContent::Resource { resource } => {
-            redact_resource(resource, (secrets, identity_secrets))?
-        }
-        McpPromptContent::Image { data, mime_type }
-        | McpPromptContent::Audio { data, mime_type } => {
-            safe_identity(mime_type, identity_secrets)?;
-            validate_blob(data, secrets)?
+        McpPromptContent::Text { .. } => {}
+        McpPromptContent::Resource { resource } => validate_resource(resource)?,
+        McpPromptContent::Image { data, .. } | McpPromptContent::Audio { data, .. } => {
+            validate_blob(data)?
         }
         McpPromptContent::ResourceLink {
             uri,
             name,
             title,
             description,
-            mime_type,
+            ..
         } => {
             if !uri_identity(uri) || !identity(name) {
                 return Err(McpLookupError::InvalidData);
             }
-            safe_identity(uri, identity_secrets)?;
-            safe_identity(name, identity_secrets)?;
-            if let Some(mime) = mime_type {
-                safe_identity(mime, identity_secrets)?;
-            }
-            redact_metadata(title, secrets)?;
-            redact_metadata(description, secrets)?;
+            validate_metadata(title)?;
+            validate_metadata(description)?;
         }
     }
     Ok(())

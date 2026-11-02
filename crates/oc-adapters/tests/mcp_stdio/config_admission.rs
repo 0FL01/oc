@@ -108,7 +108,7 @@ async fn mcp09_separate_actual_startup_catalog_execution_deadlines_and_reaping()
 }
 
 #[tokio::test]
-async fn mcp09_numeric_timeout_does_not_bound_startup_and_canaries_stay_redacted() {
+async fn mcp09_numeric_timeout_does_not_bound_startup_and_stderr_stays_redacted() {
     // Canonical object without `startup`: startup keeps its default bound.
     let peer = Peer::new("legacy-delay", json!({"catalog": 40, "execution": 40}));
     assert_eq!(peer.config.startup_timeout, Some(Duration::from_secs(60)));
@@ -133,13 +133,21 @@ async fn mcp09_numeric_timeout_does_not_bound_startup_and_canaries_stay_redacted
     })
     .await
     .unwrap();
+    assert_eq!(
+        client.instructions(),
+        Some("bounded guidance mcp09-configured-canary")
+    );
+    assert!(result.contains("mcp09-configured-canary"));
+    assert!(result.contains("mcp09-inherited-canary"));
+    assert!(
+        !result.contains("mcp09-domain-canary"),
+        "project admission still withholds credentials"
+    );
     for canary in [
         "mcp09-configured-canary",
         "mcp09-inherited-canary",
         "mcp09-domain-canary",
     ] {
-        assert!(!result.contains(canary));
-        assert!(!client.instructions().unwrap().contains(canary));
         assert!(!stderr.text.contains(canary));
         assert!(!format!("{:?}", peer.config).contains(canary));
     }

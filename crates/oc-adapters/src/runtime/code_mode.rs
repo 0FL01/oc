@@ -286,6 +286,7 @@ struct Invocation<'a, 'p> {
     agent: Option<String>,
     agent_digest: Option<String>,
     sequence: AtomicUsize,
+    mcp_output: AtomicBool,
 }
 
 impl Invocation<'_, '_> {
@@ -354,6 +355,7 @@ impl Runtime<'_> {
                 &mut native,
             )
             .await;
+        inv.mcp_output.store(true, Ordering::Release);
         if state != "completed" {
             if state == "unknown"
                 && self
@@ -430,7 +432,7 @@ impl Runtime<'_> {
         agent_digest: Option<String>,
         secrets: &[String],
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
-    ) -> (&'static str, String, Execute) {
+    ) -> (&'static str, String, Execute, bool) {
         let Ok(input) = codemode::parse_input(&call.arguments) else {
             return (
                 "failed",
@@ -440,6 +442,7 @@ impl Runtime<'_> {
                     elapsed_ms: Some(0),
                     ..Default::default()
                 },
+                false,
             );
         };
         let code = input.code;
@@ -471,6 +474,7 @@ impl Runtime<'_> {
             agent,
             agent_digest,
             sequence: AtomicUsize::new(0),
+            mcp_output: AtomicBool::new(false),
         };
         let inv = &inv;
         let started = std::time::Instant::now();
@@ -543,6 +547,7 @@ impl Runtime<'_> {
         facts.elapsed_ms = Some(started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64);
         facts.error = !outcome.is_ok() || cancel.load(Ordering::Acquire);
         let sections = outcome.output_sections();
+        let mcp_output = inv.mcp_output.load(Ordering::Acquire);
         let mut remaining = PREVIEW_BYTES;
         for (kind, text) in [
             (ExecuteOutputKind::Text, &sections.value),
@@ -553,14 +558,21 @@ impl Runtime<'_> {
                 continue;
             }
             let kind = if kind == ExecuteOutputKind::Text
-                && serde_json::from_str::<Json>(&limited_text(text, usize::MAX, secrets).0)
+                && serde_json::from_str::<Json>(text)
                     .is_ok_and(|value| value.is_object() || value.is_array())
             {
                 ExecuteOutputKind::Json
             } else {
                 kind
             };
-            let (text, limited) = limited_text(text, remaining, secrets);
+            let (text, limited) = if mcp_output {
+                (
+                    text[..text.floor_char_boundary(text.len().min(remaining))].to_owned(),
+                    text.len() > remaining,
+                )
+            } else {
+                limited_text(text, remaining, secrets)
+            };
             remaining -= text.len();
             facts.output.push(ExecuteOutput {
                 kind,
@@ -569,7 +581,7 @@ impl Runtime<'_> {
             });
         }
         if cancel.load(Ordering::Acquire) {
-            return ("cancelled", "error: cancelled".into(), facts);
+            return ("cancelled", "error: cancelled".into(), facts, mcp_output);
         }
         (
             if outcome.is_ok() {
@@ -579,6 +591,7 @@ impl Runtime<'_> {
             },
             sections.output(),
             facts,
+            mcp_output,
         )
     }
 }

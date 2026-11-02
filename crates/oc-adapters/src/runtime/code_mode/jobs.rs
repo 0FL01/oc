@@ -247,7 +247,7 @@ impl Jobs {
                     wake.notify_one();
                 }
             };
-            let (state, output, mut facts) = {
+            let (state, output, mut facts, mcp_output) = {
                 let execution = runtime.execute_code_mode(
                     &capture.issuing,
                     &capture.call,
@@ -278,7 +278,7 @@ impl Jobs {
                     result = &mut execution => result,
                 }
             };
-            let prepared = crate::tools::output::Context {
+            let preparation = crate::tools::output::Context {
                 db: &task_db,
                 operation: &task_p.operation,
                 session: &task_p.session,
@@ -287,8 +287,12 @@ impl Jobs {
                 source: &task_p.output_source,
                 limits: task_p.output_limits,
                 secrets: capture.secrets.clone(),
-            }
-            .prepare_envelope(output, false, None);
+            };
+            let prepared = if mcp_output {
+                preparation.prepare_mcp(output)
+            } else {
+                preparation.prepare_envelope(output, false, None)
+            };
             let state = if prepared.logging_failed && state != "unknown" {
                 "failed"
             } else {

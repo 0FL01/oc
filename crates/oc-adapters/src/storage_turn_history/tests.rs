@@ -864,8 +864,7 @@ fn rich_second_segment_keeps_original_receipt_and_bounded_selected_model_project
     ))
     .unwrap()["result"]
         .clone();
-    let output =
-        crate::mcp_result::project_rich(serde_json::from_value(facts).unwrap(), &[], &[]).unwrap();
+    let output = crate::mcp_result::project_rich(serde_json::from_value(facts).unwrap()).unwrap();
     let mut span = log.spans[0].clone();
     span.id = "second-span".into();
     span.request.as_mut().unwrap().input_start = 4;

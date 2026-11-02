@@ -6,10 +6,7 @@ fn mcp12_log_attachment_roundtrip_requires_native_graph_and_does_not_infer_provi
         serde_json::from_str::<Value>(include_str!("../../../../../fixtures/mcp12-media.json"))
             .unwrap()["result"]
             .clone();
-    let secrets = ["mcp-media-private-canary".into()];
-    let output =
-        crate::mcp_result::project_rich(serde_json::from_value(facts).unwrap(), &secrets, &secrets)
-            .unwrap();
+    let output = crate::mcp_result::project_rich(serde_json::from_value(facts).unwrap()).unwrap();
     let mut log = TurnLog::new("turn", "model", "provider");
     log.input.push(InputItem::ProviderOutput(json!({"type":"function_call","call_id":"actual-call","name":"media__mixed","arguments":"{}"})));
     log.input.push(InputItem::McpFunctionCallOutput {

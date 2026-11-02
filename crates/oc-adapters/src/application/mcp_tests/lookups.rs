@@ -134,7 +134,7 @@ async fn mcp11_core_caller_retains_healthy_catalog_and_keeps_lookup_out_of_histo
         .await
         .unwrap();
     assert!(
-        !serde_json::to_string(&resource.data)
+        serde_json::to_string(&resource.data)
             .unwrap()
             .contains("LOOKUP_SECRET_CANARY")
     );

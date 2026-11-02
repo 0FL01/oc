@@ -1,6 +1,6 @@
 //! Actual MCP content → native-owned facts → OpenResponses tool-output content.
 //! Donor 2670273ff17da96f85c5826ced57aa1b368754fa, open-responses.ts:507–537.
-use super::{ResultError, failure_detail, redact, redact_json};
+use super::{ResultError, failure_detail, failure_text};
 use base64::Engine as _;
 use serde::{Serialize, Serializer};
 use serde_json::{Value, json};
@@ -8,8 +8,9 @@ use serde_json::{Value, json};
 const PARTS_CAP: usize = 64;
 const IDENTITY_CAP: usize = 8 * 1024;
 const PRESENTATION_CAP: usize = 8 * 1024;
+const MEDIA_BYTES_CAP: usize = 1024 * 1024;
 
-/// Validated, redacted native tool facts. Debug never prints media or metadata.
+/// Validated native tool facts. Debug never prints media or metadata.
 /// Serialization is Responses output only; durable facts belong to TurnLog.
 #[derive(Clone)]
 pub struct McpToolOutput {
@@ -144,7 +145,7 @@ impl McpToolOutput {
         // facts and the publication notice have reserved served-text space.
         let mut common = context.clone();
         common.limits.max_bytes = common.limits.max_bytes.min(44_544);
-        let prepared = common.prepare(joined, false, false, None);
+        let prepared = common.prepare_mcp(joined);
         let mut preview = Some(prepared.text);
         for part in self.facts["content"]
             .as_array_mut()
@@ -193,7 +194,7 @@ impl McpToolOutput {
         }
         let presentation = prepared.presentation;
         let facts = std::mem::take(&mut self.facts);
-        *self = make(facts, (&[], &[]))?;
+        *self = make(facts)?;
         self.presentation = presentation;
         let served = self.texts.iter().map(String::len).sum::<usize>();
         if served > crate::tools::output::SERVED_CAP
@@ -201,25 +202,18 @@ impl McpToolOutput {
         {
             return Err(ResultError::BadResult);
         }
+        bound(self, crate::mcp_remote::RESULT_TEXT_BYTES_CAP)?;
+        bound(
+            &(self.facts(), self.display()),
+            crate::mcp_remote::RESULT_TEXT_BYTES_CAP,
+        )?;
         Ok(prepared.logging_failed)
-    }
-
-    pub(crate) fn needs_native_log(&self) -> bool {
-        self.media
-            || self.facts.get("_meta").is_some()
-            || self.facts["content"].as_array().is_some_and(|parts| {
-                parts.iter().any(|p| {
-                    p.get("_meta").is_some()
-                        || p.get("annotations").is_some()
-                        || p["resource"].get("_meta").is_some()
-                })
-            })
     }
 
     /// Only the native turn-log attachment decoder calls this. Arbitrary provider
     /// items and ordinary string outputs never enter this path.
     pub(crate) fn from_stored(facts: Value) -> Result<Self, ResultError> {
-        make(facts, (&[], &[]))
+        make(facts)
     }
 
     fn wire_parts(&self) -> Vec<Value> {
@@ -372,40 +366,30 @@ fn media_part(mime: &str, data: &str) -> Value {
 
 pub(crate) fn project_rich(
     result: rmcp::model::CallToolResult,
-    secrets: &[String],
-    identity_secrets: &[String],
 ) -> Result<McpToolOutput, ResultError> {
-    make(
-        serde_json::to_value(result).map_err(|_| ResultError::BadResult)?,
-        (secrets, identity_secrets),
-    )
+    make(serde_json::to_value(result).map_err(|_| ResultError::BadResult)?)
 }
 
-fn bound(value: &impl Serialize) -> Result<(), ResultError> {
-    if serde_json::to_vec(value)
+fn bound(value: &impl Serialize, limit: usize) -> Result<(), ResultError> {
+    let bytes = serde_json::to_vec(value)
         .map_err(|_| ResultError::BadResult)?
-        .len()
-        > crate::mcp_remote::RESULT_TEXT_BYTES_CAP
-    {
-        Err(ResultError::BadResult)
+        .len();
+    if bytes > limit {
+        Err(ResultError::TooLarge { bytes, limit })
     } else {
         Ok(())
     }
 }
 
-fn exact(value: &str, secrets: &[String]) -> Result<(), ResultError> {
-    if value.is_empty()
-        || value.len() > IDENTITY_CAP
-        || value.chars().any(char::is_control)
-        || secrets.iter().any(|s| !s.is_empty() && value.contains(s))
-    {
+fn exact(value: &str) -> Result<(), ResultError> {
+    if value.is_empty() || value.len() > IDENTITY_CAP || value.chars().any(char::is_control) {
         return Err(ResultError::BadResult);
     }
     Ok(())
 }
 
-fn mime(value: &str, secrets: &[String]) -> Result<(), ResultError> {
-    exact(value, secrets)?;
+fn mime(value: &str) -> Result<(), ResultError> {
+    exact(value)?;
     let Some((kind, subtype)) = value.split_once('/') else {
         return Err(ResultError::BadResult);
     };
@@ -420,35 +404,36 @@ fn mime(value: &str, secrets: &[String]) -> Result<(), ResultError> {
     Ok(())
 }
 
-fn binary(data: &str, secrets: &[String]) -> Result<(), ResultError> {
-    let bytes = base64::engine::general_purpose::STANDARD
+fn binary(data: &str) -> Result<(), ResultError> {
+    base64::engine::general_purpose::STANDARD
         .decode(data)
         .map_err(|_| ResultError::BadResult)?;
-    // Compare actual decoded bytes, as on the existing lookup port. Short
-    // ordinary environment values can coincide with base64 alphabet characters
-    // without being present in the binary resource itself.
-    if secrets
-        .iter()
-        .any(|s| !s.is_empty() && bytes.windows(s.len()).any(|b| b == s.as_bytes()))
-    {
-        return Err(ResultError::BadResult);
-    }
     Ok(())
 }
 
-fn make(
-    mut facts: Value,
-    (secrets, identity_secrets): (&[String], &[String]),
-) -> Result<McpToolOutput, ResultError> {
-    bound(&facts)?;
+fn make(mut facts: Value) -> Result<McpToolOutput, ResultError> {
+    let media = facts["content"].as_array().is_some_and(|parts| {
+        parts.iter().any(|part| {
+            matches!(part["type"].as_str(), Some("image" | "audio"))
+                || part["resource"]["blob"].is_string()
+        })
+    });
+    let limit = if media {
+        MEDIA_BYTES_CAP
+    } else {
+        crate::mcp_remote::RESULT_TEXT_BYTES_CAP
+    };
+    bound(&facts, limit)?;
     if facts["isError"] == true {
-        return Err(ResultError::Failed(failure_detail(&facts)));
+        return Err(ResultError::Failed(
+            failure_detail(&facts),
+            failure_text(&facts),
+        ));
     }
     // Validate the SDK shape again on durable decode; no untyped modern content
     // may become a successful native result at the restart boundary.
     serde_json::from_value::<rmcp::model::CallToolResult>(facts.clone())
         .map_err(|_| ResultError::BadResult)?;
-    let mut media = false;
     let parts = facts["content"]
         .as_array_mut()
         .ok_or(ResultError::BadResult)?;
@@ -458,87 +443,52 @@ fn make(
     for part in parts {
         match part["type"].as_str().ok_or(ResultError::BadResult)? {
             "text" => {
-                let text = part["text"].as_str().ok_or(ResultError::BadResult)?;
-                part["text"] = redact(text, secrets).into();
+                part["text"].as_str().ok_or(ResultError::BadResult)?;
             }
             "image" | "audio" => {
                 let kind = part["type"].as_str().expect("matched type");
                 let m = part["mimeType"].as_str().ok_or(ResultError::BadResult)?;
-                mime(m, identity_secrets)?;
+                mime(m)?;
                 if !m.starts_with(&format!("{kind}/")) {
                     return Err(ResultError::BadResult);
                 }
-                binary(
-                    part["data"].as_str().ok_or(ResultError::BadResult)?,
-                    secrets,
-                )?;
-                media = true;
+                binary(part["data"].as_str().ok_or(ResultError::BadResult)?)?;
             }
             "resource" => {
                 let resource = &mut part["resource"];
-                exact(
-                    resource["uri"].as_str().ok_or(ResultError::BadResult)?,
-                    identity_secrets,
-                )?;
+                exact(resource["uri"].as_str().ok_or(ResultError::BadResult)?)?;
                 if let Some(m) = resource.get("mimeType") {
-                    mime(m.as_str().ok_or(ResultError::BadResult)?, identity_secrets)?;
+                    mime(m.as_str().ok_or(ResultError::BadResult)?)?;
                 }
                 if let Some(blob) = resource.get("blob") {
-                    binary(blob.as_str().ok_or(ResultError::BadResult)?, secrets)?;
+                    binary(blob.as_str().ok_or(ResultError::BadResult)?)?;
                     if resource.get("text").is_some() {
                         return Err(ResultError::BadResult);
                     }
-                    media = true;
                 } else {
-                    resource["text"] = redact(
-                        resource["text"].as_str().ok_or(ResultError::BadResult)?,
-                        secrets,
-                    )
-                    .into();
-                }
-                if let Some(meta) = resource.get_mut("_meta") {
-                    redact_json(meta, secrets);
+                    resource["text"].as_str().ok_or(ResultError::BadResult)?;
                 }
             }
             "resource_link" => {
-                exact(
-                    part["uri"].as_str().ok_or(ResultError::BadResult)?,
-                    identity_secrets,
-                )?;
-                exact(
-                    part["name"].as_str().ok_or(ResultError::BadResult)?,
-                    identity_secrets,
-                )?;
+                exact(part["uri"].as_str().ok_or(ResultError::BadResult)?)?;
+                exact(part["name"].as_str().ok_or(ResultError::BadResult)?)?;
                 if let Some(m) = part.get("mimeType") {
-                    mime(m.as_str().ok_or(ResultError::BadResult)?, identity_secrets)?;
+                    mime(m.as_str().ok_or(ResultError::BadResult)?)?;
                 }
                 for field in ["description", "title"] {
                     if let Some(text) = part.get_mut(field) {
-                        *text =
-                            redact(text.as_str().ok_or(ResultError::BadResult)?, secrets).into();
+                        text.as_str().ok_or(ResultError::BadResult)?;
                     }
                 }
             }
             _ => return Err(ResultError::Unsupported),
         }
-        if let Some(meta) = part.get_mut("_meta") {
-            redact_json(meta, secrets);
-        }
-        // Structural audience/priority are protocol facts, not redacted prose.
         if let Some(annotations) = part.get("annotations")
             && let Some(timestamp) = annotations.get("lastModified")
         {
             // Timestamp is a protocol fact, not prose: do not manufacture an
             // invalid synthetic date by replacing part of its exact value.
-            exact(
-                timestamp.as_str().ok_or(ResultError::BadResult)?,
-                identity_secrets,
-            )?;
-        }
-    }
-    for field in ["structuredContent", "_meta"] {
-        if let Some(value) = facts.get_mut(field) {
-            redact_json(value, secrets);
+            exact(timestamp.as_str().ok_or(ResultError::BadResult)?)?;
         }
     }
     let (display, presentation) = if media {
@@ -571,7 +521,6 @@ fn make(
     } else {
         let display = super::project(
             serde_json::from_value(facts.clone()).map_err(|_| ResultError::BadResult)?,
-            &[],
         )?;
         let presentation =
             oc_core::tool_output::Presentation::new(&display, display.len() as u64, false);
@@ -593,11 +542,8 @@ fn make(
     } else {
         vec![output.display.clone()]
     };
-    bound(&output.facts)?;
-    bound(&output)?;
-    if output.needs_native_log() {
-        bound(&(output.facts(), output.display()))?;
-    }
+    // Derived display/native-log copies are bounded by common preparation, not
+    // by the input cap: a valid large text result must reach the spill owner.
     Ok(output)
 }
 

@@ -82,7 +82,7 @@ def handle(request):
     elif method == "resources/read":
         text = "Explicit resource " + os.environ.get("LOOKUP_CANARY", "synthetic")
         if mode == "body-limit":
-            reply(identity, {"contents": [{"uri": params["uri"], "text": "x" * (1024 * 1024)}]})
+            reply(identity, {"contents": [{"uri": params["uri"], "text": "x" * (16 * 1024 * 1024)}]})
             return
         if mode == "input-required":
             reply(identity, {"resultType": "input_required", "requestState": "PRIVATE_REQUEST_STATE"})

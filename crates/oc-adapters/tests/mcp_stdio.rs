@@ -135,13 +135,10 @@ async fn launch_list_call_with_exact_argv_and_minimal_env() {
         .await
         .expect("env dump");
     assert!(
-        dump.contains("PATH=[redacted]"),
-        "working PATH value withheld"
+        dump.contains("PATH=/usr/bin:/bin"),
+        "working PATH value is verbatim"
     );
-    assert!(
-        dump.contains("HOME=[redacted]"),
-        "working HOME value withheld"
-    );
+    assert!(dump.contains("HOME=/tmp"), "working HOME value is verbatim");
     for banned in [
         "OC_T21_POISON=poison-value",
         "LUDKA2_API_KEY=",
@@ -166,15 +163,15 @@ async fn launch_list_call_with_exact_argv_and_minimal_env() {
         .expect("args echo");
     assert_eq!(
         echoed.lines().collect::<Vec<_>>(),
-        ["[redacted]", "[redacted]"],
-        "two intact argv entries echoed and redacted; no shell split"
+        ["--flag=kept", "two words"],
+        "two intact argv entries echoed verbatim; no shell split"
     );
 
     let error = client
         .call_tool("boom", serde_json::json!({}), &cancel)
         .await
         .expect_err("isError must fail");
-    assert_eq!(error, StdioError::ToolFailed);
+    assert!(matches!(error, StdioError::ToolFailed(None, _)));
 
     let cancelled = AtomicBool::new(true);
     assert_eq!(
@@ -742,7 +739,7 @@ async fn tool_results_and_arguments_have_distinct_typed_failures() {
         client
             .call_tool("failed", serde_json::json!({}), &cancel)
             .await,
-        Err(StdioError::ToolFailed)
+        Err(StdioError::ToolFailed(None, "nope".into()))
     );
     assert_eq!(
         client
@@ -773,7 +770,7 @@ async fn tool_results_and_arguments_have_distinct_typed_failures() {
 }
 
 #[tokio::test]
-async fn backend_parity_stdio_data_instructions_and_redacted_errors() {
+async fn backend_parity_stdio_data_instructions_and_verbatim_errors() {
     use oc_adapters::mcp_result::FailureDetail;
     let temp = tempfile::tempdir().unwrap();
     let server = temp.path().join("parity-mcp");
@@ -785,7 +782,7 @@ async fn backend_parity_stdio_data_instructions_and_redacted_errors() {
     let cancel = AtomicBool::new(false);
     assert_eq!(
         client.instructions(),
-        Some("Use exact queries; [redacted] [redacted]")
+        Some("Use exact queries; ENV-CANARY CONFIG-CANARY")
     );
     let output = client
         .call_tool("structured-only", serde_json::json!({}), &cancel)
@@ -793,14 +790,14 @@ async fn backend_parity_stdio_data_instructions_and_redacted_errors() {
         .unwrap();
     let output: serde_json::Value = serde_json::from_str(&output).unwrap();
     assert_eq!(output["structuredContent"]["value"], 42);
-    assert_eq!(output["structuredContent"]["echo"], "[redacted]");
-    assert_eq!(output["structuredContent"]["argvEcho"], "[redacted]");
-    assert_eq!(output["structuredContent"]["password"], "[redacted]");
+    assert_eq!(output["structuredContent"]["echo"], "ENV-CANARY");
+    assert_eq!(output["structuredContent"]["argvEcho"], "CONFIG-CANARY");
+    assert_eq!(output["structuredContent"]["password"], "UNKNOWN-CANARY");
     let text = client
         .call_tool("text-canary", serde_json::json!({}), &cancel)
         .await
         .unwrap();
-    assert_eq!(text, "Useful text [redacted] [redacted]");
+    assert_eq!(text, "Useful text CONFIG-CANARY ENV-CANARY");
     let resource = client
         .call_tool("resource", serde_json::json!({}), &cancel)
         .await
@@ -812,9 +809,11 @@ async fn backend_parity_stdio_data_instructions_and_redacted_errors() {
         .unwrap_err();
     assert_eq!(
         error,
-        StdioError::ToolFailedDetail(FailureDetail::RateLimited)
+        StdioError::ToolFailed(
+            Some(FailureDetail::RateLimited),
+            "invalid parameter ENV-CANARY CONFIG-CANARY UNKNOWN-CANARY".into()
+        )
     );
-    assert!(!format!("{error} {error:?}").contains("CANARY"));
     client.shutdown().await.unwrap();
 }
 

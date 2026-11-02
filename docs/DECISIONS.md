@@ -49,7 +49,7 @@ D13 (2026-09-22, инструкция владельца о паритете с 
 
 D14 (2026-09-22, backend audit / owner-authorized bug repair): отсутствие положительных model limits не является причиной безусловного отказа turn. DISC05 и owner discovery oracle не меняются: отсутствующие metadata остаются unknown. `provider.<id>.options.nativeFallbackLimits` задаёт local request policy (defaults context=32768, output=4096; context > output+1024); это не заявленная capacity модели и не wire extension. Positive metadata ограничивает request; fallback используется только для неизвестных полей и даёт видимый warning. Output request по умолчанию равен configured output, explicit request clamped к known output либо fallback output; input ceiling = min(positive model.input, effective context-output)-1024. Каждый provider round, child и title проходит admission; title сохраняет запрос 256, но ограничивается тем же selected-model budget. Нет selected variant — нет overlay, explicit enabled variant валидируется. Это исправляет T15 implementation gap относительно `docs/CONTRACTS.md`, не заменяет DISC05. Evidence: `evidence/T47/report.md`.
 
-D15 (2026-09-22): permission resource maps сохраняют порядок правил, last matching rule внутри source, unmatched resource требует approval; отсутствие central action — deny. Независимые central/agent/child constraints пересекаются, не расширяют authority. Native `ask` не исполняет side effect без отсутствующего пока approval channel. MCP successful structured/textual resource output санитизируется до history/provider; arbitrary remote error text остаётся закрытым, structured error codes дают фиксированные безопасные категории. Initialize instructions — bounded permission-filtered provider projection, не immutable history. Media-output, prompts/resource catalog и interactive approval остаются открытыми parity-различиями, не новыми owner waivers. Evidence: `evidence/T43/backend-permissions.md`, `evidence/T46/backend-parity.md`.
+D15 (2026-09-22): permission resource maps сохраняют порядок правил, last matching rule внутри source, unmatched resource требует approval; отсутствие central action — deny. Независимые central/agent/child constraints пересекаются, не расширяют authority. Native `ask` не исполняет side effect без отсутствующего пока approval channel. Historical MCP output sanitization/closed-error clauses are superseded by the2026-11-02 MCP parity with TS decision below. Initialize instructions — bounded permission-filtered provider projection, не immutable history. Evidence: `evidence/T43/backend-permissions.md`, `evidence/T46/backend-parity.md`.
 
 D18 (2026-09-23, решение владельца): поддержка OpenCode Zen полностью удалена из продукта. Удалены `zen_catalog.rs`, `zen_chat.rs`, actual-binary suite `zen_free.rs`, вся wiring в config/composition/runtime/application/provider/lib, scope-документ `docs/goals/2026-09-23-zen-free-chat.md`, регистрация T48 и acceptance ZEN01–ZEN03; `GOAL.md`, `docs/TEST_PLAN.md` и planning-реестры возвращены к состоянию до Zen. Основания: free tier провайдера закрыт для любого не-OpenCode клиента (`403 FreeTierError`, подтверждено ограниченными пробами), а единственный известный обход — подмена идентичности — запрещён. Ранее оформленные под этот scope решения (D16/D17) сняты вместе с ним; общий принцип сохраняется: `oc` не мимикрирует под другие клиенты и не обходит access-контроль провайдеров, в том числе через shell или subagent. Реальные live-прогоны остаются на OpenProxy; платный Zen key, OpenCode Go или локальный OpenAI-compatible сервер возможны только как новый отдельно утверждённый scope. История: `evidence/T48/report.md`, `evidence/T48/free-tier-gate.md`, `evidence/T48/removed.md`.
 
@@ -140,7 +140,9 @@ Legacy/canonical MCP forms normalize per pinned donor field matrix; admitted loc
 MCP inherits **product-process** env + configured overlay and resolves relative cwd
 from Location workspace. Command/resource/credential-domain admission is required
 before inheritance; no lower-trust secret capture or external runner-auth extraction.
-Ordinary shell TOOL05/AUD28 stays minimal. Env values/inherited secrets are redacted.
+Ordinary shell inheritance is described by the current TOOLS_MCP contract.
+MCP output redaction is superseded by the MCP TS-parity decision below;
+stderr/status-label protection and credential-domain admission remain.
 
 Use existing generation/client/application owners for async MCP startup and bounded
 status/actions; publish tools at safe request boundaries. Invalid recognized entry is
@@ -341,6 +343,23 @@ stays visible and is not automatically retried. The additive SQL table has an ex
 forward upgrade from text-only rows, preserving delivered links; native protocol v4
 rejects incompatible owners without restarting them. Supersedes the agent part of D23's busy refusal, the busy
 submission ("turn busy") refusal and the busy Location-switch refusal.
+
+### MCP parity with TS — owner-approved 2026-11-02
+
+MCP model-visible text, instructions, prompt/resource lookups, binary media,
+`isError` text, preview/artifacts and Code Mode publication are verbatim, without
+secret-based sanitization or rejection. This supersedes D15 output sanitization
+and closed `isError` text, and D21's blanket env-output-redaction clause. Config
+admission/inheritance, status-label protection and stderr redaction remain; shell
+and other tools retain credential-material redaction, not ordinary MCP env/URL/
+header values. MCP servers are not a secret-output security boundary.
+
+Text-only results have a single16 MiB cap and use existing preview + `read(path)`
+capture; media-bearing results keep a1 MiB aggregate cap. Deadline, BadResult,
+Unsupported and TooLarge are ordinary failed tool outcomes with connection reuse,
+not unknown/quarantine. Transport, MessageLimited, CleanupFailed and Cancelled
+keep unknown-effect handling. Numeric JSON-RPC errors retain fixed categories
+without copying remote error messages. No storage migration or new retry system.
 
 ## Остаточные prerequisites, не новые Q
 

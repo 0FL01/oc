@@ -441,9 +441,14 @@ fn tool21_mcp_joined_text_metadata_not_bypass_structured_error_facts_survive() {
             max_lines: 2,
             max_bytes: 64,
         },
-        secrets: vec!["secret-sentinel".into()],
+        secrets: vec![
+            "secret-sentinel".into(),
+            "test-key".into(),
+            "1".into(),
+            "true".into(),
+        ],
     };
-    let facts = serde_json::json!({"content":[{"type":"text","text":"first secret-sentinel\n[Part preview truncated]\n"},{"type":"text","text":"x".repeat(400000)}],"isError":false,"structuredContent":{"status":"failed","exit":17,"detail":"y".repeat(3000)},"_meta":{"truncated":false}});
+    let facts = serde_json::json!({"content":[{"type":"text","text":"1 true test-key secret-sentinel\n[Part preview truncated]\n"},{"type":"text","text":"x".repeat(9*1024*1024)}],"isError":false,"structuredContent":{"status":"failed","exit":17,"detail":"y".repeat(3000)},"_meta":{"truncated":false}});
     let mut output = crate::mcp_result::McpToolOutput::from_stored(facts).unwrap();
     assert!(!output.prepare_common(&context).unwrap());
     assert_eq!(output.facts()["isError"], false);
@@ -455,7 +460,7 @@ fn tool21_mcp_joined_text_metadata_not_bypass_structured_error_facts_survive() {
     assert!(presentation.body_limited && presentation.is_valid());
     assert_eq!(
         presentation.body,
-        "first [redacted]\n[Part preview truncated]\n"
+        "1 true test-key secret-sentinel\n[Part preview truncated]\n"
     );
     assert_eq!(
         presentation.capture.as_ref().unwrap().state,
@@ -464,13 +469,14 @@ fn tool21_mcp_joined_text_metadata_not_bypass_structured_error_facts_survive() {
     let resource = db.output_for_operation("mcp").unwrap().unwrap();
     let mut lease = db.open_tool_output("s", &resource.path).unwrap();
     let prefix = lease.byte_page(0, 100).unwrap().0;
-    assert!(prefix.starts_with("first [redacted]\n"));
-    assert!(!prefix.contains("secret-sentinel"));
+    assert!(prefix.starts_with("1 true test-key secret-sentinel\n"));
+    let page = context.prepare_page(prefix);
+    assert!(page.text.starts_with("1 true test-key secret-sentinel\n"));
     assert!(matches!(
         crate::mcp_result::McpToolOutput::from_stored(
             serde_json::json!({"content":[],"isError":true})
         ),
-        Err(crate::mcp_result::ResultError::Failed(_))
+        Err(crate::mcp_result::ResultError::Failed(..))
     ));
 }
 

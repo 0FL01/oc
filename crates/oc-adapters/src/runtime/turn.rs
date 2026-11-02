@@ -6395,6 +6395,13 @@ impl<'a> Runtime<'a> {
                         ("error: common MCP text preparation failed; original execution not repeated".into(),true,None)
                     }
                 }
+            } else if !is_builtin(name) {
+                let prepared = preparation.prepare_mcp(output);
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
             } else if patch_effects.is_some() {
                 let prepared = diff_capture.finish(output);
                 (

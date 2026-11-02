@@ -478,7 +478,7 @@ impl Fake {
                 }
                 if query == "oversized-text" {
                     return reply(json!({
-                        "content": [{"type": "text", "text": "x".repeat(1024 * 1024 + 1)}],
+                        "content": [{"type": "text", "text": "x".repeat(oc_adapters::mcp_remote::RESULT_TEXT_BYTES_CAP + 1)}],
                         "isError": false,
                     }));
                 }
@@ -745,7 +745,7 @@ async fn search_returns_text_and_surfaces_is_error() {
         .search("boom", None, &cancel)
         .await
         .expect_err("isError must fail");
-    assert_eq!(error, McpError::ToolFailed);
+    assert!(matches!(error, McpError::ToolFailed(None, _)));
     client.close().await.expect("close");
 }
 
@@ -792,15 +792,15 @@ async fn result_modalities_arguments_and_transport_have_distinct_errors() {
         client.search("transport", None, &cancel).await,
         Err(McpError::Transport)
     );
-    assert_eq!(
+    assert!(matches!(
         client.search("oversized-text", None, &cancel).await,
-        Err(McpError::BadResult)
-    );
+        Err(McpError::TooLarge { .. })
+    ));
     client.close().await.expect("close");
 }
 
 #[tokio::test]
-async fn backend_parity_structured_resources_instructions_and_safe_errors() {
+async fn backend_parity_structured_resources_instructions_and_verbatim_errors() {
     use oc_adapters::mcp_result::{FailureDetail, INSTRUCTIONS_BYTES_CAP};
     let (url, _) = Fake::start(Mode::Ok, Duration::ZERO);
     let mut config = config_for(&url);
@@ -810,7 +810,7 @@ async fn backend_parity_structured_resources_instructions_and_safe_errors() {
     let client = CodexWebClient::connect(&config).await.unwrap();
     let cancel = AtomicBool::new(false);
     let instructions = client.instructions().unwrap();
-    assert!(instructions.starts_with("Search guidance [redacted] [redacted]"));
+    assert!(instructions.starts_with("Search guidance test-key HEADER-CANARY"));
     assert!(instructions.len() <= INSTRUCTIONS_BYTES_CAP);
     assert!(instructions.ends_with("[MCP instructions truncated]"));
     let output = client
@@ -819,8 +819,14 @@ async fn backend_parity_structured_resources_instructions_and_safe_errors() {
         .unwrap();
     let output: Value = serde_json::from_str(&output).unwrap();
     assert_eq!(output["structuredContent"]["answer"], 42);
-    assert_eq!(output["structuredContent"]["nested"]["token"], "[redacted]");
-    assert_eq!(output["structuredContent"]["echo"], "[redacted] [redacted]");
+    assert_eq!(
+        output["structuredContent"]["nested"]["token"],
+        "UNKNOWN-CANARY"
+    );
+    assert_eq!(
+        output["structuredContent"]["echo"],
+        "test-key HEADER-CANARY"
+    );
     let resources = client.search("resources", None, &cancel).await.unwrap();
     for expected in [
         "Useful explanation",
@@ -832,18 +838,13 @@ async fn backend_parity_structured_resources_instructions_and_safe_errors() {
     }
     for query in ["useful-error", "rpc-error"] {
         let error = client.search(query, None, &cancel).await.unwrap_err();
-        assert_eq!(
-            error,
-            McpError::ToolFailedDetail(FailureDetail::InvalidArguments)
-        );
-        let rendered = format!("{error:?} {error}");
-        for secret in [
-            "test-key",
-            "HEADER-CANARY",
-            "UNKNOWN-CANARY",
-            "secret.invalid",
-        ] {
-            assert!(!rendered.contains(secret));
+        let McpError::ToolFailed(Some(FailureDetail::InvalidArguments), text) = error else {
+            panic!("expected tool failure")
+        };
+        if query == "rpc-error" {
+            assert!(text.is_empty());
+        } else {
+            assert!(text.contains("UNKNOWN-CANARY"));
         }
     }
     client.close().await.unwrap();
@@ -876,6 +877,11 @@ async fn slow_call_hits_client_deadline() {
         .await
         .expect_err("deadline must fire");
     assert_eq!(error, McpError::Deadline);
+    assert_eq!(
+        client.search("pong", None, &cancel).await.unwrap(),
+        "result for pong"
+    );
+    client.close().await.unwrap();
 }
 
 #[test]

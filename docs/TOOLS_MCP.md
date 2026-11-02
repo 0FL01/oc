@@ -280,11 +280,13 @@ T40 evidence remains factual.
   tail; UTF-8, shared multipart text count and bounded reserved reference/notice within
   native64 KiB served-text envelope. No `metadata.truncated:true/false` bypass. Preserve
   typed control JSON/effects/error status and separately admitted media under its caps.
-- One cold normalized/redacted text capture in `<native-data-root>/tool-output/` is
+- One cold normalized/redacted text capture (MCP/Code Mode output: verbatim) in `<native-data-root>/tool-output/` is
   registered by the existing Db owner with operation/session/source generation, actual
   readable extent and capture state. Hot result holds preview/ref/counts/guidance, not
   full text repeated across SQLite/TurnLog/resident history. Stream UI/model reads;
   keep legacy SQLite APIs compatible, no whole-artifact `read_blob`/second archive.
+  Registered `read`/`grep` pages reuse that admitted text without a second reader-
+  generation redaction pass; shell/other producers still redact before capture.
 - Cards reads the existing owner continuation in 64 KiB UTF-8 pages, including the
   shell-first and legacy SQLite paths. `next_offset` continues to the end of the
   stored result; 2048-byte presentation facts remain a local preview, not its
@@ -304,7 +306,8 @@ T40 evidence remains factual.
   outcomes/background notices retain its same small typed descriptor. A live viewer
   pages only durable published extents; terminal preparation never recaptures the tail.
 - Complete means all admitted text was captured, not full HTTP body rejected at input,
-  media/base64, unredacted secrets or discarded producer bytes. Native artifact cap16 MiB,
+  media/base64 or discarded producer bytes. MCP text may contain unredacted secrets
+  by the explicit TS-parity contract below. Native artifact cap16 MiB,
   shared existing quota default2 GiB and completed TTL7 days are explicit differences
   from donor full-file retention without a byte quota. Preview-truncated can still be capture-complete;
   producer/cap/quota/IO/cancel loss is incomplete with actual readable prefix or no path.
@@ -405,7 +408,9 @@ configured cwd от effective Location workspace (absolute only if admitted) и
 inherits admitted product-process env plus overlay, including executable PATH.
 Source/command/resource/credential-domain admission precedes inheritance; lower-trust
 command cannot capture higher-trust credentials. No external runner-auth extraction;
-configured env values/inherited secrets join redaction, no env dumps. TERM→grace→KILL адресуется только собственной group, а
+no env dumps. MCP results/instructions/lookups/media are verbatim, including server
+echoes of credentials; stderr/status labels keep their existing protection.
+TERM→grace→KILL адресуется только собственной group, а
 не runner. SIGKILL fallback остаётся armed, пока wait не подтвердил reap.
 Закрытие generation ограничено общим бюджетом 10 s; превышение — честный
 `mcp shutdown failed`, а не бесконечное ожидание. Отдельного допуска по числу
@@ -420,7 +425,10 @@ exact server/tool сохраняется в dispatch map (никакого `spli
 
 Вызов `tools/call` удерживает rmcp `RequestHandle`: Esc/deadline отправляют
 `notifications/cancelled` с исходным request id под ограниченным deadline. Это
-сигнал намерения, а не подтверждение отката side effect. Если ответ не получен,
+сигнал намерения, а не подтверждение отката side effect. Execution deadline возвращает
+обычный `failed` (`timed out`), pending request удаляется, late reply игнорируется,
+а тот же server остаётся доступен следующему вызову (TS parity). Только Transport,
+MessageLimited, CleanupFailed и Cancelled означают unknown effect:
 durable operation получает `unknown`, turn — `failed`, дальнейший batch/round не
 выполняется, подключённая generation закрывается. Local stdio можно явно
 повторить только после успешного kill/reap всей owned process group и нового
@@ -443,11 +451,15 @@ owner. Ошибка cleanup по-прежнему прерывает switch/shut
 созданием нового Runtime. Перезапуск процесса не доказывает исход старого
 remote вызова и не выполняет автоматическую сверку.
 
-Структурно неподдерживаемый или пустой/некорректный ответ после `tools/call`
-также означает `unknown`: сервер мог уже выполнить side effect. Он проходит тот
-же путь retirement и remote quarantine (либо stdio kill/reap перед явным
-повтором). Валидное `isError:true` — окончательный ответ сервера: остаётся
-`failed`, без ложного `unknown` и без принудительного закрытия generation.
+Структурно неподдерживаемый, пустой/некорректный или oversized ответ после
+`tools/call` возвращает обычный `failed`, без retirement/quarantine. Text-only
+result ограничен16 MiB (lookup использует тот же лимит), media-bearing result —
+1 MiB aggregate. Превышение сообщает `MCP result N bytes exceeds L bytes`.
+Большой допустимый текст публикуется существующим preview + `read(path)` artifact,
+без redaction ни в preview, ни в cold capture. `isError:true` остаётся `failed`,
+joined text parts видны модели verbatim; numeric JSON-RPC errors сохраняют только
+fixed category, без server error message. Эти failures не обрывают turn и не
+запускают automatic retry; следующий явный вызов использует тот же server.
 
 `tools/list_changed` claim-ится атомарно перед relist; перечитывается только
 изменившийся server, а notification, пришедшая во время relist, остаётся pending

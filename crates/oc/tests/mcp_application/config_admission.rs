@@ -218,17 +218,18 @@ fn mcp09_actual_argv_cwd_inherited_overlay_path_and_credential_domain() {
             serde_json::to_string(&responses.requests()).unwrap(),
             messages.join("\n")
         );
-        for canary in [
-            "mcp09-inherited-canary",
-            "mcp09-configured-canary",
-            "mcp09-domain-canary",
-            "mcp09-old-overlay-canary",
-        ] {
+        for canary in ["mcp09-inherited-canary", "mcp09-configured-canary"] {
             assert!(
-                !output.contains(canary),
-                "{label}: canary escaped redaction"
+                output.contains(canary),
+                "{label}: server echo was not verbatim"
             );
         }
+        assert_eq!(
+            output.contains("mcp09-domain-canary"),
+            global,
+            "credential-domain admission is unchanged"
+        );
+        assert!(!output.contains("mcp09-old-overlay-canary"));
         assert!(
             output.contains("probe complete"),
             "actual call/result was missing"

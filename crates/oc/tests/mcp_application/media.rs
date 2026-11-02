@@ -79,7 +79,12 @@ fn mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_cal
         parts[3],
         json!({"type":"input_file","filename":"file","file_data":format!("data:application/octet-stream;base64,{BLOB}")})
     );
-    assert!(parts[0]["text"].as_str().unwrap().contains("[redacted]"));
+    assert!(
+        parts[0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("mcp-media-private-canary")
+    );
     assert!(
         parts[4]["text"]
             .as_str()
@@ -106,7 +111,7 @@ fn mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_cal
         bytes
     );
     assert!(
-        !serde_json::to_string(&requests)
+        serde_json::to_string(&requests)
             .unwrap()
             .contains("mcp-media-private-canary")
     );
@@ -202,7 +207,7 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
         original["native_mcp_results"][0]["result"]["_meta"]["provenance"],
         "fixture-result"
     );
-    assert!(!logs.join("").contains("mcp-media-private-canary"));
+    assert!(logs.join("").contains("mcp-media-private-canary"));
     // The same real operation has bounded safe presentation after reopen,
     // without copying binary media or preparing another model/tool result.
     let presentation_rows: Vec<String> = db
@@ -217,7 +222,7 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
     assert_eq!(presentation_rows.len(), 2);
     for encoded in &presentation_rows {
         assert!(encoded.len() <= oc_core::tool_output::RECORD_BYTES);
-        for private in ["mcp-media-private-canary", PNG, AUDIO, BLOB] {
+        for private in [PNG, AUDIO, BLOB] {
             assert!(!encoded.contains(private));
         }
     }
@@ -239,7 +244,7 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
         serde_json::from_value(event["presentation"].clone()).unwrap();
     assert!(facts.is_valid() && !facts.label_only);
     assert_eq!(facts.mcp_label, label.mcp_label);
-    assert!(facts.body.contains("[redacted]"));
+    assert!(facts.body.contains("mcp-media-private-canary"));
     assert!(!facts.generated_guidance && !facts.body_limited);
     assert!(facts.capture.is_none() && facts.shell.is_none());
     let operation: String = db
@@ -258,10 +263,10 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
 }
 
 #[test]
-fn mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success() {
+fn mcp12_media_permissions_and_verbatim_binary_results() {
     for (tool, permission, expected_state, expected_calls) in [
         ("mcp_media_mixed", "deny", "denied", 0),
-        ("mcp_media_sensitive", "allow", "unknown", 1),
+        ("mcp_media_sensitive", "allow", "completed", 1),
     ] {
         let name = format!("media__{tool}");
         let script = if permission == "deny" {
@@ -286,7 +291,7 @@ fn mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success() 
         );
         let mut process = fixture.spawn_run("mcp12-sensitive");
         let success = process.wait().success();
-        assert_eq!(success, expected_calls == 0, "{}", process.diagnostics());
+        assert!(success, "{}", process.diagnostics());
         assert_eq!(
             mcp.records()
                 .iter()
@@ -294,13 +299,16 @@ fn mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success() 
                 .count(),
             expected_calls
         );
-        assert!(!responses.requests().iter().any(|r| {
-            r["input"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|i| i["type"] == "function_call_output" && i["output"].is_array())
-        }));
+        assert_eq!(
+            responses.requests().iter().any(|r| {
+                r["input"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|i| i["type"] == "function_call_output" && i["output"].is_array())
+            }),
+            expected_calls == 1
+        );
         let db = rusqlite::Connection::open(fixture.home.join("data/oc/oc.sqlite")).unwrap();
         let state: String = db
             .query_row(
@@ -311,10 +319,10 @@ fn mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success() 
             .unwrap();
         assert_eq!(state, expected_state);
         let result:String=db.query_row("SELECT result FROM conversation_turns WHERE session_id='mcp12-sensitive' ORDER BY archive_rowid DESC LIMIT 1",[],|r|r.get(0)).unwrap();
-        assert!(!result.contains("mcp-media-private-canary"));
-        assert!(!result.contains("bWNwLW1lZGlhLXByaXZhdGUtY2FuYXJ5"));
-        assert!(!result.contains("do not publish partial media"));
-        assert!(!process.output().contains("mcp-media-private-canary"));
+        if expected_calls == 1 {
+            assert!(result.contains("bWNwLW1lZGlhLXByaXZhdGUtY2FuYXJ5"));
+            assert!(result.contains("do not publish partial media"));
+        }
         assert!(!process.diagnostics().contains("mcp-media-private-canary"));
     }
 }

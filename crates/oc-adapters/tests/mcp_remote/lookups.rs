@@ -47,7 +47,7 @@ fn config(url: String) -> CodexWebConfig {
 }
 
 #[tokio::test]
-async fn mcp11_http_exact_lookup_methods_arguments_blobs_and_redaction_share_one_initialize() {
+async fn mcp11_http_exact_lookup_methods_arguments_and_verbatim_blobs_share_one_initialize() {
     let ((url, log), _) = Fake::start_full(Mode::Lookups, Duration::from_millis(600), false);
     let client = CodexWebClient::connect(&config(url)).await.unwrap();
     let cancel = AtomicBool::new(false);
@@ -62,9 +62,9 @@ async fn mcp11_http_exact_lookup_methods_arguments_blobs_and_redaction_share_one
         items.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
         ["first", "second"]
     );
-    assert!(!serde_json::to_string(&data).unwrap().contains("test-key"));
+    assert!(serde_json::to_string(&data).unwrap().contains("test-key"));
     assert!(
-        !serde_json::to_string(&data)
+        serde_json::to_string(&data)
             .unwrap()
             .contains("HEADER-CANARY")
     );
@@ -112,7 +112,7 @@ async fn mcp11_http_exact_lookup_methods_arguments_blobs_and_redaction_share_one
         panic!()
     };
     assert!(matches!(&contents[1], McpResourceContents::Blob { blob, .. } if blob == "AAEC/w=="));
-    assert!(!serde_json::to_string(&data).unwrap().contains("test-key"));
+    assert!(serde_json::to_string(&data).unwrap().contains("test-key"));
     client.close().await.unwrap();
     let records = log.lock().unwrap();
     let requests = records

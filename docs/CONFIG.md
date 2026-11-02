@@ -79,7 +79,9 @@ relative cwd resolves from effective Location workspace directory, not source fi
 Full environment/credential authority requires command/resource/credential-domain
 admission before launch; untrusted/lower-trust commands do not inherit higher-trust
 secrets. Ordinary shell inherits the captured owner env; remote MCP gets no arbitrary local env.
-New env values/inherited secrets join redaction; never dump expanded effective config.
+Never dump expanded effective config. MCP output is verbatim (TS parity), including
+server echoes of env/argv/credentials; stderr/status-label protection remains.
+Other tool output redacts credential material, not ordinary MCP env/URL/header values.
 
 [T51](goals/2026-09-27-startup-fault-isolation.md) uses the existing `ServiceDiagnostic`
 for typed source/field/service/stage/safe-code/retryability/allowed-action facts across

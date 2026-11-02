@@ -100,7 +100,7 @@ async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_
     let secrets = mcp::mcp_redactions(&config, &env);
     assert_eq!(
         secrets.len(),
-        10,
+        6,
         "only exact nonempty first occurrences remain"
     );
     assert_eq!(
@@ -110,12 +110,8 @@ async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_
             "header-token".into(),
             " header-token ".into(),
             "HEADER-TOKEN".into(),
-            url,
             bearer,
             "binding-only".into(),
-            "mcp-only".into(),
-            "blocked-only".into(),
-            "mcp-header".into()
         ]
     );
     let temp = tempfile::tempdir().unwrap();

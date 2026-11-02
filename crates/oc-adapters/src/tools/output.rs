@@ -492,15 +492,16 @@ impl Context<'_> {
         self.prepare_envelope(text, true, existing)
     }
     pub(crate) fn prepare_page(&self, mut text: String) -> Prepared {
+        // Registered pages were admitted by their producer's capture writer.
+        // Re-redacting with the reader's dictionary would corrupt verbatim MCP
+        // artifacts. Shell/other producer redaction remains at capture ingress.
         let body;
         let notice = serde_json::json!({"tool_output_config":{"source":self.source,"generation":self.generation}});
         if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&text) {
-            redact_value(&mut value, &self.secrets);
             body = value.to_string();
             value["tool_output_config"] = notice["tool_output_config"].clone();
             text = value.to_string();
         } else {
-            redact_string(&mut text, &self.secrets);
             body = text.clone();
             text.push_str(&format!(
                 "\n[page config source {} generation {}]",
@@ -509,8 +510,7 @@ impl Context<'_> {
         }
         if text.len() > SERVED_CAP {
             return Prepared::plain(
-                "error: page redaction/notice exceeds served budget; request a smaller limit"
-                    .into(),
+                "error: page notice exceeds served budget; request a smaller limit".into(),
                 true,
             );
         }
@@ -583,6 +583,26 @@ impl Context<'_> {
         // Existing bounded producers normalize before this boundary; literal
         // known secret replacement precedes both disk and hot projection.
         redact_string(&mut text, &self.secrets);
+        self.prepare_text_verbatim(text, tail, producer_limited, existing, allow_capture)
+    }
+
+    /// MCP and Code Mode publish server output verbatim, including cold text.
+    pub(crate) fn prepare_mcp(&self, text: String) -> Prepared {
+        let mut context = self.clone();
+        // The capture writer also owns a streaming redactor. Omit its dictionary
+        // for this publication, without changing other tools' captured context.
+        context.secrets.clear();
+        context.prepare_text_verbatim(text, false, false, None, true)
+    }
+
+    fn prepare_text_verbatim(
+        &self,
+        text: String,
+        tail: bool,
+        producer_limited: bool,
+        existing: Option<&Resource>,
+        allow_capture: bool,
+    ) -> Prepared {
         let (body, truncated) = preview(&text, self.limits, tail);
         if !allow_capture {
             let mut presentation =

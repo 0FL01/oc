@@ -1,5 +1,4 @@
 //! Shared native MCP result projection; legacy text and native rich output.
-//! Never copy arbitrary server error messages into diagnostics.
 
 use serde_json::Value;
 
@@ -32,9 +31,10 @@ pub enum FailureDetail {
 
 #[derive(Debug)]
 pub(crate) enum ResultError {
-    Failed(Option<FailureDetail>),
+    Failed(Option<FailureDetail>, String),
     Unsupported,
     BadResult,
+    TooLarge { bytes: usize, limit: usize },
 }
 
 /// Replacement runs before bounding, so a secret straddling the boundary cannot
@@ -47,13 +47,13 @@ pub(crate) fn redact(text: &str, secrets: &[String]) -> String {
     text
 }
 
-pub(crate) fn instructions(text: Option<&str>, secrets: &[String]) -> Option<String> {
-    let text = redact(text?, secrets);
+pub(crate) fn instructions(text: Option<&str>) -> Option<String> {
+    let text = text?;
     if text.trim().is_empty() {
         return None;
     }
     if text.len() <= INSTRUCTIONS_BYTES_CAP {
-        return Some(text);
+        return Some(text.to_owned());
     }
     let marker = "\n[MCP instructions truncated]";
     let end = text.floor_char_boundary(INSTRUCTIONS_BYTES_CAP - marker.len());
@@ -123,22 +123,33 @@ pub(crate) fn redact_json(value: &mut Value, secrets: &[String]) {
     }
 }
 
-pub(crate) fn project(
-    result: rmcp::model::CallToolResult,
-    secrets: &[String],
-) -> Result<String, ResultError> {
+pub(crate) fn failure_text(value: &Value) -> String {
+    value["content"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|block| block["type"] == "text")
+        .filter_map(|block| block["text"].as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+pub(crate) fn project(result: rmcp::model::CallToolResult) -> Result<String, ResultError> {
     let value = serde_json::to_value(result).map_err(|_| ResultError::BadResult)?;
-    // Cap the complete serialized result, including structured JSON and every
-    // content block, before formatting/redaction allocates additional copies.
-    if serde_json::to_vec(&value)
+    let bytes = serde_json::to_vec(&value)
         .map_err(|_| ResultError::BadResult)?
-        .len()
-        > crate::mcp_remote::RESULT_TEXT_BYTES_CAP
-    {
-        return Err(ResultError::BadResult);
+        .len();
+    if bytes > crate::mcp_remote::RESULT_TEXT_BYTES_CAP {
+        return Err(ResultError::TooLarge {
+            bytes,
+            limit: crate::mcp_remote::RESULT_TEXT_BYTES_CAP,
+        });
     }
     if value["isError"] == true {
-        return Err(ResultError::Failed(failure_detail(&value)));
+        return Err(ResultError::Failed(
+            failure_detail(&value),
+            failure_text(&value),
+        ));
     }
     let mut parts = Vec::new();
     for block in value["content"].as_array().ok_or(ResultError::BadResult)? {
@@ -146,18 +157,15 @@ pub(crate) fn project(
             Some("text") => {
                 let text = block["text"].as_str().ok_or(ResultError::BadResult)?;
                 if !text.trim().is_empty() {
-                    parts.push(redact(text, secrets));
+                    parts.push(text.to_owned());
                 }
             }
             Some("resource") if block["resource"]["text"].is_string() => {
-                let mut resource = block["resource"].clone();
-                redact_json(&mut resource, secrets);
+                let resource = &block["resource"];
                 parts.push(serde_json::json!({"resource": resource}).to_string());
             }
             Some("resource_link") => {
-                let mut link = block.clone();
-                redact_json(&mut link, secrets);
-                parts.push(link.to_string());
+                parts.push(block.to_string());
             }
             // Legacy String API stays text-only. The native runtime uses the
             // additive rich path; never pretend base64 is visible text here.
@@ -165,8 +173,6 @@ pub(crate) fn project(
         }
     }
     if let Some(structured) = value.get("structuredContent") {
-        let mut structured = structured.clone();
-        redact_json(&mut structured, secrets);
         parts.push(serde_json::json!({"structuredContent": structured}).to_string());
     }
     if parts.is_empty() {
@@ -174,7 +180,10 @@ pub(crate) fn project(
     }
     let output = parts.join("\n");
     if output.len() > crate::mcp_remote::RESULT_TEXT_BYTES_CAP {
-        return Err(ResultError::BadResult);
+        return Err(ResultError::TooLarge {
+            bytes: output.len(),
+            limit: crate::mcp_remote::RESULT_TEXT_BYTES_CAP,
+        });
     }
     Ok(output)
 }
@@ -185,17 +194,17 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn bounded_instructions_redact_before_utf8_truncation() {
+    fn bounded_instructions_preserve_text_before_utf8_truncation() {
         let secret = "VERY-PRIVATE-CANARY".to_string();
         let text = format!(
             "{}{}{}",
-            "界".repeat(INSTRUCTIONS_BYTES_CAP / 3 - 2),
+            "界".repeat(INSTRUCTIONS_BYTES_CAP / 3 - 20),
             secret,
             "more".repeat(100)
         );
-        let output = instructions(Some(&text), &[secret]).unwrap();
+        let output = instructions(Some(&text)).unwrap();
         assert!(output.len() <= INSTRUCTIONS_BYTES_CAP);
-        assert!(!output.contains("VERY"));
+        assert!(output.contains(&secret));
         assert!(output.ends_with("[MCP instructions truncated]"));
     }
 
@@ -207,40 +216,31 @@ mod tests {
             json!({"type":"resource","resource":{"uri":"file:///fixture","blob":"AA=="}}),
         ] {
             let result = serde_json::from_value(json!({"content":[{"type":"text","text":"partial"},block], "structuredContent":{"answer":42}})).unwrap();
-            assert!(matches!(
-                project(result, &[]),
-                Err(ResultError::Unsupported)
-            ));
+            assert!(matches!(project(result), Err(ResultError::Unsupported)));
         }
         for result in [
             json!({"content":[],"structuredContent":{"large":"x".repeat(crate::mcp_remote::RESULT_TEXT_BYTES_CAP)}}),
-            json!({"content":[{"type":"text","text":"x".repeat(600_000)},{"type":"text","text":"y".repeat(600_000)}]}),
+            json!({"content":[{"type":"text","text":"x".repeat(9_000_000)},{"type":"text","text":"y".repeat(9_000_000)}]}),
         ] {
             assert!(matches!(
-                project(serde_json::from_value(result).unwrap(), &[]),
-                Err(ResultError::BadResult)
+                project(serde_json::from_value(result).unwrap()),
+                Err(ResultError::TooLarge { .. })
             ));
         }
     }
 
     #[test]
-    fn arbitrary_error_canaries_never_escape_even_without_known_secrets() {
-        for text in [
-            "UNKNOWN-CANARY",
-            "invalid parameters UNKNOWN-CANARY",
-            "not found UNKNOWN-CANARY",
-            "permission denied UNKNOWN-CANARY",
-            "timed out UNKNOWN-CANARY",
-        ] {
-            let result = serde_json::from_value(
-                json!({"content":[{"type":"text","text":text}],"isError":true}),
-            )
-            .unwrap();
-            let Err(ResultError::Failed(actual)) = project(result, &[]) else {
-                panic!("error must fail")
-            };
-            assert_eq!(actual, None);
-        }
+    fn error_text_is_preserved_verbatim() {
+        let result = serde_json::from_value(json!({"content":[
+            {"type":"text","text":"1 true test-key UNKNOWN-CANARY"},
+            {"type":"text","text":"second error part"}
+        ],"isError":true}))
+        .unwrap();
+        let Err(ResultError::Failed(detail, text)) = project(result) else {
+            panic!("error must fail")
+        };
+        assert_eq!(detail, None);
+        assert_eq!(text, "1 true test-key UNKNOWN-CANARY\nsecond error part");
     }
 
     #[test]
@@ -260,10 +260,11 @@ mod tests {
                 json!({"code":code,"timeout":false}),
             ] {
                 let result = serde_json::from_value(json!({"isError":true,"structuredContent":structured,"content":[{"type":"text","text":"invalid parameter; UNKNOWN-CANARY"}]})).unwrap();
-                let Err(ResultError::Failed(actual)) = project(result, &[]) else {
+                let Err(ResultError::Failed(actual, text)) = project(result) else {
                     panic!("isError must fail")
                 };
                 assert_eq!(actual, expected, "code {code}");
+                assert_eq!(text, "invalid parameter; UNKNOWN-CANARY");
             }
         }
         for structured in [
@@ -277,10 +278,7 @@ mod tests {
                 json!({"isError":true,"structuredContent":structured,"content":[]}),
             )
             .unwrap();
-            assert!(matches!(
-                project(result, &[]),
-                Err(ResultError::Failed(None))
-            ));
+            assert!(matches!(project(result), Err(ResultError::Failed(None, _))));
         }
     }
 
@@ -298,13 +296,16 @@ mod tests {
     }
 
     #[test]
-    fn secrets_do_not_mutate_wire_discriminators_before_projection() {
+    fn text_and_credential_named_structured_fields_are_verbatim() {
         let result =
-            serde_json::from_value(json!({"content":[{"type":"text","text":"answer text"}]}))
+            serde_json::from_value(json!({"content":[{"type":"text","text":"1 true test-key answer text"}],"structuredContent":{"token":"test-key","env":"true"}}))
                 .unwrap();
-        let Ok(output) = project(result, &["text".into()]) else {
+        let Ok(output) = project(result) else {
             panic!("a secret matching a protocol word must not invalidate ordinary data")
         };
-        assert_eq!(output, "answer [redacted]");
+        assert_eq!(
+            output,
+            "1 true test-key answer text\n{\"structuredContent\":{\"token\":\"test-key\",\"env\":\"true\"}}"
+        );
     }
 }

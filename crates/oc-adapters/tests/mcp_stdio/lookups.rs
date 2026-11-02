@@ -59,56 +59,6 @@ fn lookup_config(dir: &Path, mode: &str) -> (StdioConfig, PathBuf) {
 }
 
 #[tokio::test]
-async fn mcp11_sensitive_caller_identities_are_rejected_before_rpc_not_echoed_in_replies() {
-    let dir = tempfile::tempdir().unwrap();
-    let (config, report) = lookup_config(dir.path(), "basic");
-    let client = StdioClient::launch(&config).await.unwrap();
-    let cancel = AtomicBool::new(false);
-    // The mode is an ordinary argv word, not a protected identity value.
-    assert!(matches!(
-        client.lookup(&McpLookupOp::GetPrompt {
-            name: "basic".into(), arguments: BTreeMap::new()
-        }, &cancel).await.unwrap(),
-        McpLookupData::Prompt { name, .. } if name == "basic"
-    ));
-    for operation in [
-        McpLookupOp::GetPrompt {
-            name: "LOOKUP_SECRET_CANARY".into(),
-            arguments: BTreeMap::new(),
-        },
-        McpLookupOp::GetPrompt {
-            name: "outline".into(),
-            arguments: BTreeMap::from([("LOOKUP_SECRET_CANARY".into(), "synthetic".into())]),
-        },
-        McpLookupOp::ReadResource {
-            uri: "fixture://LOOKUP_SECRET_CANARY".into(),
-        },
-    ] {
-        assert_eq!(
-            client.lookup(&operation, &cancel).await,
-            Err(McpLookupError::SensitiveIdentity)
-        );
-    }
-    client.shutdown().await.unwrap();
-    let events = fs::read_to_string(report).unwrap();
-    assert_eq!(
-        events
-            .lines()
-            .filter(|line| line.contains("prompts/get"))
-            .count(),
-        1
-    );
-    assert!(!events.contains("resources/read"));
-    assert_eq!(
-        events
-            .lines()
-            .filter(|line| line.contains("closed"))
-            .count(),
-        1
-    );
-}
-
-#[tokio::test]
 async fn mcp11_stdio_exact_catalogs_prompt_order_and_typed_binary_are_caller_only() {
     let dir = tempfile::tempdir().unwrap();
     let (config, report) = lookup_config(dir.path(), "basic");
@@ -183,7 +133,7 @@ async fn mcp11_stdio_exact_catalogs_prompt_order_and_typed_binary_are_caller_onl
         .await
         .unwrap();
     assert!(
-        !serde_json::to_string(&data)
+        serde_json::to_string(&data)
             .unwrap()
             .contains("LOOKUP_SECRET_CANARY")
     );
@@ -192,7 +142,7 @@ async fn mcp11_stdio_exact_catalogs_prompt_order_and_typed_binary_are_caller_onl
     };
     assert_eq!(uri, "file:///definitely-missing-fixture");
     assert!(
-        matches!(&contents[0], McpResourceContents::Text { uri, text, mime_type } if uri == "file:///definitely-missing-fixture" && text.ends_with("[redacted]") && mime_type.as_deref() == Some("text/plain"))
+        matches!(&contents[0], McpResourceContents::Text { uri, text, mime_type } if uri == "file:///definitely-missing-fixture" && text.ends_with("LOOKUP_SECRET_CANARY") && mime_type.as_deref() == Some("text/plain"))
     );
     assert!(
         matches!(&contents[1], McpResourceContents::Blob { blob, mime_type, .. } if blob == "AAEC/w==" && mime_type.as_deref() == Some("application/octet-stream"))
@@ -215,7 +165,6 @@ async fn mcp11_stdio_missing_capability_and_malicious_catalogs_are_bounded_non_s
         ("pages", McpLookupError::CatalogLimit, 16),
         ("loop", McpLookupError::CatalogLimit, 2),
         ("duplicate", McpLookupError::InvalidData, 1),
-        ("metadata-secret", McpLookupError::SensitiveIdentity, 1),
     ] {
         let dir = tempfile::tempdir().unwrap();
         let (config, report) = lookup_config(dir.path(), mode);
@@ -262,10 +211,9 @@ async fn mcp11_stdio_missing_capability_and_malicious_catalogs_are_bounded_non_s
 }
 
 #[tokio::test]
-async fn mcp11_stdio_body_limit_sensitive_blob_and_modern_interaction_never_partial_success() {
+async fn mcp11_stdio_body_limit_and_modern_interaction_never_partial_success() {
     for (mode, expected) in [
         ("body-limit", McpLookupError::BodyLimit),
-        ("binary-secret", McpLookupError::SensitiveBinary),
         ("input-required", McpLookupError::UnsupportedResult),
     ] {
         let dir = tempfile::tempdir().unwrap();

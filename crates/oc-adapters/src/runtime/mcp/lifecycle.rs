@@ -1538,7 +1538,7 @@ async fn connect_one(
             .get("OC_TEST_ALLOW_LOOPBACK")
             .is_some_and(|value| value == "1");
         AttachedServer::Remote(
-            CodexWebClient::connect_redacted(&config, codex_web, cancel, redactions)
+            CodexWebClient::connect_cancellable(&config, codex_web, cancel)
                 .await
                 .map_err(|error| remote_attach_error_at(server, "initialize", error))?,
         )

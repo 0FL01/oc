@@ -897,11 +897,11 @@ for line in sys.stdin:
         result={'tools':[] if server == 'empty' else [{'name':'query','inputSchema':{'type':'object','properties':{'fail':{'type':'boolean'},'throttle':{'type':'boolean'}}}}]}
     elif method == 'tools/call':
         if r['params']['arguments'].get('throttle'):
-            result={'isError':True,'structuredContent':{'error':{'code':'RATE_LIMITED'}},'content':[{'type':'text','text':'UNKNOWN-CANARY'}]}
+            result={'isError':True,'structuredContent':{'error':{'code':'RATE_LIMITED'}},'content':[{'type':'text','text':'1 true test-key UNKNOWN-CANARY'}]}
         elif r['params']['arguments'].get('fail'):
-            result={'isError':True,'structuredContent':{'error':{'code':'INVALID_ARGUMENTS'}},'content':[{'type':'text','text':'invalid argument: missing parameter query; UNKNOWN-CANARY PROVIDER-CANARY HEADER-CANARY'}]}
+            result={'isError':True,'structuredContent':{'error':{'code':'INVALID_ARGUMENTS'}},'content':[{'type':'text','text':'invalid argument: missing parameter query; 1 true test-key UNKNOWN-CANARY PROVIDER-CANARY HEADER-CANARY'}]}
         else:
-            result={'content':[{'type':'text','text':'Useful explanation '+sys.argv[2]},{'type':'resource','resource':{'uri':'file:///fixture','text':'Embedded content'}}],'structuredContent':{'answer':42,'echo':'PROVIDER-CANARY HEADER-CANARY','argvEcho':sys.argv[2],'token':'UNKNOWN-CANARY'}}
+            result={'content':[{'type':'text','text':'Useful explanation 1 true test-key '+sys.argv[2]},{'type':'resource','resource':{'uri':'file:///fixture','text':'Embedded content'}}],'structuredContent':{'answer':42,'echo':'PROVIDER-CANARY HEADER-CANARY','argvEcho':sys.argv[2],'token':'UNKNOWN-CANARY'}}
     if result is not None:
         print(json.dumps({'jsonrpc':'2.0','id':r['id'],'result':result}),flush=True)
 "#).unwrap();
@@ -1024,7 +1024,7 @@ for line in sys.stdin:
     assert!(
         report.calls[2]
             .output
-            .contains("rate limited; wait before retrying")
+            .contains("1 true test-key UNKNOWN-CANARY")
     );
     assert_eq!(
         harness.db.list_tool_ops("s").unwrap().len(),
@@ -1045,7 +1045,7 @@ for line in sys.stdin:
     assert!(
         report.calls[1]
             .output
-            .contains("invalid arguments; check the tool schema")
+            .contains("invalid argument: missing parameter query; 1 true test-key")
     );
     assert_eq!(
         report.warnings,
@@ -1073,10 +1073,6 @@ for line in sys.stdin:
             "GUIDANCE_EMPTY",
             "GUIDANCE_BROKEN",
             "GUIDANCE_DISABLED",
-            "PROVIDER-CANARY",
-            "HEADER-CANARY",
-            "UNKNOWN-CANARY",
-            "CONFIG-CANARY",
         ] {
             assert!(!wire.contains(absent), "leaked {absent}");
         }
@@ -1093,13 +1089,17 @@ for line in sys.stdin:
         outputs[2]["output"]
             .as_str()
             .unwrap()
-            .contains("rate limited; wait before retrying")
+            .contains("1 true test-key UNKNOWN-CANARY")
     );
     let data = outputs[0]["output"].as_str().unwrap();
     assert!(data.contains("Useful explanation"));
+    assert!(data.contains("1 true test-key"));
     assert!(data.contains("Embedded content"));
     assert!(data.contains("\"answer\":42"));
-    assert!(data.contains("[redacted]"));
+    assert!(data.contains("PROVIDER-CANARY HEADER-CANARY"));
+    assert!(data.contains("CONFIG-CANARY"));
+    assert!(!data.contains("[redacted]"));
+    assert!(outputs[1]["output"].as_str().unwrap().contains("invalid argument: missing parameter query; 1 true test-key UNKNOWN-CANARY PROVIDER-CANARY HEADER-CANARY"));
     let original = harness.db.read_history_full("s").unwrap();
     let stored = format!(
         "{original:?} {:?}",
@@ -1109,7 +1109,7 @@ for line in sys.stdin:
         !stored.contains("GUIDANCE_"),
         "instructions must not enter durable history"
     );
-    assert!(!stored.contains("CANARY"));
+    assert!(stored.contains("CANARY"));
 
     // Resource-specific authority cannot inherit the scalar compatibility allow
     // when projecting whole-server guidance into a turn.

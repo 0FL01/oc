@@ -67,10 +67,7 @@ fn seed(runtime: &Runtime<'_>, db: &Db, turn: &str, prompt: &str) -> (String, St
         serde_json::from_str::<Value>(include_str!("../../../../fixtures/mcp12-media.json"))
             .unwrap()["result"]
             .clone();
-    let secrets = ["mcp-media-private-canary".into()];
-    let result =
-        crate::mcp_result::project_rich(serde_json::from_value(facts).unwrap(), &secrets, &secrets)
-            .unwrap();
+    let result = crate::mcp_result::project_rich(serde_json::from_value(facts).unwrap()).unwrap();
     let mut log = TurnLog::new(turn, "m", "fixture");
     log.user_message = Some(user.clone());
     log.agent_digest = runtime
