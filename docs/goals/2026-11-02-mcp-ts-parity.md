@@ -1,6 +1,6 @@
 # Goal: MCP result/error parity with OC2 TS (remove MCP safeguards that corrupt results)
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-02 — "контракты безопасности выкинуть … нам нужен паритет с oc2 ts без бесполезных сейфгард костылей"; "делай копию плана в цель и начинай реализацию, потом коммит пуш"; review remarks must be addressed.
 Last updated: 2026-11-03
 
@@ -53,8 +53,8 @@ Root causes: `mcp_stdio.rs` `launch_cancellable_generation` (~618-628, 664-666) 
   - Status: verified
   - Evidence: current contracts rewritten; new MCP parity decision explicitly supersedes the historical D15 output clauses and D21 env-output clause; focused contradiction grep/diff check clean.
 - R7: Commit and push the current branch to the verified `origin`.
-  - Status: in_progress
-  - Evidence: final Review-Sol PASS; delivery commit/push next.
+  - Status: verified
+  - Evidence: delivery commit `8e4c58d14a1ed578c77afe023b5429fd2579287a` pushed normally to `origin/master`; remote SHA independently confirmed with `git ls-remote --heads origin master`.
 
 ### Constraints
 - C1: Keep child env admission/inheritance, status-label protection (`config/mcp.rs` protected list), stderr redaction by `config.secrets`, and shell's own redaction of credential material.
@@ -84,16 +84,15 @@ Roots/elicitation capabilities; JSON-RPC error message text; project-local crede
 - Live: `cargo build -p oc2 --bin oc2 --locked --release`, then rig `scripts/both.sh` default, `SCENARIO=big EXEC=90000`, `SCENARIO=big EXEC=3000`, and `SCENARIO=shell` (rust). Rust output must match TS behaviour per step.
 
 ## Current Checkpoint
-- Closes: R7
-- Smallest next action: normal commit/push of the reviewed code/tests/docs/goal to verified origin/master, then record delivery evidence and complete this goal.
+- Closed: R1–R7. No substantive next action.
 
 ## Current State
-- Resolved: R1–R6 implementation and own verification; independent final Review-Sol PASS, no findings. Only R7 delivery remains.
+- Resolved: R1–R7, including normal delivery push; independent final Review-Sol PASS, no findings.
 - Scoped checks (all Cargo jobs=4, test threads=4, approved TMPDIR): MCP lib 75 PASS; exact credential-dictionary and 9 MiB artifact/page regressions PASS; stdio 20 PASS/1 intentional real-server ignore; remote 28 PASS/1 credential-dependent ignore; runtime tool_lifecycle 24 PASS; Code Mode 9 PASS; mcp_application 45 PASS in the full gate after affected scoped retests. Strict scoped Clippy PASS.
 - Full `bash scripts/test.sh` ran once: 2612/2613 PASS, 25 skipped; the sole failure was unchanged `pty_t39::lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples`, `/proc` peak thread counts 11 vs 10. Its exact isolated rerun passed (10 vs 10, 3.92s), without code/test/assertion/threshold changes. Do not describe the initial full gate as wholly green. Cold compile was 15m55s; actual full test execution 237.989s.
 - Release build PASS (`target/release/oc2`). Required live default/big90000/big3000/shell runs PASS; all seven Rust/TS run exits are 0. Peer logs and metadata-only assertion summary: `.local/tmp/mcp-live-*-peer.jsonl`, `.local/tmp/mcp-live-summary.json`; scoped/full/release logs `.local/tmp/mcp-*.log`.
 - Initial scoped lib command hit the shell 120s timeout during a cold dependency build (not a test wait); no surviving Cargo/rustc remained. Continued as one background Cargo owner, without clean/target override.
-- Next: normal commit/push to verified origin/master. No storage schema/migration/dependency changes; foreign `progress/` untouched.
+- Next: none. This status/evidence-only closeout is recorded after the verified delivery push. No storage schema/migration/dependency changes; foreign `progress/` untouched.
 
 ## Material Decisions
 - 2026-11-02: the external live rig now declares its fixture model image-capable and logs image MIME/URI lengths plus artifact-marker presence (not image payloads). Without that declaration Rust correctly applied its existing text-only-model image fallback, so the original rig could not prove the inline-image outcome. No product capability gate was changed.
@@ -108,9 +107,10 @@ Roots/elicitation capabilities; JSON-RPC error message text; project-local crede
 - 2026-11-02: live repro TS vs Rust (table above); plans v1/v2 reviewed; contract frozen.
 - 2026-11-02: R1–R6 implemented; scoped/Clippy/release/live evidence complete. Full offline run had one unrelated transient resource-probe failure, exact isolated rerun PASS; final code review queued.
 - 2026-11-03: Review-Sol `ses_e61829defffeBPuEgkJmI2yDU7` read the actual 34-file diff and evidence: PASS, no blocking or nonblocking findings. Runtime/tests unchanged after review; subsequent goal edits only record status/evidence.
+- 2026-11-03: delivery `8e4c58d14a1ed578c77afe023b5429fd2579287a` committed and pushed to verified origin/master; remote SHA matches. All outcomes resolved; goal complete.
 
 ## Completion
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1–R7 verified; final Review-Sol PASS.
+- Commands and artifacts: scoped tests/strict Clippy, the single full offline run plus exact isolated VIS38 rerun, release build, and all required live runs are recorded above; logs and live summary remain under `.local/tmp/mcp-*`. Delivery commit/push and remote SHA verified.
+- Constraint and diff-scope check: 34 approved files; no dependency/schema/migration changes; admission/status/stderr and non-MCP credential protections preserved; foreign `progress/` excluded and untouched. `git diff --check` passed. No runtime/test changes after review, only goal status/evidence; no new review/test round needed for that metadata-only closeout.
+- Final status: complete. The unrelated initial full-gate VIS38 failure remains transparently documented; isolated PASS is not described as a wholly green full run or whole-product qualification.
