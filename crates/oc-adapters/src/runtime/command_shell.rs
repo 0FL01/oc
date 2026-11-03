@@ -129,7 +129,7 @@ impl Runtime<'_> {
                 })?;
                 if self.generation_id() != capture.published.id || cancel.load(Ordering::Acquire) || stopped.load(Ordering::Acquire) { return Err(RuntimeError::Cancelled); }
                 let pinned = permitted.approved_shell_cwd().ok_or(RuntimeError::Storage)?;
-                let running = self.shell_jobs.command_output(shell.clone(),self.parent_env.clone(),invocation.argv,pinned,resolution.id.clone(),ordinal,capture.published.config.tool_output,mcp::mcp_redactions(&capture.published.config,&self.parent_env),stopped);
+                let running = self.shell_jobs.command_output(shell.clone(),self.parent_env.clone(),invocation.argv,pinned,resolution.id.clone(),ordinal,capture.published.config.tool_output,stopped);
                 tokio::pin!(running);
                 let output = tokio::select! { biased;
                     () = crate::provider::wait_cancel(cancel) => { stopped.store(true,Ordering::Release); running.await },

@@ -24,22 +24,14 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
         "prompt",
     ));
     assert!(
-        db.checkpoint_instructions("t", &mut log, 0, &[source(Some("old"))], 0, &[], None)
+        db.checkpoint_instructions("t", &mut log, 0, &[source(Some("old"))], 0, None)
             .unwrap()
             .is_none()
     );
     let original = db.instruction_view("s").unwrap().1[0].clone();
     let (revision, _) = db.instruction_view("s").unwrap();
-    db.checkpoint_instructions(
-        "t",
-        &mut log,
-        revision,
-        &[source(Some("old"))],
-        1,
-        &[],
-        None,
-    )
-    .unwrap();
+    db.checkpoint_instructions("t", &mut log, revision, &[source(Some("old"))], 1, None)
+        .unwrap();
     assert_eq!(log.instruction_references.len(), 1);
     let (revision, _) = db.instruction_view("s").unwrap();
     db.record_tool_intent("read", "s", Some("t"), "read", "{}")
@@ -60,7 +52,6 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
             revision - 1,
             &[source(Some("new")), nested.clone()],
             1,
-            &[],
             Some(RecordedToolOutcome {
                 operation: "read",
                 state: "completed",
@@ -86,7 +77,6 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
             revision,
             &[source(Some("new")), nested.clone()],
             1,
-            &[],
             Some(RecordedToolOutcome {
                 operation: "read",
                 state: "completed",
@@ -127,7 +117,6 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
             revision,
             &[source(Some("new")), nested],
             1,
-            &[],
             Some(RecordedToolOutcome {
                 operation: "repeat",
                 state: "completed",
@@ -173,7 +162,6 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
             revision,
             &[source(None)],
             1,
-            &[],
             Some(RecordedToolOutcome {
                 operation: "remove",
                 state: "completed",
@@ -237,7 +225,6 @@ fn prm01_instruction_receipts_bound_safe_labels_and_the_real_record_envelope() {
             0,
             &sources,
             0,
-            &["SECRET".into()],
             Some(RecordedToolOutcome {
                 operation: &operation,
                 state: "completed",
@@ -252,9 +239,12 @@ fn prm01_instruction_receipts_bound_safe_labels_and_the_real_record_envelope() {
     assert!(!loads.paths.is_empty());
     assert!(loads.paths.len() < loads.total);
     assert!(loads.retained_bytes() <= PREVIEW_BYTES);
-    assert!(loads.paths.iter().all(|path| path.contains("[redacted]")
-        && !path.contains("SECRET")
-        && !path.chars().any(char::is_control)));
+    assert!(
+        loads
+            .paths
+            .iter()
+            .all(|path| path.contains("SECRET") && !path.chars().any(char::is_control))
+    );
     assert!(returned.is_valid());
     assert_eq!(returned.retained_bytes(), 6 + loads.retained_bytes());
     assert!(

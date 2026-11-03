@@ -37,16 +37,6 @@ pub(crate) enum ResultError {
     TooLarge { bytes: usize, limit: usize },
 }
 
-/// Replacement runs before bounding, so a secret straddling the boundary cannot
-/// leave a visible prefix. This is literal configured-value redaction, not a
-/// guarantee against an adversarial server encoding a secret in ordinary data.
-pub(crate) fn redact(text: &str, secrets: &[String]) -> String {
-    let mut text = text.to_string();
-    crate::tools::output::redact_string(&mut text, secrets);
-    text.retain(|c| !c.is_control() || matches!(c, '\n' | '\t'));
-    text
-}
-
 pub(crate) fn instructions(text: Option<&str>) -> Option<String> {
     let text = text?;
     if text.trim().is_empty() {
@@ -87,39 +77,6 @@ pub(crate) fn rpc_failure(error: &rmcp::service::ServiceError) -> Option<Failure
         -32602 => Some(FailureDetail::InvalidArguments),
         -32601 => Some(FailureDetail::NotFound),
         _ => None,
-    }
-}
-
-pub(crate) fn redact_json(value: &mut Value, secrets: &[String]) {
-    match value {
-        Value::String(text) => *text = redact(text, secrets),
-        Value::Array(values) => values.iter_mut().for_each(|v| redact_json(v, secrets)),
-        Value::Object(map) => {
-            let old = std::mem::take(map);
-            for (key, mut value) in old {
-                let normalized = key.to_ascii_lowercase().replace(['-', '_'], "");
-                if [
-                    "authorization",
-                    "apikey",
-                    "token",
-                    "accesstoken",
-                    "refreshtoken",
-                    "password",
-                    "secret",
-                    "headers",
-                    "env",
-                    "environment",
-                ]
-                .contains(&normalized.as_str())
-                {
-                    value = Value::String("[redacted]".into());
-                } else {
-                    redact_json(&mut value, secrets);
-                }
-                map.insert(redact(&key, secrets), value);
-            }
-        }
-        _ => {}
     }
 }
 

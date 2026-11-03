@@ -501,7 +501,6 @@ fn seed_instructions(runtime: &Runtime<'_>, turn: &str, text: &str) -> String {
             revision,
             &sources,
             usize::from(revision != 0),
-            &[],
             None,
         )
         .unwrap();

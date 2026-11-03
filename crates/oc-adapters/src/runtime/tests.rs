@@ -153,7 +153,6 @@ async fn duplicate_binding_redactions_keep_protected_set_and_allow_silent_shell_
         },
         jobs.reserve().unwrap(),
         true,
-        secrets,
     )
     .await
     .unwrap();

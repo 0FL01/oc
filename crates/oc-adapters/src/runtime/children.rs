@@ -1035,13 +1035,6 @@ impl Jobs {
                         .and_then(|fact| fact.clone())
                         .unwrap_or_else(|| {
                             let mut reason = error.to_string();
-                            crate::tools::output::redact_string(
-                                &mut reason,
-                                &mcp::mcp_redactions(
-                                    &child_runtime.current.read().expect("generation").config,
-                                    &child_runtime.parent_env,
-                                ),
-                            );
                             reason.truncate(reason.floor_char_boundary(1024));
                             (ChildState::Error, reason)
                         }),

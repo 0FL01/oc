@@ -27,7 +27,7 @@ fn tool19_direct_strict_move_catalog() {
 }
 
 #[test]
-fn tool18_lookup_group_family_page_merge_and_redaction() {
+fn tool18_lookup_group_family_page_merge_and_public_field_allowlist() {
     use super::*;
     use serde_json::json;
     let mut generation = crate::config::Generation {
@@ -70,10 +70,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
         "unknown":{"name":"CANARY"}, "unknown2":{}
     })).unwrap()};
     let run = |args| -> serde_json::Value {
-        serde_json::from_str(
-            &lookup::execute(&generation, &selected, &args, &["CANARY".into()]).unwrap(),
-        )
-        .unwrap()
+        serde_json::from_str(&lookup::execute(&generation, &selected, &args).unwrap()).unwrap()
     };
     let first = run(json!({"limit":1}));
     assert_eq!(first["total"], 4);
@@ -99,7 +96,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
             assert!(m[key].is_null());
         }
     }
-    assert!(!run(json!({})).to_string().contains("CANARY"));
+    assert!(run(json!({})).to_string().contains("CANARY"));
     assert_eq!(run(json!({"offset":100}))["providers"], json!([]));
     assert!(generation.providers["own"].models.contains_key("retired"));
     assert!(!selected.models.contains_key("retired"));
@@ -171,16 +168,11 @@ fn go02_native_lookup_merges_public_go_before_static_or_selected_rows() {
     };
     assert!(super::lookup::wants_public(&generation, &json!({})).unwrap());
     assert!(!super::lookup::wants_public(&generation, &json!({"provider":"own"})).unwrap());
-    let output = super::lookup::execute_with_public(
-        &generation,
-        &selected,
-        &json!({}),
-        &["CANARY".into()],
-        Some(&public),
-    )
-    .unwrap();
+    let output =
+        super::lookup::execute_with_public(&generation, &selected, &json!({}), Some(&public))
+            .unwrap();
     assert!(
-        !output.contains("CANARY")
+        output.contains("Public CANARY")
             && !output.contains("Authorization")
             && !output.contains("apiKey")
     );
@@ -203,7 +195,6 @@ fn go02_native_lookup_merges_public_go_before_static_or_selected_rows() {
             &generation,
             &selected,
             &json!({"provider":"OpenCode Go"}),
-            &[],
             Some(&public),
         )
         .unwrap(),

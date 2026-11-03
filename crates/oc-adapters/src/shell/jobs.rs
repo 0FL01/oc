@@ -471,18 +471,12 @@ impl Jobs {
         resolution: String,
         ordinal: usize,
         limits: crate::config::ToolOutputLimits,
-        secrets: Vec<String>,
         parent_cancel: &AtomicBool,
     ) -> Result<String, crate::runtime::RuntimeError> {
         use crate::runtime::RuntimeError;
         let slot = self
             .reserve()
             .ok_or_else(|| RuntimeError::InvalidArgs("running shell job limit".into()))?;
-        if secrets.iter().map(String::len).sum::<usize>() > 65536 {
-            return Err(RuntimeError::InvalidArgs(
-                "shell redaction material limit".into(),
-            ));
-        }
         self.db
             .command_effect(&resolution, ordinal, "pending", "started", None, None)?;
         let cancel = Arc::new(AtomicBool::new(false));
@@ -536,7 +530,7 @@ impl Jobs {
                         && !out.stderr_truncated
                         && out.signal.is_none() =>
                 {
-                    let text = output::TextStream::new(secrets).admit(&out.stdout, true);
+                    let text = output::TextStream::new().admit(&out.stdout, true);
                     if text.len() > limits.bytes().min(oc_core::session::MAX_INPUT_BYTES)
                         || text.lines().count() > limits.max_lines
                     {
@@ -607,7 +601,6 @@ impl Jobs {
         provenance: Provenance,
         slot: tokio::sync::OwnedSemaphorePermit,
         foreground: bool,
-        output_secrets: Vec<String>,
     ) -> Result<String, StorageError> {
         // Capture foreground launches too: conversion must keep the original
         // lineage. User commands, nested jobs and recovered history cannot wake
@@ -641,7 +634,6 @@ impl Jobs {
             provenance,
             slot,
             foreground,
-            output_secrets,
             parent_wake,
         )
         .await
@@ -658,7 +650,6 @@ impl Jobs {
         approved: Arc<PinnedCwd>,
         admission: crate::storage::AdmittedUserShell,
         slot: tokio::sync::OwnedSemaphorePermit,
-        output_secrets: Vec<String>,
     ) -> Result<String, StorageError> {
         self.launch_admitted(
             shell,
@@ -670,7 +661,6 @@ impl Jobs {
             admission.into_provenance(),
             slot,
             false,
-            output_secrets,
             None,
         )
         .await
@@ -688,7 +678,6 @@ impl Jobs {
         provenance: Provenance,
         slot: tokio::sync::OwnedSemaphorePermit,
         foreground: bool,
-        output_secrets: Vec<String>,
         parent_wake: Option<ParentWake>,
     ) -> Result<String, StorageError> {
         let id = provenance.operation.clone();
@@ -716,7 +705,7 @@ impl Jobs {
                 .stream
                 .lock()
                 .expect("stream admission")
-                .begin(&db, &output_provenance, output_secrets.clone());
+                .begin(&db, &output_provenance);
             let result = shell.execute_pinned_started(
                 &env,
                 &argv,
@@ -780,13 +769,7 @@ impl Jobs {
                 generation: p.generation,
                 source: &p.output_source,
                 limits: p.output_limits,
-                secrets: output_secrets,
             };
-            crate::tools::output::redact_string(&mut outcome.stdout, &context.secrets);
-            crate::tools::output::redact_string(&mut outcome.stderr, &context.secrets);
-            if let Some(diagnostic) = outcome.diagnostic.as_mut() {
-                crate::tools::output::redact_string(diagnostic, &context.secrets);
-            }
             let oversized = resource.as_ref().is_some_and(|r| {
                 r.admitted_bytes > p.output_limits.bytes() as u64
                     || r.admitted_lines > p.output_limits.max_lines as u64

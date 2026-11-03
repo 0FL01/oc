@@ -2,7 +2,8 @@
 //! frontend (T39).
 //!
 //! These are view-model DTOs: counts, ids and bounded previews only. No
-//! storage handles, no transcripts beyond the requested page, no secrets.
+//! storage handles or transcripts beyond the requested page. Config/auth views
+//! keep their own secret boundaries; tool-result previews may contain secrets.
 
 use std::collections::BTreeMap;
 
@@ -383,7 +384,7 @@ pub struct UserShellResult {
     pub command_limited: bool,
     pub state: String,
     pub output: Box<crate::tool_output::Presentation>,
-    /// Already redacted owner diagnostic, separate from process output.
+    /// Owner diagnostic, separate from process output.
     pub diagnostic: Option<String>,
 }
 
@@ -2023,7 +2024,7 @@ pub struct ShellJob {
     pub pid: Option<i32>,
     /// Whether the original foreground await has been converted/released.
     pub background: bool,
-    /// Bounded admitted/redacted live output from the existing capture. Stored
+    /// Bounded normalized live output from the existing capture. Stored
     /// identity-only snapshots leave this unset. No exit is
     /// implied, and this preview is not a second capture or signal capability.
     pub output: Option<Box<crate::tool_output::Presentation>>,

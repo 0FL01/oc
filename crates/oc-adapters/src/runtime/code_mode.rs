@@ -25,17 +25,13 @@ pub(crate) mod jobs;
 /// Model-facing name of the Code Mode tool.
 pub(crate) const EXECUTE_TOOL: &str = codemode::TOOL_NAME;
 
-fn limited_text(text: &str, budget: usize, secrets: &[String]) -> (String, bool) {
-    let mut text = text.to_owned();
-    crate::tools::output::redact_string(&mut text, secrets);
-    let limited = text.len() > budget;
-    text.truncate(text.floor_char_boundary(text.len().min(budget)));
-    (text, limited)
+fn limited_text(text: &str, budget: usize) -> (String, bool) {
+    let end = text.floor_char_boundary(text.len().min(budget));
+    (text[..end].to_owned(), text.len() > budget)
 }
 
-fn input_preview(input: &Json, secrets: &[String]) -> (Json, bool) {
-    let mut input = input.clone();
-    crate::mcp_result::redact_json(&mut input, secrets);
+fn input_preview(input: &Json) -> (Json, bool) {
+    let input = input.clone();
     if input.to_string().len() <= EXECUTE_INPUT_BYTES {
         return (input, false);
     }
@@ -74,14 +70,10 @@ fn input_preview(input: &Json, secrets: &[String]) -> (Json, bool) {
     (input, true)
 }
 
-pub(super) fn intent_presentation(
-    op: &str,
-    arguments: &Json,
-    secrets: &[String],
-) -> Option<Box<Presentation>> {
+pub(super) fn intent_presentation(op: &str, arguments: &Json) -> Option<Box<Presentation>> {
     let mut execute = Execute::default();
     if let Some(code) = arguments.get("code").and_then(Json::as_str) {
-        let (code, limited) = limited_text(code, EXECUTE_CODE_BYTES, secrets);
+        let (code, limited) = limited_text(code, EXECUTE_CODE_BYTES);
         execute.code = Some(code);
         execute.code_limited = limited;
     }
@@ -99,14 +91,12 @@ pub(super) fn refusal_presentation(
     op: &str,
     presentation: Option<Box<Presentation>>,
     output: &str,
-    secrets: &[String],
 ) -> Option<Box<Presentation>> {
     let mut presentation = presentation?;
     let Some(execute) = presentation.execute.as_mut() else {
         return Some(presentation);
     };
-    let safe = limited_text(output, usize::MAX, secrets).0;
-    let mut result = Presentation::new(&safe, safe.len() as u64, false);
+    let mut result = Presentation::new(output, output.len() as u64, false);
     execute.error = true;
     execute.elapsed_ms = Some(0);
     execute.output = vec![ExecuteOutput {
@@ -119,13 +109,12 @@ pub(super) fn refusal_presentation(
 }
 
 /// The invocation owns bounded facts; watch only coalesces wakeups, not effects.
-struct ExecuteProgress<'a> {
+struct ExecuteProgress {
     facts: Mutex<Execute>,
     changed: tokio::sync::watch::Sender<()>,
-    secrets: &'a [String],
 }
 
-impl ExecuteProgress<'_> {
+impl ExecuteProgress {
     fn start(&self, tool: &str, input: &Json, producer_limited: bool) -> Option<usize> {
         let mut facts = self.facts.lock().expect("execute progress lock");
         if facts.calls.len() == EXECUTE_CALLS_CAP {
@@ -135,8 +124,8 @@ impl ExecuteProgress<'_> {
             }
             return None;
         }
-        let (tool, tool_limited) = limited_text(tool, EXECUTE_TOOL_BYTES, self.secrets);
-        let (input, input_limited) = input_preview(input, self.secrets);
+        let (tool, tool_limited) = limited_text(tool, EXECUTE_TOOL_BYTES);
+        let (input, input_limited) = input_preview(input);
         let index = facts.calls.len();
         facts.calls.push(ExecuteCall {
             tool,
@@ -286,7 +275,6 @@ struct Invocation<'a, 'p> {
     agent: Option<String>,
     agent_digest: Option<String>,
     sequence: AtomicUsize,
-    mcp_output: AtomicBool,
 }
 
 impl Invocation<'_, '_> {
@@ -355,7 +343,6 @@ impl Runtime<'_> {
                 &mut native,
             )
             .await;
-        inv.mcp_output.store(true, Ordering::Release);
         if state != "completed" {
             if state == "unknown"
                 && self
@@ -430,9 +417,8 @@ impl Runtime<'_> {
         cancel: &AtomicBool,
         agent: Option<String>,
         agent_digest: Option<String>,
-        secrets: &[String],
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
-    ) -> (&'static str, String, Execute, bool) {
+    ) -> (&'static str, String, Execute) {
         let Ok(input) = codemode::parse_input(&call.arguments) else {
             return (
                 "failed",
@@ -442,13 +428,12 @@ impl Runtime<'_> {
                     elapsed_ms: Some(0),
                     ..Default::default()
                 },
-                false,
             );
         };
         let code = input.code;
         let (_, catalog) = mcp_tool_defs(attached, policy);
         let catalog = Arc::new(catalog);
-        let (code_preview, code_limited) = limited_text(code, EXECUTE_CODE_BYTES, secrets);
+        let (code_preview, code_limited) = limited_text(code, EXECUTE_CODE_BYTES);
         let (changed, mut changes) = tokio::sync::watch::channel(());
         let progress = ExecuteProgress {
             facts: Mutex::new(Execute {
@@ -457,7 +442,6 @@ impl Runtime<'_> {
                 ..Default::default()
             }),
             changed,
-            secrets,
         };
         let progress = &progress;
         progress.emit(op, turn, tool_event);
@@ -474,7 +458,6 @@ impl Runtime<'_> {
             agent,
             agent_digest,
             sequence: AtomicUsize::new(0),
-            mcp_output: AtomicBool::new(false),
         };
         let inv = &inv;
         let started = std::time::Instant::now();
@@ -547,7 +530,6 @@ impl Runtime<'_> {
         facts.elapsed_ms = Some(started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64);
         facts.error = !outcome.is_ok() || cancel.load(Ordering::Acquire);
         let sections = outcome.output_sections();
-        let mcp_output = inv.mcp_output.load(Ordering::Acquire);
         let mut remaining = PREVIEW_BYTES;
         for (kind, text) in [
             (ExecuteOutputKind::Text, &sections.value),
@@ -565,14 +547,7 @@ impl Runtime<'_> {
             } else {
                 kind
             };
-            let (text, limited) = if mcp_output {
-                (
-                    text[..text.floor_char_boundary(text.len().min(remaining))].to_owned(),
-                    text.len() > remaining,
-                )
-            } else {
-                limited_text(text, remaining, secrets)
-            };
+            let (text, limited) = limited_text(text, remaining);
             remaining -= text.len();
             facts.output.push(ExecuteOutput {
                 kind,
@@ -581,7 +556,7 @@ impl Runtime<'_> {
             });
         }
         if cancel.load(Ordering::Acquire) {
-            return ("cancelled", "error: cancelled".into(), facts, mcp_output);
+            return ("cancelled", "error: cancelled".into(), facts);
         }
         (
             if outcome.is_ok() {
@@ -591,7 +566,6 @@ impl Runtime<'_> {
             },
             sections.output(),
             facts,
-            mcp_output,
         )
     }
 }

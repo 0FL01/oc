@@ -115,7 +115,7 @@ pub enum ProviderError {
     /// Nonretryable HTTP status, without potentially sensitive response body.
     #[error("HTTP status {0}")]
     HttpStatus(u16),
-    /// Bounded structured provider diagnostic with configured credentials redacted.
+    /// Bounded, normalized structured provider diagnostic, without secret masking.
     #[error("HTTP status {status}: {message}")]
     HttpDiagnostic { status: u16, message: String },
     /// Byte ceiling reached before appending data.
@@ -832,8 +832,6 @@ struct CompletedItem {
 
 #[derive(Debug, Default)]
 pub struct SseParser {
-    /// Ephemeral request-local redactions, never response/header archives.
-    redactions: reqwest::header::HeaderMap,
     finish: FinishReason,
     compaction_usage: Option<oc_core::compaction::CompactionUsage>,
     /// Pending bytes (incomplete UTF-8 tail or partial line).
@@ -1271,8 +1269,8 @@ impl SseParser {
         {
             // Unclassified/incomplete raw explanations retain their existing
             // withheld contract. An admitted policy/category explanation is
-            // redacted before any Debug, runtime event or durable publication.
-            failure.message = error_message(value, &self.redactions);
+            // normalized/bounded before runtime events or durable publication.
+            failure.message = error_message(value);
         }
         error
     }
@@ -2689,7 +2687,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         ) {
             failure.headers.retry_after_ms = None;
         }
-        failure.message = diagnostic.as_ref().and_then(|v| error_message(v, headers));
+        failure.message = diagnostic.as_ref().and_then(error_message);
         return Err((ProviderError::Request(Box::new(failure)), false));
     }
 
@@ -2697,7 +2695,6 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         protocol::Protocol::Messages => SseParser::messages(),
         _ => chat.map_or_else(SseParser::default, SseParser::chat),
     };
-    parser.redactions = headers.clone();
     let mut items: Vec<StreamItem> = Vec::new();
     let mut committed = false;
     let read_failure = |error, committed| {
@@ -2848,10 +2845,7 @@ fn collect_generation(parser: SseParser, items: Vec<StreamItem>) -> Generation {
     }
 }
 
-fn error_message(
-    value: &serde_json::Value,
-    headers: &reqwest::header::HeaderMap,
-) -> Option<String> {
+fn error_message(value: &serde_json::Value) -> Option<String> {
     [
         "/error/message",
         "/response/error/message",
@@ -2861,58 +2855,14 @@ fn error_message(
     ]
     .iter()
     .find_map(|path| value.pointer(path).and_then(serde_json::Value::as_str))
-    .and_then(|message| safe_diagnostic(message, headers))
+    .and_then(safe_diagnostic)
 }
 
-fn safe_diagnostic(message: &str, headers: &reqwest::header::HeaderMap) -> Option<String> {
+fn safe_diagnostic(message: &str) -> Option<String> {
     // Only the structured error.message field is projected, never headers or
-    // the raw body. Bound it before processing and remove configured secrets.
+    // the raw body. Preserve its text within the existing normalization/bounds.
     if message.trim().is_empty() {
         return None;
-    }
-    if message.len() > 4096 {
-        return Some("provider diagnostic omitted (input exceeded 4096 bytes)".into());
-    }
-    let mut message = message.to_owned();
-    for secret in headers.values().filter_map(|value| value.to_str().ok()) {
-        let secret = secret.strip_prefix("Bearer ").unwrap_or(secret);
-        if !secret.is_empty() {
-            message = message.replace(secret, "[redacted]");
-        }
-    }
-    const PUBLIC_URI: &str = "https://platform.openai.com/settings/organization/status-and-access";
-    let boundary = |c: char| c.is_whitespace() || matches!(c, '(' | ')' | '[' | ']' | '\'' | '"');
-    let safe_uri = message.match_indices(PUBLIC_URI).all(|(start, uri)| {
-        message[..start].chars().next_back().is_none_or(boundary)
-            && message[start + uri.len()..]
-                .chars()
-                .next()
-                .is_none_or(boundary)
-    });
-    let lower = if safe_uri {
-        message
-            .replace(PUBLIC_URI, "[public provider URI]")
-            .to_ascii_lowercase()
-    } else {
-        message.to_ascii_lowercase()
-    };
-    if [
-        "authorization:",
-        "bearer ",
-        "cookie:",
-        "api_key=",
-        "apikey=",
-        "://",
-        "environment",
-        "env=",
-    ]
-    .iter()
-    .any(|key| lower.contains(key))
-        || message
-            .chars()
-            .any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t'))
-    {
-        return Some("provider diagnostic contained private data (redacted)".into());
     }
     let mut chars = message
         .chars()

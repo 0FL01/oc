@@ -298,10 +298,7 @@ impl Channels {
                 ));
             }
         }
-        let mut parser = SseParser {
-            redactions: headers.clone(),
-            ..Default::default()
-        };
+        let mut parser = SseParser::default();
         let mut items = Vec::new();
         let mut response: Option<String> = None;
         let mut committed = false;
@@ -408,7 +405,7 @@ impl Channels {
                     failure.http_status = Some(101);
                     failure.output_committed = committed;
                     // Upgrade headers belong to the connection, never this
-                    // response. Common classifier/redactor ran before exposure.
+                    // response. Common classifier/normalizer ran before exposure.
                     failure.headers = RetryHeaders::default();
                     let code = ["/error/code", "/response/error/code", "/code"]
                         .iter()
@@ -576,7 +573,7 @@ async fn connect(
                     .filter(|b| b.len() <= 16 * 1024)
                     .and_then(|b| serde_json::from_slice::<serde_json::Value>(b).ok());
                 let mut failure = failure::classified(value.as_ref(), Some(status), false);
-                failure.message = value.as_ref().and_then(|v| error_message(v, headers));
+                failure.message = value.as_ref().and_then(error_message);
                 // This handshake is not a model-response retry override.
                 Err(ProviderError::Request(Box::new(failure)))
             }

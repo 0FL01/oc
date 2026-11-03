@@ -167,26 +167,12 @@ impl<'a> DiffCapture<'a> {
             return;
         }
         if self.writer.is_none() {
-            // Unified diff inserts a sign after every newline. Mask each known
-            // secret's nonempty line too, so multiline credentials cannot evade
-            // the existing literal redactor through those inserted signs.
-            let mut secrets = self
-                .context
-                .secrets
-                .iter()
-                .flat_map(|secret| secret.split(['\r', '\n']))
-                .filter(|part| !part.is_empty())
-                .map(str::to_owned)
-                .collect::<Vec<_>>();
-            secrets.sort_unstable();
-            secrets.dedup();
             match self.context.db.begin_tool_output(
                 self.context.operation,
                 self.context.session,
                 self.context.location,
                 self.context.generation,
                 self.context.source,
-                secrets,
             ) {
                 Ok(writer) => self.writer = Some(writer),
                 Err(error) => {
@@ -282,98 +268,6 @@ impl<'a> DiffCapture<'a> {
     }
 }
 
-/// Shared incremental literal redaction. Callers supply bounded UTF-8 chunks;
-/// the unpublished suffix protects secrets split across producer reads.
-pub(crate) struct StreamRedactor {
-    pending: String,
-    secrets: Vec<String>,
-    prefixes: Vec<Vec<usize>>,
-    matched: Vec<usize>,
-}
-impl StreamRedactor {
-    pub(crate) fn has_pending(&self) -> bool {
-        !self.pending.is_empty()
-    }
-
-    pub(crate) fn new(secrets: Vec<String>) -> Self {
-        let secrets: Vec<String> = secrets.into_iter().filter(|s| !s.is_empty()).collect();
-        let prefixes = secrets
-            .iter()
-            .map(|secret| {
-                let bytes = secret.as_bytes();
-                let mut prefix = vec![0; bytes.len()];
-                for at in 1..bytes.len() {
-                    let mut n = prefix[at - 1];
-                    while n > 0 && bytes[at] != bytes[n] {
-                        n = prefix[n - 1];
-                    }
-                    if bytes[at] == bytes[n] {
-                        n += 1;
-                    }
-                    prefix[at] = n;
-                }
-                prefix
-            })
-            .collect();
-        let matched = vec![0; secrets.len()];
-        Self {
-            pending: String::new(),
-            secrets,
-            prefixes,
-            matched,
-        }
-    }
-    pub(crate) fn push(&mut self, text: &str, final_flush: bool) -> String {
-        self.pending.push_str(text);
-        // Incremental prefix matching is linear per known secret, including
-        // repetitive long keys. Only a possible secret suffix needs withholding;
-        // benign live output must not wait for an unrelated future read or EOF.
-        for ((secret, prefix), matched) in self
-            .secrets
-            .iter()
-            .zip(&self.prefixes)
-            .zip(&mut self.matched)
-        {
-            let pattern = secret.as_bytes();
-            for byte in text.bytes() {
-                while *matched > 0 && pattern[*matched] != byte {
-                    *matched = prefix[*matched - 1];
-                }
-                if pattern[*matched] == byte {
-                    *matched += 1;
-                }
-                if *matched == pattern.len() {
-                    *matched = prefix[*matched - 1];
-                }
-            }
-        }
-        let hold = self.matched.iter().copied().max().unwrap_or(0);
-        let mut end = if final_flush {
-            self.pending.len()
-        } else {
-            self.pending
-                .floor_char_boundary(self.pending.len().saturating_sub(hold))
-        };
-        loop {
-            let before = end;
-            for secret in &self.secrets {
-                for (at, _) in self.pending.match_indices(secret) {
-                    if at < end && at + secret.len() > end {
-                        end = at;
-                    }
-                }
-            }
-            if end == before || end == 0 {
-                break;
-            }
-        }
-        let mut admitted = self.pending[..end].to_owned();
-        redact_string(&mut admitted, &self.secrets);
-        self.pending.drain(..end);
-        admitted
-    }
-}
-
 #[derive(Clone)]
 pub(crate) struct Context<'a> {
     pub db: &'a Db,
@@ -383,29 +277,24 @@ pub(crate) struct Context<'a> {
     pub generation: u64,
     pub source: &'a str,
     pub limits: Limits,
-    pub secrets: Vec<String>,
 }
 
 impl Context<'_> {
-    /// Attach only at the successful Write publication boundary. Redact the
-    /// complete admitted request before clipping, never a potentially secret
-    /// prefix. No model-result, RAW input, confirmed effects or workspace reads.
+    /// Attach only at the successful Write publication boundary. Preserve the
+    /// admitted request within display limits. No model-result, RAW input,
+    /// confirmed effects or workspace reads.
     pub(crate) fn attach_write(
         &self,
         presentation: &mut oc_core::tool_output::Presentation,
         path: &str,
         content: &str,
     ) {
-        let mut path = path.to_owned();
-        redact_string(&mut path, &self.secrets);
         let path: String = path
             .chars()
             .map(|c| if c.is_control() { ' ' } else { c })
             .collect();
         let path_end =
             path.floor_char_boundary(path.len().min(oc_core::patch::EFFECT_LINE_BYTES_CAP));
-        let mut content = content.to_owned();
-        redact_string(&mut content, &self.secrets);
         let mut end = content.floor_char_boundary(
             content.len().min(
                 self.limits
@@ -492,9 +381,7 @@ impl Context<'_> {
         self.prepare_envelope(text, true, existing)
     }
     pub(crate) fn prepare_page(&self, mut text: String) -> Prepared {
-        // Registered pages were admitted by their producer's capture writer.
-        // Re-redacting with the reader's dictionary would corrupt verbatim MCP
-        // artifacts. Shell/other producer redaction remains at capture ingress.
+        // Registered pages reuse text admitted by their producer's capture writer.
         let body;
         let notice = serde_json::json!({"tool_output_config":{"source":self.source,"generation":self.generation}});
         if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&text) {
@@ -528,27 +415,10 @@ impl Context<'_> {
         // Questions are admitted native control facts, not an arbitrary JSON
         // object's claimed media/control origin. A cold resource is the sole full
         // payload; the native presentation event carries only its provenance ref.
-        let Some(mut result) =
+        let Some(result) =
             oc_core::question::QuestionResult::from_output("question", "completed", Some(&text))
         else {
             return Ok(self.prepare_envelope(text, false, None));
-        };
-        let mut changed = false;
-        for question in &mut result.questions {
-            changed |= redact_string(&mut question.question, &self.secrets);
-            changed |= redact_string(&mut question.header, &self.secrets);
-            for option in &mut question.options {
-                changed |= redact_string(&mut option.label, &self.secrets);
-                changed |= redact_string(&mut option.description, &self.secrets);
-            }
-        }
-        for answer in result.answers.iter_mut().flatten() {
-            changed |= redact_string(answer, &self.secrets);
-        }
-        let text = if changed {
-            serde_json::to_string(&result).map_err(|_| StorageError::OperationNotFound)?
-        } else {
-            text
         };
         if !preview(&text, self.limits, false).1 {
             return Ok(Prepared::plain(text, false));
@@ -573,29 +443,6 @@ impl Context<'_> {
     }
 
     fn prepare_text(
-        &self,
-        mut text: String,
-        tail: bool,
-        producer_limited: bool,
-        existing: Option<&Resource>,
-        allow_capture: bool,
-    ) -> Prepared {
-        // Existing bounded producers normalize before this boundary; literal
-        // known secret replacement precedes both disk and hot projection.
-        redact_string(&mut text, &self.secrets);
-        self.prepare_text_verbatim(text, tail, producer_limited, existing, allow_capture)
-    }
-
-    /// MCP and Code Mode publish server output verbatim, including cold text.
-    pub(crate) fn prepare_mcp(&self, text: String) -> Prepared {
-        let mut context = self.clone();
-        // The capture writer also owns a streaming redactor. Omit its dictionary
-        // for this publication, without changing other tools' captured context.
-        context.secrets.clear();
-        context.prepare_text_verbatim(text, false, false, None, true)
-    }
-
-    fn prepare_text_verbatim(
         &self,
         text: String,
         tail: bool,
@@ -644,7 +491,6 @@ impl Context<'_> {
                     self.location,
                     self.generation,
                     self.source,
-                    self.secrets.clone(),
                 )
                 .and_then(|mut writer| {
                     writer.append(&text)?;
@@ -781,16 +627,12 @@ impl Context<'_> {
         // Webfetch's independent response facts precede free text. Preserve the
         // small header, and move (not clone) its admitted body through limiting.
         if let Some((header, _)) = text.split_once("\n\n")
-            && let Ok(mut value) = serde_json::from_str::<serde_json::Value>(header)
+            && let Ok(value) = serde_json::from_str::<serde_json::Value>(header)
             && value.get("final_url").is_some()
             && value.get("status").is_some()
         {
             let n = header.len() + 2;
-            let header = if redact_value(&mut value, &self.secrets) {
-                value.to_string()
-            } else {
-                header.to_owned()
-            };
+            let header = header.to_owned();
             text.drain(..n);
             if header.len() + NOTICE_RESERVE >= SERVED_CAP {
                 return Prepared::plain("error: webfetch control envelope exceeds served budget; execution recorded; no replay".into(), true);
@@ -845,11 +687,9 @@ impl Context<'_> {
         }
         // Never slice serialized JSON or move text between associated fields.
         // Free-text leaves share a budget; status/identity/effects survive.
-        let changed = redact_value(&mut value, &self.secrets);
         if !preview(&text, self.limits, tail).1 {
             let limited = value["truncated"].as_bool();
-            let mut prepared =
-                Prepared::plain(if changed { value.to_string() } else { text }, false);
+            let mut prepared = Prepared::plain(text, false);
             if let Some(presentation) = &mut prepared.presentation {
                 presentation.producer_limited = limited;
                 presentation.capture = existing.map(Resource::presentation_capture);
@@ -974,45 +814,6 @@ fn collect_prose(value: &mut serde_json::Value, key: Option<&str>, out: &mut Str
     }
 }
 
-fn redact_value(value: &mut serde_json::Value, secrets: &[String]) -> bool {
-    match value {
-        serde_json::Value::String(text) => redact_string(text, secrets),
-        serde_json::Value::Array(values) => values.iter_mut().fold(false, |changed, value| {
-            redact_value(value, secrets) || changed
-        }),
-        serde_json::Value::Object(map) => map.values_mut().fold(false, |changed, value| {
-            redact_value(value, secrets) || changed
-        }),
-        _ => false,
-    }
-}
-pub(crate) fn redact_string(text: &mut String, secrets: &[String]) -> bool {
-    if !secrets
-        .iter()
-        .any(|s| !s.is_empty() && text.contains(s.as_str()))
-    {
-        return false;
-    }
-    let mut secrets = secrets.iter().filter(|s| !s.is_empty()).collect::<Vec<_>>();
-    if secrets.is_empty() {
-        return false;
-    }
-    secrets.sort_by_key(|s| std::cmp::Reverse(s.len()));
-    let (mut changed, mut at) = (false, 0);
-    while at < text.len() {
-        if let Some(secret) = secrets
-            .iter()
-            .find(|secret| text[at..].starts_with(secret.as_str()))
-        {
-            text.replace_range(at..at + secret.len(), "[redacted]");
-            at += "[redacted]".len();
-            changed = true;
-        } else {
-            at += text[at..].chars().next().expect("UTF-8").len_utf8();
-        }
-    }
-    changed
-}
 fn clip_prose(
     value: &mut serde_json::Value,
     key: Option<&str>,

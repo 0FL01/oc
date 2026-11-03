@@ -1343,7 +1343,7 @@ Sources U50–U55 plus existing U02/U49; preserve pinned provenance/license noti
    labels or replayed operations. Runtime toggles do not silently edit config.
    D13: per-server failed attach is visible and turn continues, never silently disable
    required MCP; fatal cancel/cleanup/caps still fail. Preserve permissions/authority,
-   strict codex_web versus generic negotiation, redaction and unknown-effect quarantine:
+   strict codex_web versus generic negotiation, lifecycle redaction and unknown-effect quarantine:
    retry cannot clear safety state or reexecute uncertain tool work. Disabled browser
    has zero automatic spawn/probe, including modal open/search. Explicit connect tests
    use configured fake stdio, not real browser/npx. OAuth/integration flows remain
@@ -1715,12 +1715,16 @@ T50/dirty shell-output work, T55 safe-handoff priority and completed T51/T46.
    body/generated-guidance/ref/capture/projection facts through existing prepared
    result, DTO/query/event owners; T44 renders them. Do not regex/keyword-strip tool or
    LLM text: a payload can literally contain every marker above. Preserve raw stored/
-   provider text, artifacts, typed controls/media/errors, redaction, captured view,
+   provider text, artifacts, typed controls/media/errors, captured view,
    operation identity, policy/resource access and caps. Legacy text without trustworthy
    provenance stays actual recorded data, not a guessed suffix. No schema/store/service/
    framework solely for UI, history rewrite, reexecution or automatic rehydration on
    model switch/DCP/compact/restart. Minimal R10 seam readiness, not all-T50 completion,
    precedes dependent UI consumption; no circular task dependency.
+
+   W1 (owner-approved 2026-11-03) supersedes this clause's former output-redaction
+   requirement: tool content/cards/artifacts are verbatim within existing
+   normalization/bounds; MCP lifecycle/config/auth/log masking remains separate.
 
 ### Ordered implementation and qualification
 
@@ -1782,8 +1786,10 @@ U69–U73; startup/MCP retry VIS19/VIS40/VIS42 is a separate feature.
    own historical retry even after the continuation's new assistant succeeds;
    that descriptor never means active wait, cancel authority or restart work.
    Active retry/terminal/cancel/shutdown changes only currently unfinished
-   owner state. Keep safe error message controls/redaction and session/turn/span
+   owner state. Keep error message normalization/bounds and session/turn/span
    identity; ignore stale foreign events.
+   W1 (2026-11-03) supersedes provider-message keyword/header-value suppression;
+   it does not change retry/classification or admit raw body/header archives.
 3. **Navigation.** Retained same-Location tab park/return/reopen and actual
    history read preserve the notice, draft, selection, scroll and cursor;
    address events to focused or parked owning view through existing receiver.
@@ -1837,7 +1843,8 @@ T45/R9/DCP11/A10-owned, and T54 completed baseline does not qualify this seam.
 
 Source: owner cybersecurity-restriction/`Retry Error` example and approval of the
 independently audited plan. [T54 canonical contract](../docs/goals/2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending)
-owns classification/redaction/span facts; T45 owns safe child completion delivery,
+owns classification/normalized-message/span facts (W1, 2026-11-03, supersedes the
+former provider-message redaction clause); T45 owns child completion delivery,
 T57 consumes the shared owner on admitted WS/HTTP. No new diagnostic DTO/schema/store,
 retry loop or obligation to preserve all overwritten successful retry notices.
 
@@ -2545,13 +2552,15 @@ progress like the donor**. Plan delivery is docs only: not a T44 resume, not a T
 ### Frozen behavior and boundaries
 
 - **Producer facts:** additive `Presentation.execute`.
-  - Ordered calls `{tool dotted path | fetch, status, bounded redacted input}`, plus
+  - Ordered calls `{tool dotted path | fetch, status, bounded input}`, plus
     `calls_limited`, `error` and runtime `elapsed_ms`.
   - `serde(default)`: legacy rows keep the current Generic card; no migration and no
     reconstruction from code text.
   - Bounds: fixed call/input caps inside `RECORD_BYTES`. Overflow is a truthful
-    limited flag, never silent loss. Inputs go through the existing tool-input redaction
-    owner; secrets and raw fetch bodies never appear.
+    limited flag, never silent loss. W1 (owner-approved 2026-11-03) supersedes the
+    former secret-dictionary/field-name masking clause: captured code, inputs and
+    output/log previews preserve literals and may contain secrets. Fetch observations
+    still contain only method/URL, not raw request bodies/headers.
 - **Live progress:** a disposable coalesced `CoreEvent::ToolCallProgress` replacement
   snapshot by op, emitted on each nested start/finish under the one execute operation.
   - Live only: never a durable op, card or approval surface.
@@ -2609,8 +2618,10 @@ only these earlier UI clauses in the current
   continuation gutters. JSON preserves captured formatting. Navigation is vertical;
   Execute-only horizontal pan is removed. Plain output/logs/warnings word-wrap.
 - Current captured facts, bounded copy, source-loss availability and visible
-  approval/input ownership follow that objective. Runtime states, redaction,
-  authority, capture limits and no-replay guarantees are not superseded.
+  approval/input ownership follow that objective. Runtime states, authority,
+  capture limits and no-replay guarantees are not superseded. W1 (2026-11-03)
+  separately supersedes Code Mode secret masking; lifecycle/config/auth/log
+  protections remain.
 
 This is not a T44 backlog resume or a replacement of historical evidence. Native
 tests alone do not qualify paired visual parity; the objective records fresh

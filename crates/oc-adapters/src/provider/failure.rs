@@ -78,8 +78,8 @@ impl RetryHeaders {
     }
 }
 
-/// Irreducible safe result of one physical request. No raw URL/body/header/code
-/// or exception is retained. The optional message is bounded/redacted locally.
+/// Irreducible result of one physical request. No raw body/header archive or
+/// exception is retained. The optional provider message is normalized/bounded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalFailure {
     pub kind: FailureKind,

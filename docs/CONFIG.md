@@ -79,9 +79,11 @@ relative cwd resolves from effective Location workspace directory, not source fi
 Full environment/credential authority requires command/resource/credential-domain
 admission before launch; untrusted/lower-trust commands do not inherit higher-trust
 secrets. Ordinary shell inherits the captured owner env; remote MCP gets no arbitrary local env.
-Never dump expanded effective config. MCP output is verbatim (TS parity), including
-server echoes of env/argv/credentials; stderr/status-label protection remains.
-Other tool output redacts credential material, not ordinary MCP env/URL/header values.
+Never dump expanded effective config. Tool output is verbatim within existing
+normalization/bounds (TS parity), including echoes of env/argv/credentials in shell,
+read, questions, fetch, model lookup, subagent and Code Mode results/cards/artifacts.
+No secret dictionary or field-name masking is applied there. MCP lifecycle
+stderr/status, config explain, auth/accounts, credential Debug and logs retain their protections.
 
 [T51](goals/2026-09-27-startup-fault-isolation.md) uses the existing `ServiceDiagnostic`
 for typed source/field/service/stage/safe-code/retryability/allowed-action facts across
@@ -555,16 +557,16 @@ the same settings for stream previews, conversion and terminal publication.
   in-flight prepared results or running background jobs. Model/variant switch is not
   config reload; stored previews/references/counts are not recomputed on reopen.
 
-Oversized admitted normalized/redacted text is retained by the existing native
+Oversized admitted normalized text is retained verbatim by the existing native
 Db owner under `tool-output/`, with a model-readable exact registered path. Initial
 artifact ceiling16 MiB, existing shared storage quota default2 GiB and completed
 artifact TTL7 days are native safety differences, **not donor `tool_output` fields**
 or implemented TOML controls. Capture loss/IO/quota/expiry is explicit; no full-inline
 fallback, producer replay, arbitrary native-root access or automatic cold rehydration.
-Shell drains normalize/redact before retention, keep64 KiB recent text per stream
+Shell drains normalize UTF-8/terminal controls without secret masking, keep64 KiB recent text per stream
 and a64 KiB combined tail, and synchronously backpressure the existing writer with
-no writer queue. Artifact stdout/stderr labels describe serialized normalized/redacted
-publication, which can differ from raw reads when per-stream carry defers text.
+no writer queue. Artifact stdout/stderr labels describe serialized normalized
+publication, which can differ from raw reads when per-stream UTF-8 carry defers text.
 Fixed first/last Capture-ingress sequence and carry-release counters retain bounded
 original stream provenance, not a complete raw-arrival trace or OS emission order;
 counters distinguish admitted stream text,
@@ -628,7 +630,7 @@ input remain. Configured commands substitute `$ARGUMENTS` with the original argu
 string; quoted positionals are grouped and the highest numbered positional receives
 the remaining arguments. Without an argument placeholder, nonempty arguments are
 appended to the body. After these replacements, ``!`command` `` inserts bounded,
-normalized/redacted combined stdout/stderr (also when the marker came from an
+normalized combined stdout/stderr without secret masking (also when the marker came from an
 argument). Execution uses the config-priority `shell`, Location cwd and captured
 owner environment, with native Shell permission/Ask and parent/Plan ceilings.
 At most two processes run concurrently and at most 256 expressions are admitted;
@@ -692,8 +694,8 @@ new session-control actions/destination resources.
 total generation и served/model-visible bytes. R2's removed artificial per-file/
 frontmatter/name/description caps are not reintroduced; its documented total/serving
 guards remain. Over-limit serving outcome явный; no silent skill advertisement for
-uncallable body. TUI получает redacted projection без credentials, expanded secrets,
-full skill bodies и sensitive paths.
+uncallable body. Config/definitions catalog projection в TUI не содержит credentials,
+expanded secrets, full skill bodies и sensitive paths; это не masking tool-result content.
 
 ## Commands — проектируемый CLI
 

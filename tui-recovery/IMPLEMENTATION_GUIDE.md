@@ -277,7 +277,7 @@ and blank-cell backgrounds come from pinned U50–U55/U02/U49, not OCR Enabled c
 `Connecting …` is static status text with owner-driven transitions, no component
 spinner/shimmer or server polling. Snapshot/resize/cancel cannot wait behind the turn's
 long-held MCP mutex. Safe catalog boundaries, disabled zero-spawn, cleanup/caps,
-permissions/redaction/quarantine and honest unsupported OAuth stay intact. Qualify
+permissions/lifecycle-redaction/quarantine and honest unsupported OAuth stay intact. Qualify
 MCP08 actual-binary fake effects first, then VIS40 full paired styled-cell/PNG/cursor
 at existing profiles/representative long Unicode/search/scroll/details/focus cases;
 reuse VIS10/11/19/21/22/23/31 and MCP07/MCP05/AUD23 without duplicate matrices/campaigns.
@@ -523,7 +523,9 @@ VIS34 и independent patch-card work не блокируются. Не дубл�
 - denied/ask/error/unknown показывают реальное состояние, не становятся allow/success;
 - live/replay и parent/child не нарушают durable intent-before-effect;
 - нет full archive или всех wrapped rows в постоянном UI cache;
-- original shell/patch/permission/redaction regressions остаются обязательными.
+- shell/patch/permission regressions и masking MCP lifecycle/config/auth/log surfaces
+  остаются обязательными. W1 (2026-11-03) supersedes tool-output/provider-message
+  dictionary masking with verbatim text within existing normalization/bounds.
 
 Memory qualification повторить ПОСЛЕ новых styled rows/markdown caches. Старый T40
 измерял предыдущую реализацию. Сравнить одинаковый активный viewport/context при разном

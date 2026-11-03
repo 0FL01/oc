@@ -28,7 +28,7 @@ pub struct ExecuteCall {
     pub tool: String,
     pub tool_limited: bool,
     pub status: ExecuteCallStatus,
-    /// Structured redacted preview. Omitted fields are disclosed by input_limited.
+    /// Structured bounded preview. Omitted fields are disclosed by input_limited.
     pub input: Option<serde_json::Value>,
     pub input_limited: bool,
 }
@@ -186,12 +186,12 @@ pub struct Write {
     pub path: String,
     pub path_limited: bool,
     pub content: String,
-    /// Full redacted requested-content extent, not bytes written to the file.
+    /// Full requested-content extent, not bytes written to the file.
     pub content_bytes: u64,
     pub content_limited: bool,
 }
 
-/// Redacted display name derived from an exact captured MCP registry entry.
+/// Bounded display name derived from an exact captured MCP registry entry.
 /// Never an invocation identifier, registry lookup key or permission resource.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct McpLabel {
@@ -292,7 +292,7 @@ impl Presentation {
                 .map_or(0, InstructionLoads::retained_bytes)
     }
 
-    /// Retain the already admitted/redacted body at the existing preview limit.
+    /// Retain the already admitted body at the existing preview limit.
     pub fn new(body: &str, body_bytes: u64, generated_guidance: bool) -> Self {
         let end = body.floor_char_boundary(body.len().min(PREVIEW_BYTES));
         Self {

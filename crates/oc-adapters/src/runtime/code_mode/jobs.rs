@@ -68,7 +68,6 @@ pub(in crate::runtime) struct Capture {
     webfetch_auth: Option<String>,
     webfetch_allow_private: bool,
     roots: Option<ToolRoots>,
-    secrets: Vec<String>,
 }
 
 impl Capture {
@@ -78,7 +77,6 @@ impl Capture {
         ctx: &ToolContext<'_>,
         policy: &RuntimePolicy<'_>,
         attached: &McpGeneration,
-        secrets: Vec<String>,
     ) -> Self {
         Self {
             issuing: issuing.clone(),
@@ -94,7 +92,6 @@ impl Capture {
             webfetch_auth: ctx.webfetch_auth.clone(),
             webfetch_allow_private: ctx.webfetch_allow_private,
             roots: ctx.roots.clone(),
-            secrets,
         }
     }
 }
@@ -247,7 +244,7 @@ impl Jobs {
                     wake.notify_one();
                 }
             };
-            let (state, output, mut facts, mcp_output) = {
+            let (state, output, mut facts) = {
                 let execution = runtime.execute_code_mode(
                     &capture.issuing,
                     &capture.call,
@@ -260,7 +257,6 @@ impl Jobs {
                     &task_cancel,
                     task_p.agent.clone(),
                     task_p.agent_digest.clone(),
-                    &capture.secrets,
                     &mut event,
                 );
                 tokio::pin!(execution);
@@ -286,13 +282,8 @@ impl Jobs {
                 generation: task_p.generation,
                 source: &task_p.output_source,
                 limits: task_p.output_limits,
-                secrets: capture.secrets.clone(),
             };
-            let prepared = if mcp_output {
-                preparation.prepare_mcp(output)
-            } else {
-                preparation.prepare_envelope(output, false, None)
-            };
+            let prepared = preparation.prepare(output, false, false, None);
             let state = if prepared.logging_failed && state != "unknown" {
                 "failed"
             } else {

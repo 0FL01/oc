@@ -1,29 +1,27 @@
 use super::*;
 
 #[test]
-fn execute_previews_are_structured_redacted_bounded_and_refusals_are_terminal() {
-    let secrets = vec!["secret-canary".to_owned()];
+fn execute_previews_are_structured_verbatim_bounded_and_refusals_are_terminal() {
     let arguments = serde_json::json!({"code": "return 'secret-canary';"});
-    let intent = intent_presentation("op", &arguments, &secrets).unwrap();
+    let intent = intent_presentation("op", &arguments).unwrap();
     assert!(intent.label_only && intent.is_valid());
     assert!(
-        !serde_json::to_string(&intent)
+        serde_json::to_string(&intent)
             .unwrap()
             .contains("secret-canary")
     );
-    let refused =
-        refusal_presentation("op", Some(intent), "error: secret-canary", &secrets).unwrap();
+    let refused = refusal_presentation("op", Some(intent), "error: secret-canary").unwrap();
     assert!(refused.is_valid() && !refused.label_only);
     assert!(refused.execute.as_ref().unwrap().error);
     assert_eq!(refused.execute.as_ref().unwrap().elapsed_ms, Some(0));
-    assert_eq!(refused.body, "error: [redacted]");
+    assert_eq!(refused.body, "error: secret-canary");
     let input = serde_json::json!({"Authorization":"credential-canary", "nested":{"token":"other-canary"},
         "query":"secret-canary", "oversized":"界".repeat(4096), "small":7});
-    let (preview, limited) = input_preview(&input, &secrets);
+    let (preview, limited) = input_preview(&input);
     let wire = preview.to_string();
     assert!(limited && wire.len() <= EXECUTE_INPUT_BYTES);
     for secret in ["secret-canary", "credential-canary", "other-canary"] {
-        assert!(!wire.contains(secret));
+        assert!(wire.contains(secret));
     }
     assert_eq!(preview["small"], 7);
     assert!(!preview.as_object().unwrap().contains_key("oversized"));
@@ -31,7 +29,6 @@ fn execute_previews_are_structured_redacted_bounded_and_refusals_are_terminal() 
     let progress = ExecuteProgress {
         facts: Mutex::new(Execute::default()),
         changed,
-        secrets: &secrets,
     };
     for _ in 0..EXECUTE_CALLS_CAP + 100 {
         let index = progress.start("tools.fixture.call", &input, false);
@@ -49,13 +46,11 @@ fn execute_previews_are_structured_redacted_bounded_and_refusals_are_terminal() 
 }
 
 #[tokio::test]
-async fn execute_search_observations_keep_both_capture_limits_and_runtime_redaction() {
-    let secrets = vec!["secret-canary".to_owned()];
+async fn execute_search_observations_keep_capture_limits_and_literals() {
     let (changed, _) = tokio::sync::watch::channel(());
     let progress = ExecuteProgress {
         facts: Mutex::new(Execute::default()),
         changed,
-        secrets: &secrets,
     };
     let code =
         "search({query:'secret-canary',namespace:null,limit:12,ignored:{token:'secret-canary'}});
@@ -95,13 +90,13 @@ async fn execute_search_observations_keep_both_capture_limits_and_runtime_redact
             .all(|call| call.status == ExecuteCallStatus::Completed && call.input_limited)
     );
     assert!(
-        !serde_json::to_string(&*facts)
+        serde_json::to_string(&*facts)
             .unwrap()
             .contains("secret-canary")
     );
     assert_eq!(
         facts.calls[0].input.as_ref().unwrap()["query"],
-        "[redacted]"
+        "secret-canary"
     );
     assert_eq!(facts.calls[1].input, Some(serde_json::json!({"limit":1})));
 }

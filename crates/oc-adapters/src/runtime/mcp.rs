@@ -62,15 +62,10 @@ impl McpGeneration {
         view
     }
     /// Exact request-view lookup, never decoding a sanitized/hash/collision wire
-    /// name. Full literal redaction precedes controls and UTF-8 clipping.
-    pub(super) fn label(
-        &self,
-        name: &str,
-        secrets: &[String],
-    ) -> Option<Box<oc_core::tool_output::Presentation>> {
+    /// name. Controls and UTF-8 clipping affect display only, not the registry.
+    pub(super) fn label(&self, name: &str) -> Option<Box<oc_core::tool_output::Presentation>> {
         let entry = self.entries.iter().find(|entry| entry.namespaced == name)?;
-        let mut text = format!("{}_{}", entry.server, entry.tool);
-        crate::tools::output::redact_string(&mut text, secrets);
+        let text = format!("{}_{}", entry.server, entry.tool);
         let mut text: String = text
             .chars()
             .map(|c| if c.is_control() { ' ' } else { c })

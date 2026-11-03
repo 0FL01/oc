@@ -2115,7 +2115,6 @@ impl<'a> Runtime<'a> {
                 instruction_revision,
                 &instruction_sources,
                 instruction_position,
-                &[],
                 None,
             )?;
         }
@@ -2239,7 +2238,6 @@ impl<'a> Runtime<'a> {
                     context_usage,
                     calls,
                     nudge_hint,
-                    &published,
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
@@ -2272,7 +2270,6 @@ impl<'a> Runtime<'a> {
                         context_usage,
                         calls,
                         nudge_hint,
-                        &published,
                     )
                     .map(|report| TurnExecution::Report(Box::new(report)));
             }
@@ -2637,7 +2634,6 @@ impl<'a> Runtime<'a> {
                     revision,
                     &sources,
                     position,
-                    &[],
                     None,
                 )?;
                 prepared_publication = published.clone();
@@ -2985,7 +2981,6 @@ impl<'a> Runtime<'a> {
                     context_usage,
                     calls,
                     nudge_hint,
-                    &published,
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
@@ -3017,7 +3012,6 @@ impl<'a> Runtime<'a> {
                     context_usage,
                     calls,
                     nudge_hint,
-                    &published,
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
@@ -3150,7 +3144,6 @@ impl<'a> Runtime<'a> {
                     context_usage,
                     calls,
                     nudge_hint,
-                    &published,
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
@@ -3271,7 +3264,6 @@ impl<'a> Runtime<'a> {
                                     context_usage,
                                     calls,
                                     nudge_hint,
-                                    &published,
                                 )?;
                                 return Ok(TurnExecution::Report(Box::new(report)));
                             }
@@ -3293,7 +3285,6 @@ impl<'a> Runtime<'a> {
                 let mut active_text: Option<usize> = None;
                 let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
                 let mut pending_tools = PendingToolStreams::new(rounds.saturating_add(1));
-                let label_secrets = super::mcp::mcp_redactions(&published.config, &self.parent_env);
                 if !retry_resuming
                     && let Some(previous) = turn_log.spans.last_mut()
                     && previous.completed.is_none()
@@ -3482,10 +3473,9 @@ impl<'a> Runtime<'a> {
                                             code_mode::intent_presentation(
                                                 call_id,
                                                 &serde_json::Value::Null,
-                                                &label_secrets,
                                             )
                                         } else {
-                                            attached.label(name, &label_secrets)
+                                            attached.label(name)
                                         },
                                     ) {
                                         tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
@@ -3851,7 +3841,6 @@ impl<'a> Runtime<'a> {
                                 context_usage,
                                 calls,
                                 nudge_hint,
-                                &published,
                             )?;
                             return Ok(TurnExecution::Report(Box::new(report)));
                         }
@@ -3955,7 +3944,6 @@ impl<'a> Runtime<'a> {
                             context_usage,
                             calls,
                             nudge_hint,
-                            &published,
                         )
                         .map(|report| TurnExecution::Report(Box::new(report)));
                 }
@@ -4217,7 +4205,6 @@ impl<'a> Runtime<'a> {
                         context_usage,
                         calls,
                         nudge_hint,
-                        &published,
                     )
                     .map(|report| TurnExecution::Report(Box::new(report)));
             }
@@ -4239,7 +4226,6 @@ impl<'a> Runtime<'a> {
                     context_usage,
                     calls,
                     nudge_hint,
-                    &published,
                 )?;
                 return Ok(TurnExecution::Report(Box::new(report)));
             }
@@ -4327,7 +4313,6 @@ impl<'a> Runtime<'a> {
             context_usage,
             calls,
             nudge_hint,
-            &published,
         )?;
         Ok(TurnExecution::Report(Box::new(report)))
     }
@@ -4640,7 +4625,7 @@ impl<'a> Runtime<'a> {
                         if state == "started" {
                             let mut log = checkpoint.as_deref().and_then(|raw| serde_json::from_str(raw).ok()).and_then(|v| TurnLog::from_json(&v).ok()).ok_or(RuntimeError::Storage)?;
                             Self::terminal_error(&mut log, "runtime_failure", result.as_ref().expect_err("error").to_string());
-                            self.prepare_terminal_diagnostic(&mut log, false, &published);
+                            self.prepare_terminal_diagnostic(&mut log, false);
                             self.db.finish_turn(id, "failed", Some(&log.to_json().to_string()))?;
                         }
                         send(CoreEvent::TurnFailed { session: SessionId(session.into()), turn: WorkerTurnId(id.into()), error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: Vec::new(), service_warning_range: 0..0 });
@@ -4702,7 +4687,6 @@ impl<'a> Runtime<'a> {
         &self,
         log: &mut TurnLog,
         cancelled: bool,
-        published: &PublishedGeneration,
     ) -> Option<crate::tools::diagnostic::Diagnostic> {
         use crate::tools::diagnostic::Diagnostic;
         let selected = self
@@ -4715,10 +4699,6 @@ impl<'a> Runtime<'a> {
             serde_json::from_value::<Diagnostic>(log.display["terminal_diagnostic"].clone()).ok()
         };
         if let Some(diagnostic) = &mut diagnostic {
-            crate::tools::output::redact_string(
-                &mut diagnostic.message,
-                &super::mcp::mcp_redactions(&published.config, &self.parent_env),
-            );
             diagnostic
                 .message
                 .truncate(diagnostic.message.floor_char_boundary(1024));
@@ -4743,7 +4723,6 @@ impl<'a> Runtime<'a> {
         context_usage: Option<(u64, u64)>,
         calls: Vec<CallRecord>,
         nudge_hint: Option<String>,
-        published: &PublishedGeneration,
     ) -> Result<TurnReport, RuntimeError> {
         self.check_issued_turn(turn_log, session)?;
         // An explicit Esc is still Cancelled. Losing the last interactive
@@ -4764,7 +4743,6 @@ impl<'a> Runtime<'a> {
         let diagnostic = self.prepare_terminal_diagnostic(
             &mut turn_log,
             matches!(status, TurnStatus::Cancelled | TurnStatus::Interrupted),
-            published,
         );
         if let Some(span) = turn_log.spans.last_mut()
             && span.completed.is_none()
@@ -4836,7 +4814,6 @@ impl<'a> Runtime<'a> {
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
         let captured_output = issuing;
         self.check_issued_turn(turn_log, session)?;
-        let output_secrets = super::mcp::mcp_redactions(&captured_output.config, &self.parent_env);
         let mut records = Vec::new();
         let mut projection_changed = false;
         let mut permission_rejected = false;
@@ -4896,9 +4873,9 @@ impl<'a> Runtime<'a> {
             let intent_presentation = if let Assembled::Call(call) = unit
                 && name == super::code_mode::EXECUTE_TOOL
             {
-                super::code_mode::intent_presentation(&op, &call.arguments, &output_secrets)
+                super::code_mode::intent_presentation(&op, &call.arguments)
             } else {
-                Db::bounded_mcp_presentation(&op, attached.label(name, &output_secrets))
+                Db::bounded_mcp_presentation(&op, attached.label(name))
             };
             let mut guarded = unit.clone();
             // Paths use the captured product HOME/Location, never ambient runner
@@ -5434,15 +5411,10 @@ impl<'a> Runtime<'a> {
                     generation: issuing.id,
                     source: &source,
                     limits: issuing.config.tool_output,
-                    secrets: output_secrets.clone(),
                 };
                 let output = preparation.prepare_envelope(output, false, None).text;
-                let refusal_presentation = code_mode::refusal_presentation(
-                    &op,
-                    intent_presentation.clone(),
-                    &output,
-                    &output_secrets,
-                );
+                let refusal_presentation =
+                    code_mode::refusal_presentation(&op, intent_presentation.clone(), &output);
                 turn_log.input.push(InputItem::FunctionCallOutput {
                     call_id: id.clone(),
                     output: output.clone(),
@@ -5790,7 +5762,6 @@ impl<'a> Runtime<'a> {
                 generation: published.id,
                 source: &source,
                 limits: published.config.tool_output,
-                secrets: output_secrets.clone(),
             };
             let mut diff_capture = crate::tools::output::DiffCapture::new(&preparation);
             let (mut state, output) = if let Some(rejection) = rejection {
@@ -5824,8 +5795,6 @@ impl<'a> Runtime<'a> {
                     }
                     Assembled::Call(call) if call.name == "opencode_models" => {
                         let published = issuing;
-                        let secrets =
-                            super::mcp::mcp_redactions(&published.config, &self.parent_env);
                         let public = if crate::models::lookup::wants_public(
                             &published.config,
                             &call.arguments,
@@ -5911,7 +5880,6 @@ impl<'a> Runtime<'a> {
                             &published.config,
                             catalog,
                             &call.arguments,
-                            &secrets,
                             public.as_ref(),
                             openai.as_ref(),
                         ) {
@@ -6264,7 +6232,6 @@ impl<'a> Runtime<'a> {
                                     provenance,
                                     shell_slot.take().expect("shell reservation before intent"),
                                     !invocation.background,
-                                    output_secrets.clone(),
                                 )
                                 .await
                             {
@@ -6311,12 +6278,7 @@ impl<'a> Runtime<'a> {
                             ),
                         };
                         let capture = super::code_mode::jobs::Capture::new(
-                            issuing,
-                            call,
-                            ctx,
-                            policy,
-                            attached,
-                            output_secrets.clone(),
+                            issuing, call, ctx, policy, attached,
                         );
                         match self.execute_jobs.launch(
                             self.owned_child_snapshot(),
@@ -6396,7 +6358,7 @@ impl<'a> Runtime<'a> {
                     }
                 }
             } else if !is_builtin(name) {
-                let prepared = preparation.prepare_mcp(output);
+                let prepared = preparation.prepare(output, false, false, None);
                 (
                     prepared.text,
                     prepared.logging_failed,
@@ -6513,11 +6475,9 @@ impl<'a> Runtime<'a> {
             if let Some(mut execute) = execute_presentation {
                 execute.error |= state != "completed";
                 let presentation = output_presentation.get_or_insert_with(|| {
-                    let mut safe = output.clone();
-                    crate::tools::output::redact_string(&mut safe, &output_secrets);
                     Box::new(oc_core::tool_output::Presentation::new(
-                        &safe,
-                        safe.len() as u64,
+                        &output,
+                        output.len() as u64,
                         false,
                     ))
                 });
@@ -6595,7 +6555,6 @@ impl<'a> Runtime<'a> {
                         revision,
                         &desired,
                         index,
-                        &output_secrets,
                         Some(crate::storage::RecordedToolOutcome {
                             operation: &op,
                             state,

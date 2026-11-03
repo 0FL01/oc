@@ -82,6 +82,36 @@ async fn http(
 }
 
 #[tokio::test]
+async fn w1_provider_message_preserves_url_environment_and_header_literals() {
+    let long = "界".repeat(1500);
+    for message in [
+        "https://private.example/path environment env=1 authorization: bearer cookie: api_key=ollama apikey=ollama".to_owned(),
+        "request-key-sentinel custom-header-sentinel".to_owned(),
+        long,
+        "line\nnext\tcolumn\u{7}end".to_owned(),
+        " ".repeat(4),
+    ] {
+        let body = serde_json::json!({"error":{"message":message}}).to_string().into_bytes();
+        let server = TestServer::spawn(Arc::new(move |_| Action {
+            status: "401 Unauthorized", headers: Vec::new(),
+            chunks: vec![(body.clone(), 0)], abort_after: None,
+        })).await;
+        let mut config = test_config(&server.base);
+        config.api_key = "request-key-sentinel".into();
+        config.headers.insert("x-custom".into(), "custom-header-sentinel".into());
+        let error = stream_generation(&config, "m", None, "input", &[], &NO_CANCEL, None).await.unwrap_err();
+        let expected = if message.trim().is_empty() { None } else {
+            let normalized: String = message.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+            Some(if normalized.chars().count() > 512 {
+                format!("{} [clipped]", normalized.chars().take(502).collect::<String>())
+            } else { normalized })
+        };
+        assert_eq!(facts(error).message, expected);
+        server.shutdown();
+    }
+}
+
+#[tokio::test]
 async fn ret01_http_statuses_precedence_safe_facts() {
     use FailureKind::*;
     for (status, number, code, kind) in [
@@ -687,18 +717,13 @@ async fn ret01_bounded_diagnostic_body_and_held_error_body_cancel() {
     assert_eq!(result, Err(ProviderError::Cancelled));
     assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
     server.shutdown();
-    let headers = reqwest::header::HeaderMap::from_iter([(
-        reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_static("Bearer auth-canary"),
-    )]);
     for message in [
         "bad model auth-canary",
         "see https://private.invalid",
         "environment env-canary",
     ] {
-        let safe = super::super::safe_diagnostic(message, &headers).unwrap();
-        assert!(!safe.contains("canary"));
-        assert!(!safe.contains("private.invalid"));
+        let safe = super::super::safe_diagnostic(message).unwrap();
+        assert_eq!(safe, message);
     }
 }
 

@@ -28,7 +28,7 @@ fn population(ops: usize) -> Population {
         ] {
             db.record_tool_intent(&op, "s", None, tool, "{}").unwrap();
             let mut writer = db
-                .begin_tool_output(&op, "s", "/project", 1, "default", vec![])
+                .begin_tool_output(&op, "s", "/project", 1, "default")
                 .unwrap();
             writer.append("output\n").unwrap();
             newest_path = writer.finish(false).unwrap().path;
@@ -66,7 +66,7 @@ fn population(ops: usize) -> Population {
 fn measure(population: &Population) -> Vec<(&'static str, i64)> {
     let db = &population.db;
     let (writer, begin_steps) = steps(|| {
-        db.begin_tool_output("probe", "s", "/project", 1, "default", vec![])
+        db.begin_tool_output("probe", "s", "/project", 1, "default")
             .unwrap()
     });
     writer.abandon(CaptureState::Interrupted);

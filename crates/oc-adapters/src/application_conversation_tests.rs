@@ -121,7 +121,7 @@ async fn compaction_owner_automatic_failure_and_cancel_keep_promoted_user_and_hi
                     if !cancelled {
                         let diagnostic = snapshot.error.unwrap();
                         assert!(diagnostic.contains("VIS34 bounded summary failure"));
-                        assert!(!diagnostic.contains("SECRET-"));
+                        assert!(diagnostic.contains("SECRET-API SECRET-TENANT"));
                         assert!(!diagnostic.contains("UNRELATED-RAW"));
                         // A soft trigger that freed nothing is not a failure: the
                         // primary request still fits and continues (Long Horizon).

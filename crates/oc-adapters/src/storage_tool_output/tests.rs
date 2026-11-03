@@ -556,7 +556,6 @@ fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentatio
         generation: 9,
         source: "fixture",
         limits: Limits::default(),
-        secrets: vec![],
     };
     let prepared = context.prepare_question(full.clone()).unwrap();
     assert!(!prepared.logging_failed);
@@ -722,7 +721,7 @@ fn fixture(quota: u64) -> (tempfile::TempDir, Db) {
 fn tool21_distant_stream_continuation_lineage_restart_and_no_recursive_copy() {
     let (dir, db) = fixture(CAP);
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 7, "pinned", vec![])
+        .begin_tool_output("op", "s", "/project", 7, "pinned")
         .unwrap();
     let line = "é ordinary line with padding 0123456789012345678901234567890123456789\n";
     for _ in 0..156 {
@@ -784,7 +783,7 @@ fn tool21_distant_stream_continuation_lineage_restart_and_no_recursive_copy() {
     db.record_tool_intent("interrupted", "s", None, "skill", "{}")
         .unwrap();
     let mut writer = db
-        .begin_tool_output("interrupted", "s", "/project", 8, "pinned", vec![])
+        .begin_tool_output("interrupted", "s", "/project", 8, "pinned")
         .unwrap();
     writer.append("durable prefix\n").unwrap();
     drop(writer);
@@ -806,7 +805,7 @@ fn tool21_distant_stream_continuation_lineage_restart_and_no_recursive_copy() {
 fn tool21_publication_fault_never_promises_unregistered_renamed_file() {
     let (_dir, db) = fixture(CAP);
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .begin_tool_output("op", "s", "/project", 1, "default")
         .unwrap();
     writer.append("durable prefix\n").unwrap();
     db.conn.lock().unwrap().execute_batch("CREATE TEMP TRIGGER fail_publication BEFORE UPDATE OF name ON tool_output_resources BEGIN SELECT RAISE(ABORT,'directed publication failure'); END;").unwrap();
@@ -825,7 +824,7 @@ fn tool21_explicit_family_delete_respects_writer_and_orphan_reader_leases() {
     db.record_tool_intent("op", "s", None, "skill", "{}")
         .unwrap();
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 1, "source", vec![])
+        .begin_tool_output("op", "s", "/project", 1, "source")
         .unwrap();
     writer.append("prefix\n").unwrap();
     assert!(db.delete_root_family("s", "/project").is_err());
@@ -845,10 +844,10 @@ fn tool21_concurrent_blob_and_registered_writers_share_exclusive_quota() {
     db.record_tool_intent("op2", "s", None, "skill", "{}")
         .unwrap();
     let mut a = db
-        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .begin_tool_output("op", "s", "/project", 1, "default")
         .unwrap();
     let mut b = db
-        .begin_tool_output("op2", "s", "/project", 1, "default", vec![])
+        .begin_tool_output("op2", "s", "/project", 1, "default")
         .unwrap();
     let blob = db.shared_handle();
     let threads = [
@@ -870,22 +869,15 @@ fn tool21_concurrent_blob_and_registered_writers_share_exclusive_quota() {
 }
 
 #[test]
-fn tool21_registered_stream_cap_redaction_leases_and_shared_quota() {
+fn tool21_registered_stream_cap_verbatim_leases_and_shared_quota() {
     let (_dir, db) = fixture(CAP + 100);
     let mut writer = db
-        .begin_tool_output(
-            "op",
-            "s",
-            "/project",
-            1,
-            "source",
-            vec!["secret-sentinel".into()],
-        )
+        .begin_tool_output("op", "s", "/project", 1, "source")
         .unwrap();
     writer.append("hello secret-").unwrap();
     writer.append("sentinel\n").unwrap();
     // Filler volume, not caller publication count, exercises the artifact cap.
-    // Match bounded shell ingress without changing the two secret-split calls.
+    // Match bounded shell ingress without changing the two split calls.
     const FILLER_BYTES: usize = 2049 * 8192;
     let filler = "x".repeat(32 * 1024);
     for _ in 0..FILLER_BYTES / filler.len() {
@@ -897,7 +889,7 @@ fn tool21_registered_stream_cap_redaction_leases_and_shared_quota() {
     let resource = writer.finish(false).unwrap();
     assert_eq!(
         resource.admitted_bytes,
-        (FILLER_BYTES + "hello [redacted]\n".len()) as u64
+        (FILLER_BYTES + "hello secret-sentinel\n".len()) as u64
     );
     assert_eq!(resource.state, CaptureState::ArtifactCap);
     assert_eq!(resource.bytes, CAP);
@@ -907,7 +899,7 @@ fn tool21_registered_stream_cap_redaction_leases_and_shared_quota() {
             .byte_page(0, 100)
             .unwrap()
             .0
-            .starts_with("hello [redacted]\n")
+            .starts_with("hello secret-sentinel\n")
     );
     assert!(db.open_tool_output("foreign", &resource.path).is_err());
     assert!(db.write_blob(&[0; 101]).is_err());
@@ -922,7 +914,7 @@ fn tool21_registered_identity_swap_interruption_and_blob_orphan_quota() {
     let (dir, db) = fixture(100);
     fs::write(dir.path().join("blobs/orphan"), [0; 90]).unwrap();
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .begin_tool_output("op", "s", "/project", 1, "default")
         .unwrap();
     writer.append("abcdefghijk").unwrap();
     let resource = writer.finish(false).unwrap();
@@ -935,7 +927,7 @@ fn tool21_registered_identity_swap_interruption_and_blob_orphan_quota() {
     db.record_tool_intent("op2", "s", None, "skill", "{}")
         .unwrap();
     let writer = db
-        .begin_tool_output("op2", "s", "/project", 2, "default", vec![])
+        .begin_tool_output("op2", "s", "/project", 2, "default")
         .unwrap();
     drop(writer);
     assert_eq!(
@@ -951,7 +943,7 @@ fn appends_reuse_the_quota_bound_and_stay_within_quota() {
     let quota = 64 * 1024;
     let (_dir, db) = fixture(quota);
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 7, "pinned", vec![])
+        .begin_tool_output("op", "s", "/project", 7, "pinned")
         .unwrap();
     let scans = db.quota_scans();
     for _ in 0..50 {
@@ -984,7 +976,7 @@ fn file_store_fsyncs_run_outside_the_database_mutex() {
     let (_dir, db) = fixture(CAP);
     FSYNC_UNDER_DB.with(|count| count.set(0));
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .begin_tool_output("op", "s", "/project", 1, "default")
         .unwrap();
     writer.append("first line\n").unwrap();
     writer.append("second line\n").unwrap();
@@ -992,7 +984,7 @@ fn file_store_fsyncs_run_outside_the_database_mutex() {
     db.record_tool_intent("op2", "s", None, "skill", "{}")
         .unwrap();
     let mut interrupted = db
-        .begin_tool_output("op2", "s", "/project", 2, "default", vec![])
+        .begin_tool_output("op2", "s", "/project", 2, "default")
         .unwrap();
     interrupted.append("partial\n").unwrap();
     drop(interrupted);
@@ -1011,7 +1003,7 @@ fn file_store_fsyncs_run_outside_the_database_mutex() {
 fn expired_row_file_left_by_a_crash_is_collected_as_an_orphan() {
     let (dir, db) = fixture(CAP);
     let mut writer = db
-        .begin_tool_output("op", "s", "/project", 1, "default", vec![])
+        .begin_tool_output("op", "s", "/project", 1, "default")
         .unwrap();
     writer.append("kept bytes\n").unwrap();
     let resource = writer.finish(false).unwrap();

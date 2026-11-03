@@ -249,7 +249,6 @@ pub(crate) struct Writer {
     file: File,
     resource: Resource,
     name: String,
-    redactor: crate::tools::output::StreamRedactor,
     last_newline: bool,
     admitted_newlines: u64,
     published_newlines: u64,
@@ -413,7 +412,6 @@ impl Db {
         self.quota_scans.load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn begin_tool_output(
         &self,
         operation: &str,
@@ -421,7 +419,6 @@ impl Db {
         location: &str,
         generation: u64,
         source: &str,
-        secrets: Vec<String>,
     ) -> Result<Writer, StorageError> {
         self.expire_tool_outputs(timestamp())?;
         let _store = self.file_store.lock().expect("file store");
@@ -434,11 +431,7 @@ impl Db {
                 "SELECT EXISTS(SELECT 1 FROM tool_operations WHERE id=?1 AND session_id=?2)",
             )?
             .query_row(params![operation, session], |r| r.get(0))?;
-        if !belongs
-            || location.len() > 4096
-            || source.len() > 4096
-            || secrets.iter().any(|s| s.len() > 65536)
-        {
+        if !belongs || location.len() > 4096 || source.len() > 4096 {
             return Err(invalid());
         }
         static SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -504,7 +497,6 @@ impl Db {
             file,
             resource,
             name,
-            redactor: crate::tools::output::StreamRedactor::new(secrets),
             last_newline: false,
             admitted_newlines: 0,
             published_newlines: 0,
@@ -800,21 +792,12 @@ impl Db {
 }
 
 impl Writer {
-    /// Accept normalized UTF-8 chunks. Withhold enough suffix for any literal
-    /// configured secret crossing a chunk boundary, before disk or live extent.
+    /// Accept normalized UTF-8 chunks verbatim, within capture/quota limits.
     pub(crate) fn append(&mut self, text: &str) -> Result<(), StorageError> {
         if self.finished {
             return Err(invalid());
         }
-        // Bound intermediate redactor storage even when the caller supplies a
-        // multi-megabyte admitted result in one call.
-        let mut start = 0;
-        while start < text.len() {
-            let end = text.floor_char_boundary((start + 8192).min(text.len()));
-            let admitted = self.redactor.push(&text[start..end], false);
-            self.write_admitted(&admitted)?;
-            start = end;
-        }
+        self.write_admitted(text)?;
         self.publish_extent()
     }
 
@@ -868,8 +851,7 @@ impl Writer {
         Ok(())
     }
 
-    // One caller append is the publication boundary. Internal redactor chunks
-    // stay bounded, quota-counted on disk, and unadvertised until synced here.
+    // One caller append is the publication boundary; extents are synced first.
     fn publish_extent(&mut self) -> Result<(), StorageError> {
         self.db.sync_durable(&self.file)?;
         self.db.conn.lock().expect("db mutex").execute(
@@ -892,8 +874,6 @@ impl Writer {
     }
 
     pub(crate) fn finish_state(mut self, terminal: CaptureState) -> Result<Resource, StorageError> {
-        let admitted = self.redactor.push("", true);
-        self.write_admitted(&admitted)?;
         self.publish_extent()?;
         // Rename and registration stay atomic for the orphan scan.
         let _store = self.db.file_store.lock().expect("file store");

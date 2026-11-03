@@ -87,8 +87,11 @@ sanitization сохраняют S04/S06 без нового отрицатель
 ## S08 — не сломать прежние security/runtime contracts
 
 Повторить patch no-follow/preimage/partial commits, durable-intent-before-effect,
-store faults/recovery, provider incomplete/EOF/cancel, child process kill/reap, secret
-redaction, parent/child permissions и subagent cancellation. Новые T43/T45 paths имеют
+store faults/recovery, provider incomplete/EOF/cancel, child process kill/reap, MCP
+lifecycle/config/auth/log secret masking, parent/child permissions и subagent cancellation.
+W1 (2026-11-03) intentionally leaves tool output/cards/artifacts and provider-supplied
+generation messages without secret-dictionary masking, within normalization/bounds.
+Новые T43/T45 paths имеют
 собственный незавершённый scope; TUI card не доказывает этот scope. Scope не расширять
 новым orchestration framework. Ask не превращается в allow; отсутствие approval channel
 должно быть ясно, либо реализовано отдельным согласованным контрактом.

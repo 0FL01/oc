@@ -49,9 +49,8 @@ pub(crate) fn execute(
     generation: &Generation,
     selected: &ModelCatalog,
     args: &Value,
-    secrets: &[String],
 ) -> Result<String, String> {
-    execute_with_public(generation, selected, args, secrets, None)
+    execute_with_public(generation, selected, args, None)
 }
 
 pub(crate) fn wants_public(generation: &Generation, args: &Value) -> Result<bool, String> {
@@ -84,17 +83,15 @@ pub(crate) fn execute_with_public(
     generation: &Generation,
     selected: &ModelCatalog,
     args: &Value,
-    secrets: &[String],
     public: Option<&crate::models_dev::CatalogRead>,
 ) -> Result<String, String> {
-    execute_with_catalogs(generation, selected, args, secrets, public, None)
+    execute_with_catalogs(generation, selected, args, public, None)
 }
 
 pub(crate) fn execute_with_catalogs(
     generation: &Generation,
     selected: &ModelCatalog,
     args: &Value,
-    secrets: &[String],
     public: Option<&crate::models_dev::CatalogRead>,
     openai: Option<&crate::models_dev::CatalogRead>,
 ) -> Result<String, String> {
@@ -212,12 +209,8 @@ pub(crate) fn execute_with_catalogs(
             "fetchedAt":openai.fetched_at_ms,"status":if openai.failure.is_some() {"failed"}
                 else if openai.fetched_at_ms.is_some() {"ready"} else {"unavailable"}});
     }
-    // Only schema-known public fields above survive. Redact before returning;
+    // Only schema-known public fields above survive;
     // an oversized page fails explicitly rather than corrupting pagination.
-    if result.to_string().len() > 65536 {
-        return Err("model lookup page capacity exceeded".into());
-    }
-    crate::mcp_result::redact_json(&mut result, secrets);
     let output = result.to_string();
     if output.len() > 65536 {
         return Err("model lookup page capacity exceeded".into());

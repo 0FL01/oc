@@ -220,7 +220,6 @@ impl Runtime<'_> {
                 pinned,
                 admission,
                 slot,
-                mcp::mcp_redactions(&published.config, &self.parent_env),
             )
             .await?;
         if params.cancel.load(Ordering::Acquire) {

@@ -3,6 +3,104 @@
 use super::*;
 
 #[tokio::test]
+async fn w1_builtin_results_preserve_key_and_env_literals() {
+    let (harness, mut generation) = make_harness(allow_all());
+    generation
+        .permissions
+        .insert("opencode_models".into(), Permission::Allow);
+    generation.providers.insert(
+        "ollama".into(),
+        oc_adapters::config::ProviderEntry {
+            npm: None,
+            name: None,
+            env: Vec::new(),
+            compatibility: Default::default(),
+            options: oc_adapters::config::ProviderOptions {
+                api_key: "ollama".into(),
+                ..Default::default()
+            },
+            models: BTreeMap::from([("literal".into(), serde_json::json!({"name":"ollama 1"}))]),
+        },
+    );
+    std::fs::write(
+        harness._project.path().join("literal"),
+        "ollama true 1 opencode\n",
+    )
+    .unwrap();
+    let runtime = Runtime::new(
+        &harness.db,
+        "work",
+        generation,
+        ProtectedGlobs {
+            patterns: Vec::new(),
+        },
+        oc_adapters::files::Files::new(harness._project.path(), harness._data.path()).unwrap(),
+        oc_adapters::shell::Shell::new(harness._project.path()).unwrap(),
+        BTreeMap::from([("KEYTIMEOUT".into(), "1".into())]),
+        oc_adapters::tools::ToolRoots {
+            project: harness._project.path().into(),
+            data: harness._data.path().into(),
+        },
+        None,
+        false,
+        DcpConfig::default(),
+    )
+    .unwrap();
+    runtime.create_session("w1").unwrap();
+    let script = sse_tool_call(
+        "shell",
+        "bash",
+        &serde_json::json!({"argv":["/bin/sh","-c","printf 'ollama true %s opencode\\n' \"$KEYTIMEOUT\""]}),
+    ) + &sse_tool_call("read", "read", &serde_json::json!({"path":"literal"}))
+        + &sse_tool_call(
+            "models",
+            "opencode_models",
+            &serde_json::json!({"provider":"ollama"}),
+        )
+        + &sse_completed();
+    let (base, _, requests) = Fake::start_recording(
+        vec![script, sse_delta("done") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "w1",
+            "literals",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let requests = requests.lock().unwrap();
+    let rows = harness.db.list_tool_ops("w1").unwrap();
+    for (id, literal) in [
+        ("shell", "ollama true 1 opencode"),
+        ("read", "ollama true 1 opencode"),
+        ("models", "ollama/literal"),
+    ] {
+        let output = requests[1]["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["type"] == "function_call_output" && item["call_id"] == id)
+            .unwrap()["output"]
+            .as_str()
+            .unwrap();
+        assert!(output.contains(literal), "{id}: {output}");
+        assert!(
+            rows.iter().any(|row| row.op.ends_with(&format!("-{id}"))
+                && row
+                    .output
+                    .as_ref()
+                    .is_some_and(|output| output.contains(literal))),
+            "durable {id}"
+        );
+    }
+}
+
+#[tokio::test]
 async fn runtime_shell_timeout_and_cancellation_have_typed_terminal_states() {
     for cancelled in [false, true] {
         let (harness, generation) = make_harness(allow_all());

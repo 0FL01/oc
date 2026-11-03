@@ -2,49 +2,6 @@ use super::*;
 use std::fs;
 
 #[test]
-fn shell_unique_redaction_aggregate_boundary_stays_fail_closed() {
-    let temp = tempfile::tempdir().unwrap();
-    let db = Db::open(temp.path()).unwrap();
-    db.create_bound_session("s", "/project").unwrap();
-    db.begin_turn("t", "s", "capture").unwrap();
-    for total in [65536, 65537] {
-        let operation = format!("boundary-{total}");
-        db.record_tool_intent(&operation, "s", Some("t"), "shell", "{}")
-            .unwrap();
-        let p = provenance(Path::new("/project"), &operation);
-        let capture = Capture::new(Arc::default());
-        let secrets = vec!["A".repeat(32768), "B".repeat(total - 32768)];
-        assert_eq!(secrets.iter().map(String::len).sum::<usize>(), total);
-        capture.stream.lock().unwrap().begin(&db, &p, secrets);
-        capture.ingest(Stream::Stdout, b"SAFE_BODY\n", true, true);
-        capture.ingest(Stream::Stderr, b"SAFE_ERR\n", true, true);
-        let (tail, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
-        let diagnostic = capture.stream.lock().unwrap().diagnostic();
-        if total == 65536 {
-            assert!(!failed);
-            let resource = resource.unwrap();
-            assert_eq!(
-                resource.state,
-                crate::storage::tool_output::CaptureState::Complete
-            );
-            assert!(db.open_tool_output("s", &resource.path).is_ok());
-            assert!(tail.contains("SAFE_BODY") && tail.contains("SAFE_ERR"));
-            assert!(diagnostic.is_none());
-        } else {
-            assert!(failed && resource.is_none() && tail.is_empty());
-            assert_eq!(capture.text(), "status: running\n");
-            assert!(capture.stdout.lock().unwrap().bytes.is_empty());
-            assert!(capture.stderr.lock().unwrap().bytes.is_empty());
-            assert!(db.output_for_operation(&operation).unwrap().is_none());
-            assert_eq!(
-                diagnostic.as_deref(),
-                Some("capture first_observed stage=redaction_admission code=material_limit")
-            );
-        }
-    }
-}
-
-#[test]
 fn shell_capture_begin_error_keeps_returned_errno_over_later_missing_resource() {
     let temp = tempfile::tempdir().unwrap();
     let db = Db::open(temp.path()).unwrap();
@@ -55,7 +12,7 @@ fn shell_capture_begin_error_keeps_returned_errno_over_later_missing_resource() 
     let p = provenance(Path::new("/project"), "op");
     fs::rename(db.root().join("tool-output"), db.root().join("held-output")).unwrap();
     let capture = Capture::new(Arc::default());
-    capture.stream.lock().unwrap().begin(&db, &p, Vec::new());
+    capture.stream.lock().unwrap().begin(&db, &p);
     capture.ingest(Stream::Stdout, b"safe prefix", true, true);
     capture.ingest(Stream::Stderr, &[], true, true);
     let (_, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
@@ -79,7 +36,7 @@ fn shell_capture_facts_failure_retains_reopenable_complete_bytes_and_safe_cause(
     fault.execute_batch("CREATE TRIGGER facts_fault BEFORE UPDATE OF descriptor ON tool_output_resources WHEN OLD.state='Complete' BEGIN SELECT RAISE(ABORT,'fixture facts detail must not escape'); END;").unwrap();
     let p = provenance(Path::new("/project"), "op");
     let capture = Capture::new(Arc::default());
-    capture.stream.lock().unwrap().begin(&db, &p, Vec::new());
+    capture.stream.lock().unwrap().begin(&db, &p);
     capture.ingest(Stream::Stdout, b"complete bytes\n", true, true);
     capture.ingest(Stream::Stderr, &[], true, true);
     let (_, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
@@ -135,7 +92,6 @@ async fn tool21_review_short_interrupted_capture_is_explicit_without_falsifying_
         provenance(&project, "op"),
         jobs.reserve().unwrap(),
         true,
-        Vec::new(),
     )
     .await
     .unwrap();
@@ -228,31 +184,26 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
         .unwrap();
     let p = provenance(Path::new("/project"), "op");
     let capture = Capture::new(Arc::default());
-    capture
-        .stream
-        .lock()
-        .unwrap()
-        .begin(&db, &p, vec!["split-secret-value".into()]);
-    capture.ingest(Stream::Stdout, b"split-secret-", false, true); // raw1, unpublished
+    capture.stream.lock().unwrap().begin(&db, &p);
+    capture.ingest(Stream::Stdout, b"split-secret-", false, true); // raw1, immediate
     capture.ingest(Stream::Stderr, b"stderr observed second\n", false, true); // raw2, immediate
     let preview = capture.presentation();
     assert!(preview.is_valid());
-    assert_eq!(preview.body, "stderr observed second\n");
-    assert_eq!(preview.shell.as_ref().unwrap().stdout, "");
-    assert!(
-        !preview.body.contains("split-secret"),
-        "unadmitted carry stays private"
-    );
+    assert_eq!(preview.body, "split-secret-stderr observed second\n");
+    assert_eq!(preview.shell.as_ref().unwrap().stdout, "split-secret-");
     let active = db.output_for_operation("op").unwrap().unwrap();
     let mut reader = db.open_tool_output("s", &active.path).unwrap();
     assert_eq!(
         reader.byte_page(0, 4096).unwrap().0,
-        "[stderr]\nstderr observed second\n"
+        "[stdout]\nsplit-secret-\n[stderr]\nstderr observed second\n"
     );
-    capture.ingest(Stream::Stdout, b"value\n", false, true); // raw3, releases raw1 carry
+    capture.ingest(Stream::Stdout, b"value\n", false, true); // raw3, immediate
     let preview = capture.presentation();
-    assert_eq!(preview.body, "stderr observed second\n[redacted]\n");
-    assert_eq!(preview.shell.as_ref().unwrap().stdout, "[redacted]\n");
+    assert_eq!(preview.body, "split-secret-stderr observed second\nvalue\n");
+    assert_eq!(
+        preview.shell.as_ref().unwrap().stdout,
+        "split-secret-value\n"
+    );
     assert_eq!(
         preview.shell.as_ref().unwrap().stderr,
         "stderr observed second\n"
@@ -266,20 +217,20 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
     let mut reader = db.open_tool_output("s", &resource.path).unwrap();
     assert_eq!(
         reader.byte_page(0, 4096).unwrap().0,
-        "[stderr]\nstderr observed second\n[stdout]\n[redacted]\n"
+        "[stdout]\nsplit-secret-\n[stderr]\nstderr observed second\n[stdout]\nvalue\n"
     );
     let facts = serde_json::to_value(resource.shell.unwrap()).unwrap();
     assert!(
         facts["format"]
             .as_str()
             .unwrap()
-            .contains("normalized/redacted publication")
+            .contains("normalized publication")
     );
     assert_eq!(facts["stdout_first_read"], 1);
     assert_eq!(facts["stdout_last_read"], 3);
     assert_eq!(facts["stderr_first_read"], 2);
     assert_eq!(facts["stderr_last_read"], 2);
-    assert_eq!(facts["stdout_carry_releases"], 1);
+    assert_eq!(facts["stdout_carry_releases"], 0);
     assert_eq!(facts["stderr_carry_releases"], 0);
     // UTF-8 alone has the same ordering domain: raw stdout comes first,
     // safe complete stderr publishes first, then the complete stdout character.
@@ -287,7 +238,7 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
         .unwrap();
     let p = provenance(Path::new("/project"), "utf8");
     let capture = Capture::new(Arc::default());
-    capture.stream.lock().unwrap().begin(&db, &p, Vec::new());
+    capture.stream.lock().unwrap().begin(&db, &p);
     capture.ingest(Stream::Stdout, b"\xe4\xba", false, true);
     capture.ingest(Stream::Stderr, b"stderr before safe UTF-8\n", false, true);
     capture.ingest(Stream::Stdout, b"\x8c\n", false, true);
@@ -314,7 +265,7 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
 }
 
 #[test]
-fn shell_plain_display_strips_split_ansi_and_bounds_osc_before_secret_admission() {
+fn shell_plain_display_strips_split_ansi_and_bounds_osc() {
     // `core` uses an inline 1KiB OSC buffer even when other users enable utf8.
     assert!((1024..2048).contains(&std::mem::size_of::<anstyle_parse::Parser>()));
     let capture = Capture::new(Arc::default());
@@ -380,11 +331,7 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
         .unwrap();
     let p = provenance(Path::new("/project"), "op");
     let capture = Capture::new(Arc::default());
-    capture
-        .stream
-        .lock()
-        .unwrap()
-        .begin(&db, &p, vec!["split-secret-value".into()]);
+    capture.stream.lock().unwrap().begin(&db, &p);
     capture.ingest(Stream::Stdout, b"prefix split-secret-", false, true);
     capture.ingest(Stream::Stderr, b"independent stderr\n", false, true);
     capture.ingest(Stream::Stdout, b"value \xe4\xba", false, true);
@@ -395,8 +342,8 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
     let mut lease = db.open_tool_output("s", &active.path).unwrap();
     let live = lease.byte_page(0, 4096).unwrap().0;
     assert!(live.contains("[stdout]") && live.contains("[stderr]"));
-    assert!(live.contains("[redacted] 二\nnext row\n"));
-    assert!(!live.contains("split-secret") && !capture.text().contains("split-secret"));
+    assert!(live.contains("value 二\nnext row\n"));
+    assert!(live.contains("split-secret") && capture.text().contains("split-secret"));
     assert_eq!(
         db.expire_tool_outputs(i64::MAX / 2).unwrap(),
         0,
@@ -414,7 +361,7 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
     assert_eq!(facts.observed_chunks, 4);
     assert_eq!(
         facts.stdout_bytes,
-        "prefix [redacted] 二\nnext row\n".len() as u64
+        "prefix split-secret-value 二\nnext row\n".len() as u64
     );
     assert_eq!(facts.stderr_bytes, "independent stderr\n".len() as u64);
     assert_eq!(
@@ -429,7 +376,7 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
         .unwrap();
     let p = provenance(Path::new("/project"), "io");
     let capture = Capture::new(Arc::default());
-    capture.stream.lock().unwrap().begin(&db, &p, Vec::new());
+    capture.stream.lock().unwrap().begin(&db, &p);
     capture.ingest(Stream::Stdout, b"durable before IO\n", false, true);
     fs::rename(db.root().join("tool-output"), db.root().join("held-output")).unwrap();
     fs::create_dir(db.root().join("tool-output")).unwrap();
@@ -456,30 +403,6 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
     let failed = db.output_for_operation("io").unwrap().unwrap();
     assert_eq!(failed.state, crate::storage::tool_output::CaptureState::Io);
     assert!(failed.admitted_bytes > 2 * 1024 * 1024 && failed.bytes < 1024);
-    db.record_tool_intent("secret-budget", "s", Some("t"), "shell", "{}")
-        .unwrap();
-    let p = provenance(Path::new("/project"), "secret-budget");
-    let capture = Capture::new(Arc::default());
-    capture
-        .stream
-        .lock()
-        .unwrap()
-        .begin(&db, &p, vec!["Z".repeat(65537)]);
-    capture.ingest(Stream::Stdout, b"unsafe raw producer text", false, true);
-    assert!(
-        capture.presentation().body.is_empty(),
-        "secret-admission failure never publishes raw text"
-    );
-    capture.ingest(Stream::Stdout, &[], true, true);
-    capture.ingest(Stream::Stderr, &[], true, true);
-    let (tail, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
-    assert!(failed && resource.is_none() && tail.is_empty());
-    assert_eq!(
-        capture.stream.lock().unwrap().diagnostic().as_deref(),
-        Some("capture first_observed stage=redaction_admission code=material_limit")
-    );
-    assert!(!capture.text().contains("unsafe raw producer text"));
-    assert_eq!(capture.stdout.lock().unwrap().total, 24);
 }
 
 #[tokio::test]
@@ -517,7 +440,6 @@ async fn tool21_shell_cap_and_shared_quota_keep_draining_effects_and_bounded_hot
             provenance(&project, "op"),
             jobs.reserve().unwrap(),
             true,
-            Vec::new(),
         )
         .await
         .unwrap();
@@ -604,7 +526,6 @@ async fn tool21_shell_stalled_publication_has_no_queue_and_selected_cancel_joins
         provenance(&project, "op"),
         jobs.reserve().unwrap(),
         true,
-        Vec::new(),
     )
     .await
     .unwrap();
@@ -685,7 +606,6 @@ async fn tool21_shell_logging_event_failure_keeps_durable_exit_and_effect_withou
         provenance(&project, "op"),
         jobs.reserve().unwrap(),
         true,
-        Vec::new(),
     )
     .await
     .unwrap();
@@ -768,7 +688,6 @@ async fn tool21_shell_captures_distant_stdout_before_recent_discard() {
         },
         jobs.reserve().unwrap(),
         true,
-        Vec::new(),
     )
     .await
     .unwrap();

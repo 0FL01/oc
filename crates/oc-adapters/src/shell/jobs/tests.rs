@@ -80,7 +80,6 @@ impl Held {
                 },
                 self.jobs.reserve().unwrap(),
                 foreground,
-                Vec::new(),
             )
             .await
             .unwrap();
@@ -202,7 +201,6 @@ async fn user_shell_consumes_committed_admission_and_reuses_supervised_job_owner
             pinned,
             admission,
             slot,
-            Vec::new(),
         )
         .await
         .unwrap();
@@ -484,7 +482,6 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
         },
         jobs.reserve().unwrap(),
         true,
-        Vec::new(),
     )
     .await
     .unwrap();

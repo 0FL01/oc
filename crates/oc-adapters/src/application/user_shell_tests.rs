@@ -429,7 +429,7 @@ async fn user_shell_live_typed_streams_are_available_before_terminal_effect_and_
             if matches!(events.recv().await.unwrap(), CoreEvent::ShellChanged { session: source } if source == session) {
                 let jobs = app.shell_jobs(session.clone()).await.unwrap();
                 if let Some(job) = jobs.into_iter().find(|job| job.shell_id == operation)
-                    && job.output.as_ref().and_then(|p| p.shell.as_ref()).is_some_and(|s| s.stdout.contains("[redacted]") && s.stderr.contains("LIVE-STDERR"))
+                    && job.output.as_ref().and_then(|p| p.shell.as_ref()).is_some_and(|s| s.stdout.contains("fixture-key") && s.stderr.contains("LIVE-STDERR"))
                 {
                     break job;
                 }
@@ -469,7 +469,7 @@ async fn user_shell_live_typed_streams_are_available_before_terminal_effect_and_
     let live = job.output.unwrap();
     assert!(live.is_valid() && !live.body_limited);
     let streams = live.shell.as_ref().unwrap();
-    assert_eq!(streams.stdout, "LIVE-STDOUT [stderr] Ω界\n[redacted]\n");
+    assert_eq!(streams.stdout, "LIVE-STDOUT [stderr] Ω界\nfixture-key\n");
     assert_eq!(streams.stderr, "LIVE-STDERR [stdout]\n");
     assert!(
         streams.exit.is_none()
@@ -477,7 +477,7 @@ async fn user_shell_live_typed_streams_are_available_before_terminal_effect_and_
             && !streams.timed_out
             && !streams.cancelled
     );
-    assert!(!live.body.contains("fixture-key") && !live.body.contains("TERMINAL"));
+    assert!(live.body.contains("fixture-key") && !live.body.contains("TERMINAL"));
     assert_eq!(history.rows.len(), 1);
     assert!(history.rows[0].turn.is_none());
     assert_eq!(
@@ -487,7 +487,7 @@ async fn user_shell_live_typed_streams_are_available_before_terminal_effect_and_
     let result = terminal.rows.last().unwrap().user_shell.as_ref().unwrap();
     assert_eq!(result.operation, operation);
     assert_eq!(result.output.shell.as_ref().unwrap().exit, Some(0));
-    assert!(result.output.body.contains("TERMINAL") && !result.output.body.contains("fixture-key"));
+    assert!(result.output.body.contains("TERMINAL") && result.output.body.contains("fixture-key"));
     assert_eq!(
         fs::read_to_string(fixture.project.join("user-shell.effect")).unwrap(),
         "effect"

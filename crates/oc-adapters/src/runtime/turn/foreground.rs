@@ -26,7 +26,6 @@ impl Runtime<'_> {
         request_tools: &[ToolDef],
         mut rejected: bool,
     ) -> Result<(Vec<CallRecord>, bool), RuntimeError> {
-        let secrets = super::super::mcp::mcp_redactions(&published.config, &self.parent_env);
         let mut admitted = Vec::new();
         let mut admissions = Vec::new();
         // Nothing executes until all ordered admissions/intents have succeeded.
@@ -236,7 +235,6 @@ impl Runtime<'_> {
                 generation: published.id,
                 source: &source,
                 limits: published.config.tool_output,
-                secrets: secrets.clone(),
             };
             let prepared = preparation.prepare_envelope(result.output, false, None);
             if prepared.logging_failed {

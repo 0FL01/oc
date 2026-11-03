@@ -1,6 +1,33 @@
 use super::*;
 
 #[test]
+fn w1_question_and_webfetch_header_preserve_literals() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("s").unwrap();
+    let context = Context {
+        db: &db,
+        operation: "q",
+        session: "s",
+        location: "/p",
+        generation: 1,
+        source: "fixture",
+        limits: Limits::default(),
+    };
+    let question = serde_json::json!({"questions":[{"question":"ollama 1?", "header":"ollama", "options":[{"label":"1","description":"ollama 1"}], "multiple":false}], "answers":[["1"]]}).to_string();
+    assert_eq!(
+        context.prepare_question(question.clone()).unwrap().text,
+        question
+    );
+    let header = r#"{"final_url":"https://ollama.example/1","status":201,"truncated":false}"#;
+    let text = format!("{header}\n\nollama true 1 opencode");
+    assert_eq!(
+        context.prepare_envelope(text.clone(), false, None).text,
+        text
+    );
+}
+
+#[test]
 fn confirmed_diff_capture_keeps_utf8_and_omitted_tail_for_patch_and_edit() {
     let project = tempfile::tempdir().unwrap();
     let data = tempfile::tempdir().unwrap();
@@ -22,10 +49,6 @@ fn confirmed_diff_capture_keeps_utf8_and_omitted_tail_for_patch_and_edit() {
             generation: 1,
             source: "fixture",
             limits: Limits::default(),
-            secrets: vec![
-                "secret-sentinel".into(),
-                "multiline-first\nmultiline-last".into(),
-            ],
         };
         let mut capture = DiffCapture::new(&context);
         let (output, effects) = if tool == "apply_patch" {
@@ -65,9 +88,9 @@ fn confirmed_diff_capture_keeps_utf8_and_omitted_tail_for_patch_and_edit() {
         let path = captured.reference.unwrap();
         assert!(prepared.text.contains(&path));
         let saved = std::fs::read_to_string(&path).unwrap();
-        assert!(saved.contains(&format!("+{} [redacted]\n", "界".repeat(600))));
-        assert!(saved.ends_with("+DIFF-TAIL\n") && !saved.contains("secret-sentinel"));
-        assert!(!saved.contains("multiline-first") && !saved.contains("multiline-last"));
+        assert!(saved.contains(&format!("+{} secret-sentinel\n", "界".repeat(600))));
+        assert!(saved.ends_with("+DIFF-TAIL\n"));
+        assert!(saved.contains("+multiline-first\n+multiline-last\n"));
         assert_eq!(captured.retained_bytes, saved.len() as u64);
         assert_eq!(captured.retained_bytes, captured.admitted_bytes);
         let call = crate::tools::ToolCall {
@@ -121,7 +144,6 @@ fn confirmed_diff_capture_reports_quota_without_repeating_the_mutation() {
         generation: 1,
         source: "fixture",
         limits: Limits::default(),
-        secrets: vec![],
     };
     let mut capture = DiffCapture::new(&context);
     let content = "x".repeat(1000);
@@ -171,7 +193,6 @@ fn confirmed_diff_capture_failure_cannot_recapture_status_as_a_complete_diff() {
             max_bytes: 8,
             max_lines: 1,
         },
-        secrets: vec![],
     };
     let mut capture = DiffCapture::new(&context);
     // A transient artifact-directory identity failure clears before status
@@ -241,7 +262,6 @@ fn structured_clipping_never_reassigns_match_text_and_keeps_diagnostic_facts() {
             max_bytes: 8,
             max_lines: 2,
         },
-        secrets: vec!["secret-crossing-boundary".into()],
     };
     let result = context.prepare_envelope(serde_json::json!({"matches":[{"path":"a","line":1,"text":"AAAA"},{"path":"b","line":2,"text":"BBBB"}]}).to_string(), false, None);
     let value: serde_json::Value = serde_json::from_str(&result.text).unwrap();
@@ -262,15 +282,18 @@ fn structured_clipping_never_reassigns_match_text_and_keeps_diagnostic_facts() {
     .hint("Narrow path or include");
     let result = tiny.prepare_envelope(diagnostic.output("failed"), false, None);
     assert!(!result.logging_failed);
-    assert!(!result.text.contains("secret-crossing"));
+    assert!(result.text.contains("secret-crossing-boundary"));
     let value: serde_json::Value = serde_json::from_str(&result.text).unwrap();
     assert_eq!(value["error"]["code"], "budget_exhausted");
     assert_eq!(value["error"]["detail"]["bytes"], 16777216);
-    assert_eq!(value["error"]["message"], "Scan stopped [redacted]");
+    assert_eq!(
+        value["error"]["message"],
+        "Scan stopped secret-crossing-boundary"
+    );
 }
 
 #[test]
-fn write_preview_redacts_complete_content_before_byte_and_row_limits() {
+fn write_preview_preserves_content_with_byte_and_row_limits() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();
     db.create_session("s").unwrap();
@@ -282,12 +305,14 @@ fn write_preview_redacts_complete_content_before_byte_and_row_limits() {
         generation: 9,
         source: "fixture",
         limits: Limits::default(),
-        secrets: vec!["secret-sentinel-crossing-the-preview-boundary".into()],
     };
     for content in [
         "".to_owned(),
         "café\n世界\n".into(),
-        format!("{}{}", "x".repeat(2044), context.secrets[0]),
+        format!(
+            "{}secret-sentinel-crossing-the-preview-boundary",
+            "x".repeat(2044)
+        ),
     ] {
         let original = content.clone();
         let mut presentation = oc_core::tool_output::Presentation::new("actual result", 13, false);
@@ -298,13 +323,12 @@ fn write_preview_redacts_complete_content_before_byte_and_row_limits() {
         assert_eq!(presentation.body, original_body);
         assert_eq!(content, original);
         assert!(write.content.len() <= oc_core::tool_output::PREVIEW_BYTES);
-        assert!(!write.content.contains("secret-sentinel"));
         if content.len() < 2048 {
             assert_eq!(write.content, content);
             assert!(!write.content_limited);
         } else {
             assert!(write.content_limited);
-            assert!(write.content.ends_with("[red"));
+            assert!(write.content.ends_with("secr"));
         }
         assert!(
             serde_json::to_vec(&presentation).unwrap().len() <= oc_core::tool_output::RECORD_BYTES
@@ -338,39 +362,6 @@ fn write_preview_redacts_complete_content_before_byte_and_row_limits() {
             .is_none()
     );
     assert!(db.output_for_operation("write-op").unwrap().is_none());
-}
-
-#[test]
-fn tool21_stream_redactor_publishes_benign_live_suffix_and_protects_overlapping_secrets() {
-    let mut redactor = StreamRedactor::new(vec![
-        "possible-secret".into(),
-        "possible-secret-suffix".into(),
-    ]);
-    assert_eq!(redactor.push("LIVE-FG 二\n", false), "LIVE-FG 二\n");
-    assert_eq!(redactor.push("prefix possible-", false), "prefix ");
-    assert_eq!(redactor.push("secret", false), "");
-    assert_eq!(
-        redactor.push("-suffix benign live\n", false),
-        "[redacted] benign live\n"
-    );
-    assert_eq!(redactor.push("possible-", false), "");
-    assert_eq!(
-        redactor.push("", true),
-        "possible-",
-        "terminal nonsecret partial remains truthful"
-    );
-    let mut redactor = StreamRedactor::new(vec!["abc".into(), "bcde".into()]);
-    assert_eq!(redactor.push("abcd", false), "");
-    assert_eq!(redactor.push("e\n", false), "[redacted]de\n");
-    let mut redactor = StreamRedactor::new(vec!["a".repeat(16), format!("{}b", "a".repeat(16))]);
-    for _ in 0..100 {
-        let published = redactor.push(&"a".repeat(8192), false);
-        assert!(!published.contains(&"a".repeat(16)));
-        assert!(
-            redactor.pending.len() <= 32,
-            "repetitive secret prefixes cannot grow carry"
-        );
-    }
 }
 
 #[test]
@@ -441,12 +432,6 @@ fn tool21_mcp_joined_text_metadata_not_bypass_structured_error_facts_survive() {
             max_lines: 2,
             max_bytes: 64,
         },
-        secrets: vec![
-            "secret-sentinel".into(),
-            "test-key".into(),
-            "1".into(),
-            "true".into(),
-        ],
     };
     let facts = serde_json::json!({"content":[{"type":"text","text":"1 true test-key secret-sentinel\n[Part preview truncated]\n"},{"type":"text","text":"x".repeat(9*1024*1024)}],"isError":false,"structuredContent":{"status":"failed","exit":17,"detail":"y".repeat(3000)},"_meta":{"truncated":false}});
     let mut output = crate::mcp_result::McpToolOutput::from_stored(facts).unwrap();
@@ -510,7 +495,6 @@ fn tool21_question_control_presentation_survives_common_limits() {
             max_lines: 1,
             max_bytes: 1,
         },
-        secrets: vec![],
     };
     let prepared = context
         .prepare_question(serde_json::to_string(&result).unwrap())
@@ -539,7 +523,6 @@ fn tool21_structured_only_mcp_text_joins_cold_capture_and_escaped_hot_facts_are_
         generation: 9,
         source: "fixture",
         limits: Limits::default(),
-        secrets: vec![],
     };
     let facts = serde_json::json!({"content":[{"type":"text","text":"ordinary"}],"isError":false,"structuredContent":{"status":"failed","exit":17,"answer":format!("{}DISTANT_STRUCTURED_SENTINEL","\"".repeat(100000))},"_meta":{"truncated":false}});
     let mut output = crate::mcp_result::McpToolOutput::from_stored(facts).unwrap();
@@ -561,7 +544,7 @@ fn tool21_structured_only_mcp_text_joins_cold_capture_and_escaped_hot_facts_are_
 }
 
 #[test]
-fn tool21_redaction_small_json_and_escaped_prose_stay_valid_and_served() {
+fn tool21_verbatim_small_json_and_escaped_prose_stay_valid_and_served() {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::open(dir.path()).unwrap();
     db.create_session("s").unwrap();
@@ -575,15 +558,14 @@ fn tool21_redaction_small_json_and_escaped_prose_stay_valid_and_served() {
         generation: 9,
         source: "fixture",
         limits: Limits::default(),
-        secrets: vec!["secret-sentinel".into()],
     };
     let small = context.prepare_envelope(
         r#"{"status":"failed","message":"secret-sentinel"}"#.into(),
         false,
         None,
     );
-    assert!(!small.text.contains("secret-sentinel"));
-    assert!(small.text.contains("[redacted]"));
+    assert!(small.text.contains("secret-sentinel"));
+    assert!(!small.text.contains("[redacted]"));
     let result = context.prepare_envelope(
         serde_json::json!({"status":"failed","exit":17,"message":"\"".repeat(100000)}).to_string(),
         false,
@@ -614,7 +596,6 @@ fn tool21_prepared_envelope_retains_controls_no_metadata_bypass() {
             max_lines: 2,
             max_bytes: 64,
         },
-        secrets: vec![],
     };
     let stdout = "🙂x".repeat(20_000);
     let result=context.prepare_envelope(serde_json::json!({"status":"failed","exit":17,"truncated":true,"stdout":stdout,"stderr":"failure"}).to_string(),true,None);

@@ -3,7 +3,6 @@
 //! Per-stream carry can defer text past the other stream's earlier publication.
 use super::*;
 use crate::storage::tool_output::{CaptureState, Resource, ShellStreams, Writer};
-use crate::tools::output::StreamRedactor;
 
 pub(super) const RECENT_CAP: usize = 65536;
 
@@ -18,35 +17,28 @@ struct CaptureCause {
 pub(super) struct TextStream {
     utf8: Vec<u8>,
     ansi: anstyle_parse::Parser,
-    redactor: StreamRedactor,
     bytes: u64,
     newlines: u64,
     terminal_newline: bool,
-    suppress: bool,
     first_read: Option<u64>,
     last_read: Option<u64>,
     carry_releases: u64,
 }
 impl TextStream {
-    pub(super) fn new(secrets: Vec<String>) -> Self {
+    pub(super) fn new() -> Self {
         Self {
             utf8: Vec::with_capacity(4),
             ansi: Default::default(),
-            redactor: StreamRedactor::new(secrets),
             bytes: 0,
             newlines: 0,
             terminal_newline: false,
-            suppress: false,
             first_read: None,
             last_read: None,
             carry_releases: 0,
         }
     }
     pub(super) fn admit(&mut self, bytes: &[u8], end: bool) -> String {
-        if self.suppress {
-            return String::new();
-        }
-        let carried = !self.utf8.is_empty() || self.redactor.has_pending();
+        let carried = !self.utf8.is_empty();
         // At most one drain read plus a three-byte UTF-8 carry. Invalid sequences
         // normalize to U+FFFD; valid characters split across reads stay intact.
         self.utf8.extend_from_slice(bytes);
@@ -123,7 +115,7 @@ impl TextStream {
                 }
             }
         }
-        let admitted = self.redactor.push(&plain.0, end);
+        let admitted = plain.0;
         if carried && !admitted.is_empty() {
             self.carry_releases = self.carry_releases.saturating_add(1);
         }
@@ -166,8 +158,8 @@ impl StreamCapture {
         Self {
             writer: None,
             resource: None,
-            stdout: TextStream::new(Vec::new()),
-            stderr: TextStream::new(Vec::new()),
+            stdout: TextStream::new(),
+            stderr: TextStream::new(),
             last: None,
             tail: String::new(),
             display_tail: String::new(),
@@ -181,35 +173,13 @@ impl StreamCapture {
             last_newline: false,
         }
     }
-    pub(super) fn begin(&mut self, db: &Db, p: &Provenance, secrets: Vec<String>) {
-        // Reuse the writer's credential-admission bound before compiling carries.
-        // If it cannot be honored, drain/count raw bytes but publish no unsafe text.
-        if secrets
-            .iter()
-            .try_fold(0usize, |n, s| n.checked_add(s.len()))
-            .is_none_or(|n| n > 65536)
-        {
-            self.lost = true;
-            self.failure = Some(CaptureState::Io);
-            self.first_cause.get_or_insert(CaptureCause {
-                stage: "redaction_admission",
-                code: "material_limit",
-                kind: None,
-                errno: None,
-            });
-            self.stdout.suppress = true;
-            self.stderr.suppress = true;
-            return;
-        }
-        self.stdout = TextStream::new(secrets.clone());
-        self.stderr = TextStream::new(secrets.clone());
+    pub(super) fn begin(&mut self, db: &Db, p: &Provenance) {
         match db.begin_tool_output(
             &p.operation,
             &p.session,
             &p.location,
             p.generation,
             &p.output_source,
-            Vec::new(),
         ) {
             Ok(writer) => self.writer = Some(writer),
             Err(error) => {
@@ -291,7 +261,7 @@ impl StreamCapture {
             stderr_lines: self.stderr.lines(),
             observed_chunks: self.observed,
             format:
-                "stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order"
+                "stdout/stderr labels: serialized normalized publication; UTF-8 carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order"
                     .into(),
             stdout_first_read: self.stdout.first_read,
             stdout_last_read: self.stdout.last_read,
@@ -505,7 +475,7 @@ pub(super) fn retain(state: &mut DrainState, text: &str) {
 
 impl Capture {
     /// Read only safe, bounded projections under the ingress lock. Never clone
-    /// the 64 KiB stream windows or expose a secret/UTF-8 carry before admission.
+    /// the 64 KiB stream windows or expose a partial UTF-8 carry before admission.
     pub(super) fn presentation(&self) -> Box<oc_core::tool_output::Presentation> {
         let stream = self.stream.lock().expect("stream admission");
         let out = self.stdout.lock().expect("stdout capture");

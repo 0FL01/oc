@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn captured_mcp_label_survives_argument_snapshots_without_decoding_or_leaking() {
+fn captured_mcp_label_survives_argument_snapshots_without_decoding() {
     use crate::mcp_remote::RegistryEntry;
     use crate::runtime::mcp::McpGeneration;
     use oc_core::tool_output::{McpLabel, Presentation};
@@ -16,8 +16,8 @@ fn captured_mcp_label_survives_argument_snapshots_without_decoding_or_leaking() 
         input_schema: serde_json::json!({}),
     }];
     let original = captured.entries.clone();
-    assert!(captured.label("actual_server__remote__tool", &[]).is_none());
-    let facts = captured.label(wire, &[]).unwrap();
+    assert!(captured.label("actual_server__remote__tool").is_none());
+    let facts = captured.label(wire).unwrap();
     assert!(facts.is_valid() && facts.label_only && facts.body.is_empty());
     assert_eq!(
         facts.mcp_label.as_ref().unwrap().text,
@@ -57,12 +57,12 @@ fn captured_mcp_label_survives_argument_snapshots_without_decoding_or_leaking() 
     );
     captured.entries[0].server = "known-secret\nserver".into();
     captured.entries[0].tool = format!("{}known-secret\u{7}", "界".repeat(200));
-    let redacted = captured.label(wire, &["known-secret".into()]).unwrap();
-    let label = redacted.mcp_label.as_ref().unwrap();
-    assert!(label.text.starts_with("[redacted] server_"));
-    assert!(!label.text.contains("known-secret") && !label.text.chars().any(char::is_control));
+    let bounded = captured.label(wire).unwrap();
+    let label = bounded.mcp_label.as_ref().unwrap();
+    assert!(label.text.starts_with("known-secret server_"));
+    assert!(!label.text.chars().any(char::is_control));
     assert!(label.limited && label.text.ends_with('…') && label.text.len() <= 512);
-    assert!(redacted.is_valid());
+    assert!(bounded.is_valid());
     let legacy: Presentation = serde_json::from_str(
         r#"{"body":"old error","body_bytes":9,"body_limited":false,"generated_guidance":false}"#,
     )

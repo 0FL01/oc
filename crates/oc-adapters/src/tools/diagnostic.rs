@@ -25,8 +25,7 @@ impl Diagnostic {
         Self {
             tool: bounded(tool, 128),
             code: bounded(code, 128),
-            // Redact the complete admitted message before the publication owner
-            // clips it; clipping here could expose a prefix of a known secret.
+            // The publication owner applies the shared tool-result text budget.
             message: message.as_ref().to_owned(),
             detail: Box::new(Value::Null),
             hint: None,

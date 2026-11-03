@@ -111,8 +111,8 @@ Shell commands (agent foreground/background, legacy `bash`, user `!`) and PTYs i
 the full captured native-owner startup environment, including SSH-agent sockets,
 proxy/CA/toolchain settings and credentials. No name allowlist or client-env refresh;
 NUL-containing values are dropped and missing PATH/LANG receive working defaults.
-Spawn installs that snapshot explicitly, without merging ambient process env. Existing
-output redaction remains; it is not a barrier against commands using inherited secrets.
+Spawn installs that snapshot explicitly, without merging ambient process env. Output
+is not secret-masked: printed credentials/env values can reach model/history/cards/artifacts.
 Browser authorization launch keeps a separate credential-free allowlist; MCP and
 webfetch retain their own environment/credential policies.
 
@@ -280,13 +280,14 @@ T40 evidence remains factual.
   tail; UTF-8, shared multipart text count and bounded reserved reference/notice within
   native64 KiB served-text envelope. No `metadata.truncated:true/false` bypass. Preserve
   typed control JSON/effects/error status and separately admitted media under its caps.
-- One cold normalized/redacted text capture (MCP/Code Mode output: verbatim) in `<native-data-root>/tool-output/` is
+- One cold admitted text capture, verbatim within producer normalization/bounds, in `<native-data-root>/tool-output/` is
   registered by the existing Db owner with operation/session/source generation, actual
   readable extent and capture state. Hot result holds preview/ref/counts/guidance, not
   full text repeated across SQLite/TurnLog/resident history. Stream UI/model reads;
   keep legacy SQLite APIs compatible, no whole-artifact `read_blob`/second archive.
-  Registered `read`/`grep` pages reuse that admitted text without a second reader-
-  generation redaction pass; shell/other producers still redact before capture.
+  Registered `read`/`grep` pages reuse that admitted text. No producer or reader-
+  generation secret dictionary masks tool output, labels, Write/instruction receipts,
+  question fields or Code Mode code/input/output/log previews.
 - Cards reads the existing owner continuation in 64 KiB UTF-8 pages, including the
   shell-first and legacy SQLite paths. `next_offset` continues to the end of the
   stored result; 2048-byte presentation facts remain a local preview, not its
@@ -297,16 +298,16 @@ T40 evidence remains factual.
   never require unbounded queues; continue drain/cancel/reap with explicit capture loss.
   Process exit/effects and log capture state are separate, no auto-rerun to repair a log.
   Recent stdout/stderr and the combined tail each retain at most64 KiB. Incremental
-  UTF-8 and per-stream secret carry precede disk/hot publication. The writer uses
+  UTF-8 normalization and per-stream incomplete-character carry precede disk/hot publication. The writer uses
   synchronous backpressure with no pending output queue. Artifact boundary labels
-  record serialized normalized/redacted publication; per-stream carry can defer
+  record serialized normalized publication; per-stream UTF-8 carry can defer
   stdout past already publishable stderr. Fixed first/last Capture-ingress sequences
   and carry-release counters retain bounded raw-read provenance (not a complete
   per-byte arrival trace or total OS emission order). Terminal
   outcomes/background notices retain its same small typed descriptor. A live viewer
   pages only durable published extents; terminal preparation never recaptures the tail.
 - Complete means all admitted text was captured, not full HTTP body rejected at input,
-  media/base64 or discarded producer bytes. MCP text may contain unredacted secrets
+  media/base64 or discarded producer bytes. Tool text may contain unredacted secrets
   by the explicit TS-parity contract below. Native artifact cap16 MiB,
   shared existing quota default2 GiB and completed TTL7 days are explicit differences
   from donor full-file retention without a byte quota. Preview-truncated can still be capture-complete;
@@ -338,7 +339,7 @@ fields such as permission `status`/`feedback` remain intact; process/media/parti
 mutation results keep their existing richer owners. Execution state is trusted
 metadata, never inferred from output text or a JSON-looking skill body. DCP error
 purging likewise uses the exact durable tool occurrence, not an `error:` prefix.
-Redaction precedes clipping, and each clipped match/message retains its own fields.
+No secret-dictionary masking precedes clipping; each clipped match/message retains its own fields.
 
 Failed/cancelled subagent results retain an allocated `sessionID` when available.
 Known stop sources are recorded before signalling and frozen at terminal selection;

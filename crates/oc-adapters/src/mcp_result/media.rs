@@ -145,7 +145,7 @@ impl McpToolOutput {
         // facts and the publication notice have reserved served-text space.
         let mut common = context.clone();
         common.limits.max_bytes = common.limits.max_bytes.min(44_544);
-        let prepared = common.prepare_mcp(joined);
+        let prepared = common.prepare(joined, false, false, None);
         let mut preview = Some(prepared.text);
         for part in self.facts["content"]
             .as_array_mut()

@@ -350,9 +350,9 @@ MCP model-visible text, instructions, prompt/resource lookups, binary media,
 `isError` text, preview/artifacts and Code Mode publication are verbatim, without
 secret-based sanitization or rejection. This supersedes D15 output sanitization
 and closed `isError` text, and D21's blanket env-output-redaction clause. Config
-admission/inheritance, status-label protection and stderr redaction remain; shell
-and other tools retain credential-material redaction, not ordinary MCP env/URL/
-header values. MCP servers are not a secret-output security boundary.
+admission/inheritance, lifecycle status-label protection and stderr redaction remain.
+The former shell/other-tool credential-material redaction clause is superseded by
+the 2026-11-03 decision below. MCP servers are not a secret-output security boundary.
 
 Text-only results have a single16 MiB cap and use existing preview + `read(path)`
 capture; media-bearing results keep a1 MiB aggregate cap. Deadline, BadResult,
@@ -360,6 +360,21 @@ Unsupported and TooLarge are ordinary failed tool outcomes with connection reuse
 not unknown/quarantine. Transport, MessageLimited, CleanupFailed and Cancelled
 keep unknown-effect handling. Numeric JSON-RPC errors retain fixed categories
 without copying remote error messages. No storage migration or new retry system.
+
+### Tool output verbatim — owner-approved 2026-11-03
+
+All model/history/card-visible tool output follows TS parity without a configured
+secret dictionary or field-name masking: shell/user-shell/command interpolation,
+read/fetch, questions, Write/diff/instruction receipts, model lookup, subagents and
+Code Mode code/input/results/logs. Provider-supplied generation diagnostics likewise
+retain their text, without keyword/URL/header-value suppression or the former
+4096-byte omission; existing control normalization and 512-character clipping remain.
+Printed/returned secrets can reach model/history/artifacts: these are not secret
+boundaries. Producer normalization, typed control/media, preview/capture/quota limits,
+ownership, cancellation/cleanup and no-unknown-effect-replay remain unchanged.
+MCP lifecycle diagnostics/status/stderr, config explain, auth/accounts masking,
+credential Debug and logs keep their separate protections. Model lookup still emits
+only schema-known public fields. No new dependency or storage migration.
 
 ## Остаточные prerequisites, не новые Q
 

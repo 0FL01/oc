@@ -1193,11 +1193,7 @@ async fn auth04_connect_rejection_pins_same_http_body_and_explicit_http_skips_up
 }
 
 #[test]
-fn auth04_scoped_error_classification_safe_public_uri_and_no_prose_matching() {
-    let headers = reqwest::header::HeaderMap::from_iter([(
-        reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_static("Bearer ACCESS_CANARY"),
-    )]);
+fn auth04_scoped_error_classification_verbatim_guidance_and_no_prose_matching() {
     let exact = "This content was flagged for possible cybersecurity risk. Review https://platform.openai.com/settings/organization/status-and-access before retrying.";
     assert_eq!(
         failure::classified(Some(&json!({"error":{"message":exact}})), None, true).kind,
@@ -1217,33 +1213,33 @@ fn auth04_scoped_error_classification_safe_public_uri_and_no_prose_matching() {
         FailureKind::ContentPolicy
     );
     assert_ne!(failure::classified(Some(&json!({"message":"This content was flagged for possible", "error":{"message":"cybersecurity risk"}})),None,true).kind,FailureKind::ContentPolicy);
-    assert_eq!(safe_diagnostic(exact, &headers).as_deref(), Some(exact));
+    assert_eq!(safe_diagnostic(exact).as_deref(), Some(exact));
     for suffix in ["?key=CANARY", "#CANARY", "/extra", ":443", "--lookalike"] {
         let unsafe_message = exact.replace(" before", &format!("{suffix} before"));
         assert_eq!(
-            safe_diagnostic(&unsafe_message, &headers).as_deref(),
-            Some("provider diagnostic contained private data (redacted)")
+            safe_diagnostic(&unsafe_message).as_deref(),
+            Some(unsafe_message.as_str())
         );
     }
-    let redacted = safe_diagnostic(&format!("{exact} ACCESS_CANARY"), &headers).unwrap();
-    assert!(!redacted.contains("CANARY"));
+    let guidance = safe_diagnostic(&format!("{exact} ACCESS_CANARY")).unwrap();
+    assert!(guidance.contains("CANARY"));
     assert!(
-        redacted.contains("https://platform.openai.com/settings/organization/status-and-access")
+        guidance.contains("https://platform.openai.com/settings/organization/status-and-access")
     );
-    assert!(redacted.ends_with("[redacted]"));
+    assert!(guidance.ends_with("ACCESS_CANARY"));
     assert_eq!(
-        safe_diagnostic(&exact.replace("platform", "plat\u{1b}form"), &headers).as_deref(),
-        Some("provider diagnostic contained private data (redacted)")
+        safe_diagnostic(&exact.replace("platform", "plat\u{1b}form")).as_deref(),
+        Some(exact.replace("platform", "plat form").as_str())
     );
     assert!(
-        safe_diagnostic(&"a".repeat(600), &headers)
+        safe_diagnostic(&"a".repeat(600))
             .unwrap()
             .ends_with("[clipped]")
     );
     assert!(
-        safe_diagnostic(&"a".repeat(5000), &headers)
+        safe_diagnostic(&"a".repeat(5000))
             .unwrap()
-            .contains("omitted")
+            .ends_with("[clipped]")
     );
     let mut parser = SseParser::default();
     parser

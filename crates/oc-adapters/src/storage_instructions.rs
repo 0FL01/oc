@@ -60,7 +60,6 @@ impl Db {
     /// Source IO is already complete. CAS, facts, descriptor update, positions,
     /// optional read outcome and the normal journal checkpoint commit together.
     /// Return the same bounded presentation committed here for live publication.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn checkpoint_instructions(
         &self,
         turn: &str,
@@ -68,7 +67,6 @@ impl Db {
         expected: u64,
         desired: &[Source],
         index: usize,
-        redactions: &[String],
         outcome: Option<RecordedToolOutcome<'_>>,
     ) -> Result<Option<Presentation>, StorageError> {
         crate::instructions::validate_sources(desired).map_err(std::io::Error::other)?;
@@ -146,13 +144,11 @@ impl Db {
             {
                 loads.total += 1;
                 let path = std::path::Path::new(&source.path);
-                let mut label = path
+                let label = path
                     .strip_prefix(&source.root)
                     .unwrap_or(path)
                     .to_string_lossy()
                     .into_owned();
-                // Redact complete labels before bounding, just like Write facts.
-                crate::tools::output::redact_string(&mut label, redactions);
                 let label: String = label
                     .chars()
                     .map(|c| if c.is_control() { ' ' } else { c })

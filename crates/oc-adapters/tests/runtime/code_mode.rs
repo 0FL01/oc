@@ -85,6 +85,87 @@ fn call_output(request: &serde_json::Value, call_id: &str) -> String {
 }
 
 #[tokio::test]
+async fn w1_execute_without_mcp_calls_preserves_return_and_logs() {
+    let (harness, mut generation) = make_harness(permissions(Permission::Allow));
+    generation.providers.insert(
+        "literal".into(),
+        oc_adapters::config::ProviderEntry {
+            npm: None,
+            name: None,
+            env: Vec::new(),
+            compatibility: Default::default(),
+            models: BTreeMap::new(),
+            options: oc_adapters::config::ProviderOptions {
+                api_key: "ollama".into(),
+                ..Default::default()
+            },
+        },
+    );
+    let generation = fixture_generation(&harness, generation, None);
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("w1").unwrap();
+    wait_initial_mcp(&runtime).await;
+    let code =
+        "console.log('ollama true 1 opencode'); return {token:'ollama', env:{KEYTIMEOUT:'1'}};";
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("literal", "execute", &serde_json::json!({"code":code}))
+                + &sse_completed(),
+            sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "w1",
+            "literals",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let output = call_output(&requests.lock().unwrap()[1], "literal");
+    assert!(output.contains("ollama true 1 opencode"), "{output}");
+    let wire_return = serde_json::Deserializer::from_str(&output)
+        .into_iter::<serde_json::Value>()
+        .next()
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        wire_return,
+        serde_json::json!({"token":"ollama","env":{"KEYTIMEOUT":"1"}})
+    );
+    let row = harness.db.list_tool_ops("w1").unwrap().remove(0);
+    let facts = row.output_presentation.unwrap();
+    let execute = facts.execute.as_ref().unwrap();
+    assert_eq!(execute.code.as_deref(), Some(code));
+    assert!(execute.calls.is_empty());
+    let returned: serde_json::Value = serde_json::from_str(
+        &execute
+            .output
+            .iter()
+            .find(|part| part.kind == oc_core::tool_output::ExecuteOutputKind::Json)
+            .unwrap()
+            .text,
+    )
+    .unwrap();
+    assert_eq!(
+        returned,
+        serde_json::json!({"token":"ollama","env":{"KEYTIMEOUT":"1"}})
+    );
+    assert!(
+        execute
+            .output
+            .iter()
+            .any(|part| part.text.contains("ollama true 1 opencode"))
+    );
+    assert!(row.output.unwrap().contains("ollama"));
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
 async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_replay() {
     use oc_core::core_app::CoreEvent;
     use oc_core::tool_output::{ExecuteCallStatus, ExecuteOutputKind};

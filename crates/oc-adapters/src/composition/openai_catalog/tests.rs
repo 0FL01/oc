@@ -166,7 +166,6 @@ async fn auth04_cached_openai_views_accounts_readonly_listing_and_lookup_share_t
         &c.generation,
         &c.catalog,
         &json!({"provider":"openai", "all":true}),
-        &[],
         None,
         Some(&read),
     )
