@@ -8,6 +8,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use oc_core::core_app::CoreEvent;
 use oc_core::domain::SessionId;
 
+const PERMISSION_REJECTED_FEEDBACK: &str = "This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action.";
+
 /// Own durable XDG namespace; never opens the upstream OpenCode database.
 pub fn default_data_dir() -> Result<PathBuf, String> {
     if let Some(root) = std::env::var_os("XDG_DATA_HOME").filter(|s| !s.is_empty()) {
@@ -113,11 +115,9 @@ pub async fn run_once_to_writers(
                     writeln!(err, "warning: {diagnostic}").map_err(|error| error.to_string())?;
                 }
             }
-            if auto_once {
-                app.register_approval_consumer(true)
-                    .await
-                    .map_err(|e| e.to_string())?;
-            }
+            app.register_approval_consumer(auto_once)
+                .await
+                .map_err(|e| e.to_string())?;
             app.create_session(session.clone())
                 .await
                 .map_err(|e| e.to_string())?;
@@ -150,6 +150,9 @@ pub async fn run_once_to_writers(
                 };
                 match event {
                     CoreEvent::OwnerDisconnected => return Err("owner disconnected; operation outcome unknown; reopen history before retrying".into()),
+                    CoreEvent::PermissionAsked(request) if !auto_once => {
+                        reject_permission_ask(&app, &session, request).await;
+                    }
                     CoreEvent::RetryScheduled { turn: id, span, retry, .. } if id == turn => {
                         if json {
                             writeln!(err, "{}", serde_json::json!({"type":"retry", "span":span,"attempt":retry.attempt,"at":retry.at,"error":retry.safe_error}))
@@ -230,6 +233,33 @@ pub async fn run_once_to_writers(
     };
     oc_adapters::trace::log("headless.exit", &format!("code={code}"));
     exit
+}
+
+async fn reject_permission_ask(
+    app: &oc_core::core_app::CoreApp,
+    root: &SessionId,
+    request: oc_core::approval::ApprovalRequest,
+) {
+    let mut session = SessionId(request.binding.session.clone());
+    while &session != root {
+        let Ok(page) = app.transcript_page(session, None, None, 1).await else {
+            return;
+        };
+        let Some(parent) = page.parent_id else {
+            return;
+        };
+        session = SessionId(parent);
+    }
+    // Like the TS consumer, a request settled while ancestry was read is harmless.
+    let _ = app
+        .reply_approval(oc_core::approval::ApprovalReply {
+            id: request.id,
+            binding: request.binding,
+            decision: oc_core::approval::ApprovalDecision::Reject {
+                feedback: Some(PERMISSION_REJECTED_FEEDBACK.into()),
+            },
+        })
+        .await;
 }
 
 fn nanos() -> u128 {

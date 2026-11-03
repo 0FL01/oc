@@ -90,8 +90,9 @@ async fn running_task_steps_compress_in_place_with_visible_ids() {
             generation.permissions.insert(name.into(), Permission::Allow);
         }
         let runtime = runtime(&db, project.path(), generation);
+        crate::runtime::media_tests::seed(&runtime, &db, "prior-image", "Completed image history");
         let mut models = catalog();
-        models.models.insert("m".into(), serde_json::json!({"limit":{"context":64000,"output":8000}}));
+        models.models.insert("m".into(), serde_json::json!({"modalities":{"input":["text","image"]},"limit":{"context":64000,"output":8000}}));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let provider = config(&listener);
         let peer = tokio::spawn(async move {

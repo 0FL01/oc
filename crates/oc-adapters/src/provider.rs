@@ -8,11 +8,11 @@
 //! metadata with event/byte caps. Errors distinguish failed/incomplete/EOF;
 //! exactly one physical attempt lives here. Logical retry/continuation belongs
 //! to the runtime owner; this adapter never repeats generation or tool calls.
-//! `timeout:false` means no total deadline; the 6 000 000 ms chunk idle
+//! `timeout:false` means no total deadline; the 900 000 ms chunk idle
 //! default budget is enforced between bytes; effective config may override it.
 //! Explicit cancel interrupts DNS, header and body waits.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -38,7 +38,7 @@ mod timeout_tests;
 /// Default HTTP response-header budget in milliseconds.
 pub const HEADER_TIMEOUT_MS: u64 = 300_000;
 /// Default HTTP idle budget between body bytes in milliseconds.
-pub const CHUNK_TIMEOUT_MS: u64 = 300_000;
+pub const CHUNK_TIMEOUT_MS: u64 = 900_000;
 /// Physical attempts per adapter invocation (no internal HTTP retry).
 pub const MAX_ATTEMPTS: usize = 1;
 /// Maximum pending SSE line and complete event, in bytes.
@@ -100,6 +100,9 @@ pub enum ProviderError {
     /// Transport failure (kind only).
     #[error("transport error")]
     Transport,
+    /// Typed TLS trust verification refusal, never a retryable network outage.
+    #[error("TLS certificate verification failed")]
+    InvalidCertificate,
     /// Deadline exceeded (connect).
     #[error("deadline exceeded")]
     Deadline,
@@ -196,6 +199,13 @@ pub enum InputContent {
         #[serde(skip_serializing_if = "Option::is_none")]
         detail: Option<String>,
     },
+    /// Request-only validated history image; must be resolved or removed before
+    /// serialization. Neither RAW nor provider-authored JSON can create it.
+    #[serde(skip)]
+    DeferredImage {
+        source: std::sync::Arc<crate::attachments::ImageSource>,
+        detail: Option<String>,
+    },
     /// Prior assistant text.
     OutputText { text: String },
 }
@@ -236,9 +246,44 @@ pub enum InputItem {
         call_id: String,
         output: crate::tools::question::QuestionToolOutput,
     },
+    /// Request-only parts projected from already validated native results.
+    /// Deserialization still leaves arrays opaque, never restores native facts.
+    #[serde(rename = "function_call_output")]
+    ProjectedFunctionCallOutput {
+        call_id: String,
+        output: Vec<ProjectedToolPart>,
+        #[serde(skip)]
+        display: String,
+        #[serde(skip)]
+        kind: Option<ProjectedImageKind>,
+        #[serde(skip)]
+        texts: Vec<String>,
+    },
     /// Complete output item, including opaque fields and assistant phase.
     #[serde(untagged)]
     ProviderOutput(serde_json::Value),
+}
+
+/// Request-only tool parts retain non-image files/structured text verbatim.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum ProjectedToolPart {
+    Ready(serde_json::Value),
+    #[serde(skip)]
+    DeferredImage {
+        source: std::sync::Arc<crate::attachments::ImageSource>,
+        template: serde_json::Value,
+        field: &'static str,
+    },
+}
+
+/// Producer classification copied only from a validated native result; opaque
+/// provider arrays have no kind and gain no native graph identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectedImageKind {
+    Mcp,
+    Read,
+    Question,
 }
 
 impl<'de> Deserialize<'de> for InputItem {
@@ -314,6 +359,12 @@ impl InputItem {
             Self::QuestionFunctionCallOutput { call_id, output } => {
                 Some((call_id, output.display()))
             }
+            Self::ProjectedFunctionCallOutput {
+                call_id,
+                display,
+                kind: Some(_),
+                ..
+            } => Some((call_id, display)),
             _ => None,
         }
     }
@@ -373,6 +424,11 @@ pub enum StreamItem {
         /// Argument JSON fragment.
         delta: String,
     },
+    /// This canonical call exceeded its argument cap and must not execute.
+    ToolArgumentsTooLarge {
+        /// Canonical item identity, distinct from function call_id.
+        item_id: String,
+    },
     /// Incremental reasoning text (never opaque-UI-logged; see turn log).
     ReasoningDelta(String),
     /// Opaque provider item (e.g. encrypted reasoning): replayed verbatim
@@ -398,9 +454,9 @@ pub struct Generation {
     /// Explicit terminal meaning; length never implies an untruncated answer.
     pub finish: FinishReason,
     pub compaction_usage: Option<oc_core::compaction::CompactionUsage>,
-    /// Full completed output, including opaque continuation state.
+    /// Completed output, including opaque state and bounded failed-call arguments.
     pub output: Vec<serde_json::Value>,
-    /// Ordered stream items (deltas in arrival order).
+    /// Arrival-ordered stream observations, followed by typed call-local failures.
     pub items: Vec<StreamItem>,
     /// Full model text (concatenated deltas).
     pub text: String,
@@ -848,6 +904,7 @@ pub struct SseParser {
     /// Stream items kept by the HTTP/WS collector, including text assembly space.
     stream_retained: usize,
     arguments: BTreeMap<String, (usize, Option<serde_json::Value>)>,
+    failed_arguments: BTreeSet<String>,
     announced_calls: BTreeMap<String, (Option<u64>, String, String)>,
     /// Announcement ordinal of each `output_item.added` id.
     item_ordinals: BTreeMap<String, u64>,
@@ -1005,6 +1062,7 @@ impl SseParser {
                         StreamItem::ArgDelta { item_id, delta } => {
                             (1, item_id.capacity() + delta.capacity())
                         }
+                        StreamItem::ToolArgumentsTooLarge { item_id } => (1, item_id.capacity()),
                         StreamItem::OpaqueItem { item_id, payload } => {
                             (1, item_id.capacity() + retained_json_bytes(payload))
                         }
@@ -1027,6 +1085,16 @@ impl SseParser {
                     2 * std::mem::size_of::<(String, (usize, Option<serde_json::Value>))>()
                         + id.capacity()
                         + value.as_ref().map_or(0, retained_json_bytes)
+                })
+                .sum::<usize>()
+            + self
+                .failed_arguments
+                .iter()
+                // Include the eventual collected failure item and its id copy.
+                .map(|id| {
+                    2 * (std::mem::size_of::<String>()
+                        + std::mem::size_of::<StreamItem>()
+                        + id.capacity())
                 })
                 .sum::<usize>()
             + self
@@ -1088,6 +1156,31 @@ impl SseParser {
             return Err(structural(OutputStage::Decode, OutputCode::InvalidField));
         }
         match value["type"].as_str() {
+            Some("response.output_item.added" | "response.output_item.done") => {
+                if let Some(item) = value.get_mut("item")
+                    && item["type"] == "function_call"
+                {
+                    self.bound_arguments(item, "id");
+                }
+            }
+            Some("response.function_call_arguments.done") => {
+                self.bound_arguments(&mut value, "item_id");
+            }
+            Some("response.completed" | "response.incomplete") => {
+                if let Some(output) = value
+                    .pointer_mut("/response/output")
+                    .and_then(serde_json::Value::as_array_mut)
+                {
+                    for item in output {
+                        if item["type"] == "function_call" {
+                            self.bound_arguments(item, "id");
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        match value["type"].as_str() {
             Some("response.output_item.added") if value["item"]["type"] == "function_call" => {
                 let item = &value["item"];
                 let id = required_identity(item, "id", OutputStage::Added)?;
@@ -1126,12 +1219,6 @@ impl SseParser {
                 }
                 self.check_observation(item, call.0, OutputStage::Added)?;
                 self.announced_calls.insert(id.to_owned(), call);
-                if item["arguments"]
-                    .as_str()
-                    .is_some_and(|args| args.len() > ARGUMENT_BYTE_CAP)
-                {
-                    return Err(ProviderError::ByteLimit("arguments"));
-                }
             }
             Some("response.failed" | "error") => {
                 self.terminal = true;
@@ -1177,8 +1264,12 @@ impl SseParser {
                         OutputCode::IdentityConflict,
                     ));
                 }
+                if self.failed_arguments.contains(id) {
+                    return Ok(None);
+                }
                 if size.saturating_add(delta.len()) > ARGUMENT_BYTE_CAP {
-                    return Err(ProviderError::ByteLimit("arguments"));
+                    self.fail_arguments(id);
+                    return Ok(None);
                 }
                 *size += delta.len();
             }
@@ -1257,6 +1348,34 @@ impl SseParser {
             _ => {}
         }
         Ok(map_event(&value))
+    }
+
+    fn fail_arguments(&mut self, id: &str) {
+        if self.failed_arguments.insert(id.to_owned()) {
+            if let Some((_, Some(arguments))) = self.arguments.get_mut(id) {
+                *arguments = serde_json::json!({});
+            }
+            for done in self.output_done.values_mut() {
+                if done.item["type"] == "function_call" && done.item["id"] == id {
+                    done.item["arguments"] = "{}".into();
+                }
+            }
+        }
+    }
+
+    fn bound_arguments(&mut self, item: &mut serde_json::Value, id_field: &str) {
+        let Some(id) = item[id_field].as_str().filter(|id| !id.is_empty()) else {
+            return;
+        };
+        if item["arguments"].as_str().is_some_and(|arguments| {
+            arguments.len() > ARGUMENT_BYTE_CAP || self.failed_arguments.contains(id)
+        }) {
+            let id = id.to_owned();
+            self.fail_arguments(&id);
+            // A valid bounded wire placeholder is not permission to execute:
+            // the separate typed failure is authoritative for batch assembly.
+            item["arguments"] = "{}".into();
+        }
     }
 
     fn provider_failure(&self, value: &serde_json::Value) -> ProviderError {
@@ -1707,9 +1826,6 @@ fn parsed_arguments(
     stage: OutputStage,
 ) -> Result<serde_json::Value, ProviderError> {
     let arguments = required_identity(item, "arguments", stage)?;
-    if arguments.len() > ARGUMENT_BYTE_CAP {
-        return Err(ProviderError::ByteLimit("arguments"));
-    }
     serde_json::from_str(arguments).map_err(|_| structural(stage, OutputCode::InvalidArguments))
 }
 
@@ -2212,6 +2328,29 @@ async fn optional_timeout_at<F: Future>(
     }
 }
 
+fn invalid_certificate(mut error: &(dyn std::error::Error + 'static)) -> bool {
+    loop {
+        if matches!(
+            error.downcast_ref::<rustls::Error>(),
+            Some(rustls::Error::InvalidCertificate(_))
+        ) {
+            return true;
+        }
+        // io::Error::source can skip the wrapped error itself. TLS handshakes
+        // carry rustls::Error there, so inspect get_ref before following sources.
+        error = if let Some(inner) = error
+            .downcast_ref::<std::io::Error>()
+            .and_then(std::io::Error::get_ref)
+        {
+            inner
+        } else if let Some(source) = error.source() {
+            source
+        } else {
+            return false;
+        };
+    }
+}
+
 fn pre_send_failure(error: ProviderError, phase: &'static str) -> ProviderError {
     let transport = match error {
         ProviderError::Deadline => TransportKind::Deadline,
@@ -2641,6 +2780,9 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         })??,
     }
         .map_err(|e| {
+            if invalid_certificate(&e) {
+                return (ProviderError::InvalidCertificate, false);
+            }
             // Only true timeouts are deadlines; refusals/DNS failures are
             // transport errors (connect_timeout expiry surfaces is_timeout).
             let mut failure = PhysicalFailure::transport(Operation::Request,
@@ -2809,7 +2951,15 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     Ok(collect_generation(parser, items))
 }
 
-fn collect_generation(parser: SseParser, items: Vec<StreamItem>) -> Generation {
+fn collect_generation(parser: SseParser, mut items: Vec<StreamItem>) -> Generation {
+    items.extend(
+        parser
+            .failed_arguments
+            .iter()
+            .map(|item_id| StreamItem::ToolArgumentsTooLarge {
+                item_id: item_id.clone(),
+            }),
+    );
     let mut text = String::new();
     let mut usage = None;
     for item in &items {
@@ -3568,6 +3718,44 @@ mod tests {
         server.shutdown();
     }
 
+    #[test]
+    fn w3_responses_oversized_snapshots_keep_bounded_call_identity() {
+        for stage in ["added", "done", "terminal"] {
+            let item = serde_json::json!({"type":"function_call","id":"fc_big","call_id":"big","name":"read","arguments":format!("{{}}{}", " ".repeat(super::ARGUMENT_BYTE_CAP)),"status":"completed"});
+            let mut parser = SseParser::default();
+            let mut items = Vec::new();
+            if stage == "added" {
+                let mut added = item.clone();
+                added["status"] = "in_progress".into();
+                items.extend(
+                    parser
+                        .push(&event(
+                            serde_json::json!({"type":"response.output_item.added","item":added}),
+                        ))
+                        .expect("oversized added call is local failure"),
+                );
+            }
+            if stage != "terminal" {
+                items.extend(
+                    parser
+                        .push(&event(
+                            serde_json::json!({"type":"response.output_item.done","item":item}),
+                        ))
+                        .expect("oversized done call is local failure"),
+                );
+            }
+            items.extend(parser.push(&event(serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[item]}}))).expect("oversized terminal call is local failure"));
+            assert!(parser.completed);
+            let generation = super::collect_generation(parser, items);
+            assert_eq!(generation.output[0]["id"], "fc_big");
+            assert_eq!(generation.output[0]["call_id"], "big");
+            assert!(
+                generation.output[0]["arguments"].as_str().unwrap().len()
+                    <= super::ARGUMENT_BYTE_CAP
+            );
+        }
+    }
+
     #[tokio::test]
     async fn aud13_byte_bounds_utf8_and_incremental_observer() {
         use super::{ARGUMENT_BYTE_CAP, SSE_BYTE_CAP, TEXT_DELTA_BYTE_CAP};
@@ -3590,11 +3778,20 @@ mod tests {
             Err(ProviderError::InvalidUtf8)
         );
         let mut parser = SseParser::default();
+        let mut items = parser.push(&event(serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc_A","call_id":"call_A","name":"read","arguments":"","status":"in_progress"}}))).unwrap();
+        let prefix = format!("{{}}{}", " ".repeat(ARGUMENT_BYTE_CAP - 2));
         let args = event(
-            serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_A","delta":"a".repeat(ARGUMENT_BYTE_CAP)}),
+            serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_A","delta":prefix}),
         );
-        parser.push(&args).expect("at cap");
-        assert_eq!(parser.push(&event(serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_A","delta":"b"}))), Err(ProviderError::ByteLimit("arguments")));
+        items.extend(parser.push(&args).expect("at cap"));
+        items.extend(parser.push(&event(serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_A","delta":" "}))).expect("overflow fails only this call"));
+        items.extend(parser.push(&event(serde_json::json!({"type":"response.output_item.done","item":{"type":"function_call","id":"fc_A","call_id":"call_A","name":"read","arguments":format!("{prefix} "),"status":"completed"}}))).unwrap());
+        items.extend(parser.push(&sse_completed(1, 1)).unwrap());
+        let generation = super::collect_generation(parser, items);
+        assert!(
+            matches!(&crate::tools::assemble_calls(&generation.items).unwrap()[0], crate::tools::Assembled::Failed(failure) if failure.id == "call_A" && failure.name == "read")
+        );
+        assert!(generation.output[0]["arguments"].as_str().unwrap().len() <= ARGUMENT_BYTE_CAP);
         let mut parser = SseParser::default();
         let mut text = String::new();
         let expected = "🌍".repeat(TEXT_DELTA_BYTE_CAP);
@@ -4018,7 +4215,7 @@ mod tests {
 
     #[tokio::test]
     async fn prov07_timeouts_and_cancel() {
-        assert_eq!(CHUNK_TIMEOUT_MS, 300_000);
+        assert_eq!(CHUNK_TIMEOUT_MS, 900_000);
         assert_eq!(super::HEADER_TIMEOUT_MS, 300_000);
         // Idle gap beyond the override budget fails; timeout:false keeps no
         // total deadline (slow-but-chatting streams succeed).

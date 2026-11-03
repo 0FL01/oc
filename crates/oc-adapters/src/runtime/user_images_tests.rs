@@ -25,6 +25,154 @@ fn prompt() -> PromptInput {
 }
 
 #[tokio::test]
+async fn w3_image_history_projects_before_admission_and_preserves_raw() {
+    use image::ImageEncoder;
+    let mut state = 0x739a_51cdu32;
+    let pixels = (0..1024 * 1536 * 4)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            state as u8
+        })
+        .collect::<Vec<_>>();
+    let mut png = Vec::new();
+    image::codecs::png::PngEncoder::new_with_quality(
+        &mut png,
+        image::codecs::png::CompressionType::Fast,
+        image::codecs::png::FilterType::NoFilter,
+    )
+    .write_image(&pixels, 1024, 1536, image::ExtendedColorType::Rgba8)
+    .unwrap();
+    assert!(png.len() > 6 * 1024 * 1024 && png.len() <= oc_core::prompt::IMAGE_BYTES);
+    let mut original = prompt();
+    original.images[0].png = png.into();
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "synthetic".into(),
+        timeout: None,
+        header_timeout_ms: Some(3000),
+        chunk_timeout_ms: Some(3000),
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: BTreeMap::new(),
+        cache: crate::provider::CacheMode::None,
+        wire: Default::default(),
+    };
+    let catalog = ModelCatalog {
+        provider: "fixture".into(),
+        models: crate::models::Models::from([(
+            "m".into(),
+            json!({"modalities":{"input":["text","image"]},"limit":{"context":1000000000,"output":2048}}),
+        )]),
+    };
+    let cancel = AtomicBool::new(false);
+    let db = Db::open(data.path()).unwrap();
+    let rt = owner(&db, project.path());
+    rt.create_session("images").unwrap();
+    let mut first = None;
+    for index in 0..5 {
+        let run = rt.run_turn(TurnParams {
+            session: "images".into(),
+            prompt: if index < 4 {
+                original.clone()
+            } else {
+                PromptInput {
+                    text: "continue after images".into(),
+                    images: Vec::new(),
+                }
+            },
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 2048,
+            provider: provider.clone(),
+            cancel: &cancel,
+        });
+        let peer = async {
+            let (mut socket, wire) = request(&listener).await;
+            respond(&mut socket, Protocol::Responses, false).await;
+            wire
+        };
+        tokio::pin!(run, peer);
+        // A pre-dispatch refusal drops the pending accept immediately. CPU-bound
+        // image preparation must not expire an unrelated socket-accept timer.
+        let (result, wire) = tokio::select! {
+            result = &mut run => {
+                let wire = if result.is_ok() { Some(peer.await) } else { None };
+                (result, wire)
+            },
+            wire = &mut peer => (run.await, Some(wire)),
+        };
+        let report = result.unwrap_or_else(|error| {
+            panic!("image request {index} failed before dispatch: {error:?}")
+        });
+        assert_eq!(report.status, TurnStatus::Completed);
+        first.get_or_insert(report.turn_id);
+        let wire = wire.expect("each admitted prompt must dispatch");
+        let parts = wire["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|item| item["content"].as_array().into_iter().flatten())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            parts
+                .iter()
+                .filter(|part| part["type"] == "input_image")
+                .count(),
+            if index < 3 { index + 1 } else { 1 }
+        );
+        let note = "[This image was removed to reduce the request size and is no longer visible. Do not make claims about its contents from memory. If needed, retrieve it again with an available tool or ask the user to attach it again.]";
+        assert_eq!(
+            parts
+                .iter()
+                .filter(|part| part["type"] == "input_text" && part["text"] == note)
+                .count(),
+            if index < 3 { 0 } else { 3 }
+        );
+    }
+    drop(rt);
+    drop(db);
+    let db = Db::open(data.path()).unwrap();
+    let raw = db.turn_result(&first.unwrap()).unwrap().1.unwrap();
+    let value: Value = serde_json::from_str(&raw).unwrap();
+    let log = TurnLog::from_json(&value).unwrap();
+    let metadata = crate::attachments::image_metadata(&original.text, &value["display"])
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        crate::attachments::restore_prompt(
+            original.text.clone(),
+            &metadata,
+            &log.input[metadata.input_index]
+        )
+        .unwrap(),
+        original
+    );
+    let sql = rusqlite::Connection::open_with_flags(
+        data.path().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let raw_bytes: i64 = sql
+        .query_row(
+            "SELECT sum(length(CAST(result AS BLOB))) FROM turn_logs WHERE session_id='images'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        raw_bytes > ACTIVE_CONTEXT_BYTES_CAP as i64,
+        "fixture must exceed the earlier aggregate RAW admission guard"
+    );
+}
+
+#[tokio::test]
 async fn clipboard_images_atomic_admission_wire_retirement_reopen_revert_and_fork() {
     let data = tempfile::tempdir().unwrap();
     let project = tempfile::tempdir().unwrap();

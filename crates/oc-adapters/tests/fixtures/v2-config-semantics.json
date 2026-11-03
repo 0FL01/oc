@@ -1,6 +1,6 @@
 {
   "oracle": {
-    "revision": "parent of the upstream fifteen-minute chunk-default change",
+    "revision": "settings/precedence before the fifteen-minute change; native chunk default updated by W3 to the ff90ed91607cabf420a369e9009539c1aa0932af options.ts oracle",
     "commit": "b4f19bfe74a972c2919aa4c9d7445fa61f41b226"
   },
   "base": {
@@ -107,7 +107,7 @@
       "provider": {},
       "model": { "timeout": "ignored", "headerTimeout": {}, "chunkTimeout": true, "transport": "invalid", "reasoningEffort": "medium" },
       "variant": { "timeout": {}, "headerTimeout": "ignored", "chunkTimeout": [], "transport": false, "reasoningEffort": "high" },
-      "expected_http": { "timeout": null, "headerTimeout": 300000, "chunkTimeout": 300000 },
+      "expected_http": { "timeout": null, "headerTimeout": 300000, "chunkTimeout": 900000 },
       "expected_transport": null
     }
   ],

@@ -47,7 +47,7 @@ pub(crate) use credentials::CredentialSnapshot;
 pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial, OAuthAccountMetadata};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;
-pub(crate) use dcp_view::WireLog;
+pub(crate) use dcp_view::{WireLog, WireLogSource};
 #[path = "storage_fork.rs"]
 mod fork;
 #[path = "storage_grants.rs"]
@@ -373,8 +373,6 @@ pub struct Db {
     // Ephemeral authorization fences; live attempts never survive root reopen.
     credential_epochs: Arc<Mutex<std::collections::BTreeMap<String, u64>>>,
     pub(crate) response_channels: crate::provider::websocket::Channels,
-    // Last projected wire-log read, valid while this connection made no write.
-    wire_log_memo: Arc<Mutex<Option<dcp_view::WireLogMemo>>>,
     // Upper bound of quota-counted bytes: the last directory scan plus every
     // later quota-counted write (deletions only make it looser). Live output
     // rescans only when a write would cross the quota under this bound.
@@ -654,7 +652,6 @@ impl Db {
             credential_refresh: Arc::new(tokio::sync::Mutex::new(())),
             credential_epochs: Arc::new(Mutex::new(std::collections::BTreeMap::new())),
             response_channels: Default::default(),
-            wire_log_memo: Default::default(),
             quota_used: Default::default(),
             #[cfg(test)]
             quota_scans: Default::default(),
@@ -796,7 +793,6 @@ impl Db {
             credential_refresh: self.credential_refresh.clone(),
             credential_epochs: self.credential_epochs.clone(),
             response_channels: self.response_channels.clone(),
-            wire_log_memo: self.wire_log_memo.clone(),
             quota_used: self.quota_used.clone(),
             #[cfg(test)]
             quota_scans: self.quota_scans.clone(),

@@ -33,14 +33,16 @@ Live hints: TextDelta, ToolProgress, ContextStats. Durable outcomes: InputAccept
 
 `idle → preparing → streaming → tool_pending → tool_running → preparing` до финального ответа; любой live state может перейти в `cancelling → interrupted`, `failed` или `completed`. WaitingApproval — отдельное ожидание с возможностью cancel, не held DB transaction.
 
-Каждый provider response может иметь несколько tool calls. Аргументы собираются bounded по call ID; tool НЕ исполняется по частичному JSON. Сначала закрыть/validate response и завершить arguments, затем admission tools. Duplicate call IDs, unknown tool и несоответствие schemas — typed errors. Wire parallelism не снимает ordering/safety гарантий; T45/R3 явно требует concurrent execution независимых subagent calls и immediate background. Native закрытие response до admission остаётся отдельным streaming difference, не основанием сериализовать детей.
+Каждый provider response может иметь несколько tool calls. Аргументы собираются bounded по call ID; tool НЕ исполняется по частичному JSON. Превышение 1 MiB помечает только этот call failed: parser прекращает накопление, сохраняет identity и дочитывает response; canonical bounded placeholder никогда не исполняется вместо отказа. Сначала закрыть/validate response, затем admission остальных calls, каждый один раз. Independent SSE/generation caps, duplicate identity и terminal reconciliation не ослабляются. Unknown tool и несоответствие schemas — typed errors. Wire parallelism не снимает ordering/safety гарантий; T45/R3 явно требует concurrent execution независимых subagent calls и immediate background. Native закрытие response до admission остаётся отдельным streaming difference, не основанием сериализовать детей.
 
 T50 background shell follows the same durable admission/output graph: running is
 not terminal success, and a later owner-generated notice is deduplicated by job/
 delivery identity. No execution timeout still has bounded capture/cancel/teardown.
 Question pending wait has its own typed replies, distinct from permissions; stale/
-duplicate/foreign replies fail, dismissal interrupts, no-consumer headless is explicit
-non-success and --auto never invents an answer. No held DB transaction or UI-only state.
+duplicate/foreign replies fail, interactive dismissal interrupts. Run/NoConsumer
+records a failed question tool result with TS noninteractive feedback and continues
+the model; --auto never invents an answer. Other origins/errors remain unchanged.
+No held DB transaction or UI-only state.
 
 ### Live child / shell / terminal projections (approved 2026-10-01; pending)
 
@@ -84,7 +86,7 @@ completion dependencies; approval/plan validation is not implementation PASS.
 
 `planned → authorized → started → succeeded | failed | cancelled | partial | unknown`.
 
-Intent записывается до side effect; outcome — после подтверждения. Crash после начала и до фиксации результата даёт unknown, даже если transcript выглядит незаконченным. Read-only call можно повторить новым operation ID в рамках новой явной попытки; mutation, shell и MCP не autoretry по старому ID. Exactly-once не обещается.
+Intent записывается до side effect; outcome — после подтверждения. Crash после начала и до фиксации результата даёт unknown, даже если transcript выглядит незаконченным. Общая диагностика — `tool outcome unknown; retry may duplicate side effects`, не MCP-only claim. Read-only call можно повторить новым operation ID в рамках новой явной попытки; mutation, shell и MCP не autoretry по старому ID. Exactly-once не обещается.
 
 Multi-file patch не атомарен целиком: preflight всех entries уменьшает риски, но каждый файловый commit отдельный. Partial outcome сообщает committed paths/ещё не применённые paths и recovery instructions. Не откатывать чужие правки автоматически.
 
@@ -104,6 +106,10 @@ generation default: одна физическая попытка в adapter, о�
 `x-should-retry: false`; quota, auth/policy, invalid request, trust/validation
 и resource-limit failures terminal. Context error идёт в отдельную
 compaction ветку без молчаливой потери сообщений.
+TLS certificate refusal is terminal: typed rustls InvalidCertificate is found
+through the error chain, including an io::Error inner value; HTTP is not retried
+and WebSocket does not fall back to HTTP. EOF/reset remain transport failures,
+not certificate refusals inferred from prose.
 
 До фактического output retry сохраняет assistant-step identity, не
 публикует terminal turn failure. После output допускается только
@@ -196,7 +202,7 @@ never implicit allow for a missing central action. Profile overrides may only na
 session rename/move targets must be authorized independently of trusting the target
 directory. Native target/path/credential ceilings remain declared donor differences.
 
-`ask` без interactive channel — ApprovalRequired с ненулевым exit status. Parsing errors не превращаются в allow. Legacy `write`/`edit`/`patch` permission entries нормализуются к canonical apply_patch mutation identity, в том числе для реальных T50 edit/write tools; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny. Model/tool-family switch не создаёт grants и не снимает central/profile/parent-child/Plan ceilings; actual path/home/resource/save-pattern normalization и own-data-root exclusion одинаковы для выбранного файлового семейства.
+Headless `run` регистрирует consumer и без `--auto`: отклоняет Ask только своей сессии/потомков по ancestry с feedback `This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action.` Модель продолжает без исполнения/grant. Чужие asks не получают ответа; `--auto` Once и Deny не меняются. Другие отсутствующие consumer channels не получают implicit allow. Parsing errors не превращаются в allow. Legacy `write`/`edit`/`patch` permission entries нормализуются к canonical apply_patch mutation identity, в том числе для реальных T50 edit/write tools; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny. Model/tool-family switch не создаёт grants и не снимает central/profile/parent-child/Plan ceilings; actual path/home/resource/save-pattern normalization и own-data-root exclusion одинаковы для выбранного файлового семейства.
 
 T50/R9 pending mutations reuse one prepared before/after/digest and exact-call permit
 path: preview before Ask, bounded wait without DB transaction, approved-preimage
@@ -232,8 +238,9 @@ explicit external scope, check external_directory's absolute directory/* resourc
 and the actual tool action/resource through the same captured permission owner.
 **Effective Allow on both dispatches with zero approval events**, including first
 access and restart; no manual pre-opening, new trust dialog or per-path confirmation.
-Genuine Ask waits on the existing consumer before protected content read/search and
-fails headless without one; Deny never reads/scans the protected target. Source trust,
+Genuine Ask waits on the existing consumer before protected content read/search;
+headless Run rejects with feedback rather than terminating the turn. Deny never
+reads/scans the protected target. Source trust,
 parent/profile/read-Deny ceilings, pinned descriptors/resolved-data-root checks and
 page/scan/time/output/model/cancellation bounds remain automatic safety checks, not
 additional Ask. external_directory is boundary permission, not read-only mode; this
@@ -252,7 +259,8 @@ pending requests. Ask is user-approvable; effective Deny and structural ceilings
 authoritative. Plain rejection interrupts execution; feedback uses corrected continuation.
 Waiting is pre-execution, not started/unknown effect; cancel/stale replies/restart never
 authorize replay. Autoaccept answers once without grants with real Settings/config/CLI
-controls; headless without a consumer fails, explicit supported --auto has a once-consumer.
+controls; headless Run without --auto has a rejecting feedback-consumer, explicit
+supported --auto has a once-consumer. Both are scoped to owned session ancestry.
 This is a future implementation contract, not evidence that the channel exists today.
 
 ## Prompt assembly

@@ -114,3 +114,44 @@ fn media_projection_follows_model_vision_and_chat_tool_wire() {
     );
     assert_eq!(input[3], history()[3]);
 }
+
+#[test]
+fn w3_projected_media_fallback_keeps_full_native_and_opaque_text() {
+    use base64::Engine as _;
+    let full = "MCP text beyond the card preview ".repeat(350);
+    let media = crate::mcp_result::project_rich(serde_json::from_value(json!({"content":[
+        {"type":"text","text":full},
+        {"type":"image","mimeType":"image/png","data":base64::engine::general_purpose::STANDARD.encode(png())}
+    ]})).unwrap()).unwrap();
+    assert!(media.display().len() < full.len());
+    let mut log = crate::tools::TurnLog::new("prior", "m", "fixture");
+    log.input = vec![
+        InputItem::ProviderOutput(
+            json!({"type":"function_call","id":"native","call_id":"native","name":"fixture__media","arguments":"{}"}),
+        ),
+        InputItem::McpFunctionCallOutput {
+            call_id: "native".into(),
+            output: media,
+        },
+        history()[2].clone(),
+    ];
+    let raw = log.to_json();
+    let source = std::sync::Arc::new(
+        crate::storage::WireLogSource::captured(std::sync::Arc::from(raw.to_string())).unwrap(),
+    );
+    let mut deferred = log.input.clone();
+    crate::attachments::defer_images(&mut deferred, source).unwrap();
+    for (vision, chat) in [(false, false), (true, true)] {
+        let mut input = deferred.clone();
+        project_media(&mut input, vision, chat);
+        assert_eq!(
+            input[1].call_output().unwrap().1,
+            format!("{full}\n{IMAGE_OMITTED}")
+        );
+        assert_eq!(
+            input[2].call_output().unwrap().1,
+            format!("legacy text\n{IMAGE_OMITTED}")
+        );
+    }
+    assert_eq!(log.to_json(), raw);
+}

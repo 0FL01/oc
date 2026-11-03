@@ -273,7 +273,7 @@ pub struct ToolCall {
 pub struct CallFailure {
     /// Announced tool name, or `unknown` for an unannounced item.
     pub name: String,
-    /// Provider item id (or `unknown` when unannounced).
+    /// Provider function call_id (or item id when unannounced).
     pub id: String,
     /// Human reason.
     pub error: String,
@@ -296,6 +296,7 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
     let mut names: BTreeMap<String, (String, String)> = BTreeMap::new();
     let mut args: BTreeMap<String, String> = BTreeMap::new();
     let mut order: Vec<String> = Vec::new();
+    let mut oversized = std::collections::BTreeSet::new();
     for item in items {
         match item {
             StreamItem::ToolCallStarted {
@@ -312,6 +313,9 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
                 names.insert(item_id.clone(), (name.clone(), call_id.clone()));
             }
             StreamItem::ArgDelta { item_id, delta } => {
+                if oversized.contains(item_id) {
+                    continue;
+                }
                 if !names.contains_key(item_id) {
                     if !args.contains_key(item_id) {
                         order.push(item_id.clone());
@@ -321,6 +325,13 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
                 }
                 args.entry(item_id.clone()).or_default().push_str(delta);
             }
+            StreamItem::ToolArgumentsTooLarge { item_id } => {
+                if !names.contains_key(item_id) && !args.contains_key(item_id) {
+                    order.push(item_id.clone());
+                }
+                args.remove(item_id);
+                oversized.insert(item_id.clone());
+            }
             _ => {}
         }
     }
@@ -328,6 +339,14 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
     for id in order {
         match names.remove(&id) {
             Some((name, call_id)) => {
+                if oversized.contains(&id) {
+                    units.push(Assembled::Failed(CallFailure {
+                        name,
+                        id: call_id,
+                        error: "arguments byte limit exceeded".into(),
+                    }));
+                    continue;
+                }
                 let raw = args.remove(&id).unwrap_or_default();
                 match serde_json::from_str::<serde_json::Value>(&raw) {
                     Ok(arguments) if arguments.is_object() => {

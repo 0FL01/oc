@@ -2,6 +2,36 @@ use super::*;
 use serde_json::{Value, json};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[tokio::test]
+async fn w3_websocket_certificate_failure_does_not_fallback() {
+    let f = Fixture::new();
+    let (base, peer) = super::super::timeout_tests::untrusted_tls_peer().await;
+    let config = f.config(&base, false);
+    let sends = std::sync::atomic::AtomicUsize::new(0);
+    let error = request(&config, &[], &AtomicBool::new(false), &sends)
+        .await
+        .unwrap_err();
+    peer.await.unwrap();
+    let fallback =
+        f.db.response_channels
+            .slot("session")
+            .unwrap()
+            .lock()
+            .await
+            .fallback;
+    f.db.response_channels.shutdown().await.unwrap();
+    assert!(
+        !matches!(&error, ProviderError::Request(failure) if failure.retry_eligible()),
+        "certificate refusal is not a transient outage: {error:?}"
+    );
+    assert_eq!(error.to_string(), "TLS certificate verification failed");
+    assert!(
+        !fallback,
+        "certificate rejection must not trigger HTTP fallback"
+    );
+    assert_eq!(sends.load(Ordering::SeqCst), 0);
+}
+
 struct Fixture {
     _root: tempfile::TempDir,
     db: crate::storage::Db,

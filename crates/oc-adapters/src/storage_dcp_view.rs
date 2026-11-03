@@ -23,22 +23,95 @@ pub(super) fn decode(raw: Option<String>) -> Option<DcpRunSnapshot> {
 /// lookup, so the bound guards memory, not quadratic work.
 const MAX_ACTIVE_CALLS: usize = 65_536;
 
-#[derive(PartialEq, Eq)]
-struct WireLogKey {
-    session: String,
-    after_seq: i64,
-    projected: Vec<String>,
-    blocks: Vec<crate::dcp::CompressionBlock>,
-    changes: u64,
-}
-
-pub(crate) struct WireLogMemo {
-    key: WireLogKey,
-    logs: Option<Vec<WireLog>>,
-}
-
-/// One public wire log, shared by the memo and every reader of one step.
+/// One bounded public wire log, shared with its captured reader.
 pub(crate) type WireLog = std::sync::Arc<str>;
+
+/// Captured read-projection coordinates, not a second journal. Image history is
+/// read one bounded record at a time instead of retaining every RAW payload.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct WireLogSource {
+    pub(crate) key: Option<String>,
+    pub(crate) anchor: Option<String>,
+    body: WireLogBody,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum WireLogBody {
+    Captured(WireLog),
+    Stored {
+        selection: std::sync::Arc<WireLogSelection>,
+        row: i64,
+    },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct WireLogSelection {
+    session: String,
+    after: i64,
+    ids: String,
+    blocks: String,
+}
+
+impl WireLogSource {
+    pub(crate) fn coordinate_bytes(&self) -> usize {
+        self.key.as_ref().map_or(0, String::len) + self.anchor.as_ref().map_or(0, String::len)
+    }
+    pub(crate) fn captured(raw: WireLog) -> Result<Self, StorageError> {
+        if raw.len() > crate::runtime::ACTIVE_CONTEXT_BYTES_CAP {
+            return Err(StorageError::CompressionConflict);
+        }
+        let head: WireLogHead =
+            serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict)?;
+        Ok(Self {
+            key: head
+                ._dcp_block
+                .as_deref()
+                .or(head.user_message.as_deref())
+                .map(str::to_owned),
+            anchor: head.user_message.map(std::borrow::Cow::into_owned),
+            body: WireLogBody::Captured(raw),
+        })
+    }
+
+    pub(crate) fn load(&self, db: &Db) -> Result<Option<WireLog>, StorageError> {
+        let WireLogBody::Stored { selection, row } = &self.body else {
+            let WireLogBody::Captured(raw) = &self.body else {
+                unreachable!()
+            };
+            return Ok(Some(raw.clone()));
+        };
+        let conn = db.conn.lock().expect("db mutex");
+        let raw: Option<Option<String>> = conn
+            .prepare_cached(PRESENTATION_WIRE_LOGS_SQL)?
+            .query_row(
+                params![
+                    selection.session,
+                    selection.after,
+                    selection.ids,
+                    selection.blocks,
+                    crate::runtime::ACTIVE_CONTEXT_BYTES_CAP as i64,
+                    row
+                ],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(raw) = raw else { return Ok(None) };
+        let raw = raw.ok_or(StorageError::CompressionConflict)?;
+        let head: WireLogHead =
+            serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict)?;
+        let prefix = crate::tools::turn_history::RawPrefix::parse(head.raw_prefix.as_ref())
+            .map_err(|_| StorageError::CompressionConflict)?;
+        Db::validate_raw_prefix(
+            &conn,
+            head.turn_id
+                .as_deref()
+                .ok_or(StorageError::CompressionConflict)?,
+            prefix.as_ref(),
+        )?;
+        db.count_history_read(0, raw.len());
+        Ok(Some(raw.into()))
+    }
+}
 
 /// Only the fields the reader validates; other members are skipped, not built.
 #[derive(serde::Deserialize)]
@@ -47,6 +120,10 @@ struct WireLogHead<'a> {
     turn_id: Option<std::borrow::Cow<'a, str>>,
     #[serde(default)]
     raw_prefix: Option<serde_json::Value>,
+    #[serde(borrow, default)]
+    user_message: Option<std::borrow::Cow<'a, str>>,
+    #[serde(borrow, default)]
+    _dcp_block: Option<std::borrow::Cow<'a, str>>,
 }
 
 /// Public/retained wire logs of the active projection; see
@@ -58,7 +135,7 @@ pub(super) const PRESENTATION_WIRE_LOGS_SQL: &str = "WITH logs AS MATERIALIZED (
       COALESCE((SELECT b.value->>'$.id' FROM json_each(?4) b,json_each(b.value,'$.members') member WHERE member.value=m.id LIMIT 1),
         (SELECT cm.block_id FROM compression_members cm WHERE cm.message_id=m.id AND cm.block_id IN (SELECT value->>'$.id' FROM json_each(?4)) LIMIT 1)) AS block_id
     FROM conversation_turns t JOIN conversation_messages m ON m.id=json_extract(t.result,'$.user_message')
-    WHERE t.session_id=?1 AND json_valid(t.result) AND m.seq>?2
+    WHERE (?6 IS NULL OR t.archive_rowid=?6) AND t.session_id=?1 AND json_valid(t.result) AND m.seq>?2
       AND (m.id IN(SELECT value FROM json_each(?3)) OR EXISTS(SELECT 1 FROM compression_members cm JOIN json_each(?4) b ON b.value->>'$.id'=cm.block_id WHERE cm.message_id=m.id AND COALESCE(b.value->>'$.hot.standalone',0)=0 AND COALESCE(b.value->>'$.hot.active',1)=1))
       AND NOT EXISTS(SELECT 1 FROM json_each(?4) b JOIN messages a ON a.id=b.value->>'$.start' JOIN messages z ON z.id=b.value->>'$.end' WHERE b.value->>'$.hot.standalone'=1 AND b.value->>'$.hot.active'=1 AND m.seq BETWEEN a.seq AND z.seq)
   ), items AS MATERIALIZED (
@@ -108,6 +185,76 @@ pub(super) const PRESENTATION_WIRE_LOGS_SQL: &str = "WITH logs AS MATERIALIZED (
   ) SELECT CASE WHEN length(CAST(result AS BLOB))<=?5 THEN result END FROM visible WHERE result->>'$._dcp_block' IS NULL OR json_array_length(result,'$.input')>0 ORDER BY archive_rowid LIMIT 4097";
 
 impl Db {
+    /// Membership/order metadata only. The payload query constrains its source
+    /// row *inside* `logs`, before JSONB/items materialization.
+    pub(crate) fn presentation_wire_log_sources(
+        &self,
+        session: &str,
+        after: i64,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+    ) -> Result<Vec<WireLogSource>, StorageError> {
+        let ids = serde_json::to_string(&projected.iter().map(|row| &row.0).collect::<Vec<_>>())
+            .map_err(|_| StorageError::CompressionConflict)?;
+        let blocks = serde_json::to_string(&blocks.iter().map(|b| serde_json::json!({
+            "id":b.id,"members":b.members,"start":b.start_msg,"end":b.end_msg,
+            "hot":b.hot.as_ref().map(|hot|serde_json::json!({"active":hot.get("active"),"standalone":hot.get("standalone")}))
+        })).collect::<Vec<_>>()).map_err(|_| StorageError::CompressionConflict)?;
+        let selection = std::sync::Arc::new(WireLogSelection {
+            session: session.into(),
+            after,
+            ids,
+            blocks,
+        });
+        let mut budget = crate::runtime::ACTIVE_CONTEXT_BYTES_CAP
+            .checked_sub(selection.ids.len().saturating_add(selection.blocks.len()))
+            .ok_or(StorageError::CompressionConflict)?;
+        let conn = self.conn.lock().expect("db mutex");
+        let mut stmt = conn.prepare_cached("WITH logs AS NOT MATERIALIZED (
+          SELECT t.archive_rowid,t.result,m.id,
+            (m.id IN (SELECT value FROM json_each(?3))) AS shown,
+            COALESCE((SELECT b.value->>'$.id' FROM json_each(?4) b,json_each(b.value,'$.members') member WHERE member.value=m.id LIMIT 1),
+              (SELECT cm.block_id FROM compression_members cm WHERE cm.message_id=m.id AND cm.block_id IN (SELECT value->>'$.id' FROM json_each(?4)) LIMIT 1)) AS block_id
+          FROM conversation_turns t JOIN conversation_messages m ON m.id=json_extract(t.result,'$.user_message')
+          WHERE t.session_id=?1 AND json_valid(t.result) AND m.seq>?2
+            AND (m.id IN(SELECT value FROM json_each(?3)) OR EXISTS(SELECT 1 FROM compression_members cm JOIN json_each(?4) b ON b.value->>'$.id'=cm.block_id WHERE cm.message_id=m.id AND COALESCE(b.value->>'$.hot.standalone',0)=0 AND COALESCE(b.value->>'$.hot.active',1)=1))
+            AND NOT EXISTS(SELECT 1 FROM json_each(?4) b JOIN messages a ON a.id=b.value->>'$.start' JOIN messages z ON z.id=b.value->>'$.end' WHERE b.value->>'$.hot.standalone'=1 AND b.value->>'$.hot.active'=1 AND m.seq BETWEEN a.seq AND z.seq)
+          ) SELECT archive_rowid,id,CASE WHEN shown THEN id ELSE block_id END
+            FROM logs WHERE shown OR (block_id IS NOT NULL AND EXISTS(
+              SELECT 1 FROM json_each(logs.result,'$.input') i
+              WHERE NOT (i.value->>'$.type'='message' AND i.value->>'$.id' IS NULL AND i.value->>'$.phase' IS NULL AND i.value->>'$.status' IS NULL)
+                AND (i.value->>'$.type'!='function_call' OR EXISTS(
+                  SELECT 1 FROM json_each(logs.result,'$.input') o WHERE o.value->>'$.type'='function_call_output' AND o.value->>'$.call_id'=i.value->>'$.call_id'))))
+            ORDER BY archive_rowid LIMIT 4097")?;
+        let mut result = Vec::new();
+        for row in stmt.query_map(
+            params![session, after, selection.ids, selection.blocks],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )? {
+            if result.len() >= 4096 {
+                return Err(StorageError::CompressionConflict);
+            }
+            let (row, anchor, key) = row?;
+            budget = budget
+                .checked_sub(anchor.len().saturating_add(key.len()))
+                .ok_or(StorageError::CompressionConflict)?;
+            result.push(WireLogSource {
+                key: Some(key),
+                anchor: Some(anchor),
+                body: WireLogBody::Stored {
+                    selection: selection.clone(),
+                    row,
+                },
+            });
+        }
+        Ok(result)
+    }
     /// Only active, exact occurrences are consulted. Text resembling an error
     /// is not execution evidence; missing/ambiguous legacy facts never purge.
     pub(crate) fn dcp_errored_call_keys(
@@ -292,9 +439,8 @@ impl Db {
         tx.commit()?;
         Ok(())
     }
-    /// Public active log content only. A compressed turn contributes its real
-    /// retained function pairs, not its superseded user/assistant archive.
-    /// SQLite filters before transfer; one request has finite row/byte budgets.
+    /// Test access to the bounded bulk reader still used by storage accounting.
+    #[cfg(test)]
     pub(crate) fn presentation_wire_logs(
         &self,
         session: &str,
@@ -303,35 +449,7 @@ impl Db {
         blocks: &[crate::dcp::CompressionBlock],
     ) -> Result<Option<Vec<WireLog>>, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
-        // One step reads the same projection several times (history, cadence,
-        // measurement). Reuse it while the writer has committed nothing since:
-        // read under its lock, no transaction of another holder is open.
-        let key = WireLogKey {
-            session: session.to_owned(),
-            after_seq,
-            projected: projected.iter().map(|row| row.0.clone()).collect(),
-            blocks: blocks.to_vec(),
-            changes: self.conn.commits(),
-        };
-        let memo = self
-            .wire_log_memo
-            .lock()
-            .expect("wire log memo")
-            .as_ref()
-            .filter(|memo| memo.key == key)
-            .map(|memo| memo.logs.clone());
-        let result = match memo {
-            Some(logs) => logs,
-            None => {
-                let logs =
-                    Self::presentation_wire_logs_in(&conn, session, after_seq, projected, blocks)?;
-                *self.wire_log_memo.lock().expect("wire log memo") = Some(WireLogMemo {
-                    key,
-                    logs: logs.clone(),
-                });
-                logs
-            }
-        };
+        let result = Self::presentation_wire_logs_in(&conn, session, after_seq, projected, blocks)?;
         if let Some(logs) = &result {
             for raw in logs {
                 self.count_history_read(0, raw.len());
@@ -368,7 +486,7 @@ impl Db {
         let mut logs = Vec::new();
         let mut budget = crate::runtime::ACTIVE_CONTEXT_BYTES_CAP;
         for row in stmt.query_map(
-            params![session, after_seq, ids, blocks, budget as i64],
+            params![session, after_seq, ids, blocks, budget as i64, None::<i64>],
             |r| r.get::<_, Option<String>>(0),
         )? {
             let Some(raw) = row? else { return Ok(None) };
@@ -1012,7 +1130,7 @@ impl Db {
             }
         }
         let projection = Self::dcp_tool_projection_for_input_in(conn, session, &wire)?;
-        let identities = crate::runtime::dcp_call_identities(&logs, None)
+        let identities = crate::runtime::dcp_call_identities(logs.iter().cloned().map(Ok), None)
             .map_err(|_| StorageError::CompressionConflict)?;
         let calls = crate::runtime::dcp_call_contents(&wire, &projection);
         crate::runtime::apply_dcp_projection(&mut wire, &projection);
@@ -1308,9 +1426,11 @@ mod linear_sql_tests {
         ] {
             let ids = serde_json::to_string(&projected).unwrap();
             let run = |sql: &str| -> Vec<Option<String>> {
-                conn.prepare(sql)
-                    .unwrap()
-                    .query_map(params!["s", 0i64, ids, "[]", i64::MAX], |r| r.get(0))
+                let mut stmt = conn.prepare(sql).unwrap();
+                let args: [&dyn rusqlite::ToSql; 6] =
+                    [&"s", &0i64, &ids, &"[]", &i64::MAX, &None::<i64>];
+                let count = stmt.parameter_count();
+                stmt.query_map(&args[..count], |r| r.get(0))
                     .unwrap()
                     .collect::<Result<_, _>>()
                     .unwrap()
@@ -1325,21 +1445,24 @@ mod linear_sql_tests {
         )
         .unwrap();
         drop(conn);
-        // A repeated read reuses the memo; any write through the connection
-        // (here: a rewritten journal) invalidates it.
+        // The request reader captures bounded coordinates, not a whole-history
+        // payload memo. A fresh load does not serve an old cached journal body.
         let rows: Vec<_> = users
             .iter()
             .map(|id| (id.clone(), "user".to_string(), String::new()))
             .collect();
-        let first = db
-            .presentation_wire_logs("s", 0, &rows, &[])
-            .unwrap()
+        let sources = db
+            .presentation_wire_log_sources("s", 0, &rows, &[])
+            .unwrap();
+        let first = sources
+            .iter()
+            .filter_map(|source| source.load(&db).transpose())
+            .collect::<Result<Vec<_>, _>>()
             .unwrap();
         assert_eq!(
-            db.presentation_wire_logs("s", 0, &rows, &[])
-                .unwrap()
+            db.presentation_wire_log_sources("s", 0, &rows, &[])
                 .unwrap(),
-            first
+            sources
         );
         db.conn
             .lock()
@@ -1349,9 +1472,10 @@ mod linear_sql_tests {
                 [],
             )
             .unwrap();
-        let after = db
-            .presentation_wire_logs("s", 0, &rows, &[])
-            .unwrap()
+        let after = sources
+            .iter()
+            .filter_map(|source| source.load(&db).transpose())
+            .collect::<Result<Vec<_>, _>>()
             .unwrap();
         assert_ne!(after, first);
         assert!(after[0].contains("rewritten"));

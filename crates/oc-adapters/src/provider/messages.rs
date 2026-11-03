@@ -195,6 +195,7 @@ fn parts(content: &[InputContent]) -> Result<Vec<serde_json::Value>, ProviderErr
                 Ok(serde_json::json!({"type":"text","text":text}))
             }
             InputContent::InputImage { image_url, .. } => image(image_url),
+            InputContent::DeferredImage { .. } => Err(ProviderError::InvalidConfig),
         })
         .collect()
 }
@@ -328,7 +329,7 @@ pub(super) fn dispatch(
             if state.blocks.contains_key(&index) {
                 return Err(structural(OutputStage::Added, OutputCode::IndexConflict));
             }
-            let value = event["content_block"].clone();
+            let mut value = event["content_block"].clone();
             match value["type"].as_str() {
                 Some("text") => {
                     if value["text"].as_str().is_none() {
@@ -352,9 +353,6 @@ pub(super) fn dispatch(
                     }
                 }
                 Some("tool_use") => {
-                    if value["input"].to_string().len() > super::ARGUMENT_BYTE_CAP {
-                        return Err(ProviderError::ByteLimit("arguments"));
-                    }
                     let id = identity(&value, "id")?;
                     let name = identity(&value, "name")?;
                     if state
@@ -369,6 +367,10 @@ pub(super) fn dispatch(
                         call_id: id.into(),
                         name: name.into(),
                     });
+                    if value["input"].to_string().len() > super::ARGUMENT_BYTE_CAP {
+                        parser.failed_arguments.insert(item_id(index));
+                        value["input"] = serde_json::json!({});
+                    }
                 }
                 _ => return Err(structural(OutputStage::Added, OutputCode::InvalidField)),
             }
@@ -412,12 +414,19 @@ pub(super) fn dispatch(
                 return Err(structural(OutputStage::Decode, OutputCode::InvalidField));
             }
             if item == 3 {
+                let item_id = item_id(index);
+                if parser.failed_arguments.contains(&item_id) {
+                    return Ok(out);
+                }
                 if block.arguments.len().saturating_add(text.len()) > super::ARGUMENT_BYTE_CAP {
-                    return Err(ProviderError::ByteLimit("arguments"));
+                    parser.failed_arguments.insert(item_id);
+                    block.arguments = String::new();
+                    block.value["input"] = serde_json::json!({});
+                    return Ok(out);
                 }
                 block.arguments.push_str(text);
                 out.push(StreamItem::ArgDelta {
-                    item_id: item_id(index),
+                    item_id,
                     delta: text.into(),
                 });
             } else {

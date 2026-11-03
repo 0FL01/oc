@@ -3,6 +3,92 @@
 use super::*;
 
 #[tokio::test]
+async fn w3_oversized_middle_call_fails_without_losing_siblings_or_replaying() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("oversized").unwrap();
+    let first = sse_tool_call(
+        "first",
+        "bash",
+        &serde_json::json!({"argv":["/bin/sh","-c","printf 'first\\n' >> order"]}),
+    );
+    let mut prefix =
+        serde_json::json!({"argv":["/bin/sh","-c","printf 'BAD\\n' >> order"]}).to_string();
+    prefix.push_str(&" ".repeat(oc_adapters::provider::ARGUMENT_BYTE_CAP - prefix.len()));
+    let added = serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc_middle","call_id":"middle","name":"bash","arguments":"","status":"in_progress"}});
+    let delta = serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_middle","delta":prefix});
+    let overflow = serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc_middle","delta":" "});
+    let done = serde_json::json!({"type":"response.output_item.done","item":{"type":"function_call","id":"fc_middle","call_id":"middle","name":"bash","arguments":format!("{prefix} "),"status":"completed"}});
+    let last = sse_tool_call(
+        "last",
+        "bash",
+        &serde_json::json!({"argv":["/bin/sh","-c","printf 'last\\n' >> order"]}),
+    );
+    let batch = first
+        + &format!("data: {added}\n\ndata: {delta}\n\ndata: {overflow}\n\ndata: {done}\n\n")
+        + &last
+        + &sse_completed();
+    let (base, _, requests) = Fake::start_recording(
+        vec![batch, sse_delta("continued") + &sse_completed()],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "oversized",
+            "run the batch",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(
+        report
+            .calls
+            .iter()
+            .map(|call| call.state.as_str())
+            .collect::<Vec<_>>(),
+        ["completed", "failed", "completed"]
+    );
+    assert_eq!(
+        std::fs::read_to_string(harness._project.path().join("order")).unwrap(),
+        "first\nlast\n"
+    );
+    let rows = harness.db.list_tool_ops("oversized").unwrap();
+    assert_eq!(rows.len(), 3);
+    assert_eq!(rows[1].state, "failed");
+    assert!(
+        rows[1]
+            .output
+            .as_deref()
+            .unwrap()
+            .contains("arguments byte limit exceeded")
+    );
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 2);
+    let outcomes = requests[1]["input"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| item["type"] == "function_call_output")
+        .collect::<Vec<_>>();
+    assert_eq!(
+        outcomes
+            .iter()
+            .map(|item| item["call_id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["first", "middle", "last"]
+    );
+    assert!(
+        outcomes[1]["output"]
+            .as_str()
+            .unwrap()
+            .contains("arguments byte limit exceeded")
+    );
+}
+
+#[tokio::test]
 async fn w1_builtin_results_preserve_key_and_env_literals() {
     let (harness, mut generation) = make_harness(allow_all());
     generation

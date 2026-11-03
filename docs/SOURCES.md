@@ -39,6 +39,14 @@ BOM/EOL and destination-then-remove. Rust owner regressions translate these
 semantics; upstream TS tests were inspected, not executed. Earlier O1 fixtures
 and source pins remain unchanged.
 
+W3 uses the same `ff90ed91607cabf420a369e9009539c1aa0932af` MIT checkout:
+`packages/cli/src/run/noninteractive.ts` for owned-session permission/question
+feedback, `packages/core/src/session/model-request.ts` and its tests for image
+prefix bounding, and `packages/ai/src/schema/options.ts` for the 900000ms chunk
+default. Native regressions translate these semantics; TS tests were not run.
+Typed certificate refusal follows the repository security/retry contract, not
+the TS retry-count policy. The existing full MIT notice remains retained.
+
 ## DCP
 
 [D1] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/README.md

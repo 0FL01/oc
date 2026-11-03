@@ -129,7 +129,7 @@ fn skill01_binary_per_id_deny_removes_metadata_and_rejects_a_forced_call() {
 }
 
 #[test]
-fn skill01_binary_fresh_headless_ask_stops_before_execution_intent() {
+fn skill01_binary_fresh_headless_ask_continues_without_execution() {
     let fixture = Fixture::new();
     let config = fixture.write_base_config(json!({"permissions":[{"action":"skill","resource":"*","effect":"allow"},{"action":"skill","resource":ID,"effect":"ask"}]}));
     let original = fs::read(&config).unwrap();
@@ -144,40 +144,15 @@ fn skill01_binary_fresh_headless_ask_stops_before_execution_intent() {
     assert!(fixed_text(&first).contains(ID));
     respond_tool(&mut socket, "skill", json!({"id":ID}), "skill01-ask");
     drop(socket);
-    // The ancillary title is independent; no second main generation is permitted.
-    let deadline = Instant::now() + TIMEOUT;
-    let status = loop {
-        match fixture.listener.accept() {
-            Ok((socket, _)) => {
-                if let Some((mut socket, request)) = read_request(socket) {
-                    assert!(
-                        is_title(&request),
-                        "headless Ask continued to the model: {request}"
-                    );
-                    process.titles += 1;
-                    assert_eq!(process.titles, 1);
-                    respond_text(&mut socket, "Configuration approval");
-                }
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
-            Err(error) => panic!("accept title: {error}"),
-        }
-        if let Some(status) = process.child.try_wait().unwrap() {
-            break status;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "headless Ask did not terminate: {}",
-            process.diagnostics()
-        );
-        std::thread::sleep(POLL);
-    };
-    assert!(!status.success());
-    assert!(
-        process.diagnostics().contains("approval_required"),
-        "{}",
-        process.diagnostics()
-    );
+    let (mut socket, next) = fixture.accept(&mut process);
+    let output = function_output(&next, "skill01-ask");
+    let diagnostic: serde_json::Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(diagnostic["status"], "permission_rejected");
+    assert!(output.contains("This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action."));
+    assert!(!output.contains("# Configure native oc"));
+    respond_text(&mut socket, "continue without the skill");
+    fixture.respond_title(&mut process);
+    assert!(process.wait().success(), "{}", process.diagnostics());
     assert!(!process.output().contains("# Configure native oc"));
     fixture.assert_no_request();
     let db = rusqlite::Connection::open_with_flags(
@@ -185,16 +160,16 @@ fn skill01_binary_fresh_headless_ask_stops_before_execution_intent() {
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )
     .unwrap();
-    let intents: i64 = db
+    let refusals: i64 = db
         .query_row(
-            "SELECT COUNT(*) FROM tool_operations WHERE session_id=?1 AND name='skill'",
+            "SELECT COUNT(*) FROM tool_operations WHERE session_id=?1 AND name='skill' AND state='denied'",
             [session],
             |row| row.get(0),
         )
         .unwrap();
     assert_eq!(
-        intents, 0,
-        "headless Ask crossed the execution-intent boundary"
+        refusals, 1,
+        "headless Ask must retain exactly one denied refusal"
     );
     assert_sources_unchanged(&fixture, &config, &original);
 }

@@ -48,7 +48,7 @@ fn runtime_protecting<'a>(db: &'a Db, project: &std::path::Path, tool: &str) -> 
     runtime
 }
 
-fn seed(runtime: &Runtime<'_>, db: &Db, turn: &str, prompt: &str) -> (String, String) {
+pub(super) fn seed(runtime: &Runtime<'_>, db: &Db, turn: &str, prompt: &str) -> (String, String) {
     let user = db
         .accept_turn(
             turn,
@@ -100,7 +100,7 @@ fn seed(runtime: &Runtime<'_>, db: &Db, turn: &str, prompt: &str) -> (String, St
 fn wire(runtime: &Runtime<'_>) -> Vec<InputItem> {
     let context = runtime.active_projection("s").unwrap();
     let lane = runtime.primary_lane(&runtime.current.read().unwrap());
-    runtime
+    let mut input = runtime
         .wire_history(
             "s",
             &context.projected,
@@ -110,7 +110,9 @@ fn wire(runtime: &Runtime<'_>) -> Vec<InputItem> {
             lane.agent_digest.as_deref(),
             context.after_seq,
         )
-        .unwrap()
+        .unwrap();
+    crate::attachments::project_images(&mut input, &runtime.db, true, false).unwrap();
+    input
 }
 
 fn has_media(input: &[InputItem], call_id: &str) -> bool {
@@ -151,7 +153,7 @@ fn mcp12_dcp_sql_projection_reindexes_native_facts_and_reopen_keeps_raw_history(
         projected
             .iter()
             .filter(
-                |i| matches!(i,InputItem::McpFunctionCallOutput{call_id,..} if call_id=="media")
+                |i| matches!(i,InputItem::ProjectedFunctionCallOutput{call_id,kind:Some(crate::provider::ProjectedImageKind::Mcp),..} if call_id=="media")
             )
             .count(),
         1

@@ -53,6 +53,13 @@ Approval/document validation is not runtime PASS; examples/config sources stay u
 
 ## Built-ins
 
+Tool arguments remain bounded at 1 MiB per call. Overflow is a failed call with
+its original identity, not an executable partial JSON prefix or a failed turn:
+the parsers drain/reconcile the response, persist that refusal and run other
+admitted calls in the batch once. Independent SSE/generation/protocol caps remain.
+Unknown effects still stop with `tool outcome unknown; retry may duplicate side effects`;
+the generic wording does not authorize replay for shell, execute or MCP.
+
 `read`: потоковое чтение выбранного диапазона строк с path/offset/limit, без whole-file size admission для текста. Сохраняются ≤2000 lines, 65536-byte rendered page, bounded huge-line prefix, UTF-8/CRLF и явный next cursor; binary/NUL проверяется только в consumed prefix, включая пропущенные до offset строки. Artifact содержит выбранную страницу, не весь файл. Image admission остаётся ≤1 MiB, PDF unsupported. Явные пути read/edit/write/apply_patch следуют symlinks; permissions/external_directory — по lexical path, own-data-root exclusion — по разрешённой цели I/O. Recursive search не следует найденным ссылкам. Точный registered artifact сохраняет отдельный authorized read/grep route, не общий доступ к native directory/blob/mutations. Complete search pages stable sorted/paginated; budget-limited subsets честно truncated, без обещания глобального sorted prefix/cursor.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
@@ -180,16 +187,24 @@ path-only success. Keep one successful-read nested AGENTS owner with T45/R10.
 
 `question` is an application-owned form, not permission approval: nonempty typed
 questions/options/multiple/free-form, cancellable wait, real ordered answers, bounded
-operation/session/generation identities. No-consumer headless fails explicitly;
---auto never supplies answers. Dismissal interrupts, stale replies never authorize.
+operation/session/generation identities. For a noninteractive Run origin,
+NoConsumer is an ordinary failed tool result with the TS feedback:
+`This non-interactive run cannot ask the user questions, so the question was cancelled. Continue without an answer; make reasonable assumptions and state them.`
+The model may continue; --auto never supplies answers. Interactive dismissal still
+interrupts, and stale replies never authorize.
 A free-form answer may carry clipboard PNGs (`[Image N]` chips, prompt paste binding)
 only when the issuing model accepts image input; owner re-validates label/caps/PNG and
 the tool result lowers them to `input_image`, persisted as `native_question_results`.
 
-Images never block a later request: raw history keeps every prompt/read/question/MCP
-image, and `attachments::project_media` sends a text note in place of each one the
-selected model (no `image` input) or wire (Chat tool messages) cannot take; compaction
-transcripts never quote image base64. A turn whose own images were dropped warns
+RAW keeps every prompt/read/question/MCP image. Before request byte admission,
+capability/wire projection omits unsupported images; then image-only projection
+replays the TS prefix budget: strictly above 25 MiB, oldest images become notes
+until retained image size is at most 15 MiB. Ordinary inline media counts base64
+characters, tool-result images their full URI length. Text/nonimage files and
+call identity stay intact; bounded history reads load only retained image bodies,
+without relaxing per-record or final request caps. Compaction transcripts never
+quote base64. Removed images are no longer visible; retrieve/reattach rather than
+claiming their contents from memory. A turn whose own unsupported images were dropped warns
 "the selected model cannot see images; sent without them".
 
 `opencode_models` searches the existing catalog without selecting a model;

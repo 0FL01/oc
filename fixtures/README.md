@@ -24,3 +24,6 @@ Files:
 - `responses-wire.json` — OpenProxy Responses wire minimum.
 - `mcp-wire.json` — MCP strict version + `codex_web`/stdio minimum.
 - `dcp-range-schema.json` — DCP range tool schema minimum.
+- `provider-untrusted-tls.pem` — synthetic self-signed P-256 server certificate
+  and public test-only private key, generated locally for HTTP/WebSocket rejection
+  tests; valid 2020–2120 for localhost/127.0.0.1, never trusted by production.

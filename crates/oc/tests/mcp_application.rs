@@ -3491,7 +3491,7 @@ async fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retr
     let failure_deadline = Instant::now() + IO_TIMEOUT;
     assert_eq!(
         observer.failure(failure_deadline).await,
-        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+        CoreError::Application("tool outcome unknown; retry may duplicate side effects".into())
     );
     tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     while !mcp.call_socket_closed.load(Ordering::Relaxed) {
@@ -3579,7 +3579,7 @@ async fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     let failure_deadline = Instant::now() + TIMEOUT;
     assert_eq!(
         observer.failure(failure_deadline).await,
-        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+        CoreError::Application("tool outcome unknown; retry may duplicate side effects".into())
     );
     tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     assert!(
@@ -3948,7 +3948,7 @@ async fn v07b_remote_unverified_result(tool: &str) {
     let failure_deadline = Instant::now() + TIMEOUT;
     assert_eq!(
         observer.failure(failure_deadline).await,
-        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+        CoreError::Application("tool outcome unknown; retry may duplicate side effects".into())
     );
     tui.wait_failed_mcp_tool(&format!("effects_{tool}"), failure_deadline);
     let first_requests = responses
@@ -4166,7 +4166,7 @@ for line in sys.stdin:
     let failure_deadline = Instant::now() + IO_TIMEOUT;
     assert_eq!(
         observer.failure(failure_deadline).await,
-        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+        CoreError::Application("tool outcome unknown; retry may duplicate side effects".into())
     );
     tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     fs::write(fixture.home.join("release"), "now safe").unwrap();
@@ -4504,7 +4504,7 @@ for line in sys.stdin:
     let failure_deadline = Instant::now() + TIMEOUT;
     assert_eq!(
         observer.failure(failure_deadline).await,
-        CoreError::Application("MCP outcome unknown; retry may duplicate side effects".into())
+        CoreError::Application("tool outcome unknown; retry may duplicate side effects".into())
     );
     tui.wait_failed_mcp_tool("stall_ping", failure_deadline);
     let lifecycle = fs::read_to_string(&log).unwrap();

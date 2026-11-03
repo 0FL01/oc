@@ -72,7 +72,7 @@ PTY: `cargo test -p oc2 --test pty_t39 --locked -- --test-threads=1`.
 - Questions: `tools/output.rs::prepare_question`, `tools/question.rs` (answer images), `storage_tool_output.rs`, `application.rs`. Tests: unit `tool21_actual_oversized_question`; target `runtime`, filter `question_lifecycle`.
 - Webfetch: `webfetch.rs`, `webfetch/render.rs`. Tests: unit `webfetch::`, `tools::tests::webfetch`.
 - Code Mode: `codemode.rs`, `codemode/`, `runtime/code_mode.rs`; background owner/recovery: `runtime/code_mode/jobs.rs`, `storage_execute_jobs.rs`. Tests: unit `codemode`, `runtime::code_mode`, `application::authority::tests::execute`, `storage::execute_jobs`; target `runtime`, filter `code_mode`.
-- Prompt recall/images: `storage/prompt_history.rs`, `attachments/prompt.rs`, `storage/user_images.rs`, `runtime/turn.rs`. Tests: unit `storage::prompt_history`, `runtime::user_images`; core unit `prompt_history`.
+- Prompt recall/images: `storage/prompt_history.rs`, `attachments/{prompt,projection,image_budget}.rs`, `storage/user_images.rs`, `storage_dcp_view.rs`, `runtime/turn.rs`. Tests: unit `storage::prompt_history`, `runtime::user_images`, `attachments::image_budget`; core unit `prompt_history`.
 
 ## TUI — `crates/oc-tui/src/`
 

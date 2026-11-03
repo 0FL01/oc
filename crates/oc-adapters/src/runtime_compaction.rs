@@ -18,7 +18,7 @@ struct PreparedCheckpoint {
     selection: Vec<serde_json::Value>,
     identities: BTreeMap<crate::storage::DcpCallKey, crate::storage::DcpCallIdentity>,
     marks: crate::storage::DcpToolProjection,
-    tail: Vec<crate::storage::WireLog>,
+    tail: Vec<crate::storage::WireLogSource>,
     source_bytes: u64,
     omitted_prefix: bool,
     prior_selection_bytes: u64,
@@ -130,18 +130,22 @@ impl PreparedCheckpoint {
     fn projection(
         &self,
         current: Option<&crate::tools::TurnLog>,
+        db: &Db,
     ) -> Result<crate::storage::DcpToolProjection, RuntimeError> {
         let logs = self
             .selection
             .iter()
             .filter(|v| v.get("protected_message").is_none() && v.get("legacy_protected").is_none())
-            .map(|value| crate::storage::WireLog::from(value.to_string()))
-            .chain(self.tail.iter().cloned())
-            .collect::<Vec<_>>();
+            .map(|value| Ok(crate::storage::WireLog::from(value.to_string())))
+            .chain(
+                self.tail
+                    .iter()
+                    .filter_map(|source| source.load(db).transpose()),
+            );
         Ok(remap_projection(
             &self.identities,
             &self.marks,
-            super::context::dcp_call_identities(&logs, current)?,
+            super::context::dcp_call_identities(logs, current)?,
         ))
     }
 }
@@ -299,6 +303,7 @@ impl Runtime<'_> {
         provider: &str,
         binding: &oc_core::queries::WireProvenance,
         profile: &oc_core::queries::RequestProfile,
+        vision: bool,
     ) -> Result<Option<(i64, String)>, RuntimeError> {
         let minimum = self.db.compaction_boundary(session, after)?;
         if minimum.is_none() {
@@ -355,6 +360,12 @@ impl Runtime<'_> {
             };
             let marks = self.db.dcp_tool_projection_for_input(session, &tail)?;
             apply_dcp_projection(&mut tail, &marks);
+            crate::attachments::project_images(
+                &mut tail,
+                &self.db,
+                vision,
+                binding.protocol == oc_core::queries::NativeProtocol::Chat,
+            )?;
             if usage_tokens(&tail.iter().collect::<Vec<_>>())?
                 > published.config.compaction.keep_tokens
             {
@@ -726,7 +737,7 @@ impl Runtime<'_> {
                     let (segment, hot) = log
                         .prepare_closed_segment(*counts, working, *notice_seq)
                         .map_err(|_| RuntimeError::Storage)?;
-                    let projection = prepared.projection(Some(&hot))?;
+                    let projection = prepared.projection(Some(&hot), &self.db)?;
                     let progress = prepared.receipt(&snapshot, Some(&hot))?;
                     let retire = prepared.identities.keys().cloned().collect::<Vec<_>>();
                     if snapshot.reason != CompactionReason::Manual
@@ -772,7 +783,7 @@ impl Runtime<'_> {
                             &prepared.removed,
                             &prepared.selection,
                             Some((
-                                &prepared.projection(None)?,
+                                &prepared.projection(None, &self.db)?,
                                 &progress,
                                 &prepared.identities.keys().cloned().collect::<Vec<_>>(),
                             )),
@@ -842,8 +853,11 @@ impl Runtime<'_> {
         )?;
         let logs = self.projected_wire_logs(session, after, &context.projected, &context.blocks)?;
         let move_epoch = self.db.session_move_epoch(session)?;
-        for raw in logs.iter().rev() {
-            let value = serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
+        for source in logs.iter().rev() {
+            let Some(raw) = source.load(&self.db)? else {
+                continue;
+            };
+            let value = serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
             if log.user_message.is_none()
                 || (move_epoch != 0
@@ -940,7 +954,7 @@ impl Runtime<'_> {
         )?;
         let mut tail_logs = Vec::new();
         let mut omitted_prefix = false;
-        let (boundary, history, removed) = if let Some((log, counts)) = current {
+        let (boundary, mut history, removed) = if let Some((log, counts)) = current {
             let mut prefix = log.clone();
             prefix.input.truncate(counts[0]);
             prefix.requests.truncate(counts[1]);
@@ -1061,7 +1075,11 @@ impl Runtime<'_> {
             let marks = remap_projection(
                 &identities,
                 &source_marks,
-                super::context::dcp_call_identities(&logs, None)?,
+                super::context::dcp_call_identities(
+                    logs.iter()
+                        .filter_map(|source| source.load(&self.db).transpose()),
+                    None,
+                )?,
             );
             apply_dcp_projection(&mut history, &marks);
             history.extend(prefix.input_for_bound(
@@ -1095,6 +1113,7 @@ impl Runtime<'_> {
                 &catalog.provider,
                 &binding,
                 &profile,
+                crate::models::capabilities(&selection.entry).supports_image(),
             )?
             else {
                 return Ok(None);
@@ -1230,7 +1249,12 @@ impl Runtime<'_> {
             let marks = remap_projection(
                 &identities,
                 &source_marks,
-                super::context::dcp_call_identities(&source_logs, None)?,
+                super::context::dcp_call_identities(
+                    source_logs
+                        .iter()
+                        .filter_map(|source| source.load(&self.db).transpose()),
+                    None,
+                )?,
             );
             let tail = self.active_projection_range(
                 session,
@@ -1250,6 +1274,12 @@ impl Runtime<'_> {
                 cap: ACTIVE_CONTEXT_BYTES_CAP,
             });
         }
+        crate::attachments::project_images(
+            &mut history,
+            &self.db,
+            crate::models::capabilities(&selection.entry).supports_image(),
+            binding.protocol == oc_core::queries::NativeProtocol::Chat,
+        )?;
         let source_bytes = serialized_size(&history)?;
         if cancel.load(Ordering::Relaxed) {
             return Err(RuntimeError::Provider);
@@ -1343,6 +1373,8 @@ impl Runtime<'_> {
                 InputItem::McpFunctionCallOutput { call_id, output } if output.has_media() => {
                     Some((call_id, output.display()))
                 }
+                InputItem::ProjectedFunctionCallOutput { call_id, display, kind:Some(_), output, .. }
+                    if output.iter().any(|part| matches!(part, crate::provider::ProjectedToolPart::Ready(value) if matches!(value["type"].as_str(),Some("input_image"|"input_file")))) => Some((call_id, display.as_str())),
                 InputItem::ReadFunctionCallOutput { call_id, output } => {
                     Some((call_id, output.display()))
                 }

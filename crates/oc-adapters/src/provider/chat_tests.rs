@@ -20,16 +20,24 @@ fn fragmented_chat_uses_retained_state_not_wire_volume() {
     }
 
     let mut parser = SseParser::chat(&ChatCompat::default());
-    let frame = serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call","function":{"name":"read","arguments":"x".repeat(super::super::ARGUMENT_BYTE_CAP)}}]}}]});
-    feed(&mut parser, &[frame]).unwrap();
-    assert_eq!(
-        feed(
+    let prefix = format!("{{}}{}", " ".repeat(super::super::ARGUMENT_BYTE_CAP - 2));
+    let frame = serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call","function":{"name":"read","arguments":prefix}}]}}]});
+    let mut items = feed(&mut parser, &[frame]).unwrap();
+    items.extend(feed(
             &mut parser,
             &[
-                serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"x"}}]}}]})
+                serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":" "}}]}}]}),
+                serde_json::json!({"choices":[{"delta":{},"finish_reason":"tool_calls"}]})
             ]
-        ),
-        Err(ProviderError::ByteLimit("arguments"))
+        ).expect("overflow fails only this call"));
+    items.extend(parser.push(b"data: [DONE]\n\n").unwrap());
+    let generation = crate::provider::collect_generation(parser, items);
+    assert!(
+        matches!(&crate::tools::assemble_calls(&generation.items).unwrap()[0], crate::tools::Assembled::Failed(failure) if failure.id == "call" && failure.name == "read")
+    );
+    assert!(
+        generation.output[0]["arguments"].as_str().unwrap().len()
+            <= super::super::ARGUMENT_BYTE_CAP
     );
 }
 

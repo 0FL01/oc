@@ -247,46 +247,59 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
 }
 
 #[test]
-fn vis37_actual_headless_auto_surfaces_question_required_without_answer() {
-    for auto_flag in ["--auto", "--yolo", "--dangerously-skip-permissions"] {
-        headless_question_required(auto_flag);
+fn vis37_actual_headless_question_feedback_continues_without_answer() {
+    for auto_flag in [
+        None,
+        Some("--auto"),
+        Some("--yolo"),
+        Some("--dangerously-skip-permissions"),
+    ] {
+        headless_question_feedback(auto_flag);
     }
 }
 
-fn headless_question_required(auto_flag: &str) {
+fn headless_question_feedback(auto_flag: Option<&str>) {
     let fixture = Fixture::new();
     let project = fixture.root.path().join("project");
     seed_session(&fixture.data_dir(), &project, SESSION, 0);
     fixture.s07_continue.store(true, Ordering::Relaxed);
     let mut command = fixture.command();
     command
-        .args(["run", PROMPT, auto_flag, "--session", SESSION])
+        .args(["run", PROMPT, "--session", SESSION])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if let Some(flag) = auto_flag {
+        command.arg(flag);
+    }
     let mut child = command.spawn().unwrap();
     let began = Instant::now();
     while child.try_wait().unwrap().is_none() {
         if began.elapsed() >= DEADLINE {
             let _ = child.kill();
             let _ = child.wait();
-            panic!("headless QuestionRequired did not terminate");
+            panic!("headless question feedback did not terminate");
         }
         std::thread::sleep(POLL);
     }
     let output = child.wait_with_output().unwrap();
-    assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("question_required (retryable=false)"),
-        "headless stderr: {stderr}"
+    assert!(output.status.success(), "headless stderr: {stderr}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains(DONE));
+    let requests = fixture.wait_requests(2);
+    assert_eq!(requests.len(), 2);
+    let outcome = requests[1]["input"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["type"] == "function_call_output")
+        .unwrap();
+    let diagnostic: serde_json::Value =
+        serde_json::from_str(outcome["output"].as_str().unwrap()).unwrap();
+    assert_eq!(diagnostic["status"], "failed");
+    assert_eq!(
+        diagnostic["error"]["message"],
+        "This non-interactive run cannot ask the user questions, so the question was cancelled. Continue without an answer; make reasonable assumptions and state them."
     );
-    assert!(
-        stderr.contains(
-            "question: use the interactive TUI to answer; --auto only accepts permissions"
-        )
-    );
-    let requests = fixture.wait_requests(1);
-    assert_eq!(requests.len(), 1);
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     let operations = db.list_tool_ops(SESSION).unwrap();
     assert_eq!(operations.len(), 1);
@@ -297,6 +310,6 @@ fn headless_question_required(auto_flag: &str) {
             .output
             .as_deref()
             .unwrap()
-            .contains("question required:")
+            .contains("This non-interactive run cannot ask the user questions, so the question was cancelled. Continue without an answer; make reasonable assumptions and state them.")
     );
 }

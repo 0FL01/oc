@@ -679,8 +679,9 @@ owner-approved T50 edit/write preview supplement (2026-10-01): U91/U92.
    working Settings → Permissions, /settings/Open settings/filtered palette entry,
    persistence/error/reload и CLI --auto precedence с donor compatibility aliases.
    Autoaccept once-consumer для already-pending/new root/child asks, не Deny/Always;
-   truthful capability/auto marker. Headless без consumer ApprovalRequired/nonzero;
-   donor run --auto entry требует real explicit once-consumer, не unsupported stub.
+   truthful capability/auto marker. W3 supersedes headless ApprovalRequired/nonzero:
+   Run всегда имеет consumer, без --auto отклоняет owned ancestry с TS feedback
+   для continuation; --auto сохраняет explicit once-consumer, не unsupported stub.
 7. **Shared qualification.** Owner lifecycle/grants/recovery integration + real paired
    PTY full styled-cell/PNG + independently verified effects. Once/reask, Always/project
    identity/restart/isolation, Deny/mixed resources, no-save, root reject/child feedback,
@@ -734,8 +735,9 @@ RECON не нашёл hidden aliases в native CLI; mode transitions и full vis
 `session.permissions=prompt|autoaccept` и Settings сохраняют preference. CLI auto
 process-only, не пишет эту preference, имеет приоритет даже после Settings → Prompt
 и reload. Без CLI auto следующий restart использует сохранённую preference.
-Headless Ask без explicit CLI consumer даёт actionable ApprovalRequired/nonzero;
-config autoaccept alone не включает его. Auto отвечает Once только eligible Ask,
+W3 supersedes terminal headless Ask: Run без --auto регистрирует rejecting
+feedback-consumer только для своей сессии/потомков; чужие asks не трогает.
+Config autoaccept alone не включает Once. Auto отвечает Once только eligible Ask,
 включая already-pending/new owned root/child, не Deny/Always и не ответы `question`.
 Plan/parent-child authority, parsed resource/path/preimage rechecks, Location/generation,
 cancel/shutdown и no unknown-effect replay не меняются. Same-run owned foreground/
@@ -804,7 +806,8 @@ visual qualification. Pinned sources: U31–U33 в `SOURCES.json`.
    реальный model call → application-owned pending question → typed PTY answer/cancel
    → durable outcome; ordered answers видны в следующем provider request. Bounded
    operation/session/generation-scoped pending/replies, stale/duplicate/foreign refusal,
-   no DB transaction через wait, explicit headless failure и restart graph — TOOL15.
+   no DB transaction через wait, W3 Run/NoConsumer failed tool output с TS feedback
+   и continuation (не выдуманный ответ), interactive cancel/restart graph — TOOL15.
    Effective Deny и General/Explore restrictions сохраняются; --auto/autoaccept не
    отвечает за пользователя. Не добавлять T44 depends_on all T50 или обратную связь;
    остальные T44 slices независимы, один active task через progress owner.

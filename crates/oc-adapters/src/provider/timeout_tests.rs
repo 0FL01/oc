@@ -3,6 +3,90 @@ use crate::config::{ProviderEntry, ProviderTimeout, provider_wire};
 use serde_json::json;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
+pub(super) async fn untrusted_tls_peer() -> (String, tokio::task::JoinHandle<()>) {
+    use tokio_rustls::rustls::{
+        ServerConfig,
+        pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
+    };
+    let pem = include_bytes!("../../../../fixtures/provider-untrusted-tls.pem");
+    let tls = ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(
+            vec![CertificateDer::from_pem_slice(pem).unwrap()],
+            PrivateKeyDer::from_pem_slice(pem).unwrap(),
+        )
+        .unwrap();
+    let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(tls));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("https://{}/v1", listener.local_addr().unwrap());
+    let peer = tokio::spawn(async move {
+        let (socket, _) = tokio::time::timeout(Duration::from_secs(2), listener.accept())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            tokio::time::timeout(Duration::from_secs(2), acceptor.accept(socket))
+                .await
+                .unwrap()
+                .is_err(),
+            "the synthetic self-signed certificate must remain untrusted"
+        );
+    });
+    (base, peer)
+}
+
+#[tokio::test]
+async fn w3_http_certificate_failure_is_nonretryable() {
+    let (base, peer) = untrusted_tls_peer().await;
+    let config = ResponsesConfig {
+        base_url: base,
+        api_key: "synthetic".into(),
+        timeout: None,
+        header_timeout_ms: Some(1000),
+        chunk_timeout_ms: Some(1000),
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: Default::default(),
+        cache: CacheMode::None,
+        wire: Default::default(),
+    };
+    let error = stream_generation(
+        &config,
+        "m",
+        None,
+        "hello",
+        &[],
+        &AtomicBool::new(false),
+        None,
+    )
+    .await
+    .unwrap_err();
+    peer.await.unwrap();
+    assert!(
+        !matches!(&error, ProviderError::Request(failure) if failure.retry_eligible()),
+        "certificate refusal is not a transient outage: {error:?}"
+    );
+    assert_eq!(error.to_string(), "TLS certificate verification failed");
+}
+
+#[test]
+fn w3_certificate_chain_uses_types_not_eof_or_reset_text() {
+    let certificate = std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        rustls::Error::InvalidCertificate(rustls::CertificateError::UnknownIssuer),
+    );
+    assert!(invalid_certificate(&certificate));
+    for kind in [
+        std::io::ErrorKind::UnexpectedEof,
+        std::io::ErrorKind::ConnectionReset,
+    ] {
+        assert!(!invalid_certificate(&std::io::Error::new(
+            kind,
+            "TLS certificate verification failed"
+        )));
+    }
+}
+
 #[tokio::test]
 async fn cfg16_pre_send_network_and_deadline_reach_retry_without_losing_authority_errors() {
     let cancel = AtomicBool::new(false);

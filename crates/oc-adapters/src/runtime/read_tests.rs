@@ -1,6 +1,104 @@
 //! Local-source graph durability through the shared DCP/fork/compaction owners.
 use super::*;
 
+#[tokio::test]
+async fn w3_read_images_keep_current_record_bounded_across_projected_batches() {
+    use image::ImageEncoder as _;
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let mut state = 3u32;
+    let pixels: Vec<u8> = (0..512 * 384 * 4)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            state as u8
+        })
+        .collect();
+    let mut png = Vec::new();
+    image::codecs::png::PngEncoder::new_with_quality(
+        &mut png,
+        image::codecs::png::CompressionType::Fast,
+        image::codecs::png::FilterType::NoFilter,
+    )
+    .write_image(&pixels, 512, 384, image::ExtendedColorType::Rgba8)
+    .unwrap();
+    assert!(png.len() > 750_000 && png.len() <= 1024 * 1024);
+    for index in 0..60 {
+        std::fs::write(project.path().join(format!("image{index}.png")), &png).unwrap();
+    }
+    let db = Db::open(data.path()).unwrap();
+    let rt = runtime(&db, project.path());
+    rt.create_session("s").unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "fixture".into(),
+        headers: BTreeMap::new(),
+        cache: crate::provider::CacheMode::Auto,
+        wire: Default::default(),
+        timeout: Some(false),
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(5000),
+        connect_timeout: Duration::from_secs(5),
+        allow_private: true,
+    };
+    let catalog = ModelCatalog { provider: "fixture".into(), models: [("m".into(),
+        json!({"modalities":{"input":["text","image"]},"limit":{"context":1_000_000_000,"output":4096}}))].into() };
+    let peer = tokio::spawn(async move {
+        for round in 0..=6 {
+            let (mut socket, _) =
+                crate::runtime::tests::binding_replay_tests::request(&listener).await;
+            let output = if round < 6 {
+                (round * 10..round * 10 + 10).map(|index| json!({
+                    "type":"function_call","id":format!("item{index}"),"call_id":format!("read{index}"),
+                    "name":"read","arguments":json!({"path":format!("image{index}.png")}).to_string()
+                })).collect::<Vec<_>>()
+            } else {
+                vec![
+                    json!({"type":"message","role":"assistant","content":[{"type":"output_text","text":"DONE"}]}),
+                ]
+            };
+            let body = format!(
+                "data: {}\n\n",
+                json!({"type":"response.completed","response":{"status":"completed","output":output,"usage":{"input_tokens":1,"output_tokens":1}}})
+            );
+            socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        }
+    });
+    let cancel = AtomicBool::new(false);
+    let report = rt
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "Read the admitted images in batches".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 4096,
+            provider,
+            cancel: &cancel,
+        })
+        .await
+        .unwrap();
+    peer.await.unwrap();
+    assert_eq!(
+        report.status,
+        TurnStatus::Completed,
+        "{:?}",
+        report.diagnostic
+    );
+    assert_eq!(report.calls.len(), 60, "no call was replayed");
+    assert!(report.calls.iter().any(|call| call.state == "failed"));
+    let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+    assert!(
+        raw.len() <= ACTIVE_CONTEXT_BYTES_CAP,
+        "retained record grew to {} bytes",
+        raw.len()
+    );
+    assert!(!wire(&rt).is_empty());
+}
+
 #[test]
 fn tool16_stored_read_facts_require_bounded_complete_pixel_validation() {
     use base64::Engine as _;
@@ -242,7 +340,12 @@ fn tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change() {
     let (_, old_bytes) = wire(&rt)
         .iter()
         .find_map(|i| match i {
-            InputItem::ReadFunctionCallOutput { call_id, output } if call_id == "read-media" => {
+            InputItem::ProjectedFunctionCallOutput {
+                call_id,
+                output,
+                kind: Some(crate::provider::ProjectedImageKind::Read),
+                ..
+            } if call_id == "read-media" => {
                 Some((call_id.clone(), serde_json::to_value(output).unwrap()))
             }
             _ => None,
@@ -260,9 +363,12 @@ fn tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change() {
     let actual = projected
         .iter()
         .find_map(|i| match i {
-            InputItem::ReadFunctionCallOutput { call_id, output } if call_id == "read-media" => {
-                Some(serde_json::to_value(output).unwrap())
-            }
+            InputItem::ProjectedFunctionCallOutput {
+                call_id,
+                output,
+                kind: Some(crate::provider::ProjectedImageKind::Read),
+                ..
+            } if call_id == "read-media" => Some(serde_json::to_value(output).unwrap()),
             _ => None,
         })
         .unwrap();
@@ -286,7 +392,7 @@ fn tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change() {
     assert_eq!(db.turn_result("read-media").unwrap().1.unwrap(), original);
     let fork_context = rt.active_projection(&fork).unwrap();
     let lane = rt.primary_lane(&rt.current.read().unwrap());
-    let fork_wire = rt
+    let mut fork_wire = rt
         .wire_history(
             &fork,
             &fork_context.projected,
@@ -297,10 +403,11 @@ fn tool16_local_graph_dcp_fork_restart_preserves_bytes_after_source_change() {
             fork_context.after_seq,
         )
         .unwrap();
+    crate::attachments::project_images(&mut fork_wire, &rt.db, true, false).unwrap();
     assert!(
         fork_wire
             .iter()
-            .any(|i| matches!(i, InputItem::ReadFunctionCallOutput { .. }))
+            .any(|i| matches!(i, InputItem::ProjectedFunctionCallOutput { kind:Some(crate::provider::ProjectedImageKind::Read), output, .. } if serde_json::to_value(output).unwrap() == old_bytes))
     );
 }
 

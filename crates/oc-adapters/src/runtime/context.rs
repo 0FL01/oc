@@ -382,22 +382,13 @@ pub(crate) fn mark_running_task(input: &mut Vec<InputItem>, log: &TurnLog) {
     }
 }
 
-use crate::storage::WireLog;
-
-/// Ordering keys of one wire log; the log body is skipped, not materialized.
-#[derive(serde::Deserialize)]
-struct WireLogKeys<'a> {
-    #[serde(borrow, default)]
-    _dcp_block: Option<std::borrow::Cow<'a, str>>,
-    #[serde(borrow, default)]
-    user_message: Option<std::borrow::Cow<'a, str>>,
-}
+use crate::storage::{WireLog, WireLogSource};
 
 /// The existing durable journal establishes immutable call occurrence identity.
 /// Local occurrence counts include omitted pending calls, so window cuts cannot
 /// renumber coverage. Legacy compression outcomes are never backfilled.
 pub(crate) fn dcp_call_identities(
-    logs: &[impl AsRef<str>],
+    logs: impl IntoIterator<Item = Result<WireLog, StorageError>>,
     current: Option<&TurnLog>,
 ) -> Result<BTreeMap<crate::storage::DcpCallKey, crate::storage::DcpCallIdentity>, RuntimeError> {
     let mut result = BTreeMap::new();
@@ -440,6 +431,7 @@ pub(crate) fn dcp_call_identities(
         }
     };
     for raw in logs {
+        let raw = raw?;
         let value = serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
         let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
         if let Some(working) = &log.working {
@@ -497,6 +489,16 @@ pub(crate) fn apply_dcp_projection(
             *occurrence += 1;
             !projection.hidden.contains(&key)
         }
+        InputItem::ProjectedFunctionCallOutput {
+            call_id,
+            kind: Some(_),
+            ..
+        } => {
+            let occurrence = outputs.entry(call_id.clone()).or_default();
+            let key = (call_id.clone(), *occurrence);
+            *occurrence += 1;
+            !projection.hidden.contains(&key)
+        }
         _ => true,
     });
 }
@@ -515,7 +517,8 @@ pub(crate) fn dcp_contents(input: &[InputItem]) -> Vec<&str> {
                         | crate::provider::InputContent::OutputText { text } => {
                             content.push(text.as_str())
                         }
-                        crate::provider::InputContent::InputImage { .. } => {}
+                        crate::provider::InputContent::InputImage { .. }
+                        | crate::provider::InputContent::DeferredImage { .. } => {}
                     }
                 }
             }
@@ -525,6 +528,9 @@ pub(crate) fn dcp_contents(input: &[InputItem]) -> Vec<&str> {
             }
             InputItem::ReadFunctionCallOutput { output, .. } => content.push(output.display()),
             InputItem::QuestionFunctionCallOutput { output, .. } => content.push(output.display()),
+            InputItem::ProjectedFunctionCallOutput { texts, .. } => {
+                content.extend(texts.iter().map(String::as_str))
+            }
             InputItem::ProviderOutput(value) => {
                 if value["type"] == "function_call" {
                     if let Some(arguments) = value["arguments"].as_str() {
@@ -629,6 +635,19 @@ pub(crate) fn dcp_call_contents(
                 *occurrence += 1;
                 if !projection.hidden.contains(&key) {
                     values.entry(key).or_default().1 = output.display().into();
+                }
+            }
+            InputItem::ProjectedFunctionCallOutput {
+                call_id,
+                texts,
+                kind: Some(_),
+                ..
+            } => {
+                let occurrence = outputs.entry(call_id.clone()).or_default();
+                let key = (call_id.clone(), *occurrence);
+                *occurrence += 1;
+                if !projection.hidden.contains(&key) {
+                    values.entry(key).or_default().1 = texts.join("\n");
                 }
             }
             _ => {}
@@ -782,7 +801,10 @@ impl<'a> Runtime<'a> {
         let mut spans_by_user = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
         let mut ignored_users = std::collections::BTreeSet::new();
-        for raw in logs {
+        for source in logs {
+            let Some(raw) = source.load(&self.db)? else {
+                continue;
+            };
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
             // Protected HOT facts in compression/checkpoint summaries must not
@@ -856,8 +878,8 @@ impl<'a> Runtime<'a> {
                     .as_array()
                     .ok_or(RuntimeError::Storage)?
                     .iter()
-                    .map(serde_json::Value::to_string)
-                    .collect::<Vec<_>>();
+                    .map(|value| WireLogSource::captured(value.to_string().into()))
+                    .collect::<Result<Vec<_>, _>>()?;
                 hot["logs"] = self
                     .select_history_facts(session, &logs, config, None)?
                     .into();
@@ -1001,7 +1023,7 @@ impl<'a> Runtime<'a> {
     pub(super) fn select_history_facts(
         &self,
         session: &str,
-        logs: &[impl AsRef<str>],
+        logs: &[WireLogSource],
         config: &DcpConfig,
         date: Option<&InputItem>,
     ) -> Result<Vec<serde_json::Value>, RuntimeError> {
@@ -1011,7 +1033,10 @@ impl<'a> Runtime<'a> {
         let mut date_log = None;
         if let Some(date) = date {
             let move_epoch = self.db.session_move_epoch(session)?;
-            for (index, raw) in logs.iter().enumerate().rev() {
+            for (index, source) in logs.iter().enumerate().rev() {
+                let Some(raw) = source.load(&self.db)? else {
+                    continue;
+                };
                 let value: serde_json::Value =
                     serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
                 let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
@@ -1028,7 +1053,10 @@ impl<'a> Runtime<'a> {
         }
         let mut result = Vec::new();
         let mut bytes = 0usize;
-        for (index, raw) in logs.iter().enumerate() {
+        for (index, source) in logs.iter().enumerate() {
+            let Some(raw) = source.load(&self.db)? else {
+                continue;
+            };
             let value: serde_json::Value =
                 serde_json::from_str(raw.as_ref()).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
@@ -1059,11 +1087,10 @@ impl<'a> Runtime<'a> {
         after: i64,
         projected: &[(String, String, String)],
         blocks: &[crate::dcp::CompressionBlock],
-    ) -> Result<Vec<WireLog>, RuntimeError> {
+    ) -> Result<Vec<WireLogSource>, RuntimeError> {
         let mut logs = self
             .db
-            .presentation_wire_logs(session, after, projected, blocks)?
-            .ok_or(RuntimeError::Storage)?;
+            .presentation_wire_log_sources(session, after, projected, blocks)?;
         // First projected position of each identity: one map, not a scan per log.
         let mut positions = std::collections::HashMap::with_capacity(projected.len());
         for (index, row) in projected.iter().enumerate() {
@@ -1077,7 +1104,7 @@ impl<'a> Runtime<'a> {
                 for value in hot["logs"].as_array().ok_or(RuntimeError::Storage)? {
                     let mut value = value.clone();
                     value["_dcp_block"] = block.id.clone().into();
-                    logs.push(value.to_string().into());
+                    logs.push(WireLogSource::captured(value.to_string().into())?);
                 }
             }
         }
@@ -1091,29 +1118,23 @@ impl<'a> Runtime<'a> {
                     continue;
                 }
                 value["_dcp_block"] = "session-checkpoint".into();
-                logs.push(value.to_string().into());
+                logs.push(WireLogSource::captured(value.to_string().into())?);
             }
         }
         let mut keyed = Vec::with_capacity(logs.len());
-        let mut bytes = 0usize;
-        for raw in logs {
-            bytes = bytes.saturating_add(raw.len());
-            if bytes > ACTIVE_CONTEXT_BYTES_CAP {
+        let mut coordinate_bytes = 0usize;
+        for source in logs {
+            coordinate_bytes = coordinate_bytes.saturating_add(source.coordinate_bytes());
+            if coordinate_bytes > ACTIVE_CONTEXT_BYTES_CAP {
                 return Err(RuntimeError::ContextOverflow {
-                    bytes: bytes as u64,
+                    bytes: coordinate_bytes as u64,
                     cap: ACTIVE_CONTEXT_BYTES_CAP,
                 });
             }
-            let head: WireLogKeys =
-                serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
-            let key = head
-                ._dcp_block
-                .as_deref()
-                .or(head.user_message.as_deref())
-                .ok_or(RuntimeError::Storage)?;
+            let key = source.key.as_deref().ok_or(RuntimeError::Storage)?;
             let position = *positions.get(key).ok_or(RuntimeError::Storage)?;
-            let anchor = head.user_message.map(std::borrow::Cow::into_owned);
-            keyed.push((position, anchor, raw));
+            let anchor = source.anchor.clone();
+            keyed.push((position, anchor, source));
         }
         // Anchor sequences in one batched read rather than one query per log.
         let seqs = self.db.conversation_message_seqs(
@@ -1551,7 +1572,12 @@ impl<'a> Runtime<'a> {
             &prior(before_rows),
             &context.blocks,
         )?;
-        let identities = dcp_call_identities(&before_logs, current)?;
+        let identities = dcp_call_identities(
+            before_logs
+                .iter()
+                .filter_map(|source| source.load(&self.db).transpose()),
+            current,
+        )?;
         let errored = self.db.dcp_errored_call_keys(session, &identities)?;
         let live_calls = self.db.live_execute_call_ids(session)?;
         let live = identities
@@ -1583,18 +1609,14 @@ impl<'a> Runtime<'a> {
                 .message_seq(session, &block.end_msg)?
                 .ok_or(RuntimeError::Storage)?;
             let mut covered = Vec::new();
-            for raw in &before_logs {
-                let value: serde_json::Value =
-                    serde_json::from_str(raw).map_err(|_| RuntimeError::Storage)?;
-                let anchor = value["user_message"]
-                    .as_str()
-                    .ok_or(RuntimeError::Storage)?;
+            for source in &before_logs {
+                let anchor = source.anchor.as_deref().ok_or(RuntimeError::Storage)?;
                 if self
                     .db
                     .message_seq(session, anchor)?
                     .is_some_and(|seq| start <= seq && seq <= end)
                 {
-                    covered.push(raw.clone());
+                    covered.push(source.clone());
                 }
             }
             if let Some(hot) = &mut block.hot {
@@ -1648,7 +1670,12 @@ impl<'a> Runtime<'a> {
             .collect::<Vec<_>>();
         let after_logs =
             self.projected_wire_logs(session, context.after_seq, &prior(&after_rows), &candidate)?;
-        let after_identities = dcp_call_identities(&after_logs, current)?;
+        let after_identities = dcp_call_identities(
+            after_logs
+                .iter()
+                .filter_map(|source| source.load(&self.db).transpose()),
+            current,
+        )?;
         let after_keys = after_identities
             .into_iter()
             .map(|(key, id)| (id, key))
@@ -1699,9 +1726,14 @@ impl<'a> Runtime<'a> {
         let bytes = |rows: &[(String, String, String)],
                      blocks: &[crate::dcp::CompressionBlock],
                      wire: &[InputItem]| {
-            serde_json::to_vec(&(dcp_config_input(rows, blocks, config, available), wire))
-                .map(|raw| raw.len())
-                .map_err(|_| RuntimeError::Storage)
+            let mut wire = wire.to_vec();
+            let image_bytes = crate::attachments::image_measurement(&mut wire)?;
+            let size = super::compaction::serialized_size(&(
+                dcp_config_input(rows, blocks, config, available),
+                wire,
+            ))?
+            .saturating_add(image_bytes);
+            usize::try_from(size).map_err(|_| RuntimeError::Storage)
         };
         plan.before_bytes = bytes(before_rows, &context.blocks, &before_wire)?;
         plan.after_bytes = bytes(&after_rows, &candidate, &after_wire)?;
@@ -1886,7 +1918,11 @@ impl<'a> Runtime<'a> {
         let moved = move_epoch != 0;
         let instruction_facts = self.db.instruction_view(session)?.1;
         let logs = self.projected_wire_logs(session, after_seq, projected, blocks)?;
-        for raw in logs {
+        let mut metadata_bytes = 0u64;
+        for source in logs {
+            let Some(raw) = source.load(&self.db)? else {
+                continue;
+            };
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
@@ -1944,6 +1980,17 @@ impl<'a> Runtime<'a> {
                     _ => true,
                 })
                 .collect::<Vec<_>>();
+            crate::attachments::defer_images(&mut input, Arc::new(source))?;
+            let mut metadata = input.clone();
+            crate::attachments::image_measurement(&mut metadata)?;
+            metadata_bytes =
+                metadata_bytes.saturating_add(super::compaction::serialized_size(&metadata)?);
+            if metadata_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
+                return Err(RuntimeError::ContextOverflow {
+                    bytes: metadata_bytes,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                });
+            }
             // Legacy command records without a usable prepared prompt retain
             // their immutable public invocation, never today's expansion.
             if block_id.is_none()
@@ -2169,7 +2216,11 @@ impl<'a> Runtime<'a> {
         let logs = self.projected_wire_logs(session, after_seq, projected, blocks)?;
         let mut wire = Vec::new();
         let mut represented = std::collections::BTreeSet::new();
-        for raw in logs {
+        let mut metadata_bytes = 0u64;
+        for source in logs {
+            let Some(raw) = source.load(&self.db)? else {
+                continue;
+            };
             let value: serde_json::Value =
                 serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?;
             let log = TurnLog::from_json(&value).map_err(|_| RuntimeError::Storage)?;
@@ -2179,7 +2230,18 @@ impl<'a> Runtime<'a> {
             if let Some(assistant) = value["assistant_message"].as_str() {
                 represented.insert(assistant.into());
             }
-            let input = log.input_for(&log.model, &log.provider);
+            let mut input = log.input_for(&log.model, &log.provider);
+            crate::attachments::defer_images(&mut input, Arc::new(source))?;
+            let mut metadata = input.clone();
+            crate::attachments::image_measurement(&mut metadata)?;
+            metadata_bytes =
+                metadata_bytes.saturating_add(super::compaction::serialized_size(&metadata)?);
+            if metadata_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
+                return Err(RuntimeError::ContextOverflow {
+                    bytes: metadata_bytes,
+                    cap: ACTIVE_CONTEXT_BYTES_CAP,
+                });
+            }
             let answered = input
                 .iter()
                 .filter_map(|i| i.call_output().map(|(id, _)| id.to_owned()))

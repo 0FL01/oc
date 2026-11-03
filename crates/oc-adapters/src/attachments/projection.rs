@@ -1,6 +1,6 @@
 //! Per-request media projection for the selected model. Raw history keeps
 //! every image; a model or wire that cannot take one receives a text note.
-use crate::provider::{InputContent, InputItem};
+use crate::provider::{InputContent, InputItem, ProjectedToolPart};
 
 /// What the model reads in place of an image it cannot receive.
 pub(crate) const IMAGE_OMITTED: &str =
@@ -13,11 +13,26 @@ fn omits(item: &InputItem, vision: bool, chat: bool) -> usize {
     match item {
         InputItem::Message { content, .. } if !vision => content
             .iter()
-            .filter(|part| matches!(part, InputContent::InputImage { .. }))
+            .filter(|part| {
+                matches!(
+                    part,
+                    InputContent::InputImage { .. } | InputContent::DeferredImage { .. }
+                )
+            })
             .count(),
         InputItem::ReadFunctionCallOutput { .. } if tool => 1,
         InputItem::QuestionFunctionCallOutput { output, .. } if tool => output.media().0,
         InputItem::McpFunctionCallOutput { output, .. } if tool && output.has_media() => 1,
+        InputItem::ProjectedFunctionCallOutput { output, .. } if tool => output
+            .iter()
+            .filter(|part| match part {
+                ProjectedToolPart::DeferredImage { .. } => true,
+                ProjectedToolPart::Ready(value) => !matches!(
+                    value["type"].as_str(),
+                    Some("input_text" | "output_text" | "text")
+                ),
+            })
+            .count(),
         InputItem::ProviderOutput(value) if tool && value["type"] == "function_call_output" => {
             value["output"].as_array().map_or(0, |parts| {
                 parts
@@ -63,9 +78,11 @@ pub(crate) fn project_media(input: &mut [InputItem], vision: bool, chat: bool) {
                 content: content
                     .iter()
                     .map(|part| match part {
-                        InputContent::InputImage { .. } => InputContent::InputText {
-                            text: IMAGE_OMITTED.into(),
-                        },
+                        InputContent::InputImage { .. } | InputContent::DeferredImage { .. } => {
+                            InputContent::InputText {
+                                text: IMAGE_OMITTED.into(),
+                            }
+                        }
                         other => other.clone(),
                     })
                     .collect(),
@@ -78,6 +95,28 @@ pub(crate) fn project_media(input: &mut [InputItem], vision: bool, chat: bool) {
             }
             InputItem::McpFunctionCallOutput { call_id, output } => {
                 text(call_id, note(&output.texts().join("\n")))
+            }
+            InputItem::ProjectedFunctionCallOutput {
+                call_id,
+                kind,
+                texts,
+                output,
+                ..
+            } => {
+                let kept = if kind.is_some() {
+                    texts.join("\n")
+                } else {
+                    output
+                        .iter()
+                        .map(|part| match part {
+                            ProjectedToolPart::Ready(value) => value,
+                            ProjectedToolPart::DeferredImage { template, .. } => template,
+                        })
+                        .filter_map(|part| part["text"].as_str())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                };
+                text(call_id, note(&kept))
             }
             InputItem::ProviderOutput(value) => {
                 let parts = value["output"].as_array().expect("counted output parts");

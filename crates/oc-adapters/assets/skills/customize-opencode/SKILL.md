@@ -146,8 +146,8 @@ Messages automatic cache blocks are separate from the cache-key capability.
 
 Put `timeout`, `headerTimeout`, `chunkTimeout` and `transport` only in provider
 `settings`; model/variant copies cannot override them. Timeouts accept positive
-integer milliseconds or `false`. HTTP header/chunk defaults are independently
-300000ms; overall timeout is absent by default. WebSocket frame waits use the raw
+integer milliseconds or `false`. HTTP header default is 300000ms and idle chunk
+default 900000ms; overall timeout is absent by default. WebSocket frame waits use the raw
 provider chunk setting (absent30minutes, false disabled), not the HTTP default.
 Disabling these deadlines does not disable cancellation or native resource guards.
 
@@ -216,7 +216,11 @@ permission parity is not claimed. Actions are canonical
 (`edit` covers apply_patch/write/edit, `shell` the shell tool). Invalid security
 policy is fatal. Outside-Location access still needs its external-directory
 admission as well as action permission. Do not recommend broad Allow or CLI
-`--auto` as a workaround; headless Ask without a consumer fails before execution.
+`--auto` as a workaround. Headless Run without it rejects only its own session's
+and descendants' asks with noninteractive feedback, so the model continues without
+execution or a saved grant; unrelated asks and effective Deny are unchanged.
+A Run question with no answer consumer similarly becomes a failed tool result
+with feedback, never a fabricated answer. Interactive cancellation still interrupts.
 
 File-tool permissions/external_directory use the lexical path, not a symlink's
 referent. Explicit read/edit/write/patch paths follow links; write/update preserves
@@ -345,6 +349,10 @@ text, from the clipboard of the Linux host running `oc2`. Wayland requires
 automatically. Ordinary SSH/bracketed text paste does not transfer binary images.
 The literal `[Image N]` marker carries a separate attachment; recalled text-only
 Up/Down history does not reattach images. Shell/slash commands refuse attachments.
+RAW retains images, but request projection first omits unsupported media, then
+replaces the oldest image prefix with explicit notes when the 25 MiB image budget
+is crossed, down to 15 MiB retained. Do not claim to see removed images; retrieve
+them again or ask for reattachment. Nonimage content and request caps remain.
 
 Copying transcript text as raw Markdown is a native extension (no upstream key).
 Releasing a mouse selection while the configured modifier is held copies the

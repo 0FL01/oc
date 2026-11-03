@@ -225,7 +225,8 @@ impl Channels {
                 Err(
                     error @ (ProviderError::Cancelled
                     | ProviderError::PrivateHost
-                    | ProviderError::InvalidConfig),
+                    | ProviderError::InvalidConfig
+                    | ProviderError::InvalidCertificate),
                 ) => return Err(error),
                 Err(ProviderError::Request(failure))
                     if matches!(
@@ -467,7 +468,12 @@ impl Channels {
         if cancel.load(Ordering::Relaxed) {
             return Err(ProviderError::Cancelled);
         }
-        connection.checkpoint = if generation.finish == FinishReason::Stop {
+        connection.checkpoint = if generation.finish == FinishReason::Stop
+            && !generation
+                .items
+                .iter()
+                .any(|item| matches!(item, StreamItem::ToolArgumentsTooLarge { .. }))
+        {
             checkpoint(&full, &generation.output, response.as_deref())
         } else {
             None
@@ -577,6 +583,7 @@ async fn connect(
                 // This handshake is not a model-response retry override.
                 Err(ProviderError::Request(Box::new(failure)))
             }
+            Err(error) if invalid_certificate(&error) => Err(ProviderError::InvalidCertificate),
             Err(_) => Err(ProviderError::Transport),
         }
     };

@@ -2,6 +2,29 @@ use super::*;
 use serde_json::json;
 
 #[test]
+fn w3_messages_argument_overflow_is_call_local() {
+    let mut parser = SseParser::messages();
+    let prefix = format!("{{}}{}", " ".repeat(super::super::ARGUMENT_BYTE_CAP - 2));
+    let items = parser.push(&bytes(&[
+        json!({"type":"message_start","message":{"role":"assistant"}}),
+        json!({"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"call","name":"read","input":{}}}),
+        json!({"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":prefix}}),
+        json!({"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":" "}}),
+        json!({"type":"content_block_stop","index":0}),
+        json!({"type":"message_delta","delta":{"stop_reason":"tool_use"}}),
+        json!({"type":"message_stop"}),
+    ])).expect("overflow fails only this call");
+    let generation = crate::provider::collect_generation(parser, items);
+    assert!(
+        matches!(&crate::tools::assemble_calls(&generation.items).unwrap()[0], crate::tools::Assembled::Failed(failure) if failure.id == "call" && failure.name == "read")
+    );
+    assert!(
+        generation.output[0]["arguments"].as_str().unwrap().len()
+            <= super::super::ARGUMENT_BYTE_CAP
+    );
+}
+
+#[test]
 fn fragmented_messages_use_retained_state_not_wire_volume() {
     for chunk in [65_536, 1] {
         let mut parser = SseParser::messages();

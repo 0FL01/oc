@@ -667,7 +667,7 @@ mod vis38_review_tests {
                 ))
         );
         assert!(requests[0]["input"].to_string().contains(&seed_text));
-        let identities = dcp_call_identities(&[] as &[String], Some(&journal)).unwrap();
+        let identities = dcp_call_identities(std::iter::empty(), Some(&journal)).unwrap();
         assert_eq!(
             identities[&("read-old".into(), 0)],
             (report.turn_id.clone(), "read-old".into(), 0)

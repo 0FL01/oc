@@ -194,6 +194,9 @@ silent flatten. Invalid settings retain last-good, deletion restores admitted fa
 Shared-file changes независимо видят все процессы, использующие файл; inline env/consumer
 state не shared defaults. Preference-file persistence client-owned; permission mode
 идёт scoped execution command, `--auto` не authorizes чужие pending asks.
+Headless `run` всегда имеет approval consumer: без `--auto` отклоняет Ask своей
+сессии и потомков с noninteractive feedback для continuation, без effects/grants;
+чужие asks не трогает. `--auto` по-прежнему отвечает Once, не обходит Deny.
 
 OpenProxy discovery остаётся существующим bounded native механизмом с original local
 model overrides; manual reload forces refresh, failure не заменяется partial/default
@@ -453,8 +456,8 @@ Chat/Messages support**.
 - `timeout`, `headerTimeout`, `chunkTimeout`, `transport` are provider-only:
   model/variant overlays omit exactly these fields, keeping all other precedence.
   Deadlines accept positive integer milliseconds or false. Overall timeout is
-  absent by default; HTTP header/chunk defaults are independently300000ms, false
-  disables only its phase. WebSocket frame waits use raw provider chunkTimeout
+  absent by default; HTTP header default is300000ms and idle chunk default900000ms;
+  false disables only its phase. WebSocket frame waits use raw provider chunkTimeout
   (absent30minutes, false disabled), not the HTTP default. Native bounded connect
   guards, cancellation and byte caps remain independent. OC2's native package
   strips core settings; the old SDK wrapper is not native parity.

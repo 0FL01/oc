@@ -7,8 +7,11 @@
 
 use thiserror::Error;
 
+mod image_budget;
 mod projection;
 mod prompt;
+pub use image_budget::ImageSource;
+pub(crate) use image_budget::{defer_images, image_measurement, project_images};
 pub(crate) use projection::{omitted_images, project_media};
 pub(crate) use prompt::{image_metadata, prepare_prompt, restore_prompt};
 

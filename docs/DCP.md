@@ -279,7 +279,8 @@ Proposed native fragment — **не поддерживается текущим 
    и manual guidance. Не узнавать trigger по ключевым словам/focus/LLM-тексту;
    произвольный Submit его не создаёт. Trigger не становится постоянным enable и
    снимается по completion/cancel/denial/failure. Ask требует настоящего consumer;
-   headless без consumer отказывает до provider/effects, не auto-approves.
+   headless Run регистрирует rejecting feedback-consumer (без --auto), не auto-approves;
+   manual trigger refusal по-прежнему не запускает compression effects.
    Superseded только blanket manual tool exclusion для explicit admitted trigger;
    обычные autonomous/manual restrictions и automaticStrategies policy сохраняются.
 4. `commands.enabled:false` реально выключает `/dcp` и `/dcp-compress` в native

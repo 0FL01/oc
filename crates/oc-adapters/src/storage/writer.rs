@@ -306,11 +306,6 @@ impl Conn {
         }
     }
 
-    /// Commits started on this connection: unchanged means no write since.
-    pub(crate) fn commits(&self) -> u64 {
-        self.started.load(Ordering::SeqCst)
-    }
-
     fn count_stall(&self) {
         if tokio::runtime::Handle::try_current().is_ok_and(|handle| {
             handle.runtime_flavor() != tokio::runtime::RuntimeFlavor::MultiThread

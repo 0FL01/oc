@@ -994,13 +994,21 @@ impl Runtime<'_> {
             .collect::<Vec<_>>();
         let projection = self.db.dcp_tool_projection_for_input(session, &raw)?;
         let logs = self.projected_wire_logs(session, active.after_seq, &prior, &active.blocks)?;
-        let identities = super::context::dcp_call_identities(&logs, Some(log))?;
+        let identities = super::context::dcp_call_identities(
+            logs.iter()
+                .filter_map(|source| source.load(&self.db).transpose()),
+            Some(log),
+        )?;
         let remap =
             |candidate: &TurnLog| -> Result<crate::storage::DcpToolProjection, RuntimeError> {
-                let after = super::context::dcp_call_identities(&logs, Some(candidate))?
-                    .into_iter()
-                    .map(|(key, identity)| (identity, key))
-                    .collect::<BTreeMap<_, _>>();
+                let after = super::context::dcp_call_identities(
+                    logs.iter()
+                        .filter_map(|source| source.load(&self.db).transpose()),
+                    Some(candidate),
+                )?
+                .into_iter()
+                .map(|(key, identity)| (identity, key))
+                .collect::<BTreeMap<_, _>>();
                 let keys = |set: &std::collections::BTreeSet<crate::storage::DcpCallKey>| {
                     set.iter()
                         .filter_map(|key| identities.get(key).and_then(|id| after.get(id)).cloned())
@@ -1017,9 +1025,9 @@ impl Runtime<'_> {
             let mut fixed = Vec::new();
             crate::instructions::reconcile(&mut fixed, &wire, &facts);
             fixed.append(&mut wire);
-            serde_json::to_vec(&fixed)
-                .map(|raw| raw.len())
-                .map_err(|_| RuntimeError::Storage)
+            let image_bytes = crate::attachments::image_measurement(&mut fixed)?;
+            let size = super::compaction::serialized_size(&fixed)?.saturating_add(image_bytes);
+            usize::try_from(size).map_err(|_| RuntimeError::Storage)
         };
         Ok(TaskRenewalPlan {
             before_bytes: bytes(&before)?,
@@ -1817,6 +1825,18 @@ impl<'a> Runtime<'a> {
             history.push(InputItem::message(InputRole::System, text));
         }
         let legacy_history = dcp_continuation(&history, &[], &tool_projection);
+        let mut projected_legacy = legacy_history
+            .iter()
+            .chain(&prompt_input)
+            .cloned()
+            .collect::<Vec<_>>();
+        crate::attachments::project_images(
+            &mut projected_legacy,
+            &self.db,
+            crate::models::capabilities(&selection.entry).supports_image(),
+            binding.protocol == oc_core::queries::NativeProtocol::Chat,
+        )?;
+        let (legacy_history, projected_prompt) = projected_legacy.split_at(legacy_history.len());
         let admitted_history = legacy_history
             .iter()
             .filter(|item| !accounting_facts.contains(item))
@@ -1824,7 +1844,7 @@ impl<'a> Runtime<'a> {
         let admission_bytes = super::compaction::serialized_size(&(
             &fixed_input,
             &admitted_history,
-            &prompt_input,
+            &projected_prompt,
             &tool_defs,
         ))?;
         if admission_bytes > ACTIVE_CONTEXT_BYTES_CAP as u64 {
@@ -1838,15 +1858,15 @@ impl<'a> Runtime<'a> {
             fixed_input
                 .iter()
                 .chain(admitted_history.iter().copied())
-                .chain(&prompt_input),
+                .chain(projected_prompt),
         );
         let causal = super::compaction::usage_causal(
-            admitted_history.iter().copied().chain(&prompt_input),
+            admitted_history.iter().copied().chain(projected_prompt),
             &accounting_facts,
         );
         let legacy_input = legacy_history
             .iter()
-            .chain(&prompt_input)
+            .chain(projected_prompt)
             .collect::<Vec<_>>();
         let noncausal_tokens = super::compaction::usage_tokens(
             &fixed_input
@@ -1875,7 +1895,7 @@ impl<'a> Runtime<'a> {
         let new_input = if resume.is_some() {
             &[][..]
         } else {
-            prompt_input.as_slice()
+            projected_prompt
         };
         let irreducible = estimate_input_tokens_from_bytes(
             super::compaction::serialized_size(&(&fixed_input, new_input, &tool_defs))?,
@@ -2734,6 +2754,12 @@ impl<'a> Runtime<'a> {
             }
             let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
+            crate::attachments::project_images(
+                &mut projected_continuation,
+                &self.db,
+                crate::models::capabilities(&selection.entry).supports_image(),
+                binding.protocol == oc_core::queries::NativeProtocol::Chat,
+            )?;
             if !compress_available {
                 // IDs are compress affordances; without compress they are noise.
                 super::context::strip_message_ids(&mut projected_continuation);
@@ -2768,7 +2794,14 @@ impl<'a> Runtime<'a> {
                 );
                 input.extend(staged_notice_input.iter().cloned());
                 input.extend(rich_input.iter().cloned());
-                dcp_continuation(&history, &input, &tool_projection)
+                let mut input = dcp_continuation(&history, &input, &tool_projection);
+                crate::attachments::project_images(
+                    &mut input,
+                    &self.db,
+                    crate::models::capabilities(&selection.entry).supports_image(),
+                    binding.protocol == oc_core::queries::NativeProtocol::Chat,
+                )?;
+                input
             } else {
                 Vec::new()
             };
@@ -3092,12 +3125,11 @@ impl<'a> Runtime<'a> {
                 .chain(nudge_input.iter())
                 .chain(refusal.iter())
                 .collect();
-            let mut input: Vec<InputItem> = input.into_iter().cloned().collect();
+            let input: Vec<InputItem> = input.into_iter().cloned().collect();
             // History images never block a model switch: what this model or
             // wire cannot take is sent as a note; raw history keeps the image.
             let vision = crate::models::capabilities(&selection.entry).supports_image();
             let chat = binding.protocol == oc_core::queries::NativeProtocol::Chat;
-            crate::attachments::project_media(&mut input, vision, chat);
             if crate::attachments::omitted_images(&turn_log.input, vision, chat) > 0 {
                 let mut omitted = self.omitted_images.lock().expect("omitted images");
                 // Turns that end in an error never collect their warning.
@@ -3898,6 +3930,16 @@ impl<'a> Runtime<'a> {
             }
             // Calls come only from complete canonical output, never partial deltas.
             let mut call_items = Vec::new();
+            let oversized = generation
+                .items
+                .iter()
+                .filter_map(|item| match item {
+                    crate::provider::StreamItem::ToolArgumentsTooLarge { item_id } => {
+                        Some(item_id.as_str())
+                    }
+                    _ => None,
+                })
+                .collect::<std::collections::BTreeSet<_>>();
             for item in &generation.output {
                 if item["type"] == "function_call" {
                     call_items.push(crate::provider::StreamItem::ToolCallStarted {
@@ -3905,9 +3947,16 @@ impl<'a> Runtime<'a> {
                         call_id: item["call_id"].as_str().unwrap_or_default().to_string(),
                         name: item["name"].as_str().unwrap_or_default().to_string(),
                     });
-                    call_items.push(crate::provider::StreamItem::ArgDelta {
-                        item_id: item["id"].as_str().unwrap_or_default().to_string(),
-                        delta: item["arguments"].as_str().unwrap_or_default().to_string(),
+                    let item_id = item["id"].as_str().unwrap_or_default();
+                    call_items.push(if oversized.contains(item_id) {
+                        crate::provider::StreamItem::ToolArgumentsTooLarge {
+                            item_id: item_id.to_owned(),
+                        }
+                    } else {
+                        crate::provider::StreamItem::ArgDelta {
+                            item_id: item_id.to_owned(),
+                            delta: item["arguments"].as_str().unwrap_or_default().to_string(),
+                        }
                     });
                 }
             }
@@ -4035,6 +4084,12 @@ impl<'a> Runtime<'a> {
                 if !compress_available {
                     super::context::strip_message_ids(&mut measured_input);
                 }
+                crate::attachments::project_images(
+                    &mut measured_input,
+                    &self.db,
+                    crate::models::capabilities(&selection.entry).supports_image(),
+                    binding.protocol == oc_core::queries::NativeProtocol::Chat,
+                )?;
                 let measured_prefix = super::compaction::usage_causal(
                     measured_input.iter(),
                     &previous_instruction_input,
@@ -4156,7 +4211,9 @@ impl<'a> Runtime<'a> {
                     tool_event,
                     crate::models::capabilities(&selection.entry).supports_image(),
                     budget.input.saturating_sub(request_estimate),
-                    ACTIVE_CONTEXT_BYTES_CAP.saturating_sub(read_context_bytes),
+                    // Image projection does not release native facts retained
+                    // in this HOT record; reserve against both independent caps.
+                    ACTIVE_CONTEXT_BYTES_CAP.saturating_sub(read_context_bytes.max(read_log_base)),
                     read_log_base,
                     params.catalog,
                     &tool_defs,
@@ -4212,7 +4269,7 @@ impl<'a> Runtime<'a> {
                 Self::terminal_error(
                     &mut turn_log,
                     "execution_unresolved",
-                    "MCP outcome unknown; retry may duplicate side effects",
+                    "tool outcome unknown; retry may duplicate side effects",
                 );
                 let report = self.commit_turn(
                     &turn_log,
@@ -5977,6 +6034,18 @@ impl<'a> Runtime<'a> {
                                 );
                                 permission_rejected = true;
                                 crate::tools::diagnostic::Diagnostic::cancelled("question")
+                            }
+                            Err(QuestionWaitError::NoConsumer)
+                                if self.native_origin.as_ref().is_some_and(|origin| {
+                                    origin.kind == super::origin::Kind::Run
+                                }) =>
+                            {
+                                crate::tools::diagnostic::Diagnostic::new(
+                                    "question",
+                                    "question_required",
+                                    "This non-interactive run cannot ask the user questions, so the question was cancelled. Continue without an answer; make reasonable assumptions and state them.",
+                                )
+                                .failed()
                             }
                             Err(error) => {
                                 let error = match error {

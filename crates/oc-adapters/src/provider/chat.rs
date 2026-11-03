@@ -133,7 +133,7 @@ fn lower_messages(
                         "role": "user",
                         "content": wrap_system_update(&text_of(content)),
                     })),
-                    InputRole::User => messages.push(user_message(content)),
+                    InputRole::User => messages.push(user_message(content)?),
                     InputRole::Assistant => messages.push(
                         serde_json::json!({"role": "assistant", "content": text_of(content)}),
                     ),
@@ -236,35 +236,40 @@ fn text_of(content: &[InputContent]) -> String {
             InputContent::InputText { text } | InputContent::OutputText { text } => {
                 Some(text.as_str())
             }
-            InputContent::InputImage { .. } => None,
+            InputContent::InputImage { .. } | InputContent::DeferredImage { .. } => None,
         })
         .collect::<Vec<_>>()
         .join("\n")
 }
 
-fn user_message(content: &[InputContent]) -> serde_json::Value {
-    if content
-        .iter()
-        .all(|part| !matches!(part, InputContent::InputImage { .. }))
-    {
-        return serde_json::json!({"role": "user", "content": text_of(content)});
+fn user_message(content: &[InputContent]) -> Result<serde_json::Value, ProviderError> {
+    if content.iter().all(|part| {
+        !matches!(
+            part,
+            InputContent::InputImage { .. } | InputContent::DeferredImage { .. }
+        )
+    }) {
+        return Ok(serde_json::json!({"role": "user", "content": text_of(content)}));
     }
     let parts = content
         .iter()
-        .map(|part| match part {
-            InputContent::InputText { text } | InputContent::OutputText { text } => {
-                serde_json::json!({"type": "text", "text": text})
-            }
-            InputContent::InputImage { image_url, detail } => {
-                let mut image = serde_json::json!({"url": image_url});
-                if let Some(detail) = detail {
-                    image["detail"] = detail.clone().into();
+        .map(|part| {
+            Ok(match part {
+                InputContent::InputText { text } | InputContent::OutputText { text } => {
+                    serde_json::json!({"type": "text", "text": text})
                 }
-                serde_json::json!({"type": "image_url", "image_url": image})
-            }
+                InputContent::InputImage { image_url, detail } => {
+                    let mut image = serde_json::json!({"url": image_url});
+                    if let Some(detail) = detail {
+                        image["detail"] = detail.clone().into();
+                    }
+                    serde_json::json!({"type": "image_url", "image_url": image})
+                }
+                InputContent::DeferredImage { .. } => return Err(ProviderError::InvalidConfig),
+            })
         })
-        .collect::<Vec<_>>();
-    serde_json::json!({"role": "user", "content": parts})
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(serde_json::json!({"role": "user", "content": parts}))
 }
 
 /// Incremental Chat decoding state owned by one `SseParser`.
@@ -400,12 +405,18 @@ pub(super) fn dispatch(
                 .and_then(|v| v.as_str())
                 .filter(|s| !s.is_empty())
             {
+                let item_id = item_id(index);
+                if parser.failed_arguments.contains(&item_id) {
+                    continue;
+                }
                 if entry.2.len().saturating_add(arguments.len()) > super::ARGUMENT_BYTE_CAP {
-                    return Err(ProviderError::ByteLimit("arguments"));
+                    parser.failed_arguments.insert(item_id);
+                    entry.2 = String::new();
+                    continue;
                 }
                 entry.2.push_str(arguments);
                 out.push(StreamItem::ArgDelta {
-                    item_id: item_id(index),
+                    item_id,
                     delta: arguments.to_owned(),
                 });
             }

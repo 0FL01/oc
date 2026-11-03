@@ -10,8 +10,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "approval_binary/shared_owner.rs"]
+mod shared_owner;
+
 #[test]
-fn headless_requires_explicit_once_consumer_even_with_tui_auto_config() {
+fn headless_rejects_asks_with_feedback_and_auto_keeps_once() {
     run(None, false);
     for flag in ["--auto", "--yolo", "--dangerously-skip-permissions"] {
         run(Some(flag), false);
@@ -79,6 +82,7 @@ fn run(auto_flag: Option<&str>, deny: bool) {
     let stopping = stop.clone();
     let server = std::thread::spawn(move || {
         let mut count = 0;
+        let mut requests = Vec::new();
         while !stopping.load(Ordering::SeqCst) {
             let (mut stream, _) = match listener.accept() {
                 Ok(connection) => connection,
@@ -88,39 +92,9 @@ fn run(auto_flag: Option<&str>, deny: bool) {
                 }
                 Err(_) => break,
             };
-            stream
-                .set_read_timeout(Some(Duration::from_secs(5)))
-                .unwrap();
-            let mut bytes = Vec::new();
-            let mut buffer = [0; 4096];
-            loop {
-                let n = stream.read(&mut buffer).unwrap_or(0);
-                if n == 0 {
-                    break;
-                }
-                bytes.extend_from_slice(&buffer[..n]);
-                if let Some(at) = bytes.windows(4).position(|b| b == b"\r\n\r\n") {
-                    let header = String::from_utf8_lossy(&bytes[..at]);
-                    let len = header
-                        .lines()
-                        .find_map(|line| {
-                            line.split_once(':')
-                                .filter(|(key, _)| key.eq_ignore_ascii_case("content-length"))
-                                .and_then(|(_, v)| v.trim().parse::<usize>().ok())
-                        })
-                        .unwrap_or(0);
-                    if bytes.len() >= at + 4 + len {
-                        break;
-                    }
-                }
-            }
+            let request = read_request(&mut stream);
             // Title generation is automatic and runs concurrently with the
             // main request; it never consumes the scripted main-turn answer.
-            let request: serde_json::Value = bytes
-                .windows(4)
-                .position(|b| b == b"\r\n\r\n")
-                .and_then(|at| serde_json::from_slice(&bytes[at + 4..]).ok())
-                .unwrap_or_default();
             if request["max_output_tokens"] == 256
                 && request["tools"]
                     .as_array()
@@ -134,31 +108,24 @@ fn run(auto_flag: Option<&str>, deny: bool) {
                 );
                 continue;
             }
-            let mut body = String::new();
-            if count == 0 {
-                let args =
-                    serde_json::json!({"argv":["/usr/bin/touch","headless-marker"]}).to_string();
-                for value in [
-                    serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc","call_id":"c","name":"bash","arguments":"","status":"in_progress"}}),
-                    serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"fc","delta":args}),
-                    serde_json::json!({"type":"response.output_item.done","item":{"type":"function_call","id":"fc","call_id":"c","name":"bash","arguments":args,"status":"completed"}}),
-                ] {
-                    body.push_str(&format!("data: {value}\n\n"));
-                }
+            let body = if count == 0 {
+                tool(
+                    "c",
+                    "bash",
+                    serde_json::json!({"argv":["/usr/bin/touch","headless-marker"]}),
+                )
             } else {
-                body.push_str(
-                    "data: {\"type\":\"response.output_text.delta\",\"delta\":\"done\"}\n\n",
-                );
-            }
-            body.push_str("data: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}}\n\n");
+                finished()
+            };
             let _ = write!(
                 stream,
                 "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
                 body.len()
             );
             count += 1;
+            requests.push(request);
         }
-        count
+        (count, requests)
     });
     let mut command = Command::new(env!("CARGO_BIN_EXE_oc2"));
     command
@@ -191,23 +158,26 @@ fn run(auto_flag: Option<&str>, deny: bool) {
     }
     let output = child.wait_with_output().unwrap();
     stop.store(true, Ordering::SeqCst);
-    let calls = server.join().unwrap();
-    if !deny {
-        assert_eq!(
-            output.status.success(),
-            auto,
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    let (calls, requests) = server.join().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert_eq!(project.join("headless-marker").exists(), auto && !deny);
     assert_eq!(
         std::fs::read_to_string(config.join("cli.json")).unwrap(),
         saved_cli
     );
-    assert!(calls >= 1);
+    assert_eq!(calls, 2);
     if !auto {
-        assert!(String::from_utf8_lossy(&output.stderr).contains("approval"));
+        let outcome = requests[1]["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["type"] == "function_call_output" && item["call_id"] == "c")
+            .unwrap();
+        assert!(outcome["output"].as_str().unwrap().contains("This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action."));
     }
     let db = rusqlite::Connection::open(root.path().join("data/oc.sqlite")).unwrap();
     assert_eq!(
@@ -216,4 +186,48 @@ fn run(auto_flag: Option<&str>, deny: bool) {
             .unwrap(),
         0
     );
+}
+
+fn read_request(stream: &mut std::net::TcpStream) -> serde_json::Value {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    let mut bytes = Vec::new();
+    let mut buffer = [0; 4096];
+    loop {
+        let n = stream.read(&mut buffer).unwrap_or(0);
+        if n == 0 {
+            break;
+        }
+        bytes.extend_from_slice(&buffer[..n]);
+        if let Some(at) = bytes.windows(4).position(|b| b == b"\r\n\r\n") {
+            let len = String::from_utf8_lossy(&bytes[..at])
+                .lines()
+                .find_map(|line| {
+                    line.split_once(':')
+                        .filter(|(key, _)| key.eq_ignore_ascii_case("content-length"))
+                        .and_then(|(_, value)| value.trim().parse::<usize>().ok())
+                })
+                .unwrap_or(0);
+            if bytes.len() >= at + 4 + len {
+                return serde_json::from_slice(&bytes[at + 4..at + 4 + len]).unwrap();
+            }
+        }
+    }
+    panic!("fixture HTTP request was incomplete");
+}
+
+fn tool(id: &str, name: &str, arguments: serde_json::Value) -> String {
+    let item_id = format!("fc_{id}");
+    let arguments = arguments.to_string();
+    [
+        serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":item_id,"call_id":id,"name":name,"arguments":"","status":"in_progress"}}),
+        serde_json::json!({"type":"response.function_call_arguments.delta","item_id":item_id,"delta":arguments}),
+        serde_json::json!({"type":"response.output_item.done","item":{"type":"function_call","id":item_id,"call_id":id,"name":name,"arguments":arguments,"status":"completed"}}),
+        serde_json::json!({"type":"response.completed","response":{"status":"completed","usage":{"input_tokens":1,"output_tokens":1}}}),
+    ].iter().map(|value| format!("data: {value}\n\n")).collect()
+}
+
+fn finished() -> String {
+    "data: {\"type\":\"response.output_text.delta\",\"delta\":\"done\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}}\n\n".into()
 }

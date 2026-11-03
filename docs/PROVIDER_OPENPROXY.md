@@ -23,7 +23,7 @@ Rust design default: `store:false`, explicit local input projection, function to
 
 `timeout` — отдельный общий generation deadline в миллисекундах; отсутствие или
 `false` означает отсутствие этого deadline. Для HTTP `headerTimeout` и
-`chunkTimeout` независимы, каждый по умолчанию 300 000 ms; `false` отключает только
+`chunkTimeout` независимы: defaults 300 000 ms и 900 000 ms соответственно; `false` отключает только
 соответствующий budget. Явный `chunkTimeout:6000000` по-прежнему означает 100 минут
 idle между body chunks, а не default или 60s. WebSocket использует raw provider
 `chunkTimeout`: без поля — 30 минут ожидания frames, `false` отключает этот budget.
@@ -105,11 +105,17 @@ result коммитятся атомарно. Restart сохраняет зав�
 JSON аргументов без complete item/terminal не разрешает execution. Cancel
 прерывает DNS/headers/body и MCP initialize; observer получает UTF-8 deltas до
 terminal, максимум 16 KiB каждый. HTTP idle budget — effective provider
-`chunkTimeout`, default300 000 ms; response-header budget отдельно default300 000 ms.
+`chunkTimeout`, default900 000 ms; response-header budget отдельно default300 000 ms.
 Общий deadline при отсутствующем `timeout` или `timeout:false` отсутствует.
 
 Byte ceilings: pending SSE line/event — 2 MiB каждый, arguments/call — 1 MiB,
 retained generation accounting — 32 MiB, serialized request — 32 MiB.
+Argument overflow is a typed failed call, not whole-generation failure: its
+identity is preserved, partial arguments are never executed, and reconciled sibling
+calls continue once. SSE/generation caps and structural reconciliation still fail
+closed. Normalized oversized calls disable WebSocket append checkpoints, using
+full continuation without replay. Typed TLS InvalidCertificate is nonretryable
+and cannot fall back from WebSocket to HTTP; EOF/reset keep transport semantics.
 Суммарного ограничения количества событий нет. Generation budget учитывает
 текущее состояние парсера, сохранённые stream items/их контейнеры и сборку текста,
 не сумму уже освобождённых JSON-пакетов. Container slack учитывается консервативно;

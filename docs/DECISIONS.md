@@ -60,7 +60,8 @@ VIS36 в T44 amendment закрывает открытый interactive approval 
 autoaccept/config/Settings/CLI dependencies. Это утверждение плана, не executed PASS.
 Ask user-approvable; effective Deny и structural central/agent/child/trust ceilings
 сохраняются. Saved grants не переписывают restrictive policy. No-channel headless
-ApprovalRequired остаётся; explicit supported --auto требует реального once-consumer.
+ApprovalRequired было сохранено этим решением; для Run оно superseded W3 ниже:
+reject с feedback вместо остановки turn. Explicit --auto сохраняет once-consumer.
 Новые policy/UI различия не скрывать под claim identical donor algebra. Не добавлять
 новый task/framework или dependency на completion всего T43/T45.
 
@@ -389,6 +390,28 @@ search still does not follow discovered links. Patch uses TS BOM/hunk EOL/final-
 semantics, not dominant EOL. Move stages/commits destination then removes source;
 failed removal records destination Create, not a fictitious source update/Move.
 Pinned I/O, resource/cancel guards, durable effects and no unknown replay remain.
+
+## Per-tool failures and image projection — owner-approved 2026-11-03
+
+W3 supersedes terminal turn failure for per-call argument overflow, headless
+permission Ask and noninteractive Run/NoConsumer questions. Parsers retain bounded
+call identity plus typed failure, drain/reconcile the response and never execute
+partial argument prefixes; admitted siblings run once. Headless always registers
+an approval consumer, rejects only its own session ancestry with exact TS feedback
+without --auto, and leaves auto Once/Deny and interactive question cancellation
+unchanged. Unknown effects still stop without replay, now with generic tool wording.
+
+Image-only provider projection follows TS's stable oldest-prefix cut: trigger
+strictly above 25 MiB, target 15 MiB. Bounded coordinate/one-record reads keep RAW
+images and native facts unchanged; unsupported/DCP filtering precedes the cut,
+retained images alone are materialized, and final request/metadata/per-record caps
+remain. Usage fingerprints and compaction share the finalized projection.
+
+HTTP idle chunk default becomes 900000ms; headers stay 300000ms. Typed rustls
+InvalidCertificate is terminal for HTTP/WS and forbids WS→HTTP fallback, while
+EOF/reset remain transport failures. This certificate decision follows AGENTS.md,
+not TS's finite retry policy. The sole direct dependency addition names the same
+already-locked rustls error type; no new package/version or storage migration.
 Config/discovery/storage no-follow policies are not changed by this decision.
 
 ## Остаточные prerequisites, не новые Q
