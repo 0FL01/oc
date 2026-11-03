@@ -1,6 +1,6 @@
 # Goal: W2. Файловые инструменты (HIGH)
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-03 — «паритет с oc2 TS без бесполезных сейфгард костылей»; «делай копию плана в цель и начинай процесс итеративного лечения, потом коммит пуш; не забыть актуализировать документацию, чтобы не было дивергенции документации и исходников». Plan v2 reviewed by 3× Review-Sol (wave W2 of W1–W5).
 Last updated: 2026-11-03
 
@@ -58,7 +58,7 @@ F5 cross-device move (patch.rs:1148-1161 preflight refusal): убрать refusa
 
 ## Current Checkpoint
 - Closes: R1–R4
-- Smallest next action: commit/push the reviewed, verified W2 change, then record the successful push and close the goal in an evidence-only commit.
+- Smallest next action: none; all required outcomes are verified. Stop W2 work.
 
 ## Current State
 - Start: HEAD `58f3fbf81c2fd8142f6f8cdd7a9321069920a53f`; tracked diff empty, only foreign `progress/` untracked (untouched). Three independent read-only scouts map F1/F2, F3 and F4/F5; sole mutation/Cargo owner is General-Sol.
@@ -75,9 +75,9 @@ F5 cross-device move (patch.rs:1148-1161 preflight refusal): убрать refusa
 - The other three initial gate failures were unchanged auth/MCP PTY fixtures. Read-only owner diagnosis established no direct W2 path; each passed its unchanged isolated rerun (auth 17.124s, sidebar 1.151s, control replay 0.640s), `.local/tmp/w2-isolated-{auth,sidebar,controls}.log`. Cause is not proven; do not claim the original gate passed or that serial reruns establish full-suite reliability. No assertions/deadlines or auth/MCP/TUI production code were changed.
 - Final `cargo fmt --all -- --check`, docs validation, `git diff --check` and scoped strict Clippy PASS (Clippy 2m27s), `.local/tmp/w2-clippy-final.log`. Unexecuted full-gate tail was run separately: workspace doctests PASS (0 tests), debug build/help/version PASS, `.local/tmp/w2-gate-tail.log`. All seven failing test slices now have GREEN recovery evidence; the original full-gate exit remains FAIL.
 - `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` PASS (16m39s), `.local/tmp/w2-release.log`; binary `target/release/oc2`. No live/paid/visual test was required or run; no whole-product readiness claim.
-- Final independent Review-Sol PASS, no findings, session `ses_e5f04957fffeK0HvECjqo2U1IV`; all 30 changed files, direct consumers, TS oracle/license and evidence inspected. Reviewed diff SHA256 `de364a10bdad6dbbcfebc02ffa57709bae8321eae5bf68453b696a57419cd16b`; no production/test/policy-doc change after review. This status/evidence update alone follows it.
+- Final independent Review-Sol PASS, no findings, session `ses_e5f04957fffeK0HvECjqo2U1IV`; all 30 changed files, direct consumers, TS oracle/license and evidence inspected. The same reviewer accepted the authorized confirming gate and updated execution goal in a bounded follow-up: full diff SHA256 `38786db3e2d498ff5ec6dc52458047a8aaa819424b6add65d5852bb149241598`, non-goal diff SHA256 `93e227941f8915e7366f7c5fd3e019be35ae6a55b7266cbf8eb927869b926438`. Only this completion/status evidence update follows that PASS.
 - Owner-authorized confirming gate: `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode CARGO_BUILD_JOBS=4 RUST_TEST_THREADS=4 NEXTEST_TEST_THREADS=4 bash scripts/test.sh` PASS, **2624/2624**, 25 existing skips (260.357s tests), `.local/tmp/w2-full-gate-confirm.log`. Workspace fmt/strict Clippy, doctests, debug build/help/version also PASS. All three formerly failing unchanged PTY fixtures passed in the confirming full run; no additional isolated reruns were needed. The first gate remains recorded as FAIL, not relabeled.
-- R1/R2/R3 verified; no remaining code/check/review blocker. R4 commit/push pending. Production/test/current-policy-doc code is unchanged since the final scoped review and successful release build; only this execution goal's owner-approved gate rule, status and evidence were updated.
+- R1–R4 verified: implementation commit `becc261e8b50dfdb6b37243ae658eb682583f7dd` (`fix(files): TS parity for read/search/symlink/patch`) committed all 30 reviewed paths; `git push origin master` succeeded (`58f3fbf81..becc261e8 master -> master`). No unresolved outcome or blocker. Production/test/current-policy-doc code is unchanged since the final scoped review and successful release build.
 
 ## Material Decisions
 - 2026-11-03: owner approved plan v2; TS parity overrides self-invented safeguards; docs must follow code.
@@ -89,7 +89,7 @@ F5 cross-device move (patch.rs:1148-1161 preflight refusal): убрать refusa
 - 2026-11-03: plan v2 frozen into this goal.
 
 ## Completion
-- Resolved outcomes: R1/F1–F5, R2 and R3 verified; scoped tests, final strict Clippy, owner-authorized confirming full gate, release build and final Review-Sol PASS.
+- Resolved outcomes: R1/F1–F5, R2, R3 and R4 verified; scoped tests, final strict Clippy, owner-authorized confirming full gate, release build and final Review-Sol PASS; implementation commit/push successful.
 - Commands and artifacts: Current State above and `.local/tmp/w2-*.log`; confirming gate 2624/2624 PASS, with the initial gate's failure retained honestly. No whole-product/live qualification claim.
-- Constraint and diff-scope check: 30 tracked paths, no dependency/schema/migration change; foreign `progress/` untouched; HEAD remains `58f3fbf81c2fd8142f6f8cdd7a9321069920a53f`.
-- Final status: active only until R4 commit/push evidence is recorded. The earlier gate-decision blocker is resolved; no adjacent auth/MCP/TUI changes proposed.
+- Constraint and diff-scope check: implementation commit `becc261e8b50dfdb6b37243ae658eb682583f7dd` contains exactly the 30 reviewed paths; no dependency/schema/migration change; foreign `progress/` untouched. This closeout changes only the execution goal's status/evidence and needs no behavioral retest or separate source review.
+- Final status: complete. The earlier gate-decision blocker is resolved; no adjacent auth/MCP/TUI changes made or proposed. No live/paid/visual or whole-product readiness claim.
