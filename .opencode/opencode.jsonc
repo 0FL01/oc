@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "experimental": {
+    "subagent_depth": 2
+  },
+  "agents": {
+    "title": {
+      "model": "ludka2/cx/gpt-6.1-terra#low"
+    }
+  },
+  "mcp": {
+    "servers": {
+      "ssh-nc-lab": {
+        "type": "local",
+        "command": [
+          "/usr/bin/ssh-mcp",
+          "--host=nc-lab",
+          "--port=41924",
+          "--user=chumba",
+          "--key=/home/stfu/.ssh/blyat"
+        ],
+        "disabled": true
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Goal Repo Docs"
+  short_description: "Document Codex goals inside a repo"
+  default_prompt: "Use $goal-repo-docs to create repository documentation for this Codex goal, including scope, checkpoints, validation, and progress logging."
+policy:
+  allow_implicit_invocation: true
