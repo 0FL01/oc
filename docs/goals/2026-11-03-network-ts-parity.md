@@ -1,6 +1,6 @@
 # Goal: W4. Сеть (HIGH/MEDIUM)
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-03 — «паритет с oc2 TS без бесполезных сейфгард костылей»; «делай копию плана в цель и начинай процесс итеративного лечения, потом коммит пуш; не забыть актуализировать документацию, чтобы не было дивергенции документации и исходников». Plan v2 reviewed by 3× Review-Sol (wave W4 of W1–W5).
 Last updated: 2026-11-03
 
@@ -20,7 +20,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - R3: Checks pass: affected cargo test slices + scoped clippy `-D warnings`; `bash scripts/test.sh` once (one confirming rerun allowed after diff-obsoleted expectations are fixed); release build + live rig where the wave has a live repro; Review-Sol PASS on the final diff. Under the owner's continued acceptance rule, unchanged teardown/flaky PTY failures that passed another full run and pass an unchanged isolated rerun are accepted with honest reporting, not more full gates; diff-related failures require a fix and affected-slice verification.
   - Status: verified, qualified under the existing owner rule: first-full VIS38 PASS plus current unchanged isolated PASS; historical full scripts remain FAIL. Same Sol verified the new evidence and current code-review PASS.
 - R4: Commit + `git push origin master` (no force).
-  - Status: in_progress; mechanical publication remains, with no W4 commit/push performed yet.
+  - Status: verified; commit `d907ca4bb7d2ae9bc3f3f86d9d6c69359cd2d4d9` pushed successfully to `origin/master` (`79d571a75..d907ca4bb`, no force).
 
 ### Constraints
 - C1: AGENTS.md cargo rules (CARGO_BUILD_JOBS=4, `-- --test-threads=4`, no parallel cargo, no clean, no CARGO_TARGET_DIR); tmp/logs in `.local/tmp`; test projects outside the worktree.
@@ -56,8 +56,8 @@ N4 webfetch 5 redirects/1 MiB → 10/5 MiB (webfetch.rs:23-30). Tests: фикс�
 - Forbidden: widening to other waves; new deps/migrations beyond the wave text.
 
 ## Current Checkpoint
-- Closes: R1–R4
-- Smallest next action: one closure/scope check, then ordinary commit/push and evidence-only completion. No further full gates or blind retries. General-Sol remains the sole mutation/Cargo owner.
+- Closes: none; R1–R4 are resolved.
+- Smallest next action: none. W4 is complete; W5 has not been started.
 
 ## Current State
 - Start: HEAD `79d571a75cf1ef47c475c79f7d475b6f7c07552f`, branch master, tracked/staged diff empty; only foreign `progress/` untracked and untouched. W1–W3 complete; W5 is not implemented.
@@ -74,7 +74,8 @@ N4 webfetch 5 redirects/1 MiB → 10/5 MiB (webfetch.rs:23-30). Tests: фикс�
 - Targeted attribution: genuine stacks (`stack-00-owner-3211127.log:61–109`) identify existing Tokio blocking-pool timed waits and storage-writer `block_in_place` core handoffs, not new W4 workers. The independent-process maximum counts idle retained workers too; heavy stack observation demonstrably made them retire at the unchanged10s keepalive and is excluded from acceptance. Fast per-phase and parent-only tracing controls record counts/syscalls; fast post-sample stack attempts105/110 failed after process exit and supply no attribution. The final no-debugger/no-tracer lifetime control directly observed owner4→5 in BOTH fixed-code fixtures with added/retained timed waits. Asynchronous client/owner records are not claimed to be simultaneous9/10 pair snapshots. Details/PIDs/timings/stacks and limitations are in `.local/tmp/w4-vis38-attribution.md`; exact missing historical TIDs cannot be recovered from old logs. No W4-created worker/leak was found, and no sampler correction was proposed or implemented.
 - Current unchanged isolated execution: exact `target/debug/deps/pty_t39-7901dc61bce27084 --exact lifecycle::vis38_pty_dcp_equal_active_archive_resource_samples --nocapture --test-threads=4` PASS1/1,3.85s, original peak10/10 (`.local/tmp/w4-vis38-lifetimes-test.log`). A separate observer only read fixture-owned `/proc` metadata; all product TracerPid values were0, with no breakpoint/stack attachment/preload/source/oracle/workload change. All8 recorded fixture product PIDs exited normally. This disclosed observer is not a claim of zero host scheduling influence. First-full PASS plus this current unchanged isolated PASS satisfy the owner's existing qualified-acceptance rule, verified by the same Sol; neither failed full script is relabelled PASS.
 - Restored current release artifact after resume's absent target directory: `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` PASS13m31s, `target/release/oc2`, `.local/tmp/w4-release-resume.log`. No source/schema/dependency change or clean was needed for the targeted diagnosis.
-- Same Sol evidence follow-up accepted R3 qualification under the existing rule, not a new waiver. Its two precision corrections (failed fast stack attachments and asynchronous observations) are incorporated above and in the ignored attribution artifact; current implementation digest is unchanged. Next: R4 publication. No live/paid/visual or whole-product readiness is claimed.
+- Same Sol evidence follow-up accepted R3 qualification under the existing rule, not a new waiver. Its two precision corrections (failed fast stack attachments and asynchronous observations) are incorporated above and in the ignored attribution artifact; current implementation digest is unchanged. Final bounded follow-up PASS confirmed the corrections and R3 status. No live/paid/visual or whole-product readiness is claimed.
+- Publication complete: reviewed73-path commit `d907ca4bb7d2ae9bc3f3f86d9d6c69359cd2d4d9`, `fix(network): align fetch and proxy routing with TS`, pushed successfully to `origin/master`. The closure check confirmed reviewed scope/hash, approved origin, unchanged AGENTS/W5 and no foreign or diagnostic files. Only this evidence/status completion follows; no behavior changed after the last review.
 
 ## Material Decisions
 - 2026-11-03: owner approved plan v2; TS parity overrides self-invented safeguards; docs must follow code.
@@ -87,7 +88,7 @@ N4 webfetch 5 redirects/1 MiB → 10/5 MiB (webfetch.rs:23-30). Tests: фикс�
 - 2026-11-03: plan v2 frozen into this goal.
 
 ## Completion
-- Resolved outcomes: R1/R2/R3 verified, with R3 explicitly qualified; R4 publication pending.
+- Resolved outcomes: R1–R4 verified, with R3 explicitly qualified under the existing owner rule rather than whole-script PASS.
 - Commands and artifacts: `.local/tmp/w4-review-files.txt` lists73paths, `.local/tmp/w4-review-artifacts.txt` lists ignored task evidence; exact commands/results and logs are recorded above. Latest reviewed non-goal content digest `329ef4eccac9b2f10baa4b36dde17740ee61150d369dc3f74b3037d16b437a1d` is unchanged by this status-only update.
-- Constraint and diff-scope check: no schema/new package/version, only justified locked TLS dependency edges; foreign `progress/`, other waves and historical evidence untouched. Staging empty; no W4 commit/push.
-- Final status: active pending publication; not complete.
+- Constraint and diff-scope check: no schema/new package/version, only justified locked TLS dependency edges; foreign `progress/`, other waves and historical evidence untouched. Reviewed73-path implementation and actual main commit/push verified. Completion-only status/evidence requires no behavioral retest or new code review.
+- Final status: complete; no remaining outcome or next action.
