@@ -1,6 +1,6 @@
 # Goal: W3. Turn убивается вместо ошибки инструмента (HIGH/MEDIUM)
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-03 — «паритет с oc2 TS без бесполезных сейфгард костылей»; «делай копию плана в цель и начинай процесс итеративного лечения, потом коммит пуш; не забыть актуализировать документацию, чтобы не было дивергенции документации и исходников». Plan v2 reviewed by 3× Review-Sol (wave W3 of W1–W5).
 Last updated: 2026-11-03
 
@@ -20,7 +20,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - R3: Checks pass: affected cargo test slices + scoped clippy `-D warnings`; `bash scripts/test.sh` once, with one confirming rerun allowed after this diff's obsolete test expectations are fixed (owner authorization continued from W2); release build + live rig where the wave has a live repro; Review-Sol PASS on the final diff. Report any unchanged flaky PTY failure and isolated recovery honestly.
   - Status: verified under the owner's explicit unchanged-PTY acceptance rule: final gate 2635/2636 PASS, sole unchanged replay-control fixture passed both prior full runs and an unchanged isolated rerun. Final affected tests/Clippy/release/live and code review PASS. This is qualified gate acceptance, not a claim that the script exited successfully; no further full gate is run.
 - R4: Commit + `git push origin master` (no force).
-  - Status: pending; publish on top of `74a40040` after the authorized final gate, without changing its AGENTS.md content, using the new commit-message rule.
+  - Status: verified; implementation commit `f4c89f09c06edf6232937aa44446b8d62f42dbd4` is on top of `74a40040` and was successfully pushed to `origin master`. AGENTS.md is unchanged; the commit uses the required imperative subject and four indented Changes bullets.
 
 ### Constraints
 - C1: AGENTS.md cargo rules (CARGO_BUILD_JOBS=4, `-- --test-threads=4`, no parallel cargo, no clean, no CARGO_TARGET_DIR); tmp/logs in `.local/tmp`; test projects outside the worktree.
@@ -62,7 +62,7 @@ C7 default chunk timeout 300 → 900 s (TS ai/schema/options.ts:56-62); header 3
 
 ## Current Checkpoint
 - Closes: R1–R4
-- Smallest next action: commit/push the reviewed implementation on top of `74a40040` and record actual publication. No implementation work, review correction or additional full gate remains.
+- Smallest next action: none. All outcomes are verified and the implementation is published; stop W3 work.
 
 ## Current State
 - Start: HEAD `8d04255eda01913824ed8db9d9d81c988dc3dd1f`, branch master; tracked/staged diff empty, only foreign `progress/` untracked and untouched. Earlier waves are complete, later waves are not implemented.
@@ -83,8 +83,9 @@ C7 default chunk timeout 300 → 900 s (TS ai/schema/options.ts:56-62); header 3
 - Final C2 release sanity repeated after the review fixes: PASS, exact feedback/continuation, two requests, zero effects/grants (`.local/tmp/w3-live-final.log`). No paid/visual qualification. Same Sol follow-up: code-review PASS for all three fixes and their direct interactions; 51-path snapshot `19f52bfe2f1ad58cd441cda47c4161d6eab966b390408dcef13a98c5c52db850`, source unchanged after review. The reviewer correctly identifies the P1 RED guard as read-side, not prevention of persistence. At that checkpoint the post-review version had affected-slice/Clippy/release evidence but no third full gate, and the reviewer did not waive R3. The subsequent explicit owner authorization and final-gate outcome are recorded below; earlier failures remain visible.
 - Prior blocker resolved: owner authorized one final full gate and clarified the unchanged-teardown/flaky-PTY acceptance rule above. HEAD `74a40040db3d5e8b4f9848a6d2993505d5ea8492` adds only the commit-message convention; reviewed W3 implementation contents are unchanged. R1/R2 remain verified; R3/R4 are now executable, with no outstanding blocker.
 - Final authorized gate: script FAIL (exit 100), 2635/2636 PASS, 25 existing skips, 258.365s test execution (`.local/tmp/w3-full-gate-final.log`). All W3 regressions passed, including current-record read bounds (25.530s), image-history restoration (16.303s), shared-owner ancestry and full-text fallback; prior VIS38 and BrokenPipe cases also passed. The sole failure was unchanged `v07e_bare_pty_model_and_stdio_tool_controls_are_inert_across_replay`, waiting for replay detail while the captured screen showed the card list. Its exact timing cause is unproven; production TUI/test helpers/body/assertions/deadlines were not changed. It passed both earlier W3 full runs (0.727s/0.606s) and its unchanged isolated final rerun (0.628s, `.local/tmp/w3-isolated-final-controls.log`), satisfying the owner's explicit acceptance rule. No further full gate. Workspace fmt/strict Clippy passed; the 17m59s pre-test duration was compilation of dependency/workspace test targets, not a test wait. UI07 remained within its existing 40s exception (31.033s).
-- Final skipped gate tail separately PASS: workspace doctests (0 cases, explicit four threads), debug build/help/version (`.local/tmp/w3-gate-tail-final.log`). Release/live source is unchanged from the final PASS evidence above. R3 is qualified and verified; only R4 publication remains.
+- Final skipped gate tail separately PASS: workspace doctests (0 cases, explicit four threads), debug build/help/version (`.local/tmp/w3-gate-tail-final.log`). Release/live source is unchanged from the final PASS evidence above. R3 is qualified and verified.
 - Same Sol final evidence follow-up PASS: independently verified the unchanged failing test, both earlier full-run passes, final isolated PASS, gate tail, 51-path manifest and explicit owner acceptance conditions. Reviewed snapshot `2cd403b49bfade266eaddeed9a8144588fa7d66c97765564a1da9d13473ca0e4`; non-goal content digest `2e7314365b1b3d5dae48ecfbb2997a73a3f78ec8187c5af72bccb340518199f6` is unchanged. No further code findings or blockers; subsequent edits are goal evidence/status only.
+- R4 published: `f4c89f09c06edf6232937aa44446b8d62f42dbd4` — `fix(runtime): keep turns alive on per-tool failures (TS parity)`; `git push origin master` succeeded (`74a40040d..f4c89f09c`, no force). Prepublication closure verified the exact 51 task paths, unchanged reviewed implementation and AGENTS.md, verified origin, and empty prior staging. No runtime changes followed review; `progress/` was never staged or touched. No unresolved outcome, blocker or next implementation action remains.
 
 ## Material Decisions
 - 2026-11-03: owner approved plan v2; TS parity overrides self-invented safeguards; docs must follow code.
@@ -98,7 +99,7 @@ C7 default chunk timeout 300 → 900 s (TS ai/schema/options.ts:56-62); header 3
 - 2026-11-03: plan v2 frozen into this goal.
 
 ## Completion
-- Resolved outcomes: R1/R2 verified; R3 verified with explicit unchanged-PTY qualification, R4 pending publication.
-- Commands and artifacts: per-item evidence above; final affected tests 17/17, scoped Clippy/release/live PASS; all full-gate results and unchanged isolated recoveries retained honestly.
-- Constraint and diff-scope check: latest Sol code-review PASS, 51 task paths, no schema/migration or other-wave implementation; foreign `progress/` untouched. Only completion/evidence text changed after review.
-- Final status: active, not complete; publication remains.
+- Resolved outcomes: R1–R4 verified. Every C1–C7 item reproduced and passed its regression; current docs aligned; final qualified gate, review and publication complete.
+- Commands and artifacts: per-item evidence above; final affected tests 17/17, scoped Clippy/release/live PASS; final full script FAIL 2635/2636 accepted under the explicit unchanged-PTY rule, with both earlier full passes and unchanged isolated PASS for its sole failure. All earlier gate results remain recorded. Implementation commit/push: `f4c89f09c06edf6232937aa44446b8d62f42dbd4` → `origin master`.
+- Constraint and diff-scope check: latest Sol code/evidence reviews PASS, 51 task paths, no schema/migration/new package or other-wave implementation; foreign `progress/` and parent AGENTS.md commit unchanged. Only completion/evidence text changed after review.
+- Final status: complete, no remaining work. This is W3 qualified acceptance, not paid/visual or whole-product readiness.
