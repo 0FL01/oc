@@ -12,6 +12,11 @@
 - В ответе: результат, команды/результаты, ограничения. Offline PASS не означает live/visual qualification или whole-product READY.
 - Разведчики read-only: вопрос/пути/HEAD → owner, tests, риски. Один mutation owner; не копируй планы/evidence/scout-транскрипты в контекст.
 
+## Коммиты
+
+- Subject: `<type>(<scope>): <описание>` — английский императив, ≤72; types: `feat`, `fix`, `perf`, `docs`, `refactor`, `test`, `chore`.
+- Нетривиальный diff: пустая строка, `Changes:` и 2–4 конкретных английских пункта с отступом 4 пробела; одна строка — только для тривиальной правки.
+
 ## Карта
 
 - `crates/oc-core` — runtime/порты без UI, storage и network dependencies.
