@@ -1,6 +1,6 @@
 # Goal: W1. Redaction-словарь портит вывод всех инструментов (HIGH, тот же класс, что MCP)
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-03 — «паритет с oc2 TS без бесполезных сейфгард костылей»; «делай копию плана в цель и начинай процесс итеративного лечения, потом коммит пуш; не забыть актуализировать документацию, чтобы не было дивергенции документации и исходников». Plan v2 reviewed by 3× Review-Sol (wave W1 of W1–W5).
 Last updated: 2026-11-03
 
@@ -67,7 +67,7 @@ crates/oc-adapters/assets/skills/customize-opencode/SKILL.md:281.
 
 ## Current Checkpoint
 - Closes: R1–R4
-- Smallest next action: commit/push the reviewed wave and all five goal artifacts; then record verified R4 completion.
+- Smallest next action: none — all frozen outcomes verified; stop substantive work.
 
 ## Current State
 - RED: `cargo test -p oc-adapters --test runtime --locked w1_ -- --test-threads=4` fails both new regressions: shell publishes `[redacted] true [redacted] opencode`; Code Mode replaces `ollama` in return/logs. Synthetic literals only; log `.local/tmp/w1-red-runtime.log`.
@@ -81,7 +81,7 @@ crates/oc-adapters/assets/skills/customize-opencode/SKILL.md:281.
 - Release: `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode CARGO_BUILD_JOBS=4 cargo build -p oc2 --bin oc2 --locked --release` PASS (12m46s), `target/release/oc2`, `.local/tmp/w1-release.log`. Docs check PASS (4 examples / 3 source baselines); `git diff --check` PASS.
 - Synthetic live: rootless `docker restart oc2-mcp-chromium`, then from `/home/opencode/.cache/opencode-tmp/opencode/mcp-repro`, `SCENARIO=shell EXTRA_ENV="KEYTIMEOUT=1" bash scripts/run.sh rust 18900` PASS, exit0. `run-rust-shell/peer.log` c0 is `exit 0\nshell-out true 1 opencode\n`, without `[redacted]`; `.local/tmp/w1-live.log`. No paid generation/visual qualification; no user owner restarted/killed, rig-only cleanup found no remaining product processes.
 - R1/R2/R3 verified: final Review-Sol PASS (`ses_e5f9f09a7ffe9BKlXhBcI2PvXf`), no findings/fixes. Reviewer read all57 files and actual owners/consumers/tests/docs, confirmed logs and synthetic c0; no edits or Cargo by reviewer. Reviewed tracked-diff SHA256 `7c2b4c7ed8c482810fef8707ecd497ab5ca2031354f0557d43af664f13edb88e`.
-- Next: R4 commit/push, then evidence-only completion update. Four later-wave goal artifacts still unchanged; `progress/` untouched.
+- R4 verified: commit `6d82394c62d49ef60a1da6713686f19d88a5461c` (`fix(tools): preserve verbatim output for TS parity`) includes all five goal artifacts; `git push origin master` succeeded (`ae0b7e214..6d82394c6 master -> master`, no force). Four later-wave plans unchanged; `progress/` untouched. No remaining outcome or blocker.
 
 ## Material Decisions
 - 2026-11-03: owner approved plan v2; TS parity overrides self-invented safeguards; docs must follow code.
@@ -94,9 +94,10 @@ crates/oc-adapters/assets/skills/customize-opencode/SKILL.md:281.
 - 2026-11-03: owner RED completed (15 failures across 24 selected unit tests); implementation and current-contract docs updated. Known literal corruption reproduced, no item closed not_applicable.
 - 2026-11-03: final scoped integration 47/47, Clippy, full gate 2615/2615, release and synthetic live PASS. Initial builtin fixture permission corrected before final GREEN; live preflight restricted to current UID after refusing a foreign `/proc` read. No foreign process/credential access continued.
 - 2026-11-03: independent final Review-Sol PASS with no findings; no behavioral changes after successful checks/review.
+- 2026-11-03: reviewed wave committed and pushed; all R1–R4 verified. This final status/evidence-only update does not change the reviewed/tested runtime or docs policy.
 
 ## Completion
-- Resolved outcomes: R1, R2, R3 verified; R4 pending commit/push.
-- Commands and artifacts: exact required checks/results above; synthetic RED/GREEN/gate/release/live logs in `.local/tmp/w1-*.log`.
+- Resolved outcomes: R1, R2, R3, R4 verified; no not_applicable/waived/pending items.
+- Commands and artifacts: exact required checks/results above; synthetic RED/GREEN/gate/release/live logs in `.local/tmp/w1-*.log`; reviewed wave commit/push `6d82394c62d49ef60a1da6713686f19d88a5461c`.
 - Constraint and diff-scope check: 52 modified tracked files + five goal artifacts; runtime change stays within W1 owners/direct consumers. No deps/migration, no test/load/deadline weakening, four later-wave plans SHA256 unchanged, `progress/` untouched.
-- Final status: active only until R4 is verified.
+- Final status: complete. Offline + specified synthetic live qualification only, not paid/visual or whole-product READY. No substantive work remains.
