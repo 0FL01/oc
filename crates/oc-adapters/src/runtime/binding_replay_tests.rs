@@ -21,7 +21,6 @@ pub(in crate::runtime) fn owner<'a>(db: &'a Db, project: &std::path::Path) -> Ru
             data: db.root().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap()

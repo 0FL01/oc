@@ -99,7 +99,9 @@ Idle(draft)
 по-прежнему принадлежат application, не presentation.
 
 Для `crw` сначала получить точную безопасную причину: transport, config source, стадия
-`config / spawn / DNS / connect / initialize / tools-list`, status/protocol mismatch.
+`config / spawn / connect / initialize / tools-list`, status/protocol mismatch.
+Remote MCP no longer has a separate DNS/private-host prelookup stage (W4); DNS/TLS
+connection failures use its existing safe connection cause, not raw exceptions.
 Не выводить URL с credentials, headers, raw body/exception, provider prompts. Typed
 `McpAttachFailure { server_id, stage, safe_code, retryable }` либо существующий эквивалент
 должен доходить до TUI. Сейчас `{server}` недостаточно (P11/P12).

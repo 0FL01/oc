@@ -3,6 +3,7 @@
 use super::*;
 use futures_util::{FutureExt, SinkExt, StreamExt};
 use std::sync::{Arc, Mutex};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::net::TcpStream;
 use tokio::time::Instant;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite};
@@ -13,7 +14,8 @@ const CHANNELS: usize = 8;
 const CHECKPOINT_ITEMS: usize = 10_000;
 const BETA: &str = "responses_websockets=2026-02-06";
 const FRAME_TIMEOUT_MS: u64 = 30 * 60 * 1000;
-type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
+// Inner TLS belongs to an optional HTTPS proxy; outer TLS belongs to the origin.
+type Socket = WebSocketStream<MaybeTlsStream<MaybeTlsStream<TcpStream>>>;
 
 pub(super) fn frame_timeout(config: &ResponsesConfig) -> Option<Duration> {
     config
@@ -523,6 +525,171 @@ fn timeout_kind(total: Option<Instant>) -> TransportKind {
     }
 }
 
+fn bypasses_proxy(url: &reqwest::Url, value: &str) -> bool {
+    let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
+    let port = url.port_or_known_default().unwrap_or(443).to_string();
+    value
+        .split(|ch: char| ch.is_whitespace() || ch == ',')
+        .any(|entry| {
+            if entry == "*" {
+                return true;
+            }
+            let (entry, entry_port) = entry
+                .rsplit_once(':')
+                .filter(|(host, port)| {
+                    !host.is_empty()
+                        && !port.is_empty()
+                        && port.bytes().all(|ch| ch.is_ascii_digit())
+                })
+                .map_or((entry, None), |(host, port)| (host, Some(port)));
+            if entry_port.is_some_and(|value| value != port) {
+                return false;
+            }
+            let entry = entry.to_ascii_lowercase();
+            let entry = entry.strip_prefix('*').unwrap_or(&entry);
+            if entry.starts_with('.') {
+                host.ends_with(entry)
+            } else {
+                host == entry
+            }
+        })
+}
+
+fn proxy(
+    url: &reqwest::Url,
+) -> Result<Option<hyper_util::client::proxy::matcher::Intercept>, ProviderError> {
+    let environment = |name: &str| {
+        std::env::var(name)
+            .ok()
+            .or_else(|| std::env::var(name.to_ascii_lowercase()).ok())
+    };
+    if matches!(
+        url.host_str().unwrap_or_default().trim_matches(['[', ']']),
+        "localhost" | "127.0.0.1" | "::1"
+    ) || environment("NO_PROXY").is_some_and(|value| bypasses_proxy(url, &value))
+    {
+        return Ok(None);
+    }
+    let secure = url.scheme() == "https";
+    let selected = environment(if secure { "WSS_PROXY" } else { "WS_PROXY" })
+        .or_else(|| environment(if secure { "HTTPS_PROXY" } else { "HTTP_PROXY" }))
+        .or_else(|| environment("ALL_PROXY"));
+    let Some(selected) = selected.filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    let parsed = reqwest::Url::parse(&selected).map_err(|_| ProviderError::InvalidConfig)?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return Err(ProviderError::InvalidConfig);
+    }
+    let destination = url
+        .as_str()
+        .parse()
+        .map_err(|_| ProviderError::InvalidConfig)?;
+    hyper_util::client::proxy::matcher::Matcher::builder()
+        .all(selected)
+        .build()
+        .intercept(&destination)
+        .map(Some)
+        .ok_or(ProviderError::InvalidConfig)
+}
+
+async fn tunnel(
+    proxy: &hyper_util::client::proxy::matcher::Intercept,
+    origin: &reqwest::Url,
+) -> Result<MaybeTlsStream<TcpStream>, ProviderError> {
+    let proxy_url =
+        reqwest::Url::parse(&proxy.uri().to_string()).map_err(|_| ProviderError::InvalidConfig)?;
+    let host = proxy_url
+        .host_str()
+        .ok_or(ProviderError::InvalidConfig)?
+        .trim_matches(['[', ']']);
+    let tcp = TcpStream::connect((
+        host,
+        proxy_url
+            .port_or_known_default()
+            .ok_or(ProviderError::InvalidConfig)?,
+    ))
+    .await
+    .map_err(|_| ProviderError::Transport)?;
+    let mut stream = if proxy_url.scheme() == "https" {
+        let loaded = rustls_native_certs::load_native_certs();
+        if loaded.certs.is_empty() {
+            return Err(ProviderError::InvalidConfig);
+        }
+        let mut roots = rustls::RootCertStore::empty();
+        roots.add_parsable_certificates(loaded.certs);
+        let tls = rustls::ClientConfig::builder()
+            .with_root_certificates(roots)
+            .with_no_client_auth();
+        let name = rustls::pki_types::ServerName::try_from(host.to_owned())
+            .map_err(|_| ProviderError::InvalidConfig)?;
+        let tls = tokio_rustls::TlsConnector::from(Arc::new(tls))
+            .connect(name, tcp)
+            .await
+            .map_err(|error| {
+                if invalid_certificate(&error) {
+                    ProviderError::InvalidCertificate
+                } else {
+                    ProviderError::Transport
+                }
+            })?;
+        MaybeTlsStream::Rustls(tls)
+    } else {
+        MaybeTlsStream::Plain(tcp)
+    };
+    let authority = format!(
+        "{}:{}",
+        origin.host_str().ok_or(ProviderError::InvalidConfig)?,
+        origin
+            .port_or_known_default()
+            .ok_or(ProviderError::InvalidConfig)?
+    );
+    let mut request = format!("CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\n").into_bytes();
+    if let Some(auth) = proxy.basic_auth() {
+        request.extend_from_slice(b"Proxy-Authorization: ");
+        request.extend_from_slice(auth.as_bytes());
+        request.extend_from_slice(b"\r\n");
+    }
+    request.extend_from_slice(b"\r\n");
+    stream
+        .write_all(&request)
+        .await
+        .map_err(|_| ProviderError::Transport)?;
+    let mut response = Vec::new();
+    // Do not overread bytes belonging to the origin TLS/WebSocket handshake.
+    loop {
+        if response.len() >= 16 * 1024 {
+            return Err(ProviderError::Transport);
+        }
+        response.push(
+            stream
+                .read_u8()
+                .await
+                .map_err(|_| ProviderError::Transport)?,
+        );
+        if response.ends_with(b"\r\n\r\n") {
+            break;
+        }
+    }
+    // Unused header values/reason phrases may legally contain non-UTF-8 bytes.
+    let mut status = response
+        .split(|byte| *byte == b'\n')
+        .next()
+        .ok_or(ProviderError::Transport)?
+        .split(|byte| byte.is_ascii_whitespace())
+        .filter(|part| !part.is_empty());
+    if !matches!(status.next(), Some(b"HTTP/1.1" | b"HTTP/1.0"))
+        || !status
+            .next()
+            .filter(|value| value.len() == 3)
+            .and_then(|value| std::str::from_utf8(value).ok()?.parse::<u16>().ok())
+            .is_some_and(|value| (200..300).contains(&value))
+    {
+        return Err(ProviderError::Transport);
+    }
+    Ok(stream)
+}
+
 async fn connect(
     config: &ResponsesConfig,
     url: &str,
@@ -532,21 +699,30 @@ async fn connect(
 ) -> Result<Socket, ProviderError> {
     let deadline = Instant::now() + config.connect_timeout;
     let operation = async {
-        let (_, addresses) =
-            crate::endpoint::resolve(url, config.wire.endpoint.as_ref(), config.allow_private)
-                .await?;
-        let tcp = TcpStream::connect(addresses.as_slice())
-            .await
-            .map_err(|_| ProviderError::Transport)?;
-        let peer = tcp.peer_addr().map_err(|_| ProviderError::Transport)?;
-        if !crate::endpoint::peer_allowed(
-            config.wire.endpoint.as_ref(),
-            peer.ip(),
-            config.allow_private,
-        ) {
-            return Err(ProviderError::PrivateHost);
-        }
-        let mut url = reqwest::Url::parse(url).map_err(|_| ProviderError::InvalidConfig)?;
+        let mut url =
+            crate::endpoint::checked_url(url, config.wire.endpoint.as_ref(), config.allow_private)?;
+        let transport = if let Some(proxy) = proxy(&url)? {
+            tunnel(&proxy, &url).await?
+        } else {
+            let (_, addresses) = crate::endpoint::resolve(
+                url.as_str(),
+                config.wire.endpoint.as_ref(),
+                config.allow_private,
+            )
+            .await?;
+            let tcp = TcpStream::connect(addresses.as_slice())
+                .await
+                .map_err(|_| ProviderError::Transport)?;
+            let peer = tcp.peer_addr().map_err(|_| ProviderError::Transport)?;
+            if !crate::endpoint::peer_allowed(
+                config.wire.endpoint.as_ref(),
+                peer.ip(),
+                config.allow_private,
+            ) {
+                return Err(ProviderError::PrivateHost);
+            }
+            MaybeTlsStream::Plain(tcp)
+        };
         let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
         url.set_scheme(scheme)
             .map_err(|_| ProviderError::InvalidConfig)?;
@@ -567,8 +743,13 @@ async fn connect(
             .max_write_buffer_size(REQUEST_BYTE_CAP + 64 * 1024)
             .max_frame_size(Some(SSE_BYTE_CAP))
             .max_message_size(Some(SSE_BYTE_CAP));
-        match tokio_tungstenite::client_async_tls_with_config(request, tcp, Some(limits), None)
-            .await
+        match tokio_tungstenite::client_async_tls_with_config(
+            request,
+            transport,
+            Some(limits),
+            None,
+        )
+        .await
         {
             Ok((socket, _)) => Ok(socket),
             Err(tungstenite::Error::Http(response)) => {

@@ -30,7 +30,6 @@ fn runtime<'a>(db: &'a Db, project: &std::path::Path) -> Runtime<'a> {
             data: db.root().into(),
         },
         None,
-        false,
         DcpConfig {
             turn_protection: false,
             protected_tools: vec![],

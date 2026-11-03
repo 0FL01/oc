@@ -47,6 +47,15 @@ default. Native regressions translate these semantics; TS tests were not run.
 Typed certificate refusal follows the repository security/retry contract, not
 the TS retry-count policy. The existing full MIT notice remains retained.
 
+W4 uses that same MIT checkout for `packages/core/src/tool/plugin/webfetch.ts`,
+`tool/html-markdown.ts`, `effect/websocket-constructor.ts`, `mcp/client.ts`, and
+core tool-webfetch/tool-execute/effect-app-node-platform tests. Native regressions
+translate captured redirect Deny, ten hops/5 MiB, private MCP/query URLs and
+scheme-specific WS proxy/NO_PROXY selection; TS tests were inspected, not run.
+HTTP proxy matching uses the installed hyper-util0.1.20/reqwest0.13.5 system matcher,
+not a new env parser; HTTPS proxy tunnelling uses already-locked tokio-rustls0.26.5
+and rustls-native-certs0.8.4, without disabling certificate verification.
+
 ## DCP
 
 [D1] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/README.md

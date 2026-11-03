@@ -489,7 +489,10 @@ Owner-approved 2026-10-02 clarification (still pending):
   Localhost/LAN HTTP(S) are permitted only by explicit trusted/admitted normalized
   endpoint/source binding, shared across configured discovery and every request lane.
   URL/lower-trust override inherits neither credential nor private-route admission;
-  DNS/peer/redirect scope and independent webfetch SSRF policy remain enforced.
+   URL/literal-IP scope and refused provider redirects remain enforced; direct
+   requests retain DNS/pinning/peer checks. Proxied hostname DNS belongs to the proxy,
+   whose peer is not an origin. Webfetch instead uses captured permissions, including
+   deny-only checks before every redirect, without private-host prelookup/refusal.
 - Common ordered request/result semantics retain chronological system/effort updates,
   complete ordinary call/result groups and neutral text/reasoning; protocol-native
   opaque/signatures/checkpoints require full compatibility. Unsupported chronological
@@ -519,7 +522,10 @@ One typed table in existing Db stores connection identity/wire/auth policy and s
 last-good catalog, never keys/raw remote payloads. Initial metadata/key atomic, custom
 tagged scope prevents config collision key inheritance; raw config IDs and enabled/
 disabled filters remain authoritative. Explicit literal local/LAN provenance keeps
-existing dial/peer/prefix/redirect/proxy/security restrictions, no test-only allowance.
+existing prefix/literal-IP/redirect/security restrictions, no test-only allowance.
+Direct DNS/pinning/peer checks remain; system proxy delegates origin hostname DNS
+without weakening captured URL/credential binding. HTTP and WS proxy selection
+follow the separate installed-matcher/TS rules documented in [CONFIG](CONFIG.md).
 
 Discovery results carry provider ID/captured binding revision; effective credential/
 Location retirement cancels owned work and rejects stale outcomes. One-view immutable

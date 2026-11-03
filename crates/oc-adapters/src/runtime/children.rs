@@ -1414,7 +1414,6 @@ impl Runtime<'_> {
             parent_env: self.parent_env.clone(),
             roots: self.roots.clone(),
             webfetch_auth: self.webfetch_auth.clone(),
-            webfetch_allow_private: self.webfetch_allow_private,
             nudge_state: Mutex::default(),
             omitted_images: Mutex::default(),
             compression_commit: self.compression_commit.clone(),

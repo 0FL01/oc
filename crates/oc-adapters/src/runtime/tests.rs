@@ -271,7 +271,6 @@ mod vis38_review_tests {
                 data: data.into(),
             },
             None,
-            false,
             DcpConfig {
                 turn_protection: false,
                 protected_tools: vec![],

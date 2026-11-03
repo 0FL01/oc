@@ -443,8 +443,10 @@ Chat/Messages support**.
 - Explicit trusted/admitted localhost **and LAN** HTTP(S) connections are scoped to
   normalized scheme/host/port/base prefix and source provenance. The same immutable
   binding admits discovery/main/follow-up/title/compaction/child/retry; lower-trust
-  overrides do not inherit allowance/secret. Peer/DNS/redirect restrictions remain
-  scoped, not globally disabled. This does not widen webfetch/tool-network policy.
+  overrides do not inherit allowance/secret. URL containment and literal-IP admission
+  remain independent of proxy routing. Direct requests retain DNS pinning/all-answer
+  and peer checks; a proxied hostname is resolved by its proxy, not checked locally.
+  Provider redirects stay refused. Webfetch has its separate captured permission policy.
 - Keep configured static models and source-qualified dynamic retirement semantics;
   compatible alias alone never starts guessed discovery. Existing OpenProxy `/models`
   oracle and Go public models.dev cache remain distinct, with one catalog read-view.
@@ -816,7 +818,21 @@ OAuth HTTP (browser code exchange, device login и refresh) использует
 hostname `auth.openai.com` сохраняется, в том числе внутри CONNECT; HTTPS-прокси
 также проходит TLS-проверку. Применяется environment первого native owner: после
 изменения proxy env нужен его штатный перезапуск, новый клиент env не заменяет.
-Это не proxy-поддержка generation HTTP/WebSocket; SOCKS/PAC/custom CA не добавлены.
+Это отдельная OAuth policy, не замена общей HTTP/WS policy ниже; SOCKS/PAC и новый
+custom-CA config API не добавлены.
+
+Generation/discovery/webfetch/remote MCP используют system proxy установленного
+reqwest/hyper-util: `HTTP_PROXY`/`HTTPS_PROXY`, затем `ALL_PROXY`, с lowercase формами
+и `NO_PROXY`/`no_proxy`. Matcher определяет route для конкретного конечного URL;
+NO_PROXY сохраняет direct provider DNS/pinning/peer guards. Captured provider URL
+binding и literal-IP trust проверяются и при proxy; DNS proxied hostname делегирован
+proxy, его peer не считается origin. HTTPS proxy проверяется и для HTTP origin.
+WebSocket раскрывает TS chain по схеме: `WSS_PROXY → HTTPS_PROXY → ALL_PROXY`,
+`WS_PROXY → HTTP_PROXY → ALL_PROXY`, uppercase прежде lowercase по наличию (пустой
+выбранный WS proxy отключает proxy), TS port-aware NO_PROXY и automatic loopback
+bypass. CONNECT поддерживает HTTP/HTTPS proxy и URL-encoded Basic credentials,
+сохраняя TLS origin/proxy, cancellation/deadlines и no unknown-delivery replay.
+Новых config-полей для proxy нет; используется startup environment native owner.
 
 Stored active OpenAI Key/OAuth → own OPENAI_API_KEY → own configured Key, after
 provider-owned endpoint admission. OAuth binds the Codex subscription endpoint;

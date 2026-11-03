@@ -1528,15 +1528,12 @@ async fn connect_one(
 ) -> Result<AttachedMcp, RuntimeError> {
     let client = if entry.kind == "remote" {
         let codex_web = server == "codex_web";
-        let mut config = if codex_web {
+        let config = if codex_web {
             mcp_remote::CodexWebConfig::from_entry(entry)
         } else {
             mcp_remote::CodexWebConfig::from_remote_entry(entry)
         }
         .map_err(|error| remote_attach_error_at(server, "config", error))?;
-        config.allow_private = env
-            .get("OC_TEST_ALLOW_LOOPBACK")
-            .is_some_and(|value| value == "1");
         AttachedServer::Remote(
             CodexWebClient::connect_cancellable(&config, codex_web, cancel)
                 .await

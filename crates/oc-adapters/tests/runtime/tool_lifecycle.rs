@@ -128,7 +128,6 @@ async fn w1_builtin_results_preserve_key_and_env_literals() {
             data: harness._data.path().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();
@@ -1576,6 +1575,8 @@ for line in sys.stdin:
 #[tokio::test]
 async fn aud23_partial_attach_failure_degrades_and_still_reaps_child() {
     let (harness, mut generation) = make_harness(allow_all());
+    let refused = tokio::net::TcpSocket::new_v4().unwrap();
+    refused.bind("127.0.0.1:0".parse().unwrap()).unwrap();
     let script = harness._project.path().join("partial_attach.py");
     let pid_file = harness._project.path().join("partial.pid");
     std::fs::write(
@@ -1613,7 +1614,7 @@ for line in sys.stdin:
         "b-bad".into(),
         McpEntry {
             kind: "remote".into(),
-            url: Some("http://127.0.0.1:9/v1/mcp".into()),
+            url: Some(format!("http://{}/v1/mcp", refused.local_addr().unwrap())),
             enabled: true,
             oauth: false,
             headers: BTreeMap::from([(
@@ -1644,7 +1645,7 @@ for line in sys.stdin:
     assert_eq!(
         report.warnings,
         vec![format!(
-            "mcp {} DNS: private_host (retryable=false)",
+            "mcp {} connect: connection_failed (retryable=true)",
             super::mcp_lifecycle::diagnostic_name("b-bad")
         )]
     );
@@ -1671,11 +1672,13 @@ for line in sys.stdin:
 #[tokio::test]
 async fn mcp_attach_failure_degrades_the_server() {
     let (harness, mut generation) = make_harness(allow_all());
+    let refused = tokio::net::TcpSocket::new_v4().unwrap();
+    refused.bind("127.0.0.1:0".parse().unwrap()).unwrap();
     generation.mcp.insert(
         "codex".to_string(),
         McpEntry {
             kind: "remote".to_string(),
-            url: Some("http://127.0.0.1:9/v1/mcp".to_string()),
+            url: Some(format!("http://{}/v1/mcp", refused.local_addr().unwrap())),
             enabled: true,
             oauth: false,
             headers: [("authorization".to_string(), "Bearer k".to_string())]
@@ -1699,7 +1702,7 @@ async fn mcp_attach_failure_degrades_the_server() {
     assert_eq!(
         report.warnings,
         vec![format!(
-            "mcp {} DNS: private_host (retryable=false)",
+            "mcp {} connect: connection_failed (retryable=true)",
             super::mcp_lifecycle::diagnostic_name("codex")
         )]
     );

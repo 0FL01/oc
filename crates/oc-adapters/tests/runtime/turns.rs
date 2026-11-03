@@ -711,7 +711,6 @@ fn root_location_creation_rolls_back_on_pref_failure_and_retries() {
             data: harness._data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();

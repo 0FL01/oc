@@ -193,7 +193,7 @@ async fn vis46_execute_progress_and_final_facts_follow_actual_calls_without_repl
     });
     let (harness, generation) = make_harness(permissions(Permission::Allow));
     let generation = fixture_generation(&harness, generation, None);
-    let runtime = runtime_allowing_private(&harness, generation, true);
+    let runtime = runtime_of(&harness, generation, Vec::new());
     let (events, mut event_rx) = tokio::sync::broadcast::channel(256);
     runtime.set_approval_events(&events);
     runtime.create_session("s").unwrap();
@@ -355,7 +355,7 @@ async fn vis46_cancel_keeps_observed_calls_and_the_single_effect() {
     use oc_core::tool_output::ExecuteCallStatus;
     let (harness, generation) = make_harness(permissions(Permission::Allow));
     let generation = fixture_generation(&harness, generation, None);
-    let runtime = runtime_allowing_private(&harness, generation, false);
+    let runtime = runtime_of(&harness, generation, Vec::new());
     runtime.create_session("s").unwrap();
     wait_initial_mcp(&runtime).await;
     let code = "await tools.fixture.mark({}); while (true) {}";
@@ -785,17 +785,25 @@ async fn execute_is_absent_without_code_mode_tools_or_when_denied() {
     );
 }
 
-fn http_echo_server() -> String {
+fn http_echo_server() -> (String, Arc<Mutex<Vec<String>>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!(
         "http://127.0.0.1:{}/echo",
         listener.local_addr().unwrap().port()
     );
+    let hits = Arc::new(Mutex::new(Vec::new()));
+    let seen = hits.clone();
     std::thread::spawn(move || {
         for stream in listener.incoming().filter_map(Result::ok) {
             let mut reader = BufReader::new(stream);
             let mut request_line = String::new();
             let _ = reader.read_line(&mut request_line);
+            let path = request_line
+                .split_whitespace()
+                .nth(1)
+                .unwrap_or("")
+                .to_string();
+            seen.lock().unwrap().push(path.clone());
             let mut length = 0usize;
             loop {
                 let mut line = String::new();
@@ -810,6 +818,14 @@ fn http_echo_server() -> String {
             }
             let mut body = vec![0u8; length];
             let _ = reader.read_exact(&mut body);
+            if let Some(target) = match path.as_str() {
+                "/redirect-deny" => Some("/denied"),
+                "/redirect-ask" => Some("/ask-target"),
+                _ => None,
+            } {
+                let _ = reader.get_mut().write_all(format!("HTTP/1.1 302 Found\r\nLocation: {target}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n").as_bytes());
+                continue;
+            }
             let reply = serde_json::json!({
                 "request": request_line.trim(),
                 "body": String::from_utf8_lossy(&body),
@@ -824,77 +840,114 @@ fn http_echo_server() -> String {
             );
         }
     });
-    url
-}
-
-fn runtime_allowing_private<'a>(
-    harness: &'a Harness,
-    generation: Generation,
-    allow_private: bool,
-) -> Runtime<'a> {
-    let project = harness._project.path();
-    Runtime::new(
-        &harness.db,
-        "work",
-        generation,
-        ProtectedGlobs {
-            patterns: Vec::new(),
-        },
-        oc_adapters::files::Files::new(project, harness._data.path()).unwrap(),
-        oc_adapters::shell::Shell::new(project).unwrap(),
-        BTreeMap::new(),
-        oc_adapters::tools::ToolRoots {
-            project: project.to_path_buf(),
-            data: harness._data.path().to_path_buf(),
-        },
-        None,
-        allow_private,
-        DcpConfig::default(),
-    )
-    .unwrap()
+    (url, hits)
 }
 
 #[tokio::test]
 async fn code_mode_fetch_goes_through_the_webfetch_owner() {
-    let url = http_echo_server();
-    for allow_private in [true, false] {
-        let (harness, generation) = make_harness(permissions(Permission::Allow));
-        let generation = fixture_generation(&harness, generation, None);
-        let runtime = runtime_allowing_private(&harness, generation, allow_private);
-        runtime.create_session("s").unwrap();
-        wait_initial_mcp(&runtime).await;
-        let code = format!(
-            "const r = await fetch({url:?}, {{ method: 'POST', body: 'payload' }});\nconst data = await r.json();\nreturn [r.status, r.ok, data.request, data.body]"
-        );
-        let (base, _, requests) = Fake::start_recording(
-            vec![
-                sse_tool_call(
-                    "exec-fetch",
-                    "execute",
-                    &serde_json::json!({ "code": code }),
-                ) + &sse_completed(),
-                sse_completed(),
-            ],
-            Duration::ZERO,
-        );
-        runtime
-            .run_turn(params(
-                "s",
-                "fetch",
-                &harness,
-                provider_of(&base),
-                &NO_CANCEL,
-            ))
-            .await
-            .unwrap();
-        let output = call_output(&requests.lock().unwrap()[1], "exec-fetch");
-        if allow_private {
-            assert_eq!(
-                output,
-                "[\n  201,\n  true,\n  \"POST /echo HTTP/1.1\",\n  \"payload\"\n]"
-            );
+    let (url, _) = http_echo_server();
+    let (harness, generation) = make_harness(permissions(Permission::Allow));
+    let generation = fixture_generation(&harness, generation, None);
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
+    let code = format!(
+        "const r = await fetch({url:?}, {{ method: 'POST', body: 'payload' }});\nconst data = await r.json();\nreturn [r.status, r.ok, data.request, data.body]"
+    );
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call(
+                "exec-fetch",
+                "execute",
+                &serde_json::json!({ "code": code }),
+            ) + &sse_completed(),
+            sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    runtime
+        .run_turn(params(
+            "s",
+            "fetch",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    let output = call_output(&requests.lock().unwrap()[1], "exec-fetch");
+    assert_eq!(
+        output,
+        "[\n  201,\n  true,\n  \"POST /echo HTTP/1.1\",\n  \"payload\"\n]"
+    );
+}
+
+#[tokio::test]
+async fn w4_fetch_redirects_use_captured_deny_only_policy() {
+    let (url, hits) = http_echo_server();
+    let origin = url.trim_end_matches("/echo");
+    let (harness, mut generation) = make_harness(permissions(Permission::Allow));
+    generation.permission_rules =
+        oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
+        "permissions":[
+            {"action":"*","resource":"*","effect":"allow"},
+            {"action":"webfetch","resource":format!("{origin}/denied"),"effect":"deny"},
+                {"action":"webfetch","resource":format!("{origin}/ask-target"),"effect":"ask"}
+            ]
+        }))
+        .unwrap();
+    let generation = fixture_generation(&harness, generation, None);
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
+    let mut batch = String::new();
+    for (id, target, code_mode) in [
+        ("fetch-deny", "redirect-deny", false),
+        ("execute-deny", "redirect-deny", true),
+        ("fetch-ask", "redirect-ask", false),
+        ("execute-ask", "redirect-ask", true),
+    ] {
+        let url = format!("{origin}/{target}");
+        let (name, args) = if code_mode {
+            (
+                "execute",
+                serde_json::json!({"code":format!("const r = await fetch({url:?}); return await r.text()") }),
+            )
         } else {
-            assert_eq!(output, "TypeError: fetch failed: private host refused");
-        }
+            ("webfetch", serde_json::json!({"url":url,"format":"text"}))
+        };
+        batch.push_str(&sse_tool_call(id, name, &args));
     }
+    batch.push_str(&sse_completed());
+    let (base, _, requests) = Fake::start_recording(vec![batch, sse_completed()], Duration::ZERO);
+    let report = runtime
+        .run_turn(params(
+            "s",
+            "fetch redirects",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    let rows = harness.db.list_tool_ops("s").unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|row| row.state.as_str())
+            .collect::<Vec<_>>(),
+        ["failed", "failed", "completed", "completed"]
+    );
+    let hits = hits.lock().unwrap();
+    assert_eq!(hits.iter().filter(|path| *path == "/denied").count(), 0);
+    assert_eq!(hits.iter().filter(|path| *path == "/ask-target").count(), 2);
+    assert_eq!(
+        hits.iter().filter(|path| *path == "/redirect-deny").count(),
+        2
+    );
+    assert_eq!(
+        hits.iter().filter(|path| *path == "/redirect-ask").count(),
+        2
+    );
+    assert_eq!(requests.lock().unwrap().len(), 2);
 }

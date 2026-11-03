@@ -116,7 +116,7 @@ impl Runtime<'_> {
                 let call = crate::tools::ToolCall {id:format!("{}:{ordinal}",resolution.id),name:"shell".into(),arguments:serde_json::json!({"command":source})};
                 crate::tools::validate_call(&call).map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
                 let invocation = shell.invocation(&call, &self.parent_env).map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-                let ctx = ToolContext {files:&self.files,shell,parent_env:&self.parent_env,webfetch_auth:self.webfetch_auth.clone(),webfetch_allow_private:self.webfetch_allow_private,policy,subagent:None,snapshot:&capture.published.workspace.skills,cancel:stopped,roots:Some(self.roots.clone())};
+                let ctx = ToolContext {files:&self.files,shell,parent_env:&self.parent_env,webfetch_auth:self.webfetch_auth.clone(),policy,subagent:None,snapshot:&capture.published.workspace.skills,cancel:stopped,roots:Some(self.roots.clone())};
                 let admitted = self.admit_tool(&capture.published,session,&resolution.id,&call.id,&call,&ctx,policy,stopped,capture.lane.agent_id.clone(),capture.lane.agent_digest.clone(),false);
                 tokio::pin!(admitted);
                 let permitted = tokio::select! { biased;

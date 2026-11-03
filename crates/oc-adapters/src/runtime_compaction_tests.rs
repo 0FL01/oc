@@ -36,7 +36,6 @@ fn runtime<'a>(db: &'a Db, project: &std::path::Path, config: Generation) -> Run
             data: db.root().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap()

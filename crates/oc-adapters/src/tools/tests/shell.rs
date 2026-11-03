@@ -71,7 +71,7 @@ async fn tool13_zero_keeps_cancel_group_reap_and_output_bounds() {
     let mut env = setup();
     env.env.insert("SHELL".into(), "/bin/bash".into());
     let cancel = AtomicBool::new(false);
-    let mut context = ctx(&env, &AllowAllPolicy, false);
+    let mut context = ctx(&env, &AllowAllPolicy);
     context.cancel = &cancel;
     let call = call(
         "shell",

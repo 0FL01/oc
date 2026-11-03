@@ -98,6 +98,36 @@ pub(crate) fn peer_allowed(
     allowed(ip, binding.is_some_and(|b| b.trusted), test_loopback)
 }
 
+/// Captured URL authority is independent of who resolves a proxied hostname.
+pub(crate) fn checked_url(
+    url: &str,
+    binding: Option<&EndpointBinding>,
+    test_loopback: bool,
+) -> Result<reqwest::Url, ProviderError> {
+    let url = parse(url)?;
+    if binding.is_some_and(|b| !b.contains(&url)) {
+        return Err(ProviderError::InvalidConfig);
+    }
+    if let Some(host) = url.host_str()
+        && let Ok(ip) = host.trim_matches(['[', ']']).parse::<IpAddr>()
+        && !peer_allowed(binding, ip, test_loopback)
+    {
+        return Err(ProviderError::PrivateHost);
+    }
+    Ok(url)
+}
+
+/// Use exactly the system matcher used by reqwest's default proxy connector.
+pub(crate) fn system_proxy(url: &reqwest::Url) -> Result<bool, ProviderError> {
+    let destination = url
+        .as_str()
+        .parse()
+        .map_err(|_| ProviderError::InvalidConfig)?;
+    Ok(hyper_util::client::proxy::matcher::Matcher::from_system()
+        .intercept(&destination)
+        .is_some())
+}
+
 /// Resolve once, validate every answer, then pin these answers in the HTTP client.
 /// This closes the preflight/post-dial DNS gap before any credential is sent.
 pub(crate) async fn resolve(
@@ -105,10 +135,7 @@ pub(crate) async fn resolve(
     binding: Option<&EndpointBinding>,
     test_loopback: bool,
 ) -> Result<(String, Vec<SocketAddr>), ProviderError> {
-    let url = parse(url)?;
-    if binding.is_some_and(|b| !b.contains(&url)) {
-        return Err(ProviderError::InvalidConfig);
-    }
+    let url = checked_url(url, binding, test_loopback)?;
     let host = url
         .host_str()
         .ok_or(ProviderError::InvalidConfig)?

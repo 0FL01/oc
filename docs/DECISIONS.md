@@ -414,6 +414,26 @@ not TS's finite retry policy. The sole direct dependency addition names the same
 already-locked rustls error type; no new package/version or storage migration.
 Config/discovery/storage no-follow policies are not changed by this decision.
 
+## Network TS parity — owner-approved 2026-11-03
+
+W4 supersedes fetch-specific private/loopback/DNS-rebinding refusal and its test
+exception, not provider endpoint authority. Webfetch and Code Mode use captured
+permissions, with Deny-only validation before every redirect target request;
+initial Ask still uses admission. Defaults become ten redirects and 5 MiB.
+Remote MCP removes private-host prelookup and preserves query in the exact URL,
+keeping other URL/header, lifecycle masking, protocol and cleanup contracts.
+
+Generation/discovery/webfetch/MCP honor the installed system HTTP proxy matcher.
+Provider captured URL/literal-IP authority remains; only direct origins get local
+DNS/all-answer admission, pinning and origin-peer checks. Proxy hostname resolution
+belongs to its proxy, not a local SSRF check. WS uses the TS scheme-specific proxy
+chain/NO_PROXY through HTTP/HTTPS CONNECT, preserving pre-credential direct checks,
+TLS verification, cancellation/deadlines and existing delivery/fallback/no-replay.
+HTTPS proxy TLS requires two already-locked dependency edges (tokio-rustls promoted
+from dev-only, rustls-native-certs direct), explicitly allowed by the owner; no new
+package/version, proxy worker/cache or storage migration is introduced. OAuth's
+separate proxy policy stays unchanged; NODE_EXTRA_CA_CERTS/MCP OAuth are out of scope.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

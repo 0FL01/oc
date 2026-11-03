@@ -444,7 +444,6 @@ fn runtime_with_dcp<'a>(
             data: harness._data.path().to_path_buf(),
         },
         None,
-        false,
         dcp_config,
     )
     .expect("runtime")
@@ -617,7 +616,6 @@ async fn dropped_remote_call_cannot_retry_after(shutdown: bool) {
             data: harness._data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();

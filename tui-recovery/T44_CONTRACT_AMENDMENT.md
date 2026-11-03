@@ -2567,7 +2567,7 @@ progress like the donor**. Plan delivery is docs only: not a T44 resume, not a T
 - **Live progress:** a disposable coalesced `CoreEvent::ToolCallProgress` replacement
   snapshot by op, emitted on each nested start/finish under the one execute operation.
   - Live only: never a durable op, card or approval surface.
-  - Nested calls still pass admit_tool/approval/MCP lease/webfetch guard (CM07/CM08)
+  - Nested calls still pass admit_tool/approval/MCP lease and captured webfetch permission, including deny-only redirect checks (CM07/CM08; W4 removes private-host/DNS guards)
     unchanged.
   - Final facts arrive with `ToolCallFinished` and the durable row: live = replay =
     reopen = restart, with no re-execution and no present-day file read.

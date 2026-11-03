@@ -355,7 +355,6 @@ fn runtime_with_dcp<'a>(
             data: harness._data.path().to_path_buf(),
         },
         None,
-        false,
         dcp,
     )
     .expect("runtime")

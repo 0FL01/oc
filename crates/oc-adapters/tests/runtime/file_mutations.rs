@@ -103,7 +103,6 @@ async fn external_mutations_auto_admits_patch_edit_and_write_without_saved_grant
                 data: harness._data.path().into(),
             },
             None,
-            false,
             DcpConfig::default(),
         )
         .unwrap();

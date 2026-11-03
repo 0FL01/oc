@@ -1352,7 +1352,6 @@ mod review_tests {
                 data: data.path().into(),
             },
             None,
-            false,
             crate::dcp_auto::DcpConfig::default(),
         )
         .unwrap();

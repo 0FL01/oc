@@ -21,7 +21,6 @@ fn dcp12_direct_guards_have_zero_intents_and_reenable_keeps_projection_permissio
             data: data.path().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();

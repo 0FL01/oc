@@ -196,7 +196,6 @@ impl Runtime<'_> {
                     shell: ctx.shell,
                     parent_env: ctx.parent_env,
                     webfetch_auth: ctx.webfetch_auth.clone(),
-                    webfetch_allow_private: ctx.webfetch_allow_private,
                     subagent: ctx.subagent,
                     snapshot: ctx.snapshot,
                     cancel: ctx.cancel,

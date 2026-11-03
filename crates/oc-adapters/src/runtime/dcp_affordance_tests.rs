@@ -21,7 +21,6 @@ fn runtime_with_dcp<'a>(
             data: db.root().into(),
         },
         None,
-        false,
         dcp,
     )
     .unwrap()

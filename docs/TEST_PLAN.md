@@ -47,6 +47,14 @@ grandchild/foreign-session isolation and unchanged interactive cancellation;
 image-prefix projection before admission with unchanged >32 MiB aggregate RAW;
 real untrusted HTTP/WS certificate refusal versus EOF/reset/connection refusal;
 900s HTTP chunk default with separate 300s headers and cancellation.
+W4 adds fixed 2 MiB/six-hop fetch regressions, loopback without exception flags,
+captured native/Code Mode redirect Deny zero-hit versus Ask continuation, and
+exact query-bearing remote MCP. Offline proxy children clear inherited proxy env
+and set synthetic HTTP(S)/ALL/WS proxy values before process startup: real CONNECT
+to a loopback TLS provider, proxy-only hostname, fixture CA, trusted/untrusted
+bindings, NO_PROXY direct bypass, nested HTTPS-proxy/WSS TLS, plain WS, and terminal
+proxy-certificate refusal without HTTP fallback. No process-global set_var, external
+provider or system trust change; existing direct endpoint/delivery guards stay tested.
 При работе с capture/comparator: `python3 tui-recovery/scripts/test_compare_frames.py`.
 При наличии Node в dev-среде: `node --test scripts/test_discovery_reference.mjs` — offline oracle, не production зависимость.
 

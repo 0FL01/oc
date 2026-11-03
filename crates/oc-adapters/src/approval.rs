@@ -275,8 +275,6 @@ pub(crate) async fn prepare(
             let mut url = reqwest::Url::parse(call.arguments["url"].as_str().ok_or("missing URL")?)
                 .map_err(|_| "invalid URL")?;
             crate::webfetch::validate_url(&mut url).map_err(|e| e.to_string())?;
-            crate::webfetch::check_static_host(&url, ctx.webfetch_allow_private)
-                .map_err(|e| e.to_string())?;
             ApprovalPreview::Resource {
                 values: resources.to_vec(),
             }

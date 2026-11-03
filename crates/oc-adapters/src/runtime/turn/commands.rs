@@ -152,7 +152,6 @@ impl Runtime<'_> {
             shell: &self.shell,
             parent_env: &self.parent_env,
             webfetch_auth: self.webfetch_auth.clone(),
-            webfetch_allow_private: self.webfetch_allow_private,
             policy: &policy,
             subagent: Some(&runner),
             snapshot: &workspace.skills,

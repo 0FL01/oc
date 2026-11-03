@@ -353,8 +353,6 @@ fn remote_attach_error_at(server: &str, stage: &'static str, error: McpError) ->
             ("config", "authorization_header_conflict", false)
         }
         McpError::ConflictingHeader(_) => ("config", "header_conflict", false),
-        McpError::PrivateHost => ("DNS", "private_host", false),
-        McpError::Dns => ("DNS", "resolution_failed", true),
         McpError::Connect => ("connect", "connection_failed", true),
         McpError::CleanupFailed => ("cleanup", "cleanup_failed", false),
         McpError::Unauthorized => (stage, "unauthorized", false),

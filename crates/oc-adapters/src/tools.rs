@@ -570,8 +570,6 @@ pub struct ToolContext<'a> {
     /// Patch roots (project + data) for `apply_patch` resolution.
     /// Legacy client bearer setting; native model webfetch never sends auth.
     pub webfetch_auth: Option<String>,
-    /// Test-only webfetch loopback exception.
-    pub webfetch_allow_private: bool,
     /// Central policy hook.
     pub policy: &'a dyn ToolPolicy,
     /// Foreground child-turn runner; `None` disables `subagent`.
@@ -1506,13 +1504,14 @@ async fn tool_webfetch(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str,
         connect_timeout: Duration::from_secs(10),
         max_redirects: crate::webfetch::MAX_REDIRECTS,
         body_cap: crate::webfetch::BODY_CAP_BYTES,
-        allow_loopback: ctx.webfetch_allow_private,
     };
     let started = std::time::Instant::now();
-    match crate::webfetch::fetch_formatted(input.url, opts, input.format, ctx.cancel).await {
+    match crate::webfetch::fetch_formatted(input.url, opts, input.format, ctx.cancel, ctx.policy)
+        .await
+    {
         Ok(mut result) => {
             // Only small, individually bounded metadata is serialized. Content
-            // is appended directly; JSON escaping cannot amplify a 1MiB body.
+            // is appended directly; JSON escaping cannot amplify the bounded body.
             let mut metadata = serde_json::json!({"url":result.url, "final_url":result.final_url,
                 "status":result.status, "content_type":result.content_type,
                 "format":input.format.as_str(), "timeout_seconds":input.timeout.as_secs_f64(),
@@ -2105,17 +2104,12 @@ mod tests {
         }
     }
 
-    fn ctx<'a>(
-        env: &'a Env,
-        policy: &'a dyn super::ToolPolicy,
-        allow_private: bool,
-    ) -> ToolContext<'a> {
+    fn ctx<'a>(env: &'a Env, policy: &'a dyn super::ToolPolicy) -> ToolContext<'a> {
         ToolContext {
             files: &env.files,
             shell: &env.shell,
             parent_env: &env.env,
             webfetch_auth: None,
-            webfetch_allow_private: allow_private,
             policy,
             subagent: None,
             snapshot: &env.snapshot,
@@ -2188,7 +2182,7 @@ mod tests {
     async fn tool10_unknown_invalid_match_ids() {
         let env = setup();
         let policy = AllowAllPolicy;
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let items = vec![
             started("c1", "read"),
             args("c1", "{\"path\":\"note.txt\"}"),
@@ -2245,7 +2239,7 @@ mod tests {
                     autoinvoke: false,
                 },
             );
-            let context = ctx(&env, &policy, false);
+            let context = ctx(&env, &policy);
             let outputs = execute_batch(
                 &context,
                 vec![Assembled::Call(ToolCall {
@@ -2273,7 +2267,7 @@ mod tests {
             std::fs::write(path, body).expect("search fixture");
         }
         let policy = AllowAllPolicy;
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let outputs = execute_batch(
             &context,
             vec![
@@ -2374,7 +2368,7 @@ mod tests {
         let policy = DenyListPolicy {
             denied: vec!["glob".to_string(), "grep".to_string()],
         };
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let outputs = execute_batch(
             &context,
             vec![
@@ -2419,7 +2413,7 @@ mod tests {
         );
         let env = setup();
         let policy = AllowAllPolicy;
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let patch = "*** Begin Patch\n*** Add File: canonical.txt\n+hello\n*** End Patch\n";
         for alias in ["patch", "text"] {
             let output = execute_batch(
@@ -2508,7 +2502,7 @@ mod tests {
     async fn tool_patch_bash_skill_paths() {
         let env = setup();
         let policy = AllowAllPolicy;
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let units = vec![
             Assembled::Call(ToolCall {
                 id: "p1".to_string(),
@@ -2546,7 +2540,7 @@ mod tests {
         let deny = DenyListPolicy {
             denied: vec!["bash".to_string()],
         };
-        let context = ctx(&env, &deny, false);
+        let context = ctx(&env, &deny);
         let outputs = execute_batch(
             &context,
             vec![Assembled::Call(ToolCall {
@@ -2607,7 +2601,6 @@ mod tests {
             shell: &env.shell,
             parent_env: &env.env,
             webfetch_auth: None,
-            webfetch_allow_private: false,
             policy: &policy,
             subagent: None,
             snapshot: &empty,
@@ -2632,7 +2625,7 @@ mod tests {
             outputs[0].output
         );
         // Durable graph: outputs persist through own storage and read back.
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let outputs = execute_batch(
             &context,
             vec![Assembled::Call(ToolCall {
@@ -2784,7 +2777,7 @@ mod tests {
         .expect("first");
         let units = assemble_calls(&first.items).expect("assemble");
         assert_eq!(units.len(), 2);
-        let context = ctx(&env, &policy, false);
+        let context = ctx(&env, &policy);
         let outputs = execute_batch(&context, units).await;
         assert_eq!(outputs[0].call_id, "c1");
         assert_eq!(outputs[1].call_id, "c2");

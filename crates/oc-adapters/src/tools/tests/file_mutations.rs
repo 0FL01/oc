@@ -4,7 +4,7 @@ use super::*;
 async fn tool20_write_overwrite_preserves_bytes_and_bom_without_read_call() {
     let env = setup();
     std::fs::write(env.project.join("note.txt"), "\u{feff}old\r\n").unwrap();
-    let context = ctx(&env, &AllowAllPolicy, false);
+    let context = ctx(&env, &AllowAllPolicy);
     let call = ToolCall {
         id: "overwrite".into(),
         name: "write".into(),

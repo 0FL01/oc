@@ -165,7 +165,6 @@ async fn live_workflow_harness() {
             data: data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime");
@@ -310,7 +309,6 @@ async fn live_workflow_harness() {
             data: data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime2");
@@ -354,7 +352,6 @@ async fn live_workflow_harness() {
             timeout: Duration::from_secs(60),
             startup_timeout: None,
             catalog_timeout: None,
-            allow_private: false,
         };
         let client = oc_adapters::mcp_remote::CodexWebClient::connect(&config)
             .await
@@ -448,7 +445,6 @@ async fn live_code_mode_execute_reaches_mcp() {
             data: data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime");

@@ -107,9 +107,6 @@ pub enum McpError {
     /// Case variants supplied different values for the same HTTP header.
     #[error("conflicting MCP header values: {0}")]
     ConflictingHeader(String),
-    /// SSRF guard: non-public dial target.
-    #[error("private host refused")]
-    PrivateHost,
     /// 401 from the server: terminal, never retried.
     #[error("unauthorized")]
     Unauthorized,
@@ -122,9 +119,6 @@ pub enum McpError {
     /// Transport or protocol failure (kind only).
     #[error("transport error")]
     Transport,
-    /// Host resolution failed before initialize (no hostname exposed).
-    #[error("DNS resolution failed")]
-    Dns,
     /// Typed HTTP client connection failure, without endpoint details.
     #[error("connection failed")]
     Connect,
@@ -180,8 +174,6 @@ pub struct CodexWebConfig {
     pub startup_timeout: Option<Duration>,
     /// Catalog deadline, separate from initialize and execution.
     pub catalog_timeout: Option<Duration>,
-    /// Test-only private-network exception.
-    pub allow_private: bool,
 }
 
 impl std::fmt::Debug for CodexWebConfig {
@@ -193,7 +185,6 @@ impl std::fmt::Debug for CodexWebConfig {
             .field("timeout", &self.timeout)
             .field("startup_timeout", &self.startup_timeout)
             .field("catalog_timeout", &self.catalog_timeout)
-            .field("allow_private", &self.allow_private)
             .finish()
     }
 }
@@ -222,7 +213,6 @@ impl CodexWebConfig {
             || url.host_str().is_none()
             || !url.username().is_empty()
             || url.password().is_some()
-            || url.query().is_some()
             || url.fragment().is_some()
         {
             return Err(McpError::InvalidConfig);
@@ -300,7 +290,6 @@ impl CodexWebConfig {
             catalog_timeout: Some(Duration::from_millis(
                 entry.timeouts.catalog_ms(entry.timeout),
             )),
-            allow_private: false,
         };
         config.validate_profile(require_bearer)?;
         Ok(config)
@@ -511,7 +500,7 @@ pub struct CodexWebClient {
 }
 
 impl CodexWebClient {
-    /// Connect: pre-dial SSRF guard, exact-URL handshake, 2025-11-25 required.
+    /// Connect to the exact configured URL; 2025-11-25 is required.
     pub async fn connect(config: &CodexWebConfig) -> Result<Self, McpError> {
         Self::connect_cancellable(config, true, &AtomicBool::new(false)).await
     }
@@ -532,20 +521,8 @@ impl CodexWebClient {
         config.validate_profile(codex_web)?;
         let startup_deadline =
             tokio::time::Instant::now() + config.startup_timeout.unwrap_or(config.timeout);
-        let (host, port) = split_host_port(&config.url)?;
-        tokio::select! {
-            biased;
-            () = crate::provider::wait_cancel(cancel) => return Err(McpError::Cancelled),
-            result = tokio::time::timeout_at(startup_deadline, crate::webfetch::check_host(&host, port, config.allow_private)) => result.map_err(|_| McpError::Deadline)?,
-        }
-        .map_err(|e| match e {
-            crate::webfetch::FetchError::PrivateHost => McpError::PrivateHost,
-            _ => McpError::Dns,
-        })?;
-
         let http = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
-            .no_proxy()
             .user_agent(crate::USER_AGENT)
             .connect_timeout(Duration::from_secs(10))
             .build()
@@ -901,13 +878,6 @@ async fn close_running(running: &mut McpRunning) -> Result<(), McpError> {
         Ok(Some(_)) | Err(_) => Err(McpError::Transport),
         Ok(None) => Err(McpError::Deadline),
     }
-}
-
-fn split_host_port(url: &str) -> Result<(String, u16), McpError> {
-    let url = reqwest::Url::parse(url).map_err(|_| McpError::InvalidConfig)?;
-    let host = url.host_str().ok_or(McpError::InvalidConfig)?.to_string();
-    let port = url.port_or_known_default().ok_or(McpError::InvalidConfig)?;
-    Ok((host, port))
 }
 
 /// Complete cursor pagination under the caller's deadline and byte budget.

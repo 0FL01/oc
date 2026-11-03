@@ -66,7 +66,6 @@ pub(in crate::runtime) struct Capture {
     files: crate::files::Files,
     skills: SkillSnapshot,
     webfetch_auth: Option<String>,
-    webfetch_allow_private: bool,
     roots: Option<ToolRoots>,
 }
 
@@ -90,7 +89,6 @@ impl Capture {
             files: ctx.files.clone(),
             skills: ctx.snapshot.clone(),
             webfetch_auth: ctx.webfetch_auth.clone(),
-            webfetch_allow_private: ctx.webfetch_allow_private,
             roots: ctx.roots.clone(),
         }
     }
@@ -225,7 +223,6 @@ impl Jobs {
                 shell: &runtime.shell,
                 parent_env: &runtime.parent_env,
                 webfetch_auth: capture.webfetch_auth.clone(),
-                webfetch_allow_private: capture.webfetch_allow_private,
                 policy: &policy,
                 subagent: None,
                 snapshot: &capture.skills,

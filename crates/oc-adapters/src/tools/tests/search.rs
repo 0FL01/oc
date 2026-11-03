@@ -11,7 +11,7 @@ async fn incomplete_grep_keeps_evidence_without_false_continuation_and_reports_c
     )
     .unwrap();
     let policy = AllowAllPolicy;
-    let context = ctx(&env, &policy, false);
+    let context = ctx(&env, &policy);
     let call = ToolCall {
         id: "partial".into(),
         name: "grep".into(),
@@ -42,7 +42,7 @@ async fn w2_flat_wide_search_completes_with_honest_truncation() {
         std::fs::write(env.project.join(format!("wide-{index:05}")), "NEEDLE\n").unwrap();
     }
     let policy = AllowAllPolicy;
-    let context = ctx(&env, &policy, false);
+    let context = ctx(&env, &policy);
     for name in ["glob", "grep"] {
         let call = ToolCall {
             id: name.into(),
@@ -71,7 +71,7 @@ async fn tool14_regex_default_and_canonical_scoped_options() {
     std::fs::write(env.project.join("src/a.rs"), "foo12\nf.o\nÉCOLE\n").unwrap();
     std::fs::write(env.project.join("src/nested/b.txt"), "foo34\n").unwrap();
     let policy = AllowAllPolicy;
-    let context = ctx(&env, &policy, false);
+    let context = ctx(&env, &policy);
     for (name, arguments, expected) in [
         (
             "grep",

@@ -10,16 +10,17 @@ states belong to this vetted parser. Native code owns only bounded rendering.
 Why this dependency: the prior extractor is a handwritten tag scanner; it cannot
 provide the required safe, structured Markdown conversion. No HTML parser was in
 the existing workspace dependency graph. A streaming tokenizer avoids an
-unbounded DOM and permits 8KiB input / 4KiB text checkpoints. Body remains 1MiB,
-output including metadata remains 1MiB; frame depth1024, language64 characters,
+unbounded DOM and permits 8KiB input / 4KiB text checkpoints. W4 updates body and
+output including metadata bounds to 5MiB and redirects to ten; frame depth1024, language64 characters,
 URLs8KiB, MIME256 bytes. Deep unsupported nesting fails explicitly. Conversion
 runs on the existing Tokio blocking pool and joins before a terminal result;
 deadline/cancel do not preempt an individual parser instruction or OS syscall.
 
-The application exposes the existing loopback exception only with the separate
-explicit test flag `OC_TEST_WEBFETCH_ALLOW_LOOPBACK=1`. Provider's test flag is
-independent; neither flag admits other private addresses. No model/config field
-can supply this exception. Default normal binary refusal is counted in TOOL17.
+W4 supersedes the former tool-specific private/loopback/DNS-rebinding refusal and
+exception flag. Captured permission governs the initial request; each redirect
+checks Deny before dispatch without prompting on Ask. System HTTP proxy settings
+apply. Provider endpoint admission remains a separate owner; historical TOOL17
+evidence is not a claim about this new policy.
 
 New transitive packages (Cargo.lock retains exact versions/checksums):
 `futf 0.1.5`, `mac 0.1.1`, `markup5ever 0.35.0`, `match_token 0.35.0`,

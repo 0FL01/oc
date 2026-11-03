@@ -35,6 +35,10 @@ pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeader
 #[path = "provider/timeout_tests.rs"]
 mod timeout_tests;
 
+#[cfg(test)]
+#[path = "provider/proxy_tests.rs"]
+mod proxy_tests;
+
 /// Default HTTP response-header budget in milliseconds.
 pub const HEADER_TIMEOUT_MS: u64 = 300_000;
 /// Default HTTP idle budget between body bytes in milliseconds.
@@ -486,7 +490,7 @@ pub struct ResponsesConfig {
     pub chunk_timeout_ms: Option<u64>,
     /// Bounded connect timeout.
     pub connect_timeout: Duration,
-    /// Test-only private-network exception (mirrors webfetch).
+    /// Test-only provider private-network exception; not a tool permission.
     pub allow_private: bool,
     /// Extra request headers (values are never included in Debug).
     pub headers: BTreeMap<String, String>,
@@ -2547,31 +2551,31 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         .as_ref()
         .map(|path| go_live_tests::reserve(path, &url, &body, protocol))
         .transpose()?;
-    let dns_deadline = tokio::time::Instant::now() + config.connect_timeout;
-    let dns_deadline = total_deadline.map_or(dns_deadline, |total| total.min(dns_deadline));
-    let (host, addresses) = pre_send(
-        dns_deadline,
-        cancel,
-        "DNS resolution before send",
-        crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private),
-    )
-    .await?;
-
+    let endpoint =
+        crate::endpoint::checked_url(&url, config.wire.endpoint.as_ref(), config.allow_private)?;
+    let proxied = crate::endpoint::system_proxy(&endpoint)?;
     let mut builder = reqwest::Client::builder()
         .retry(reqwest::retry::never())
         .redirect(reqwest::redirect::Policy::none())
-        .no_proxy()
         .user_agent(crate::USER_AGENT)
-        .resolve_to_addrs(&host, &addresses)
         .connect_timeout(config.connect_timeout);
+    if !proxied {
+        let dns_deadline = tokio::time::Instant::now() + config.connect_timeout;
+        let dns_deadline = total_deadline.map_or(dns_deadline, |total| total.min(dns_deadline));
+        let (host, addresses) = pre_send(
+            dns_deadline,
+            cancel,
+            "DNS resolution before send",
+            crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private),
+        )
+        .await?;
+        builder = builder.resolve_to_addrs(&host, &addresses);
+    }
     // The captured plain-HTTP endpoint cannot use TLS and redirects are refused.
     // Avoid loading an unused system verifier on every physical attempt; HTTPS
-    // retains its normal system trust store and all endpoint/peer checks.
-    if reqwest::Url::parse(&url)
-        .map_err(|_| ProviderError::InvalidConfig)?
-        .scheme()
-        == "http"
-    {
+    // retains its normal system trust store; direct origin checks stay separate.
+    // An HTTPS proxy still needs TLS roots for a plain-HTTP origin.
+    if endpoint.scheme() == "http" && !proxied {
         builder = builder.tls_certs_only([]);
     }
     let builder = if let Some(deadline) = total_deadline {
@@ -2597,6 +2601,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         &body,
         config.allow_private,
         config.wire.endpoint.as_ref(),
+        proxied,
         cancel,
         phase_deadline(
             config.header_timeout_ms.map(Duration::from_millis),
@@ -2752,6 +2757,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     body: &[u8],
     allow_private: bool,
     endpoint: Option<&crate::endpoint::EndpointBinding>,
+    proxied: bool,
     cancel: &AtomicBool,
     header_deadline: Option<tokio::time::Instant>,
     total_deadline: Option<tokio::time::Instant>,
@@ -2790,8 +2796,9 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
             if e.is_timeout() { failure.transport = Some(TransportKind::Deadline); }
             (ProviderError::Request(Box::new(failure)), false)
         })?;
-    // Post-dial rebinding guard on the connected peer.
-    if let Some(peer) = resp.remote_addr()
+    // A proxied connection's peer is the proxy, not the origin.
+    if !proxied
+        && let Some(peer) = resp.remote_addr()
         && !crate::endpoint::peer_allowed(endpoint, peer.ip(), allow_private)
     {
         return Err((ProviderError::PrivateHost, false));

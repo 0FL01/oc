@@ -27,3 +27,8 @@ Files:
 - `provider-untrusted-tls.pem` — synthetic self-signed P-256 server certificate
   and public test-only private key, generated locally for HTTP/WebSocket rejection
   tests; valid 2020–2120 for localhost/127.0.0.1, never trusted by production.
+- `network-proxy-ca.pem` and `network-proxy-server.pem` — synthetic P-256 CA and
+  server certificate/public test-only private key, locally generated for W4's
+  offline CONNECT/forward-proxy fixtures; valid 2020–2120 for proxy-only.invalid,
+  localhost and 127.0.0.1. CA private key was discarded. Only isolated test children
+  trust the fixture CA via SSL_CERT_FILE; no system/production trust is modified.

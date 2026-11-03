@@ -18,3 +18,8 @@ and docs/DCP_VIS38_PROVENANCE.md in that repository.
 
 The embedded OpenCode review prompt retains its MIT license and attribution in
 assets/upstream/PROVENANCE.md. These notices do not replace original notices.
+
+W4's native WebSocket proxy/NO_PROXY selection is source-derived from OpenCode
+`packages/core/src/effect/websocket-constructor.ts`, MIT, revision
+`ff90ed91607cabf420a369e9009539c1aa0932af`. The complete original MIT notice is
+retained at `fixtures/OpenCode-MIT.txt`; source/test mapping is in docs/SOURCES.md.

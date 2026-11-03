@@ -672,7 +672,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "webfetch".to_string(),
-            description: "Read-only HTTP/HTTPS GET. format text|markdown|html defaults to markdown; HTML converts to readable Unicode with useful structure, other textual MIME stays original. timeout is seconds (>0, maximum120, default30), one total DNS/redirect/body/conversion deadline. Returns original/final URL, status, content type and requested format metadata. Native 1MiB body/output caps and per-hop actual-dial public-egress guard apply. No browser/JS/search, cookies, auth or inherited proxy.".to_string(),
+            description: "Read-only HTTP/HTTPS GET. format text|markdown|html defaults to markdown; HTML converts to readable Unicode with useful structure, other textual MIME stays original. timeout is seconds (>0, maximum120, default30), one total DNS/redirect/body/conversion deadline. Returns original/final URL, status, content type and requested format metadata. Native 5MiB body/output caps and 10 redirects. Private/local targets are permitted; captured permission Deny blocks each redirect target before its request. Uses system proxy settings. No browser/JS/search, cookies or inherited credentials.".to_string(),
             parameters: serde_json::json!({"type":"object", "properties":{
                 "url":{"type":"string","minLength":1,"maxLength":crate::webfetch::URL_CAP_BYTES},
                 "format":{"type":"string","enum":["text","markdown","html"],"default":"markdown"},
@@ -1368,7 +1368,6 @@ pub struct Runtime<'a> {
     parent_env: BTreeMap<String, String>,
     roots: ToolRoots,
     webfetch_auth: Option<String>,
-    webfetch_allow_private: bool,
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     // Turns whose own images the selected model could not receive; reported
     // once as a turn warning, never persisted.
@@ -1489,7 +1488,6 @@ impl<'a> Runtime<'a> {
         parent_env: BTreeMap<String, String>,
         roots: ToolRoots,
         webfetch_auth: Option<String>,
-        webfetch_allow_private: bool,
         dcp_config: DcpConfig,
     ) -> Result<Self, RuntimeError> {
         if location.trim().is_empty() {
@@ -1536,7 +1534,6 @@ impl<'a> Runtime<'a> {
             parent_env,
             roots,
             webfetch_auth,
-            webfetch_allow_private,
             nudge_state: Mutex::new(BTreeMap::new()),
             omitted_images: Mutex::default(),
             compression_commit: Arc::new(Mutex::new(())),

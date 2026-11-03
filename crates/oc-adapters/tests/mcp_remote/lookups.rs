@@ -42,7 +42,6 @@ fn config(url: String) -> CodexWebConfig {
         timeout: Duration::from_secs(2),
         startup_timeout: None,
         catalog_timeout: None,
-        allow_private: true,
     }
 }
 

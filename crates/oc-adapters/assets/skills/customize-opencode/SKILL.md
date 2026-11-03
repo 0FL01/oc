@@ -151,6 +151,19 @@ default 900000ms; overall timeout is absent by default. WebSocket frame waits us
 provider chunk setting (absent30minutes, false disabled), not the HTTP default.
 Disabling these deadlines does not disable cancellation or native resource guards.
 
+Provider HTTP/discovery, webfetch and remote MCP use startup system HTTP proxies
+(`HTTP_PROXY`/`HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, also lowercase). Provider captured
+URL/literal-IP authority stays enforced; only direct origins use local DNS/pinning/
+peer checks. WebSocket uses `WSS_PROXY → HTTPS_PROXY → ALL_PROXY` or
+`WS_PROXY → HTTP_PROXY → ALL_PROXY`, with TS port-aware NO_PROXY and loopback bypass;
+HTTP/HTTPS CONNECT preserves TLS validation and never sends proxy credentials to
+the origin. New clients do not replace the native owner's startup environment.
+Webfetch permits private/local targets under captured permissions: initial Ask
+can prompt, redirect Deny blocks before that target request, redirect Ask does not
+prompt again. Defaults are 5 MiB and ten redirects; no loopback test flag is needed.
+Remote MCP preserves query-bearing exact URLs without private-host prelookup;
+scheme/host/userinfo/fragment/header validation and lifecycle cleanup remain.
+
 Native OpenAI browser/device/API-key authentication has explicit operator steps.
 Never substitute an OpenProxy credential for an ordinary OpenAI key or auto-confirm
 someone's browser/device authorization. A custom-provider connection wizard and

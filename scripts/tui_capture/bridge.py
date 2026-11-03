@@ -645,9 +645,6 @@ if spec.get('clipboard_images'):
 if spec.get('mcp_sidebar') or spec.get('execute_preview') or spec.get('subagent_pending') or spec.get('background_subagents') or spec.get('current_subagent_cards'):
     (home / 'tmp').mkdir(exist_ok=True)
     env['TMPDIR'] = str(home / 'tmp')
-if spec.get('execute_preview') and spec['origin'] == 'oc':
-    # Provider endpoint and webfetch admission have distinct test-only guards.
-    env['OC_TEST_WEBFETCH_ALLOW_LOOPBACK'] = '1'
 if spec.get('clean_services'):
     # The fixture-owned file is the authority, so real /reload can adopt recovery.
     env.pop('OPENCODE_CONFIG_CONTENT')

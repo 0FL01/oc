@@ -368,18 +368,12 @@ impl Runtime<'_> {
         let mut url = reqwest::Url::parse(&request.url)
             .map_err(|_| format!("Invalid URL: {}", request.url))?;
         crate::webfetch::validate_url(&mut url).map_err(|error| error.to_string())?;
-        crate::webfetch::check_static_host(&url, inv.ctx.webfetch_allow_private)
-            .map_err(|error| error.to_string())?;
         // `fetch` is admitted as the `webfetch` action on the requested URL.
         let nested = inv.nested_call(
             "webfetch",
             serde_json::json!({ "url": url.as_str(), "format": "text" }),
         );
         self.admit_nested(inv, &nested, "fetch").await?;
-        let options = crate::webfetch::FetchOptions {
-            allow_loopback: inv.ctx.webfetch_allow_private,
-            ..crate::webfetch::FetchOptions::default()
-        };
         let response = crate::webfetch::fetch_raw(
             crate::webfetch::RawRequest {
                 url: url.to_string(),
@@ -387,8 +381,9 @@ impl Runtime<'_> {
                 headers: request.headers,
                 body: request.body,
             },
-            options,
+            crate::webfetch::FetchOptions::default(),
             inv.cancel,
+            inv.policy,
         )
         .await
         .map_err(|error| error.to_string())?;

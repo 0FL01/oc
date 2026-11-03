@@ -2,6 +2,16 @@ use super::*;
 use serde_json::{Value, json};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+#[test]
+fn w4_websocket_no_proxy_keeps_ts_port_and_domain_rules() {
+    let url = reqwest::Url::parse("https://api.example.test:8443/v1/responses").unwrap();
+    assert!(bypasses_proxy(&url, "unrelated, *.EXAMPLE.TEST:8443"));
+    assert!(!bypasses_proxy(&url, ".example.test:443"));
+    assert!(!bypasses_proxy(&url, "example.test"));
+    assert!(bypasses_proxy(&url, "api.example.test:8443"));
+    assert!(bypasses_proxy(&url, "*"));
+}
+
 #[tokio::test]
 async fn w3_websocket_certificate_failure_does_not_fallback() {
     let f = Fixture::new();
@@ -106,7 +116,6 @@ impl Fixture {
                 data: self.db.root().into(),
             },
             None,
-            false,
             crate::dcp_auto::DcpConfig::default(),
         )
         .unwrap()

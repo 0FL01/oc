@@ -144,7 +144,7 @@ bounded VT/input/output/process ownership, reaping and no unknown-command replay
 remain. No model-visible terminal tool, hidden startup process or Node/Bun/WASM
 host. Shell, child jobs and PTYs are different owners.
 
-`webfetch`: read-only GET, http/https, text/HTML/JSON response; T50 adds requested text/markdown/html (default markdown), timeout seconds default30/max120 and truthful original/final URL/status/content-type/format. One total budget includes conversion; bounded download/redirect/output and Unicode conversion remain. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
+`webfetch`: read-only GET, http/https, text/HTML/JSON response; requested text/markdown/html (default markdown), timeout seconds default30/max120 and truthful original/final URL/status/content-type/format. One total budget includes DNS, redirects, body and conversion. Defaults: 5 MiB downloaded/rendered-output bounds and ten redirects, with existing common preview/artifact limits. Private/link-local/loopback targets are permitted by captured permission policy, not a separate host/DNS guard or test flag. Initial Ask uses normal approval; before every redirect request Deny refuses its normalized target, while Ask does not prompt again. System HTTP proxy settings apply. Tool credentials are not inherited; no browser/JS/search, arbitrary methods/upload/cookies. Code Mode raw fetch retains its admitted method/body/header support and strips Authorization/Cookie on cross-origin redirects.
 
 `glob`: ripgrep glob pattern, path/hidden (default false)/limit и ignore behavior.
 Complete scans имеют stable sorted pagination. Pattern ≤4096 bytes, не более
@@ -237,11 +237,10 @@ KILL, а reader-потоки никогда не join'ятся бесконеч�
 
 `webfetch`: URL разбирается и joins через `reqwest::Url` (relative,
 protocol-relative, query-only, fragment-only, IPv6, query сохраняется; userinfo и
-не-http(s) отвергаются, fragment снимается). Egress проверяется на dial-time
-через `reqwest::dns::Resolve` guard: весь ответ отвергается, если любой адрес не
-public (loopback — только explicit test flag), поэтому DNS-переброс между
-pre-check и connect не может отправить запрос к private endpoint; redirect
-повторно валидируется и снова проходит guard, bearer идёт только на первый hop.
+не-http(s) отвергаются, fragment снимается). Redirect повторно валидируется и
+проверяется на captured permission Deny до запроса; private/DNS-rebinding guard
+не применяется. Allow/Ask на target не создаёт новый prompt. Compatibility API
+передаёт явно заданный bearer только первому hop; обычный tool bearer не наследует.
 Один total budget покрывает DNS, все hops и body. HTML→text сканирует только по
 ASCII-границам (`<`, `>`, `;`), поэтому UTF-8 сохраняется точно и не может
 паниковать; named/numeric entities декодируются, malformed/unclosed разметка
@@ -378,6 +377,14 @@ and neither an infrastructure error nor an incomplete search authorizes replay.
 `codex_web`: exact URL `{env:LUDKA2_API_URL}/mcp`, bearer из headers, enabled:true, oauth:false, timeout 60000 ms. Pinned OpenProxy route `/v1/mcp` принимает POST и JSON responses, требует negotiation/header version `2025-11-25`, предоставляет tool `search`; этот конкретный path проверен в [P3]. BaseURL обычно должен уже содержать `/v1`. Не чинить URL probing/redirects автоматически.
 
 HTTP client умеет JSON и SSE ответы там, где transport их предлагает. У OpenProxy stateless JSON mode отсутствие session ID или GET event stream не должно порождать reconnect loop. Если SDK optional GET получает 405 — не считать это отказом исправного POST path; соответствие спецификации и поведение SDK проверить. Отправлять нужный `MCP-Protocol-Version` после initialize; no OAuth auto-discovery при oauth:false. Remote service timeout может быть меньше нашего клиентского 60s — сохранять исходный error, не ложно ждать/повторять операцию.
+
+Remote MCP preserves query in the exact URL and has no private-host/DNS prelookup
+refusal; other URL/header validation, bounded protocol/lifecycle diagnostics and
+cleanup remain. It shares the system HTTP proxy policy with webfetch and provider
+HTTP/discovery (HTTP(S)_PROXY/ALL_PROXY/NO_PROXY, uppercase/lowercase), not provider
+endpoint authority. Provider direct DNS/pinning/peer guards remain separate; proxied
+origin hostnames are resolved by the proxy, with captured URL/literal-IP admission
+still enforced. WebSocket proxy routing and TLS rules are in [CONFIG](CONFIG.md).
 
 Encoded MCP message и SSE event ограничены64 MiB, независимо от webfetch budget.
 Stdio проверяется до накопления строки SDK и до отправки oversized frame; HTTP JSON

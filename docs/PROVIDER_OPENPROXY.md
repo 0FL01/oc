@@ -19,6 +19,13 @@ Rust design default: `store:false`, explicit local input projection, function to
 
 `baseURL`: http/https, без userinfo/query/fragment. Взять только из trusted provider config; remote catalog не может изменить URL. HTTPS по умолчанию; явно настроенный loopback/local HTTP разрешён. Не отключать certificate validation из-за ошибки.
 
+HTTP generation/discovery honor system HTTP(S)_PROXY/ALL_PROXY/NO_PROXY through
+the installed matcher. Captured URL/literal-IP admission remains; local DNS,
+pinning and origin-peer checks apply only to direct origins, not proxy peers.
+Proxied hostnames are resolved by the proxy. WS CONNECT uses scheme-specific TS
+proxy selection with separate proxy/origin TLS verification; no delivery/retry
+owner or unknown-effect replay is added. Full policy: [CONFIG](CONFIG.md).
+
 `apiKey`: Bearer header; env/file resolution с redaction. Не попадать в model-visible options, logs и key hash, который можно восстановить. Пользовательский Authorization переопределяется apiKey для discovery, как в присланном коде. Headers остаются scoped этому provider origin; redirects для authenticated discovery/generation запрещены, чтобы не пересылать ключи.
 
 `timeout` — отдельный общий generation deadline в миллисекундах; отсутствие или

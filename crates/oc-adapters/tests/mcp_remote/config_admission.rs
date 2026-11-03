@@ -18,8 +18,7 @@ async fn mcp09_remote_separate_startup_catalog_execution_deadlines() {
             "type":"remote","url":url,"headers":{"Authorization":"Bearer test-key"},"timeout":timeout
         }}}}).to_string() };
         let generation = assemble(&[src], &BTreeMap::new(), None).unwrap();
-        let mut config = CodexWebConfig::from_entry(&generation.mcp["codex_web"]).unwrap();
-        config.allow_private = true;
+        let config = CodexWebConfig::from_entry(&generation.mcp["codex_web"]).unwrap();
         let cancel = AtomicBool::new(false);
         let began = Instant::now();
         let connected = CodexWebClient::connect(&config).await;

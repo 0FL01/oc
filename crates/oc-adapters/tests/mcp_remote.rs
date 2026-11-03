@@ -24,17 +24,7 @@ mod config_admission;
 mod lookups;
 
 #[tokio::test]
-async fn dns_and_connect_failures_are_distinct_from_private_host() {
-    use oc_adapters::webfetch::{FetchError, check_host};
-    // Interior NUL fails locally at resolver input, without external DNS traffic.
-    assert_eq!(
-        check_host("invalid\0host", 443, false).await,
-        Err(FetchError::Dns)
-    );
-    assert_eq!(
-        check_host("127.0.0.1", 443, false).await,
-        Err(FetchError::PrivateHost)
-    );
+async fn connect_failure_has_safe_typed_cause() {
     // Hold a bound, non-listening socket so another process cannot take the port.
     let socket = tokio::net::TcpSocket::new_v4().unwrap();
     socket.bind("127.0.0.1:0".parse().unwrap()).unwrap();
@@ -45,7 +35,6 @@ async fn dns_and_connect_failures_are_distinct_from_private_host() {
         timeout: Duration::from_secs(2),
         startup_timeout: None,
         catalog_timeout: None,
-        allow_private: true,
     };
     assert!(matches!(
         CodexWebClient::connect(&config).await,
@@ -64,7 +53,6 @@ async fn protocol_mismatch_observes_stalled_session_cleanup() {
         timeout: Duration::from_secs(5),
         startup_timeout: None,
         catalog_timeout: None,
-        allow_private: true,
     };
     let server = async {
         loop {
@@ -520,7 +508,6 @@ fn config_for(url: &str) -> CodexWebConfig {
         bearer: "test-key".to_string(),
         custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
-        allow_private: true,
         startup_timeout: None,
         catalog_timeout: None,
     }
@@ -892,7 +879,6 @@ fn config_validation_needs_no_network() {
             bearer: "k".to_string(),
             custom_headers: Default::default(),
             timeout: CLIENT_TIMEOUT,
-            allow_private: true,
             startup_timeout: None,
             catalog_timeout: None,
         };
@@ -907,7 +893,6 @@ fn config_validation_needs_no_network() {
         bearer: "".to_string(),
         custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
-        allow_private: true,
         startup_timeout: None,
         catalog_timeout: None,
     };
@@ -915,18 +900,49 @@ fn config_validation_needs_no_network() {
 }
 
 #[tokio::test]
-async fn private_host_refused_without_test_flag() {
+async fn w4_loopback_remote_mcp_without_test_flag() {
     let (url, records) = Fake::start(Mode::Ok, Duration::ZERO);
-    let mut config = config_for(&url);
-    config.allow_private = false;
-    let error = match CodexWebClient::connect(&config).await {
-        Err(error) => error,
-        Ok(_) => panic!("loopback must be refused"),
-    };
-    assert_eq!(error, McpError::PrivateHost);
+    let config = config_for(&url);
+    let client = CodexWebClient::connect_remote(&config)
+        .await
+        .expect("configured loopback MCP");
     assert!(
-        records_of(&records).is_empty(),
-        "refused before any request"
+        !client
+            .list_tools(&AtomicBool::new(false))
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    client.close().await.unwrap();
+    let methods: Vec<_> = records_of(&records)
+        .iter()
+        .filter_map(|record| serde_json::from_str::<Value>(&record.body).ok())
+        .filter_map(|value| value["method"].as_str().map(str::to_owned))
+        .collect();
+    assert!(methods.iter().any(|method| method == "initialize"));
+    assert!(methods.iter().any(|method| method == "tools/list"));
+}
+
+#[tokio::test]
+async fn w4_remote_mcp_query_url_is_exact() {
+    let (url, records) = Fake::start(Mode::Ok, Duration::ZERO);
+    let config = config_for(&format!("{url}?token=fixture"));
+    let client = CodexWebClient::connect_remote(&config)
+        .await
+        .expect("configured query URL");
+    assert!(
+        !client
+            .list_tools(&AtomicBool::new(false))
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    client.close().await.unwrap();
+    let seen = records_of(&records);
+    assert!(!seen.is_empty());
+    assert!(
+        seen.iter()
+            .all(|record| record.path == "/v1/mcp?token=fixture")
     );
 }
 
@@ -1094,8 +1110,7 @@ async fn entry_authorization_and_custom_headers_reach_the_strict_endpoint() {
         "timeout": 5_000,
     }))
     .expect("JSONC-compatible MCP entry");
-    let mut config = CodexWebConfig::from_entry(&entry).expect("normalize entry");
-    config.allow_private = true;
+    let config = CodexWebConfig::from_entry(&entry).expect("normalize entry");
     let debug = format!("{config:?}");
     assert!(!debug.contains("entry-key"));
     assert!(!debug.contains("workspace-secret"));
@@ -1274,7 +1289,6 @@ async fn live_search_harness() {
         bearer: key,
         custom_headers: Default::default(),
         timeout: CLIENT_TIMEOUT,
-        allow_private: false,
         startup_timeout: None,
         catalog_timeout: None,
     };

@@ -4,9 +4,10 @@ use std::sync::atomic::AtomicUsize;
 static ACTIVE: AtomicUsize = AtomicUsize::new(0);
 
 // Single-use, thread-local injection at the existing client construction seam.
-// The current-thread held-body test uses the real guarded HTTP client but excludes
+// The current-thread held-body test uses the real HTTP client but excludes
 // synchronous system TLS root initialization from its distinct 80-ms body phase.
-// No production deadline is moved; total DNS/redirect deadline tests do not inject.
+// The held-DNS test uses this same client seam for its pending lookup. No
+// production deadline is moved; redirect deadline tests do not inject.
 thread_local! {
     static PREPARED_CLIENT: std::cell::RefCell<Option<reqwest::Client>> = const { std::cell::RefCell::new(None) };
     static OBSERVED_FETCH: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -27,13 +28,9 @@ struct PreparedClient;
 impl PreparedClient {
     fn new(opts: FetchOptions) -> Self {
         let started = Instant::now();
-        let resolver = Arc::new(GuardedResolver::new(
-            Arc::new(SystemResolver),
-            opts.allow_loopback,
-        ));
-        let client = guarded_client(opts, resolver).unwrap();
+        let client = http_client(opts).unwrap();
         eprintln!(
-            "held-body phase: guarded client construction {:?} precedes unchanged request/body deadline",
+            "held-body phase: HTTP client construction {:?} precedes unchanged request/body deadline",
             started.elapsed()
         );
         PREPARED_CLIENT.with(|slot| assert!(slot.borrow_mut().replace(client).is_none()));
@@ -171,9 +168,15 @@ async fn tool17_dns_is_inside_total_deadline() {
         timeout: Duration::from_millis(40),
         ..FetchOptions::default()
     };
+    let client = reqwest::Client::builder()
+        .dns_resolver(Arc::new(HeldDns))
+        .build()
+        .unwrap();
+    PREPARED_CLIENT.with(|slot| assert!(slot.borrow_mut().replace(client).is_none()));
+    let _prepared_client = PreparedClient;
     let started = Instant::now();
     assert_eq!(
-        fetch_with_resolver("http://held.invalid/", None, opts, Arc::new(HeldDns)).await,
+        fetch("http://held.invalid/", None, opts).await,
         Err(FetchError::Deadline)
     );
     assert!(started.elapsed() < Duration::from_millis(500));
@@ -220,7 +223,6 @@ async fn tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_resp
         });
         let cancel = AtomicBool::new(false);
         let opts = FetchOptions {
-            allow_loopback: true,
             timeout: Duration::from_millis(if mode == "deadline" { 80 } else { 2000 }),
             ..FetchOptions::default()
         };
@@ -260,7 +262,13 @@ async fn tool17_held_body_deadline_cancel_and_conversion_join_keep_executor_resp
         // peer before asserting; dropping a JoinHandle would detach it.
         let mut work = std::pin::pin!(async {
             tokio::join!(
-                fetch_formatted(&url, opts, FetchFormat::Markdown, &cancel),
+                fetch_formatted(
+                    &url,
+                    opts,
+                    FetchFormat::Markdown,
+                    &cancel,
+                    &crate::tools::AllowAllPolicy
+                ),
                 steering
             )
         });

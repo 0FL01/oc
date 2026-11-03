@@ -15,7 +15,6 @@ async fn generic_tool_preview_keeps_action_separate_from_policy_resources_and_di
         shell: &shell,
         parent_env: &env,
         webfetch_auth: None,
-        webfetch_allow_private: false,
         policy: &AllowAllPolicy,
         subagent: None,
         snapshot: &snapshot,

@@ -394,7 +394,6 @@ fn runtime_of<'a>(harness: &'a Harness) -> Runtime<'a> {
             data: harness.data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime")

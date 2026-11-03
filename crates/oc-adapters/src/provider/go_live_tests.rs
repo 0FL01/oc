@@ -501,7 +501,6 @@ async fn go06_bounded_native_go_live() {
             data: db.root().into(),
         },
         None,
-        false,
         crate::dcp_auto::DcpConfig::default(),
     )
     .unwrap();

@@ -433,7 +433,6 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
                 data,
             },
             None,
-            false,
             DcpConfig::default(),
         )
         .unwrap();

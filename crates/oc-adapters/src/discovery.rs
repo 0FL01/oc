@@ -245,13 +245,11 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
         mut consume: impl FnMut(&[u8]) -> Result<(), DiscoveryError> + Send,
     ) -> Result<u16, DiscoveryError> {
         tokio::time::timeout(attempt_timeout, async {
-            let (host, addresses) =
-                crate::endpoint::resolve(url, self.endpoint.as_ref(), self.test_loopback)
-                    .await
-                    .map_err(|error| match error {
-                        crate::provider::ProviderError::Transport => DiscoveryError::Network,
-                        _ => DiscoveryError::InvalidConfig,
-                    })?;
+            let endpoint =
+                crate::endpoint::checked_url(url, self.endpoint.as_ref(), self.test_loopback)
+                    .map_err(|_| DiscoveryError::InvalidConfig)?;
+            let proxied = crate::endpoint::system_proxy(&endpoint)
+                .map_err(|_| DiscoveryError::InvalidConfig)?;
             let mut builder = reqwest::Client::builder()
                 .retry(reqwest::retry::never())
                 // The metadata consumer validates records between reads. Bound
@@ -261,18 +259,21 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
                 .http2_initial_connection_window_size(256 * 1024)
                 .http2_adaptive_window(false)
                 .redirect(reqwest::redirect::Policy::none())
-                .no_proxy()
                 .user_agent(crate::USER_AGENT)
-                .connect_timeout(self.connect_timeout)
-                .resolve_to_addrs(&host, &addresses);
-            // A validated plain-HTTP URL cannot use TLS, and redirects are
-            // refused. Don't synchronously load the system trust store inside
-            // its attempt budget. HTTPS retains reqwest's system verifier.
-            if reqwest::Url::parse(url)
-                .map_err(|_| DiscoveryError::InvalidConfig)?
-                .scheme()
-                == "http"
-            {
+                .connect_timeout(self.connect_timeout);
+            if !proxied {
+                let (host, addresses) =
+                    crate::endpoint::resolve(url, self.endpoint.as_ref(), self.test_loopback)
+                        .await
+                        .map_err(|error| match error {
+                            crate::provider::ProviderError::Transport => DiscoveryError::Network,
+                            _ => DiscoveryError::InvalidConfig,
+                        })?;
+                builder = builder.resolve_to_addrs(&host, &addresses);
+            }
+            // Only a direct plain-HTTP URL cannot use TLS. HTTPS proxies need
+            // the verifier even for an HTTP origin; redirects remain refused.
+            if endpoint.scheme() == "http" && !proxied {
                 builder = builder.tls_certs_only([]);
             }
             let client = builder.build().map_err(|_| DiscoveryError::Network)?;
@@ -281,13 +282,15 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
                 .headers(headers.clone())
                 .timeout(attempt_timeout);
             let resp = req.send().await.map_err(|_| DiscoveryError::Network)?;
-            if resp.remote_addr().is_some_and(|peer| {
-                !crate::endpoint::peer_allowed(
-                    self.endpoint.as_ref(),
-                    peer.ip(),
-                    self.test_loopback,
-                )
-            }) {
+            if !proxied
+                && resp.remote_addr().is_some_and(|peer| {
+                    !crate::endpoint::peer_allowed(
+                        self.endpoint.as_ref(),
+                        peer.ip(),
+                        self.test_loopback,
+                    )
+                })
+            {
                 return Err(DiscoveryError::InvalidConfig);
             }
             let status = resp.status().as_u16();

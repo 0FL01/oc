@@ -256,7 +256,6 @@ fn runtime_of<'a>(harness: &'a Harness, generation: Generation) -> Runtime<'a> {
             data: harness.data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime")
@@ -519,6 +518,8 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     );
     // One degraded MCP server: visible warning, turn still completes.
     let degraded_started = std::time::Instant::now();
+    let refused = tokio::net::TcpSocket::new_v4().unwrap();
+    refused.bind("127.0.0.1:0".parse().unwrap()).unwrap();
     let bad = Generation {
         command_shell: None,
         tool_output: Default::default(),
@@ -531,7 +532,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
             "codex".to_string(),
             McpEntry {
                 kind: "remote".to_string(),
-                url: Some("http://127.0.0.1:9/v1/mcp".to_string()),
+                url: Some(format!("http://{}/v1/mcp", refused.local_addr().unwrap())),
                 enabled: true,
                 oauth: false,
                 headers: [("authorization".to_string(), "Bearer k".to_string())]
@@ -580,7 +581,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
     assert_eq!(
         degraded.warnings,
         vec![format!(
-            "mcp {identity} DNS: private_host (retryable=false)"
+            "mcp {identity} connect: connection_failed (retryable=true)"
         )]
     );
     bad_runtime

@@ -21,7 +21,6 @@ fn dcp10_direct_child_query_and_api_cannot_use_root_authority() {
             data: data.path().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();
@@ -269,7 +268,6 @@ fn dcp10_approval_selection_ignores_only_allocator_not_coverage_or_summary() {
             data: data.path().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();

@@ -1146,7 +1146,6 @@ async fn approval_always_commit_failure_keeps_pending_then_survives_runtime_rest
             data: harness._data.path().into(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .unwrap();

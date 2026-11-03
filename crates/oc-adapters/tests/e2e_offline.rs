@@ -194,7 +194,6 @@ fn runtime_of<'a>(harness: &'a Harness, location: &str, generation: Generation) 
             data: harness._data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime")
@@ -591,7 +590,6 @@ async fn e2e01_seeded_coding_fix() {
             data: data.path().to_path_buf(),
         },
         None,
-        false,
         DcpConfig::default(),
     )
     .expect("runtime");
