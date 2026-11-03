@@ -2,7 +2,7 @@ use super::*;
 use std::sync::atomic::AtomicBool;
 
 #[test]
-fn external_descriptor_is_invocation_only_nofollow_and_data_bounded() {
+fn external_descriptor_is_invocation_only_link_following_and_data_bounded() {
     let tmp = tempfile::tempdir().unwrap();
     let project = tmp.path().join("project");
     let cache = tmp.path().join("cache");
@@ -56,6 +56,29 @@ fn external_descriptor_is_invocation_only_nofollow_and_data_bounded() {
             .is_empty()
     );
     let cancelled = AtomicBool::new(true);
+    let alias = tmp.path().join("alias");
+    std::os::unix::fs::symlink(&cache, &alias).unwrap();
+    let aliased = files.pin_external(&alias, true).unwrap();
+    assert_eq!(
+        aliased.read(alias.join("private/secret.txt").to_str().unwrap(), 1, 1),
+        Err(FileToolError::OwnDataRoot)
+    );
+    let result = aliased
+        .grep_search(
+            &search::GrepOptions {
+                pattern: "PROTECTED",
+                path: alias.to_str().unwrap(),
+                include: None,
+                literal: true,
+                case_sensitive: true,
+                offset: 0,
+                limit: 10,
+            },
+            |_| true,
+            None,
+        )
+        .unwrap();
+    assert!(result.hits.is_empty() && result.incomplete.is_none());
     assert!(matches!(
         admitted.read_admitted(
             cache.join("fact.txt").to_str().unwrap(),
@@ -66,8 +89,8 @@ fn external_descriptor_is_invocation_only_nofollow_and_data_bounded() {
         ),
         Err(FileToolError::Cancelled)
     ));
-    // Already pinned directory survives replacement. A fresh invocation refuses
-    // symlink ancestors; neither path ever reads the replacement's contents.
+    // Already pinned directory survives replacement. A fresh explicit invocation
+    // follows the lexical path's symlink without granting sibling authority.
     let parked = tmp.path().join("parked");
     let escape = tmp.path().join("escape");
     std::fs::create_dir(&escape).unwrap();
@@ -81,10 +104,14 @@ fn external_descriptor_is_invocation_only_nofollow_and_data_bounded() {
             .lines,
         ["SENTINEL"]
     );
-    assert!(matches!(
-        files.pin_external(&cache.join("fact.txt"), false),
-        Err(FileToolError::SymlinkEscape)
-    ));
+    let fresh = files.pin_external(&cache.join("fact.txt"), false).unwrap();
+    assert_eq!(
+        fresh
+            .read(cache.join("fact.txt").to_str().unwrap(), 1, 1)
+            .unwrap()
+            .lines,
+        ["ESCAPE"]
+    );
     // No automatic sibling or external mutation/root authority persists.
     assert_eq!(
         files.resolve_path(parked.join("fact.txt").to_str().unwrap()),

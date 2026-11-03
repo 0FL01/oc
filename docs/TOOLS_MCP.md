@@ -53,7 +53,7 @@ Approval/document validation is not runtime PASS; examples/config sources stay u
 
 ## Built-ins
 
-`read`: bounded чтение файла/диапазона строк с path/offset/limit, явные truncated/next cursor и blob reference при необходимости. Директории и binary contents обрабатываются явно; не грузить весь репозиторий. `read`, `glob`, `grep` и файловые mutations (`apply_patch`/`edit`/`write`) отклоняют own data root, включая direct path и symlink escape. Pending T50/R10 ниже разрешает только точный registered artifact для authorized read/grep, не directory/glob/mutation или произвольный blob. `glob`/`grep` дают stable sorted paginated matches с bounded files/bytes/time. Plain literal/regex режимы явно различимы; не писать custom regex engine.
+`read`: потоковое чтение выбранного диапазона строк с path/offset/limit, без whole-file size admission для текста. Сохраняются ≤2000 lines, 65536-byte rendered page, bounded huge-line prefix, UTF-8/CRLF и явный next cursor; binary/NUL проверяется только в consumed prefix, включая пропущенные до offset строки. Artifact содержит выбранную страницу, не весь файл. Image admission остаётся ≤1 MiB, PDF unsupported. Явные пути read/edit/write/apply_patch следуют symlinks; permissions/external_directory — по lexical path, own-data-root exclusion — по разрешённой цели I/O. Recursive search не следует найденным ссылкам. Точный registered artifact сохраняет отдельный authorized read/grep route, не общий доступ к native directory/blob/mutations. Complete search pages stable sorted/paginated; budget-limited subsets честно truncated, без обещания глобального sorted prefix/cursor.
 
 `apply_patch`: один JSON argument `patchText` с upstream-style `*** Begin Patch` / Add File / Update File / Delete File / Move to / End Patch. Не смешивать с provider-hosted Responses `apply_patch` schema. В M2 сохранить parser fixtures выбранного OpenCode baseline; политика unsafe paths — наша.
 
@@ -62,18 +62,19 @@ empty Add создаёт zero-byte файл. `*** Move to:` идёт непос�
 `*** Update File:`, до hunks. `@@ section` выбирает точный уникальный context,
 `*** End of File` привязывает последний hunk к концу. Неоднозначный preimage,
 повторные/пересекающиеся normalized paths и пустые update hunks — conflict/error.
-Нет fuzzy matching, shell/heredoc wrappers и aliases `patch`/`text`. CRLF и
-отсутствие final newline существующего файла сохраняются (объявленное отличие
-от upstream derive, добавляющего newline). Выбранные source-derived fixtures:
+Нет fuzzy matching, shell/heredoc wrappers и aliases `patch`/`text`. W2 TS semantics:
+BOM снимается перед matching и восстанавливается один раз; строки вне hunk сохраняют
+исходный EOL, весь replacement (включая context) берётся из parsed patch с LF.
+Непустой update заканчивается LF, без dominant-EOL политики. Выбранные source-derived fixtures:
 `fixtures/patch.json`, pinned O1; MIT notice: `fixtures/OpenCode-MIT.txt`.
 
 Обязательные случаи: новый текстовый файл; новый пустой файл; добавление текста в существующий пустой файл через Update; точечные hunks; полная замена текстового содержимого через patch; delete; move/update без overwrite чужого target. Add existing path — conflict, не silent overwrite. CRLF/Unicode/last newline проверены; binary patch вне scope с точной диагностикой.
 
-Парсер сначала строит plan всех операций, validates grammar/sizes/paths/conflicts и checks permissions. Затем per-file preimage check и запись temp file в той же директории, fsync, atomic rename; preserve mode в рамках разрешений. Не обещать all-files atomicity. Ошибка после части commits → partial result с точными paths/hashes; crash ambiguity → unknown. Preimage fingerprint защищает от обычных concurrent edits, но сам по себе не исключает malicious TOCTOU: применять directory-relative no-follow APIs и запрещать symlink mutation в первом профиле. Не выдавать `canonicalize()` за полную защиту.
+Парсер сначала строит plan всех операций, validates grammar/sizes/lexical paths/conflicts и checks permissions. Затем per-file preimage check и запись temp file в директории фактической цели I/O, fsync, atomic rename; preserve mode в рамках разрешений. Write/update через leaf symlink сохраняет ссылку и меняет referent; delete/move-source действует на lexical entry. Preview и commit связаны с реальным target и identity ссылки. Не обещать all-files atomicity. Ошибка после части commits → partial result с точными paths/hashes; crash ambiguity → unknown. Pinned directory-relative no-follow I/O применяется после разрешения явных ссылок, не как blanket symlink ban. Это не kernel CAS и не полная защита от malicious same-UID TOCTOU.
 
 Весь preflight вычисляет before/after и проверяет каждый hunk до первого изменения;
 лимиты: patch 2 MiB, файл 8 MiB, сохранённые preimages/results плана 64 MiB.
-Linux implementation удерживает directory handles, проходит parents через
+Linux implementation после разрешения explicit links удерживает directory handles, проходит фактические parents через
 `openat(O_DIRECTORY|O_NOFOLLOW)` и использует только single-component имена в
 mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое случайное
 имя; final Add/Move — `renameat2(RENAME_NOREPLACE)`. Update/Delete повторно
@@ -81,8 +82,10 @@ mutation syscalls. Temporary inode — `O_CREAT|O_EXCL|O_NOFOLLOW`, новое �
 не защита от враждебного same-UID writer в последнем syscall window. Права нового
 файла ограничены 0600/umask, update сохраняет ordinary mode bits. Перед rename
 синхронизируется файл после chmod, после namespace changes — затронутые directories,
-включая созданные parents. Если sync или Move после Update падает, outcome уже
-содержит совершённый Update с полными hashes; rollback не обещается. Crash может
+включая созданные parents. Move, в том числе cross-device, пишет prepared bytes в
+destination до удаления source; source не обновляется предварительно. Если removal
+падает, outcome содержит destination Create с полными hashes и прежний source;
+после успешного removal учитывается Move, даже при следующем sync failure. Rollback не обещается. Crash может
 оставить staging file, но не вызывает автоматический replay.
 
 Для удаления/rename сохранять достаточную operation metadata в own storage; не превращать это в snapshot/undo subsystem. Не запускать `git reset`, не делать auto-rollback на пользовательские файлы. Модель получает concise diff/status; полный diff в bounded blob.
@@ -99,7 +102,7 @@ error; empty new удаляет совпадение. Это отдельная 
 
 Все три mutation tools используют общий canonical apply_patch permission/grants
 owner, actual resources, before/after approval preview и approved-preimage recheck
-после ожидания. Effective Deny/Plan/child/data-root/no-follow/protected paths и caps
+после ожидания, включая замену symlink referent. Effective Deny/Plan/child/resolved-data-root/protected paths и caps
 не обходятся выбором модели. Intent до effects, outcome/confirmed diffs после; crash
 не разрешает replay. Нет prerequisite отдельного read call. T44 VIS35 показывает
 Write/Edit/ApplyPatch отдельно; replay использует persisted input/results/effects,
@@ -136,24 +139,24 @@ host. Shell, child jobs and PTYs are different owners.
 
 `webfetch`: read-only GET, http/https, text/HTML/JSON response; T50 adds requested text/markdown/html (default markdown), timeout seconds default30/max120 and truthful original/final URL/status/content-type/format. One total budget includes conversion; bounded download/redirect/output and Unicode conversion remain. Не browser automation и не OpenProxy private admin fetch. Private/link-local/loopback targets запрещены по умолчанию; DNS resolution, фактический dial и каждый redirect проверяются вместе. Explicit trusted endpoint exception для provider/MCP НЕ распространяется на модельный webfetch. Credential headers не наследуются; proxy env не должен обходить egress policy. Для test fixtures использовать отдельный explicit loopback allowlist. No arbitrary methods/upload/cookies.
 
-`glob`: bounded glob pattern, stable sorted pagination. T50 adds donor path/hidden
-(default false)/limit and matching/ignore behavior; current memoized matcher is not
-evidence of full donor semantics. Pattern ≤4096 bytes,
-не более 64 segments; memoized `**` matcher. Walk budget 10,000 entries считается
-при enumeration, до накопления результата. Nonregular nodes не читаются.
+`glob`: ripgrep glob pattern, path/hidden (default false)/limit и ignore behavior.
+Complete scans имеют stable sorted pagination. Pattern ≤4096 bytes, не более
+64 segments. Walk budget 10,000 entries считается при enumeration; candidates
+обрабатываются по ходу перечисления, а не отбрасываются вместе с широким каталогом.
+Budget exhaustion возвращает completed + truncated, без выдуманного next cursor.
+Recursive walk не следует symlinks; nonregular nodes не читаются.
 
-`grep`: current literal-only implementation is a historical subset, superseded by
-T50's pending regex-default/literal/path/include/caseSensitive/limit contract. Use a
-vetted pinned donor-compatible engine, not a custom approximation. Stable coherent
-pagination and explicit malformed/budget outcomes remain. Pattern ≤4096 bytes,
+`grep`: regex-default/literal/path/include/caseSensitive/limit через vetted
+ripgrep-compatible engine, не custom approximation. Complete scans сохраняют
+stable coherent pagination; malformed patterns остаются errors. Pattern ≤4096 bytes,
 per-file read ≤1 MiB, aggregate scan ≤16 MiB,
 hit text ≤2 KiB на UTF-8 boundary. Files открываются no-follow/nonblocking и после
 fstat читаются только regular; FIFO/device не блокируют runtime. Budget exhaustion
-видим, не подменяется silent partial success. R10 exact-artifact route streams beyond
-ordinary1 MiB file admission without relaxing ordinary project scans, aggregate/time/
+видим, не подменяется полным покрытием. R10 exact-artifact route streams beyond
+ordinary grep's 1 MiB file admission without relaxing ordinary project grep scans, aggregate/time/
 hit budgets or no-follow/session/policy checks.
 
-Native search amendment 2026-10-21: resource-limited grep is explicitly `failed`
+W2 amendment 2026-11-03 supersedes the former failed-on-budget outcome: resource-limited grep is `completed`
 with `coverage:incomplete`, verified `matches`, typed budget facts and no
 `next_offset`. Oversized content candidates are unsearched omissions, not absence;
 mandatory ignore files cannot be omitted. Admitted binary content stops at the
@@ -315,7 +318,7 @@ T40 evidence remains factual.
   Failed durable storage/cleanup remains non-success, never unlimited inline fallback.
 - Exact registered artifact can be accessed by model `read(path,offset,limit)` or
   `grep` under session/already authorized owned-lineage/provenance/effective Deny,
-  trust/no-follow/identity/regular-file checks. Stream beyond ordinary file1 MiB with
+  trust/no-follow/identity/regular-file checks. Artifact grep bypasses ordinary grep's 1 MiB cap; text reads also stream
   bounded page/scan/time/hit/model budgets and honest next cursors. No directory/glob,
   arbitrary blob/SQLite/WAL/config access or widening mutation authority; guessed path
   and quoted/forked child references grant nothing. No AGENTS discovery from log paths.

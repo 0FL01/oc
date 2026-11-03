@@ -1,6 +1,7 @@
 //! One descriptor-held read owner: bounded text, directory pages and image bytes.
 use super::search::Budget;
 use super::*;
+use std::io::BufRead;
 use std::sync::atomic::AtomicBool;
 
 pub(crate) enum Content {
@@ -34,7 +35,7 @@ impl Files {
             return Err(FileToolError::InvalidPattern("read scope denied".into()));
         }
         budget.check()?;
-        let mut file = self.open_read_scope(&abs, libc::O_RDONLY)?;
+        let file = self.open_read_scope(&abs, libc::O_RDONLY, true)?;
         budget.check()?;
         let meta = file.metadata().map_err(|_| FileToolError::Io)?;
         if meta.is_dir() {
@@ -66,6 +67,10 @@ impl Files {
                 let name_c = CString::new(name.as_bytes()).map_err(|_| FileToolError::Io)?;
                 let entry =
                     suggest_openat(&file, &name_c, libc::O_PATH).map_err(|_| FileToolError::Io)?;
+                match self.check_data_file(&entry) {
+                    Err(FileToolError::OwnDataRoot) => continue,
+                    result => result?,
+                }
                 let meta = entry.metadata().map_err(|_| FileToolError::Io)?;
                 if !meta.is_file() && !meta.is_dir() && !meta.file_type().is_symlink() {
                     continue;
@@ -93,7 +98,19 @@ impl Files {
                 "read requires a regular file or directory".into(),
             ));
         }
-        if meta.len() > GREP_FILE_BYTES_CAP {
+        let mut file = std::io::BufReader::new(file);
+        let prefix = file.fill_buf().map_err(|_| FileToolError::Io)?;
+        let pdf = prefix.starts_with(b"%PDF-")
+            || Path::new(path)
+                .extension()
+                .is_some_and(|s| s.eq_ignore_ascii_case("pdf"));
+        let format = image::guess_format(prefix).ok();
+        let image_path = Path::new(path).extension().is_some_and(|s| {
+            ["png", "jpg", "jpeg", "gif", "webp"]
+                .iter()
+                .any(|e| s.eq_ignore_ascii_case(e))
+        });
+        if (pdf || format.is_some() || image_path) && meta.len() > GREP_FILE_BYTES_CAP {
             return Err(budget.exhausted(
                 "file_bytes",
                 "read_file",
@@ -101,37 +118,38 @@ impl Files {
                 meta.len(),
             ));
         }
-        let mut bytes = Vec::new();
-        let mut chunk = [0u8; 8192];
-        loop {
-            budget.check()?;
-            let n = file.read(&mut chunk).map_err(|_| FileToolError::Io)?;
-            budget.check()?;
-            if n == 0 {
-                break;
-            }
-            if bytes.len() + n > GREP_FILE_BYTES_CAP as usize {
-                return Err(budget.exhausted(
-                    "file_bytes",
-                    "read_file",
-                    GREP_FILE_BYTES_CAP,
-                    (bytes.len() + n) as u64,
-                ));
-            }
-            bytes.extend_from_slice(&chunk[..n]);
-            #[cfg(test)]
-            super::search::read_checkpoint(self, cancel)?;
-        }
-        if bytes.starts_with(b"%PDF-")
-            || Path::new(path)
-                .extension()
-                .is_some_and(|s| s.eq_ignore_ascii_case("pdf"))
-        {
+        if pdf {
             return Err(FileToolError::InvalidPattern(
                 "PDF is unsupported; read a text export instead".into(),
             ));
         }
-        if let Ok(format) = image::guess_format(&bytes) {
+        if format.is_none() && image_path {
+            return Err(FileToolError::InvalidPattern(
+                "invalid image; provide a complete PNG, JPEG, GIF or WebP".into(),
+            ));
+        }
+        if let Some(format) = format {
+            let mut bytes = Vec::new();
+            let mut chunk = [0u8; 8192];
+            loop {
+                budget.check()?;
+                let n = file.read(&mut chunk).map_err(|_| FileToolError::Io)?;
+                budget.check()?;
+                if n == 0 {
+                    break;
+                }
+                if bytes.len() + n > GREP_FILE_BYTES_CAP as usize {
+                    return Err(budget.exhausted(
+                        "file_bytes",
+                        "read_file",
+                        GREP_FILE_BYTES_CAP,
+                        (bytes.len() + n) as u64,
+                    ));
+                }
+                bytes.extend_from_slice(&chunk[..n]);
+                #[cfg(test)]
+                super::search::read_checkpoint(self, cancel)?;
+            }
             let mime = match format {
                 image::ImageFormat::Png => "image/png",
                 image::ImageFormat::Jpeg => "image/jpeg",
@@ -150,22 +168,113 @@ impl Files {
                 source_path: abs,
             });
         }
-        if Path::new(path).extension().is_some_and(|s| {
-            ["png", "jpg", "jpeg", "gif", "webp"]
-                .iter()
-                .any(|e| s.eq_ignore_ascii_case(e))
-        }) {
+        // Bound both the selected page and one line prefix, including when an
+        // arbitrarily long line is skipped. Validate only consumed lines, not
+        // the reader's lookahead beyond the selected page (TS consumed-prefix rule).
+        let mut selected = Vec::new();
+        let mut used = 8192;
+        let mut number = 1u64;
+        let mut line_truncated = false;
+        let more = 'page: loop {
+            budget.check()?;
+            if selected.len() == limit {
+                break !file.fill_buf().map_err(|_| FileToolError::Io)?.is_empty();
+            }
+            let mut line = Vec::new();
+            let mut length = 0usize;
+            let mut carry = Vec::new();
+            let mut invalid = false;
+            let mut last = None;
+            let newline = loop {
+                budget.check()?;
+                let chunk = file.fill_buf().map_err(|_| FileToolError::Io)?;
+                if chunk.is_empty() {
+                    if length == 0 {
+                        break 'page false;
+                    }
+                    break false;
+                }
+                let end = chunk.iter().position(|b| *b == b'\n');
+                let part = &chunk[..end.unwrap_or(chunk.len())];
+                length += part.len();
+                last = part.last().copied().or(last);
+                line.extend_from_slice(
+                    &part[..part
+                        .len()
+                        .min((READ_BYTES_CAP + 1).saturating_sub(line.len()))],
+                );
+                invalid |= part.contains(&0);
+                carry.extend_from_slice(part);
+                match std::str::from_utf8(&carry) {
+                    Ok(_) => carry.clear(),
+                    Err(error) if error.error_len().is_none() => {
+                        carry.drain(..error.valid_up_to());
+                    }
+                    Err(_) => {
+                        invalid = true;
+                        carry.clear();
+                    }
+                }
+                let consumed = part.len() + usize::from(end.is_some());
+                file.consume(consumed);
+                #[cfg(test)]
+                super::search::read_checkpoint(self, cancel)?;
+                if end.is_some() {
+                    break true;
+                }
+            };
+            invalid |= !carry.is_empty();
+            if newline && last == Some(b'\r') {
+                if line.len() == length {
+                    line.pop();
+                }
+                length -= 1;
+            }
+            if number < offset {
+                if invalid {
+                    return Err(FileToolError::Binary);
+                }
+                number += 1;
+                continue;
+            }
+            let cost = length + number.to_string().len() + 3;
+            if used + cost > READ_BYTES_CAP && !selected.is_empty() {
+                break true;
+            }
+            if invalid {
+                return Err(FileToolError::Binary);
+            }
+            let valid = match std::str::from_utf8(&line) {
+                Ok(text) => text,
+                Err(error) => {
+                    std::str::from_utf8(&line[..error.valid_up_to()]).expect("validated prefix")
+                }
+            };
+            if used + cost > READ_BYTES_CAP {
+                let end = valid.floor_char_boundary(READ_BYTES_CAP - used - 128);
+                selected.push(format!(
+                    "{} [Line truncated; use grep for a bounded preview]",
+                    &valid[..end]
+                ));
+                line_truncated = true;
+                break !file.fill_buf().map_err(|_| FileToolError::Io)?.is_empty();
+            }
+            used += cost;
+            selected.push(valid.to_owned());
+            number += 1;
+        };
+        if offset != 1 && selected.is_empty() {
             return Err(FileToolError::InvalidPattern(
-                "invalid image; provide a complete PNG, JPEG, GIF or WebP".into(),
+                "offset is out of range".into(),
             ));
         }
-        if bytes.contains(&0) {
-            return Err(FileToolError::Binary);
-        }
-        let text = std::str::from_utf8(&bytes).map_err(|_| FileToolError::Binary)?;
-        let page = page(text.lines(), offset, limit).map(Content::Text);
         budget.check()?;
-        page
+        Ok(Content::Text(ReadResult {
+            offset,
+            next_offset: more.then_some(offset + selected.len() as u64),
+            lines: selected,
+            truncated: more || line_truncated,
+        }))
     }
 }
 

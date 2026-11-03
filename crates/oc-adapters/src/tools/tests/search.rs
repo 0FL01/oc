@@ -18,12 +18,13 @@ async fn incomplete_grep_keeps_evidence_without_false_continuation_and_reports_c
         arguments: json!({"pattern":"NEEDLE"}),
     };
     let output = execute_batch(&context, vec![Assembled::Call(call)]).await;
-    assert_eq!(output[0].state, "failed");
+    assert_eq!(output[0].state, "completed");
     let value: Value = serde_json::from_str(&output[0].output).unwrap();
     assert_eq!(value["coverage"], "incomplete");
     assert_eq!(value["matches"][0]["path"], "a.txt");
     assert_eq!(value["error"]["detail"]["budget"], "file_bytes");
     assert_eq!(value["pagination"]["next_offset"], Value::Null);
+    assert_eq!(value["pagination"]["truncated"], true);
     let compile = ToolCall {
         id: "compile".into(),
         name: "grep".into(),
@@ -32,6 +33,35 @@ async fn incomplete_grep_keeps_evidence_without_false_continuation_and_reports_c
     let error = super::super::validate_call_diagnostic(&compile).unwrap_err();
     assert_eq!(error.code, "budget_exhausted");
     assert_eq!(error.detail["budget"], "regex_compile");
+}
+
+#[tokio::test]
+async fn w2_flat_wide_search_completes_with_honest_truncation() {
+    let env = setup();
+    for index in 0..=crate::files::WALK_FILES_CAP {
+        std::fs::write(env.project.join(format!("wide-{index:05}")), "NEEDLE\n").unwrap();
+    }
+    let policy = AllowAllPolicy;
+    let context = ctx(&env, &policy, false);
+    for name in ["glob", "grep"] {
+        let call = ToolCall {
+            id: name.into(),
+            name: name.into(),
+            arguments: json!({"pattern":if name == "glob" { "*" } else { "NEEDLE" },"limit":1}),
+        };
+        let output = execute_batch(&context, vec![Assembled::Call(call)]).await;
+        assert_eq!(output[0].state, "completed", "{}", output[0].output);
+        let value: Value = serde_json::from_str(&output[0].output).unwrap();
+        assert_eq!(
+            value[if name == "glob" { "items" } else { "matches" }]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(value["pagination"]["truncated"], true);
+        assert_eq!(value["pagination"]["next_offset"], Value::Null);
+    }
 }
 
 #[tokio::test]

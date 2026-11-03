@@ -96,7 +96,7 @@ impl crate::files::FileToolError {
         let mut diagnostic = Diagnostic::new(tool, code, self.to_string()).detail(detail);
         if matches!(self, FileToolError::BudgetExhausted(_)) {
             diagnostic = diagnostic.hint(if tool == "read" {
-                "Read a smaller file or directory; line pagination does not bypass whole-file admission."
+                "Text reads stream the selected page; narrow the directory or use a smaller bounded image."
             } else {
                 "Narrow path or include. Match limit does not bound directory discovery. Incomplete coverage is not exhaustive absence."
             });

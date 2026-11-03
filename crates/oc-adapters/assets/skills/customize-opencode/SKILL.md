@@ -218,6 +218,14 @@ policy is fatal. Outside-Location access still needs its external-directory
 admission as well as action permission. Do not recommend broad Allow or CLI
 `--auto` as a workaround; headless Ask without a consumer fails before execution.
 
+File-tool permissions/external_directory use the lexical path, not a symlink's
+referent. Explicit read/edit/write/patch paths follow links; write/update preserves
+a leaf link, while delete/move-source removes that entry. The resolved I/O target
+cannot enter the native data root, and approval binds its identity/preimage.
+Recursive search does not follow discovered links. Text reads stream bounded
+pages without a whole-file size cap; media/grep caps remain. Search-budget limits
+return completed/truncated partial coverage without a fabricated next cursor.
+
 ## Agents, skills, commands and instructions
 
 Native built-ins are `build`/`plan` primary and `general`/`explore` subagents.

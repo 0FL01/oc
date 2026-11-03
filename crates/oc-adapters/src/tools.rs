@@ -1074,18 +1074,20 @@ fn tool_glob(
         |path| search_path_allowed(policy, path),
         Some(cancel),
     ) {
-        Ok(mut items) => {
-            let truncated = items.len() > limit;
+        Ok((mut items, incomplete)) => {
+            let truncated = incomplete || items.len() > limit;
             items.truncate(limit);
             let returned = items.len();
-            let output = serde_json::json!({
+            let mut output = serde_json::json!({
                 "items": items,
                 "pagination": pagination(offset, limit, returned, truncated),
-            })
-            .to_string();
+            });
+            if incomplete {
+                output["pagination"]["next_offset"] = serde_json::Value::Null;
+            }
             read::Outcome {
                 state: "completed",
-                output,
+                output: output.to_string(),
                 image: None,
                 directory: false,
                 producer_limited: Some(truncated),
@@ -1136,7 +1138,7 @@ fn tool_grep(
     ) {
         Ok(result) => {
             let mut hits = result.hits;
-            let truncated = hits.len() > limit;
+            let truncated = hits.len() > limit || result.incomplete.is_some();
             hits.truncate(limit);
             let returned = hits.len();
             let truncated_line_previews = hits.iter().filter(|hit| hit.text_truncated).count();
@@ -1156,14 +1158,19 @@ fn tool_grep(
                 "pagination": pagination(offset, limit, returned, truncated),
             });
             let state = if let Some(error) = result.incomplete {
-                output["status"] = "failed".into();
+                let state = if matches!(error, crate::files::FileToolError::BudgetExhausted(_)) {
+                    "completed"
+                } else {
+                    "failed"
+                };
+                output["status"] = state.into();
                 output["error"] =
                     serde_json::to_value(error.diagnostic("grep")).expect("diagnostic");
                 output["coverage"] = "incomplete".into();
                 output["diagnostics"]["unsearched_files"] = result.unsearched_files.into();
                 output["pagination"]["next_offset"] = serde_json::Value::Null;
                 output["pagination"]["truncated"] = true.into();
-                "failed"
+                state
             } else {
                 "completed"
             };

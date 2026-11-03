@@ -376,6 +376,21 @@ MCP lifecycle diagnostics/status/stderr, config explain, auth/accounts masking,
 credential Debug and logs keep their separate protections. Model lookup still emits
 only schema-known public fields. No new dependency or storage migration.
 
+## File tools TS parity — owner-approved 2026-11-03
+
+W2 supersedes the former whole-file text-read cap, failed-on-search-budget,
+blanket explicit-path symlink refusal, preserve-all-CRLF/no-final-LF patch policy
+and cross-device-move refusal. Text reads retain only bounded pages/line prefixes;
+search keeps verified candidates and reports completed/truncated without a false
+continuation. Lexical paths own permission/external_directory identity; resolved
+I/O targets own data-root exclusion and mutation preimages. Write/update through
+a leaf link preserves it; delete/move-source removes the lexical entry. Recursive
+search still does not follow discovered links. Patch uses TS BOM/hunk EOL/final-LF
+semantics, not dominant EOL. Move stages/commits destination then removes source;
+failed removal records destination Create, not a fictitious source update/Move.
+Pinned I/O, resource/cancel guards, durable effects and no unknown replay remain.
+Config/discovery/storage no-follow policies are not changed by this decision.
+
 ## Остаточные prerequisites, не новые Q
 
 Secrets/connectivity/наличие нужной live модели проверяются just-in-time в T16/T27, не в T00. Missing → конкретный external blocker, не угадывание credentials. Docker проверяется только перед первым использованием и иначе `NOT_USED`. Exact versions Cargo dependencies/rmcp protocol/TLS проверяются compile spike. Реальная browser-служба требуется только для opt-in smoke. Monetary hard limit внешнего authoring-agent не задан; документация его не исполняет. Semantic DCP качества проверяются fixtures/live task, а не декларацией.

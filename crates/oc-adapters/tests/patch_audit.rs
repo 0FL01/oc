@@ -81,14 +81,17 @@ fn aud03_ambiguous_hunks_and_overlapping_paths_are_preflight_conflicts() {
 }
 
 #[test]
-fn aud04_parent_symlink_and_replacement_do_not_escape() {
+fn aud04_parent_symlink_is_followed_but_replacement_is_refused() {
     let (temp, project, data) = roots();
     let outside = temp.path().join("outside");
     fs::create_dir(&outside).unwrap();
     fs::write(outside.join("sentinel"), b"safe\n").unwrap();
     symlink(&outside, project.join("parent")).unwrap();
     let patch = "*** Begin Patch\n*** Update File: parent/sentinel\n@@\n-safe\n+bad\n*** End Patch";
-    assert!(apply_patch(&project, &data, patch, &AllowAll).is_err());
+    apply_patch(&project, &data, patch, &AllowAll).unwrap();
+    assert!(project.join("parent").is_symlink());
+    assert_eq!(fs::read(outside.join("sentinel")).unwrap(), b"bad\n");
+    fs::write(outside.join("sentinel"), b"safe\n").unwrap();
     fs::remove_file(project.join("parent")).unwrap();
     fs::create_dir(project.join("parent")).unwrap();
     fs::write(project.join("parent/sentinel"), b"safe\n").unwrap();
@@ -135,21 +138,8 @@ fn aud04_concurrent_add_and_move_targets_are_not_overwritten() {
     let patch = "*** Begin Patch\n*** Update File: source\n*** Move to: target\n@@\n-before\n+after\n*** End Patch";
     let failure = apply_patch(&project, &data, patch, &race).unwrap_err();
     assert_eq!(fs::read(project.join("target")).unwrap(), b"concurrent\n");
-    assert_eq!(fs::read(project.join("source")).unwrap(), b"after\n");
-    assert_eq!(failure.done.len(), 1);
-    let done = &failure.done[0];
-    assert_eq!(
-        (done.path.as_str(), done.new_path.as_deref(), done.op),
-        ("source", None, "update")
-    );
-    assert_eq!(
-        done.hash_before,
-        Some(format!("{:x}", Sha256::digest(b"before\n")))
-    );
-    assert_eq!(
-        done.hash_after,
-        Some(format!("{:x}", Sha256::digest(b"after\n")))
-    );
+    assert_eq!(fs::read(project.join("source")).unwrap(), b"before\n");
+    assert!(failure.done.is_empty());
 }
 
 #[test]

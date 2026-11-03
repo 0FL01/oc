@@ -2156,15 +2156,17 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
             let effects = patch_effects.as_ref().expect("confirmed effects");
             assert_eq!(effects.total_files, 2);
             assert_eq!(effects.files[0].additions, 1);
-            assert_eq!(effects.files[1].deletions, 1);
+            assert_eq!(effects.files[1].additions, 2);
+            assert_eq!(effects.files[1].deletions, 2);
             let lines = &effects.files[1].hunks[0].lines;
             assert_eq!(lines[0].text, "prefix");
             assert_eq!(lines[0].kind, oc_core::patch::PatchLineKind::Context);
             assert_eq!((lines[0].old_line, lines[0].new_line), (Some(1), Some(1)));
             let last = lines.last().unwrap();
             assert_eq!(last.text, "suffix");
-            assert_eq!((last.old_line, last.new_line), (Some(3), Some(3)));
-            assert_eq!(last.ending, oc_core::patch::LineEnding::None);
+            assert_eq!((last.old_line, last.new_line), (None, Some(3)));
+            assert_eq!(last.kind, oc_core::patch::PatchLineKind::Added);
+            assert_eq!(last.ending, oc_core::patch::LineEnding::Lf);
             assert_eq!(name, "apply_patch");
             assert_eq!(state, "completed");
             assert!(!op.is_empty());
@@ -2181,7 +2183,7 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
     );
     assert_eq!(
         std::fs::read_to_string(harness._project.path().join("old.txt")).unwrap(),
-        "prefix\nnew\nsuffix"
+        "prefix\nnew\nsuffix\n"
     );
     let ops = harness.db.list_tool_ops("s-tools").unwrap();
     assert_eq!(ops.len(), 1);

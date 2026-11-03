@@ -601,7 +601,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "read".to_string(),
-            description: "Read a project file or directory. Text has 1-based line references; directories are sorted with directories first. offset is 1-based, limit defaults to 2000. Validated PNG/JPEG/GIF/WebP images are inline content for image-capable selected Responses models; PDF is unsupported. Native no-follow, permission, data-root, 1 MiB file scan and 65536-byte page budgets apply."
+            description: "Read a file or directory. Text streams the selected page without a whole-file size cap, with 1-based line references and a 65536-byte page budget; limit defaults to 2000. Directories are sorted with directories first. Explicit symlinks are followed; permissions use the lexical path and the resolved I/O target cannot be the native data root. Validated PNG/JPEG/GIF/WebP images retain the 1 MiB cap and are inline content for image-capable selected Responses models; PDF is unsupported."
                 .to_string(),
             parameters: schema(
                 serde_json::json!({
@@ -614,7 +614,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "glob".to_string(),
-            description: "Search file paths using ripgrep glob syntax. `path` is an admitted project directory (default root); `hidden` defaults false. Positive patterns override ignore files; .git is excluded. Results are Location-relative, lexicographically sorted and paginated; default limit 100. Native trust/no-follow/data-root and entry/byte/30-second budgets apply.".to_string(),
+            description: "Search file paths using ripgrep glob syntax. `path` is an admitted directory (default root); `hidden` defaults false. Positive patterns override ignore files; .git is excluded. Results are Location-relative and sorted among inspected candidates; complete scans support pagination, default limit 100. Recursive traversal does not follow symlinks and excludes the resolved native data root. Native entry/byte/30-second budgets return completed, truncated results without a continuation cursor when discovery is incomplete.".to_string(),
             parameters: serde_json::json!({"type":"object", "properties": {
                     "pattern": {"type": "string"},
                     "path": {"type": "string"},
@@ -625,7 +625,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "grep".to_string(),
-            description: "Search text with ripgrep's default Rust regex syntax (no look-around/backreferences); `literal:true` searches exact text. `path` scopes an admitted project file/directory; `include` is a ripgrep glob filter. caseSensitive defaults true; hidden files are searched, .git excluded, positive include overrides ignore files. Complete pages are Location-relative, sorted by path/line; default limit 100. Native limits: 10000 enumerated entries, 64 levels, 1 MiB per file, 16 MiB scanned including ignore files, 30 seconds, bounded regex compilation. Result limit does not bound discovery. Resource omissions return failed with verified matches, coverage:incomplete and no next_offset; narrow path/include to complete coverage.".to_string(),
+            description: "Search text with ripgrep's default Rust regex syntax (no look-around/backreferences); `literal:true` searches exact text. `path` scopes an admitted file/directory; `include` is a ripgrep glob filter. caseSensitive defaults true; hidden files are searched, .git excluded, positive include overrides ignore files. Complete pages are Location-relative, sorted by path/line; default limit 100. Recursive traversal does not follow symlinks and excludes the resolved native data root. Native limits: 10000 enumerated entries, 64 levels, 1 MiB per file, 16 MiB scanned including ignore files, 30 seconds, bounded regex compilation. Result limit does not bound discovery. Scan-budget omissions return completed with verified matches, coverage:incomplete, truncated:true and no next_offset; narrow path/include to complete coverage. Invalid patterns and cancellation remain errors.".to_string(),
             parameters: serde_json::json!({"type":"object", "properties": {
                     "pattern": {"type": "string"},
                     "path": {"type": "string"},
@@ -638,7 +638,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "apply_patch".to_string(),
-            description: "Apply a patch to files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <path>`, prefix every content line with `+`; no content lines creates an empty file. Update hunks use `*** Update File: <path>`, optionally immediately followed by `*** Move to: <path>`, then `@@` and lines where context starts with a space, removals with `-`, additions with `+`, all matching file bytes exactly. Delete uses `*** Delete File: <path>`. Paths may be relative to Location, absolute, or ~/ paths. External targets require external_directory and mutation permission for every affected path, including move destinations. Cross-filesystem moves are refused during preflight, before any effects. Native no-follow/data-root/preimage guards apply."
+            description: "Apply a patch to files. `patchText` must start with `*** Begin Patch` and end with `*** End Patch`. For `*** Add File: <path>`, prefix every content line with `+`; no content lines creates an empty file. Update uses `*** Update File: <path>`, optionally immediately followed by `*** Move to: <path>`, then `@@` and context-space, removal-`-`, addition-`+` lines. Matching is strict apart from CRLF boundaries. BOM and unreplaced EOL are retained; parsed patch context/replacement uses LF and nonempty updates end with LF. Delete uses `*** Delete File: <path>`. Paths may be Location-relative, absolute, or ~/ paths. Permissions/external_directory use lexical paths, including both move ends; resolved I/O targets exclude the native data root. Explicit symlinks are followed for updates, preserving the link; delete/move-source removes the lexical entry. Moves, including cross-filesystem, commit destination bytes then remove source; failed removal reports the already-created destination. Approved-preimage guards apply."
                 .to_string(),
             parameters: serde_json::json!({
                 "type": "object",
@@ -662,12 +662,12 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "write".into(),
-            description: "Write a text file, overwriting if it exists and creating missing parent directories. Paths may be relative to Location, absolute, or ~/ paths; external targets require external_directory and mutation permission. content preserves supplied newlines and EOF; an existing or supplied UTF-8 BOM is retained once. Use edit for partial changes. Shared mutation permissions, no-follow/data-root/preimage guards and bounded confirmed diffs apply; no preceding read call is required.".into(),
+            description: "Write a text file, overwriting if it exists and creating missing parent directories. Paths may be relative to Location, absolute, or ~/ paths. Permissions/external_directory use the lexical path; explicit symlinks are followed and retained, while resolved I/O targets exclude the native data root. content preserves supplied newlines and EOF; an existing or supplied UTF-8 BOM is retained once. Use edit for partial changes. Shared mutation permissions, referent-bound preimage checks and bounded confirmed diffs apply; no preceding read call is required.".into(),
             parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["path","content"],"properties":{"path":{"type":"string"},"content":{"type":"string"}}}),
         },
         ToolDef {
             name: "edit".into(),
-            description: "Edit an existing text file by replacing oldString with newString. Paths may be relative to Location, absolute, or ~/ paths; external targets require external_directory and mutation permission. Omit Read line-number prefixes and preserve indentation. oldString must be nonempty and differ from newString; newString may be empty to delete text. UNIQUE match is required unless replaceAll is true. Exact nonoverlapping matches precede typographic normalization, then trailing-whitespace line matching. CRLF/BOM and actual EOF are preserved. Shared mutation permission/preimage/no-follow/bounded-diff safeguards apply; no preceding read call is required.".into(),
+            description: "Edit an existing text file by replacing oldString with newString. Paths may be relative to Location, absolute, or ~/ paths. Permissions/external_directory use the lexical path; explicit symlinks are followed and retained, while resolved I/O targets exclude the native data root. Omit Read line-number prefixes and preserve indentation. oldString must be nonempty and differ from newString; newString may be empty to delete text. UNIQUE match is required unless replaceAll is true. Exact nonoverlapping matches precede typographic normalization, then trailing-whitespace line matching. CRLF/BOM and actual EOF are preserved. Shared mutation permission/referent-bound preimage/bounded-diff safeguards apply; no preceding read call is required.".into(),
             parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":["path","oldString","newString"],"properties":{"path":{"type":"string"},"oldString":{"type":"string"},"newString":{"type":"string"},"replaceAll":{"type":"boolean","default":false}}}),
         },
         ToolDef {

@@ -88,11 +88,12 @@ async fn plan_root_grep_explore_and_read_continue_after_verified_incomplete_sear
             }
             1 => {
                 let evidence: serde_json::Value = serde_json::from_str(&completed[0].1).unwrap();
-                assert_eq!(evidence["status"], "failed");
+                assert_eq!(evidence["status"], "completed");
                 assert_eq!(evidence["coverage"], "incomplete");
                 assert_eq!(evidence["error"]["detail"]["budget"], "file_bytes");
                 assert_eq!(evidence["matches"].as_array().unwrap().len(), 2);
                 assert!(evidence["pagination"]["next_offset"].is_null());
+                assert_eq!(evidence["pagination"]["truncated"], true);
                 subagent_call(
                     "explore",
                     serde_json::json!({"agent":"explore","model":"fixture/agent-model","description":"Find Preview limited","prompt":"Find its TUI sources; read only"}),
@@ -154,7 +155,7 @@ async fn plan_root_grep_explore_and_read_continue_after_verified_incomplete_sear
     let ops = db.list_tool_ops("parent").unwrap();
     assert_eq!(
         ops.iter().map(|op| op.state.as_str()).collect::<Vec<_>>(),
-        ["failed", "completed", "completed"]
+        ["completed", "completed", "completed"]
     );
     assert_eq!(jobs.len(), 1);
     assert_eq!(jobs[0].agent, "explore");

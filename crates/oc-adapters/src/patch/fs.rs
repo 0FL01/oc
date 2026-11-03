@@ -43,6 +43,16 @@ fn identity(meta: &Metadata) -> (u64, u64, i64, i64, i64, i64) {
     )
 }
 
+pub(super) fn hash_identity(meta: &Metadata, hash: &mut impl sha2::Digest) {
+    let value = identity(meta);
+    hash.update(value.0.to_le_bytes());
+    hash.update(value.1.to_le_bytes());
+    hash.update(value.2.to_le_bytes());
+    hash.update(value.3.to_le_bytes());
+    hash.update(value.4.to_le_bytes());
+    hash.update(value.5.to_le_bytes());
+}
+
 fn name(value: &OsStr) -> io::Result<CString> {
     CString::new(value.as_bytes()).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))
 }
@@ -143,31 +153,6 @@ impl Root {
         Ok(dir)
     }
 
-    pub fn parent_mount(&self, rel: &Path) -> io::Result<(u64, u64)> {
-        let dir = self.existing_parent(rel)?;
-        let mut details = std::mem::MaybeUninit::<libc::statx>::zeroed();
-        // SAFETY: dir is live, the path is a constant empty C string, and details
-        // points to writable storage for the complete statx result.
-        let result = unsafe {
-            libc::statx(
-                dir.as_raw_fd(),
-                c"".as_ptr(),
-                libc::AT_EMPTY_PATH | libc::AT_SYMLINK_NOFOLLOW,
-                libc::STATX_MNT_ID,
-                details.as_mut_ptr(),
-            )
-        };
-        if result != 0 {
-            return Err(io::Error::last_os_error());
-        }
-        // SAFETY: the successful statx initialized the zeroed result storage.
-        let details = unsafe { details.assume_init() };
-        if details.stx_mask & libc::STATX_MNT_ID == 0 {
-            return Err(io::ErrorKind::Unsupported.into());
-        }
-        Ok((dir.metadata()?.dev(), details.stx_mnt_id))
-    }
-
     /// Check the existing destination parent (or first missing ancestor's
     /// parent) before any plan writes. Later permission changes remain I/O
     /// failures; this is preflight, not a substitute for syscall enforcement.
@@ -199,6 +184,13 @@ impl Root {
 }
 
 impl Entry {
+    pub fn metadata(&self) -> io::Result<Metadata> {
+        open(&self.dir, &self.name, libc::O_PATH, 0)?.metadata()
+    }
+
+    pub fn same_entry(&self, before: &Metadata) -> io::Result<bool> {
+        Ok(identity(&self.metadata()?) == identity(before))
+    }
     pub fn absent(&self) -> io::Result<bool> {
         // O_PATH opens the entry itself with NOFOLLOW: a dangling symlink is
         // occupied too, never an absent add/move target.
@@ -277,16 +269,6 @@ impl Entry {
         } else {
             Err(io::Error::last_os_error())
         }
-    }
-
-    pub fn move_to(&self, target: &Self) -> io::Result<()> {
-        rename(
-            &self.dir,
-            &self.name,
-            &target.dir,
-            &target.name,
-            libc::RENAME_NOREPLACE,
-        )
     }
 
     pub fn sync(&self) -> io::Result<()> {

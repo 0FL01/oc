@@ -86,7 +86,7 @@ sanitization сохраняют S04/S06 без нового отрицатель
 
 ## S08 — не сломать прежние security/runtime contracts
 
-Повторить patch no-follow/preimage/partial commits, durable-intent-before-effect,
+Повторить patch resolved-target/approved-preimage/partial commits (explicit links follow lexical permission, write retains leaf links, delete/move-source removes entries), durable-intent-before-effect,
 store faults/recovery, provider incomplete/EOF/cancel, child process kill/reap, MCP
 lifecycle/config/auth/log secret masking, parent/child permissions и subagent cancellation.
 W1 (2026-11-03) intentionally leaves tool output/cards/artifacts and provider-supplied

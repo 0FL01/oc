@@ -289,13 +289,19 @@ through the [T50/R3/R5 route](goals/2026-09-27-native-tool-parity.md#external-re
 home-expanded external directory resource **and** actual tool action executes without
 Ask, approval event, saved grant, manual pre-opening or per-path trust dialog, first
 time and after restart. Genuine Ask still needs the normal consumer; Deny/independent
-ceilings/no-follow/data-root/cancel/budgets still refuse or bound access. Boundary Allow
+ceilings/resolved-data-root/cancel/budgets still refuse or bound access. Boundary Allow
 alone is not read-only policy and does not grant mutations or arbitrary tools; it never
 adds a config/AGENTS source or starts an automatic HOME crawl. Leading `~` uses the
 captured product HOME; external read resources are normalized absolute paths, and
 boundary resources are the file's parent or listing/search directory plus `/*`.
-External directories are pinned for that invocation only. Mutations keep their
-existing Location boundary; arbitrary native-data-root reads remain excluded, with
+External directories are pinned for that invocation only. Explicit read/mutation
+symlinks are followed, with permission and external_directory resources taken from
+the lexical path, not the referent. Mutation preview/revalidation binds the actual
+I/O target; writes retain a leaf link, delete/move-source removes its lexical entry.
+Recursive search does not follow discovered links. Text read streams bounded pages
+without a whole-file size cap; image and grep scan caps remain. Search-budget
+exhaustion yields completed/truncated results without a false continuation cursor.
+Mutations retain their separate exact-path admission; arbitrary native-data-root reads remain excluded by resolved I/O target, with
 registered tool-output artifacts retaining their separate exact-identity route.
 See [external read/search evidence](../evidence/T50/external-read.md). Existing T45
 default MCP Allow/effective-view qualification remains separate.

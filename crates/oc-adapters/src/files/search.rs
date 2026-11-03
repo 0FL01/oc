@@ -421,7 +421,7 @@ impl Files {
         options: &GlobOptions<'_>,
         allowed: impl Fn(&Path) -> bool,
         cancel: Option<&AtomicBool>,
-    ) -> Result<Vec<String>, FileToolError> {
+    ) -> Result<(Vec<String>, bool), FileToolError> {
         let overrides = overrides(Some(options.pattern), options.hidden)?;
         let mut budget = Budget::new(cancel);
         #[cfg(test)]
@@ -430,10 +430,10 @@ impl Files {
         }
         budget.check()?;
         let scope = self.search_scope(options.path)?;
-        let root = self.open_read_scope(&scope, libc::O_RDONLY | libc::O_DIRECTORY)?;
+        let root = self.open_read_scope(&scope, libc::O_RDONLY | libc::O_DIRECTORY, false)?;
         let mut paths = Vec::new();
         let mut levels = self.search_ancestors(&scope, &mut budget, &allowed)?;
-        self.search_walk(
+        let discovery = self.search_walk(
             &root,
             &scope,
             Path::new(""),
@@ -442,15 +442,27 @@ impl Files {
             &mut budget,
             &allowed,
             &mut paths,
-        )?;
+        );
+        let truncated = match discovery {
+            Ok(()) => false,
+            Err(FileToolError::BudgetExhausted(_)) => true,
+            Err(error) => return Err(error),
+        };
         paths.sort();
-        budget.check()?;
-        Ok(paths
-            .into_iter()
-            .skip(options.offset)
-            .take(options.limit)
-            .map(|path| self.relative_hit(&scope, &path))
-            .collect())
+        if let Err(error) = budget.check()
+            && (!truncated || error == FileToolError::Cancelled)
+        {
+            return Err(error);
+        }
+        Ok((
+            paths
+                .into_iter()
+                .skip(options.offset)
+                .take(options.limit)
+                .map(|path| self.relative_hit(&scope, &path))
+                .collect(),
+            truncated,
+        ))
     }
 
     pub(crate) fn grep_search(
@@ -473,12 +485,12 @@ impl Files {
         let parent = scope.parent().ok_or(FileToolError::OutsideRoot)?;
         // Directory scopes can equal the pinned external root: its parent is
         // deliberately outside the invocation authority.
-        let entry = self.open_read_scope(&scope, libc::O_PATH)?;
+        let entry = self.open_read_scope(&scope, libc::O_PATH, false)?;
         let meta = entry.metadata().map_err(|_| FileToolError::Io)?;
         let parent_fd = if meta.is_dir() {
-            self.open_read_scope(&scope, libc::O_RDONLY | libc::O_DIRECTORY)?
+            self.open_read_scope(&scope, libc::O_RDONLY | libc::O_DIRECTORY, false)?
         } else {
-            self.open_read_scope(parent, libc::O_RDONLY | libc::O_DIRECTORY)?
+            self.open_read_scope(parent, libc::O_RDONLY | libc::O_DIRECTORY, false)?
         };
         let mut incomplete = None;
         let (root, base, mut paths) = if meta.is_dir() {
@@ -656,25 +668,19 @@ impl Files {
             budget,
             &|path| !path.starts_with(&self.data_root) && allowed(path),
         )?);
-        let mut truncated = false;
-        let mut inspected = budget.entries;
-        let mut names =
-            suggest_dir_names(dir, &mut inspected, &mut truncated, WALK_FILES_CAP, || {
-                budget.check()
-            })?;
-        budget.entries = inspected;
-        if truncated {
-            return Err(budget.exhausted(
-                "entries",
-                "discovery",
-                WALK_FILES_CAP as u64,
-                inspected as u64 + 1,
-            ));
-        }
-        names.sort();
-        budget.check()?;
-        for name in names {
+        let mut directories = Vec::new();
+        for name in SuggestDir::new(dir)? {
             budget.check()?;
+            let name = name?;
+            if budget.entries == WALK_FILES_CAP {
+                return Err(budget.exhausted(
+                    "entries",
+                    "discovery",
+                    WALK_FILES_CAP as u64,
+                    budget.entries as u64 + 1,
+                ));
+            }
+            budget.entries += 1;
             let child = relative.join(&name);
             let absolute = scope.join(&child);
             if absolute.starts_with(&self.data_root) || !allowed(&absolute) || name == ".git" {
@@ -687,6 +693,10 @@ impl Files {
             if meta.is_symlink() || (!meta.is_dir() && !meta.is_file()) {
                 continue;
             }
+            match self.check_data_file(&entry) {
+                Err(FileToolError::OwnDataRoot) => continue,
+                result => result?,
+            }
             let matched = overrides.matched(&child, meta.is_dir());
             if matched.is_ignore()
                 || (matched.is_none() && ignored(levels, &absolute, meta.is_dir()))
@@ -694,15 +704,31 @@ impl Files {
                 continue;
             }
             if meta.is_dir() {
-                let pinned = suggest_openat(dir, &name_c, libc::O_RDONLY | libc::O_DIRECTORY)
-                    .map_err(|_| FileToolError::SymlinkEscape)?;
-                self.search_walk(
-                    &pinned, scope, &child, overrides, levels, budget, allowed, paths,
-                )?;
+                directories.push(name);
             } else {
                 paths.push(child);
                 budget.checkpoint("candidate")?;
             }
+        }
+        // Admit files while enumerating, before any wide descendant can exhaust
+        // the budget. Keep directory descent lexical and complete-result sorting
+        // unchanged; partial subsets never promise a global-prefix cursor.
+        directories.sort();
+        for name in directories {
+            budget.check()?;
+            let name_c = CString::new(name.as_bytes()).map_err(|_| FileToolError::Io)?;
+            let pinned = suggest_openat(dir, &name_c, libc::O_RDONLY | libc::O_DIRECTORY)
+                .map_err(|_| FileToolError::SymlinkEscape)?;
+            self.search_walk(
+                &pinned,
+                scope,
+                &relative.join(name),
+                overrides,
+                levels,
+                budget,
+                allowed,
+                paths,
+            )?;
         }
         levels.pop();
         Ok(())

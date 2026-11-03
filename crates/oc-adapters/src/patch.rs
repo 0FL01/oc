@@ -10,7 +10,7 @@
 //! (temp file in the same directory, fsync, atomic rename, mode preserved);
 //! the first runtime failure stops the plan and returns the partial outcome
 //! — earlier commits stand, never auto-rolled back, never reported success.
-//! Preimage = hunk context + removals matched exactly; stale content is a
+//! Preimage = hunk context + removals matched strictly (accepting CRLF boundaries); stale content is a
 //! conflict, not a fuzzy merge. Native edit/write share prepared commits here.
 
 use std::path::{Path, PathBuf};
@@ -188,7 +188,6 @@ enum FileOp {
     Add {
         path: String,
         content: Vec<String>,
-        crlf: bool,
     },
     Update {
         path: String,
@@ -611,12 +610,8 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
             }
             i += 1;
             let mut content = Vec::new();
-            let mut crlf = false;
             while i < end && !lines[i].starts_with("*** ") {
                 let raw = raw_lines[i];
-                if raw.ends_with('\r') {
-                    crlf = true;
-                }
                 if raw.contains('\0') {
                     return plan_err(ops.len(), "NUL byte in add body");
                 }
@@ -626,11 +621,7 @@ fn parse_plan(text: &str) -> Result<Vec<FileOp>, ApplyFailure> {
                 content.push(body.to_string());
                 i += 1;
             }
-            ops.push(FileOp::Add {
-                path,
-                content,
-                crlf,
-            });
+            ops.push(FileOp::Add { path, content });
         } else if let Some(path) = line.strip_prefix("*** Update File:") {
             let path = path.trim().to_string();
             if path.is_empty() {
@@ -750,8 +741,7 @@ fn plan_err<T>(entry: usize, reason: &str) -> Result<T, ApplyFailure> {
 
 struct TextDoc {
     lines: Vec<String>,
-    crlf: bool,
-    trailing_nl: bool,
+    bom: bool,
 }
 
 fn split_doc(bytes: &[u8], rel: &str) -> Result<TextDoc, PatchError> {
@@ -765,26 +755,30 @@ fn split_doc(bytes: &[u8], rel: &str) -> Result<TextDoc, PatchError> {
         path: rel.to_string(),
         reason: "non-UTF-8 content".to_string(),
     })?;
-    Ok(TextDoc {
-        lines: text
-            .lines()
-            .map(|l| l.strip_suffix('\r').unwrap_or(l).to_string())
-            .collect(),
-        crlf: bytes.windows(2).any(|w| w == b"\r\n"),
-        trailing_nl: bytes.ends_with(b"\n"),
-    })
+    let bom = text.starts_with('\u{feff}');
+    let mut lines: Vec<String> = text
+        .trim_start_matches('\u{feff}')
+        .split('\n')
+        .map(str::to_owned)
+        .collect();
+    if lines.last().is_some_and(String::is_empty) {
+        lines.pop();
+    }
+    Ok(TextDoc { lines, bom })
 }
 
-fn render_doc(lines: &[String], crlf: bool, trailing_nl: bool) -> Vec<u8> {
-    if lines.is_empty() {
-        return Vec::new();
+fn render_doc(lines: &[String], bom: bool) -> Vec<u8> {
+    let mut out = lines.join("\n");
+    if lines.last().is_some_and(|line| !line.is_empty()) {
+        out.push('\n');
     }
-    let sep = if crlf { "\r\n" } else { "\n" };
-    let mut out = lines.join(sep);
-    if trailing_nl {
-        out.push_str(sep);
+    let bom = bom || out.starts_with('\u{feff}');
+    let text = out.trim_start_matches('\u{feff}');
+    if bom {
+        format!("\u{feff}{text}").into_bytes()
+    } else {
+        text.as_bytes().to_vec()
     }
-    out.into_bytes()
 }
 
 fn sha_hex(bytes: &[u8]) -> String {
@@ -962,18 +956,6 @@ fn apply_patch_inner(
             }
             seen.push(normalized);
         }
-        // Refuse symlink mutation in the first profile, even for add/update.
-        if let Ok(meta) = std::fs::symlink_metadata(&abs)
-            && meta.file_type().is_symlink()
-        {
-            return Err(op_fail(
-                idx,
-                rel,
-                PatchError::Symlink {
-                    path: rel.to_string(),
-                },
-            ));
-        }
         if let Err(e) = policy.check(rel) {
             let path = rel.to_string();
             return Err(ApplyFailure {
@@ -1054,8 +1036,18 @@ fn apply_patch_inner(
                 },
             )
         };
-        let (root, path) = mutation_scope(files, &abs, &mut roots).map_err(io)?;
-        root.writable_parent(&path).map_err(io)?;
+        let link = link_entry(files, &abs, &mut roots).map_err(io)?;
+        let resolved = files
+            .io_target(&abs)
+            .map_err(|error| io(std::io::Error::other(error)))?;
+        let (root, path) = mutation_scope(files, &resolved, &mut roots).map_err(io)?;
+        if let Some(link) = &link
+            && (matches!(op, FileOp::Delete { .. }) || op.move_to().is_some())
+        {
+            link.root.writable_parent(&link.path).map_err(io)?;
+        } else {
+            root.writable_parent(&path).map_err(io)?;
+        }
         let before = match op {
             FileOp::Add { .. } => {
                 if !root.absent(&path).map_err(io)? {
@@ -1086,16 +1078,17 @@ fn apply_patch_inner(
             })?),
         };
         let after = match op {
-            FileOp::Add { content, crlf, .. } => {
-                Some(render_doc(content, *crlf, !content.is_empty()))
-            }
+            FileOp::Add { content, .. } => Some(if content.is_empty() {
+                Vec::new()
+            } else {
+                (content.join("\n") + "\n").into_bytes()
+            }),
             FileOp::Update { hunks, .. } => {
                 let doc = split_doc(&before.as_ref().expect("snapshot").bytes, rel)
                     .map_err(|e| op_fail(idx, rel, e))?;
-                let trailing_nl = doc.lines.is_empty() || doc.trailing_nl;
                 let mut lines = doc.lines;
                 apply_hunks(&mut lines, hunks, rel).map_err(|e| op_fail(idx, rel, e))?;
-                Some(render_doc(&lines, doc.crlf, trailing_nl))
+                Some(render_doc(&lines, doc.bom))
             }
             FileOp::Delete { .. } => None,
         };
@@ -1128,6 +1121,9 @@ fn apply_patch_inner(
             .move_to()
             .map(|target| {
                 let abs = map_resolve(files, target)?;
+                let abs = files.io_target(&abs).map_err(|_| PatchError::Io {
+                    path: target.into(),
+                })?;
                 let (target_root, relative) =
                     mutation_scope(files, &abs, &mut roots).map_err(|_| PatchError::Io {
                         path: target.into(),
@@ -1145,21 +1141,6 @@ fn apply_patch_inner(
                     .map_err(|_| PatchError::Io {
                         path: target.into(),
                     })?;
-                let source_mount = root
-                    .parent_mount(&path)
-                    .map_err(|_| PatchError::Io { path: rel.into() })?;
-                let target_mount =
-                    target_root
-                        .parent_mount(&relative)
-                        .map_err(|_| PatchError::Io {
-                            path: target.into(),
-                        })?;
-                if source_mount != target_mount {
-                    return Err(PatchError::Conflict {
-                        path: target.into(),
-                        reason: "cross-device-move".into(),
-                    });
-                }
                 Ok((target_root, relative))
             })
             .transpose()
@@ -1168,6 +1149,7 @@ fn apply_patch_inner(
             root,
             path,
             target,
+            link,
             before,
             after,
         });
@@ -1198,6 +1180,13 @@ fn apply_patch_inner(
             hash.update(device.to_le_bytes());
             hash.update(inode.to_le_bytes());
             hash.update(prepared.path.as_os_str().as_encoded_bytes());
+            if let Some(link) = &prepared.link {
+                link.hash(&mut hash).map_err(|_| {
+                    fail(PatchError::Io {
+                        path: op.path().into(),
+                    })
+                })?;
+            }
             if let Some((root, path)) = &prepared.target {
                 let (device, inode) = root.authority_identity().map_err(|_| {
                     fail(PatchError::Io {
@@ -1291,8 +1280,56 @@ struct Prepared {
     root: Arc<fs::Root>,
     path: PathBuf,
     target: Option<(Arc<fs::Root>, PathBuf)>,
+    link: Option<LinkEntry>,
     before: Option<fs::Snapshot>,
     after: Option<Vec<u8>>,
+}
+
+// A leaf link is a separate namespace identity from the regular-file preimage.
+// Writes commit to the referent; delete/move-source removes this entry instead.
+struct LinkEntry {
+    root: Arc<fs::Root>,
+    path: PathBuf,
+    metadata: std::fs::Metadata,
+}
+
+impl LinkEntry {
+    fn hash(&self, hash: &mut impl sha2::Digest) -> std::io::Result<()> {
+        let (device, inode) = self.root.authority_identity()?;
+        hash.update(device.to_le_bytes());
+        hash.update(inode.to_le_bytes());
+        hash.update(self.path.as_os_str().as_encoded_bytes());
+        fs::hash_identity(&self.metadata, hash);
+        Ok(())
+    }
+}
+
+fn link_entry(
+    files: &Files,
+    absolute: &Path,
+    roots: &mut BTreeMap<PathBuf, Arc<fs::Root>>,
+) -> std::io::Result<Option<LinkEntry>> {
+    if !absolute
+        .symlink_metadata()
+        .is_ok_and(|metadata| metadata.is_symlink())
+    {
+        return Ok(None);
+    }
+    let parent = files
+        .io_target(absolute.parent().ok_or(std::io::ErrorKind::InvalidInput)?)
+        .map_err(std::io::Error::other)?;
+    let lexical = parent.join(
+        absolute
+            .file_name()
+            .ok_or(std::io::ErrorKind::InvalidInput)?,
+    );
+    let (root, path) = mutation_scope(files, &lexical, roots)?;
+    let metadata = root.entry(&path, false)?.metadata()?;
+    Ok(Some(LinkEntry {
+        root,
+        path,
+        metadata,
+    }))
 }
 
 fn execute_op(
@@ -1342,64 +1379,105 @@ fn commit_prepared(
     let entry = root
         .entry(&prepared.path, prepared.before.is_none())
         .map_err(io)?;
+    let linked = prepared
+        .link
+        .as_ref()
+        .map(|link| link.root.entry(&link.path, false))
+        .transpose()
+        .map_err(io)?;
+    let source = linked.as_ref().unwrap_or(&entry);
+    let check_preimage = || {
+        let changed = prepared
+            .before
+            .as_ref()
+            .map(|before| entry.unchanged(before))
+            .transpose()
+            .map_err(io)?
+            .is_some_and(|same| !same)
+            || match (&linked, &prepared.link) {
+                (Some(entry), Some(link)) => !entry.same_entry(&link.metadata).map_err(io)?,
+                _ => false,
+            };
+        if changed {
+            return Err(PatchError::Conflict {
+                path: rel.into(),
+                reason: "stale-preimage".into(),
+            });
+        }
+        Ok(())
+    };
+    let target = if let Some((root, path)) = &prepared.target {
+        policy.check(move_to.expect("move destination"))?;
+        check_preimage()?;
+        Some(root.entry(path, true).map_err(io)?)
+    } else {
+        None
+    };
+    let destination = target.as_ref().unwrap_or(&entry);
     let staged = prepared
         .after
         .as_ref()
-        .map(|after| entry.stage(after, prepared.before.as_ref().map(|before| before.mode)))
+        .map(|after| destination.stage(after, prepared.before.as_ref().map(|before| before.mode)))
         .transpose()
         .map_err(io)?;
-    if let Some(before) = &prepared.before
-        && !entry.unchanged(before).map_err(io)?
-    {
-        return Err(PatchError::Conflict {
-            path: rel.to_string(),
-            reason: "stale-preimage".into(),
-        });
-    }
+    check_preimage()?;
     if let Some(staged) = staged {
-        staged.commit(prepared.before.is_none()).map_err(io)?;
+        staged
+            .commit(target.is_some() || prepared.before.is_none())
+            .map_err(io)?;
     } else {
-        entry.remove().map_err(io)?;
+        source.remove().map_err(io)?;
     }
-    // Record the namespace change before sync/move, which can fail after it.
+    // Destination-first move: until source removal succeeds, the only confirmed
+    // effect is creation of the destination. Never report a source update.
     done.push(FileResult {
-        path: rel.to_string(),
+        path: if target.is_some() {
+            move_to.expect("destination").into()
+        } else {
+            rel.into()
+        },
         new_path: None,
-        op: kind,
-        hash_before: prepared
-            .before
-            .as_ref()
-            .map(|before| sha_hex(&before.bytes)),
+        op: if target.is_some() { "add" } else { kind },
+        hash_before: if target.is_some() {
+            None
+        } else {
+            prepared
+                .before
+                .as_ref()
+                .map(|before| sha_hex(&before.bytes))
+        },
         hash_after: prepared.after.as_ref().map(|after| sha_hex(after)),
     });
     let result = (|| {
-        entry.sync().map_err(io)?;
-        if let Some((target_root, target)) = &prepared.target {
-            let updated = entry.snapshot().map_err(io)?;
-            policy.check(move_to.expect("target"))?;
-            let target = target_root.entry(target, true).map_err(io)?;
-            if !entry.unchanged(&updated).map_err(io)? {
-                return Err(PatchError::Conflict {
-                    path: rel.to_string(),
-                    reason: "stale-preimage".into(),
-                });
-            }
-            entry.move_to(&target).map_err(io)?;
-            done.last_mut().expect("committed update").new_path = move_to.map(str::to_string);
+        if let Some(target) = &target {
+            target.sync().map_err(io)?;
+            check_preimage()?;
+            source.remove().map_err(io)?;
+            let committed = done.last_mut().expect("committed destination");
+            committed.path = rel.into();
+            committed.op = kind;
+            committed.hash_before = prepared
+                .before
+                .as_ref()
+                .map(|before| sha_hex(&before.bytes));
+            committed.new_path = move_to.map(str::to_owned);
             #[cfg(test)]
             if FAIL_AFTER_MOVE.with(|fail| fail.replace(false)) {
-                return Err(io(std::io::Error::other(
-                    "injected post-rename sync failure",
-                )));
+                return Err(io(std::io::Error::other("injected post-move sync failure")));
             }
-            target.sync().map_err(io)?;
+            source.sync().map_err(io)?;
+        } else if prepared.after.is_some() {
             entry.sync().map_err(io)?;
+        } else {
+            source.sync().map_err(io)?;
         }
         Ok(())
     })();
     // Sync/move may fail after a committed namespace change. Publish exactly
     // that change, using the actual destination, even on the failure path.
     let committed = done.last().expect("committed");
+    let kind = committed.op;
+    let rel = committed.path.as_str();
     diff(&format!(
         "--- {}\n+++ {}\n",
         if kind == "add" { "/dev/null" } else { rel },
@@ -1412,7 +1490,11 @@ fn commit_prepared(
     let mut file = effects::file_effect(
         rel,
         kind,
-        prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice()),
+        if kind == "add" {
+            &[]
+        } else {
+            prepared.before.as_ref().map_or(&[], |s| s.bytes.as_slice())
+        },
         prepared.after.as_deref().unwrap_or(&[]),
         diff,
     );
@@ -1497,7 +1579,9 @@ fn apply_hunks(lines: &mut Vec<String>, hunks: &[Hunk], rel: &str) -> Result<(),
     for hunk in hunks {
         if let Some(context) = &hunk.context {
             let positions: Vec<_> = (offset..lines.len())
-                .filter(|&index| lines[index] == *context)
+                .filter(|&index| {
+                    lines[index].strip_suffix('\r').unwrap_or(&lines[index]) == context
+                })
                 .collect();
             if positions.len() != 1 {
                 return Err(PatchError::Conflict {
@@ -1551,11 +1635,12 @@ fn apply_hunks(lines: &mut Vec<String>, hunks: &[Hunk], rel: &str) -> Result<(),
         let mut cursor = pos;
         for line in &hunk.lines {
             match line {
-                HunkLine::Context(_) | HunkLine::Remove(_) => cursor += 1,
+                HunkLine::Context(text) => {
+                    cursor += 1;
+                    next.push(text.clone());
+                }
+                HunkLine::Remove(_) => cursor += 1,
                 HunkLine::Add(text) => next.push(text.clone()),
-            }
-            if matches!(line, HunkLine::Context(_)) {
-                next.push(lines[cursor - 1].clone());
             }
         }
         offset = next.len();
@@ -1571,7 +1656,11 @@ fn matches_at(lines: &[String], pos: usize, hunk: &[HunkLine]) -> bool {
         match line {
             HunkLine::Add(_) => {}
             HunkLine::Context(expected) | HunkLine::Remove(expected) => {
-                if lines.get(cursor).map(String::as_str) != Some(expected.as_str()) {
+                if lines
+                    .get(cursor)
+                    .map(|line| line.strip_suffix('\r').unwrap_or(line))
+                    != Some(expected.as_str())
+                {
                     return false;
                 }
                 cursor += 1;
@@ -1728,20 +1817,96 @@ mod tests {
     }
 
     #[test]
-    fn tool02_crlf_and_trailing_newline_preserved() {
+    fn tool02_patch_replacement_eol_and_final_newline_follow_ts() {
         let (_tmp, project, data) = setup();
         fs::write(project.join("win.txt"), b"a\r\nb\r\n").expect("seed");
         let patch = "*** Begin Patch\n*** Update File: win.txt\n@@\n a\n-b\n+B\n*** End Patch\n";
         run(&project, &data, patch).expect("update");
-        assert_eq!(
-            fs::read(project.join("win.txt")).expect("read"),
-            b"a\r\nB\r\n"
-        );
-        // No-trailing-newline files keep no trailing newline.
+        assert_eq!(fs::read(project.join("win.txt")).expect("read"), b"a\nB\n");
+        // TS derive supplies a final newline.
         fs::write(project.join("noeol.txt"), b"x\ny").expect("seed2");
         let patch = "*** Begin Patch\n*** Update File: noeol.txt\n@@\n x\n-y\n+Y\n*** End Patch\n";
         run(&project, &data, patch).expect("update2");
-        assert_eq!(fs::read(project.join("noeol.txt")).expect("read"), b"x\nY");
+        assert_eq!(
+            fs::read(project.join("noeol.txt")).expect("read"),
+            b"x\nY\n"
+        );
+    }
+
+    #[test]
+    fn w2_patch_preserves_bom_and_unreplaced_mixed_eol() {
+        let (_tmp, project, data) = setup();
+        fs::write(project.join("file"), "\u{feff}a\r\nb\r\nz\r\n").unwrap();
+        run(
+            &project,
+            &data,
+            "*** Begin Patch\n*** Update File: file\n@@\n a\n-b\n+B\n*** End Patch",
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read(project.join("file")).unwrap(),
+            "\u{feff}a\nB\nz\r\n".as_bytes()
+        );
+        fs::write(project.join("file"), b"a\r\nb\nz\r\n").unwrap();
+        run(
+            &project,
+            &data,
+            "*** Begin Patch\n*** Update File: file\n@@\n-b\n+B\n*** End Patch",
+        )
+        .unwrap();
+        assert_eq!(fs::read(project.join("file")).unwrap(), b"a\r\nB\nz\r\n");
+    }
+
+    #[test]
+    fn w2_patch_symlink_update_delete_and_move_use_correct_entries() {
+        let (tmp, project, data) = setup();
+        let referent = tmp.path().join("referent");
+        fs::write(&referent, "before\n").unwrap();
+        symlink(&referent, project.join("link")).unwrap();
+        let files = crate::files::Files::new(&project, &data).unwrap();
+        let patch = "*** Begin Patch\n*** Update File: link\n@@\n-before\n+after\n*** End Patch";
+        let (_, digest) = super::approval_preview(&files, patch).unwrap();
+        let other = tmp.path().join("other");
+        fs::write(&other, "before\n").unwrap();
+        fs::remove_file(project.join("link")).unwrap();
+        symlink(&other, project.join("link")).unwrap();
+        let (result, effects) = super::apply_patch_with_approved_preimage(
+            &files,
+            patch,
+            &AllowAll,
+            Some(&digest),
+            &mut |_| {},
+        );
+        assert!(result.is_err() && effects.files.is_empty());
+        assert_eq!(fs::read(&referent).unwrap(), b"before\n");
+        assert_eq!(fs::read(&other).unwrap(), b"before\n");
+        fs::remove_file(project.join("link")).unwrap();
+        symlink(&referent, project.join("link")).unwrap();
+        run(
+            &project,
+            &data,
+            "*** Begin Patch\n*** Update File: link\n@@\n-before\n+after\n*** End Patch",
+        )
+        .unwrap();
+        assert!(
+            fs::symlink_metadata(project.join("link"))
+                .unwrap()
+                .is_symlink()
+        );
+        assert_eq!(fs::read(&referent).unwrap(), b"after\n");
+        run(
+            &project,
+            &data,
+            "*** Begin Patch\n*** Delete File: link\n*** End Patch",
+        )
+        .unwrap();
+        assert!(!project.join("link").exists());
+        assert_eq!(fs::read(&referent).unwrap(), b"after\n");
+        symlink(&referent, project.join("link")).unwrap();
+        run(&project, &data, "*** Begin Patch\n*** Update File: link\n*** Move to: moved\n@@\n-after\n+moved\n*** End Patch").unwrap();
+        assert!(!project.join("link").exists());
+        assert_eq!(fs::read(project.join("moved")).unwrap(), b"moved\n");
+        assert_eq!(fs::read(&referent).unwrap(), b"after\n");
     }
 
     #[test]
@@ -1936,17 +2101,18 @@ mod tests {
         )
         .expect_err("datalink");
         assert!(matches!(datalink.error, PatchError::OwnDataRoot { .. }));
-        // ... while a link escaping elsewhere reports Symlink.
+        // Other explicit links use lexical permission; Delete removes the link.
         let outside = tmp.path().join("outside.txt");
         fs::write(&outside, b"o").expect("outside");
         symlink(&outside, project.join("link2.txt")).expect("link2");
-        let sym = run(
+        run(
             &project,
             &data,
             "*** Begin Patch\n*** Delete File: link2.txt\n*** End Patch\n",
         )
-        .expect_err("symlink");
-        assert!(matches!(sym.error, PatchError::Symlink { .. }));
+        .expect("delete lexical symlink");
+        assert!(!project.join("link2.txt").exists());
+        assert_eq!(fs::read(&outside).unwrap(), b"o");
         assert!(tmp.path().join("data").join("s.txt").exists());
     }
 
@@ -2042,9 +2208,10 @@ mod tests {
                 &mut |_| {}
             )
             .0
-            .is_err()
+            .is_ok()
         );
-        assert_eq!(std::fs::read(&destination).unwrap(), b"after\n");
+        assert!(std::fs::symlink_metadata(&link).unwrap().is_symlink());
+        assert_eq!(std::fs::read(&destination).unwrap(), b"bad\n");
         let ungranted = format!(
             "*** Begin Patch\n*** Add File: {}\n+bad\n*** End Patch",
             tmp.path().join("ungranted").display()
@@ -2065,7 +2232,7 @@ mod tests {
     }
 
     #[test]
-    fn external_mutation_cross_device_move_fails_before_any_effect() {
+    fn w2_external_mutation_cross_device_move_commits_destination_then_removes_source() {
         let (_tmp, project, data) = setup();
         let external = tempfile::tempdir_in("/dev/shm").unwrap();
         let source = project.join("source");
@@ -2083,12 +2250,63 @@ mod tests {
         );
         let (result, effects) =
             super::apply_patch_with_approved_preimage(&files, &patch, &AllowAll, None, &mut |_| {});
-        assert!(
-            matches!(result.unwrap_err().error, PatchError::Conflict { reason, .. } if reason == "cross-device-move")
+        assert_eq!(result.unwrap().len(), 2);
+        assert_eq!(effects.total_files, 2);
+        assert!(!source.exists());
+        assert_eq!(std::fs::read(&target).unwrap(), b"after\n");
+        assert!(project.join("first").exists());
+    }
+
+    #[test]
+    fn w2_move_failed_remove_retains_source_and_reports_destination_create() {
+        struct Restore(std::path::PathBuf);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                fs::set_permissions(&self.0, fs::Permissions::from_mode(0o700)).unwrap();
+            }
+        }
+        struct LockSource {
+            dir: std::path::PathBuf,
+            calls: std::cell::Cell<usize>,
+        }
+        impl super::WritePolicy for LockSource {
+            fn check(&self, path: &str) -> Result<(), PatchError> {
+                if path == "dst" {
+                    let n = self.calls.replace(self.calls.get() + 1);
+                    if n == 1 {
+                        fs::set_permissions(&self.dir, fs::Permissions::from_mode(0o500)).unwrap();
+                    }
+                }
+                Ok(())
+            }
+        }
+        let (_tmp, project, data) = setup();
+        let dir = project.join("source");
+        fs::create_dir(&dir).unwrap();
+        let restore = Restore(dir.clone());
+        fs::write(dir.join("file"), "before\n").unwrap();
+        let (result, effects) = super::apply_patch_with_effects(
+            &project,
+            &data,
+            "*** Begin Patch\n*** Update File: source/file\n*** Move to: dst\n@@\n-before\n+after\n*** Add File: tail\n+never\n*** End Patch",
+            &LockSource {
+                dir,
+                calls: std::cell::Cell::new(0),
+            },
         );
-        assert!(effects.files.is_empty());
-        assert_eq!(std::fs::read(&source).unwrap(), b"before\n");
-        assert!(!project.join("first").exists() && !external.path().join("missing").exists());
+        drop(restore);
+        let failure = result.unwrap_err();
+        assert_eq!(fs::read(project.join("source/file")).unwrap(), b"before\n");
+        assert_eq!(fs::read(project.join("dst")).unwrap(), b"after\n");
+        assert_eq!(failure.done.len(), 1);
+        assert_eq!(failure.done[0].path, "dst");
+        assert_eq!(failure.done[0].op, "add");
+        assert_eq!(effects.files[0].path, "dst");
+        assert_eq!(
+            effects.files[0].operation,
+            oc_core::patch::PatchOperation::Create
+        );
+        assert!(!project.join("tail").exists());
     }
 
     #[test]

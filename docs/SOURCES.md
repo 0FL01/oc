@@ -28,6 +28,17 @@ USER-Q01–Q07 — ответы владельца в текущем диало�
 
 T02 extracts representative source-derived fixtures from `config.test.ts`, `skill.test.ts`, `agent.test.ts`, `command.test.ts`, `command-subagent.test.ts` and `instruction-discovery.test.ts`, plus corresponding config/plugin source files. Fixtures retain exact path/commit/license and normalization metadata; this list is not a claim that the upstream suite was executed.
 
+W2 source read 2026-11-03: local `.local/opencode` commit
+`ff90ed91607cabf420a369e9009539c1aa0932af` (MIT; existing
+`fixtures/OpenCode-MIT.txt` exactly matches its LICENSE). Oracles:
+`packages/core/src/tool/read-filesystem.ts` consumed-prefix paging,
+`packages/core/src/file-access.ts` lexical permissions,
+`packages/core/src/environment/local.ts` file effects,
+`packages/util/src/patch.ts` / `bom.ts` and core patch/tool-patch tests for
+BOM/EOL and destination-then-remove. Rust owner regressions translate these
+semantics; upstream TS tests were inspected, not executed. Earlier O1 fixtures
+and source pins remain unchanged.
+
 ## DCP
 
 [D1] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/README.md

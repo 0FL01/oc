@@ -22,7 +22,7 @@ fn vis35_actual_positions_empty_create_multihunk_move_delete_replace() {
     assert_eq!(fs::read(root.path().join("empty")).unwrap(), b"");
     assert_eq!(
         fs::read(root.path().join("dst")).unwrap(),
-        b"zero\r\nONE\r\ntwo\r\nTHREE\r\nfour"
+        b"zero\r\nONE\ntwo\r\nTHREE\nfour\n"
     );
     assert_eq!(
         fs::metadata(root.path().join("dst"))
@@ -34,7 +34,7 @@ fn vis35_actual_positions_empty_create_multihunk_move_delete_replace() {
     );
     assert!(!root.path().join("src").exists());
     assert!(!root.path().join("gone").exists());
-    assert_eq!((effects.additions, effects.deletions), (2, 4));
+    assert_eq!((effects.additions, effects.deletions), (3, 5));
     assert_eq!(effects.files[0].operation, PatchOperation::Create);
     assert!(effects.files[0].hunks.is_empty());
     let moved = &effects.files[1];
@@ -52,7 +52,7 @@ fn vis35_actual_positions_empty_create_multihunk_move_delete_replace() {
         .find(|l| l.text == "ONE")
         .unwrap();
     assert_eq!(added.new_line, Some(2));
-    assert_eq!(added.ending, LineEnding::CrLf);
+    assert_eq!(added.ending, LineEnding::Lf);
     assert_eq!(effects.files[2].hunks[0].lines[1].ending, LineEnding::None);
     let (result, effects) = apply_patch_with_effects(
         root.path(),
@@ -61,13 +61,13 @@ fn vis35_actual_positions_empty_create_multihunk_move_delete_replace() {
         &AllowAll,
     );
     result.unwrap();
-    assert_eq!(fs::read(root.path().join("dst")).unwrap(), b"replacement");
+    assert_eq!(fs::read(root.path().join("dst")).unwrap(), b"replacement\n");
     assert_eq!((effects.additions, effects.deletions), (1, 5));
     assert!(
         effects.files[0].hunks[0]
             .lines
             .iter()
-            .any(|l| l.text == "replacement" && l.ending == LineEnding::None)
+            .any(|l| l.text == "replacement" && l.ending == LineEnding::Lf)
     );
     let (result, effects) = apply_patch_with_effects(
         root.path(),
@@ -85,7 +85,7 @@ fn vis35_actual_positions_empty_create_multihunk_move_delete_replace() {
 }
 
 #[test]
-fn vis35_postcommit_move_failure_and_unapplied_tail_are_honest() {
+fn vis35_precommit_move_denial_and_unapplied_tail_are_honest() {
     struct DenyMove(Cell<usize>);
     impl WritePolicy for DenyMove {
         fn check(&self, path: &str) -> Result<(), PatchError> {
@@ -109,11 +109,11 @@ fn vis35_postcommit_move_failure_and_unapplied_tail_are_honest() {
         &DenyMove(Cell::new(0)),
     );
     let failure = result.unwrap_err();
-    assert_eq!(failure.done.len(), 2);
-    assert_eq!(effects.total_files, 2);
-    assert_eq!(effects.files[1].operation, PatchOperation::Update);
-    assert_eq!(effects.files[1].destination, None);
-    assert_eq!(fs::read(root.path().join("src")).unwrap(), b"new\n");
+    assert_eq!(failure.done.len(), 1);
+    assert_eq!(effects.total_files, 1);
+    assert_eq!(effects.files[0].operation, PatchOperation::Create);
+    assert_eq!(effects.files[0].path, "first");
+    assert_eq!(fs::read(root.path().join("src")).unwrap(), b"old\n");
     assert_eq!(fs::read(root.path().join("first")).unwrap(), b"ok\n");
     assert_eq!(
         fs::metadata(root.path().join("src"))

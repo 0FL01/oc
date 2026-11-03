@@ -31,6 +31,35 @@ fn grep(files: &Files, path: &str, include: Option<&str>) -> Result<Vec<GrepHit>
 }
 
 #[test]
+fn w2_flat_wide_grep_keeps_verified_candidates() {
+    let (_temp, files) = fixture();
+    for index in 0..=WALK_FILES_CAP {
+        fs::write(files.root.join(format!("wide-{index:05}")), "NEEDLE\n").unwrap();
+    }
+    let result = files
+        .grep_search(
+            &GrepOptions {
+                pattern: "NEEDLE",
+                path: ".",
+                include: None,
+                literal: true,
+                case_sensitive: true,
+                offset: 0,
+                limit: 1,
+            },
+            |_| true,
+            None,
+        )
+        .unwrap();
+    assert_eq!(result.hits.len(), 1);
+    assert!(matches!(
+        result.incomplete,
+        Some(FileToolError::BudgetExhausted(_))
+    ));
+    assert_eq!(files.grep("NEEDLE", true, 0, 1).unwrap().len(), 1);
+}
+
+#[test]
 fn tool14_ignore_precedence_hidden_and_positive_override() {
     let (_tmp, files) = fixture();
     let root = &files.root;
@@ -80,7 +109,7 @@ fn tool14_ignore_precedence_hidden_and_positive_override() {
     assert_eq!(include.len(), 9);
     assert!(include.iter().any(|h| h.path == "rg.rs"));
     for hidden in [false, true] {
-        let paths = files
+        let (paths, truncated) = files
             .glob_search(
                 &GlobOptions {
                     pattern: "**/*.rs",
@@ -93,6 +122,7 @@ fn tool14_ignore_precedence_hidden_and_positive_override() {
                 None,
             )
             .unwrap();
+        assert!(!truncated);
         assert!(
             !paths
                 .iter()

@@ -202,7 +202,13 @@ T50/R9 pending mutations reuse one prepared before/after/digest and exact-call p
 path: preview before Ask, bounded wait without DB transaction, approved-preimage
 revalidation after reply/before commit, durable intent before effects and truthful
 confirmed effects afterwards. Write overwrite/absence and edit matched preimages
-cannot bypass stale-approval/no-follow checks. Crash/reopen never reexecute settled
+cannot bypass referent-bound stale-approval checks. Explicit read/mutation symlinks
+are followed under lexical permission/external_directory resources; data-root
+exclusion applies to the resolved I/O target. Write/update retains a leaf link,
+delete/move-source removes the lexical entry. Patch preserves BOM/unreplaced EOL,
+uses parsed replacement/context LF and ends nonempty updates with LF. Move commits
+destination bytes before removing source, including cross-device; failed removal
+reports the destination Create and unchanged source. Crash/reopen never reexecute settled
 or unknown tools; saved transcript effects are not present-day file reconstruction.
 
 Project config/AGENTS, agent body, command template и skill body могут влиять на instruction/user/tool-result data, но не расширять trusted host boundary или central permissions. Agent restrictions только сужают policy, а admission всё равно повторяется при tool execution. Tool/MCP descriptions и fetched pages — untrusted input. Native extension — trusted code с правами процесса, не sandbox.
@@ -228,7 +234,7 @@ and the actual tool action/resource through the same captured permission owner.
 access and restart; no manual pre-opening, new trust dialog or per-path confirmation.
 Genuine Ask waits on the existing consumer before protected content read/search and
 fails headless without one; Deny never reads/scans the protected target. Source trust,
-parent/profile/read-Deny ceilings, descriptor/no-follow/ancestor/data-root checks and
+parent/profile/read-Deny ceilings, pinned descriptors/resolved-data-root checks and
 page/scan/time/output/model/cancellation bounds remain automatic safety checks, not
 additional Ask. external_directory is boundary permission, not read-only mode; this
 slice grants no external mutation/shell/MCP access, config/AGENTS discovery or HOME walk.

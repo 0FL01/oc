@@ -29,10 +29,18 @@ fn tool16_text_pages_default_full_tail_and_legacy_compatibility() {
     assert!(!tail.truncated);
     assert!(read(&files, "large", 2006, 2).is_err());
     fs::write(files.root.join("tail-binary"), b"safe\n\0CANARY").unwrap();
+    assert_eq!(files.read("tail-binary", 1, 1).unwrap().lines, ["safe"]);
     assert!(matches!(
-        read(&files, "tail-binary", 1, 1),
+        read(&files, "tail-binary", 2, 1),
         Err(FileToolError::Binary)
     ));
+    assert!(
+        matches!(
+            read(&files, "tail-binary", 3, 1),
+            Err(FileToolError::Binary)
+        ),
+        "skipped binary lines are still consumed prefix"
+    );
     fs::write(files.root.join("long-line"), "x".repeat(READ_BYTES_CAP + 1)).unwrap();
     let long = files.read("long-line", 1, 1).unwrap();
     assert!(long.truncated && long.lines[0].len() < READ_BYTES_CAP);
@@ -42,9 +50,70 @@ fn tool16_text_pages_default_full_tail_and_legacy_compatibility() {
         vec![b'x'; GREP_FILE_BYTES_CAP as usize + 1],
     )
     .unwrap();
+    assert!(files.read("oversize", 1, 1).unwrap().truncated);
+}
+
+#[test]
+fn w2_large_text_streams_pages_offsets_and_utf8_without_whole_file_admission() {
+    let (_temp, files) = setup();
+    let mut body = "first\n".to_owned();
+    body.push_str(&"padding\n".repeat(150_000));
+    body.push_str("distant 界\n");
+    fs::write(files.root.join("large"), &body).unwrap();
+    assert!(body.len() > GREP_FILE_BYTES_CAP as usize);
+    let first = files.read("large", 1, 1).unwrap();
+    assert_eq!(first.lines, ["first"]);
+    assert_eq!(first.next_offset, Some(2));
+    let tail = files.read("large", 150_002, 1).unwrap();
+    assert_eq!(tail.lines, ["distant 界"]);
+    assert_eq!(tail.next_offset, None);
+    fs::write(
+        files.root.join("large"),
+        format!("{}界\nend\n", "x".repeat(2 * 1024 * 1024 - 1)),
+    )
+    .unwrap();
+    let long = files.read("large", 1, 1).unwrap();
+    assert!(long.truncated && long.lines[0].len() < READ_BYTES_CAP);
+    assert_eq!(long.next_offset, Some(2));
+    assert_eq!(files.read("large", 2, 1).unwrap().lines, ["end"]);
+    fs::write(
+        files.root.join("boundary"),
+        format!("{}界\nnext\n", "x".repeat(8191)),
+    )
+    .unwrap();
+    assert_eq!(
+        files.read("boundary", 1, 1).unwrap().lines[0],
+        format!("{}界", "x".repeat(8191))
+    );
+}
+
+#[test]
+fn w2_explicit_symlink_read_uses_lexical_permission_and_resolved_data_exclusion() {
+    let (temp, files) = setup();
+    let outside = temp.path().join("outside");
+    fs::create_dir(&outside).unwrap();
+    fs::write(outside.join("file"), "external\n").unwrap();
+    symlink(&outside, files.root.join("link")).unwrap();
+    let lexical = files.root.join("link/file");
+    let Content::Text(page) = files
+        .read_admitted(
+            "link/file",
+            1,
+            1,
+            |path| path == lexical,
+            &AtomicBool::new(false),
+        )
+        .unwrap()
+    else {
+        panic!("text")
+    };
+    assert_eq!(page.lines, ["external"]);
+    fs::create_dir(&files.data_root).unwrap();
+    fs::write(files.data_root.join("private"), "secret\n").unwrap();
+    symlink(&files.data_root, files.root.join("data-alias")).unwrap();
     assert!(matches!(
-        read(&files, "oversize", 1, 1),
-        Err(FileToolError::BudgetExhausted(_))
+        read(&files, "data-alias/private", 1, 1),
+        Err(FileToolError::OwnDataRoot)
     ));
 }
 
@@ -84,22 +153,27 @@ fn tool16_descriptor_root_pin_ancestor_swap_fifo_data_root_and_cancel() {
     fs::create_dir(temp.path().join("outside")).unwrap();
     fs::write(temp.path().join("outside/secret"), "PROTECTED_CANARY").unwrap();
     symlink(temp.path().join("outside"), files.root.join("ancestor")).unwrap();
-    assert!(read(&files, "ancestor/secret", 1, 1).is_err());
-    assert!(
-        files
-            .read_admitted(
-                "safe",
-                1,
-                1,
-                |_| {
-                    fs::rename(files.root.join("safe"), files.root.join("held")).unwrap();
-                    symlink(temp.path().join("outside/secret"), files.root.join("safe")).unwrap();
-                    true
-                },
-                &AtomicBool::new(false)
-            )
-            .is_err()
+    assert_eq!(
+        files.read("ancestor/secret", 1, 1).unwrap().lines,
+        ["PROTECTED_CANARY"]
     );
+    let Content::Text(page) = files
+        .read_admitted(
+            "safe",
+            1,
+            1,
+            |_| {
+                fs::rename(files.root.join("safe"), files.root.join("held")).unwrap();
+                symlink(temp.path().join("outside/secret"), files.root.join("safe")).unwrap();
+                true
+            },
+            &AtomicBool::new(false),
+        )
+        .unwrap()
+    else {
+        panic!("text")
+    };
+    assert_eq!(page.lines, ["PROTECTED_CANARY"]);
     fs::remove_file(files.root.join("safe")).unwrap();
     fs::rename(files.root.join("held"), files.root.join("safe")).unwrap();
     let fifo = CString::new(files.root.join("fifo").as_os_str().as_bytes()).unwrap();

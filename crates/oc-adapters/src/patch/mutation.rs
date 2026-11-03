@@ -113,7 +113,12 @@ fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result
             PatchError::Io { path: rel.into() }
         }
     };
-    let (root, path) = mutation_scope(files, &absolute, &mut BTreeMap::new()).map_err(io)?;
+    let mut roots = BTreeMap::new();
+    let link = link_entry(files, &absolute, &mut roots).map_err(io)?;
+    let resolved = files
+        .io_target(&absolute)
+        .map_err(|error| io(std::io::Error::other(error)))?;
+    let (root, path) = mutation_scope(files, &resolved, &mut roots).map_err(io)?;
     root.writable_parent(&path).map_err(io)?;
     let before = if root.absent(&path).map_err(io)? {
         None
@@ -161,6 +166,9 @@ fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result
     hash.update(device.to_le_bytes());
     hash.update(inode.to_le_bytes());
     hash.update(path.as_os_str().as_encoded_bytes());
+    if let Some(link) = &link {
+        link.hash(&mut hash).map_err(io)?;
+    }
     hash.update([u8::from(before.is_some())]);
     if let Some(before) = &before {
         before.hash_identity(&mut hash);
@@ -179,6 +187,7 @@ fn prepare(files: &Files, input: &Input<'_>, policy: &dyn WritePolicy) -> Result
             root,
             path,
             target: None,
+            link,
             before,
             after: Some(after),
         },

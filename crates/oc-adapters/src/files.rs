@@ -52,7 +52,7 @@ pub enum FileToolError {
     /// Path targets the own data root (rejected always).
     #[error("own data root is not readable by model tools")]
     OwnDataRoot,
-    /// Symlink component or escape.
+    /// Unresolvable symlink or a link encountered by a no-follow traversal.
     #[error("symlink escape refused")]
     SymlinkEscape,
     /// Binary content (NUL byte); not loaded.
@@ -168,6 +168,23 @@ fn normalize_suggest_root(path: &Path) -> PathBuf {
     normalized
 }
 
+// Canonicalize existing components, including a dangling leaf symlink's target,
+// while retaining missing parents for write's later directory creation.
+fn canonical_target(path: &Path) -> std::io::Result<PathBuf> {
+    match std::fs::canonicalize(path) {
+        Ok(path) => Ok(path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let parent = path.parent().ok_or(std::io::ErrorKind::NotFound)?;
+            if let Ok(target) = std::fs::read_link(path) {
+                return canonical_target(&parent.join(target));
+            }
+            Ok(canonical_target(parent)?
+                .join(path.file_name().ok_or(std::io::ErrorKind::NotFound)?))
+        }
+        Err(error) => Err(error),
+    }
+}
+
 fn suggest_openat(dir: &File, name: &CStr, flags: libc::c_int) -> std::io::Result<File> {
     // SAFETY: the borrowed directory fd and NUL-terminated component remain valid.
     let fd = unsafe {
@@ -183,6 +200,25 @@ fn suggest_openat(dir: &File, name: &CStr, flags: libc::c_int) -> std::io::Resul
         // SAFETY: openat returned a new owned descriptor.
         Ok(unsafe { File::from_raw_fd(fd) })
     }
+}
+
+fn follow_openat(dir: &File, path: &Path, flags: i32) -> std::io::Result<File> {
+    let path =
+        CString::new(path.as_os_str().as_bytes()).map_err(|_| std::io::ErrorKind::InvalidInput)?;
+    // SAFETY: the pinned directory and owned path stay valid. Following links
+    // is intentional for explicit file paths; callers check the opened target.
+    let fd = unsafe {
+        libc::openat(
+            dir.as_raw_fd(),
+            path.as_ptr(),
+            flags | libc::O_CLOEXEC | libc::O_NONBLOCK,
+        )
+    };
+    if fd < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: openat returned a new owned descriptor.
+    Ok(unsafe { File::from_raw_fd(fd) })
 }
 
 fn open_suggest_root(path: &Path) -> Result<File, FileToolError> {
@@ -208,6 +244,49 @@ fn open_suggest_root(path: &Path) -> Result<File, FileToolError> {
 
 struct SuggestDir(*mut libc::DIR);
 
+impl SuggestDir {
+    fn new(dir: &File) -> Result<Self, FileToolError> {
+        // SAFETY: duplicate the live fd; fdopendir owns only the duplicate.
+        let fd = unsafe { libc::fcntl(dir.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+        if fd < 0 {
+            return Err(FileToolError::Io);
+        }
+        // SAFETY: fd is a new owned directory descriptor.
+        let raw = unsafe { libc::fdopendir(fd) };
+        if raw.is_null() {
+            // SAFETY: fdopendir failed without taking ownership.
+            unsafe { libc::close(fd) };
+            return Err(FileToolError::Io);
+        }
+        Ok(Self(raw))
+    }
+}
+
+impl Iterator for SuggestDir {
+    type Item = Result<OsString, FileToolError>;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            // SAFETY: errno is this thread's live error slot.
+            let errno = unsafe { libc::__errno_location() };
+            // SAFETY: only this thread accesses its errno here.
+            unsafe { *errno = 0 };
+            // SAFETY: self exclusively owns the live DIR.
+            let entry = unsafe { libc::readdir(self.0) };
+            if entry.is_null() {
+                // SAFETY: errno remains this thread's live error slot.
+                return (unsafe { *errno } != 0).then_some(Err(FileToolError::Io));
+            }
+            // SAFETY: the returned dirent is live until the next readdir.
+            let name_ptr = unsafe { (*entry).d_name.as_ptr() };
+            // SAFETY: readdir names are NUL-terminated and copied before reuse.
+            let name = unsafe { CStr::from_ptr(name_ptr) }.to_bytes();
+            if name != b"." && name != b".." {
+                return Some(Ok(OsString::from(std::ffi::OsStr::from_bytes(name))));
+            }
+        }
+    }
+}
+
 impl Drop for SuggestDir {
     fn drop(&mut self) {
         // SAFETY: fdopendir transferred ownership of the duplicated descriptor.
@@ -225,53 +304,16 @@ fn suggest_dir_names(
     mut check: impl FnMut() -> Result<(), FileToolError>,
 ) -> Result<Vec<OsString>, FileToolError> {
     check()?;
-    // fdopendir consumes its fd; duplicate so the caller keeps its pinned directory.
-    // SAFETY: dir owns a live directory descriptor during this call.
-    let fd = unsafe { libc::fcntl(dir.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
-    if fd < 0 {
-        return Err(FileToolError::Io);
-    }
-    // SAFETY: fd is a new directory descriptor owned by fdopendir on success.
-    let raw = unsafe { libc::fdopendir(fd) };
-    if raw.is_null() {
-        // SAFETY: fdopendir failed and did not take ownership of fd.
-        unsafe {
-            libc::close(fd);
-        }
-        return Err(FileToolError::Io);
-    }
-    let reader = SuggestDir(raw);
     let mut names = Vec::new();
-    loop {
+    for name in SuggestDir::new(dir)? {
         check()?;
-        // SAFETY: errno is thread-local and this thread is the only writer here.
-        let errno = unsafe { libc::__errno_location() };
-        // SAFETY: errno points to this thread's live error slot.
-        unsafe {
-            *errno = 0;
-        }
-        // SAFETY: reader owns a live DIR; its returned entry is valid until the next call.
-        let entry = unsafe { libc::readdir(reader.0) };
-        if entry.is_null() {
-            // SAFETY: errno points to this thread's live error slot.
-            if unsafe { *errno } != 0 {
-                return Err(FileToolError::Io);
-            }
-            break;
-        }
-        // SAFETY: readdir returned a live dirent with a NUL-terminated name.
-        let name_ptr = unsafe { (*entry).d_name.as_ptr() };
-        // SAFETY: name_ptr remains valid until the next readdir call.
-        let name = unsafe { CStr::from_ptr(name_ptr) }.to_bytes();
-        if name == b"." || name == b".." {
-            continue;
-        }
+        let name = name?;
         if *inspected >= entries_cap {
             *truncated = true;
             break;
         }
         *inspected += 1;
-        names.push(OsString::from(std::ffi::OsStr::from_bytes(name)));
+        names.push(name);
     }
     Ok(names)
 }
@@ -328,6 +370,7 @@ impl Files {
             |_| true,
             None,
         )
+        .map(|(paths, _)| paths)
     }
 
     /// Suggest files under this Location without reading file contents.
@@ -498,15 +541,15 @@ impl Files {
             None,
         )?;
         match result.incomplete {
-            Some(error) => Err(error),
-            None => Ok(result.hits),
+            Some(error) if !matches!(error, FileToolError::BudgetExhausted(_)) => Err(error),
+            _ => Ok(result.hits),
         }
     }
 
     /// Public path resolution for sibling tools (e.g. `apply_patch`).
     ///
-    /// Same rules: lexical walk, no-follow symlink refusal, data-root and
-    /// outside-root rejection.
+    /// Lexical project-only path, with direct data-root exclusion. The I/O owner
+    /// resolves explicit links and checks the actual target before reading/writing.
     pub fn resolve_path(&self, path: &str) -> Result<PathBuf, FileToolError> {
         self.resolve(path)
     }
@@ -523,14 +566,38 @@ impl Files {
     /// External read/search admission never grants mutation authority.
     pub(crate) fn resolve_mutation(&self, path: &str) -> Result<PathBuf, FileToolError> {
         let absolute = self.concrete_scope(path)?;
-        let Ok(relative) = absolute.strip_prefix(&self.root) else {
-            return if self.mutation_paths.contains(&absolute) {
-                Ok(absolute)
+        if !self.is_project_scope(&absolute) && !self.mutation_paths.contains(&absolute) {
+            return Err(FileToolError::OutsideRoot);
+        }
+        self.io_target(&absolute)?;
+        Ok(absolute)
+    }
+
+    pub(crate) fn io_target(&self, lexical: &Path) -> Result<PathBuf, FileToolError> {
+        let target = canonical_target(lexical).map_err(|error| {
+            if error.raw_os_error() == Some(libc::ELOOP) {
+                FileToolError::SymlinkEscape
             } else {
-                Err(FileToolError::OutsideRoot)
-            };
-        };
-        self.resolve(relative.to_str().ok_or(FileToolError::OutsideRoot)?)
+                FileToolError::Io
+            }
+        })?;
+        self.check_data_target(&target)?;
+        Ok(target)
+    }
+
+    fn check_data_target(&self, target: &Path) -> Result<(), FileToolError> {
+        let data = canonical_target(&self.data_root).map_err(|_| FileToolError::Io)?;
+        if target.starts_with(data) {
+            Err(FileToolError::OwnDataRoot)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn check_data_file(&self, file: &File) -> Result<(), FileToolError> {
+        let target = std::fs::read_link(format!("/proc/self/fd/{}", file.as_raw_fd()))
+            .map_err(|_| FileToolError::Io)?;
+        self.check_data_target(&target)
     }
 
     /// Lexical read/search target; no data IO and no expansion of mutation authority.
@@ -582,19 +649,14 @@ impl Files {
     /// tool admission must precede opening directory entries or file bytes.
     pub(crate) fn pin_external(&self, path: &Path, directory: bool) -> Result<Self, FileToolError> {
         let slash = File::open("/").map_err(|_| FileToolError::Io)?;
-        let relative = path
-            .strip_prefix("/")
-            .map_err(|_| FileToolError::OutsideRoot)?;
-        let target = crate::admitted_fs::open_beneath_no_symlinks(&slash, relative, libc::O_PATH)
-            .map_err(|e| match e.raw_os_error() {
-            Some(libc::ELOOP) => FileToolError::SymlinkEscape,
-            Some(libc::ENOENT) => FileToolError::NotFound,
-            _ => FileToolError::Io,
-        })?;
+        let target =
+            follow_openat(&slash, path, libc::O_PATH).map_err(|e| match e.raw_os_error() {
+                Some(libc::ELOOP) => FileToolError::SymlinkEscape,
+                Some(libc::ENOENT) => FileToolError::NotFound,
+                _ => FileToolError::Io,
+            })?;
         let meta = target.metadata().map_err(|_| FileToolError::Io)?;
-        if meta.is_symlink() {
-            return Err(FileToolError::SymlinkEscape);
-        }
+        self.check_data_file(&target)?;
         let is_dir = meta.is_dir();
         let boundary = if directory || is_dir {
             path
@@ -604,12 +666,8 @@ impl Files {
         let pinned = if boundary == path {
             target
         } else {
-            crate::admitted_fs::open_beneath_no_symlinks(
-                &slash,
-                boundary.strip_prefix("/").expect("absolute boundary"),
-                libc::O_PATH | libc::O_DIRECTORY,
-            )
-            .map_err(|_| FileToolError::SymlinkEscape)?
+            follow_openat(&slash, boundary, libc::O_PATH | libc::O_DIRECTORY)
+                .map_err(|_| FileToolError::SymlinkEscape)?
         };
         let mut files = self.clone();
         files.external = Some((boundary.to_path_buf(), std::sync::Arc::new(pinned)));
@@ -622,7 +680,12 @@ impl Files {
             .map(|(path, _)| path.join("*").to_string_lossy().into_owned())
     }
 
-    fn open_read_scope(&self, path: &Path, flags: i32) -> Result<File, FileToolError> {
+    fn open_read_scope(
+        &self,
+        path: &Path,
+        flags: i32,
+        follow: bool,
+    ) -> Result<File, FileToolError> {
         let (root, pinned) = if self.is_project_scope(path) {
             (&self.root, self.read_root.as_ref().map_err(Clone::clone)?)
         } else if let Some((root, pinned)) = &self.worktree
@@ -636,37 +699,37 @@ impl Files {
         let relative = path
             .strip_prefix(root)
             .map_err(|_| FileToolError::OutsideRoot)?;
-        crate::admitted_fs::open_beneath_no_symlinks(
-            pinned,
-            if relative.as_os_str().is_empty() {
-                Path::new(".")
-            } else {
-                relative
-            },
-            flags,
-        )
+        let relative = if relative.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            relative
+        };
+        let file = if follow {
+            follow_openat(pinned, relative, flags)
+        } else {
+            crate::admitted_fs::open_beneath_no_symlinks(pinned, relative, flags)
+        }
         .map_err(|e| match e.raw_os_error() {
             Some(libc::ELOOP) => FileToolError::SymlinkEscape,
             Some(libc::ENOENT) => FileToolError::NotFound,
             _ => FileToolError::Io,
-        })
+        })?;
+        self.check_data_file(&file)?;
+        Ok(file)
     }
 
     /// Read/search-only use of the explicitly pinned invocation directory.
     fn resolve_read(&self, path: &str) -> Result<PathBuf, FileToolError> {
-        if self.worktree.is_some() {
-            let abs = self.concrete_scope(path)?;
-            if self.is_internal_read_scope(&abs) {
-                return Ok(abs);
-            }
+        let abs = self.concrete_scope(path)?;
+        if self.is_internal_read_scope(&abs) {
+            return Ok(abs);
         }
-        if let Some((external, _)) = &self.external {
-            let abs = self.concrete_scope(path)?;
-            if abs.starts_with(external) {
-                return Ok(abs);
-            }
+        if let Some((external, _)) = &self.external
+            && abs.starts_with(external)
+        {
+            return Ok(abs);
         }
-        self.resolve(path)
+        Err(FileToolError::OutsideRoot)
     }
 
     /// Lexical mutation/project walk. External read admission cannot widen it.
@@ -685,42 +748,6 @@ impl Files {
                 }
                 Component::CurDir => {}
                 Component::Normal(part) => abs.push(part),
-            }
-        }
-        // No-follow: inspect prefixes at/below our roots; a link landing
-        // inside the data root is an escape attempt, others are refused.
-        let mut prefix = PathBuf::from("/");
-        for comp in abs.components() {
-            match comp {
-                Component::Prefix(_) | Component::RootDir | Component::CurDir => continue,
-                Component::ParentDir => {
-                    prefix.pop();
-                    continue;
-                }
-                Component::Normal(_) => {}
-            }
-            prefix.push(comp);
-            if !prefix.starts_with(&self.root) && !prefix.starts_with(&self.data_root) {
-                continue;
-            }
-            if let Ok(meta) = std::fs::symlink_metadata(&prefix)
-                && meta.file_type().is_symlink()
-                && let Ok(target) = std::fs::read_link(&prefix)
-            {
-                let abs_target = if target.is_absolute() {
-                    target
-                } else {
-                    prefix.parent().unwrap_or(&self.root).join(target)
-                };
-                if abs_target.starts_with(&self.data_root) {
-                    return Err(FileToolError::OwnDataRoot);
-                }
-                return Err(FileToolError::SymlinkEscape);
-            }
-            if let Ok(meta) = std::fs::symlink_metadata(&prefix)
-                && meta.file_type().is_symlink()
-            {
-                return Err(FileToolError::SymlinkEscape);
             }
         }
         if abs.starts_with(&self.data_root) {
@@ -1129,10 +1156,25 @@ mod tests {
             )
             .unwrap();
         }
-        assert!(matches!(
-            files.grep("absent", true, 0, 1),
-            Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "scan_bytes" && facts.bytes > super::GREP_SCAN_BYTES_CAP
-        ));
+        let result = files
+            .grep_search(
+                &super::search::GrepOptions {
+                    pattern: "absent",
+                    path: ".",
+                    include: None,
+                    literal: true,
+                    case_sensitive: true,
+                    offset: 0,
+                    limit: 1,
+                },
+                |_| true,
+                None,
+            )
+            .unwrap();
+        assert!(result.hits.is_empty());
+        assert!(
+            matches!(result.incomplete, Some(FileToolError::BudgetExhausted(facts)) if facts.budget == "scan_bytes" && facts.bytes > super::GREP_SCAN_BYTES_CAP)
+        );
     }
 
     #[test]
@@ -1142,9 +1184,7 @@ mod tests {
         for index in 0..=super::WALK_FILES_CAP {
             fs::write(root.join(format!("wide-{index:05}")), b"").unwrap();
         }
-        assert!(
-            matches!(files.glob("*", 0, 1), Err(FileToolError::BudgetExhausted(facts)) if facts.budget == "entries")
-        );
+        assert_eq!(files.glob("*", 0, 1).unwrap().len(), 1);
     }
 
     #[test]

@@ -19,6 +19,64 @@ fn text_params<'a>(
 }
 
 #[tokio::test]
+async fn w2_internal_symlink_file_tools_use_lexical_permissions_without_external_grants() {
+    for tool in ["read", "write", "edit", "apply_patch"] {
+        let mut permissions = allow_all();
+        permissions.insert("external_directory".into(), Permission::Deny);
+        let (harness, generation) = text_harness(permissions);
+        let outside = tempfile::tempdir().unwrap();
+        let target = outside.path().join("target");
+        std::fs::write(&target, "before\n").unwrap();
+        let link = harness._project.path().join("link");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let runtime = runtime_of(&harness, generation, vec![]);
+        runtime.create_session("symlink").unwrap();
+        let args = match tool {
+            "read" => serde_json::json!({"path":"link"}),
+            "write" => serde_json::json!({"path":"link","content":"after\n"}),
+            "edit" => serde_json::json!({"path":"link","oldString":"before","newString":"after"}),
+            _ => {
+                serde_json::json!({"patchText":"*** Begin Patch\n*** Update File: link\n@@\n-before\n+after\n*** End Patch"})
+            }
+        };
+        let (base, _) = Fake::start(
+            vec![
+                sse_tool_call("link-call", tool, &args) + &sse_completed(),
+                sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let turn = if tool == "apply_patch" {
+            params(
+                "symlink",
+                "mutate",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            )
+        } else {
+            text_params("symlink", &harness, provider_of(&base), &NO_CANCEL)
+        };
+        let report = runtime.run_turn(turn).await.unwrap();
+        assert_eq!(
+            report.calls[0].state, "completed",
+            "{tool}: {}",
+            report.calls[0].output
+        );
+        assert!(std::fs::symlink_metadata(&link).unwrap().is_symlink());
+        assert_eq!(
+            std::fs::read(&target).unwrap(),
+            if tool == "read" {
+                b"before\n".as_slice()
+            } else {
+                b"after\n".as_slice()
+            }
+        );
+        assert!(runtime.pending_approvals().is_empty());
+    }
+}
+
+#[tokio::test]
 async fn external_mutations_auto_admits_patch_edit_and_write_without_saved_grants() {
     for tool in ["apply_patch", "edit", "write"] {
         let mut permissions = allow_all();
@@ -280,12 +338,17 @@ async fn external_mutations_require_both_permissions_and_rejection_has_no_effect
 #[tokio::test]
 async fn tool20_ask_preview_changed_preimage_cancel_and_durable_effects() {
     for tool in ["edit", "write"] {
-        for action in ["allow", "stale", "cancel"] {
+        for action in ["allow", "stale", "retarget", "cancel"] {
             let mut permissions = allow_all();
             permissions.insert("apply_patch".into(), Permission::Ask);
             let (harness, generation) = text_harness(permissions);
             let path = harness._project.path().join("file");
             std::fs::write(&path, "before\n").unwrap();
+            if action == "retarget" {
+                std::fs::rename(&path, harness._project.path().join("original")).unwrap();
+                std::fs::write(harness._project.path().join("other"), "before\n").unwrap();
+                std::os::unix::fs::symlink("original", &path).unwrap();
+            }
             let runtime = runtime_of(&harness, generation, vec![]);
             runtime.create_session("files").unwrap();
             let (events, _rx) = tokio::sync::broadcast::channel(64);
@@ -316,6 +379,10 @@ async fn tool20_ask_preview_changed_preimage_cancel_and_durable_effects() {
                 if action == "stale" {
                     std::fs::write(&path, "foreign\n").unwrap();
                 }
+                if action == "retarget" {
+                    std::fs::remove_file(&path).unwrap();
+                    std::os::unix::fs::symlink("other", &path).unwrap();
+                }
                 if action == "cancel" {
                     cancel.store(true, Ordering::Release);
                 } else {
@@ -337,12 +404,23 @@ async fn tool20_ask_preview_changed_preimage_cancel_and_durable_effects() {
                 report.calls[0].state,
                 if action == "allow" {
                     "completed"
-                } else if action == "stale" {
+                } else if action == "stale" || action == "retarget" {
                     "failed"
                 } else {
                     "cancelled"
                 }
             );
+            if action == "retarget" {
+                assert_eq!(
+                    std::fs::read(harness._project.path().join("original")).unwrap(),
+                    b"before\n"
+                );
+                assert_eq!(
+                    std::fs::read(harness._project.path().join("other")).unwrap(),
+                    b"before\n"
+                );
+                assert!(std::fs::symlink_metadata(&path).unwrap().is_symlink());
+            }
             assert_eq!(
                 std::fs::read(&path).unwrap(),
                 if action == "allow" {
