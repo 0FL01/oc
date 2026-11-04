@@ -2383,10 +2383,7 @@ done
             .any(|row| row.contains("tool output: CSI\\u{1B}[2J")),
         "{rows:?}"
     );
-    tui.raw(b"\x1b");
-    tui.wait_screen("cards | newest first", TIMEOUT);
-    tui.raw(b"\x1b");
-    tui.wait_screen("Next line intact", TIMEOUT);
+    close_control_cards(&mut tui);
     tui.send_line("/quit");
     assert!(tui.wait_exit().success());
     assert!(contains(&tui.output.lock().unwrap(), b"\x1b[?1049h"));
@@ -2439,10 +2436,7 @@ done
     restarted.wait_screen("probe_ping [note=CSI�[2J", TIMEOUT);
     open_success_card(&mut restarted);
     assert_safe_vt(&[], &restarted.output.lock().unwrap(), sentinel);
-    restarted.raw(b"\x1b");
-    restarted.wait_screen("cards | newest first", TIMEOUT);
-    restarted.raw(b"\x1b");
-    restarted.wait_screen("Next line intact", TIMEOUT);
+    close_control_cards(&mut restarted);
     restarted.send_line("/quit");
     assert!(restarted.wait_exit().success());
     assert!(contains(&restarted.output.lock().unwrap(), b"\x1b[?1049h"));
@@ -2526,11 +2520,34 @@ fn expand_control_probe_error(tui: &mut PtyProcess) {
 fn open_success_card(tui: &mut PtyProcess) {
     tui.send_line("/cards");
     tui.wait_screen("cards | newest first", TIMEOUT);
+    // The panel title precedes its asynchronous replay page. Navigate only
+    // after both rows arrive; applying that page resets the cursor to zero.
+    tui.wait_screen("> probe__fail failed", TIMEOUT);
+    tui.wait_screen("probe__ping completed", TIMEOUT);
     // Newest is the intentionally failing call; the older successful MCP
     // result retains its original text behind the card detail panel.
     tui.raw(b"\x1b[B");
+    tui.wait_screen("> probe__ping completed", TIMEOUT);
     tui.raw(b"\r");
     tui.wait_screen("tool output: CSI\\u{1B}[2J", TIMEOUT);
+}
+
+fn close_control_cards(tui: &mut PtyProcess) {
+    tui.raw(b"\x1b");
+    tui.wait_screen("cards | newest first", TIMEOUT);
+    tui.raw(b"\x1b");
+    // Transcript text remains visible behind the panel; it cannot acknowledge
+    // the second Escape before typing /quit (or it can become Alt+/ input).
+    let deadline = Instant::now() + TIMEOUT;
+    while tui
+        .screen()
+        .iter()
+        .any(|row| row.contains("cards | newest first"))
+    {
+        assert!(Instant::now() < deadline, "cards panel did not close");
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("Next line intact", TIMEOUT);
 }
 
 fn assert_safe_vt(before: &[u8], after: &[u8], sentinel: &str) {

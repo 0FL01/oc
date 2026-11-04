@@ -91,6 +91,12 @@ precedence using booleans, exact argv/cwd and reaping; never dump referenced val
 - Не увеличивать envelope, не покупать/сбрасывать quota и не извлекать чужие ключи. Rate limit и unknown external effect исследовать без слепого повторения. Campaign ceilings, captured authority, quarantine и cleanup остаются; production transient-generation retry не ограничен числом попыток, security/config/certificate refusal не повторяется.
 - Native owner пользователя не kill/restart, lock не удалять, интерактивный клиент автоматически не запускать. Rebuilt ELF подхватывается после завершения его leases; startup env принадлежит первому owner.
 - Docker только если нужен: подтверждённый rootless context, без privileged/host PID/network/broad mounts, общего prune/compose down и OpenProxy deployment changes. Обычный push — verified `origin` своей ветки, без force/release/tag.
+- Synthetic TS↔Rust parity требует kernel-enforced loopback-only network namespace
+  для peer **и** клиента: isolated HOME/XDG и synthetic baseURL не запрещают
+  встроенный provider fallback. Стенд `~/.cache/opencode-tmp/opencode/mcp-repro`
+  использует установленный rootless `bwrap`, отдельные UID-preserving user/PID/net
+  namespaces, проверяет единственный интерфейс `lo` и отсутствие внешних маршрутов.
+  Пропуск этой изоляции не является допустимым fallback при ошибке стенда.
 
 ## Открытые live/manual qualifications
 
