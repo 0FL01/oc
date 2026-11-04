@@ -471,11 +471,12 @@ impl Channels {
             return Err(ProviderError::Cancelled);
         }
         connection.checkpoint = if generation.finish == FinishReason::Stop
-            && !generation
-                .items
-                .iter()
-                .any(|item| matches!(item, StreamItem::ToolArgumentsTooLarge { .. }))
-        {
+            && !generation.items.iter().any(|item| {
+                matches!(
+                    item,
+                    StreamItem::ToolArgumentsTooLarge { .. } | StreamItem::ToolInputFailed { .. }
+                )
+            }) {
             checkpoint(&full, &generation.output, response.as_deref())
         } else {
             None

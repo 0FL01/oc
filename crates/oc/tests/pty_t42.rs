@@ -3834,7 +3834,7 @@ fn aud38_location_switch_is_one_lifecycle() {
     wait_screen_row(&pty, "/location", DEADLINE);
     dismiss_slash_option(&mut pty, "location");
     pty.send(b"\r");
-    pty.wait_visible("usage: /location", DEADLINE);
+    wait_screen_row(&pty, "usage: /location", DEADLINE);
 
     let off = submit(&mut pty, "alpha one");
     pty.wait_visible_after(off, "echo: alpha one", DEADLINE);

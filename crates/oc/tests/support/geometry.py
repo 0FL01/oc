@@ -94,6 +94,19 @@ def screen_rows(output, columns, height):
             x += 1
     return [''.join(row) for row in cells]
 
+def dismiss_owner_info(fd, initial, columns=160, height=80):
+    # The new startup Info toast intentionally covers the top-right sidebar.
+    # Close its actual painted affordance before measuring unobscured geometry.
+    rows = screen_rows(initial, columns, height)
+    if any('Native owner uses the environment' in row for row in rows):
+        close_x = rows[2].rfind('x')
+        assert close_x >= 0, rows
+        os.write(fd, f'\x1b[<0;{close_x + 1};3M\x1b[<0;{close_x + 1};3m'.encode())
+        initial += drain(fd)
+        assert not any('Native owner uses the environment' in row
+                       for row in screen_rows(initial, columns, height)), 'Info close was not acknowledged'
+    return initial
+
 for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
     config = {'session': {'sidebar': 'hide' if mode == 'hidden' else 'auto'},
               'debug': {'devtools': mode == 'debug'},
@@ -103,10 +116,10 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
     child, fd = launch('child' if mode == 'child' else 'long')
     drafted = False
     try:
-        initial = drain(fd, .8)
+        initial = dismiss_owner_info(fd, drain(fd, .8))
         assert len(set(re.findall(r'ROW-\d+', initial))) > 35, (mode, initial)
         assert ('Native runtime' in initial) == (mode == 'debug'), mode
-        assert ('Context' in initial) == (mode not in ['hidden', 'child', 'vertical']), mode
+        assert ('Context' in initial) == (mode not in ['hidden', 'child', 'vertical']), (mode, screen_rows(initial, 160, 80))
         os.write(fd, b'\x1b[200~draft-one\ndraft-two\ndraft-three\x1b[201~')
         drafted = True
         drain(fd)
@@ -125,7 +138,7 @@ for mode in ['normal', 'hidden', 'child', 'debug', 'vertical', 'default-debug']:
 (home / 'config/opencode/cli.json').write_text('{}')
 child, fd = launch('wrapped', 120, 80)
 try:
-    initial = drain(fd, .8)
+    initial = dismiss_owner_info(fd, drain(fd, .8), 120)
     assert 'LAST-ANCHOR' in initial and 'FIRST-ANCHOR' not in initial
     # Up now owns shared prompt-input history, including retained drafts from
     # the preceding resize cases. Use the actual transcript wheel owner here;
@@ -140,7 +153,7 @@ finally:
 for session in [None, 'empty']:
     child, fd = launch(session)
     try:
-        initial = drain(fd, .8)
+        initial = dismiss_owner_info(fd, drain(fd, .8))
         # A bare restart restores the authority's active wrapped root;
         # --session explicitly selects the requested empty session instead.
         if session is None:

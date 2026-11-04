@@ -167,3 +167,63 @@ fn the_chain_runs_only_below_the_current_version() {
     drop(db);
     assert!(has_index(&Db::open(dir.path()).unwrap()));
 }
+
+#[test]
+fn w6_newer_schema_refuses_before_migrations_or_application_recovery() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("future").unwrap();
+    drop(db);
+    let conn = Connection::open(dir.path().join("oc.sqlite")).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE w6_future_marker(id INTEGER PRIMARY KEY, value BLOB NOT NULL);
+         INSERT INTO w6_future_marker VALUES(1, X'5736006D61726B6572');
+         DROP INDEX events_tool_question;
+         INSERT INTO session_compactions VALUES('future-queued','future','{\"state\":\"queued\",\"marker\":\"unchanged\"}');",
+    ).unwrap();
+    let version = SCHEMA_CHAIN_VERSION + 1;
+    conn.pragma_update(None, "user_version", version).unwrap();
+    let schema = || {
+        conn.prepare("SELECT type,name,sql FROM sqlite_master ORDER BY type,name")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    };
+    let before = schema();
+    let error = Db::open(dir.path())
+        .err()
+        .expect("a newer schema must refuse");
+    let diagnostic = crate::application::storage_diagnostic(dir.path(), &error).to_string();
+    assert!(diagnostic.contains(&format!("schema version {version}")));
+    assert!(diagnostic.contains(&format!("supported version {SCHEMA_CHAIN_VERSION}")));
+    assert_eq!(
+        conn.query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
+            .unwrap(),
+        version
+    );
+    assert_eq!(schema(), before);
+    assert_eq!(
+        conn.query_row("SELECT value FROM w6_future_marker WHERE id=1", [], |row| {
+            row.get::<_, Vec<u8>>(0)
+        })
+        .unwrap(),
+        b"W6\0marker"
+    );
+    assert_eq!(
+        conn.query_row(
+            "SELECT snapshot FROM session_compactions WHERE id='future-queued'",
+            [],
+            |row| row.get::<_, String>(0)
+        )
+        .unwrap(),
+        r#"{"state":"queued","marker":"unchanged"}"#
+    );
+}

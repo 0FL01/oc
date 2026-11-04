@@ -43,7 +43,12 @@ fn refused() -> io::Error {
 }
 
 pub(super) fn diagnostic(root: &Path, error: io::Error) -> crate::application::SpawnDiagnostic {
-    if error.get_ref().is_some_and(|error| error.is::<Refused>()) {
+    let detail = format!(
+        "io_kind={:?}; os_error={:?}",
+        error.kind(),
+        error.raw_os_error()
+    );
+    let mut failure = if error.get_ref().is_some_and(|error| error.is::<Refused>()) {
         super::issue(oc_core::queries::ServiceCode::UnsafeDataRoot)
     } else {
         crate::application::SpawnDiagnostic {
@@ -53,7 +58,9 @@ pub(super) fn diagnostic(root: &Path, error: io::Error) -> crate::application::S
                 &crate::storage::StorageError::Io(error),
             ),
         }
-    }
+    };
+    failure.diagnostic.details = Some(Box::new(vec![detail]));
+    failure
 }
 
 fn private_dir(path: &Path) -> io::Result<()> {

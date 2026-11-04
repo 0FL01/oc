@@ -3,6 +3,153 @@
 use super::*;
 
 #[tokio::test]
+async fn w6_single_failed_call_continues_without_executing_its_input() {
+    for arguments in [
+        serde_json::json!([]),
+        serde_json::json!({"argv":["/bin/sh","-c","printf BAD > effects"],"padding":"x".repeat(oc_adapters::provider::ARGUMENT_BYTE_CAP)}),
+    ] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("failed-input").unwrap();
+        let (base, _, requests) = Fake::start_recording(
+            vec![
+                sse_tool_call("failed", "bash", &arguments) + &sse_completed(),
+                sse_delta("continued") + &sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let report = runtime
+            .run_turn(params(
+                "failed-input",
+                "input",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        assert_eq!(report.calls.len(), 1);
+        assert_eq!(report.calls[0].state, "failed");
+        assert!(!harness._project.path().join("effects").exists());
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests.len(), 2);
+        assert!(function_output(&requests[1], "failed").is_some());
+    }
+}
+
+#[tokio::test]
+async fn w6_malformed_call_fails_locally_without_executing_valid_json_prefix() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("malformed").unwrap();
+    let arguments = r#"{"argv":["/bin/sh","-c","printf BAD > effects"]} trailing"#;
+    let item = serde_json::json!({"type":"function_call","id":"bad-input","call_id":"bad","name":"bash","arguments":arguments,"status":"completed"});
+    let added = serde_json::json!({"type":"response.output_item.added","item":{
+        "type":"function_call","id":"bad-input","call_id":"bad","name":"bash","arguments":"","status":"in_progress"
+    }});
+    let delta = serde_json::json!({"type":"response.function_call_arguments.delta","item_id":"bad-input","delta":arguments});
+    let done = serde_json::json!({"type":"response.output_item.done","item":item});
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            format!("data: {added}\n\ndata: {delta}\n\ndata: {done}\n\n") + &sse_completed(),
+            sse_delta("continued") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "malformed",
+            "input",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls.len(), 1);
+    assert_eq!(report.calls[0].state, "failed");
+    assert!(!harness._project.path().join("effects").exists());
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 2);
+    assert!(function_output(&requests[1], "bad").is_some());
+}
+
+#[tokio::test]
+async fn w6_length_failed_input_continues_at_most_twice_without_any_effect() {
+    for lengths in [2, 3] {
+        let (harness, generation) = make_harness(allow_all());
+        let runtime = runtime_of(&harness, generation, Vec::new());
+        runtime.create_session("length-input").unwrap();
+        let mut script = Vec::new();
+        for index in 0..lengths {
+            let terminal = "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_output_tokens\"}}}\n\n";
+            if lengths == 2 && index == 1 {
+                script.push(sse_delta("partial") + terminal);
+            } else {
+                let added = serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":format!("i{index}"),"call_id":format!("c{index}"),"name":"bash","arguments":"","status":"in_progress"}});
+                let delta = serde_json::json!({"type":"response.function_call_arguments.delta","item_id":format!("i{index}"),"delta":r#"{"argv":["/bin/sh","-c","printf BAD > effects"]}"#});
+                script.push(format!("data: {added}\n\ndata: {delta}\n\n{terminal}"));
+            }
+        }
+        if lengths == 2 {
+            script.push(sse_delta("recovered") + &sse_completed());
+        }
+        let (base, hits, requests) = Fake::start_recording(script, Duration::ZERO);
+        let report = runtime
+            .run_turn(params(
+                "length-input",
+                "input",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(
+            report.status,
+            if lengths == 2 {
+                TurnStatus::Completed
+            } else {
+                TurnStatus::Failed
+            }
+        );
+        assert_eq!(
+            *hits.lock().unwrap(),
+            3,
+            "initial generation plus at most two length continuations"
+        );
+        assert_eq!(report.calls.len(), if lengths == 2 { 1 } else { 3 });
+        assert!(
+            report
+                .calls
+                .iter()
+                .all(|call| call.state == "failed" && call.output.contains("finish=length"))
+        );
+        assert!(!harness._project.path().join("effects").exists());
+        let requests = requests.lock().unwrap();
+        assert!(function_output(&requests[1], "c0").is_some());
+        if lengths == 2 {
+            assert!(requests[2]["input"].as_array().unwrap().iter().any(|item|
+                item["role"] == "developer" && item["content"][0]["text"] == "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces."));
+            assert!(
+                report.diagnostic.is_none(),
+                "a successful stop must not retain the earlier length diagnostic"
+            );
+        } else {
+            assert!(
+                report
+                    .diagnostic
+                    .as_deref()
+                    .unwrap()
+                    .contains("after two continuations")
+            );
+        }
+    }
+}
+
+#[tokio::test]
 async fn w3_oversized_middle_call_fails_without_losing_siblings_or_replaying() {
     let (harness, generation) = make_harness(allow_all());
     let runtime = runtime_of(&harness, generation, Vec::new());

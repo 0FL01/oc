@@ -93,7 +93,9 @@ fn bytes(frames: &[serde_json::Value]) -> Vec<u8> {
 
 #[test]
 fn go03_messages_split_stream_tool_reasoning_usage_and_lowering() {
-    let wire = bytes(&frames());
+    let mut frames = frames();
+    frames[10]["delta"]["partial_json"] = "  \"a\" } ".into();
+    let wire = bytes(&frames);
     for split in [1, 7, 4096] {
         let mut parser = SseParser::messages();
         let mut items = Vec::new();
@@ -149,12 +151,11 @@ fn go03_messages_split_stream_tool_reasoning_usage_and_lowering() {
 
 #[test]
 fn go03_messages_require_genuine_terminal_and_closed_valid_blocks() {
-    for mutation in 0..7 {
+    for mutation in [0, 1, 3, 4, 5, 6] {
         let mut frames = frames();
         match mutation {
             0 => { frames.pop(); }
             1 => { frames.remove(11); }
-            2 => frames[10]["delta"]["partial_json"] = "bad".into(),
             3 => frames[12]["delta"]["stop_reason"] = "refusal".into(),
             4 => frames[12]["delta"]["stop_reason"] = "unknown".into(),
             5 => frames[9]["index"] = 90.into(),
@@ -171,6 +172,41 @@ fn go03_messages_require_genuine_terminal_and_closed_valid_blocks() {
     let mut parser = SseParser::messages();
     parser.push(&bytes(&frames)).unwrap();
     assert_eq!(parser.finish, FinishReason::Length);
+}
+
+#[test]
+fn w6_messages_failed_input_waits_for_terminal_and_lowers_to_valid_followup() {
+    for (finish, reason) in [
+        ("tool_use", "invalid JSON arguments"),
+        (
+            "max_tokens",
+            "incomplete tool input: provider finish=length",
+        ),
+    ] {
+        let mut frames = frames();
+        frames[10]["delta"]["partial_json"] = "bad".into();
+        frames[12]["delta"]["stop_reason"] = finish.into();
+        let mut parser = SseParser::messages();
+        let mut items = parser.push(&bytes(&frames[..frames.len() - 1])).unwrap();
+        assert!(!parser.completed && parser.output.is_none());
+        items.extend(parser.push(&bytes(&frames[frames.len() - 1..])).unwrap());
+        assert!(parser.completed);
+        let generation = crate::provider::collect_generation(parser, items);
+        assert!(
+            matches!(&crate::tools::assemble_calls(&generation.items).unwrap()[0],
+            crate::tools::Assembled::Failed(failure) if failure.id == "call" && failure.name == "read" && failure.error == reason)
+        );
+        let mut input = generation
+            .output
+            .into_iter()
+            .map(InputItem::ProviderOutput)
+            .collect::<Vec<_>>();
+        input.push(InputItem::FunctionCallOutput {
+            call_id: "call".into(),
+            output: "failed input".into(),
+        });
+        assert!(request_body("m", &input, &[], 100, None).is_ok());
+    }
 }
 
 #[test]

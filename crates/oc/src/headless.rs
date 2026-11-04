@@ -61,6 +61,8 @@ pub async fn run_once_to_writers(
                 }
             };
         let outcome = async {
+            writeln!(err, "info: {}", oc_adapters::native::OWNER_ENVIRONMENT_NOTICE)
+                .map_err(|error| error.to_string())?;
             let default = if let Some(agent) = &agent {
                 // Validate explicit addressing before creating a session or an
                 // approval consumer. Hidden primary/all profiles remain valid.

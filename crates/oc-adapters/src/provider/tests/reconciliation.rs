@@ -610,7 +610,7 @@ async fn prov09_announced_index_identity_and_final_arguments_agree() {
 }
 
 #[tokio::test]
-async fn prov09_delta_only_and_bad_json_never_manufacture_completion() {
+async fn prov09_delta_only_and_bad_envelopes_never_manufacture_completion() {
     local(
         generation(vec![
             normalized()[0].clone(),
@@ -622,17 +622,22 @@ async fn prov09_delta_only_and_bad_json_never_manufacture_completion() {
     );
     for field in ["arguments", "call_id", "name", "type", "status"] {
         let mut item = call();
-        item[field] = if field == "arguments" {
-            serde_json::json!("{ARG-CANARY")
-        } else {
-            serde_json::Value::Null
-        };
+        item[field] = serde_json::Value::Null;
         local(
             generation(vec![done(0, &item), terminal(None)])
                 .await
                 .unwrap_err(),
         );
     }
+    let mut item = call();
+    item["arguments"] = serde_json::json!("{ARG-CANARY");
+    let failed = generation(vec![done(0, &item), terminal(None)])
+        .await
+        .unwrap();
+    assert_eq!(failed.output[0]["call_id"], item["call_id"]);
+    assert_eq!(failed.output[0]["arguments"], "{}");
+    assert!(failed.items.iter().any(|failure| matches!(failure,
+        StreamItem::ToolInputFailed { item_id, reason } if item_id == item["id"].as_str().unwrap() && *reason == "invalid JSON arguments")));
     let error = generation(vec![serde_json::json!({"not_type":"MESSAGE-CANARY"})])
         .await
         .unwrap_err();
@@ -692,7 +697,14 @@ async fn prov09_missing_terminal_and_provider_failure_stay_distinct() {
     assert_eq!(result.finish, crate::provider::FinishReason::Length);
     assert_eq!(result.output, vec![call()]);
     let terminal_only = serde_json::json!({"type":"response.incomplete","response":{"incomplete_details":{"reason":"max_output_tokens"},"output":[call()]}});
-    local(generation(vec![terminal_only]).await.unwrap_err());
+    let failed = generation(vec![terminal_only]).await.unwrap();
+    assert_eq!(failed.output[0]["call_id"], call()["call_id"]);
+    assert!(
+        failed
+            .items
+            .iter()
+            .any(|item| matches!(item, crate::provider::StreamItem::ToolInputFailed { .. }))
+    );
     for kind in ["reasoning", "compaction", "message"] {
         let item = serde_json::json!({"type":kind,"id":"OPAQUE-CANARY","role":"assistant","status":"failed","encrypted_content":"SECRET-CANARY"});
         local(

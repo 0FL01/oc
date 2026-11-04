@@ -251,6 +251,14 @@ pub enum StorageError {
     /// Quota or disk resource exhausted.
     #[error("storage full")]
     StorageFull,
+    /// The database belongs to a newer schema chain and must not be migrated.
+    #[error("database schema version {found} is newer than supported version {supported}")]
+    NewerSchema {
+        /// Committed database version.
+        found: i64,
+        /// Highest version understood by this build.
+        supported: i64,
+    },
     /// Blob digest is unknown.
     #[error("blob not found")]
     BlobNotFound,
@@ -672,6 +680,12 @@ impl Db {
     /// the version is stored re-runs the chain on the next open.
     fn migrate(conn: &Connection) -> Result<(), StorageError> {
         let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+        if version > SCHEMA_CHAIN_VERSION {
+            return Err(StorageError::NewerSchema {
+                found: version,
+                supported: SCHEMA_CHAIN_VERSION,
+            });
+        }
         if version == SCHEMA_CHAIN_VERSION {
             return Ok(());
         }

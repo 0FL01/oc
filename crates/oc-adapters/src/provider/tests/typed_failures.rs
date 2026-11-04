@@ -404,7 +404,7 @@ async fn ret01_incomplete_length_filter_eof_and_tools() {
             if let Some(reason) = finish {chunks.push((event(serde_json::json!({"type":"response.incomplete","response":{"incomplete_details":{"reason":reason}}})),0));}
             Action {status:"200 OK",headers:vec![("x-should-retry","false".into())],chunks,abort_after:None}
         })).await;
-        let error = stream_generation(
+        let result = stream_generation(
             &test_config(&server.base),
             "m",
             None,
@@ -413,21 +413,17 @@ async fn ret01_incomplete_length_filter_eof_and_tools() {
             &NO_CANCEL,
             None,
         )
-        .await
-        .unwrap_err();
+        .await;
         if finish.is_some() {
-            assert!(matches!(
-                error,
-                ProviderError::OutputStructure {
-                    stage: crate::provider::OutputStage::Completion,
-                    code: crate::provider::OutputCode::MissingDone,
-                }
-            ));
+            let generation = result.unwrap();
+            assert_eq!(generation.output[0]["call_id"], "c");
+            assert!(generation.items.iter().any(|item| matches!(item,
+                crate::provider::StreamItem::ToolInputFailed { item_id, reason } if item_id == "fc" && *reason == "incomplete tool input: provider finish=length")));
             assert_eq!(server.attempts.load(Ordering::SeqCst), 1);
             server.shutdown();
             continue;
         }
-        let error = facts(error);
+        let error = facts(result.unwrap_err());
         assert_eq!(error.kind, FailureKind::IncompleteStream);
         assert_eq!(error.delivery, Delivery::Accepted);
         assert!(error.output_committed);
@@ -523,11 +519,14 @@ async fn length_output(
 }
 
 #[tokio::test]
-async fn ret01_review_length_call_requires_prior_matching_done() {
+async fn ret01_review_length_call_requires_prior_matching_done_to_be_runnable() {
     let call = serde_json::json!({"type":"function_call","id":"fc","call_id":"c","name":"shell","arguments":"{}","status":"completed"});
+    let failed = length_output(vec![], call.clone()).await.unwrap();
+    assert_eq!(failed.output[0]["call_id"], "c");
     assert!(
-        length_output(vec![], call.clone()).await.is_err(),
-        "terminal-only call must not recover on response.incomplete"
+        failed.items.iter().any(|item| matches!(item,
+        crate::provider::StreamItem::ToolInputFailed { item_id, .. } if item_id == "fc")),
+        "terminal-only length input is a failed result, never a runnable call"
     );
     let done = serde_json::json!({"type":"response.output_item.done","output_index":0,"item":call});
     let result = length_output(vec![done.clone()], call.clone())
@@ -535,13 +534,24 @@ async fn ret01_review_length_call_requires_prior_matching_done() {
         .unwrap();
     assert_eq!(result.finish, FinishReason::Length);
     assert_eq!(result.output, vec![call.clone()]);
-    let pending = serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"other","call_id":"other","name":"shell"}});
     assert!(
-        length_output(vec![done.clone(), pending], call.clone())
-            .await
-            .is_err(),
-        "completed call must not silently filter an unresolved announced call"
+        !result
+            .items
+            .iter()
+            .any(|item| matches!(item, crate::provider::StreamItem::ToolInputFailed { .. }))
     );
+    let pending = serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"other","call_id":"other","name":"shell"}});
+    let mixed = length_output(vec![done.clone(), pending], call.clone())
+        .await
+        .unwrap();
+    assert_eq!(mixed.output[0], call);
+    assert_eq!(
+        mixed.output.len(),
+        2,
+        "completed and failed inputs both retain their identities"
+    );
+    assert!(mixed.items.iter().any(|item| matches!(item,
+        crate::provider::StreamItem::ToolInputFailed { item_id, .. } if item_id == "other")));
     let mut changed = call.clone();
     changed["arguments"] = serde_json::json!("{\"changed\":true}");
     assert!(
@@ -549,9 +559,11 @@ async fn ret01_review_length_call_requires_prior_matching_done() {
         "length must not rewrite an emitted completed call's body"
     );
     let announced = serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc","call_id":"c","name":"shell"}});
+    let failed = length_output(vec![announced], call.clone()).await.unwrap();
     assert!(
-        length_output(vec![announced], call.clone()).await.is_err(),
-        "announced call without done remains incomplete"
+        failed.items.iter().any(|item| matches!(item,
+        crate::provider::StreamItem::ToolInputFailed { item_id, .. } if item_id == "fc")),
+        "announcement without done does not make a length input runnable"
     );
     let announced = serde_json::json!({"type":"response.output_item.added","item":{"type":"function_call","id":"fc","call_id":"c","name":"shell"}});
     let done = serde_json::json!({"type":"response.output_item.done","output_index":0,"item":call});
@@ -574,7 +586,7 @@ async fn ret01_review_length_call_requires_prior_matching_done() {
 }
 
 #[tokio::test]
-async fn ret01_review_length_only_partial_assistant_messages_escape_status_validation() {
+async fn ret01_review_length_preserves_non_call_status_validation() {
     for kind in ["compaction", "reasoning", "future_opaque"] {
         for status in ["failed", "in_progress"] {
             let item = serde_json::json!({"type":kind,"id":"opaque","status":status});

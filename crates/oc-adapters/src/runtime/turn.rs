@@ -692,7 +692,7 @@ fn is_builtin(name: &str) -> bool {
 }
 
 fn units_have_calls(units: &[Assembled]) -> bool {
-    units.iter().any(|unit| matches!(unit, Assembled::Call(_)))
+    !units.is_empty()
 }
 
 /// Forward one terminal tool-call state to the live event sink, bounded
@@ -2187,6 +2187,7 @@ impl<'a> Runtime<'a> {
         drop(initial_attached);
         // Successful steps are accounting, never continuation admission.
         let mut rounds = turn_log.spans.iter().map(|s| s.step).max().unwrap_or(0);
+        let mut length_streak = 0u8;
         if resuming
             && let Some(span) = turn_log.spans.last_mut()
             && span.completed.is_none()
@@ -2308,11 +2309,11 @@ impl<'a> Runtime<'a> {
             } else {
                 None
             };
-            if inbox_only_continuation
+            if (inbox_only_continuation || length_streak >= 3)
                 && pending.is_none()
                 && !params.cancel.load(Ordering::Acquire)
             {
-                if self.db.inbox_has_steer(&params.session)? {
+                if primary_request && self.db.inbox_has_steer(&params.session)? {
                     continue 'step;
                 }
                 break 'step;
@@ -2604,6 +2605,7 @@ impl<'a> Runtime<'a> {
                             Ok(Some(call)) => {
                                 calls.push(call);
                                 inbox_only_continuation = false;
+                                length_streak = 0;
                             }
                             Ok(None) => turn_log = rollback,
                             Err(error) => return Err(error),
@@ -3438,6 +3440,7 @@ impl<'a> Runtime<'a> {
                 if steer.take().is_some()
                     && let Some(prepared) = &pending
                 {
+                    length_streak = 0;
                     self.adopt_pending_profile(prepared)?;
                 }
                 inbox_rollback = None;
@@ -3888,7 +3891,15 @@ impl<'a> Runtime<'a> {
             // A successfully settled response starts the next step's allowance.
             overflow_recovered = false;
             if generation.finish == crate::provider::FinishReason::Length {
+                length_streak = length_streak.saturating_add(1);
                 turn_log.display["finish_reason"] = serde_json::json!("length");
+            } else {
+                length_streak = 0;
+                turn_log
+                    .display
+                    .as_object_mut()
+                    .expect("display object")
+                    .remove("finish_reason");
             }
             for item in &generation.items {
                 turn_log.ingest(item);
@@ -3929,16 +3940,17 @@ impl<'a> Runtime<'a> {
             }
             // Calls come only from complete canonical output, never partial deltas.
             let mut call_items = Vec::new();
-            let oversized = generation
+            let failed_inputs = generation
                 .items
                 .iter()
                 .filter_map(|item| match item {
-                    crate::provider::StreamItem::ToolArgumentsTooLarge { item_id } => {
-                        Some(item_id.as_str())
+                    crate::provider::StreamItem::ToolArgumentsTooLarge { item_id }
+                    | crate::provider::StreamItem::ToolInputFailed { item_id, .. } => {
+                        Some((item_id.as_str(), item))
                     }
                     _ => None,
                 })
-                .collect::<std::collections::BTreeSet<_>>();
+                .collect::<std::collections::BTreeMap<_, _>>();
             for item in &generation.output {
                 if item["type"] == "function_call" {
                     call_items.push(crate::provider::StreamItem::ToolCallStarted {
@@ -3947,10 +3959,8 @@ impl<'a> Runtime<'a> {
                         name: item["name"].as_str().unwrap_or_default().to_string(),
                     });
                     let item_id = item["id"].as_str().unwrap_or_default();
-                    call_items.push(if oversized.contains(item_id) {
-                        crate::provider::StreamItem::ToolArgumentsTooLarge {
-                            item_id: item_id.to_owned(),
-                        }
+                    call_items.push(if let Some(failure) = failed_inputs.get(item_id) {
+                        (*failure).clone()
                     } else {
                         crate::provider::StreamItem::ArgDelta {
                             item_id: item_id.to_owned(),
@@ -4345,23 +4355,43 @@ impl<'a> Runtime<'a> {
             // A final answer with steered input waiting is not the end of the
             // turn: the model answers that input in the next request.
             let steered = primary_request && self.db.inbox_has_steer(&params.session)?;
-            inbox_only_continuation = !units_have_calls(&units) && steered;
-            if !units_have_calls(&units) && !steered {
+            let has_calls = units_have_calls(&units);
+            let continue_length = generation.finish == crate::provider::FinishReason::Length
+                && (has_calls || length_streak > 1)
+                && !steered;
+            if continue_length && length_streak >= 3 {
+                break;
+            }
+            if continue_length && !has_calls {
+                turn_log.input.push(InputItem::message(InputRole::Developer,
+                    "Your last response hit the output token limit (stop reason: length). Do not apologize, recap, or repeat yourself. Break the remaining work into smaller pieces."));
+            }
+            inbox_only_continuation = !has_calls && steered;
+            if !has_calls && !steered && !continue_length {
                 break;
             }
         }
+        let length_exhausted = length_streak >= 3;
         if turn_log.display["finish_reason"] == "length" {
             Self::terminal_error(
                 &mut turn_log,
                 "provider_length",
-                "provider finish=length (max_output_tokens)",
+                if length_exhausted {
+                    "provider finish=length: output limit after two continuations"
+                } else {
+                    "provider finish=length (max_output_tokens)"
+                },
             );
         }
         let report = self.commit_turn(
             &turn_log,
             turn_id,
             &params.session,
-            TurnStatus::Completed,
+            if length_exhausted {
+                TurnStatus::Failed
+            } else {
+                TurnStatus::Completed
+            },
             text,
             rounds,
             streamed_ms(streamed),

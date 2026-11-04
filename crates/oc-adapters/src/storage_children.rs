@@ -290,7 +290,7 @@ impl Db {
     }
     pub(crate) fn child_job_outstanding(&self) -> Result<i64, StorageError> {
         Ok(self.conn.lock().expect("db mutex").query_row(
-            "SELECT (SELECT count(*) FROM child_jobs WHERE state IN ('admitted','running','unknown'))+(SELECT count(*) FROM child_jobs INDEXED BY child_job_undelivered WHERE message_id IS NULL AND background=1 AND state NOT IN ('admitted','running','unknown'))",
+            "SELECT (SELECT count(*) FROM child_jobs WHERE state IN ('admitted','running'))+(SELECT count(*) FROM child_jobs INDEXED BY child_job_undelivered WHERE message_id IS NULL AND background=1 AND state IN ('completed','cancelled','error'))",
             [],
             |row| row.get(0),
         )?)
@@ -390,7 +390,7 @@ impl Db {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         let valid: bool = tx.prepare_cached("SELECT EXISTS(SELECT 1 FROM tool_operations o WHERE o.id=?2 AND o.session_id=?1 AND o.name='subagent')")?.query_row(params![job.parent.0,job.operation], |r| r.get(0))?;
-        let count: i64 = tx.prepare_cached("SELECT (SELECT count(*) FROM child_jobs WHERE state IN ('admitted','running','unknown'))+(SELECT count(*) FROM child_jobs INDEXED BY child_job_undelivered WHERE message_id IS NULL AND background=1 AND state NOT IN ('admitted','running','unknown'))")?.query_row([],
+        let count: i64 = tx.prepare_cached("SELECT (SELECT count(*) FROM child_jobs WHERE state IN ('admitted','running'))+(SELECT count(*) FROM child_jobs INDEXED BY child_job_undelivered WHERE message_id IS NULL AND background=1 AND state IN ('completed','cancelled','error'))")?.query_row([],
             |r| r.get(0),
         )?;
         if !valid || count >= crate::runtime::children::JOB_CAP as i64 {

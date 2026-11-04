@@ -269,7 +269,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             assert '█▀▀█' in initial
             os.write(master, f'/location {destination}\r'.encode())
             screen = drain(master, .8)
-            assert reason in screen, (name, 'safe category missing', screen)
+            visible = '\n'.join(visible_rows(initial + screen))
+            assert reason in visible, (name, 'safe category missing', visible, screen)
             assert marker not in screen, (name, 'leaked config', marker)
             assert 'application: ' not in screen and str(destination / 'opencode.json') not in screen, (name, screen)
             # Refusal retains the draft and old Location: retry with a valid

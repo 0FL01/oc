@@ -458,17 +458,27 @@ pub fn storage_diagnostic(
     source: &Path,
     error: &StorageError,
 ) -> oc_core::queries::ServiceDiagnostic {
-    SpawnIssue::new(
+    let mut diagnostic = SpawnIssue::new(
         storage_failure(error),
         &source.to_string_lossy(),
-        if matches!(error, StorageError::Sqlite(_)) {
+        if matches!(
+            error,
+            StorageError::Sqlite(_) | StorageError::NewerSchema { .. }
+        ) {
             &["database"]
         } else {
             &["data_root"]
         },
         storage_code(error),
     )
-    .diagnostic
+    .diagnostic;
+    if matches!(error, StorageError::NewerSchema { .. }) {
+        diagnostic.details = Some(Box::new(vec![
+            error.to_string(),
+            "Open this data root with a newer compatible oc2 binary.".into(),
+        ]));
+    }
+    diagnostic
 }
 
 fn runtime_issue(source: &str, field: &[&str], error: &RuntimeError) -> SpawnIssue {
@@ -583,6 +593,7 @@ fn storage_class(error: &StorageError) -> &'static str {
         StorageError::DataRootBusy => "DataRootBusy",
         StorageError::UnsafeRoot(_) => "UnsafeRoot",
         StorageError::StorageFull => "StorageFull",
+        StorageError::NewerSchema { .. } => "NewerSchema",
         StorageError::BlobNotFound => "BlobNotFound",
         StorageError::SessionNotFound => "SessionNotFound",
         StorageError::OperationNotFound => "OperationNotFound",
@@ -712,12 +723,10 @@ async fn spawn_stages(
                     storage_class(&error)
                 ),
             );
-            return Err(SpawnIssue::new(
-                storage_failure(&error),
-                &data.to_string_lossy(),
-                &["data_root"],
-                storage_code(&error),
-            ));
+            return Err(SpawnIssue {
+                category: storage_failure(&error),
+                diagnostic: storage_diagnostic(data, &error),
+            });
         }
     };
     composition
@@ -4652,7 +4661,7 @@ async fn worker(
     mut authority: Option<&mut authority::Source>,
     mut primary: Option<&mut authority::Operation>,
 ) -> Result<WorkerOutcome, oc_core::queries::ServiceDiagnostic> {
-    reload_work.ensure(composition).await?;
+    reload_work.ensure(composition, events).await?;
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
     let steer_continuation = primary

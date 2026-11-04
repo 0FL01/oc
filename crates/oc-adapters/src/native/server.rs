@@ -276,9 +276,11 @@ pub async fn serve(data: &Path, startup: StdStream) -> Result<(), SpawnDiagnosti
     }
     let endpoint = match Endpoint::bind(&root).await {
         Ok(endpoint) => endpoint,
-        Err(_) => {
+        Err(error) => {
+            let failure = endpoint::diagnostic(&root, error);
             let _ = owner.shutdown().await;
-            return Err(issue(ServiceCode::UnsafeDataRoot));
+            bootstrap(&mut startup, &budget, Bootstrap::Failed(failure.clone())).await?;
+            return Err(failure);
         }
     };
     if bootstrap(

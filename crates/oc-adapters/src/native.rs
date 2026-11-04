@@ -21,6 +21,9 @@ pub enum Lease {
 pub use client::attach;
 pub use server::serve;
 
+/// Nonsecret attachment guidance shared by native frontends.
+pub const OWNER_ENVIRONMENT_NOTICE: &str = "Native owner uses the environment captured when it started; later clients' environment is not adopted.";
+
 fn issue(code: oc_core::queries::ServiceCode) -> crate::application::SpawnDiagnostic {
     use crate::application::{SpawnDiagnostic, SpawnFailure};
     let category = match code {
@@ -31,6 +34,10 @@ fn issue(code: oc_core::queries::ServiceCode) -> crate::application::SpawnDiagno
     let mut issue = SpawnDiagnostic::new(category, "native owner", &["attachment"], code);
     if code == oc_core::queries::ServiceCode::ProtocolMismatch {
         issue.diagnostic.action = oc_core::queries::ServiceAction::RestartApplication;
+        issue.diagnostic.details = Some(Box::new(vec![
+            "Client and running native owner use incompatible protocols.".into(),
+            "Close existing native clients normally, then start the updated binary; rebuilding does not replace a running owner.".into(),
+        ]));
     }
     issue
 }

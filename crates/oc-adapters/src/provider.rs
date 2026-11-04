@@ -433,6 +433,12 @@ pub enum StreamItem {
         /// Canonical item identity, distinct from function call_id.
         item_id: String,
     },
+    /// A settled call has invalid or terminally truncated input. The bounded
+    /// canonical placeholder must never be treated as runnable arguments.
+    ToolInputFailed {
+        item_id: String,
+        reason: &'static str,
+    },
     /// Incremental reasoning text (never opaque-UI-logged; see turn log).
     ReasoningDelta(String),
     /// Opaque provider item (e.g. encrypted reasoning): replayed verbatim
@@ -890,6 +896,10 @@ struct CompletedItem {
     emitted_reasoning: bool,
 }
 
+// Preserve malformed bodies when reconciling repeated event observations.
+// These are call-local input failures, not invalid provider event envelopes.
+type CallArguments = Result<serde_json::Value, String>;
+
 #[derive(Debug, Default)]
 pub struct SseParser {
     finish: FinishReason,
@@ -907,8 +917,9 @@ pub struct SseParser {
     retained: usize,
     /// Stream items kept by the HTTP/WS collector, including text assembly space.
     stream_retained: usize,
-    arguments: BTreeMap<String, (usize, Option<serde_json::Value>)>,
+    arguments: BTreeMap<String, (usize, Option<CallArguments>)>,
     failed_arguments: BTreeSet<String>,
+    unfinished_calls: BTreeSet<String>,
     announced_calls: BTreeMap<String, (Option<u64>, String, String)>,
     /// Announcement ordinal of each `output_item.added` id.
     item_ordinals: BTreeMap<String, u64>,
@@ -1066,7 +1077,8 @@ impl SseParser {
                         StreamItem::ArgDelta { item_id, delta } => {
                             (1, item_id.capacity() + delta.capacity())
                         }
-                        StreamItem::ToolArgumentsTooLarge { item_id } => (1, item_id.capacity()),
+                        StreamItem::ToolArgumentsTooLarge { item_id }
+                        | StreamItem::ToolInputFailed { item_id, .. } => (1, item_id.capacity()),
                         StreamItem::OpaqueItem { item_id, payload } => {
                             (1, item_id.capacity() + retained_json_bytes(payload))
                         }
@@ -1086,14 +1098,18 @@ impl SseParser {
                 .arguments
                 .iter()
                 .map(|(id, (_, value))| {
-                    2 * std::mem::size_of::<(String, (usize, Option<serde_json::Value>))>()
+                    2 * std::mem::size_of::<(String, (usize, Option<CallArguments>))>()
                         + id.capacity()
-                        + value.as_ref().map_or(0, retained_json_bytes)
+                        + value.as_ref().map_or(0, |arguments| match arguments {
+                            Ok(value) => retained_json_bytes(value),
+                            Err(raw) => raw.capacity(),
+                        })
                 })
                 .sum::<usize>()
             + self
                 .failed_arguments
                 .iter()
+                .chain(self.unfinished_calls.iter())
                 // Include the eventual collected failure item and its id copy.
                 .map(|id| {
                     2 * (std::mem::size_of::<String>()
@@ -1128,6 +1144,19 @@ impl SseParser {
             + self.output.as_ref().map_or(0, |output| {
                 output.capacity() * std::mem::size_of::<serde_json::Value>()
                     + output.iter().map(retained_json_bytes).sum::<usize>()
+                    + output
+                        .iter()
+                        .filter(|item| {
+                            invalid_call_input(item)
+                                && !self
+                                    .unfinished_calls
+                                    .contains(item["id"].as_str().unwrap_or_default())
+                        })
+                        .map(|item| {
+                            2 * std::mem::size_of::<StreamItem>()
+                                + item["id"].as_str().map_or(0, str::len)
+                        })
+                        .sum::<usize>()
             })
             + self
                 .chat
@@ -1357,7 +1386,7 @@ impl SseParser {
     fn fail_arguments(&mut self, id: &str) {
         if self.failed_arguments.insert(id.to_owned()) {
             if let Some((_, Some(arguments))) = self.arguments.get_mut(id) {
-                *arguments = serde_json::json!({});
+                *arguments = Ok(serde_json::json!({}));
             }
             for done in self.output_done.values_mut() {
                 if done.item["type"] == "function_call" && done.item["id"] == id {
@@ -1443,7 +1472,42 @@ impl SseParser {
             }
             let mut previous_index = None;
             let mut terminal_indices = std::collections::BTreeSet::new();
-            for (position, item) in output.iter().enumerate() {
+            for (position, original) in output.iter().enumerate() {
+                let mut partial_call = None;
+                if self.finish == FinishReason::Length && original["type"] == "function_call" {
+                    let id = required_identity(original, "id", OutputStage::Completion)?;
+                    let observed = self
+                        .output_done
+                        .values()
+                        .find(|done| done.item["type"] == "function_call" && done.item["id"] == id);
+                    match observed {
+                        Some(done) if done.item != *original => {
+                            return Err(structural(
+                                OutputStage::Completion,
+                                OutputCode::IdentityConflict,
+                            ));
+                        }
+                        Some(_) => {}
+                        None => {
+                            if original.get("status").is_some_and(|status| {
+                                !matches!(
+                                    status.as_str(),
+                                    Some("completed" | "in_progress" | "incomplete")
+                                )
+                            }) {
+                                return Err(structural(
+                                    OutputStage::Completion,
+                                    OutputCode::InvalidStatus,
+                                ));
+                            }
+                            self.unfinished_calls.insert(id.to_owned());
+                            let mut failed = original.clone();
+                            failed["status"] = "completed".into();
+                            partial_call = Some(failed);
+                        }
+                    }
+                }
+                let item = partial_call.as_ref().unwrap_or(original);
                 // Length admits only genuinely partial assistant messages;
                 // opaque items and failed messages retain ordinary validation.
                 let partial_message = self.finish == FinishReason::Length
@@ -1452,25 +1516,6 @@ impl SseParser {
                     && matches!(item["status"].as_str(), Some("in_progress" | "incomplete"));
                 if !partial_message {
                     validate_output(item, OutputStage::Completion)?;
-                }
-                if self.finish == FinishReason::Length && item["type"] == "function_call" {
-                    // Donor recovery is exclusive to response.completed. An
-                    // incomplete finish cannot manufacture a call completion
-                    // or change the body of an actual prior output_item.done.
-                    let observed =
-                        item["id"]
-                            .as_str()
-                            .filter(|id| !id.is_empty())
-                            .is_some_and(|id| {
-                                self.output_done.values().any(|done| {
-                                    done.item["type"] == "function_call"
-                                        && done.item["id"].as_str() == Some(id)
-                                        && done.item == *item
-                                })
-                            });
-                    if !observed {
-                        return Err(structural(OutputStage::Completion, OutputCode::MissingDone));
-                    }
                 }
                 // A sparse snapshot's array position may be compacted. Actual
                 // observed identity/index takes precedence over that position.
@@ -1535,13 +1580,50 @@ impl SseParser {
                 }
             }
         }
-        for id in self.announced_calls.keys().chain(self.arguments.keys()) {
+        let pending = self
+            .announced_calls
+            .keys()
+            .chain(self.arguments.keys())
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        for id in pending {
             let complete = |item: &serde_json::Value| {
                 item["type"] == "function_call" && item["id"].as_str() == Some(id.as_str())
             };
             let found = self.output_done.values().any(|done| complete(&done.item));
             if !found {
-                return Err(structural(OutputStage::Completion, OutputCode::MissingDone));
+                let Some((index, call_id, name)) = self
+                    .announced_calls
+                    .get(&id)
+                    .filter(|_| self.finish == FinishReason::Length)
+                else {
+                    return Err(structural(OutputStage::Completion, OutputCode::MissingDone));
+                };
+                let arguments = self
+                    .arguments
+                    .get(&id)
+                    .and_then(|(_, arguments)| arguments.as_ref())
+                    .map_or_else(
+                        || "{}".to_owned(),
+                        |arguments| match arguments {
+                            Ok(value) => value.to_string(),
+                            Err(raw) => raw.clone(),
+                        },
+                    );
+                let item = serde_json::json!({"type":"function_call","id":id,"call_id":call_id,"name":name,"arguments":arguments,"status":"completed"});
+                let index = index.map_or_else(
+                    || {
+                        self.output_done
+                            .last_key_value()
+                            .map_or(Ok(0), |(index, _)| {
+                                next_output_index(*index, OutputStage::Completion)
+                            })
+                    },
+                    Ok,
+                )?;
+                self.check_observation(&item, Some(index), OutputStage::Completion)?;
+                self.unfinished_calls.insert(id);
+                self.retain_completed(index, &item, true, OutputStage::Completion)?;
             }
         }
         if self.finish == FinishReason::Length
@@ -1828,9 +1910,18 @@ fn same_identity(a: &serde_json::Value, b: &serde_json::Value) -> bool {
 fn parsed_arguments(
     item: &serde_json::Value,
     stage: OutputStage,
-) -> Result<serde_json::Value, ProviderError> {
-    let arguments = required_identity(item, "arguments", stage)?;
-    serde_json::from_str(arguments).map_err(|_| structural(stage, OutputCode::InvalidArguments))
+) -> Result<CallArguments, ProviderError> {
+    let arguments = item["arguments"]
+        .as_str()
+        .ok_or_else(|| structural(stage, OutputCode::InvalidArguments))?;
+    Ok(serde_json::from_str(arguments).map_err(|_| arguments.to_owned()))
+}
+
+fn invalid_call_input(item: &serde_json::Value) -> bool {
+    item["type"] == "function_call"
+        && !item["arguments"].as_str().is_some_and(|raw| {
+            serde_json::from_str::<serde_json::Value>(raw).is_ok_and(|value| value.is_object())
+        })
 }
 
 fn validate_output(item: &serde_json::Value, stage: OutputStage) -> Result<(), ProviderError> {
@@ -1847,7 +1938,7 @@ fn validate_output(item: &serde_json::Value, stage: OutputStage) -> Result<(), P
     if item["type"] == "function_call" {
         required_identity(item, "call_id", stage)?;
         required_identity(item, "name", stage)?;
-        parsed_arguments(item, stage)?;
+        let _ = parsed_arguments(item, stage)?;
     }
     Ok(())
 }
@@ -2985,13 +3076,41 @@ fn collect_generation(parser: SseParser, mut items: Vec<StreamItem>) -> Generati
             _ => {}
         }
     }
-    let output = parser.output.unwrap_or_else(|| {
+    let mut output = parser.output.unwrap_or_else(|| {
         parser
             .output_done
             .into_values()
             .map(|done| done.item)
             .collect()
     });
+    for item in &mut output {
+        if item["type"] != "function_call" {
+            continue;
+        }
+        let reason = if parser
+            .unfinished_calls
+            .contains(item["id"].as_str().unwrap_or_default())
+        {
+            Some("incomplete tool input: provider finish=length")
+        } else if invalid_call_input(item) {
+            Some(if parser.finish == FinishReason::Length {
+                "incomplete tool input: provider finish=length"
+            } else {
+                "invalid JSON arguments"
+            })
+        } else {
+            None
+        };
+        if let Some(reason) = reason {
+            items.push(StreamItem::ToolInputFailed {
+                item_id: item["id"].as_str().unwrap_or_default().to_owned(),
+                reason,
+            });
+            // Follow-up projections require valid JSON; the typed failure,
+            // not this placeholder, controls whether the input can execute.
+            item["arguments"] = "{}".into();
+        }
+    }
     Generation {
         finish: parser.finish,
         compaction_usage: parser.compaction_usage,

@@ -206,6 +206,12 @@ impl TuiState {
             self.toast_down = false;
             self.service_note = false;
         }
+        if std::mem::take(&mut self.native_owner_notice_pending) && visible && self.note.is_none() {
+            self.push_transient_note(
+                oc_adapters::native::OWNER_ENVIRONMENT_NOTICE,
+                NoteVariant::Info,
+            );
+        }
     }
 
     /// Keep all turn-specific warnings, even if their text equals a service

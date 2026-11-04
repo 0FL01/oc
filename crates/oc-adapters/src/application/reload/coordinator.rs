@@ -100,7 +100,8 @@ impl Coordinator {
 
     pub(in crate::application) async fn ensure(
         &mut self,
-        composition: &Composition,
+        composition: &mut Composition,
+        events: &broadcast::Sender<CoreEvent>,
     ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
         if self.follower.is_some() {
             return Ok(());
@@ -109,8 +110,11 @@ impl Coordinator {
             return Ok(());
         }
         self.shutdown().await?;
-        self.watch = Some(composition::SourceWatch::start(&composition.watch_inputs)?);
         self.location = Some(composition.project.clone());
+        match composition::SourceWatch::start(&composition.watch_inputs) {
+            Ok(watch) => self.watch = Some(watch),
+            Err(diagnostic) => self.restart_failed(composition, events, diagnostic),
+        }
         Ok(())
     }
 

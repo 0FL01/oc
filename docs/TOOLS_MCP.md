@@ -57,6 +57,13 @@ Tool arguments remain bounded at 1 MiB per call. Overflow is a failed call with
 its original identity, not an executable partial JSON prefix or a failed turn:
 the parsers drain/reconcile the response, persist that refusal and run other
 admitted calls in the batch once. Independent SSE/generation/protocol caps remain.
+Invalid/non-object JSON is likewise a settled failed tool result, including when
+it is the only call: the next request receives its original call identity. Only a
+genuinely terminated generation can settle this input failure. Unfinished calls
+on `finish=length` fail with that reason, even if a Chat prefix is valid JSON;
+the prefix never executes. Tool-driven length recovery permits at most two
+consecutive length continuations; a completed stop or accepted user input resets
+the streak. A stream missing its genuine terminal remains an error, not length.
 Unknown effects still stop with `tool outcome unknown; retry may duplicate side effects`;
 the generic wording does not authorize replay for shell, execute or MCP.
 

@@ -6,7 +6,7 @@ fn event(value: serde_json::Value) -> String {
 }
 
 #[tokio::test]
-async fn prov09_local_rejection_after_partial_has_no_retry_intent_or_effect() {
+async fn prov09_reconciliation_after_partial_has_no_retry_or_runnable_intent_or_effect() {
     for kind in [
         "conflict",
         "delta-only",
@@ -75,7 +75,12 @@ async fn prov09_local_rejection_after_partial_has_no_retry_intent_or_effect() {
             .await
             .unwrap();
         assert_eq!(report.status, TurnStatus::Failed);
-        assert!(report.calls.is_empty());
+        let failed_input = kind == "bad-arguments";
+        assert_eq!(report.calls.len(), usize::from(failed_input));
+        for call in &report.calls {
+            assert_eq!(call.state, "failed");
+            assert_eq!(call.name, "bash");
+        }
         if kind == "delta-only" {
             assert_eq!(report.text, "partial");
             let (_, raw) = harness.db.turn_result(&report.turn_id).unwrap();
@@ -89,9 +94,20 @@ async fn prov09_local_rejection_after_partial_has_no_retry_intent_or_effect() {
             runtime.open_session("reject").unwrap();
             assert_eq!(harness.db.turn_result(&report.turn_id).unwrap().1, raw);
         }
-        assert!(harness.db.list_tool_ops("reject").unwrap().is_empty());
+        assert_eq!(
+            harness.db.list_tool_ops("reject").unwrap().len(),
+            usize::from(failed_input)
+        );
         assert!(!harness._project.path().join("rejection-effects").exists());
         let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+        let runnable: i64 = sql
+            .query_row(
+                "SELECT count(*) FROM tool_operations WHERE state!='failed'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(runnable, 0);
         let retry_count: i64 = sql
             .query_row(
                 "SELECT count(*) FROM events WHERE kind='retry_scheduled'",
@@ -103,12 +119,16 @@ async fn prov09_local_rejection_after_partial_has_no_retry_intent_or_effect() {
         assert_eq!(retry_count, i64::from(should_continue));
         assert_eq!(
             *hits.lock().unwrap(),
-            if should_continue { 2 } else { 1 },
+            if should_continue || failed_input {
+                2
+            } else {
+                1
+            },
             "{kind}: local rejection must not inherit partial-read retry"
         );
         let diagnostic = report.diagnostic.unwrap();
         assert!(!diagnostic.contains("CANARY"));
-        if !should_continue && kind != "quota" {
+        if !should_continue && kind != "quota" && !failed_input {
             assert!(diagnostic.contains("invalid provider output"));
         }
     }

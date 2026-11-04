@@ -450,17 +450,13 @@ pub(super) fn dispatch(
                 .get_mut(&index(&event)?)
                 .filter(|b| !b.closed)
                 .ok_or_else(|| structural(OutputStage::Done, OutputCode::InvalidIndex))?;
-            if block.value["type"] == "tool_use" {
-                let args = if block.arguments.is_empty() {
-                    block.value["input"].clone()
-                } else {
-                    serde_json::from_str(&block.arguments)
-                        .map_err(|_| structural(OutputStage::Done, OutputCode::InvalidArguments))?
-                };
-                if !args.is_object() {
-                    return Err(structural(OutputStage::Done, OutputCode::InvalidArguments));
-                }
-                block.value["input"] = args;
+            if block.value["type"] == "tool_use"
+                && !block.arguments.is_empty()
+                && let Ok(arguments) = serde_json::from_str::<serde_json::Value>(&block.arguments)
+                && arguments.is_object()
+            {
+                block.value["input"] = arguments;
+                block.arguments.clear();
             }
             block.closed = true;
         }
@@ -503,7 +499,7 @@ pub(super) fn dispatch(
                 let value = &block.value;
                 output.push(match value["type"].as_str() {
                     Some("text") => serde_json::json!({"type":"message","id":format!("messages_msg_{index}"),"role":"assistant","status":"completed","content":[{"type":"output_text","text":value["text"],"annotations":[]}]}),
-                    Some("tool_use") => serde_json::json!({"type":"function_call","id":item_id(*index),"call_id":value["id"],"name":value["name"],"arguments":value["input"].to_string(),"status":"completed"}),
+                    Some("tool_use") => serde_json::json!({"type":"function_call","id":item_id(*index),"call_id":value["id"],"name":value["name"],"arguments":if block.arguments.is_empty() { value["input"].to_string() } else { block.arguments.clone() },"status":"completed"}),
                     _ => serde_json::json!({"type":"reasoning","id":format!("messages_reasoning_{index}"),"summary":[],"messages_thinking":value}),
                 });
             }

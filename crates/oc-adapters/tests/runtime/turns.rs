@@ -1218,7 +1218,7 @@ async fn ret01_long_work_resets_retry_and_retains_output_without_replay_after_re
 }
 
 #[tokio::test]
-async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
+async fn aud11_review_length_terminal_only_call_has_no_effect_or_runnable_intent() {
     for prior_done in [false, true] {
         let (harness, generation) = make_harness(allow_all());
         let runtime = runtime_of(&harness, generation, Vec::new());
@@ -1258,7 +1258,11 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
         let report = runtime.run_turn(turn).await.unwrap();
         let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
         let intents: i64 = sql
-            .query_row("SELECT COUNT(*) FROM tool_operations", [], |row| row.get(0))
+            .query_row(
+                "SELECT COUNT(*) FROM tool_operations WHERE state!='failed'",
+                [],
+                |row| row.get(0),
+            )
             .unwrap();
         assert_eq!(
             (
@@ -1266,9 +1270,16 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
                 harness._project.path().join("length-effects").exists()
             ),
             (i64::from(prior_done), prior_done),
-            "only prior done may admit an intent and shell effect"
+            "only prior done may admit a runnable intent and shell effect"
         );
-        assert_eq!(report.calls.len(), usize::from(prior_done));
+        assert_eq!(report.calls.len(), 1);
+        assert_eq!(
+            report.calls[0].state,
+            if prior_done { "completed" } else { "failed" }
+        );
+        if !prior_done {
+            assert!(report.calls[0].output.contains("finish=length"));
+        }
         if prior_done {
             assert_eq!(
                 std::fs::read_to_string(harness._project.path().join("length-effects")).unwrap(),
@@ -1279,8 +1290,8 @@ async fn aud11_review_length_terminal_only_call_has_no_effect_or_intent() {
         assert_eq!(report.status, TurnStatus::Failed);
         assert_eq!(
             *hits.lock().unwrap(),
-            if prior_done { 2 } else { 1 },
-            "prior done continues to terminal quota; terminal-only length rejection is local"
+            2,
+            "settled calls and failed length inputs both continue to terminal quota"
         );
     }
 }

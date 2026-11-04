@@ -296,7 +296,7 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
     let mut names: BTreeMap<String, (String, String)> = BTreeMap::new();
     let mut args: BTreeMap<String, String> = BTreeMap::new();
     let mut order: Vec<String> = Vec::new();
-    let mut oversized = std::collections::BTreeSet::new();
+    let mut failures = BTreeMap::new();
     for item in items {
         match item {
             StreamItem::ToolCallStarted {
@@ -313,7 +313,7 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
                 names.insert(item_id.clone(), (name.clone(), call_id.clone()));
             }
             StreamItem::ArgDelta { item_id, delta } => {
-                if oversized.contains(item_id) {
+                if failures.contains_key(item_id) {
                     continue;
                 }
                 if !names.contains_key(item_id) {
@@ -330,7 +330,14 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
                     order.push(item_id.clone());
                 }
                 args.remove(item_id);
-                oversized.insert(item_id.clone());
+                failures.insert(item_id.clone(), "arguments byte limit exceeded");
+            }
+            StreamItem::ToolInputFailed { item_id, reason } => {
+                if !names.contains_key(item_id) && !args.contains_key(item_id) {
+                    order.push(item_id.clone());
+                }
+                args.remove(item_id);
+                failures.insert(item_id.clone(), *reason);
             }
             _ => {}
         }
@@ -339,11 +346,11 @@ pub fn assemble_calls(items: &[StreamItem]) -> Result<Vec<Assembled>, BatchError
     for id in order {
         match names.remove(&id) {
             Some((name, call_id)) => {
-                if oversized.contains(&id) {
+                if let Some(reason) = failures.get(&id) {
                     units.push(Assembled::Failed(CallFailure {
                         name,
                         id: call_id,
-                        error: "arguments byte limit exceeded".into(),
+                        error: (*reason).into(),
                     }));
                     continue;
                 }

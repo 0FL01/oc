@@ -119,6 +119,9 @@ and aggregate-definition-byte omissions are warning-only on startup and reload:
 256skills/4MiB caps stay in force, retained siblings remain usable. Incomplete agent
 catalog/selected-profile validation and instruction diagnostics are not relaxed. Failed reload keeps
 the previous complete generation, not mixed catalogs/instructions/clients/policy.
+Source-watcher installation failure also retains the already admitted snapshot
+and live worker, with a safe reload warning. Explicit reload retries observation;
+there is no hot automatic retry loop or relaxation of source/policy admission.
 Corrupt active stored selections do not fall back to defaults; a broken inactive tab
 preference may only be projected read-only with a visible safe diagnostic.
 

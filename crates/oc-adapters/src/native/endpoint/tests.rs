@@ -72,12 +72,27 @@ async fn srv05_private_peer_registration_and_unsafe_paths_fail_closed() {
         error.diagnostic.code,
         oc_core::queries::ServiceCode::ProtocolMismatch
     );
+    assert_eq!(
+        error.diagnostic.details.as_ref().unwrap()[0],
+        "Client and running native owner use incompatible protocols."
+    );
     assert!(matches!(
         crate::storage::Db::open(&data),
         Err(crate::storage::StorageError::DataRootBusy)
     ));
     drop(endpoint);
     drop(db);
+}
+
+#[test]
+fn w6_native_io_diagnostic_keeps_kind_without_exception_payload() {
+    let error = io::Error::new(io::ErrorKind::AddrInUse, "W6_SYNTHETIC_SECRET_CONTEXT");
+    let issue = diagnostic(Path::new("/synthetic"), error);
+    assert_eq!(
+        issue.diagnostic.details.as_ref().unwrap()[0],
+        "io_kind=AddrInUse; os_error=None"
+    );
+    assert!(!issue.to_string().contains("W6_SYNTHETIC_SECRET_CONTEXT"));
 }
 
 #[tokio::test]

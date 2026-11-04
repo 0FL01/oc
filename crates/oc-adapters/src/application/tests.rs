@@ -1296,7 +1296,7 @@ mod reload_tests {
         let sessions = BTreeMap::new();
         let initial = runtime.generation_id();
         let mut coordinator = reload::Coordinator::default();
-        coordinator.ensure(&composition).await.unwrap();
+        coordinator.ensure(&mut composition, &events).await.unwrap();
         for phase in 0..3 {
             if phase == 0 {
                 std::fs::write(

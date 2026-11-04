@@ -107,6 +107,87 @@ pub(in crate::runtime) async fn respond(
 }
 
 #[tokio::test]
+async fn w6_chat_network_error_retries_past_ten_without_changing_request() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "synthetic".into(),
+        timeout: None,
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(3000),
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: BTreeMap::new(),
+        cache: crate::provider::CacheMode::None,
+        wire: crate::provider::WireBinding::chat(BTreeMap::new()),
+    };
+    let requests = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let captured = requests.clone();
+    let peer = tokio::spawn(async move {
+        for attempt in 0..13 {
+            let (mut socket, body) = request(&listener).await;
+            captured.lock().unwrap().push(body);
+            if attempt == 12 {
+                respond(&mut socket, Protocol::Chat, false).await;
+            } else {
+                let wire = "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"network_error\"}]}\n\ndata: [DONE]\n\n";
+                socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{wire}", wire.len()).as_bytes()).await.unwrap();
+            }
+        }
+    });
+    let db = Db::open(data.path()).unwrap();
+    let runtime = owner(&db, project.path());
+    runtime.create_session("network").unwrap();
+    let models = models::ModelCatalog {
+        provider: "fixture".into(),
+        models: crate::models::Models::from([(
+            "m".into(),
+            json!({"limit":{"context":500000,"output":2048}}),
+        )]),
+    };
+    let (events, mut retry_events) = tokio::sync::broadcast::channel(128);
+    runtime.set_approval_events(&events);
+    let cancel = AtomicBool::new(false);
+    let turn = runtime.run_turn(TurnParams {
+        session: "network".into(),
+        prompt: "recover".into(),
+        invocation: None,
+        catalog: &models,
+        model_id: "m".into(),
+        variant: None,
+        max_output: 1000,
+        provider,
+        cancel: &cancel,
+    });
+    tokio::pin!(turn);
+    let mut attempts = Vec::new();
+    let report = loop {
+        tokio::select! {
+            biased;
+            result = &mut turn => break result.unwrap(),
+            event = retry_events.recv() => {
+                if let oc_core::core_app::CoreEvent::RetryScheduled { retry, .. } = event.unwrap() {
+                    attempts.push(retry.attempt);
+                    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
+                    tokio::time::pause();
+                    tokio::time::advance(Duration::from_millis(retry.at.saturating_sub(now) + 1)).await;
+                    tokio::time::resume();
+                }
+            }
+        }
+    };
+    peer.abort();
+    let _ = peer.await;
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(attempts, (2..=13).collect::<Vec<_>>());
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 13);
+    assert!(requests.iter().all(|request| request == &requests[0]));
+}
+
+#[tokio::test]
 async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_replay() {
     for protocol in [Protocol::Chat, Protocol::Messages] {
         let data = tempfile::tempdir().unwrap();

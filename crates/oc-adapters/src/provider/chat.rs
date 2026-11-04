@@ -469,6 +469,11 @@ pub(super) fn finalize(parser: &mut SseParser) -> Result<(), ProviderError> {
                 &serde_json::json!({"error": {"code": "content_filter", "message": "Provider finish_reason: content_filter"}}),
             ));
         }
+        "network_error" => {
+            return Err(failure::event_failure(
+                &serde_json::json!({"error": {"code": "server_error", "message": "Provider finish_reason: network_error"}}),
+            ));
+        }
         other => {
             return Err(failure::event_failure(
                 &serde_json::json!({"error": {"message": format!("Provider finish_reason: {other}")}}),
@@ -503,13 +508,10 @@ pub(super) fn finalize(parser: &mut SseParser) -> Result<(), ProviderError> {
         } else {
             arguments
         };
-        if serde_json::from_str::<serde_json::Value>(arguments)
-            .map_or(true, |value| !value.is_object())
-        {
-            return Err(structural(
-                OutputStage::Completion,
-                OutputCode::InvalidArguments,
-            ));
+        if parser.finish == FinishReason::Length {
+            // Chat does not confirm pending calls on a length finish, even
+            // when the accumulated prefix already looks like valid JSON.
+            parser.unfinished_calls.insert(item_id(*index));
         }
         output.push(serde_json::json!({
             "type": "function_call",

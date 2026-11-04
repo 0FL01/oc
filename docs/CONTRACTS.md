@@ -100,6 +100,8 @@ Owner-approved T54/RET01 supersedes только старый pre-first-event/tw
 generation default: одна физическая попытка в adapter, одна runtime policy
 на логический LLM step. Временные transport/stream/rate-limit и provider outage
 повторяются без лимита, прочие eligible provider failures — до 10 раз.
+Chat `finish_reason: network_error` относится к typed provider outage, не к
+UnknownProvider; для UnknownProvider прежний лимит 10 сохраняется.
 Отменяемый jittered backoff растёт от 2s до 60s; более длинный Retry-After
 ограничивается выбранным пользователем потолком, так что server minimum в этом
 случае не соблюдается. 429 и provider 5xx повторяются даже при
@@ -121,6 +123,13 @@ effects не replay и не превращаются в успех. EOF/failed/u
 `response.incomplete(max_output_tokens)` — truthful finish `length`,
 `content_filter` — failure, не generic retry. Title не получает main policy;
 поддержанные compaction auxiliary paths имеют свою retry policy.
+Settled invalid/oversized/non-object calls продолжают ход с failed result,
+не исполняя префикс. Незавершённый tool input при genuine length также failed;
+tool-driven recovery допускает не более двух length-continuations. Третий
+последовательный length завершает recovery с output-limit failure; новый user
+input или иной completed finish сбрасывает streak, physical retries — нет.
+Text-only length без начатого tool-driven recovery сохраняет truthful terminal
+length, а неизвестный effect останавливает ход до любого продолжения.
 
 Physical generation request counter включает фактически выданные attempts,
 follow-ups/children/compaction/title как accounting, не production stop quota.

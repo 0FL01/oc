@@ -4,6 +4,40 @@ use oc_core::queries::{
     ServiceDiagnostic, ServiceKind, ServiceStage,
 };
 
+#[test]
+fn w6_native_environment_notice_is_info_without_overwriting_warnings_or_parked_replay() {
+    let (app, _inbox, _control, _events, _admissions) = CoreApp::native_channel(2, 1);
+    let mut state = TuiState::new_home(app);
+    state.set_service_feedback_visible(true);
+    assert_eq!(
+        state.note(),
+        Some(
+            "Native owner uses the environment captured when it started; later clients' environment is not adopted."
+        )
+    );
+    assert_eq!(state.note.as_ref().unwrap().1, NoteVariant::Info);
+    state.push_note_variant("important warning", NoteVariant::Warning);
+    state.set_service_feedback_visible(true);
+    assert_eq!(state.note(), Some("important warning"));
+
+    let (app, _inbox, _control, _events, _admissions) = CoreApp::native_channel(2, 2);
+    let mut parked = TuiState::new_home(app);
+    parked.set_service_feedback_visible(false);
+    parked.set_service_feedback_visible(true);
+    assert!(parked.note().is_none());
+
+    let (app, _inbox, _control, _events, _admissions) = CoreApp::native_channel(2, 3);
+    let mut warning = TuiState::new_home(app);
+    warning.push_note_variant("startup warning", NoteVariant::Warning);
+    warning.set_service_feedback_visible(true);
+    assert_eq!(warning.note(), Some("startup warning"));
+
+    let (app, _inbox, _events) = CoreApp::channel(2);
+    let mut local = TuiState::new_home(app);
+    local.set_service_feedback_visible(true);
+    assert!(local.note().is_none());
+}
+
 fn diagnostic(kind: ServiceKind) -> ServiceDiagnostic {
     ServiceDiagnostic {
         kind,

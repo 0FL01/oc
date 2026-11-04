@@ -387,14 +387,11 @@ fn go03_chat_stream_refuses_untrustworthy_terminals() {
     // [DONE] without a finish reason is not a terminal either.
     let mut parser = SseParser::chat(&compat);
     assert!(parser.push(b"data: [DONE]\n\n").is_err());
-    // Content after the finish reason, invalid arguments, missing ids, filters and errors.
+    // Content after the finish reason, missing ids, filters and errors.
     let cases = [
         vec![
             serde_json::json!({"choices":[{"delta":{},"finish_reason":"stop"}]}),
             serde_json::json!({"choices":[{"delta":{"content":"late"}}]}),
-        ],
-        vec![
-            serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"read","arguments":"{bad"}}]},"finish_reason":"tool_calls"}]}),
         ],
         vec![
             serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"read","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}),
@@ -416,5 +413,30 @@ fn go03_chat_stream_refuses_untrustworthy_terminals() {
             parser.output.is_none(),
             "case {index}: no partial output becomes success"
         );
+    }
+}
+
+#[test]
+fn w6_chat_failed_input_preserves_identity_and_never_executes_a_length_prefix() {
+    for (arguments, finish, reason) in [
+        ("{bad", "tool_calls", "invalid JSON arguments"),
+        (
+            "{}",
+            "length",
+            "incomplete tool input: provider finish=length",
+        ),
+    ] {
+        let mut parser = SseParser::chat(&ChatCompat::default());
+        let mut items = feed(&mut parser, &[
+            serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"read","arguments":arguments}}]},"finish_reason":finish}]}),
+        ]).unwrap();
+        items.extend(parser.push(b"data: [DONE]\n\n").unwrap());
+        assert!(parser.completed);
+        let generation = crate::provider::collect_generation(parser, items);
+        assert!(
+            matches!(&crate::tools::assemble_calls(&generation.items).unwrap()[0],
+            crate::tools::Assembled::Failed(failure) if failure.id == "c" && failure.name == "read" && failure.error == reason)
+        );
+        assert_eq!(generation.output[0]["arguments"], "{}");
     }
 }

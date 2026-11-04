@@ -128,6 +128,7 @@ enum Reply {
     Fragmented,
     Tool,
     ToolRejected,
+    MalformedTool,
     Child,
     ChildPolicy,
     Ambiguous,
@@ -236,11 +237,14 @@ impl Peer {
                             socket.send(event(json!({"type":"response.completed","response":{"id":id,"status":"completed","output":[call],"usage":{"input_tokens":4,"output_tokens":2}}}))).await.unwrap();
                             continue;
                         }
-                        if matches!(reply, Reply::Tool | Reply::ToolRejected) && sequence == 1 {
+                        if matches!(reply, Reply::Tool | Reply::ToolRejected | Reply::MalformedTool) && sequence == 1 {
                             let reasoning = json!({"id":"reasoning-tool","type":"reasoning","summary":[],"encrypted_content":"EARLY_OPAQUE_CANARY"});
                             socket.send(event(json!({"type":"response.output_item.added","output_index":0,"item":reasoning}))).await.unwrap();
                             socket.send(event(json!({"type":"response.output_item.done","output_index":0,"item":reasoning}))).await.unwrap();
-                            let call = json!({"id":"read-item","type":"function_call","call_id":"settled-read","name":"read","arguments":"{\"path\":\"note.txt\"}","status":"completed"});
+                            let mut call = json!({"id":"read-item","type":"function_call","call_id":"settled-read","name":"read","arguments":"{\"path\":\"note.txt\"}","status":"completed"});
+                            if matches!(reply, Reply::MalformedTool) {
+                                call["arguments"] = "{\"path\":\"note.txt\"} trailing".into();
+                            }
                             let mut added = call.clone();
                             added["arguments"] = "".into();
                             added["status"] = "in_progress".into();
@@ -707,6 +711,38 @@ async fn request(
         },
     )
     .await
+}
+
+#[tokio::test]
+async fn w6_normalized_failed_input_cannot_install_a_remote_append_checkpoint() {
+    let fixture = Fixture::new();
+    let peer = Peer::new(Reply::MalformedTool).await;
+    let config = fixture.config(&peer.base, false);
+    let sends = std::sync::atomic::AtomicUsize::new(0);
+    let cancel = AtomicBool::new(false);
+    let mut input = vec![InputItem::message(InputRole::User, "input")];
+    let generation = request(&config, &input, &cancel, &sends).await.unwrap();
+    assert!(
+        generation
+            .items
+            .iter()
+            .any(|item| matches!(item, StreamItem::ToolInputFailed { .. }))
+    );
+    input.extend(generation.output.into_iter().map(InputItem::ProviderOutput));
+    input.push(InputItem::FunctionCallOutput {
+        call_id: "settled-read".into(),
+        output: "failed input".into(),
+    });
+    request(&config, &input, &cancel, &sends).await.unwrap();
+    let frames = peer.frames.lock().unwrap().clone();
+    assert_eq!(frames.len(), 2);
+    assert!(
+        frames[1].get("previous_response_id").is_none(),
+        "remote input differs from the bounded canonical placeholder"
+    );
+    assert!(peer.http.lock().unwrap().is_empty());
+    fixture.db.response_channels.shutdown().await.unwrap();
+    peer.shutdown().await;
 }
 
 #[tokio::test]

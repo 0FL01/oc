@@ -732,7 +732,13 @@ fn sessions_list_stdout_ids_only() {
     assert!(output.stderr.is_empty());
 }
 
-fn projectless_owner(fixture: &Fixture) -> (OwnedProcess, std::os::unix::net::UnixStream) {
+fn projectless_owner_result(
+    fixture: &Fixture,
+) -> (
+    OwnedProcess,
+    std::os::unix::net::UnixStream,
+    serde_json::Value,
+) {
     use std::os::{
         fd::AsRawFd,
         unix::{net::UnixStream, process::CommandExt as _},
@@ -787,13 +793,57 @@ fn projectless_owner(fixture: &Fixture) -> (OwnedProcess, std::os::unix::net::Un
             .unwrap();
         offset += frame;
     }
-    let ready: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let result: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    (owner, startup, result)
+}
+
+fn projectless_owner(fixture: &Fixture) -> (OwnedProcess, std::os::unix::net::UnixStream) {
+    let (owner, startup, ready) = projectless_owner_result(fixture);
     assert_eq!(
         ready["Ready"]["pid"],
         owner.0.id(),
         "actual ELF storage owner"
     );
     (owner, startup)
+}
+
+#[test]
+fn w6_endpoint_bind_refusal_returns_bootstrap_cause_and_releases_owner() {
+    let fixture = Fixture::new();
+    drop(oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap());
+    let target = fixture.root.path().join("W6_SYNTHETIC_SECRET_CONTEXT");
+    std::fs::write(&target, "untouched").unwrap();
+    let registry = fixture.data_dir().join("native-owner.json");
+    std::os::unix::fs::symlink(&target, &registry).unwrap();
+    let (mut owner, startup, reply) = projectless_owner_result(&fixture);
+    drop(startup);
+    assert_eq!(reply["Failed"]["diagnostic"]["code"], "storage_unavailable");
+    let cause = std::io::Error::from_raw_os_error(libc::ELOOP);
+    assert_eq!(
+        reply["Failed"]["diagnostic"]["details"][0],
+        format!(
+            "io_kind={:?}; os_error={:?}",
+            cause.kind(),
+            cause.raw_os_error()
+        )
+    );
+    assert!(!reply.to_string().contains("W6_SYNTHETIC_SECRET_CONTEXT"));
+    let until = Instant::now() + DEADLINE;
+    loop {
+        if let Some(status) = owner.0.try_wait().unwrap() {
+            assert!(!status.success());
+            break;
+        }
+        assert!(
+            Instant::now() < until,
+            "failed endpoint left its isolated owner alive"
+        );
+        std::thread::sleep(POLL);
+    }
+    assert!(registry.is_symlink());
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "untouched");
+    assert!(oc_adapters::storage::Db::open(&fixture.data_dir()).is_ok());
+    assert!(fixture.requests.lock().unwrap().is_empty());
 }
 
 #[test]

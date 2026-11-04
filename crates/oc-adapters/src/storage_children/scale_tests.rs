@@ -217,3 +217,32 @@ fn delivery_mode_migration_backfills_launch_mode_and_conversion_once() {
         .unwrap();
     assert_eq!(markers, 1, "reopen does not migrate again");
 }
+
+#[test]
+fn w6_unknown_jobs_release_capacity_without_releasing_unresolved_identity() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("parent").unwrap();
+    for index in 0..crate::runtime::children::JOB_CAP {
+        let job = admit(&db, index, true);
+        db.finish_child_job(&job.operation, ChildState::Unknown, "unknown effect")
+            .unwrap();
+        assert!(db.child_job_unresolved(&job.child.0).unwrap());
+    }
+    assert_eq!(db.child_job_outstanding().unwrap(), 0);
+    // Cross the former cap through the transactional admission count too.
+    let unknown = admit(&db, crate::runtime::children::JOB_CAP, true);
+    db.finish_child_job(&unknown.operation, ChildState::Unknown, "unknown effect")
+        .unwrap();
+    let live = admit(&db, crate::runtime::children::JOB_CAP + 1, true);
+    assert_eq!(db.child_job_outstanding().unwrap(), 1);
+    assert!(db.child_job_live(&live.operation).unwrap());
+    assert_eq!(db.deliver_child_notices().unwrap().len(), 8);
+    assert_eq!(db.deliver_child_notices().unwrap().len(), 1);
+    assert!(db.deliver_child_notices().unwrap().is_empty());
+    assert!(db.child_job_unresolved(&unknown.child.0).unwrap());
+    assert_eq!(db.child_job_outstanding().unwrap(), 1);
+    let candidates = db.child_recovery_candidates().unwrap();
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].operation, live.operation);
+}

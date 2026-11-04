@@ -52,7 +52,7 @@ async fn hot02_retained_failed_unselected_provider_cannot_replace_selected_provi
     source["model"] = "ludka2/exact".into();
     std::fs::write(&path, source.to_string()).unwrap();
     let mut coordinator = Coordinator::default();
-    coordinator.ensure(&current).await.unwrap();
+    coordinator.ensure(&mut current, &events).await.unwrap();
     let observation = coordinator.watch.as_ref().unwrap().observation();
     let candidate = tokio::time::timeout(
         Duration::from_secs(3),
@@ -138,7 +138,24 @@ async fn hot02_observer_failure_restarts_and_failed_restart_releases_force() {
     let sessions = BTreeMap::new();
     let epoch = AtomicU64::new(1);
     let mut coordinator = Coordinator::default();
-    coordinator.ensure(&current).await.unwrap();
+    let initial_inputs = current.watch_inputs.clone();
+    let admitted_provider = current.provider.clone();
+    let mut invalid = current.watch_inputs.targets.iter().next().unwrap().clone();
+    invalid.path = PathBuf::from("/invalid\0/initial-watch");
+    current.watch_inputs.targets.insert(invalid);
+    assert!(coordinator.ensure(&mut current, &events).await.is_ok());
+    assert!(coordinator.watch.is_none());
+    assert_eq!(coordinator.location.as_ref(), Some(&current.project));
+    assert!(current.reload_issue.is_some());
+    assert_eq!(current.provider, admitted_provider);
+    // An explicit retry can re-arm this admitted Location after the failure.
+    current.watch_inputs = initial_inputs;
+    let (initial_ack, _initial_reply) = oneshot::channel();
+    coordinator.request(initial_ack);
+    coordinator.start(&db, &runtime, &mut current, &events);
+    assert!(coordinator.watch.is_some());
+    coordinator.shutdown().await.unwrap();
+    coordinator.ensure(&mut current, &events).await.unwrap();
     coordinator.watch.as_ref().unwrap().abort();
     let ready = tokio::time::timeout(Duration::from_secs(2), async {
         loop {
@@ -293,7 +310,7 @@ async fn hot02_coordinator_keeps_one_build_or_force_and_bounded_waiters() {
     let runtime = build_runtime(&db, &composition).unwrap();
     let (events, _) = broadcast::channel(8);
     let mut coordinator = Coordinator::default();
-    coordinator.ensure(&composition).await.unwrap();
+    coordinator.ensure(&mut composition, &events).await.unwrap();
     assert!(coordinator.wait().await.unwrap().is_none());
 
     // Hold the existing build slot, just as the actual held-GET application

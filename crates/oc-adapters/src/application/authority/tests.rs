@@ -1908,6 +1908,86 @@ async fn running_shell_ask_remains_pumped_after_model_finishes_and_receipt_cance
 }
 
 #[tokio::test]
+async fn w6_refused_stale_steer_cannot_extend_exhausted_length_allowance() {
+    use oc_core::queries::InboxDelivery;
+    use tokio::io::AsyncWriteExt;
+
+    let f = RunningInputFixture::new(|c| {
+        c["commands"] = json!({"check":{"template":"ORIGINAL_EXPANSION $1"}})
+    })
+    .await;
+    let mut queued = None;
+    for index in 0..3 {
+        let (mut socket, _) = f.request().await;
+        if index == 2 {
+            queued = Some(
+                f.run
+                    .app
+                    .enqueue(
+                        SessionId("R".into()),
+                        "/check ARG".into(),
+                        InboxDelivery::Steer,
+                    )
+                    .await
+                    .unwrap(),
+            );
+            let path = f.project.join("opencode.json");
+            let mut source: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+            source["commands"]["check"]["template"] = json!("CHANGED_EXPANSION $1");
+            std::fs::write(path, source.to_string()).unwrap();
+            let location = f.owner.location(&f.project, false).await.unwrap();
+            tokio::time::timeout(Duration::from_secs(5), location.app.reload_location())
+                .await
+                .unwrap()
+                .unwrap();
+        }
+        let terminal = json!({"type":"response.incomplete","response":{
+            "status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},
+            "output":[{"type":"function_call","id":format!("i{index}"),
+                "call_id":format!("c{index}"),"name":"shell","status":"incomplete",
+                "arguments":r#"{"command":"printf BAD > effects"}"#}]
+        }});
+        let body = format!("data: {terminal}\n\n");
+        socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        socket.shutdown().await.unwrap();
+    }
+    let extra = tokio::time::timeout(Duration::from_secs(5), async {
+        tokio::select! {
+            result = f.owner.next_root() => { result.unwrap(); false }
+            result = f.listener.accept() => {
+                let (mut socket, _) = result.unwrap();
+                request(&mut socket).await;
+                final_answer(&mut socket).await;
+                f.owner.next_root().await.unwrap();
+                true
+            }
+        }
+    })
+    .await
+    .unwrap();
+    f.owner.shutdown().await.unwrap();
+    let pending = f
+        .owner
+        .db
+        .inbox_read("R", &queued.unwrap().id)
+        .unwrap()
+        .unwrap();
+    assert!(matches!(&pending.item.error,
+        Some(CoreError::Application(message)) if message == "queued command source changed; restore and resend the command"));
+    assert_eq!(pending.payload.prompt.text, "ORIGINAL_EXPANSION ARG");
+    assert!(!f.project.join("effects").exists());
+    assert!(
+        !extra,
+        "a refused steer cannot permit a third automatic length continuation"
+    );
+    let (status, log) = f.owner.db.turn_result(&f.turn.0).unwrap();
+    assert_eq!(status, "failed");
+    let log: serde_json::Value = serde_json::from_str(&log.unwrap()).unwrap();
+    assert_eq!(log["requests"].as_array().unwrap().len(), 3);
+}
+
+#[tokio::test]
 async fn running_stale_command_is_visible_restorable_and_does_not_reexpand_or_request_again() {
     use oc_core::queries::InboxDelivery;
     for interrupted in [false, true] {
