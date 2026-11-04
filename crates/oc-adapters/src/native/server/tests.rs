@@ -418,7 +418,7 @@ async fn incident_native_compact_with_shell_and_child_completions() {
 }
 
 #[tokio::test]
-async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control_are_distinct() {
+async fn srv04_admitted_user_shell_ignores_model_ask_and_stale_pending_control() {
     let temp = tempfile::tempdir().unwrap();
     let project = temp.path().join("project");
     let home = temp.path().join("home");
@@ -534,29 +534,35 @@ async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control
                     expected: None,
                     request: Box::new(Request::UserShell {
                         session: session.clone(),
-                        command: format!("printf unexpected > shell-{id}.effect"),
+                        command: format!("printf accepted > shell-{id}.effect"),
                         selection: UserShellSelection::Existing(None),
                         cancel: Arc::new(AtomicBool::new(false)),
                     }),
                 },
             )
             .await;
-            loop {
-                if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap()
-                    && request.binding.operation.starts_with("user-shell:")
-                {
-                    break;
-                }
+            let (reply, result) = next_reply(&mut client, &budget).await;
+            assert_eq!(reply, id);
+            let operation = serde_json::from_value::<Result<String, CoreError>>(result.unwrap())
+                .unwrap()
+                .unwrap();
+            assert!(operation.starts_with("user-shell:"));
+            while root
+                .app
+                .shell_snapshot(session.clone(), operation.clone())
+                .await
+                .unwrap()
+                .state
+                != "completed"
+            {
+                assert!(!matches!(
+                    events.recv().await.unwrap(),
+                    CoreEvent::PermissionAsked(_)
+                ));
             }
+            assert!(root.app.pending_approvals().await.unwrap().is_empty());
             if id == 1 {
                 send_client(&mut client, &budget, Client::CancelRequest { id }).await;
-                let (reply, result) = next_reply(&mut client, &budget).await;
-                assert_eq!(reply, id);
-                assert!(
-                    serde_json::from_value::<Result<String, CoreError>>(result.unwrap())
-                        .unwrap()
-                        .is_err()
-                );
                 assert!(!root.cancel.load(Ordering::Acquire));
             } else {
                 send_client(
@@ -571,26 +577,36 @@ async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control
                     },
                 )
                 .await;
-                let mut replies = BTreeMap::new();
-                while replies.len() < 2 {
-                    let (id, result) = next_reply(&mut client, &budget).await;
-                    replies.insert(id, result.unwrap());
-                }
+                let (reply, result) = next_reply(&mut client, &budget).await;
+                assert_eq!(reply, 100);
                 assert!(
-                    serde_json::from_value::<Result<(), CoreError>>(replies.remove(&100).unwrap())
+                    serde_json::from_value::<Result<(), CoreError>>(result.unwrap())
                         .unwrap()
-                        .is_ok()
+                        .is_err()
                 );
-                assert!(
-                    serde_json::from_value::<Result<String, CoreError>>(
-                        replies.remove(&id).unwrap()
-                    )
-                    .unwrap()
-                    .is_err()
-                );
-                assert!(root.cancel.load(Ordering::Acquire));
+                assert!(!root.cancel.load(Ordering::Acquire));
             }
         }
+        send_client(
+            &mut client,
+            &budget,
+            Client::Control {
+                id: 101,
+                location_epoch: 0,
+                expected: Some(Expected::Origin(root.origin.id)),
+                session: session.clone(),
+                turn: Some(turn.clone()),
+            },
+        )
+        .await;
+        let (reply, result) = next_reply(&mut client, &budget).await;
+        assert_eq!(reply, 101);
+        assert!(
+            serde_json::from_value::<Result<(), CoreError>>(result.unwrap())
+                .unwrap()
+                .is_ok()
+        );
+        assert!(root.cancel.load(Ordering::Acquire));
         owner.next_root().await.unwrap();
     })
     .await
@@ -599,8 +615,14 @@ async fn srv04_running_shell_receipt_cancellation_and_bound_pending_root_control
     drop(socket);
     assert!(task.await.unwrap().is_none());
     owner.shutdown().await.unwrap();
-    assert!(!project.join("shell-1.effect").exists());
-    assert!(!project.join("shell-2.effect").exists());
+    assert_eq!(
+        std::fs::read(project.join("shell-1.effect")).unwrap(),
+        b"accepted"
+    );
+    assert_eq!(
+        std::fs::read(project.join("shell-2.effect")).unwrap(),
+        b"accepted"
+    );
 }
 
 #[tokio::test]

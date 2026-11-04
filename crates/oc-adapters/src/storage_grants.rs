@@ -76,6 +76,16 @@ impl Db {
         }
         Ok(false)
     }
+    pub(crate) fn permission_grant_exact(
+        &self,
+        project: &str,
+        action: &str,
+        resource: &str,
+    ) -> Result<bool, StorageError> {
+        let conn = self.conn.lock().expect("db lock");
+        Ok(conn.prepare_cached("SELECT EXISTS(SELECT 1 FROM permission_grants WHERE project=?1 AND action=?2 AND pattern=?3)")?
+            .query_row(params![project, action, resource], |row| row.get(0))?)
+    }
     pub(crate) fn save_permission_grants(
         &self,
         project: &str,

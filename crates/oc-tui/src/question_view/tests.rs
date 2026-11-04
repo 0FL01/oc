@@ -2,6 +2,38 @@ use super::*;
 fn request(multiple: bool) -> QuestionRequest {
     QuestionRequest { id: 1, binding: oc_core::approval::ApprovalBinding { session: "s".into(), turn: "t".into(), call: "c".into(), operation: "o".into(), input_digest: "d".into(), location: "l".into(), generation: 1, agent: None, agent_digest: None }, input: oc_core::question::QuestionInput::parse(&serde_json::json!({"questions":[{"question":"Pick?","header":"Pick","multiple":multiple,"options":[{"label":"A","description":"first"},{"label":"B","description":"second"}]}]})).unwrap(), images: false }
 }
+
+#[test]
+fn w7_blank_and_duplicate_option_labels_still_produce_bound_question_replies() {
+    for selection in [0, 2] {
+        let mut r = request(false);
+        r.input = oc_core::question::QuestionInput::parse(&serde_json::json!({"questions":[{
+            "question":"", "header":"long header ".repeat(8), "options":[
+                {"label":"", "description":"empty"}, {"label":"same", "description":"first"}, {"label":"same", "description":"second"}
+            ]
+        }]})).unwrap();
+        let mut view = QuestionView::default();
+        view.reconcile(std::slice::from_ref(&r), vec![r.clone()]);
+        for _ in 0..selection {
+            view.key(KeyAction::Down);
+        }
+        let Some(PanelIntent::ReplyQuestion(reply)) = view.key(KeyAction::Enter).intent else {
+            panic!("declared option must be answerable");
+        };
+        assert_eq!(reply.binding, r.binding);
+        assert_eq!(
+            reply.decision,
+            QuestionDecision::Answers {
+                answers: vec![vec![if selection == 0 {
+                    "".into()
+                } else {
+                    "same".into()
+                }]],
+                images: vec![]
+            }
+        );
+    }
+}
 #[test]
 fn multiple_requires_submit_and_error_remount_retains_exact_draft() {
     let r = request(true);

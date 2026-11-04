@@ -125,7 +125,7 @@ pub struct Shell {
 #[derive(Debug)]
 pub struct PinnedCwd {
     root: File,
-    cwd: File,
+    pub(crate) cwd: File,
     pub(crate) path: PathBuf,
 }
 impl PinnedCwd {
@@ -249,18 +249,27 @@ impl Shell {
         self.resolve_cwd(cwd)
     }
     pub(crate) fn pin_cwd(&self, argv: &[String], cwd: &str) -> Result<Arc<PinnedCwd>, ShellError> {
-        let path = self.preflight(argv, cwd)?;
+        let lexical = self.preflight(argv, cwd)?;
+        let path = lexical.canonicalize().map_err(|_| ShellError::BadCwd)?;
+        // Retain the existing refusal for an internal alias that escapes the
+        // Location. Explicit external workdirs have separate lexical admission.
+        if lexical.starts_with(&self.root) && !path.starts_with(&self.root) {
+            return Err(ShellError::BadCwd);
+        }
         let slash = OpenOptions::new()
             .read(true)
             .custom_flags(libc::O_PATH | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
             .open("/")
             .map_err(|_| ShellError::BadCwd)?;
-        let root = open_directory(&self.root, slash)?;
-        let relative = path
-            .strip_prefix(&self.root)
-            .map_err(|_| ShellError::BadCwd)?;
-        let directory =
-            open_directory(relative, root.try_clone().map_err(|_| ShellError::BadCwd)?)?;
+        let root = open_directory(
+            &self.root,
+            slash.try_clone().map_err(|_| ShellError::BadCwd)?,
+        )?;
+        let directory = if let Ok(relative) = path.strip_prefix(&self.root) {
+            open_directory(relative, root.try_clone().map_err(|_| ShellError::BadCwd)?)?
+        } else {
+            open_directory(&path, slash)?
+        };
         Ok(Arc::new(PinnedCwd {
             root,
             cwd: directory,
@@ -536,7 +545,8 @@ impl Shell {
         )
     }
 
-    fn resolve_cwd(&self, cwd: &str) -> Result<PathBuf, ShellError> {
+    /// Lexical cwd, before external-directory admission and descriptor pinning.
+    pub(crate) fn resolve_cwd(&self, cwd: &str) -> Result<PathBuf, ShellError> {
         let mut abs = self.root.clone();
         let path = if cwd.is_empty() {
             Path::new(".")
@@ -545,7 +555,8 @@ impl Shell {
         };
         for comp in path.components() {
             match comp {
-                Component::Prefix(_) | Component::RootDir => return Err(ShellError::BadCwd),
+                Component::Prefix(_) => return Err(ShellError::BadCwd),
+                Component::RootDir => abs = PathBuf::from("/"),
                 Component::ParentDir => {
                     abs.pop();
                 }
@@ -553,20 +564,7 @@ impl Shell {
                 Component::Normal(part) => abs.push(part),
             }
         }
-        if abs != self.root && !abs.starts_with(&self.root) {
-            return Err(ShellError::BadCwd);
-        }
-        if !abs.is_dir() {
-            return Err(ShellError::BadCwd);
-        }
-        // Lexical containment is not enough: a symlink inside the trusted
-        // root can point outside it. The kernel resolves the real path, so
-        // the canonical target must stay inside the canonical root.
-        let canonical = abs.canonicalize().map_err(|_| ShellError::BadCwd)?;
-        if canonical != self.root && !canonical.starts_with(&self.root) {
-            return Err(ShellError::BadCwd);
-        }
-        Ok(canonical)
+        Ok(abs)
     }
 }
 
@@ -1136,6 +1134,25 @@ mod tests {
         (tmp, Shell::new(&project).expect("shell"))
     }
 
+    #[test]
+    fn w7_absolute_internal_and_external_cwd_can_be_pinned() {
+        use std::os::unix::fs::MetadataExt as _;
+        let (tmp, shell) = setup();
+        let inside = tmp.path().join("project/inside");
+        let outside = tmp.path().join("outside");
+        for directory in [&inside, &outside] {
+            std::fs::create_dir(directory).unwrap();
+            let pinned = shell
+                .pin_cwd(&["pwd".into()], directory.to_str().unwrap())
+                .unwrap();
+            assert_eq!(pinned.path, directory.canonicalize().unwrap());
+            assert_eq!(
+                pinned.cwd.metadata().unwrap().ino(),
+                directory.metadata().unwrap().ino()
+            );
+        }
+    }
+
     fn parent_env() -> BTreeMap<String, String> {
         [
             ("LUDKA_API_KEY", "parent-secret"),
@@ -1523,7 +1540,7 @@ mod tests {
             shell.execute(
                 &parent_env(),
                 &["true".to_string()],
-                "..",
+                "missing-directory",
                 None,
                 limits(1000),
                 &NO_CANCEL

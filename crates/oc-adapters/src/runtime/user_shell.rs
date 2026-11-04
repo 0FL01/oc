@@ -1,4 +1,4 @@
-//! Explicit user commands share policy admission and the supervised Shell owner,
+//! Explicit user commands bypass model permissions but share the supervised Shell owner,
 //! but never create a model turn or a fabricated tool-call/result graph.
 use super::*;
 
@@ -104,7 +104,6 @@ impl Runtime<'_> {
             .and_then(|model| models::select_variant(&model, params.variant))
             .map_err(|_| RuntimeError::InvalidArgs("user shell selection unavailable".into()))?;
         let lane = self.primary_lane(&published);
-        let workspace = published.workspace.clone();
         let operation = format!("user-shell:{}", next_turn_id(params.session, millis()));
         let call = crate::tools::ToolCall {
             id: operation.clone(),
@@ -115,57 +114,16 @@ impl Runtime<'_> {
             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
         let invocation = crate::tools::shell_call::invocation(&call, &self.parent_env)
             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
-        let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
-            .with_root(&self.roots.project);
-        let ctx = ToolContext {
-            files: &self.files,
-            shell: &self.shell,
-            parent_env: &self.parent_env,
-            webfetch_auth: self.webfetch_auth.clone(),
-            policy: &policy,
-            subagent: None,
-            snapshot: &workspace.skills,
-            cancel: params.cancel,
-            roots: Some(self.roots.clone()),
-        };
-        let permitted = self
-            .admit_tool(
-                &published,
-                params.session,
-                &operation,
-                &operation,
-                &call,
-                &ctx,
-                &policy,
-                params.cancel,
-                lane.agent_id.clone(),
-                lane.agent_digest.clone(),
-                false,
-            )
-            .await
-            .map_err(|error| match error {
-                AdmissionFailure::Required => RuntimeError::ApprovalRequired {
-                    tool: "shell".into(),
-                },
-                AdmissionFailure::Denied(_) | AdmissionFailure::Rejected(_) => {
-                    RuntimeError::PermissionDenied {
-                        tool: "shell".into(),
-                    }
-                }
-                AdmissionFailure::Cancelled => RuntimeError::Cancelled,
-                AdmissionFailure::Reloaded => {
-                    RuntimeError::InvalidArgs("source reloaded before approval".into())
-                }
-                AdmissionFailure::Invalid(_) => {
-                    RuntimeError::InvalidArgs("shell admission prerequisites unavailable".into())
-                }
-            })?;
+        let pinned = self
+            .shell
+            .pin_cwd(&invocation.argv, &invocation.cwd)
+            .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
+        self.files
+            .check_data_file(&pinned.cwd)
+            .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
         if params.cancel.load(Ordering::Acquire) {
             return Err(RuntimeError::Cancelled);
         }
-        let pinned = permitted
-            .approved_shell_cwd()
-            .ok_or_else(|| RuntimeError::InvalidArgs("shell cwd not pinned".into()))?;
         // Reserve before durable acceptance; queue/cap refusal cannot consume
         // a draft or leave an accepted command that never had an owner slot.
         let slot = self

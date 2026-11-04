@@ -1,4 +1,5 @@
-//! Explicit user commands through the real policy/admission/job owner, no LLM.
+//! User commands share the job owner without model admission; configured command
+//! interpolation remains policy-gated. Neither path fabricates an LLM tool graph.
 use super::*;
 use oc_core::{
     approval::{ApprovalDecision, ApprovalReply},
@@ -78,6 +79,67 @@ impl Fixture {
             std::io::ErrorKind::WouldBlock
         );
     }
+}
+
+#[tokio::test]
+async fn w7_command_shell_external_patterns_remain_paths_not_executable_grants() {
+    let fixture = Fixture::new("ask");
+    let repository = fixture._root.path().join("external");
+    let target = repository.join("nested");
+    fs::create_dir_all(&target).unwrap();
+    fs::create_dir(repository.join(".hg")).unwrap();
+    let config = fixture
+        ._root
+        .path()
+        .join("home/config/opencode/opencode.json");
+    let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
+    value["permissions"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"action":"external_directory", "resource":"*", "effect":"ask"}));
+    fs::write(config, value.to_string()).unwrap();
+    fs::create_dir_all(fixture.project.join(".opencode/commands")).unwrap();
+    fs::write(
+        fixture.project.join(".opencode/commands/check.md"),
+        format!("!`cd '{}'; printf BAD > effect`", target.display()),
+    )
+    .unwrap();
+    let (app, guard) = fixture.spawn().await;
+    app.register_approval_consumer(false).await.unwrap();
+    let mut receipt = app
+        .request_submit_fresh(SessionId("external-command".into()), "/check".into(), None)
+        .unwrap();
+    let request = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let Some(request) = app.pending_approvals().await.unwrap().into_iter().next() {
+                break request;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .ok();
+    if let Some(request) = &request {
+        app.reply_approval(ApprovalReply {
+            id: request.id,
+            binding: request.binding.clone(),
+            decision: ApprovalDecision::Reject { feedback: None },
+        })
+        .await
+        .unwrap();
+    }
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert!(receipt.wait().await.is_err());
+    let request = request.expect("configured command must reach external-directory approval");
+    assert_eq!(request.action, "external_directory");
+    assert_eq!(request.resources, [target.join("*").to_string_lossy()]);
+    assert_eq!(
+        request.save_patterns,
+        [repository.join("*").to_string_lossy()]
+    );
+    assert!(!target.join("effect").exists());
+    fixture.no_provider();
 }
 
 #[tokio::test]
@@ -248,9 +310,6 @@ async fn vis12_user_shell_application_admits_history_before_owned_effect_without
     for permission in ["allow", "deny", "ask"] {
         let fixture = Fixture::new(permission);
         let (app, guard) = fixture.spawn().await;
-        if permission == "ask" {
-            app.register_approval_consumer(false).await.unwrap();
-        }
         let session = SessionId::new("explicit-user-shell").unwrap();
         let command = "printf 'USER-SHELL-OUTPUT Ω界\\n'; printf effect > user-shell.effect";
         let mut receipt = app
@@ -260,43 +319,12 @@ async fn vis12_user_shell_application_admits_history_before_owned_effect_without
                 UserShellSelection::Fresh(None),
             )
             .unwrap();
-        if permission == "ask" {
-            let approval = tokio::time::timeout(Duration::from_secs(5), async {
-                loop {
-                    if let Some(request) = app.pending_approvals().await.unwrap().into_iter().next()
-                    {
-                        break request;
-                    }
-                    tokio::time::sleep(Duration::from_millis(5)).await;
-                }
-            })
-            .await
-            .unwrap();
-            // Canonical shell calls retain the existing bash permission action.
-            assert_eq!(approval.action, "bash");
-            assert_eq!(approval.binding.call, approval.binding.operation);
-            assert!(approval.binding.operation.starts_with("user-shell:"));
-            assert_eq!(approval.binding.session, session.0);
-            assert!(!fixture.project.join("user-shell.effect").exists());
-            assert!(app.prompt_history(None).await.unwrap().is_empty());
-            assert!(receipt.try_result().is_none());
-            app.reply_approval(ApprovalReply {
-                id: approval.id,
-                binding: approval.binding,
-                decision: ApprovalDecision::Once,
-            })
-            .await
-            .unwrap();
-        }
         let accepted = tokio::time::timeout(Duration::from_secs(5), receipt.wait())
             .await
             .unwrap();
-        if permission == "deny" {
-            assert!(accepted.is_err());
-            assert!(app.prompt_history(None).await.unwrap().is_empty());
-            assert!(!fixture.project.join("user-shell.effect").exists());
-        } else {
-            let operation = accepted.unwrap();
+        assert!(app.pending_approvals().await.unwrap().is_empty());
+        if let Ok(operation) = &accepted {
+            let operation = operation.clone();
             assert_eq!(app.prompt_history(None).await.unwrap(), [command]);
             // The shell creates the file before its write completes.
             tokio::time::timeout(Duration::from_secs(5), async {
@@ -384,13 +412,12 @@ async fn vis12_user_shell_application_admits_history_before_owned_effect_without
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
         fixture.no_provider();
+        assert!(
+            accepted.is_ok(),
+            "explicit user shell must not ask or honor model Deny: {permission}: {accepted:?}"
+        );
         let db = Db::open(&fixture.data).unwrap();
-        if permission == "deny" {
-            assert!(
-                db.session_meta(&session.0).is_err(),
-                "refused fresh command leaves no root"
-            );
-        } else {
+        {
             assert_eq!(db.prompt_history(None).unwrap(), [command]);
             let operations = db.list_tool_ops(&session.0).unwrap();
             assert_eq!(operations.len(), 1);
@@ -504,13 +531,9 @@ async fn user_shell_live_typed_streams_are_available_before_terminal_effect_and_
 }
 
 #[tokio::test]
-async fn vis12_user_shell_refusal_cancel_stale_scope_and_history_failure_never_launch() {
-    for failure in ["reject", "cancel", "no-consumer", "scope", "history-fault"] {
-        let fixture = Fixture::new(if matches!(failure, "scope" | "history-fault") {
-            "allow"
-        } else {
-            "ask"
-        });
+async fn vis12_user_shell_stale_scope_and_history_failure_never_launch() {
+    for failure in ["scope", "history-fault"] {
+        let fixture = Fixture::new("allow");
         if failure == "history-fault" {
             let db = Db::open(&fixture.data).unwrap();
             db.prompt_history(Some("seeded input")).unwrap();
@@ -519,9 +542,6 @@ async fn vis12_user_shell_refusal_cancel_stale_scope_and_history_failure_never_l
             connection.execute_batch("CREATE TRIGGER fail_user_history BEFORE UPDATE ON prefs WHEN NEW.key='tui.prompt_history.v1' BEGIN SELECT RAISE(ABORT,'owned history fault'); END;").unwrap();
         }
         let (app, guard) = fixture.spawn().await;
-        if matches!(failure, "reject" | "cancel") {
-            app.register_approval_consumer(false).await.unwrap();
-        }
         let session = SessionId::new("refused-user-shell").unwrap();
         let choice = if failure == "scope" {
             Some(oc_core::core_app::FreshSelection {
@@ -545,33 +565,6 @@ async fn vis12_user_shell_refusal_cancel_stale_scope_and_history_failure_never_l
                 UserShellSelection::Fresh(choice),
             )
             .unwrap();
-        if matches!(failure, "reject" | "cancel") {
-            let approval = tokio::time::timeout(Duration::from_secs(5), async {
-                loop {
-                    if let Some(approval) =
-                        app.pending_approvals().await.unwrap().into_iter().next()
-                    {
-                        break approval;
-                    }
-                    tokio::time::sleep(Duration::from_millis(5)).await;
-                }
-            })
-            .await
-            .unwrap();
-            assert!(app.prompt_history(None).await.unwrap().is_empty());
-            assert!(!fixture.project.join("refused.effect").exists());
-            if failure == "reject" {
-                app.reply_approval(ApprovalReply {
-                    id: approval.id,
-                    binding: approval.binding,
-                    decision: ApprovalDecision::Reject { feedback: None },
-                })
-                .await
-                .unwrap();
-            } else {
-                receipt.cancel();
-            }
-        }
         assert!(
             tokio::time::timeout(Duration::from_secs(5), receipt.wait())
                 .await

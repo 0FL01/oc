@@ -127,12 +127,38 @@ fn tool12_scalar_alias_deny_and_resource_spelling_are_distinct() {
     );
     assert_eq!(
         crate::tools::permission_resources(&command).unwrap(),
-        ["printf '%s' 'a b' && true"]
+        ["printf '%s' 'a b'", "true"]
     );
     assert_eq!(
         crate::tools::permission_resources(&argv).unwrap(),
         ["printf %s 'a b && true'"]
     );
+}
+
+#[test]
+fn w7_opaque_shell_input_is_not_an_authorizable_resource() {
+    // TS shell-scan/bash-safety.test.ts: an empty command name cannot authorize
+    // the redirect that the shell would perform before failing to execute it.
+    let input = call("shell", serde_json::json!({"command":"'' > opaque"}));
+    assert!(crate::tools::permission_resources(&input).is_err());
+}
+
+#[test]
+fn w7_directory_and_declaration_have_no_shell_permission_resource() {
+    let permissions = BTreeMap::from([("bash".into(), crate::config::Permission::Deny)]);
+    let denied = crate::runtime::RuntimePolicy::new(&permissions);
+    for command in ["cd .", "export X=1"] {
+        let input = call("shell", serde_json::json!({"command":command}));
+        assert!(
+            crate::tools::permission_resources(&input)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(matches!(
+            crate::tools::ToolPolicy::check_call(&denied, &input),
+            Err(crate::tools::ToolError::Denied { .. })
+        ));
+    }
 }
 
 #[test]

@@ -333,6 +333,13 @@ without a whole-file size cap; image and grep scan caps remain. Search-budget
 exhaustion yields completed/truncated results without a false continuation cursor.
 Mutations retain their separate exact-path admission; arbitrary native-data-root reads remain excluded by resolved I/O target, with
 registered tool-output artifacts retaining their separate exact-identity route.
+Model shell workdir and statically resolved `cd`/`pushd` targets use the same
+lexical `external_directory` boundary outside Location/enclosing checkout, without
+expanding roots. Shell permission resources are individual scanned commands;
+Always saves arity prefixes. Read/edit/write/patch Always saves `*`, external Always
+saves the target's nearest git/hg root or its directory, still project/action scoped
+and subordinate to Deny. Explicit user `!` ignores model permission policy; configured
+command interpolation does not.
 See [external read/search evidence](../evidence/T50/external-read.md). Existing T45
 default MCP Allow/effective-view qualification remains separate.
 

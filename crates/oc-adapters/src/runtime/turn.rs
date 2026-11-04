@@ -1173,7 +1173,19 @@ impl<'a> Runtime<'a> {
         if issuing.id < self.explicit_reload_generation.load(Ordering::Acquire) {
             return Err(AdmissionFailure::Reloaded);
         }
-        let raw = crate::tools::permission_resources(call).map_err(|e| e.to_string())?;
+        let shell_analysis = if call.name == "shell" {
+            Some(crate::tools::shell_analysis(ctx, call).map_err(|e| e.to_string())?)
+        } else {
+            None
+        };
+        let raw = match &shell_analysis {
+            Some(analysis) => analysis
+                .commands
+                .iter()
+                .map(|command| command.resource.clone())
+                .collect(),
+            None => crate::tools::permission_resources(call).map_err(|e| e.to_string())?,
+        };
         let resources: Vec<_> = raw
             .iter()
             .map(|r| {
@@ -1192,8 +1204,73 @@ impl<'a> Runtime<'a> {
         let effect = |resource: &str| {
             compression_permission.unwrap_or_else(|| policy.effect(&call.name, resource))
         };
-        if resources.iter().any(|r| effect(r) == Permission::Deny) {
+        if (resources.is_empty() && effect("*") == Permission::Deny)
+            || resources.iter().any(|r| effect(r) == Permission::Deny)
+        {
             return Err(AdmissionFailure::Denied(call.name.clone()));
+        }
+        if matches!(call.name.as_str(), "shell" | "bash") {
+            let invocation = ctx
+                .shell
+                .invocation(call, ctx.parent_env)
+                .map_err(|e| e.to_string())?;
+            let cwd = ctx
+                .shell
+                .resolve_cwd(&invocation.cwd)
+                .map_err(|e| e.to_string())?;
+            let mut directories = vec![cwd.to_string_lossy().into_owned()];
+            if let Some(analysis) = &shell_analysis {
+                directories.extend(analysis.directories.iter().cloned());
+            }
+            let mut seen = std::collections::BTreeSet::new();
+            let mut boundaries = Vec::new();
+            let mut lexical_directories = Vec::new();
+            for directory in directories {
+                let lexical = ctx
+                    .files
+                    .concrete_scope(&directory)
+                    .map_err(|e| e.to_string())?;
+                lexical_directories.push(lexical.clone());
+                if ctx.files.is_internal_read_scope(&lexical) {
+                    continue;
+                }
+                let resource = lexical.join("*").to_string_lossy().into_owned();
+                if !seen.insert(resource.clone()) {
+                    continue;
+                }
+                boundaries.push(resource);
+            }
+            if boundaries
+                .iter()
+                .any(|resource| policy.effect("external_directory", resource) == Permission::Deny)
+            {
+                return Err(AdmissionFailure::Denied("external_directory".into()));
+            }
+            for directory in lexical_directories {
+                ctx.files.io_target(&directory).map_err(|e| e.to_string())?;
+            }
+            for resource in boundaries {
+                let boundary = crate::tools::ToolCall {
+                    id: call.id.clone(),
+                    name: "external_directory".into(),
+                    arguments: serde_json::json!({"directory":resource}),
+                };
+                // One bounded level: boundary admission has no shell analysis.
+                Box::pin(self.admit_tool(
+                    issuing,
+                    session,
+                    turn,
+                    op,
+                    &boundary,
+                    ctx,
+                    policy,
+                    cancel,
+                    agent.clone(),
+                    agent_digest.clone(),
+                    false,
+                ))
+                .await?;
+            }
         }
         let mut permitted = policy.clone();
         // Exact registered artifacts use the same Ask/Deny owner but their
@@ -1281,8 +1358,11 @@ impl<'a> Runtime<'a> {
         let (preview, digest, patch_preimage, shell_cwd) = prepare().await?;
         // Capture approval identity before looking up executable-bound grants;
         // the recheck below must also cover changes during that lookup.
-        let grant_resources =
-            if let Some(identity) = ctx.shell.command_identity().map_err(|e| e.to_string())? {
+        let command_identity = ctx.shell.command_identity().map_err(|e| e.to_string())?;
+        let in_grant_domain = |resources: &[String]| {
+            if call.name == "shell"
+                && let Some(identity) = &command_identity
+            {
                 resources
                     .iter()
                     .map(|resource| {
@@ -1293,8 +1373,10 @@ impl<'a> Runtime<'a> {
                     })
                     .collect()
             } else {
-                crate::approval::grant_resources(&self.roots.project, &call.name, &resources)
-            };
+                crate::approval::grant_resources(&self.roots.project, &call.name, resources)
+            }
+        };
+        let grant_resources = in_grant_domain(&resources);
         let mut saved = true;
         for (resource, granted) in resources.iter().zip(&grant_resources) {
             if effect(resource) != Permission::Allow
@@ -1310,6 +1392,18 @@ impl<'a> Runtime<'a> {
                 saved = false;
                 break;
             }
+        }
+        // An old exact composite grant is compatibility only, never a shortcut
+        // around the complete granular Deny pass above or executable binding.
+        if !saved && call.name == "shell" {
+            let old = in_grant_domain(&[call.arguments["command"]
+                .as_str()
+                .ok_or("missing command")?
+                .into()]);
+            saved = self
+                .db
+                .permission_grant_exact(&project, crate::config::legacy_key(&call.name), &old[0])
+                .map_err(|_| "grant storage unavailable")?;
         }
         if !saved {
             let events = self
@@ -1334,7 +1428,16 @@ impl<'a> Runtime<'a> {
                 project: project.clone(),
                 action: crate::config::legacy_key(&call.name).into(),
                 resources: resources.clone(),
-                save_patterns: crate::approval::save_patterns(&call.name, &grant_resources),
+                save_patterns: match &shell_analysis {
+                    Some(analysis) => in_grant_domain(
+                        &analysis
+                            .commands
+                            .iter()
+                            .map(|command| command.save.clone())
+                            .collect::<Vec<_>>(),
+                    ),
+                    None => crate::approval::save_patterns(&call.name, &grant_resources),
+                },
                 preview,
             };
             let waiting = self.approvals.wait_scoped(
@@ -6274,7 +6377,9 @@ impl<'a> Runtime<'a> {
                         }
                     }
                     Assembled::Call(call) if matches!(call.name.as_str(), "shell" | "bash") => {
-                        let invocation = crate::tools::shell_call::invocation(call, ctx.parent_env)
+                        let invocation = ctx
+                            .shell
+                            .invocation(call, ctx.parent_env)
                             .map_err(|error| RuntimeError::InvalidArgs(error.to_string()))?;
                         {
                             let pinned =

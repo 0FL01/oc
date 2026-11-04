@@ -542,7 +542,7 @@ async fn tool20_allow_rechecks_prepared_bytes_after_durable_started_event() {
 }
 
 #[tokio::test]
-async fn tool20_saved_write_grant_uses_shared_action_and_exact_path_after_reopen() {
+async fn tool20_saved_write_grant_is_shared_wildcard_after_reopen_but_never_overrides_deny() {
     let mut permissions = allow_all();
     permissions.insert("apply_patch".into(), Permission::Ask);
     let (harness, generation) = text_harness(permissions);
@@ -566,7 +566,7 @@ async fn tool20_saved_write_grant_uses_shared_action_and_exact_path_after_reopen
         let reply = async {
             let request = approval_lifecycle::next_request(&runtime).await;
             assert_eq!(request.action, "apply_patch");
-            assert_eq!(request.save_patterns, ["file"]);
+            assert_eq!(request.save_patterns, ["*"]);
             runtime
                 .reply_approval(ApprovalReply {
                     id: request.id,
@@ -586,7 +586,7 @@ async fn tool20_saved_write_grant_uses_shared_action_and_exact_path_after_reopen
         );
         assert_eq!(report.unwrap().calls[0].state, "completed");
     }
-    let runtime = runtime_of(&harness, generation, vec![]);
+    let runtime = runtime_of(&harness, generation.clone(), vec![]);
     let (base, _) = Fake::start(
         vec![
             sse_tool_call(
@@ -621,12 +621,13 @@ async fn tool20_saved_write_grant_uses_shared_action_and_exact_path_after_reopen
             sse_tool_call(
                 "other",
                 "write",
-                &serde_json::json!({"path":"other","content":"unapproved"}),
+                &serde_json::json!({"path":"other","content":"shared grant"}),
             ) + &sse_completed(),
+            sse_completed(),
         ],
         Duration::ZERO,
     );
-    assert!(matches!(
+    assert_eq!(
         runtime
             .run_turn(text_params(
                 "grant",
@@ -634,10 +635,48 @@ async fn tool20_saved_write_grant_uses_shared_action_and_exact_path_after_reopen
                 provider_of(&base),
                 &NO_CANCEL
             ))
-            .await,
-        Err(RuntimeError::ApprovalRequired { .. })
-    ));
-    assert!(!harness._project.path().join("other").exists());
+            .await
+            .unwrap()
+            .calls[0]
+            .state,
+        "completed"
+    );
+    assert_eq!(
+        std::fs::read(harness._project.path().join("other")).unwrap(),
+        b"shared grant"
+    );
+    drop(runtime);
+    let mut denied = generation;
+    denied.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
+        &serde_json::json!({"permissions":[{"action":"edit","resource":"other","effect":"deny"}]}),
+    )
+    .unwrap();
+    let runtime = runtime_of(&harness, denied, vec![]);
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "denied",
+                "write",
+                &serde_json::json!({"path":"other","content":"must not replace"}),
+            ) + &sse_completed(),
+            sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(text_params(
+            "grant",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert!(report.calls[0].output.contains("denied"));
+    assert_eq!(
+        std::fs::read(harness._project.path().join("other")).unwrap(),
+        b"shared grant"
+    );
 }
 #[tokio::test]
 async fn tool12_next_turn_and_reopen_switch_family_keep_historical_calls_verbatim() {

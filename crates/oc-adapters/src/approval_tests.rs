@@ -108,13 +108,13 @@ fn donor_identity_hash_and_origin_forms() {
 }
 
 #[test]
-fn saved_patterns_preserve_unix_literal_identity_and_support_actual_patterns() {
+fn saved_file_patterns_are_wildcard_without_changing_literal_match_identity() {
     use crate::permissions::wildcard_preserving_identity as matches;
     let patterns = save_patterns("read", &[r"a\b".into(), "Case".into()]);
-    assert_eq!(patterns, vec![r"a\b", "Case"]);
-    assert!(matches(r"a\b", &patterns[0]));
-    assert!(!matches("a/b", &patterns[0]));
-    assert!(!matches("case", &patterns[1]));
+    assert_eq!(patterns, ["*"]);
+    assert!(matches(r"a\b", r"a\b"));
+    assert!(!matches("a/b", r"a\b"));
+    assert!(!matches("case", "Case"));
     assert!(matches("a/b/c", "a/*"));
     assert!(matches(r"a\bc", r"a\b?"));
     assert!(!matches("a/bc", r"a\b?"));
@@ -125,6 +125,28 @@ fn saved_patterns_preserve_unix_literal_identity_and_support_actual_patterns() {
         ["session-a"]
     );
     assert!(save_patterns("opencode_session_rename", &["session-*".into()]).is_empty());
+}
+
+#[test]
+fn w7_external_save_uses_nearest_target_repository_or_target_directory() {
+    let root = tempfile::tempdir().unwrap();
+    let target = root.path().join("repo/nested/target");
+    std::fs::create_dir_all(&target).unwrap();
+    let resource = target.join("*").to_string_lossy().into_owned();
+    assert_eq!(
+        save_patterns("external_directory", std::slice::from_ref(&resource)),
+        std::slice::from_ref(&resource)
+    );
+    std::fs::create_dir(root.path().join("repo/.hg")).unwrap();
+    assert_eq!(
+        save_patterns("external_directory", std::slice::from_ref(&resource)),
+        [root.path().join("repo/*").to_string_lossy()]
+    );
+    std::fs::write(root.path().join("repo/nested/.git"), "gitdir: fixture").unwrap();
+    assert_eq!(
+        save_patterns("external_directory", &[resource]),
+        [root.path().join("repo/nested/*").to_string_lossy()]
+    );
 }
 
 #[test]

@@ -594,7 +594,7 @@ impl Files {
         }
     }
 
-    fn check_data_file(&self, file: &File) -> Result<(), FileToolError> {
+    pub(crate) fn check_data_file(&self, file: &File) -> Result<(), FileToolError> {
         let target = std::fs::read_link(format!("/proc/self/fd/{}", file.as_raw_fd()))
             .map_err(|_| FileToolError::Io)?;
         self.check_data_target(&target)

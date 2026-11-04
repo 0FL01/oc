@@ -63,6 +63,15 @@ captured environment plus overlay. Native decoded strings are not JSON-escaped a
 Config tests were inspected, not executed; only policy-bearing legacy forms are
 normalized, not v1 provider/MCP migration. The retained full MIT notice is unchanged.
 
+W7's native `tools/shell_scan.rs` translates the same MIT checkout's non-PowerShell
+`packages/core/src/shell/{scan,parse}.ts`, with bash/zsh/posix dialect selection from
+`shell/select.ts`. The literal regression corpus is taken from
+`core/test/shell-scan/{scan,bash-safety,bash-syntax}.test.ts` and
+`core/test/shell-parse-syntax.test.ts`; it covers source spans, nested substitutions,
+compound syntax, heredocs, dynamic-execution refusal and separate save prefixes.
+These upstream tests were read, not executed as a TS unit suite. The existing full
+MIT notice at `fixtures/OpenCode-MIT.txt` is retained.
+
 ## DCP
 
 [D1] https://github.com/Opencode-DCP/opencode-dynamic-context-pruning/blob/11f6517780a502512a3467645074be447cb0369e/README.md

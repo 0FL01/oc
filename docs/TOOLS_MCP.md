@@ -124,6 +124,25 @@ Write/Edit/ApplyPatch отдельно; replay использует persisted in
 
 `shell` (T50 target): command/workdir/timeout/background through the actual configured Linux shell; default foreground timeout120000ms, explicit0 disables execution timeout, background default has no execution timeout. Preserve legacy `bash(argv/cwd/timeout_ms)` through one supervisor/policy owner with unambiguous schema normalization, not duplicate advertised tools or a Deny bypass. Process group, trusted cwd, captured owner env, concurrent drains, bounded preview/retained output and TERM→grace→KILL→wait remain. Background returns running/shellID after launch and later an automatic durable terminal notice, without polling; output/jobs/queues/teardown stay bounded even with no execution timeout. Native unknown effects never auto-replay; no hidden persistent terminal manager or sandbox claim.
 
+Model `shell` source is analyzed by a native bash/zsh/posix scanner using the same
+captured executable as execution. Every extracted command is an authorization
+resource; quoted legacy `bash` argv remains one literal resource, not shell source.
+Opaque input, including opaque nested syntax, refuses the whole invocation before
+approval or spawn. Supported compounds, substitutions and heredocs are not blanket
+opaque. A zero-command result still prepares/pins cwd and honors whole-tool Deny;
+the execution preview retains the full original command, not the first resource.
+Always confirmation displays the actual saved prefixes, not the narrower current
+invocation; internal command/executable domain tags are not shown.
+Static `cd`/`pushd` directories and lexical workdir use `external_directory` outside
+Location/enclosing checkout. Approved external cwd is pinned for that invocation,
+not added to read/discovery roots or made a new Location. Lexical and resolved
+native-data-root exclusions remain; internal symlinks escaping Location still refuse.
+
+Explicit user `!` input does not call model permission admission: Allow/Ask/Deny
+do not gate it. It still pins cwd, commits history before effect, uses the shared
+supervisor and never replays unknown effects. Configured command interpolation is
+not this trusted user path and remains model-policy gated.
+
 Shell commands (agent foreground/background, legacy `bash`, user `!`) and PTYs inherit
 the full captured native-owner startup environment, including SSH-agent sockets,
 proxy/CA/toolchain settings and credentials. No name allowlist or client-env refresh;
@@ -192,13 +211,17 @@ line reads (1-based offset/limit, donor default2000). Images use validated provi
 media lowering/accounting; unsupported model/PDF/invalid/oversized media is not
 path-only success. Keep one successful-read nested AGENTS owner with T45/R10.
 
-`question` is an application-owned form, not permission approval: nonempty typed
-questions/options/multiple/free-form, cancellable wait, real ordered answers, bounded
+`question` is an application-owned form, not permission approval: a nonempty typed
+question list, options/multiple/free-form, cancellable wait, real ordered answers, bounded
 operation/session/generation identities. For a noninteractive Run origin,
 NoConsumer is an ordinary failed tool result with the TS feedback:
 `This non-interactive run cannot ask the user questions, so the question was cancelled. Continue without an answer; make reasonable assumptions and state them.`
 The model may continue; --auto never supplies answers. Interactive dismissal still
 interrupts, and stale replies never authorize.
+TS string/schema semantics allow blank question/header/option labels, duplicate
+labels and headers longer than the descriptive 30-character suggestion. Unknown
+input fields are ignored; declared string/boolean/array types, finite payload/field/
+count limits and reply/image bindings remain. Blank declared options are answerable.
 A free-form answer may carry clipboard PNGs (`[Image N]` chips, prompt paste binding)
 only when the issuing model accepts image input; owner re-validates label/caps/PNG and
 the tool result lowers them to `input_image`, persisted as `native_question_results`.

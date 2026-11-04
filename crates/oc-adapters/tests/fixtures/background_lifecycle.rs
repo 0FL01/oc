@@ -322,7 +322,7 @@ async fn tool13_background_always_reopen_foreign_scope_and_retained_output() {
             sse_tool_call("background", "shell", &args) + &sse_completed(),
             sse_delta("calling turn complete") + &sse_completed(),
             sse_tool_call("reopened", "shell", &args) + &sse_completed(),
-            sse_delta("saved exact grant") + &sse_completed(),
+            sse_delta("saved prefix grants") + &sse_completed(),
         ],
         Duration::ZERO,
     );
@@ -358,7 +358,15 @@ async fn tool13_background_always_reopen_foreign_scope_and_retained_output() {
             match events.recv().await.unwrap() {
                 CoreEvent::PermissionAsked(request) => {
                     assert_eq!(request.action, "bash");
-                    assert_eq!(request.resources, [command]);
+                    assert_eq!(
+                        request.resources,
+                        [
+                            "printf '%s' $$ > leader",
+                            "[ ! -f release ]",
+                            "sleep .01",
+                            "printf retained-result"
+                        ]
+                    );
                     assert!(!project.path().join("leader").exists());
                     app.reply_approval(ApprovalReply {
                         id: request.id,
@@ -451,7 +459,7 @@ async fn tool13_background_always_reopen_foreign_scope_and_retained_output() {
         conn.query_row("SELECT count(*) FROM permission_grants", [], |r| r
             .get::<_, i64>(0))
             .unwrap(),
-        1
+        3
     );
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
@@ -468,7 +476,7 @@ async fn tool13_background_always_reopen_foreign_scope_and_retained_output() {
         loop {
             match events.recv().await.unwrap() {
                 CoreEvent::PermissionAsked(_) => {
-                    panic!("exact saved command authority should survive reopen")
+                    panic!("saved command-prefix authority should survive reopen")
                 }
                 CoreEvent::ShellNotice(notice) => {
                     assert_eq!(notice.session, source);
@@ -518,7 +526,7 @@ async fn tool13_background_always_reopen_foreign_scope_and_retained_output() {
         conn.query_row("SELECT count(*) FROM permission_grants", [], |r| r
             .get::<_, i64>(0))
             .unwrap(),
-        1
+        3
     );
     app.delete_session(source).await.unwrap();
     assert_eq!(

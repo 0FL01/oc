@@ -99,6 +99,176 @@ fn consumer(
 }
 
 #[tokio::test]
+async fn w7_shell_static_cd_cannot_bypass_external_directory_deny() {
+    let outside = tempfile::tempdir().unwrap();
+    for (action, command) in [
+        (
+            "external_directory",
+            format!("cd '{}'; printf BAD > forbidden", outside.path().display()),
+        ),
+        ("bash", "cd .".into()),
+    ] {
+        let mut permissions = allow_all();
+        permissions.insert(action.into(), Permission::Deny);
+        let (harness, generation) = make_harness(permissions);
+        let (base, _, requests) = Fake::start_recording(
+            vec![
+                sse_tool_call(
+                    "outside-cd",
+                    "shell",
+                    &serde_json::json!({"command":command}),
+                ) + &sse_completed(),
+                sse_delta("done") + &sse_completed(),
+            ],
+            Duration::ZERO,
+        );
+        let runtime = runtime_of(&harness, generation, vec![]);
+        runtime.create_session("outside-cd").unwrap();
+        let report = runtime
+            .run_turn(params(
+                "outside-cd",
+                "invoke",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL,
+            ))
+            .await
+            .unwrap();
+        assert!(!outside.path().join("forbidden").exists());
+        assert_eq!(report.calls.len(), 1);
+        assert!(
+            report.calls[0].output.contains("denied"),
+            "{}",
+            report.calls[0].output
+        );
+        assert_eq!(requests.lock().unwrap().len(), 2);
+    }
+}
+
+#[tokio::test]
+async fn w7_tilde_double_slash_directory_cannot_bypass_external_deny() {
+    let mut permissions = allow_all();
+    permissions.insert("external_directory".into(), Permission::Deny);
+    let (harness, generation) = make_harness(permissions);
+    let home = tempfile::tempdir().unwrap();
+    let project = harness._project.path();
+    let target = home.path().join(project.strip_prefix("/").unwrap());
+    std::fs::create_dir_all(&target).unwrap();
+    let runtime = Runtime::new(
+        &harness.db,
+        "work",
+        generation,
+        ProtectedGlobs { patterns: vec![] },
+        oc_adapters::files::Files::new(project, harness._data.path()).unwrap(),
+        oc_adapters::shell::Shell::new(project).unwrap(),
+        BTreeMap::from([
+            ("HOME".into(), home.path().display().to_string()),
+            ("SHELL".into(), "/bin/bash".into()),
+            ("PATH".into(), "/usr/bin:/bin".into()),
+        ]),
+        oc_adapters::tools::ToolRoots {
+            project: project.to_owned(),
+            data: harness._data.path().to_owned(),
+        },
+        None,
+        DcpConfig::default(),
+    )
+    .unwrap();
+    runtime.create_session("tilde").unwrap();
+    let command = format!("cd ~/{}; printf BAD > forbidden", project.display());
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("tilde", "shell", &serde_json::json!({"command":command}))
+                + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "tilde",
+            "invoke",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert!(
+        !target.join("forbidden").exists(),
+        "tilde-expanded external cwd must be denied before every effect"
+    );
+    assert!(report.calls[0].output.contains("denied"));
+    assert_eq!(requests.lock().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn w7_relative_cd_uses_workdir_not_nested_location_for_external_authority() {
+    let mut permissions = allow_all();
+    permissions.insert("external_directory".into(), Permission::Deny);
+    let (harness, generation) = make_harness(permissions);
+    let checkout = harness._project.path().join("checkout");
+    let location = checkout.join("src/nested");
+    let outside = harness._project.path().join("outside");
+    std::fs::create_dir_all(&location).unwrap();
+    std::fs::create_dir(checkout.join(".git")).unwrap();
+    std::fs::create_dir(&outside).unwrap();
+    let runtime = Runtime::new(
+        &harness.db,
+        "work",
+        generation,
+        ProtectedGlobs { patterns: vec![] },
+        oc_adapters::files::Files::new(&location, harness._data.path()).unwrap(),
+        oc_adapters::shell::Shell::new(&location).unwrap(),
+        BTreeMap::from([
+            ("SHELL".into(), "/bin/bash".into()),
+            ("PATH".into(), "/usr/bin:/bin".into()),
+        ]),
+        oc_adapters::tools::ToolRoots {
+            project: location,
+            data: harness._data.path().to_owned(),
+        },
+        None,
+        DcpConfig::default(),
+    )
+    .unwrap();
+    runtime.create_session("relative-cd").unwrap();
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call(
+                "internal-cwd",
+                "shell",
+                &serde_json::json!({"command":"pwd", "workdir":checkout}),
+            ) + &sse_tool_call(
+                "relative-cd",
+                "shell",
+                &serde_json::json!({"command":"cd ../outside; printf BAD > forbidden", "workdir":checkout}),
+            ) + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "relative-cd",
+            "invoke",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert!(
+        !outside.join("forbidden").exists(),
+        "relative cd is resolved from the approved workdir"
+    );
+    assert_eq!(report.calls[0].state, "completed");
+    assert!(report.calls[0].output.contains(checkout.to_str().unwrap()));
+    assert!(report.calls[1].output.contains("denied"));
+    assert_eq!(requests.lock().unwrap().len(), 2);
+}
+
+#[tokio::test]
 async fn external_read_shared_boundary_and_action_admission_emit_only_genuine_asks() {
     use oc_adapters::permissions::PermissionRules;
     use oc_core::core_app::CoreEvent;
@@ -168,7 +338,10 @@ async fn external_read_shared_boundary_and_action_admission_emit_only_genuine_as
                     .to_string_lossy()]
                 );
                 if mode != "read-ask" {
-                    assert!(request.save_patterns.is_empty());
+                    assert_eq!(
+                        request.save_patterns,
+                        [cache.path().join("*").to_string_lossy()]
+                    );
                 }
                 std::fs::write(&file, "AFTER_SHARED_CONSUMER").unwrap();
                 if mode.ends_with("cancel") {
@@ -386,6 +559,7 @@ async fn tool12_command_always_reopen_does_not_inherit_argv_glob_or_widen_alias_
         let request = next_request(&runtime).await;
         assert_eq!(request.action, "bash");
         assert_eq!(request.resources, [command]);
+        assert_eq!(request.save_patterns, ["\0shell-command:v1:printf *"]);
         assert!(
             matches!(&request.preview, ApprovalPreview::Shell { command: preview, .. } if preview == command)
         );
@@ -399,6 +573,7 @@ async fn tool12_command_always_reopen_does_not_inherit_argv_glob_or_widen_alias_
         answer(&runtime, request, ApprovalDecision::Always);
         let request = next_request(&runtime).await;
         assert_eq!(request.resources, ["touch approved-exact"]);
+        assert_eq!(request.save_patterns, ["\0shell-command:v1:touch *"]);
         answer(&runtime, request, ApprovalDecision::Always);
     };
     let (report, ()) = tokio::join!(
@@ -452,6 +627,75 @@ async fn tool12_command_always_reopen_does_not_inherit_argv_glob_or_widen_alias_
         [&project],
     )
     .unwrap();
+    let composite = "echo LEGACY >> legacy-marker; echo SECOND >> legacy-marker";
+    conn.execute(
+        "INSERT INTO permission_grants VALUES(?1,'bash',?2)",
+        rusqlite::params![project, format!("\0shell-command:v1:{composite}")],
+    )
+    .unwrap();
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "old-composite",
+                "shell",
+                &serde_json::json!({"command":composite}),
+            ) + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    assert_eq!(
+        runtime
+            .run_turn(params(
+                "command-grant",
+                "old",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await
+            .unwrap()
+            .calls[0]
+            .state,
+        "completed"
+    );
+    let legacy_bytes = std::fs::read(harness._project.path().join("legacy-marker")).unwrap();
+    assert_eq!(legacy_bytes, b"LEGACY\nSECOND\n");
+    let mut narrow = generation.clone();
+    narrow.permission_rules = oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({"permissions":[{"action":"shell","resource":"echo SECOND*","effect":"deny"}]})).unwrap();
+    let denied = runtime_of(&harness, narrow, vec![]);
+    let (base, _) = Fake::start(
+        vec![
+            sse_tool_call(
+                "old-denied",
+                "shell",
+                &serde_json::json!({"command":composite}),
+            ) + &sse_completed(),
+            sse_delta("done") + &sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    assert!(
+        denied
+            .run_turn(params(
+                "command-grant",
+                "deny sibling",
+                &harness,
+                provider_of(&base),
+                &NO_CANCEL
+            ))
+            .await
+            .unwrap()
+            .calls[0]
+            .output
+            .contains("denied")
+    );
+    assert_eq!(
+        std::fs::read(harness._project.path().join("legacy-marker")).unwrap(),
+        legacy_bytes,
+        "no allowed prefix runs before sibling Deny"
+    );
+    drop(denied);
     // Reopened owner has no approval consumer. Exact saved command succeeds.
     let (base, _) = Fake::start(
         vec![
@@ -476,13 +720,14 @@ async fn tool12_command_always_reopen_does_not_inherit_argv_glob_or_widen_alias_
             .state,
         "completed"
     );
-    // Legacy glob still cannot grant a different shell source command.
+    // Neither a legacy glob nor a saved first-command prefix can authorize
+    // an ungranted sibling through the composite compatibility fallback.
     let (base, _) = Fake::start(
         vec![
             sse_tool_call(
                 "different",
                 "shell",
-                &serde_json::json!({"command":"touch wrong-marker"}),
+                &serde_json::json!({"command":"printf safe; mkdir wrong-marker"}),
             ) + &sse_completed(),
         ],
         Duration::ZERO,
@@ -543,7 +788,7 @@ async fn tool13_invalid_shell_never_commits_execution_intent() {
     for args in [
         serde_json::json!({"command":"touch marker","background":"yes"}),
         serde_json::json!({"command":"touch marker","timeout":-1}),
-        serde_json::json!({"command":"touch marker","workdir":"../"}),
+        serde_json::json!({"command":"touch marker","workdir":"missing-directory"}),
         serde_json::json!({"command":"touch marker","timeout":600001}),
         serde_json::json!({"command":"touch marker","argv":["true"]}),
     ] {
@@ -702,7 +947,7 @@ async fn approval_structural_compress_never_asks_saves_or_starts() {
 }
 
 #[tokio::test]
-async fn approval_saved_literal_backslash_does_not_approve_distinct_unix_path() {
+async fn approval_legacy_literal_backslash_grant_does_not_approve_distinct_unix_path() {
     let mut permissions = allow_all();
     permissions.insert("read".into(), Permission::Ask);
     let (harness, generation) = make_harness(permissions);
@@ -724,8 +969,17 @@ async fn approval_saved_literal_backslash_does_not_approve_distinct_unix_path() 
     let replies = async {
         let literal = next_request(&runtime).await;
         assert_eq!(literal.resources, vec![r"a\b"]);
-        assert_eq!(literal.save_patterns, vec![r"a\b"]);
-        answer(&runtime, literal, ApprovalDecision::Always);
+        assert_eq!(literal.save_patterns, ["*"]);
+        // Current Always is deliberately broad. Seed a historical exact grant
+        // instead, so its literal Unix spelling remains independently covered.
+        let conn = rusqlite::Connection::open(harness._data.path().join("oc.sqlite")).unwrap();
+        conn.execute(
+            "INSERT INTO permission_grants VALUES(?1,'read',?2)",
+            rusqlite::params![literal.project, r"a\b"],
+        )
+        .unwrap();
+        drop(conn);
+        answer(&runtime, literal, ApprovalDecision::Once);
         let separate = next_request(&runtime).await;
         assert_eq!(separate.resources, vec!["a/b"]);
         answer(

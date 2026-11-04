@@ -384,7 +384,15 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     state.approvals.key(KeyAction::Cancel); // minimize, retain queue
     state.approvals.key(KeyAction::Right);
     let always = oc_tui::views::render_test(&state, 120, 40).join("\n");
-    assert!(always.contains("→ Edit approval.txt") && always.contains("- approval.txt"));
+    assert_eq!(request.save_patterns, ["*"]);
+    assert!(
+        always.contains("→ Edit approval.txt")
+            && always.contains(&format!(
+                "This will always allow {} for this project.",
+                request.action
+            ))
+    );
+    assert!(!always.contains("- approval.txt"));
     assert!(!always.contains("- *"));
     assert_eq!(
         app.pending_approvals().await.unwrap(),

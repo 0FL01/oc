@@ -15,13 +15,11 @@ pub const ANSWER_BYTES_CAP: usize = 4096;
 pub const IMAGES_CAP: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct QuestionOption {
     pub label: String,
     pub description: String,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct QuestionPrompt {
     pub question: String,
     pub header: String,
@@ -30,7 +28,6 @@ pub struct QuestionPrompt {
     pub multiple: bool,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct QuestionInput {
     pub questions: Vec<QuestionPrompt>,
 }
@@ -52,18 +49,11 @@ impl QuestionInput {
             return Err("question payload too large");
         }
         for q in &self.questions {
-            if q.question.trim().is_empty()
-                || q.question.len() > 4096
-                || q.header.trim().is_empty()
-                || q.header.chars().count() > 30
+            if q.question.len() > 4096
                 || q.options.len() > OPTIONS_CAP
-                || q.options.iter().any(|o| {
-                    o.label.trim().is_empty() || o.label.len() > 256 || o.description.len() > 4096
-                })
                 || q.options
                     .iter()
-                    .enumerate()
-                    .any(|(i, o)| q.options[..i].iter().any(|p| p.label == o.label))
+                    .any(|o| o.label.len() > 256 || o.description.len() > 4096)
             {
                 return Err("invalid question fields or limits");
             }
@@ -75,8 +65,7 @@ impl QuestionInput {
             || serde_json::to_vec(answers).map_or(true, |v| v.len() > PAYLOAD_CAP)
             || self.questions.iter().zip(answers).any(|(q, a)| {
                 a.len() > if q.multiple { OPTIONS_CAP + 1 } else { 1 }
-                    || a.iter().any(|s| s.is_empty() || s.len() > ANSWER_BYTES_CAP)
-                    || a.iter().enumerate().any(|(i, s)| a[..i].contains(s))
+                    || a.iter().any(|s| s.len() > ANSWER_BYTES_CAP)
             })
         {
             return Err(QuestionReplyError::InvalidAnswers);

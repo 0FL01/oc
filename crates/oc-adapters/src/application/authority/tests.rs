@@ -1729,7 +1729,10 @@ async fn external_directory_replies_route_from_location_to_root_and_child() {
             }
         );
         assert_eq!(approval.binding.session != "R", child);
-        assert!(approval.save_patterns.is_empty());
+        assert_eq!(
+            approval.save_patterns,
+            [external.parent().unwrap().join("*").to_string_lossy()]
+        );
         assert!(
             f.owner
                 .db
@@ -1812,46 +1815,13 @@ async fn external_directory_replies_route_from_location_to_root_and_child() {
 }
 
 #[tokio::test]
-async fn running_shell_ask_remains_pumped_after_model_finishes_and_receipt_cancel_does_not_cancel_model()
- {
-    use oc_core::{
-        approval::{ApprovalDecision, ApprovalReply},
-        core_app::UserShellSelection,
-    };
+async fn running_user_shell_needs_no_ask_and_survives_model_completion() {
+    use oc_core::core_app::UserShellSelection;
     let f = RunningInputFixture::new(|c| {
-        c["permissions"] = json!([{"action":"shell","resource":"*","effect":"ask"}])
+        c["permissions"] = json!([{"action":"shell","resource":"*","effect":"ask"}]);
     })
     .await;
     let (mut first, _) = f.request().await;
-    let mut events = f.run.app.subscribe();
-    let mut cancelled = f
-        .run
-        .app
-        .request_user_shell(
-            SessionId("R".into()),
-            "printf no > cancelled.effect".into(),
-            UserShellSelection::Existing(None),
-        )
-        .unwrap();
-    let approval = tokio::time::timeout(Duration::from_secs(5), async {
-        loop {
-            if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap() {
-                break request;
-            }
-        }
-    })
-    .await
-    .unwrap();
-    assert!(approval.binding.operation.starts_with("user-shell:"));
-    cancelled.cancel();
-    assert!(
-        tokio::time::timeout(Duration::from_secs(5), cancelled.wait())
-            .await
-            .unwrap()
-            .is_err()
-    );
-    assert!(!f.run.cancel.load(Ordering::Acquire));
-    assert!(!f.project.join("cancelled.effect").exists());
     let mut shell = f
         .run
         .app
@@ -1861,35 +1831,35 @@ async fn running_shell_ask_remains_pumped_after_model_finishes_and_receipt_cance
             UserShellSelection::Existing(None),
         )
         .unwrap();
-    let approval = tokio::time::timeout(Duration::from_secs(5), async {
-        loop {
-            if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap() {
-                break request;
-            }
-        }
-    })
-    .await
-    .unwrap();
     final_answer(&mut first).await;
-    // Model completion cannot retire its actor while the independent Ask waits.
-    assert!(!f.run.app.pending_approvals().await.unwrap().is_empty());
-    f.run
-        .app
-        .reply_approval(ApprovalReply {
-            id: approval.id,
-            binding: approval.binding,
-            decision: ApprovalDecision::Once,
-        })
-        .await
-        .unwrap();
     let operation = tokio::time::timeout(Duration::from_secs(5), shell.wait())
         .await
         .unwrap()
         .unwrap();
     assert!(operation.starts_with("user-shell:"));
+    assert!(
+        f.run
+            .location
+            .app
+            .pending_approvals()
+            .await
+            .unwrap()
+            .is_empty()
+    );
     tokio::time::timeout(Duration::from_secs(5), async {
-        while !f.project.join("allowed.effect").exists() {
-            events.recv().await.unwrap();
+        loop {
+            let snapshot = f
+                .run
+                .location
+                .app
+                .shell_snapshot(SessionId("R".into()), operation.clone())
+                .await
+                .unwrap();
+            if snapshot.state == "completed" {
+                assert!(snapshot.job.turn.is_empty());
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
     })
     .await
@@ -2188,32 +2158,44 @@ async fn running_command_reopen_rejects_changed_sources_even_when_generation_num
 }
 
 #[tokio::test]
-async fn running_shell_one_slot_and_root_cancel_preserve_pending_prompts_without_launch() {
+async fn running_user_shell_cancel_joins_effects_and_preserves_pending_prompts() {
     use oc_core::{core_app::UserShellSelection, queries::InboxDelivery};
     let f = RunningInputFixture::new(|c| {
         c["permissions"] = json!([{"action":"shell","resource":"*","effect":"ask"}])
     })
     .await;
     let (_first, _) = f.request().await;
-    let mut events = f.run.app.subscribe();
     let mut shell = f
         .run
         .app
         .request_user_shell(
             SessionId("R".into()),
-            "printf no > cancelled-root.effect".into(),
+            "printf entered > entered; while [ ! -f release ]; do sleep .01; done; printf no > cancelled-root.effect".into(),
             UserShellSelection::Existing(None),
         )
         .unwrap();
+    let operation = tokio::time::timeout(Duration::from_secs(5), shell.wait())
+        .await
+        .unwrap()
+        .unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
-        loop {
-            if matches!(events.recv().await.unwrap(), CoreEvent::PermissionAsked(_)) {
-                break;
-            }
+        while !f.project.join("entered").exists() {
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
     })
     .await
     .unwrap();
+    // There is no human Ask phase. The side-admission slot is not a limit
+    // of one running process, so a started command cannot hold that slot.
+    assert!(
+        f.run
+            .location
+            .app
+            .pending_approvals()
+            .await
+            .unwrap()
+            .is_empty()
+    );
     let mut second = f
         .run
         .app
@@ -2223,7 +2205,32 @@ async fn running_shell_one_slot_and_root_cancel_preserve_pending_prompts_without
             UserShellSelection::Existing(None),
         )
         .unwrap();
-    assert_eq!(second.wait().await, Err(CoreError::TurnBusy));
+    match tokio::time::timeout(Duration::from_secs(5), second.wait())
+        .await
+        .unwrap()
+    {
+        Err(error) => assert_eq!(error, CoreError::TurnBusy),
+        Ok(operation) => {
+            tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    if f.run
+                        .location
+                        .app
+                        .shell_snapshot(SessionId("R".into()), operation.clone())
+                        .await
+                        .unwrap()
+                        .state
+                        == "completed"
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+        }
+    }
     f.run
         .app
         .enqueue(
@@ -2234,23 +2241,32 @@ async fn running_shell_one_slot_and_root_cancel_preserve_pending_prompts_without
         .await
         .unwrap();
     f.run.app.cancel(SessionId("R".into())).await.unwrap();
-    assert!(
-        tokio::time::timeout(Duration::from_secs(5), shell.wait())
-            .await
-            .unwrap()
-            .is_err()
-    );
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let snapshot = f
+                .run
+                .location
+                .app
+                .shell_snapshot(SessionId("R".into()), operation.clone())
+                .await
+                .unwrap();
+            if snapshot.state == "cancelled" {
+                assert!(snapshot.job.turn.is_empty());
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
     f.finish().await;
     assert!(!f.project.join("cancelled-root.effect").exists());
     assert_eq!(f.owner.db.inbox_pending("R").unwrap().len(), 1);
 }
 
 #[tokio::test]
-async fn running_shell_capture_does_not_overwrite_a_later_committed_agent() {
-    use oc_core::{
-        approval::{ApprovalDecision, ApprovalReply},
-        core_app::UserShellSelection,
-    };
+async fn running_shell_completion_keeps_captured_agent_and_later_committed_selection() {
+    use oc_core::core_app::UserShellSelection;
     let f = RunningInputFixture::new(|c| {
         c["agents"]["alpha"] = json!({"system":"ALPHA"});
         c["agents"]["beta"] = json!({"system":"BETA"});
@@ -2259,26 +2275,52 @@ async fn running_shell_capture_does_not_overwrite_a_later_committed_agent() {
     })
     .await;
     let (mut first, _) = f.request().await;
-    let mut events = f.run.app.subscribe();
     let mut shell = f
         .run
         .app
         .request_user_shell(
             SessionId("R".into()),
-            "printf captured > captured.effect".into(),
+            "printf entered > entered; while [ ! -f release ]; do sleep .01; done; printf captured > captured.effect".into(),
             UserShellSelection::Existing(None),
         )
         .unwrap();
-    let approval = tokio::time::timeout(Duration::from_secs(5), async {
-        loop {
-            if let CoreEvent::PermissionAsked(request) = events.recv().await.unwrap() {
-                break request;
-            }
+    let operation = tokio::time::timeout(Duration::from_secs(5), shell.wait())
+        .await
+        .unwrap()
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !f.project.join("entered").exists() {
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
     })
     .await
     .unwrap();
-    assert_eq!(approval.binding.agent.as_deref(), Some("alpha"));
+    let conn = rusqlite::Connection::open_with_flags(
+        f.owner.db.root().join("oc.sqlite"),
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let provenance: String = conn
+        .query_row(
+            "SELECT provenance FROM shell_jobs WHERE operation_id=?1",
+            [&operation],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(conn);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&provenance).unwrap()["agent"],
+        "alpha"
+    );
+    assert!(
+        f.run
+            .location
+            .app
+            .pending_approvals()
+            .await
+            .unwrap()
+            .is_empty()
+    );
     f.run
         .app
         .session_selection(
@@ -2288,16 +2330,6 @@ async fn running_shell_capture_does_not_overwrite_a_later_committed_agent() {
         )
         .await
         .unwrap();
-    f.run
-        .app
-        .reply_approval(ApprovalReply {
-            id: approval.id,
-            binding: approval.binding,
-            decision: ApprovalDecision::Once,
-        })
-        .await
-        .unwrap();
-    shell.wait().await.unwrap();
     assert_eq!(
         f.run
             .app
@@ -2312,13 +2344,43 @@ async fn running_shell_capture_does_not_overwrite_a_later_committed_agent() {
             .as_deref(),
         Some("beta")
     );
+    std::fs::write(f.project.join("release"), "release").unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
-        while !f.project.join("captured.effect").exists() {
-            events.recv().await.unwrap();
+        loop {
+            if f.run
+                .location
+                .app
+                .shell_snapshot(SessionId("R".into()), operation.clone())
+                .await
+                .unwrap()
+                .state
+                == "completed"
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
     })
     .await
     .unwrap();
+    assert_eq!(
+        std::fs::read_to_string(f.project.join("captured.effect")).unwrap(),
+        "captured"
+    );
+    assert_eq!(
+        f.run
+            .app
+            .session_selection(
+                SessionId("R".into()),
+                false,
+                SessionSelectionAction::Current
+            )
+            .await
+            .unwrap()
+            .agent_id
+            .as_deref(),
+        Some("beta")
+    );
     final_answer(&mut first).await;
     f.finish().await;
 }

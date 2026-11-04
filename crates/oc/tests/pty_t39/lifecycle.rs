@@ -1493,10 +1493,14 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     wait_screen_row(&pty, "summary preview limited", DEADLINE);
     let pid = pty.child.id();
     let mut peak = s07_proc_sample(pid, &fixture.data_dir());
+    let mut point = 0;
+    vis38_thread_snapshot(pid, &fixture.data_dir(), point);
     let baseline_cpu = peak.cpu_ticks;
     let began = Instant::now();
     let mut sample = |pty: &PtySession| {
         let now = s07_proc_sample(pty.child.id(), &fixture.data_dir());
+        point += 1;
+        vis38_thread_snapshot(pty.child.id(), &fixture.data_dir(), point);
         peak.rss_kb = peak.rss_kb.max(now.rss_kb);
         peak.pss_kb = peak.pss_kb.max(now.pss_kb);
         peak.hwm_kb = peak.hwm_kb.max(now.hwm_kb);
@@ -1588,4 +1592,43 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         (run.removed, run.summary, run.cumulative.active_summary),
         peak,
     )
+}
+
+fn vis38_thread_snapshot(client: u32, data: &Path, point: usize) {
+    let tree = process_tree::capture(client, data);
+    for pid in tree.pids {
+        let threads = || {
+            std::fs::read_to_string(format!("/proc/{pid}/status"))
+                .ok()
+                .and_then(|s| {
+                    s.lines().find_map(|line| {
+                        line.strip_prefix("Threads:")
+                            .and_then(|n| n.trim().parse::<u64>().ok())
+                    })
+                })
+        };
+        let before = threads();
+        let mut tasks = std::fs::read_dir(format!("/proc/{pid}/task"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .take(32)
+            .map(|task| {
+                let read = |name| {
+                    std::fs::read_to_string(task.path().join(name))
+                        .unwrap_or_default()
+                        .trim()
+                        .to_owned()
+                };
+                (task.file_name(), read("comm"), read("wchan"))
+            })
+            .collect::<Vec<_>>();
+        tasks.sort_by(|a, b| a.0.cmp(&b.0));
+        let after = threads();
+        eprintln!(
+            "VIS38 thread sample={point} pid={pid} owner={} before={before:?} after={after:?} raced={} tasks={tasks:?}",
+            tree.owner == Some(pid),
+            before != after
+        );
+    }
 }

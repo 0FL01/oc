@@ -38,6 +38,22 @@ Own data root открывается no-follow, принадлежит execution
 
 Lexically external file mutations требуют отдельного `external_directory` admission до чтения preimage и mutation permission для каждого lexical path, включая оба конца move. Допущены только точные пути текущего вызова; они не становятся read/discovery roots и не меняют Location. Autoaccept отвечает Once на Ask, не обходит Deny, Plan, parent/child, approved-preimage или resolved own-data-root guards. Preview и execution используют тот же scoped mutation owner; digest включает identities фактических I/O anchors. Public project-only patch helpers ограничены lexical Location, но явные ссылки могут вести наружу. Move, включая cross-filesystem, сначала stage/commit/fsync prepared bytes в destination, затем удаляет source entry. При отказе удаления source остаётся прежним, уже созданный destination отражён как confirmed Create; rollback и unknown-effect replay не обещаются.
 
+W7 model shell authorization uses every source command from the captured-shell
+scanner, including nested commands. Any opaque construct refuses the whole input
+before approval/spawn. Static directory changes and explicit workdir have separate
+lexical external-directory admission; approved cwd retains its descriptor identity
+and excludes resolved native data root. Whole-tool Deny still refuses zero-command
+inputs. Old exact composite command grants are fallback only after every granular
+Deny check, with the command-source namespace and configured-executable binding.
+
+Owner-accepted parity risks: saved Always patterns are shell arity prefixes,
+`*` for read/edit/write/patch, and the target's nearest `.git`/`.hg` root (otherwise
+target directory) for external access. These remain project/action scoped and do
+not override Deny, Plan/child ceilings, preimage or data-root checks. Trusted user
+`!` intentionally bypasses model Allow/Ask/Deny, not supervision, history-before-
+effect or no-replay. It grants no new model/child capability; command interpolation
+still uses model admission.
+
 Headless Run without --auto rejects permission asks with model-visible feedback,
 only for its session ancestry; it neither executes nor saves a grant. Noninteractive
 NoConsumer questions fail as tool results, not invented user answers. Per-call

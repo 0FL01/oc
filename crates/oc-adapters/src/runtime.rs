@@ -530,7 +530,17 @@ impl ToolPolicy for RuntimePolicy<'_> {
                 tool: call.name.clone(),
             });
         }
-        for resource in crate::tools::permission_resources(call)? {
+        let resources = match &self.permit {
+            Some(permit) => permit.resources.clone(),
+            None => crate::tools::permission_resources(call)?,
+        };
+        if resources.is_empty() {
+            return match self.check_resource(&call.name, "*") {
+                Ok(()) | Err(ToolError::ApprovalRequired { .. }) => Ok(()),
+                Err(error) => Err(error),
+            };
+        }
+        for resource in resources {
             self.check_resource(&call.name, &resource)?;
         }
         Ok(())
@@ -690,10 +700,10 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
             parameters: serde_json::json!({"type":"object", "additionalProperties":false, "required":["questions"], "properties":{
                 "questions":{"type":"array","minItems":1,"maxItems":16,"items":{
                     "type":"object","additionalProperties":false,"required":["question","header","options"],"properties":{
-                        "question":{"type":"string","minLength":1,"maxLength":4096},
-                        "header":{"type":"string","minLength":1,"maxLength":30},
+                        "question":{"type":"string","maxLength":4096},
+                        "header":{"type":"string","description":"Very short label (max 30 chars)"},
                         "options":{"type":"array","maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["label","description"],"properties":{
-                            "label":{"type":"string","minLength":1,"maxLength":256},"description":{"type":"string","maxLength":4096}}}},
+                            "label":{"type":"string","maxLength":256},"description":{"type":"string","maxLength":4096}}}},
                         "multiple":{"type":"boolean","default":false}
                     }}}}}),
         },

@@ -35,6 +35,26 @@ fn strict_schema_and_typed_history_are_bounded() {
             .is_err()
     );
 }
+
+#[test]
+fn w7_ts_question_annotations_are_not_semantic_validation_gates() {
+    let input = QuestionInput::parse(&serde_json::json!({"questions":[{
+        "question":"", "header":"header ".repeat(10), "multiple":true, "extra":"ignored", "options":[
+            {"label":"", "description":"", "extra":"ignored"}, {"label":"same", "description":"first"}, {"label":"same", "description":"second"}
+        ]
+    }], "extra":"ignored"})).unwrap();
+    let answers = vec![vec![String::new(), "same".into(), "same".into()]];
+    input.validate_answers(&answers).unwrap();
+    let result = QuestionResult {
+        questions: input.questions,
+        answers,
+    };
+    let output = serde_json::to_string(&result).unwrap();
+    assert_eq!(
+        QuestionResult::from_output("question", "completed", Some(&output)),
+        Some(result)
+    );
+}
 #[tokio::test]
 async fn wait_reply_binding_errors_preserve_then_settle_once() {
     let queue = Arc::new(QuestionQueue::default());

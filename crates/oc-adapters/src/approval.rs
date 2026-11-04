@@ -239,17 +239,28 @@ pub(crate) async fn prepare(
                 .shell
                 .pin_cwd(&invocation.argv, &invocation.cwd)
                 .map_err(|e| e.to_string())?;
+            ctx.files
+                .check_data_file(&pinned.cwd)
+                .map_err(|e| e.to_string())?;
             for value in pinned.identity().map_err(|e| e.to_string())? {
                 hash.update(value.to_le_bytes());
             }
             hash.update(pinned.path.as_os_str().as_encoded_bytes());
             let path = pinned.path.clone();
             shell_cwd = Some(pinned);
+            let command = if call.name == "shell" {
+                call.arguments["command"]
+                    .as_str()
+                    .ok_or("missing command")?
+                    .to_owned()
+            } else {
+                resources.first().ok_or("missing argv resource")?.clone()
+            };
             ApprovalPreview::Shell {
-                command: ctx.shell.command_executable().map_or_else(
-                    || resources[0].clone(),
-                    |shell| format!("{shell} -c\n{}", resources[0]),
-                ),
+                command: ctx
+                    .shell
+                    .command_executable()
+                    .map_or_else(|| command.clone(), |shell| format!("{shell} -c\n{command}")),
                 cwd: path.display().to_string(),
             }
         }
@@ -307,11 +318,32 @@ pub(crate) async fn prepare(
     ))
 }
 
-/// Exact literal resources are safe to save only when they contain no wildcard
-/// metacharacters. This is separate from the actual policy resource set.
+/// Save patterns are not authorization resources. Canonical shell arity prefixes
+/// are supplied separately by its captured scanner at runtime admission.
 pub(crate) fn save_patterns(action: &str, resources: &[String]) -> Vec<String> {
-    if matches!(action, "opencode_session_move" | "external_directory") {
+    if action == "opencode_session_move" {
         return vec![];
+    }
+    if matches!(crate::config::legacy_key(action), "read" | "apply_patch") {
+        return vec!["*".into()];
+    }
+    if action == "external_directory" {
+        return resources
+            .iter()
+            .map(|resource| {
+                let path = Path::new(resource);
+                let directory = if path.file_name() == Some(std::ffi::OsStr::new("*")) {
+                    path.parent().unwrap_or(path)
+                } else {
+                    path
+                };
+                let root = directory
+                    .ancestors()
+                    .find(|path| path.join(".git").exists() || path.join(".hg").exists())
+                    .unwrap_or(directory);
+                root.join("*").to_string_lossy().into_owned()
+            })
+            .collect();
     }
     if !matches!(
         crate::config::legacy_key(action),

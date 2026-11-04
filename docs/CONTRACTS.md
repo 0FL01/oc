@@ -211,6 +211,12 @@ never implicit allow for a missing central action. Profile overrides may only na
 session rename/move targets must be authorized independently of trusting the target
 directory. Native target/path/credential ceilings remain declared donor differences.
 
+For model shell, the captured executable selects native bash/zsh/posix analysis;
+granular command Deny precedes old exact-composite grant fallback. External cwd and
+static directory changes stay invocation-local, not new Location/read roots. Trusted
+user `!` is separate: it skips model permission admission, never supervision,
+history-before-effect, cwd/data-root validation or no-unknown-effect-replay.
+
 Headless `run` регистрирует consumer и без `--auto`: отклоняет Ask только своей сессии/потомков по ancestry с feedback `This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action.` Модель продолжает без исполнения/grant. Чужие asks не получают ответа; `--auto` Once и Deny не меняются. Другие отсутствующие consumer channels не получают implicit allow. Parsing errors не превращаются в allow. Legacy `write`/`edit`/`patch` permission entries нормализуются к canonical apply_patch mutation identity, в том числе для реальных T50 edit/write tools; конфликтующие применимые policies разрешаются консервативно deny → ask → allow и фиксируются как difference. Нельзя объединять implicit default allow с explicit deny. Model/tool-family switch не создаёт grants и не снимает central/profile/parent-child/Plan ceilings; actual path/home/resource/save-pattern normalization и own-data-root exclusion одинаковы для выбранного файлового семейства.
 
 T50/R9 pending mutations reuse one prepared before/after/digest and exact-call permit

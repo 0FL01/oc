@@ -34,6 +34,7 @@ pub(crate) mod diagnostic;
 pub mod question;
 pub mod read;
 pub(crate) mod shell_call;
+pub(crate) mod shell_scan;
 use diagnostic::Diagnostic;
 
 /// Executable built-ins; the model-selected request view narrows file tools.
@@ -151,14 +152,22 @@ pub trait ToolPolicy: Sync {
     }
     /// Every resource must pass before any invocation side effect.
     fn check_call(&self, call: &ToolCall) -> Result<(), ToolError> {
-        for resource in permission_resources(call)? {
+        let resources = permission_resources(call)?;
+        if resources.is_empty() {
+            return match self.check_resource(&call.name, "*") {
+                Ok(()) | Err(ToolError::ApprovalRequired { .. }) => Ok(()),
+                Err(error) => Err(error),
+            };
+        }
+        for resource in resources {
             self.check_resource(&call.name, &resource)?;
         }
         Ok(())
     }
 }
 
-/// Canonical command text and the preserved legacy argv resource spelling.
+/// Contextless callers use conservative posix syntax; native admission captures
+/// the selected executable through `shell_analysis`. Legacy argv stays literal.
 pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolError> {
     let invalid = || ToolError::InvalidArgs {
         tool: call.name.clone(),
@@ -184,7 +193,15 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
         "opencode_session_move" => vec![string("sessionID")?, string("directory")?],
         // Internal boundary admission only; never an executable/catalog tool.
         "external_directory" => vec![string("directory")?],
-        "shell" => vec![string("command")?],
+        "shell" => shell_scan::parse(&string("command")?, shell_scan::Dialect::Posix, ".", None)
+            .map_err(|reason| ToolError::InvalidArgs {
+                tool: call.name.clone(),
+                reason: format!("Portable shell scanner cannot analyze command: {reason}"),
+            })?
+            .commands
+            .into_iter()
+            .map(|c| c.resource)
+            .collect(),
         "apply_patch" => {
             crate::patch::affected_paths(&string("patchText")?).map_err(|_| invalid())?
         }
@@ -223,6 +240,41 @@ pub(crate) fn permission_resources(call: &ToolCall) -> Result<Vec<String>, ToolE
         // MCP uses the namespaced action with literal wildcard resource.
         _ => vec!["*".into()],
     })
+}
+
+/// Native analysis uses the selected executable and resolves reported directory
+/// operands against the invocation's lexical cwd, not the Location root.
+pub(crate) fn shell_analysis(
+    ctx: &ToolContext<'_>,
+    call: &ToolCall,
+) -> Result<shell_scan::Parsed, ToolError> {
+    let invocation = ctx.shell.invocation(call, ctx.parent_env)?;
+    let cwd = ctx
+        .shell
+        .resolve_cwd(&invocation.cwd)
+        .map_err(|e| ToolError::InvalidArgs {
+            tool: call.name.clone(),
+            reason: e.to_string(),
+        })?;
+    let mut analysis = shell_scan::parse(
+        call.arguments["command"]
+            .as_str()
+            .ok_or_else(|| ToolError::InvalidArgs {
+                tool: call.name.clone(),
+                reason: "missing command".into(),
+            })?,
+        shell_scan::Dialect::for_shell(&invocation.argv[0]),
+        &cwd.to_string_lossy(),
+        ctx.parent_env.get("HOME").map(String::as_str),
+    )
+    .map_err(|reason| ToolError::InvalidArgs {
+        tool: call.name.clone(),
+        reason: format!("Portable shell scanner cannot analyze command: {reason}"),
+    })?;
+    for directory in &mut analysis.directories {
+        *directory = cwd.join(&*directory).to_string_lossy().into_owned();
+    }
+    Ok(analysis)
 }
 
 /// Allow-everything policy (tests).
@@ -659,6 +711,11 @@ pub async fn execute_batch(
 }
 
 async fn execute_call(ctx: &ToolContext<'_>, call: &ToolCall) -> (&'static str, String) {
+    if call.name == "shell"
+        && let Err(error) = shell_analysis(ctx, call)
+    {
+        return error.diagnostic(&call.name).failed();
+    }
     if let Err(e) = ctx.policy.check_call(call) {
         return e.diagnostic(&call.name).failed();
     }
@@ -1401,6 +1458,14 @@ pub(crate) async fn execute_shell_typed(
     ctx: &ToolContext<'_>,
     call: &ToolCall,
 ) -> (&'static str, String) {
+    let analysis = if call.name == "shell" {
+        match shell_analysis(ctx, call) {
+            Ok(analysis) => Some(analysis),
+            Err(error) => return error.diagnostic(&call.name).failed(),
+        }
+    } else {
+        None
+    };
     if let Err(error) = ctx.policy.check_call(call) {
         return ("failed", format!("error: {error}"));
     }
@@ -1409,7 +1474,7 @@ pub(crate) async fn execute_shell_typed(
         cwd,
         timeout,
         background,
-    } = match shell_call::invocation(call, ctx.parent_env) {
+    } = match ctx.shell.invocation(call, ctx.parent_env) {
         Ok(invocation) => invocation,
         Err(error) => return ("failed", format!("error: {error}")),
     };
@@ -1418,6 +1483,55 @@ pub(crate) async fn execute_shell_typed(
             "failed",
             "error: background shell requires application ownership".into(),
         );
+    }
+    if let Some(analysis) = &analysis {
+        for command in &analysis.commands {
+            if let Err(error) = ctx.policy.check_resource(&call.name, &command.resource) {
+                return error.diagnostic(&call.name).failed();
+            }
+        }
+    }
+    let approved_cwd = match ctx.policy.approved_shell_cwd() {
+        Some(pinned) => pinned,
+        None => {
+            let mut directories = match ctx.shell.resolve_cwd(&cwd) {
+                Ok(path) => vec![path.to_string_lossy().into_owned()],
+                Err(error) => {
+                    return Diagnostic::new(&call.name, "invalid_args", error.to_string()).failed();
+                }
+            };
+            if let Some(analysis) = &analysis {
+                directories.extend(analysis.directories.iter().cloned());
+            }
+            for directory in directories {
+                let lexical = match ctx.files.concrete_scope(&directory) {
+                    Ok(path) => path,
+                    Err(error) => {
+                        return Diagnostic::new(&call.name, "invalid_args", error.to_string())
+                            .failed();
+                    }
+                };
+                if !ctx.files.is_internal_read_scope(&lexical)
+                    && let Err(error) = ctx
+                        .policy
+                        .check_resource("external_directory", &lexical.join("*").to_string_lossy())
+                {
+                    return error.diagnostic(&call.name).failed();
+                }
+                if let Err(error) = ctx.files.io_target(&lexical) {
+                    return Diagnostic::new(&call.name, "invalid_args", error.to_string()).failed();
+                }
+            }
+            match ctx.shell.pin_cwd(&argv, &cwd) {
+                Ok(pinned) => pinned,
+                Err(error) => {
+                    return Diagnostic::new(&call.name, "invalid_args", error.to_string()).failed();
+                }
+            }
+        }
+    };
+    if let Err(error) = ctx.files.check_data_file(&approved_cwd.cwd) {
+        return Diagnostic::new(&call.name, "invalid_args", error.to_string()).failed();
     }
     let limits = ShellLimits {
         timeout,
@@ -1437,7 +1551,6 @@ pub(crate) async fn execute_shell_typed(
     }
     let _cleanup = CancelOnDrop(cancel.clone());
     let owned_cancel = cancel.clone();
-    let approved_cwd = ctx.policy.approved_shell_cwd();
     let mut task = tokio::task::spawn_blocking(move || {
         shell.execute_pinned(
             &env,
@@ -1446,7 +1559,7 @@ pub(crate) async fn execute_shell_typed(
             None,
             limits,
             &owned_cancel,
-            approved_cwd.as_deref(),
+            Some(approved_cwd.as_ref()),
         )
     });
     let result = loop {
