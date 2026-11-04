@@ -107,9 +107,9 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 5. `/init` (TS `plugin/command.ts:29-40`), как встроенная команда рядом с `/review` (`composition.rs:1364-1373`).
 
 ## Current Checkpoint
-- Closes: R0
-- Smallest next action: коммит/push проверенного W0; затем owner RED для W6.1a.
-- Expected evidence: текущий diff W0 проверен; 23 paired observations, control-card GREEN, scoped Clippy/fmt PASS, ограниченный sidebar follow-up явно сохранён для R12.
+- Closes: R6
+- Smallest next action: owner regression для единственного failed/non-object tool call (W6.1a); baseline `w6-nonobject` уже показывает отсутствие второго request в Rust. Перепроверить `runtime/turn.rs::units_have_calls` и расширить ближайший `tests/runtime/tool_lifecycle.rs` вместо нового harness.
+- Expected evidence: W6.1a owner RED→GREEN без исполнения битого вызова; затем последовательно остальные W6.1b–6.6, затронутые срезы/Clippy/review и отдельный коммит/push W6.
 - Stop or replan if: расхождение требует ослабить C3, требуется миграция схемы или live; две подряд итерации без движения по R*.
 
 ## Current State
@@ -117,7 +117,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - Last relevant evidence: окончательный `scripts/parity.sh 19211` — exit 1, две пары совпадают, 21 показывает ожидаемый baseline gap; это RED-база, не продуктовый PASS. `cargo build -p oc2 --bin oc2 --locked --release` с `CARGO_BUILD_JOBS=4`, approved TMPDIR — PASS (1.15s), `target/release/oc2` соответствует неизменённому Rust baseline.
 - Blocker: —
 - Review: Review-Sol **PASS** текущего W0 после чтения фактического Rust diff, goal, всех пяти внешних scripts, ignored oracle check и evidence всех 46 окончательных run roots. Блокирующих замечаний нет; это не full gate PASS/закрытие R12.
-- Next: commit/push W0, затем W6; R6–R12 не закрыты.
+- Delivery: W0 `398f93431` (`test(parity): Establish an isolated W0 baseline`) закоммичен и **push PASS**: `cfe568403..398f93431 master -> master`, origin проверен как `git@github.com:0FL01/oc.git`. В репозитории доставлены Rust fixture/docs/эта цель; пять scripts остаются на явно разрешённом внешнем стенде, не входят в Git tree.
+- Next: W6. Остановка этой сессии — на границе законченного bounded W0 checkpoint; R6–R12 не закрыты. Перед R12 обязательно вернуться к full-only sidebar failure; whole-script PASS пока отсутствует.
 
 ### W0 evidence и воспроизведение
 
@@ -169,6 +170,7 @@ W0.3: `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode CARGO_BUILD_JOBS=4 NEX
 - 2026-11-04: цель создана, план заморожен.
 - 2026-11-04: R0 bounded checkpoint — стенд больше не скрывает failures, 23 paired observations; незапланированный TS fallback egress зафиксирован и закрыт kernel confinement для последующих запусков. W0.3 full gate воспроизвёл два PTY failure, control-card fixture исправлен до targeted GREEN; недоказанный sidebar follow-up перенесён перед R12 по owner directive. Full-run FAIL не закрывает R12.
 - 2026-11-04: W0 scoped Review-Sol PASS на фактическую последнюю версию; замечаний, требующих правки, нет. Rust runtime, storage schema и зависимости не изменены; чужой `progress/` не затронут.
+- 2026-11-04: W0 `398f93431` push origin/master PASS. Post-push checkpoint обновлён на W6; это только delivery/handoff metadata, не новая правка поведения.
 
 ## Completion
 - Resolved outcomes:
