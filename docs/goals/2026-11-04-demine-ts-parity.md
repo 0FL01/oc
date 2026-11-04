@@ -20,7 +20,7 @@ Owner continuation после принятого W0: продолжать W6 →
 - R0: Волна W0 выполнена: стенд не скрывает сбои, таблица сценариев TS↔Rust заполнена, причины нестабильности гейта диагностированы.
   - Acceptance: таблица в Current State; каждый сценарий имеет наблюдаемый результат; непроверенный случай не считается `not_applicable`.
   - Status: verified — W0.1/W0.2 и bounded W0.3 checkpoint выполнены; недоказанный sidebar failure сохранён для обязательного возврата перед R12 согласно owner execution directive.
-- R6: Каждый пункт W6: RED→GREEN или `not_applicable`; коммит и пуш волны. Status: in_progress — все W6 пункты имеют owner RED→GREEN, свежие три differential pairs PASS и актуальный code Review-Sol PASS. Остался commit/push.
+- R6: Каждый пункт W6: RED→GREEN или `not_applicable`; коммит и пуш волны. Status: verified — все W6 пункты имеют owner RED→GREEN, свежие три differential pairs PASS, актуальный code Review-Sol PASS; commit `a939a5d8d`, push origin/master PASS. Whole-gate/R12 остаётся pending, а не qualified PASS.
 - R7: Каждый пункт W7: RED→GREEN или `not_applicable`; коммит и пуш волны. Status: pending
 - R8: Каждый пункт W8: RED→GREEN или `not_applicable`; коммит и пуш волны. Status: pending
 - R9: Каждый пункт W9: RED→GREEN или `not_applicable`; коммит и пуш волны. Status: pending
@@ -114,19 +114,20 @@ Owner continuation после принятого W0: продолжать W6 →
 5. `/init` (TS `plugin/command.ts:29-40`), как встроенная команда рядом с `/review` (`composition.rs:1364-1373`).
 
 ## Current Checkpoint
-- Closes: R6
-- Smallest next action: commit/push проверенной W6, зафиксировать delivery и перейти к W7 без остановки на границе волны.
-- Expected evidence: future-version refusal до migrations/application recovery, исходные committed version/schema/data сохранены. Затем затронутые checks, wave acceptance/review/commit/push W6. Уже полученные subset GREEN/PASS не закрывают W6.5 или весь R6.
+- Closes: R7
+- Smallest next action: W7.1 owner RED для compound per-command Deny/opaque/zero-command и focused Rust port TS scan.ts/parse.ts (bash/zsh/posix, без tree-sitter/PowerShell). Read-only RECON owners/consumers/TS fixtures выполнен; W7 runtime edits ещё не начаты. Затем W7.2–7.6 с сохранением C3; mandatory `w7-multi-deny` match перед доставкой.
+- Expected evidence: непрозрачный ввод не достигает authorization/spawn; по-командный Deny предотвращает все эффекты compound input, zero-command сохраняет cwd pinning; остальной frozen W7 с GREEN/scoped Clippy/review/commit/push. Не принимать blanket opaque как parity поддержанных TS compound/substitution/heredoc fixtures.
 - Stop or replan if: расхождение требует ослабить C3, требуется миграция схемы или live; две подряд итерации без движения по R*.
 
 ## Current State
 - Resolved: R0 — W0.1 (видимые client/pair failures, проверяемый peer verdict, kernel loopback confinement), W0.2 (23 наблюдаемых сценария), W0.3 bounded checkpoint (control-card fixture RED→GREEN; недоказанный sidebar failure не скрыт и сохранён до R12).
-- Last relevant evidence: W6.1–4/6 owner RED→scoped GREEN; reconciliation 1/1, Messages/binding 11/11, TUI notice 1/1, headless 1/1, real-owner bootstrap 1/1 + три positive consumers. После Review-Sol P2: behavioral RED 4-й request → **GREEN 5/5**, актуальный Adapter all-target Clippy `-D warnings`, debug rebuild/fmt PASS; три свежие Rust↔TS пары (шесть клиентов) PASS. Актуальный scoped code rereview **PASS**, P2 закрыт. W6 в целом не принята и не доставлена.
-- Blocker: нет; mutation boundary уточнена Build-Opus, W6.5 продолжается. `target/release/oc2` отсутствует, нового расследования не требуется; для стенда используется проверенный `target/debug/oc2` через `OC2_BIN`. W6 release build не заявляется.
+- Last relevant evidence: W6 owner RED→GREEN всех пунктов, в том числе schema4/4, отказанный steer5/5 и четыре исправленных приёмочных cases; scoped/workspace Clippy `-D warnings`, fmt/diff-check PASS. Три финальные Rust↔TS пары PASS на debug SHA `9dfaf004…f8dcdc76`, актуальный code Review-Sol PASS всей W6; commit/push PASS. Whole-script остаётся FAIL2659/4 с последующим targeted GREEN, не R12 PASS.
+- Blocker: нет. `target/release/oc2` отсутствует, нового расследования не требуется; для стенда используется проверенный `target/debug/oc2` через `OC2_BIN`. W6 release build не заявляется; release пересобрать в R12.
 - W6.5: owner RED **FAIL 1/1** → schema-slice **PASS 4/4**, один прежний ignored copied-DB case. Future 22 теперь отказана до migrations/recovery; version/schema/BLOB/queued marker неизменны. Current21/legacy upgrade и прежний fingerprint GREEN, без schema bump/preflight/reader. Подробности приёмки ниже; предыдущий scoped review ещё не покрывает эти edits.
 - Review: тот же Review-Sol дал **актуальный code PASS всей W6** после W6.5 и четырёх приёмочных corrections (reviewed diff SHA256 `c700cd66c3afb085a9ab5586359e65e4ec5f11eb2d8a3cd6d4197f880fa1eedf`, 42 tracked files; остальные33 ранее reviewed files неизменны). Подтверждены storage guard/diagnostic consumers, содержательный future fixture и сохранение assertions/deadlines/load/security в corrections; независимо проверены шесть свежих paired roots и binary/peer hashes. Блокирующих замечаний нет, прежний P2 закрыт. Это **не whole-gate/R12 PASS**; reviewer сам tests/clients/Cargo не запускал. После review меняется только delivery/status metadata цели, не проверенный код.
 - Delivery: W0 `398f93431` (`test(parity): Establish an isolated W0 baseline`) закоммичен и **push PASS**: `cfe568403..398f93431 master -> master`, origin проверен как `git@github.com:0FL01/oc.git`. В репозитории доставлены Rust fixture/docs/эта цель; пять scripts остаются на явно разрешённом внешнем стенде, не входят в Git tree.
-- Next: закончить W6 и продолжать W7–W10/R11/R12 без остановок на границах волн. Текущий W6 diff собственный, ещё не staged/committed; чужой `progress/` не тронут. Перед R12 обязательно вернуться к full-only sidebar failure; whole-script PASS пока отсутствует.
+- Delivery W6: `a939a5d8d` (`fix(runtime): Preserve safe turn recovery and startup diagnostics`), **push PASS** `7330ab0ab..a939a5d8d master -> master`, origin `git@github.com:0FL01/oc.git`. Все42 tracked files вошли в коммит; внешние scripts/синтетические roots и ignored logs остаются на разрешённом стенде/в `.local/tmp`, не Git source tree.
+- Next: W7 → W8 → W9 → W10 → R11/R12 без остановок только из-за границ волн. Чужой `progress/` не тронут. Перед R12 обязательно вернуться к full-only sidebar failure; whole-script PASS пока отсутствует. После W6 review изменена только delivery/status metadata; отдельный code review этой metadata не нужен.
 
 ### W0 evidence и воспроизведение
 
@@ -248,7 +249,7 @@ BASE=/home/opencode/.cache/opencode-tmp/opencode/mcp-repro; port=19611; failed=0
   - nonobject: Rust `run-rust-w6-nonobject.eV5fBb`, TS `run-ts-w6-nonobject.SQw0pu`.
   - invalid-json: Rust `run-rust-w6-invalid-json.RDpCtw`, TS `run-ts-w6-invalid-json.VV7jJ7`.
   - length: Rust `run-rust-w6-length.JOMr5p`, TS `run-ts-w6-length.FalCdy`.
-- Проверенный actual-binary test build `target/debug/oc2` SHA256 `9dfaf0041e856d76e3794a04d1ed3cc92d6e08c9f9f8f8cf8c7ce363f8dcdc76`; external peer SHA256 `86a302a16e3021a264b6c8dc0ee9b332d9a44c180a87bc0213af321890178b5d`, остальные confinement scripts неизменны. Новых `not_applicable`, зависимостей/миграций нет. Release не пересобирался. Актуальный whole-wave **code Review-Sol PASS**, без блокирующих замечаний; delivery pending.
+- Проверенный actual-binary test build `target/debug/oc2` SHA256 `9dfaf0041e856d76e3794a04d1ed3cc92d6e08c9f9f8f8cf8c7ce363f8dcdc76`; external peer SHA256 `86a302a16e3021a264b6c8dc0ee9b332d9a44c180a87bc0213af321890178b5d`, остальные confinement scripts неизменны. Новых `not_applicable`, зависимостей/миграций нет. Release не пересобирался. Актуальный whole-wave **code Review-Sol PASS**, без блокирующих замечаний; `a939a5d8d` commit/push PASS.
 
 ## Checkpoint History
 - 2026-11-04: цель создана, план заморожен.
@@ -257,6 +258,7 @@ BASE=/home/opencode/.cache/opencode-tmp/opencode/mcp-repro; port=19611; failed=0
 - 2026-11-04: W0 `398f93431` push origin/master PASS. Post-push checkpoint обновлён на W6; это только delivery/handoff metadata, не новая правка поведения.
 - 2026-11-04: W6 начата: четыре owner RED assertions воспроизведены, finite TS length reference PASS; W6.5 boundary эскалирована, остальные части продолжаются. GREEN/Clippy/review/доставка W6 ещё pending; ни один новый outcome не объявлен verified.
 - 2026-11-04: W6.1a–c, 6.2–4, 6.6 реализованы с scoped GREEN/Clippy и semantic parity трёх случаев на свежем debug binary. Review-Sol P2 по refused steer воспроизведён real-owner regression и исправлен RED→GREEN 5/5; повторное code review **PASS subset**. W6.5 остаётся не реализована без owner decision; goal/R6 blocked, не whole-wave acceptance. Изменения не committed/pushed; никаких новых `not_applicable`, schema migrations или dependencies.
+- 2026-11-04: Build-Opus снял W6.5 boundary escalation как уточнение оркестратора (не owner decision). Минимальный guard/diagnostic получил owner RED→GREEN; whole W6 gate FAIL4 привёл только к corrections затронутых expectations/observers, все failed slices GREEN. Свежие три pairs и актуальный code Review-Sol **PASS всей W6**. `a939a5d8d` commit/push origin/master **PASS**, R6 verified; whole-gate/R12 не объявлены PASS. Следующий checkpoint W7.
 
 ## Completion
 - Resolved outcomes:
