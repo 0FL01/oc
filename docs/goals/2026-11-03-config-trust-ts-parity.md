@@ -1,6 +1,6 @@
 # Goal: W5. Config/trust/discovery (HIGH) — меняет AGENTS.md «Config — OC2 allowlist, fail-closed» → «неизвестные ключи игнорируются с diagnostic»
 
-Status: active
+Status: complete
 Source: user instruction 2026-11-03 — «паритет с oc2 TS без бесполезных сейфгард костылей»; «делай копию плана в цель и начинай процесс итеративного лечения, потом коммит пуш; не забыть актуализировать документацию, чтобы не было дивергенции документации и исходников». Plan v2 reviewed by 3× Review-Sol (wave W5 of W1–W5).
 Last updated: 2026-11-04
 
@@ -20,7 +20,7 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
 - R3: Checks pass: affected cargo test slices + scoped clippy `-D warnings`; `bash scripts/test.sh` once (one confirming run after diff-obsolete test corrections); release build + live rig where the wave has a live repro; Review-Sol PASS on the final diff. Under the continued owner acceptance rule, unchanged flaky cases require both another full-run PASS and an unchanged isolated PASS; diagnose failures without blind loops or weakening their oracle.
   - Status: verified with the existing qualified-acceptance rule, not whole-script PASS. Current review-fix evidence is affected TUI13/13, strict Clippy, release and final Sol CODE REVIEW PASS; historical full-gate failures remain recorded below.
 - R4: Commit + `git push origin master` (no force).
-  - Status: in_progress; publication is the only remaining outcome.
+  - Status: verified; implementation commit `933baf32a034a6156eb506bd3fae3c6cad8a8356` pushed successfully to `origin/master` without force.
 
 ### Constraints
 - C1: AGENTS.md cargo rules (CARGO_BUILD_JOBS=4, `-- --test-threads=4`, no parallel cargo, no clean, no CARGO_TARGET_DIR); tmp/logs in `.local/tmp`; test projects outside the worktree.
@@ -64,7 +64,7 @@ K4 capacity (skills/byte budget CapacityExceeded): startup composition.rs:1068-1
 
 ## Current Checkpoint
 - Closes: R1–R4
-- Smallest next action: closure check and ordinary commit/push of the reviewed W5 diff, then evidence-only completion and stop. General-Sol is the sole mutation/Cargo owner.
+- Smallest next action: none; final approved wave complete. Stop without opening another audit or backlog.
 
 ## Current State
 - Start: HEAD `b11fe7d53f8e1fe1b8fcf4fb199adf9b56a8a468`, master, tracked/staged clean; foreign `progress/` untouched. W1–W4 complete; this is the final approved wave.
@@ -86,6 +86,7 @@ K4 capacity (skills/byte budget CapacityExceeded): startup composition.rs:1068-1
 - Separately executed skipped tail PASS: zero doctests, debug build4m16s, help/version (`.local/tmp/w5-gate-tail.log`). Release build PASS12m31s, `target/release/oc2` (`.local/tmp/w5-release.log`). Real release headless proof PASS with isolated HOME/project/data and synthetic loopback model: safe excess-key warning, selected Build's legacy shell denial, no shell marker/grants, project Python MCP reports inherited-token/overlay booleans true, three requests and final continuation (`.local/tmp/w5-live.log`). First harness assertions used enum Debug spelling and denial state instead of actual public Display/failed refusal; inspected settled fixture effects before correcting only those expectations and using a fresh fixture. No raw referenced secret/environment dump; no remaining fixture product processes or user-owner signals/restarts.
 - Final independent Sol review found one reachable K3 delivery gap: a successfully connected MCP retained its file warning in the DTO, but Services and Enter-details ignored Connected rows. Nearest TUI regression first failed with `(issue_count, details_visible)=(0,false)` instead of `(1,true)` (`.local/tmp/w5-red-warning-ui.log`). Those existing consumers now expose a connected diagnostic without changing Connected/Disconnect, pending handling, composer or connection effects; CONFIG/TOOLS docs clarify the controls. All13 nearest Services/MCP/selector tests PASS0.050s (`.local/tmp/w5-green-warning-ui.log`). No other implementation finding was reported.
 - After the review fix: strict Clippy including the touched TUI owner PASS2m13s (`.local/tmp/w5-clippy-review.log`); final release build PASS13m07s (`.local/tmp/w5-release-final.log`), `target/release/oc2`. The headless proof's source path is unchanged; no duplicate live call or third full gate was needed under the affected-slice rule. Same Sol bounded follow-up CODE REVIEW PASS for the combined59-path version, session `ses_e5bae3125ffemNv4hIEhOzAW3R`, no remaining findings. This is not whole-gate or live/visual qualification.
+- Publication verified: closure confirmed the exact reviewed59-file scope, unchanged58 non-goal digest, current release, branch/HEAD/approved origin and empty prior staging. Commit `933baf32a034a6156eb506bd3fae3c6cad8a8356` (`fix(config): preserve legacy policy and align trust with TS`) pushed successfully (`b11fe7d53..933baf32a master -> master`); tracked tree clean afterward, only foreign `progress/`. This final update records evidence/status only; no behavior or policy changed after review.
 
 ## Material Decisions
 - 2026-11-03: owner approved plan v2; TS parity overrides self-invented safeguards; docs must follow code.
@@ -98,7 +99,7 @@ K4 capacity (skills/byte budget CapacityExceeded): startup composition.rs:1068-1
 - 2026-11-03: plan v2 frozen into this goal.
 
 ## Completion
-- Resolved outcomes: R1/R2/R3 verified with the explicit gate qualification above; R4 publication pending.
+- Resolved outcomes: R1–R4 verified; R3 retains the explicit qualified-gate and post-review affected-slice limits above.
 - Commands and artifacts: `.local/tmp/w5-review-files.txt` lists59 tracked paths; `.local/tmp/w5-review-artifacts.txt` lists ignored task evidence. Exact commands/results are recorded above. Reviewed58 non-goal path/content digest `de8ffaf200a7b9f06743c22656f485c013ecb87bb67482510cd843d5617f7f0a` remains unchanged by this status-only update.
-- Constraint and diff-scope check: no new dependencies/schema/migrations, historical goals/evidence and foreign `progress/` untouched; source/status/stderr protection, selected-profile/child/Plan authority and no-replay retained. Publication uses only the explicit reviewed manifest.
-- Final status: active pending commit/push, no implementation blocker or further audit/backlog work.
+- Constraint and diff-scope check: no new dependencies/schema/migrations, historical goals/evidence and foreign `progress/` untouched; source/status/stderr protection, selected-profile/child/Plan authority and no-replay retained. Publication used only the explicit reviewed manifest; ordinary approved-origin push succeeded.
+- Final status: complete. W1–W5 are closed; no remaining outcome or blocker and no further audit/backlog started. The original full-gate failures remain failures, not whole-product/paid/visual qualification.
